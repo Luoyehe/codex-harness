@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Shell syntax (all deploy scripts)
+        run: |
+          set -e
+          while IFS= read -r f; do bash -n "$f"; done < <(find deploy -name '*.sh')
+
+      - name: Node syntax (all .mjs)
+        run: |
+          set -e
+          while IFS= read -r f; do node --check "$f"; done < <(find . -name '*.mjs' -not -path './node_modules/*')
+
+      - name: Release audit (no secrets / junk in tree)
+        run: node scripts/release-audit.mjs .

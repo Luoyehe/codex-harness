@@ -1,0 +1,29 @@
+# Reference unit for manual setups; install.sh generates this automatically.
+# The gateway authenticates WebSocket clients with a token
+# (~/.codex/gateway-token, 600) plus a trusted-host allowlist (DNS-rebinding
+# defense) — but it is still loopback-only by design: remote access goes
+# through a TLS reverse proxy with forward-auth, never a direct port.
+[Unit]
+Description=Codex Harness WebUI gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# root keeps codex's bwrap sandbox fully functional; for a dedicated user on
+# Ubuntu 24.04+, allow unprivileged userns first:
+#   sysctl kernel.apparmor_restrict_unprivileged_userns=0
+User=root
+WorkingDirectory=/opt/codex-harness/apps/gateway
+Environment=HOST=127.0.0.1
+Environment=PORT=8080
+Environment=CODEX_HOME=/root/.codex
+Environment=CODEX_WORKSPACE=/root/codex-workspace
+# Extra env (Z_AI_API_KEY for the Zhipu HTTP MCP servers, etc.)
+EnvironmentFile=-/etc/codex-harness.env
+ExecStart=/usr/bin/node /opt/codex-harness/apps/gateway/dist/index.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
