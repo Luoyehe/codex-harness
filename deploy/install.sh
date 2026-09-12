@@ -2,7 +2,7 @@
 # Codex Harness WebUI — one-shot bare-metal installer.
 #
 # Simplest path:
-#   curl -fsSL https://raw.githubusercontent.com/OWNER/codex-harness/main/deploy/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Luoyehe/codex-harness/main/deploy/install.sh | bash
 # The script clones the repository itself, then runs the wizard.
 #
 # From a checkout:
@@ -21,13 +21,13 @@
 #   SERVICE_NAME    default: codex-harness
 #   NPM_REGISTRY    default: https://registry.npmmirror.com
 #   ENV_FILE        default: /etc/codex-harness.env
-#   REPO_URL        default: https://github.com/OWNER/codex-harness
+#   REPO_URL        default: https://github.com/Luoyehe/codex-harness
 set -euo pipefail
 
 # --- self-clone: support `curl ... | bash` without a checkout ---------------
 if [ ! -d "$(dirname "${BASH_SOURCE[0]}")/providers" ]; then
   command -v git >/dev/null 2>&1 || { echo "[install] git required"; exit 1; }
-  REPO_URL="${REPO_URL:-https://github.com/OWNER/codex-harness}"
+  REPO_URL="${REPO_URL:-https://github.com/Luoyehe/codex-harness}"
   CLONE_DIR="${CLONE_DIR:-$(pwd)/codex-harness}"
   echo "[install] not run from a checkout — cloning $REPO_URL to $CLONE_DIR"
   git clone --depth 1 "$REPO_URL" "$CLONE_DIR"
