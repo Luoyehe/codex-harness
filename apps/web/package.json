@@ -1,11 +1,12 @@
 {
   "name": "@codex-harness/web",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview"
   },
@@ -23,7 +24,8 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vitest": "^4.1.11"
   },
   "license": "MIT"
 }

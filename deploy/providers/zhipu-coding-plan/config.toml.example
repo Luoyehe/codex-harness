@@ -4,8 +4,8 @@
 # 使用方法：
 #   1. mkdir -p ~/.codex
 #   2. cp config.toml.example ~/.codex/config.toml   （本目录的 models.json 也一并拷过去）
-#   3. 把下方 experimental_bearer_token 的占位符替换成真实 Key
-#      （Coding Plan 专用 Key，与平台普通 Key 不通用）
+#   3. 在服务的 600 权限 EnvironmentFile 中设置 Z_AI_API_KEY
+#      （Coding Plan 专用 Key，与平台普通 Key 不通用；不要写入此文件）
 #   已装 coding-helper（chelper）的机器也可直接: chelper auth reload codex
 #
 # MCP 服务器（联网搜索/网页阅读/仓库阅读/视觉）请再运行同目录 setup.sh。
@@ -18,7 +18,7 @@ model_catalog_json = "~/.codex/models.json"
 [model_providers.ZAI]
 name = "ZAI"
 base_url = "https://open.bigmodel.cn/api/v1"
-experimental_bearer_token = "<你的智谱 Coding Plan API Key>"
+env_key = "Z_AI_API_KEY"
 wire_api = "responses"
 
 # ---------------------------------------------------------------------------

@@ -4,20 +4,24 @@
 # the zai vision server), each with the compatibility fixes this repo needed.
 #
 # Guided flow: fetches the live model catalog from the Coding Plan endpoint,
-# lets you pick a model (interactive), verifies the model's declared thinking
-# levels against the endpoint, and writes config + catalog accordingly.
+# lets you pick a model (interactive), and stages config + catalog. Checking
+# declared thinking levels with paid requests requires PROBE_REASONING=1.
 #
-# Prereq: your Coding Plan key in $ENV_FILE (default /etc/codex-harness.env):
+# Prereq: your Coding Plan key in $ENV_FILE (default $CODEX_HOME/secrets.env):
 #   Z_AI_API_KEY=xxxxx
 # Unattended overrides: ZHIPU_MODEL=<slug> (default glm-5.3 when present).
 set -euo pipefail
+umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${ENV_FILE:-/etc/codex-harness.env}"
+export PYTHONPATH="$SCRIPT_DIR/..${PYTHONPATH:+:$PYTHONPATH}"
+if [ "${HARNESS_PROVIDER_TRANSACTION:-0}" != "1" ]; then
+  exec python3 "$SCRIPT_DIR/../provider_transaction.py" zhipu "$0" "$@"
+fi
+ENV_FILE="${ENV_FILE:-${CODEX_HOME:-$HOME/.codex}/secrets.env}"
 CH="${CODEX_HOME:-$HOME/.codex}"
-# Config-set layout: this mode OWNS providers/zhipu/ as a fully self-contained
-# set; ~/.codex/config.toml is a symlink to it (../activate-config.sh). Every
-# write below targets the SET file, never the live link — switching modes
-# never edits this set.
+# This script runs inside a private candidate generation. All writes below
+# target the candidate set; the outer transaction publishes one active pointer
+# only after every configuration step succeeds and the whole set validates.
 SET_DIR="$CH/providers/zhipu"
 CONFIG="$SET_DIR/config.toml"
 LIVE="$CH/config.toml"
@@ -25,6 +29,39 @@ CATALOG_URL="https://open.bigmodel.cn/api/v1/models"
 RESPONSES_URL="https://open.bigmodel.cn/api/v1/responses"
 
 log() { echo "[zhipu-setup] $*"; }
+
+# WebUI/CLI may supply a replacement key. Persist it atomically in the one
+# canonical secret store; never pass it as argv or print it.
+if [ -n "${ZHIPU_KEY:-}" ]; then
+  ZHIPU_KEY="$ZHIPU_KEY" ENV_FILE="$ENV_FILE" python3 - <<'PY'
+import os, tempfile
+path = os.environ["ENV_FILE"]
+key = os.environ["ZHIPU_KEY"]
+if not key or len(key) > 16384 or any(ord(c) < 32 or ord(c) == 127 for c in key):
+    raise SystemExit("invalid ZHIPU_KEY")
+os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+old = []
+try:
+    old_stat = os.stat(path)
+    with open(path, encoding="utf-8") as f: old = f.read().splitlines()
+except FileNotFoundError:
+    old_stat = None
+    pass
+lines = [line for line in old if not line.startswith("Z_AI_API_KEY=")]
+quoted = '"' + key.replace('\\', '\\\\').replace('"', '\\"') + '"'
+lines.append("Z_AI_API_KEY=" + quoted)
+fd, tmp = tempfile.mkstemp(prefix=".codex-harness-env-", dir=os.path.dirname(path) or ".", text=True)
+try:
+    os.fchmod(fd, 0o600)
+    if old_stat is not None: os.fchown(fd, old_stat.st_uid, old_stat.st_gid)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n"); f.flush(); os.fsync(f.fileno())
+    os.replace(tmp, path)
+finally:
+    try: os.unlink(tmp)
+    except FileNotFoundError: pass
+PY
+fi
 
 if [ ! -f "$ENV_FILE" ] || ! grep -q '^Z_AI_API_KEY=.\+' "$ENV_FILE"; then
   cat >&2 <<EOF
@@ -35,12 +72,24 @@ EOF
 fi
 
 mkdir -p "$SET_DIR"
-KEY="$(grep -oP '(?<=^Z_AI_API_KEY=).*' "$ENV_FILE")"
-# Key lands in TOML strings — reject injection-capable characters (same as
-# custom-openai: die, not warn, because sed/TOML corruption is silent).
-case "$KEY" in
-  *[!A-Za-z0-9._\-]*) echo "[zhipu-setup] ERROR: Z_AI_API_KEY 含非法字符（仅允许字母/数字/点/下划线/连字符）" >&2; exit 1 ;;
-esac
+KEY="$(python3 - "$ENV_FILE" <<'PY'
+import shlex, sys
+for line in open(sys.argv[1], encoding="utf-8"):
+    if line.startswith("Z_AI_API_KEY="):
+        raw = line.split("=", 1)[1].strip()
+        values = shlex.split(raw, posix=True)
+        if len(values) == 1: print(values[0])
+PY
+)"
+case "$KEY" in *$'\n'*|*$'\r'*) echo "[zhipu-setup] ERROR: Z_AI_API_KEY 含控制字符" >&2; exit 1 ;; esac
+KEY="$KEY" python3 -c 'import os; v=os.environ["KEY"]; raise SystemExit(0 if 0 < len(v) <= 16384 and not any(ord(c)<32 or ord(c)==127 for c in v) else 1)' \
+  || { echo "[zhipu-setup] ERROR: Z_AI_API_KEY 为空、过长或含控制字符" >&2; exit 1; }
+
+# curl accepts a header file on stdin. Keep the bearer value out of
+# /proc/<pid>/cmdline while retaining normal curl exit/status behavior.
+zhipu_curl() {
+  printf 'Authorization: Bearer %s\n' "$KEY" | curl -H @- "$@"
+}
 # Migration: a pre-set-switching single config.toml seeds this set once
 # (activate-config.sh backs the original up when repointing the link).
 if [ ! -f "$CONFIG" ] && [ -f "$LIVE" ] && [ ! -L "$LIVE" ]; then
@@ -52,7 +101,7 @@ fi
 log "获取模型列表..."
 CATALOG_TMP="$(mktemp /tmp/codex-harness-catalog.XXXXXX.json)"
 trap 'rm -f "$CATALOG_TMP"' EXIT
-if curl -sf --max-time 20 "$CATALOG_URL" -H "Authorization: Bearer $KEY" -o "$CATALOG_TMP" 2>/dev/null \
+if zhipu_curl -sf --max-time 20 "$CATALOG_URL" -o "$CATALOG_TMP" 2>/dev/null \
    && python3 -c 'import json,sys;json.load(open(sys.argv[1]))["models"]' "$CATALOG_TMP" 2>/dev/null; then
   CATALOG_SRC="$CATALOG_TMP"
   log "已获取在线模型目录"
@@ -67,7 +116,7 @@ MODEL_EFFORT="max"
 MODEL_LEVELS=""
 pick_model() {
   python3 - "$CATALOG_SRC" "$MODEL" <<'PY'
-import json, sys
+import json, re, sys
 
 catalog, model = sys.argv[1], sys.argv[2]
 ms = json.load(open(catalog))["models"]
@@ -78,12 +127,18 @@ if entry is None:
     sys.stderr.write(f"模型 {model} 不在目录里；可用: {', '.join(m.get('slug','?') for m in ms)}\n")
     sys.exit(1)
 levels = [l["effort"] for l in entry.get("supported_reasoning_levels", []) if isinstance(l, dict) and l.get("effort")]
-print(entry.get("default_reasoning_level", "max"))
+effort = entry.get("default_reasoning_level", "max")
+if not isinstance(model, str) or not 0 < len(model) <= 256 or any(ord(c) < 32 or ord(c) == 127 for c in model):
+    raise SystemExit("invalid model id in catalog")
+if not isinstance(effort, str) or not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", effort):
+    raise SystemExit("invalid default reasoning level in catalog")
+levels = [level for level in levels if isinstance(level, str) and re.fullmatch(r"[a-z][a-z0-9-]{0,31}", level)]
+print(effort)
 print(" ".join(levels))
 print(model)
 PY
 }
-if [ -t 0 ] && python3 -c 'import json,sys;ms=json.load(open(sys.argv[1]))["models"];exit(0 if ms else 1)' "$CATALOG_SRC"; then
+if [ "${ZHIPU_SYNC_CATALOG:-0}" != "1" ] && [ -t 0 ] && python3 -c 'import json,sys;ms=json.load(open(sys.argv[1]))["models"];exit(0 if ms else 1)' "$CATALOG_SRC"; then
   # show the list, let the user pick by number
   mapfile -t SLUGS < <(python3 -c 'import json,sys;print("\n".join(m.get("slug","?") for m in json.load(open(sys.argv[1]))["models"]))' "$CATALOG_SRC")
   echo "Coding Plan 提供以下模型："
@@ -104,18 +159,26 @@ if PICK_OUT="$(pick_model)"; then
   MODEL_EFFORT="$(echo "$PICK_OUT" | sed -n 1p)"
   MODEL_LEVELS="$(echo "$PICK_OUT" | sed -n 2p)"
   MODEL="$(echo "$PICK_OUT" | sed -n 3p)"
+  if [ "${ZHIPU_SYNC_CATALOG:-0}" = "1" ]; then
+    case " $MODEL_LEVELS " in
+      *" ${ZHIPU_EFFORT:-} "*) MODEL_EFFORT="$ZHIPU_EFFORT" ;;
+      *) log "当前思考档位不在刷新目录中，未提交任何更改"; exit 1 ;;
+    esac
+  fi
 else
   die() { echo "[zhipu-setup] ERROR: $*" >&2; exit 1; }
   die "$PICK_OUT"
 fi
 
 # --- 3) verify the model's declared thinking levels against the endpoint ------
-if [ -n "$MODEL_LEVELS" ]; then
+if [ -n "$MODEL_LEVELS" ] && [ "${PROBE_REASONING:-0}" = "1" ]; then
+  log "将发送思考档位的真实 API 探测请求（可能计费）"
   VERIFIED=""
   for E in $MODEL_LEVELS; do
-    CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$RESPONSES_URL" \
-      -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \
-      -d "{\"model\":\"$MODEL\",\"input\":\"ping\",\"reasoning\":{\"effort\":\"$E\"},\"max_output_tokens\":16}" 2>/dev/null || echo 000)"
+    PAYLOAD="$(python3 -c 'import json,sys; print(json.dumps({"model":sys.argv[1],"input":"ping","reasoning":{"effort":sys.argv[2]},"max_output_tokens":16}))' "$MODEL" "$E")"
+    CODE="$(zhipu_curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$RESPONSES_URL" \
+      -H 'Content-Type: application/json' \
+      -d "$PAYLOAD" 2>/dev/null || echo 000)"
     if [ "$CODE" = "200" ]; then VERIFIED="$VERIFIED $E"; fi
   done
   # shellcheck disable=SC2086
@@ -129,90 +192,70 @@ if [ -n "$MODEL_LEVELS" ]; then
   else
     log "探测失败——沿用目录声明的档位（$MODEL_LEVELS）"
   fi
-else
+elif [ -z "$MODEL_LEVELS" ]; then
   log "该模型未声明思考档位（无 reasoning levels）"
+else
+  log "跳过付费思考档位探测；使用目录声明（设置 PROBE_REASONING=1 可显式探测）"
 fi
 
 # --- 4) write config + catalog -------------------------------------------------
 # fresh: from template; existing: force-write this mode's model keys (switching
 # from other providers keeps the rest of the user's config).
-if [ ! -f "$CONFIG" ]; then
-  sed -e "s|<你的智谱 Coding Plan API Key>|$KEY|" \
-      -e "s|^model = .*|model = \"$MODEL\"|" \
-      -e "s|^model_reasoning_effort = .*|model_reasoning_effort = \"$MODEL_EFFORT\"|" \
-      -e "s|model_catalog_json = .*|model_catalog_json = \"$(dirname "$CONFIG")/models.json\"|" \
-    "$SCRIPT_DIR/config.toml.example" > "$CONFIG"
-  log "config.toml 已从模板生成（模型: $MODEL，默认思考: $MODEL_EFFORT）"
-else
-  python3 - "$CONFIG" "$SCRIPT_DIR" "$KEY" "$MODEL" "$MODEL_EFFORT" <<'PY'
-import os, re, sys
+python3 - "$CONFIG" "$SCRIPT_DIR" "$MODEL" "$MODEL_EFFORT" <<'PY'
+import os, sys
 
-config, script_dir, key, model, effort = sys.argv[1:6]
-
-model_keys = {
-    "model_provider": '"ZAI"',
-    "model": f'"{model}"',
-    "model_reasoning_effort": f'"{effort}"',
-    # Absolute path: "~" would expand to $HOME, not CODEX_HOME, breaking
-    # isolated deployments (SERVICE_NAME/CODEX_HOME overrides).
-    "model_catalog_json": '"' + os.path.join(os.path.dirname(os.path.abspath(config)), "models.json") + '"',
+config, script_dir, model, effort = sys.argv[1:5]
+from toml_config import load_config, save_config
+source = config if os.path.exists(config) else os.path.join(script_dir, "config.toml.example")
+data = load_config(source)
+data.update({
+    "model": model,
+    "model_provider": "ZAI",
+    "model_reasoning_effort": effort,
+    "model_catalog_json": os.path.join(os.path.dirname(os.path.abspath(config)), "models.json"),
+})
+data["model_providers"] = {
+    "ZAI": {
+        "name": "Zhipu Coding Plan",
+        "base_url": "https://open.bigmodel.cn/api/v1",
+        "env_key": "Z_AI_API_KEY",
+        "wire_api": "responses",
+    }
 }
-zai_block = f'''[model_providers.ZAI]
-name = "ZAI"
-base_url = "https://open.bigmodel.cn/api/v1"
-experimental_bearer_token = "{key}"
-wire_api = "responses"'''
-
-lines = open(config).read().split("\n")
-
-def is_header(line):
-    return re.match(r"^\[[a-zA-Z_]", line) is not None
-
-# Drop existing top-level model keys and any [model_providers.*] blocks
-# (they belong to whichever provider was active before).
-out, i = [], 0
-while i < len(lines):
-    line = lines[i]
-    s = line.strip()
-    if any(re.match(rf"^{k}\s*=", s) for k in model_keys):
-        i += 1
-        continue
-    if re.match(r"^\[model_providers\.[^\]]+\]$", s) or s == "[model_providers]":
-        i += 1
-        while i < len(lines) and not is_header(lines[i]):
-            i += 1
-        continue
-    out.append(line)
-    i += 1
-
-# Prepend fresh model-source keys at the top of the file.
-fresh = "\n".join(f"{k} = {v}" for k, v in model_keys.items()) + f"\n\n{zai_block}\n"
-open(config, "w").write(fresh + "\n".join(out).lstrip("\n"))
-print("[zhipu-setup] 模型源键已写入（覆盖先前供应商设置）")
+save_config(config, data)
+print("[zhipu-setup] 模型源键已写入候选配置集")
 PY
-  log "已存在的 $CONFIG 保留其余内容，模型源已切换为智谱（$MODEL）"
-fi
-cp "$CATALOG_SRC" "$(dirname "$CONFIG")/models.json"
+log "模型源已切换为智谱（$MODEL），其它用户配置保留"
+VERIFIED="${VERIFIED:-}" python3 - "$CATALOG_SRC" "$(dirname "$CONFIG")/models.json" "$MODEL" "$MODEL_EFFORT" <<'PY'
+import json, os, sys
+from atomic_write import atomic_write
+catalog = json.load(open(sys.argv[1], encoding="utf-8"))
+verified = os.environ.get("VERIFIED", "").split()
+for entry in catalog["models"]:
+    if entry.get("slug") == sys.argv[3]:
+        entry["default_reasoning_level"] = sys.argv[4]
+        if verified:
+            entry["supported_reasoning_levels"] = [
+                level for level in entry.get("supported_reasoning_levels", [])
+                if isinstance(level, dict) and level.get("effort") in verified
+            ]
+atomic_write(sys.argv[2], json.dumps(catalog, ensure_ascii=False, indent=2) + "\n")
+PY
 
 # feature 开关（幂等）：[features] mcp_2026_07_28 = true
 python3 - "$CONFIG" <<'PY'
-import re, sys
+import sys
 config = sys.argv[1]
-text = open(config).read()
-if "mcp_2026_07_28" not in text:
-    if re.search(r"^\[features\]", text, re.M):
-        text = re.sub(r"^(\[features\])", r"\1\nmcp_2026_07_28 = true", text, count=1, flags=re.M)
-    else:
-        text = text.rstrip("\n") + "\n\n[features]\nmcp_2026_07_28 = true\n"
-    open(config, "w").write(text)
-    print("[zhipu-setup] feature mcp_2026_07_28 已开启")
-else:
-    print("[zhipu-setup] feature mcp_2026_07_28 已存在")
+# Ensure the feature in its actual table, including inline/dotted forms.
+from toml_config import load_config, save_config, table
+data = load_config(config)
+table(data, "features")["mcp_2026_07_28"] = True
+save_config(config, data)
+print("[zhipu-setup] feature mcp_2026_07_28 已开启")
 PY
 
 # --- 5) MCP 服务器（写入本模式配置集）-------------------------------------------
 CONFIG="$CONFIG" bash "$SCRIPT_DIR/setup-http-mcp.sh"
-set -a; . "$ENV_FILE"; set +a
 CONFIG="$CONFIG" bash "$SCRIPT_DIR/setup-zai-mcp.sh"
 
 # 注：fix-mcp-approval.sh 用于给"其它来源"已存在的 MCP 服务器补审批白名单
@@ -222,4 +265,4 @@ chmod 600 "$CONFIG" "$(dirname "$CONFIG")/models.json" 2>/dev/null || true
 
 bash "$SCRIPT_DIR/../activate-config.sh" zhipu
 log "完成。重启服务生效：sudo systemctl restart codex-harness"
-log "验证：node $SCRIPT_DIR/../../verify-mcp-tools.mjs"
+log "付费验收（仅显式启用）：HARNESS_ALLOW_PAID_TESTS=1 node $SCRIPT_DIR/../../verify-mcp-tools.mjs"

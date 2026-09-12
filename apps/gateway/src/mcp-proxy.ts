@@ -1,12 +1,16 @@
 /**
  * Handler for codex `item/tool/call` dynamic-tool server requests.
  *
- * With the mcp_2026_07_28 client, codex wraps MCP tools as dynamic tools and
- * delegates EXECUTION to the app-server client (this gateway). The MCP
- * stdio servers it spawns are only used for discovery; a tools/call never
- * reaches them. So the gateway executes the call itself against the
- * Zhipu HTTP endpoints and shapes the reply DynamicToolCallResponse expects.
+ * The pinned client's HTTP bridge namespaces delegate execution to this
+ * gateway. Only the three fixed namespaces below are routed here; this is
+ * not a generic executor for every configured stdio MCP server (notably the
+ * separate zai-mcp-server vision server). Approval metadata does not imply
+ * that a namespace should gain an HTTP executor.
  */
+
+import type { DynamicToolCallParams } from "../../../protocol/v2/DynamicToolCallParams.js";
+import type { DynamicToolCallResponse } from "../../../protocol/v2/DynamicToolCallResponse.js";
+import type { DynamicToolCallOutputContentItem } from "../../../protocol/v2/DynamicToolCallOutputContentItem.js";
 
 const ZHIPU_ENDPOINTS: Record<string, string> = {
   "web-search-prime": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp",
@@ -35,13 +39,15 @@ const MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
 
 /** Returns true when this gateway knows how to execute the namespace. */
 export function isProxyableToolCall(namespace: string | null): boolean {
-  return !!namespace && namespace in ZHIPU_ENDPOINTS;
+  return typeof namespace === "string" && Object.hasOwn(ZHIPU_ENDPOINTS, namespace);
 }
 
 async function fetchMcp(url: string, body: unknown): Promise<{ status: number; ctype: string; text: string }> {
+  if (!token()) throw new Error("Z_AI_API_KEY is not configured");
   const sid = sessionIds.get(url);
   const res = await fetch(url, {
     method: "POST",
+    redirect: "error",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream",
@@ -55,29 +61,50 @@ async function fetchMcp(url: string, body: unknown): Promise<{ status: number; c
   const sid2 = res.headers.get("mcp-session-id");
   if (sid2) sessionIds.set(url, sid2);
   const ctype = res.headers.get("content-type") ?? "";
-  let text = await res.text();
-  if (text.length > MAX_RESPONSE_BYTES) {
-    text = text.slice(0, MAX_RESPONSE_BYTES);
+  const declared = Number(res.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+    await res.body?.cancel().catch(() => {});
+    throw new Error(`MCP response exceeded ${MAX_RESPONSE_BYTES} bytes`);
   }
+  const chunks: Buffer[] = [];
+  let total = 0;
+  if (res.body) {
+    for await (const chunk of res.body) {
+      const bytes = Buffer.from(chunk);
+      total += bytes.byteLength;
+      if (total > MAX_RESPONSE_BYTES) {
+        await res.body.cancel().catch(() => {});
+        throw new Error(`MCP response exceeded ${MAX_RESPONSE_BYTES} bytes`);
+      }
+      chunks.push(bytes);
+    }
+  }
+  const text = Buffer.concat(chunks, total).toString("utf8");
   return { status: res.status, ctype, text };
 }
 
 /** Ensure an initialized session exists for this endpoint (deduped). */
 function ensureSession(url: string): Promise<void> {
-  if (sessionIds.has(url) || initialized.has(url)) return Promise.resolve();
+  if (initialized.has(url)) return Promise.resolve();
   const existing = initInFlight.get(url);
   if (existing) return existing;
   const p = (async () => {
     try {
       const init = await fetchMcp(url, {
         jsonrpc: "2.0",
-        id: 1,
+        id: nextMcpRequestId++,
         method: "initialize",
-        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "codex-harness-gateway", version: "0" } },
+        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "codex-harness-gateway", version: "1.0.1" } },
       });
       if (init.status >= 400) throw new Error(`MCP initialize failed: HTTP ${init.status}`);
+      const handshake = parsePayload(init.ctype, init.text);
+      if (!handshake?.result || handshake.error) throw new Error("MCP initialize returned an invalid response");
       await fetchMcp(url, { jsonrpc: "2.0", method: "notifications/initialized" });
       initialized.add(url);
+    } catch (error) {
+      sessionIds.delete(url);
+      initialized.delete(url);
+      throw error;
     } finally {
       initInFlight.delete(url);
     }
@@ -102,7 +129,7 @@ function parsePayload(ctype: string, text: string): any {
       if (!data) continue;
       try {
         const msg = JSON.parse(data);
-        if (msg.result) return msg;
+        if (msg?.result !== undefined || msg?.error !== undefined) return msg;
       } catch {
         /* skip */
       }
@@ -119,12 +146,8 @@ function parsePayload(ctype: string, text: string): any {
   return null;
 }
 
-export async function handleDynamicToolCall(params: {
-  namespace: string | null;
-  tool: string;
-  arguments: unknown;
-}): Promise<unknown> {
-  const url = params.namespace ? ZHIPU_ENDPOINTS[params.namespace] : undefined;
+export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, "namespace" | "tool" | "arguments">): Promise<DynamicToolCallResponse> {
+  const url = isProxyableToolCall(params.namespace) ? ZHIPU_ENDPOINTS[params.namespace!] : undefined;
   if (!url) throw new Error(`no executor for tool namespace: ${params.namespace}`);
 
   await ensureSession(url);
@@ -145,23 +168,35 @@ export async function handleDynamicToolCall(params: {
     res = await fetchMcp(url, callBody);
   }
   if (res.status >= 400) {
-    throw new Error(`MCP tools/call failed: HTTP ${res.status} ${res.text.slice(0, 200)}`);
+    throw new Error(`MCP tools/call failed: HTTP ${res.status}`);
   }
 
   const payload = parsePayload(res.ctype, res.text);
-  const content: any[] = payload?.result?.content ?? [];
+  if (payload?.id !== callBody.id || payload?.error || !payload?.result) {
+    throw new Error("MCP tools/call returned an invalid or error response");
+  }
+  const content: any[] = Array.isArray(payload.result.content) ? payload.result.content : [];
   const isError = payload?.result?.isError === true;
-  const contentItems = content
-    .filter((c) => c?.type === "text" && typeof c.text === "string")
-    .map((c) => ({ type: "inputText", text: c.text }));
-  // Non-text MCP content (images, resources) can't ride the inputText wire —
-  // represent it explicitly instead of silently dropping it.
-  const skipped = content.length - contentItems.length;
+  const contentItems: DynamicToolCallOutputContentItem[] = [];
+  let skipped = 0;
+  for (const item of content) {
+    if (item?.type === "text" && typeof item.text === "string") {
+      contentItems.push({ type: "inputText", text: item.text });
+    } else if ((item?.type === "image" || item?.type === "audio") && typeof item.data === "string"
+      && typeof item.mimeType === "string" && new RegExp(`^${item.type}/[A-Za-z0-9.+-]+$`).test(item.mimeType)
+      && item.data.length > 0 && item.data.length % 4 === 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) {
+      const url = `data:${item.mimeType};base64,${item.data}`;
+      contentItems.push(item.type === "image" ? { type: "inputImage", imageUrl: url } : { type: "inputAudio", audioUrl: url });
+    } else if (item?.type === "resource" && typeof item.resource?.text === "string") {
+      contentItems.push({ type: "inputText", text: item.resource.text });
+    } else skipped += 1;
+  }
+  if (skipped > 0) contentItems.push({ type: "inputText", text: `(${skipped} 个不支持的内容块已省略)` });
 
   return {
     contentItems: contentItems.length > 0
       ? contentItems
-      : [{ type: "inputText", text: `${res.text.slice(0, 2000) || "(empty response)"}${skipped > 0 ? `\n(${skipped} 个非文本内容块已省略)` : ""}` }],
+      : [{ type: "inputText", text: "(empty response)" }],
     success: !isError && !!payload?.result,
   };
 }

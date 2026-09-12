@@ -7,10 +7,11 @@
  * (token + trusted host, same gate as every other RPC). Commands are fixed
  * script paths with env-var parameters — never shell strings from the client.
  */
-import { spawn, spawnSync } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import type { ProviderInfoReader } from "./provider-info.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +20,105 @@ export const DEPLOY_DIR = path.resolve(HERE, "../../..", "deploy");
 const SERVICE_UNIT = process.env.GATEWAY_UNIT ?? "codex-harness";
 const SCRIPT_TIMEOUT_MS = 300_000;
 const OUTPUT_CAP = 64 * 1024;
+const ALLOWED_SCRIPTS = new Set([
+  "providers/openai/setup.sh",
+  "providers/zhipu-coding-plan/setup.sh",
+  "providers/custom-openai/setup.sh",
+  "setup-edge.sh",
+]);
+let scriptRunning = false;
+const SECRET_ENV_NAMES = ["Z_AI_API_KEY", "ZHIPU_KEY", "CUSTOM_API_KEY", "CUSTOM_OPENAI_API_KEY", "GATEWAY_TOKEN", "EDGE_PASS", "AUTH_PASS"];
+const execFileAsync = promisify(execFile);
+
+/** Remove credential-shaped values before any script or journal output is
+ * returned to the browser.  Deploy scripts must avoid printing secrets too;
+ * this is the final containment boundary. */
+export function redactSecrets(value: string, knownSecrets: string[] = []): string {
+  // Remove labelled credentials first. A short literal value such as "token"
+  // must not be allowed to rewrite the label before this pass sees it.
+  let redacted = value
+    .replace(/\b(Z_AI_API_KEY|ZHIPU_KEY|CUSTOM_API_KEY|CUSTOM_OPENAI_API_KEY|GATEWAY_TOKEN|EDGE_PASS|AUTH_PASS)\s*[:=]\s*(?:"(?:\\.|[^"\\])*"|'[^']*'|[^\s\r\n]*)/gi, "$1=[REDACTED]")
+    .replace(/\b((?:[A-Za-z0-9]+[_-])*(?:api[_-]?key|access[_-]?token|token|password|secret)|experimental_bearer_token)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;\r\n]*)/gi, "$1=[REDACTED]")
+    .replace(/\b(Authorization\s*:\s*Bearer|Bearer)\s+[A-Za-z0-9._~+\/-]{8,}/gi, "$1 [REDACTED]")
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]");
+  const literals = [...new Set([...knownSecrets, ...SECRET_ENV_NAMES.map((name) => process.env[name] ?? "")])]
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  for (const secret of literals) {
+    redacted = redacted.split(secret).join("[REDACTED]");
+  }
+  return redacted;
+}
+
+interface LineCapture {
+  push(chunk: string): void;
+  flush(): void;
+}
+
+/**
+ * A tail ring that only ever receives already-redacted complete lines.
+ * stdout and stderr use separate LineCapture instances so partial lines from
+ * different streams cannot be spliced together. Oversized lines are omitted
+ * whole: truncating one before redaction could expose a credential suffix.
+ */
+export class RedactedOutputRing {
+  private output = "";
+
+  constructor(
+    private readonly knownSecrets: string[],
+    private readonly cap = OUTPUT_CAP,
+    private readonly maxLineChars = OUTPUT_CAP,
+  ) {}
+
+  private appendSafe(value: string): void {
+    this.output = (this.output + value).slice(-this.cap);
+  }
+
+  appendMessage(value: string): void {
+    this.appendSafe(redactSecrets(value, this.knownSecrets));
+  }
+
+  stream(): LineCapture {
+    let pending = "";
+    let droppingOversizedLine = false;
+    const omit = () => this.appendSafe("[admin] output line omitted: exceeded 64 KiB\n");
+    return {
+      push: (chunk: string) => {
+        let rest = String(chunk);
+        while (rest.length > 0) {
+          const newline = rest.indexOf("\n");
+          const part = newline < 0 ? rest : rest.slice(0, newline);
+          if (!droppingOversizedLine) {
+            if (pending.length + part.length > this.maxLineChars) {
+              pending = "";
+              omit();
+              droppingOversizedLine = newline < 0;
+            } else {
+              pending += part;
+              if (newline >= 0) {
+                this.appendMessage(`${pending}\n`);
+                pending = "";
+              }
+            }
+          } else if (newline >= 0) {
+            droppingOversizedLine = false;
+          }
+          if (newline < 0) break;
+          rest = rest.slice(newline + 1);
+        }
+      },
+      flush: () => {
+        if (!droppingOversizedLine && pending) this.appendMessage(pending);
+        pending = "";
+        droppingOversizedLine = false;
+      },
+    };
+  }
+
+  value(): string {
+    return this.output;
+  }
+}
 
 export interface ScriptResult {
   code: number;
@@ -26,35 +126,69 @@ export interface ScriptResult {
 }
 
 /** Run a deploy script unattended (env-var driven), capture combined output. */
-export function runScript(script: string, env: Record<string, string>, timeoutMs = SCRIPT_TIMEOUT_MS): Promise<ScriptResult> {
+export function runScript(
+  script: string,
+  env: Record<string, string>,
+  timeoutMs = SCRIPT_TIMEOUT_MS,
+  spawnImpl: typeof spawn = spawn,
+): Promise<ScriptResult> {
+  if (!ALLOWED_SCRIPTS.has(script)) {
+    return Promise.resolve({ code: -1, output: "deploy script is not allowlisted" });
+  }
   const full = path.join(DEPLOY_DIR, script);
   if (!existsSync(full)) {
     return Promise.resolve({ code: -1, output: `script not found on the server: ${script}` });
   }
+  if (scriptRunning) return Promise.resolve({ code: 75, output: "已有服务器配置操作正在运行，请等待完成后重试" });
+  scriptRunning = true;
+  const secrets = SECRET_ENV_NAMES.map((name) => env[name]).filter((value): value is string => !!value);
   return new Promise((resolve) => {
-    const child = spawn("bash", [full], {
-      cwd: DEPLOY_DIR,
-      env: { ...process.env, ...env, DEPLOY_NONINTERACTIVE: "1" },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let out = "";
-    const clip = (s: string) => {
-      if (out.length < OUTPUT_CAP) out += s;
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawnImpl("bash", [full], {
+        cwd: DEPLOY_DIR,
+        env: { ...process.env, ...env, DEPLOY_NONINTERACTIVE: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: process.platform !== "win32",
+        windowsHide: true,
+      });
+    } catch (err: any) {
+      scriptRunning = false;
+      resolve({ code: -1, output: redactSecrets(`[admin] spawn failed: ${err?.message ?? String(err)}`, secrets) });
+      return;
+    }
+    const ring = new RedactedOutputRing(secrets);
+    const stdout = ring.stream();
+    const stderr = ring.stream();
+    let settled = false;
+    const finish = (result: ScriptResult) => {
+      if (settled) return;
+      settled = true;
+      stdout.flush();
+      stderr.flush();
+      if (result.output) ring.appendMessage(result.output);
+      scriptRunning = false;
+      clearTimeout(timer);
+      resolve({ ...result, output: ring.value() });
     };
-    child.stdout.on("data", (d: Buffer) => clip(d.toString()));
-    child.stderr.on("data", (d: Buffer) => clip(d.toString()));
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (chunk: string) => { if (!settled) stdout.push(chunk); });
+    child.stderr?.on("data", (chunk: string) => { if (!settled) stderr.push(chunk); });
+    child.stdout?.on("end", () => stdout.flush());
+    child.stderr?.on("end", () => stderr.flush());
     const timer = setTimeout(() => {
-      try { child.kill("SIGKILL"); } catch { /* already gone */ }
-      clip("\n[admin] script timed out");
-      resolve({ code: 124, output: out });
+      try {
+        if (process.platform !== "win32" && child.pid) process.kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
+      } catch { /* already gone */ }
+      finish({ code: 124, output: "\n[admin] script timed out" });
     }, timeoutMs);
     child.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({ code: code ?? -1, output: out });
+      finish({ code: code ?? -1, output: "" });
     });
     child.on("error", (err) => {
-      clearTimeout(timer);
-      resolve({ code: -1, output: `${out}\n[admin] spawn failed: ${err.message}` });
+      finish({ code: -1, output: `\n[admin] spawn failed: ${err.message}` });
     });
   });
 }
@@ -67,64 +201,101 @@ export function runScript(script: string, env: Record<string, string>, timeoutMs
 export function scheduleServiceRestart(): void {
   setTimeout(() => {
     try {
-      spawn("systemctl", ["restart", SERVICE_UNIT], { detached: true, stdio: "ignore" }).unref();
+      const helper = process.env.CODEX_HARNESS_ADMIN_HELPER ?? "/usr/local/libexec/codex-harness-admin";
+      const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+      const command = existsSync(helper) ? (isRoot ? helper : "sudo") : "systemctl";
+      const args = existsSync(helper)
+        ? (isRoot ? ["restart-service"] : ["-n", helper, "restart-service"])
+        : ["restart", SERVICE_UNIT];
+      const child = spawn(command, args, { detached: true, stdio: "ignore", windowsHide: true });
+      child.on("error", (err) => process.stderr.write(`[admin] restart failed: ${err.message}\n`));
+      child.unref();
     } catch (err: any) {
       process.stderr.write(`[admin] restart scheduling failed: ${err?.message}\n`);
     }
   }, 1_000);
 }
 
-export function serviceStatus(): { unit: string; active: string; healthz: string } {
+export async function serviceStatus(
+  codexState: string,
+  clients = 0,
+  execute: typeof execFileAsync = execFileAsync,
+): Promise<{ unit: string; active: string; healthz: string }> {
   let active = "unknown";
   try {
-    const r = spawnSync("systemctl", ["is-active", SERVICE_UNIT], { encoding: "utf8", timeout: 5_000 });
-    const out = (r.stdout ?? "").trim();
+    const r = await execute("systemctl", ["is-active", SERVICE_UNIT], { encoding: "utf8", timeout: 5_000, windowsHide: true });
+    const out = String(r.stdout ?? "").trim();
     if (out) active = out;
-  } catch { /* keep unknown */ }
-  let healthz = "";
-  try {
-    const port = process.env.PORT ?? "8410";
-    const res = spawnSync("curl", ["-s", "-m", "3", `http://127.0.0.1:${port}/healthz`], { encoding: "utf8", timeout: 5_000 });
-    healthz = (res.stdout ?? "").trim();
-  } catch { /* empty */ }
-  return { unit: SERVICE_UNIT, active, healthz };
+  } catch (err: any) {
+    // is-active uses a nonzero exit status for ordinary inactive units.
+    const out = typeof err?.stdout === "string" ? err.stdout.trim() : "";
+    if (out) active = out;
+  }
+  // This is the same in-process state used by /healthz. Never synchronously
+  // request our own HTTP server: that blocks its event loop until timeout.
+  return { unit: SERVICE_UNIT, active, healthz: JSON.stringify({ ok: true, codexState, clients }) };
 }
 
-export function recentLogs(lines = 80): string {
+export async function recentLogs(
+  lines = 80,
+  execute: typeof execFileAsync = execFileAsync,
+  runtime: { helper?: string; exists?: typeof existsSync; isRoot?: boolean } = {},
+): Promise<string> {
+  const count = Number.isFinite(lines) ? Math.max(1, Math.min(300, Math.trunc(lines))) : 80;
+  const helper = runtime.helper ?? process.env.CODEX_HARNESS_ADMIN_HELPER ?? "/usr/local/libexec/codex-harness-admin";
+  const hasHelper = (runtime.exists ?? existsSync)(helper);
+  const isRoot = runtime.isRoot ?? (typeof process.getuid === "function" && process.getuid() === 0);
+  // Installed services receive only the fixed instance-scoped helper grant.
+  // Never pass caller-controlled line counts or unit names through sudo.
+  const command = hasHelper ? (isRoot ? helper : "sudo") : "journalctl";
+  const args = hasHelper
+    ? (isRoot ? ["recent-logs"] : ["-n", helper, "recent-logs"])
+    : ["-u", SERVICE_UNIT, "-n", String(count), "--no-pager", "-o", "short"];
   try {
-    const r = spawnSync("journalctl", ["-u", SERVICE_UNIT, "-n", String(lines), "--no-pager", "-o", "short"], {
+    const r = await execute(command, args, {
       encoding: "utf8",
       timeout: 5_000,
       maxBuffer: 512 * 1024,
+      windowsHide: true,
     });
-    return (r.stdout ?? "").slice(-OUTPUT_CAP);
-  } catch (err: any) {
-    return `journalctl failed: ${err?.message}`;
+    // Redact before taking the tail. Clipping first can cut the label or the
+    // leading bytes off a secret and leave an unrecognisable secret suffix in
+    // the returned journal excerpt.
+    const redacted = redactSecrets(r.stdout ?? "");
+    const trailingNewline = redacted.endsWith("\n");
+    const rows = redacted.split("\n");
+    if (trailingNewline) rows.pop();
+    return (rows.slice(-count).join("\n") + (trailingNewline ? "\n" : "")).slice(-OUTPUT_CAP);
+  } catch (err) {
+    return redactSecrets(`journalctl failed: ${err instanceof Error ? err.message : String(err)}`).slice(-OUTPUT_CAP);
   }
 }
 
 /**
  * One-click catalog sync: re-runs the ACTIVE provider's setup script
  * unattended with the current settings, which re-fetches the live model
- * catalog, re-probes the reasoning levels and rewrites models.json. The
- * caller schedules the restart afterwards.
+ * catalog and rewrites models.json. Paid reasoning probes remain an explicit
+ * setup-script opt-in. The caller schedules the restart afterwards.
  */
 export async function syncCatalog(providerInfo: ProviderInfoReader): Promise<ScriptResult & { mode: string }> {
-  const { mode, model } = providerInfo.readModeAndModel();
+  const { mode, model, custom } = providerInfo.adminSnapshot();
   const env: Record<string, string> = { CODEX_HOME: process.env.CODEX_HOME ?? "" };
   if (mode === "zhipu") {
-    env.ZHIPU_MODEL = model || "glm-5.3";
+    env.ZHIPU_SYNC_CATALOG = "1";
+    env.PROBE_REASONING = "0";
     const r = await runScript("providers/zhipu-coding-plan/setup.sh", env);
     return { ...r, mode };
   }
   if (mode === "custom") {
-    const ep = providerInfo.customEndpoint();
+    const ep = custom;
     if (!ep) return { code: -1, output: "custom 端点信息无法从 config.toml 解析（base_url 缺失）", mode };
     const r = await runScript("providers/custom-openai/setup.sh", {
       ...env,
       CUSTOM_BASE_URL: ep.baseUrl,
       CUSTOM_MODEL: model || "",
-      CUSTOM_API_KEY: ep.token,
+      CUSTOM_REUSE_API_KEY: "1",
+      CUSTOM_SYNC_CATALOG: "1",
+      PROBE_REASONING: "0",
       CUSTOM_CTX: String(ep.ctx),
       CUSTOM_VISION: ep.vision ? "1" : "0",
     });

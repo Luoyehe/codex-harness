@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { gateway } from "../api/ws";
-import { useStore, type Display } from "../store";
+import { useStore } from "../store";
+import { clampedInteger, validatedApiBaseUrl, validatedHostname } from "../utils/validation";
 
 /**
  * Settings modal — organized by scope, matching the user's mental model:
@@ -170,8 +171,13 @@ function McpSection() {
     <section>
       <div className="settings-label">MCP 服务器</div>
       {connection !== "open" && <div className="dim">网关未连接，状态可能过期</div>}
-      {mcpServers.map((m: any) => {
-        const tools = Object.values(m.tools ?? {}) as Array<{ name?: string; description?: string }>;
+      {mcpServers.map((m) => {
+        const tools = (Object.values(m.tools ?? {}) as Array<{ name?: string; description?: string }>)
+          .slice(0, 500)
+          .map((tool) => ({
+            name: typeof tool?.name === "string" ? tool.name.slice(0, 256) : undefined,
+            description: typeof tool?.description === "string" ? tool.description.slice(0, 2_000) : undefined,
+          }));
         const healthy = tools.length > 0;
         return (
           <div key={m.name} className={`mcp-card ${healthy ? "" : "mcp-card-stale"}`}>
@@ -207,8 +213,16 @@ function McpSection() {
 interface AdminResult {
   ok: boolean;
   restarting: boolean;
-  output: string;
+  output?: string;
   mode?: string;
+}
+
+function redactKnownSecrets(output: unknown, secrets: string[]): string {
+  let text = typeof output === "string" ? output : output == null ? "" : String(output);
+  for (const secret of secrets) {
+    if (secret) text = text.split(secret).join("[REDACTED]");
+  }
+  return text;
 }
 
 function ServerTab() {
@@ -223,6 +237,8 @@ function ServerTab() {
   // them, a click looks like "nothing happened".
   const resultRef = useRef<HTMLDivElement>(null);
   const logsRef = useRef<HTMLDivElement>(null);
+  const busyRef = useRef(false);
+  const logsRequestSeq = useRef(0);
 
   const scrollTo = (ref: RefObject<HTMLDivElement | null>) => {
     window.setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
@@ -238,30 +254,110 @@ function ServerTab() {
   // remote access form
   const [edgeDomain, setEdgeDomain] = useState("");
   const [edgePort, setEdgePort] = useState(443);
-  const [edgeTls, setEdgeTls] = useState<"selfsigned" | "own">("selfsigned");
+  const [edgeTls, setEdgeTls] = useState<"auto" | "selfsigned" | "own">("auto");
   const [edgeCertDir, setEdgeCertDir] = useState("");
   const [edgeUser, setEdgeUser] = useState("admin");
   const [edgePass, setEdgePass] = useState("");
 
+  const validCustomUrl = validatedApiBaseUrl(customUrl);
+  const validEdgeDomain = validatedHostname(edgeDomain);
+  const validEdgeCertDir = edgeTls !== "own" || edgeCertDir.trim().startsWith("/");
+
   useEffect(() => {
-    void gateway.rpc<any>("admin/status").then(setStatus).catch(() => {});
+    let cancelled = false;
+    const generation = gateway.generation;
+    void gateway.rpc<any>("admin/status").then((next) => {
+      if (!cancelled && generation === gateway.generation) setStatus(next);
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+      logsRequestSeq.current += 1;
+    };
   }, []);
 
-  async function run(label: string, fn: () => Promise<AdminResult>) {
+  async function run(label: string, fn: () => Promise<AdminResult>, secrets: string[] = []) {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(label);
     setResult(null);
     try {
-      setResult(await fn());
+      const next = await fn();
+      setResult({ ...next, output: redactKnownSecrets(next.output, secrets) });
     } catch (err: any) {
-      setResult({ ok: false, restarting: false, output: err?.message ?? String(err) });
+      setResult({
+        ok: false,
+        restarting: false,
+        output: redactKnownSecrets(err?.message ?? String(err), secrets),
+      });
     } finally {
+      busyRef.current = false;
       setBusy(null);
       scrollTo(resultRef);
-      void gateway.rpc<any>("admin/status").then(setStatus).catch(() => {});
+      const generation = gateway.generation;
+      void gateway.rpc<any>("admin/status").then((next) => {
+        if (generation === gateway.generation) setStatus(next);
+      }).catch(() => {});
     }
   }
 
   const restarting = result?.restarting && connection !== "open";
+
+  function switchToOpenAi(): void {
+    setZhipuKey("");
+    setCustomKey("");
+    void run("openai", () => gateway.rpc<any>("admin/provider/switch", { mode: "openai" }));
+  }
+
+  function configureZhipu(): void {
+    const key = zhipuKey.trim();
+    const model = zhipuModel.trim().slice(0, 256);
+    setZhipuKey("");
+    void run(
+      "zhipu",
+      () => gateway.rpc<any>("admin/provider/switch", {
+        mode: "zhipu",
+        zhipuKey: key || undefined,
+        model: model || undefined,
+      }),
+      [key],
+    );
+  }
+
+  function configureCustom(): void {
+    if (!validCustomUrl || !customModel.trim()) return;
+    const key = customKey;
+    const model = customModel.trim().slice(0, 256);
+    setCustomKey("");
+    void run(
+      "custom",
+      () => gateway.rpc<any>("admin/provider/switch", {
+        mode: "custom",
+        customBaseUrl: validCustomUrl,
+        customModel: model,
+        customApiKey: key,
+        customVision,
+      }),
+      [key],
+    );
+  }
+
+  function configureEdge(): void {
+    if (!validEdgeDomain || !validEdgeCertDir) return;
+    const password = edgePass;
+    setEdgePass("");
+    void run(
+      "edge",
+      () => gateway.rpc<any>("admin/edge/config", {
+        domain: validEdgeDomain,
+        listenPort: clampedInteger(edgePort, 1, 65_535, 443),
+        tls: edgeTls,
+        certDir: edgeCertDir.trim().slice(0, 4_096) || undefined,
+        username: edgeUser.trim().slice(0, 64) || undefined,
+        password: password || undefined,
+      }),
+      [password],
+    );
+  }
 
   return (
     <div className="settings-body">
@@ -299,28 +395,35 @@ function ServerTab() {
             onClick={() => {
               // Toggle: a second click collapses the (long) log block.
               if (logs !== null && !logsLoading) {
+                logsRequestSeq.current += 1;
                 setLogs(null);
                 return;
               }
+              const request = ++logsRequestSeq.current;
+              const generation = gateway.generation;
               setLogsLoading(true);
               setLogs("日志加载中…");
               void gateway.rpc<any>("admin/logs", { lines: 80 })
                 .then((r) => {
+                  if (request !== logsRequestSeq.current || generation !== gateway.generation) return;
                   setLogs(r?.logs ?? "(无日志)");
                   scrollTo(logsRef);
                 })
                 .catch((e) => {
+                  if (request !== logsRequestSeq.current || generation !== gateway.generation) return;
                   setLogs(`日志加载失败: ${e?.message ?? e}`);
                   scrollTo(logsRef);
                 })
-                .finally(() => setLogsLoading(false));
+                .finally(() => {
+                  if (request === logsRequestSeq.current) setLogsLoading(false);
+                });
             }}
           >
             {logsLoading ? "日志加载中…" : logs !== null ? "收起日志" : "查看服务日志"}
           </button>
         </div>
         <div className="dim settings-hint">
-          同步会从模型源拉取最新目录并重新探测思考档位（与安装脚本同一流程），完成后自动重启服务生效。
+          同步会从模型源拉取最新目录并保留已知能力，不发起付费思考档位探测；完成后自动重启服务生效。
         </div>
       </section>
 
@@ -329,11 +432,11 @@ function ServerTab() {
 
         <div className="admin-card">
           <div className="admin-card-title">1 · OpenAI / ChatGPT 原生</div>
-          <div className="dim">移除激活配置软链，回到零配置原生模式；其它模式的配置集保留。切换后可用页面右上角设备码登录。</div>
+          <div className="dim">启用空的受管理配置，使用 Codex 原生默认值；其它模式的配置与密钥保留。切换后可用页面右上角设备码登录。</div>
           <button
             className="btn-primary"
             disabled={!!busy || providerMode === "openai"}
-            onClick={() => run("openai", () => gateway.rpc<any>("admin/provider/switch", { mode: "openai" }))}
+            onClick={switchToOpenAi}
           >
             {providerMode === "openai" ? "当前模式" : busy === "openai" ? "切换中…" : "切换到 OpenAI 原生"}
           </button>
@@ -347,37 +450,50 @@ function ServerTab() {
               placeholder="API Key（留空使用服务器已保存的 Key）"
               value={zhipuKey}
               onChange={(e) => setZhipuKey(e.target.value)}
+              maxLength={8_192}
+              autoComplete="new-password"
+              spellCheck={false}
             />
             <input
               type="text"
               placeholder="模型 slug（留空 = 默认 glm-5.3；切换后可在同步里重选）"
               value={zhipuModel}
               onChange={(e) => setZhipuModel(e.target.value)}
+              maxLength={256}
+              spellCheck={false}
             />
           </div>
           <button
             className="btn-primary"
-            disabled={!!busy || providerMode === "zhipu"}
-            onClick={() =>
-              run("zhipu", () =>
-                gateway.rpc<any>("admin/provider/switch", {
-                  mode: "zhipu",
-                  zhipuKey: zhipuKey || undefined,
-                  model: zhipuModel || undefined,
-                }),
-              )
-            }
+            disabled={!!busy}
+            onClick={configureZhipu}
           >
-            {providerMode === "zhipu" ? "当前模式（可重跑以换 Key/模型）" : busy === "zhipu" ? "切换中…" : "切换到智谱 Coding Plan"}
+            {busy === "zhipu" ? "配置中…" : providerMode === "zhipu" ? "更新智谱 Key / 模型" : "切换到智谱 Coding Plan"}
           </button>
         </div>
 
         <div className="admin-card">
           <div className="admin-card-title">3 · 自定义 OpenAI 兼容 API（vLLM / 中转站）</div>
           <div className="admin-form">
-            <input type="text" placeholder="base_url，如 http://127.0.0.1:8000/v1（需 /responses）" value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} />
-            <input type="text" placeholder="模型 id" value={customModel} onChange={(e) => setCustomModel(e.target.value)} />
-            <input type="password" placeholder="API Key（本地无鉴权服务留空）" value={customKey} onChange={(e) => setCustomKey(e.target.value)} />
+            <input
+              type="url"
+              placeholder="base_url，如 http://127.0.0.1:8000/v1（需 /responses）"
+              value={customUrl}
+              onChange={(e) => setCustomUrl(e.target.value)}
+              maxLength={2_048}
+              spellCheck={false}
+            />
+            {customUrl.trim() && !validCustomUrl && <div className="error-text">端点必须是无内嵌账号、查询参数或片段的 http:// 或 https:// URL</div>}
+            <input type="text" placeholder="模型 id" value={customModel} onChange={(e) => setCustomModel(e.target.value)} maxLength={256} spellCheck={false} />
+            <input
+              type="password"
+              placeholder="API Key（本地无鉴权服务留空）"
+              value={customKey}
+              onChange={(e) => setCustomKey(e.target.value)}
+              maxLength={8_192}
+              autoComplete="new-password"
+              spellCheck={false}
+            />
             <label className="toggle-row">
               <span className="toggle-text"><span className="toggle-label">端点支持图片输入</span></span>
               <input type="checkbox" checked={customVision} onChange={(e) => setCustomVision(e.target.checked)} />
@@ -385,20 +501,10 @@ function ServerTab() {
           </div>
           <button
             className="btn-primary"
-            disabled={!!busy || !customUrl.trim() || !customModel.trim()}
-            onClick={() =>
-              run("custom", () =>
-                gateway.rpc<any>("admin/provider/switch", {
-                  mode: "custom",
-                  customBaseUrl: customUrl.trim(),
-                  customModel: customModel.trim(),
-                  customApiKey: customKey,
-                  customVision,
-                }),
-              )
-            }
+            disabled={!!busy || !validCustomUrl || !customModel.trim()}
+            onClick={configureCustom}
           >
-            {providerMode === "custom" ? "重新配置自定义 API" : busy === "custom" ? "切换中…" : "切换到自定义 API"}
+            {busy === "custom" ? "配置中…" : providerMode === "custom" ? "重新配置自定义 API" : "切换到自定义 API"}
           </button>
         </div>
       </section>
@@ -408,38 +514,54 @@ function ServerTab() {
       <section>
         <div className="settings-label">远程访问（Caddy + Authelia HTTPS）</div>
         <div className="dim settings-hint">
-          配置对外域名与登录账号；向导会自动装好 Caddy + Authelia、注册网关信任列表并重载。已在服务器配置过则保持不变。
+          这是 root 级系统配置。默认非 root 服务会给出安全提示，请在服务器运行 sudo codex-harness edge；仅旧式 root 服务可从此表单直接应用。
         </div>
         <div className="admin-form">
-          <input type="text" placeholder="对外域名，如 codex.example.com" value={edgeDomain} onChange={(e) => setEdgeDomain(e.target.value)} />
-          <input type="number" placeholder="HTTPS 端口（默认 443）" value={edgePort} onChange={(e) => setEdgePort(Number(e.target.value) || 443)} />
+          <input type="text" placeholder="对外域名，如 codex.example.com" value={edgeDomain} onChange={(e) => setEdgeDomain(e.target.value)} maxLength={253} spellCheck={false} />
+          {edgeDomain.trim() && !validEdgeDomain && <div className="error-text">只填写主机名，不要包含协议、端口或路径</div>}
+          <input
+            type="number"
+            placeholder="HTTPS 端口（默认 443）"
+            value={edgePort}
+            min={1}
+            max={65_535}
+            step={1}
+            onChange={(e) => setEdgePort(clampedInteger(e.target.valueAsNumber, 1, 65_535, 443))}
+          />
           <div className="seg-group">
+            <button className={`seg ${edgeTls === "auto" ? "active" : ""}`} onClick={() => setEdgeTls("auto")}>自动 ACME</button>
             <button className={`seg ${edgeTls === "selfsigned" ? "active" : ""}`} onClick={() => setEdgeTls("selfsigned")}>自签证书</button>
             <button className={`seg ${edgeTls === "own" ? "active" : ""}`} onClick={() => setEdgeTls("own")}>自有证书</button>
           </div>
           {edgeTls === "own" && (
-            <input type="text" placeholder="证书目录（cert.pem+key.pem 等）" value={edgeCertDir} onChange={(e) => setEdgeCertDir(e.target.value)} />
+            <>
+              <input type="text" placeholder="证书目录（cert.pem+key.pem 等）" value={edgeCertDir} onChange={(e) => setEdgeCertDir(e.target.value)} maxLength={4_096} spellCheck={false} />
+              {!validEdgeCertDir && <div className="error-text">自有证书目录必须是绝对路径</div>}
+            </>
           )}
-          <input type="text" placeholder="Authelia 登录用户名（默认 admin；已配置则忽略）" value={edgeUser} onChange={(e) => setEdgeUser(e.target.value)} />
-          <input type="password" placeholder="Authelia 密码（已配置则忽略；留空自动生成）" value={edgePass} onChange={(e) => setEdgePass(e.target.value)} />
+          <input type="text" placeholder="Authelia 登录用户名（默认 admin；已配置则忽略）" value={edgeUser} onChange={(e) => setEdgeUser(e.target.value)} maxLength={64} autoComplete="username" />
+          <input
+            type="password"
+            placeholder="Authelia 密码（已配置则忽略；留空自动生成）"
+            value={edgePass}
+            onChange={(e) => setEdgePass(e.target.value)}
+            maxLength={1_024}
+            autoComplete="new-password"
+          />
         </div>
         <button
           className="btn-primary"
-          disabled={!!busy || !edgeDomain.trim()}
-          onClick={() =>
-            run("edge", () =>
-              gateway.rpc<any>("admin/edge/config", {
-                domain: edgeDomain.trim(),
-                listenPort: edgePort,
-                tls: edgeTls,
-                certDir: edgeCertDir || undefined,
-                username: edgeUser || undefined,
-                password: edgePass || undefined,
-              }),
-            )
-          }
+          disabled={!!busy || !validEdgeDomain || !validEdgeCertDir}
+          onClick={configureEdge}
         >
           {busy === "edge" ? "配置中…" : "应用远程访问配置"}
+        </button>
+        <button
+          className="btn"
+          disabled={!!busy}
+          onClick={() => run("edge-disable", () => gateway.rpc<any>("admin/edge/config", { disable: true }))}
+        >
+          {busy === "edge-disable" ? "关闭中…" : "关闭远程访问（恢复仅本机/SSH 隧道）"}
         </button>
       </section>
 

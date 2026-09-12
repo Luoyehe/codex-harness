@@ -1,0 +1,86 @@
+name: Codex compatibility watch
+
+on:
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Compare pinned and published Codex versions
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          pinned="$(sed -n 's/^CODEX_VERSION="\([^"]*\)".*/\1/p' deploy/install.sh)"
+          latest="$(npm view @openai/codex version)"
+          [[ "$pinned" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'invalid pinned version' >&2; exit 1; }
+          [[ "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'invalid published version' >&2; exit 1; }
+          printf 'pinned=%s\nlatest=%s\n' "$pinned" "$latest" >> "$GITHUB_OUTPUT"
+          if [ "$pinned" = "$latest" ]; then echo 'changed=false' >> "$GITHUB_OUTPUT"; else echo 'changed=true' >> "$GITHUB_OUTPUT"; fi
+      - name: Generate candidate protocol and run repository checks
+        if: steps.versions.outputs.changed == 'true'
+        id: candidate
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+          baseline="$RUNNER_TEMP/pinned-protocol"
+          cp -a protocol "$baseline"
+          tsconfig="$RUNNER_TEMP/protocol-tsconfig.json"
+          cp protocol/tsconfig.json "$tsconfig"
+          rm -rf protocol
+          mkdir protocol
+          cp "$tsconfig" protocol/tsconfig.json
+          pnpm dlx "@openai/codex@${{ steps.versions.outputs.latest }}" app-server generate-ts --out protocol
+          {
+            echo '## Candidate protocol diff (first 300 lines)'
+            echo '```diff'
+            diff -ru --exclude=tsconfig.json "$baseline" protocol | sed -n '1,300p' || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # These checks now compile against the generated candidate protocol,
+          # not the repository's pinned protocol snapshot.
+          pnpm typecheck
+          pnpm test
+      - name: Open or update a compatibility issue
+        if: steps.versions.outputs.changed == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const pinned = '${{ steps.versions.outputs.pinned }}';
+            const latest = '${{ steps.versions.outputs.latest }}';
+            const title = `Codex compatibility review: ${pinned} → ${latest}`;
+            const body = [
+              'A newer Codex release was detected by the scheduled compatibility watch.',
+              '',
+              `- Repository pin: \`${pinned}\``,
+              `- Published version: \`${latest}\``,
+              `- Candidate protocol/check step: \`${{ steps.candidate.outcome }}\``,
+              '',
+              'Do not upgrade automatically. Regenerate `protocol/`, review the protocol diff, run unit/e2e/provider tests, then update the pin in a reviewed pull request.',
+            ].join('\n');
+            const { data } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
+            });
+            const existing = data.find(issue => issue.title === title);
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
+            }

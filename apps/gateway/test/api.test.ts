@@ -1,5 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import { makeDispatcher, type ApiContext } from "../src/api.js";
+import { AttachmentStore } from "../src/attachments.js";
+import { AppServerRequestError } from "../src/codex/rpc.js";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+const homes: string[] = [];
+afterEach(() => { for (const home of homes.splice(0)) rmSync(home, { recursive: true, force: true }); });
+
+function attachmentFixture() {
+  const home = mkdtempSync(path.join(tmpdir(), "gateway-send-"));
+  homes.push(home);
+  const store = new AttachmentStore(home);
+  const file = store.save("test.txt", Buffer.from("important attachment").toString("base64"), "file");
+  return { home, store, file };
+}
 
 function fakeCtx(overrides: Partial<ApiContext> = {}) {
   const calls: Array<{ method: string; params: any }> = [];
@@ -78,28 +94,89 @@ describe("method allowlist", () => {
     const { dispatch } = fakeCtx();
     await expect(dispatch("fs/readFile", { path: "/etc/passwd" })).rejects.toThrow(/not allowed/);
     await expect(dispatch("process/spawn", {})).rejects.toThrow(/not allowed/);
+    await expect(dispatch("constructor", {})).rejects.toThrow(/not allowed/);
+    await expect(dispatch("toString", {})).rejects.toThrow(/not allowed/);
+  });
+});
+
+describe("custom provider validation", () => {
+  it("rejects endpoint credentials, queries, and fragments before running setup", async () => {
+    const { dispatch } = fakeCtx();
+    for (const customBaseUrl of ["https://u:p@api.example.com/v1", "https://api.example.com/v1?key=secret", "https://api.example.com/v1#fragment", "https://api.exa\tmple.com/v1", "https://api.example.com/\nv1"]) {
+      await expect(dispatch("admin/provider/switch", { mode: "custom", customBaseUrl })).rejects.toThrow(/customBaseUrl/);
+    }
   });
 });
 
 describe("turn/start", () => {
   it("registers attachment paths for refcounting", async () => {
-    const remembered: Array<{ tid: string; paths: string[] }> = [];
-    const { dispatch } = fakeCtx({
-      attachments: {
-        isOwned: () => true,
-        rememberPaths: (tid: string, paths: string[]) => remembered.push({ tid, paths }),
-      } as any,
-    });
+    const { store, file } = attachmentFixture();
+    const { dispatch } = fakeCtx({ attachments: store });
     await dispatch("turn/start", {
       threadId: "t1",
       text: "hi",
-      attachments: [{ kind: "image", name: "a.png", path: "/up/a.png" }],
+      attachments: [{ kind: "file", name: "test.txt", path: file.path }],
     });
-    expect(remembered).toEqual([{ tid: "t1", paths: ["/up/a.png"] }]);
+    expect(store.registeredOwners(file.path)).toEqual(["t1"]);
   });
 
   it("rejects textless turns without attachments", async () => {
     const { dispatch } = fakeCtx();
     await expect(dispatch("turn/start", { threadId: "t1", text: "   " })).rejects.toThrow(/text/);
+  });
+});
+
+describe("attachment send reservations", () => {
+  it("prevents deletion during turn acceptance and preserves a lease across restart", async () => {
+    const { home, store, file } = attachmentFixture();
+    let accept!: (value: unknown) => void;
+    const { dispatch } = fakeCtx({
+      attachments: store,
+      supervisor: { request: () => new Promise((resolve) => { accept = resolve; }) } as any,
+    });
+    const sending = dispatch("turn/start", { threadId: "t1", text: "read", attachments: [{ path: file.path }] });
+    await expect(dispatch("attachment/delete", { path: file.path })).rejects.toThrow(/引用/);
+    expect(existsSync(file.path)).toBe(true);
+    expect(new AttachmentStore(home).registeredOwners(file.path)).toEqual(["t1"]);
+    accept({ turn: { id: "turn1" } });
+    await sending;
+    expect(store.registeredOwners(file.path)).toEqual(["t1"]);
+  });
+
+  it("releases a definitively rejected send without deleting another thread's reference", async () => {
+    const { store, file } = attachmentFixture();
+    store.rememberPaths("older-thread", [file.path]);
+    const { dispatch } = fakeCtx({
+      attachments: store,
+      supervisor: { request: async () => { throw new AppServerRequestError("rejected"); } } as any,
+    });
+    await expect(dispatch("turn/start", { threadId: "new-thread", text: "read", attachments: [{ path: file.path }] })).rejects.toThrow("rejected");
+    expect(store.registeredOwners(file.path)).toEqual(["older-thread"]);
+    await expect(dispatch("attachment/delete", { path: file.path })).rejects.toThrow(/引用/);
+  });
+
+  it("allows cleanup of an otherwise unreferenced, definitively rejected upload", async () => {
+    const { store, file } = attachmentFixture();
+    const { dispatch } = fakeCtx({
+      attachments: store,
+      supervisor: { request: async () => { throw new AppServerRequestError("invalid thread"); } } as any,
+    });
+    await expect(dispatch("turn/start", { threadId: "missing", text: "read", attachments: [{ path: file.path }] })).rejects.toThrow("invalid thread");
+    await expect(dispatch("attachment/delete", { path: file.path })).resolves.toEqual({ ok: true });
+    expect(existsSync(file.path)).toBe(false);
+  });
+
+  it("keeps an uncertain send protected until its real thread is deleted", async () => {
+    const { store, file } = attachmentFixture();
+    const { dispatch } = fakeCtx({
+      attachments: store,
+      supervisor: { request: async () => { throw new Error("connection lost"); } } as any,
+    });
+    await expect(dispatch("turn/start", { threadId: "t1", text: "read", attachments: [{ path: file.path }] })).rejects.toThrow("connection lost");
+    expect(store.registeredOwners(file.path)).toEqual(["t1"]);
+    await expect(dispatch("attachment/delete", { path: file.path })).rejects.toThrow(/引用/);
+    store.cleanupForThread("t1", {});
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(existsSync(file.path)).toBe(false);
   });
 });

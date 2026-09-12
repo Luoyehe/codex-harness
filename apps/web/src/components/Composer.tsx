@@ -1,5 +1,16 @@
 import { useRef, useState, type KeyboardEvent } from "react";
-import { useStore } from "../store";
+import { useStore, type ApprovalPolicy, type ReasoningEffort, type SandboxPreset } from "../store";
+
+const MIB = 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * MIB;
+const MAX_FILE_BYTES = 25 * MIB;
+const MAX_ATTACHMENTS = 20;
+const MAX_TOTAL_ATTACHMENT_BYTES = 100 * MIB;
+// The gateway accepts a 36MiB WS frame. Base64 expands by 4/3; reserve room
+// for the RPC envelope and filename so a raw-size-valid file cannot close the
+// connection merely because its encoded frame crosses the transport cap.
+const MAX_UPLOAD_RPC_BYTES = 36 * MIB;
+const UPLOAD_RPC_OVERHEAD_BYTES = 16 * 1024;
 
 interface PendingAttachment {
   kind: "image" | "file";
@@ -21,9 +32,13 @@ export function Composer() {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(0);
+  const [sending, setSending] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const uploadBatchActive = useRef(false);
+  const sendActive = useRef(false);
   const activeThreadId = useStore((s) => s.activeThreadId);
+  const historyReady = useStore((s) => !s.activeThreadId || !!s.historyLoaded[s.activeThreadId]);
   const turnActive = useStore((s) => (s.activeThreadId ? !!s.turnActive[s.activeThreadId] : false));
   const usage = useStore((s) => (s.activeThreadId ? s.tokenUsage[s.activeThreadId] : undefined));
   const compacting = useStore((s) => (s.activeThreadId ? !!s.compacting[s.activeThreadId] : false));
@@ -49,20 +64,42 @@ export function Composer() {
 
   function send() {
     const value = text.trim();
-    if ((!value && attachments.length === 0) || uploading > 0) return;
+    if (
+      sendActive.current ||
+      connection !== "open" ||
+      turnActive ||
+      compacting ||
+      !historyReady ||
+      (!value && attachments.length === 0) ||
+      uploading > 0
+    ) return;
+    sendActive.current = true;
+    setSending(true);
+    setUploadError(null);
+    const originalText = text;
+    const sentAttachments = [...attachments];
     // Clear AFTER the send pipeline succeeds — if newThread() or sendTurn()
     // throws, the composer text and attachments survive for the user to retry.
-    void sendMessage(value, attachments.length ? attachments : undefined)
+    void sendMessage(value, sentAttachments.length ? sentAttachments : undefined)
       .then(() => {
-        setText("");
-        for (const a of attachments) {
-          if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
-        }
-        setAttachments([]);
+        // Preserve anything typed while the request was in flight.
+        setText((current) => current === originalText ? "" : current);
+        const sentPaths = new Set(sentAttachments.map((a) => a.path));
+        // Ownership of each preview URL moved to the optimistic timeline
+        // item in sendTurn(). The store revokes it only when the server echo
+        // replaces that item; revoking here can leave a broken thumbnail in
+        // the interval between turn/start's RPC result and its notification.
+        setAttachments((current) => current.filter((a) => !sentPaths.has(a.path)));
       })
-      .catch(() => {
-        // Error already shown in the timeline by sendMessage's catch.
+      .catch((err: any) => {
+        setUploadError(`发送失败: ${err?.message ?? err}`);
+        // Turn failures are also shown in the timeline. Keep the draft here
+        // as well because a failed first-thread creation has no timeline yet.
         // Keep text/attachments so the user can fix and retry.
+      })
+      .finally(() => {
+        sendActive.current = false;
+        setSending(false);
       });
   }
 
@@ -76,40 +113,70 @@ export function Composer() {
   }
 
   async function pickFiles(files: FileList | null) {
-    if (!files?.length) return;
+    if (!files?.length || uploadBatchActive.current) return;
+    uploadBatchActive.current = true;
+    setUploading(1);
     setUploadError(null);
-    for (const file of Array.from(files)) {
-      // Image cap aligns with the Zhipu vision MCP (5MB); larger images would
-      // upload but fail at analysis time. Files get a transport-practical cap.
-      const cap = file.type.startsWith("image/") ? 5 * 1024 * 1024 : 25 * 1024 * 1024;
-      if (file.size > cap) {
-        setUploadError(`${file.name} 超过 ${Math.floor(cap / 1024 / 1024)}MB 上限`);
-        continue;
+    let count = attachments.length;
+    let totalBytes = attachments.reduce((sum, attachment) => sum + attachment.size, 0);
+    try {
+      for (const file of Array.from(files).slice(0, Math.max(0, MAX_ATTACHMENTS - count))) {
+        // Image cap aligns with the Zhipu vision MCP (5MB); larger images would
+        // upload but fail at analysis time. Files get a transport-practical cap.
+        const cap = file.type.startsWith("image/") ? MAX_IMAGE_BYTES : MAX_FILE_BYTES;
+        if (file.size === 0) {
+          setUploadError(`${file.name} 是空文件`);
+          continue;
+        }
+        if (file.size > cap) {
+          setUploadError(`${file.name} 超过 ${Math.floor(cap / MIB)}MB 上限`);
+          continue;
+        }
+        if (totalBytes + file.size > MAX_TOTAL_ATTACHMENT_BYTES) {
+          setUploadError(`本条消息的附件总量不能超过 ${MAX_TOTAL_ATTACHMENT_BYTES / MIB}MB`);
+          continue;
+        }
+        const encodedBytes = 4 * Math.ceil(file.size / 3);
+        const filenameBytes = new TextEncoder().encode(file.name).byteLength;
+        if (encodedBytes + filenameBytes + UPLOAD_RPC_OVERHEAD_BYTES > MAX_UPLOAD_RPC_BYTES) {
+          setUploadError(`${file.name} 编码后超过 WebSocket 单次上传上限`);
+          continue;
+        }
+        const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
+        // Batches are deliberately sequential: at most one large base64
+        // string is held in memory at a time.
+        try {
+          const base64 = await fileToBase64(file);
+          if (base64.length + filenameBytes + UPLOAD_RPC_OVERHEAD_BYTES > MAX_UPLOAD_RPC_BYTES) {
+            throw new Error("编码后超过 WebSocket 单次上传上限");
+          }
+          const res = await uploadAttachment(file.name, base64, file.type.startsWith("image/") ? "image" : "file");
+          setAttachments((list) => [
+            ...list,
+            {
+              kind: file.type.startsWith("image/") ? "image" : "file",
+              name: file.name.slice(0, 255),
+              size: file.size,
+              path: res.path,
+              previewUrl,
+            },
+          ]);
+          count += 1;
+          totalBytes += file.size;
+        } catch (err: any) {
+          // The object URL never became part of the attachment list — free it.
+          if (previewUrl) URL.revokeObjectURL(previewUrl);
+          setUploadError(`${file.name} 上传失败: ${err?.message ?? err}`);
+        }
       }
-      const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
-      setUploading((n) => n + 1);
-      try {
-        const base64 = await fileToBase64(file);
-        const res = await uploadAttachment(file.name, base64, file.type.startsWith("image/") ? "image" : "file");
-        setAttachments((list) => [
-          ...list,
-          {
-            kind: file.type.startsWith("image/") ? "image" : "file",
-            name: file.name,
-            size: file.size,
-            path: res.path,
-            previewUrl,
-          },
-        ]);
-      } catch (err: any) {
-        // The object URL never became part of the attachment list — free it.
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
-        setUploadError(`${file.name} 上传失败: ${err?.message ?? err}`);
-      } finally {
-        setUploading((n) => n - 1);
+      if (files.length > MAX_ATTACHMENTS - attachments.length) {
+        setUploadError(`每条消息最多添加 ${MAX_ATTACHMENTS} 个附件`);
       }
+    } finally {
+      uploadBatchActive.current = false;
+      setUploading(0);
+      if (fileInput.current) fileInput.current.value = "";
     }
-    if (fileInput.current) fileInput.current.value = "";
   }
 
   const deleteAttachment = useStore((s) => s.deleteAttachment);
@@ -135,6 +202,7 @@ export function Composer() {
         }
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => onKeyDown(e, enterBehavior)}
+        maxLength={1_000_000}
         rows={3}
       />
       {(attachments.length > 0 || uploadError) && (
@@ -148,7 +216,7 @@ export function Composer() {
               <span className="attach-name" title={a.name}>
                 {a.name}
               </span>
-              <button className="attach-remove" title="移除附件" onClick={() => removeAttachment(a.path)}>
+              <button className="attach-remove" title="移除附件" disabled={sending} onClick={() => removeAttachment(a.path)}>
                 ×
               </button>
             </span>
@@ -161,7 +229,7 @@ export function Composer() {
         <button
           className="icon-btn icon-btn-plus"
           title="添加图片/文件附件（随下一条消息发送）"
-          disabled={connection !== "open"}
+          disabled={connection !== "open" || uploading > 0 || sending || attachments.length >= MAX_ATTACHMENTS}
           onClick={() => fileInput.current?.click()}
         >
           ＋
@@ -171,6 +239,7 @@ export function Composer() {
           type="file"
           multiple
           hidden
+          disabled={uploading > 0 || sending}
           accept="image/*,.pdf,.txt,.md,.json,.csv,.log,.xml,.yml,.yaml,.toml,.js,.ts,.py,.go,.rs,.java,.c,.cpp,.h,.sh,.html,.css"
           onChange={(e) => void pickFiles(e.target.files)}
         />
@@ -191,7 +260,7 @@ export function Composer() {
           className="composer-select"
           title="审批策略（对下一条消息生效，新对话同样适用）"
           value={selectedPolicy}
-          onChange={(e) => updateSettings({ selectedApprovalPolicy: e.target.value as never })}
+          onChange={(e) => updateSettings({ selectedApprovalPolicy: e.target.value as ApprovalPolicy })}
         >
           <option value="">默认审批</option>
           <option value="on-request">按需询问</option>
@@ -202,7 +271,7 @@ export function Composer() {
           className="composer-select"
           title="沙箱模式（对下一条消息生效，新对话同样适用）。默认=服务器配置（无网络）；允许网络=只读文件但可访问局域网/外网，适合 curl/ping/SSH 探测；完全访问=无沙箱限制"
           value={selectedSandbox}
-          onChange={(e) => updateSettings({ selectedSandbox: e.target.value as never })}
+          onChange={(e) => updateSettings({ selectedSandbox: e.target.value as SandboxPreset })}
         >
           <option value="">默认沙箱</option>
           <option value="network">允许网络</option>
@@ -238,7 +307,7 @@ export function Composer() {
             className="composer-select"
             title="思考程度（对下一条消息生效）。自定义 API/智谱模式的选项来自配置时对端点的自动探测或目录声明；OpenAI 模式为官方标准档位。默认=当前模型默认档"
             value={selectedEffort}
-            onChange={(e) => updateSettings({ selectedEffort: e.target.value as never })}
+            onChange={(e) => updateSettings({ selectedEffort: e.target.value as ReasoningEffort })}
           >
             <option value="">默认思考</option>
             {reasoningEfforts.map((e) => (
@@ -253,8 +322,12 @@ export function Composer() {
             停止
           </button>
         ) : (
-          <button className="btn-primary" disabled={(!text.trim() && attachments.length === 0) || uploading > 0} onClick={send}>
-            {activeThreadId ? "发送" : "发送并新建"}
+          <button
+            className="btn-primary"
+            disabled={connection !== "open" || !historyReady || compacting || sending || (!text.trim() && attachments.length === 0) || uploading > 0}
+            onClick={send}
+          >
+            {sending ? "发送中…" : activeThreadId ? "发送" : "发送并新建"}
           </button>
         )}
         </div>

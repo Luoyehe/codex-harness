@@ -27,11 +27,19 @@ export interface HubOptions {
 
 export class Hub {
   private clients = new Set<BrowserClient>();
+  private generation = 0;
+  private nextBrowserRequestId = 0;
 
   constructor(private readonly options: HubOptions = {}) {}
 
   addClient(client: BrowserClient): void {
     this.clients.add(client);
+    // A second tab can replace the original without the client count ever
+    // reaching zero. Transfer every still-pending prompt to that tab too.
+    for (const [requestId, entry] of [...this.browserAnswers]) {
+      if (this.browserAnswers.get(requestId) !== entry) continue;
+      try { client.send(entry.message); } catch { /* close event removes it */ }
+    }
   }
 
   removeClient(client: BrowserClient): void {
@@ -40,10 +48,7 @@ export class Hub {
     // resolve them immediately — nobody can answer, so waiting out the full
     // timeout just blocks the codex turn for no reason.
     if (this.clients.size === 0) {
-      for (const finish of this.browserAnswers.values()) {
-        finish({ answered: false, error: "all browser clients disconnected" });
-      }
-      this.browserAnswers.clear();
+      this.resetPendingAnswers("all browser clients disconnected");
     }
   }
 
@@ -72,36 +77,88 @@ export class Hub {
    * safe fallback (decline).
    */
   waitForBrowserAnswer(
-    requestId: number | string,
+    serverRequestId: number | string,
     method: string,
     params: unknown,
   ): Promise<{ answered: boolean; payload?: unknown; error?: string }> {
     if (this.clients.size === 0) {
       return Promise.resolve({ answered: false, error: "no browser client connected" });
     }
-    this.broadcast({ kind: "serverRequest", requestId, method, params });
     const timeoutMs = this.options.serverRequestTimeoutMs ?? 600_000;
     return new Promise((resolve) => {
+      // app-server request ids restart at small integers after a reconnect.
+      // Never expose those as browser correlation ids: a delayed answer from
+      // an old tab could otherwise approve a new request that reused the id.
+      const browserRequestId = `approval:${this.generation}:${++this.nextBrowserRequestId}`;
+      this.pendingByServerId.get(serverRequestId)?.finish({
+        answered: false,
+        error: "server request id was replaced",
+      });
       const finish = (value: { answered: boolean; payload?: unknown; error?: string }) => {
         clearTimeout(timer);
-        this.browserAnswers.delete(requestId);
+        const entry = this.browserAnswers.get(browserRequestId);
+        if (entry?.finish === finish) {
+          this.browserAnswers.delete(browserRequestId);
+          if (this.pendingByServerId.get(serverRequestId) === entry) {
+            this.pendingByServerId.delete(serverRequestId);
+          }
+          // Clear approval cards on timeout/reset/replacement too. A normal
+          // browser answer goes through this same single resolution path.
+          this.broadcastNotification("serverRequest/resolved", {
+            serverRequestId: browserRequestId,
+            reason: value.answered ? { type: "answered" } : { type: "cancelled" },
+          });
+        }
         resolve(value);
       };
       const timer = setTimeout(() => finish({ answered: false, error: "browser answer timeout" }), timeoutMs);
-      this.browserAnswers.set(requestId, finish);
+      const message: ServerMessage = { kind: "serverRequest", requestId: browserRequestId, method, params };
+      const entry = { serverRequestId, finish, message };
+      this.browserAnswers.set(browserRequestId, entry);
+      this.pendingByServerId.set(serverRequestId, entry);
+      // Install the waiter before broadcasting. A synchronous test client (or
+      // future in-process client) is then allowed to answer from send().
+      this.broadcast(message);
     });
   }
 
   private browserAnswers = new Map<
-    number | string,
-    (value: { answered: boolean; payload?: unknown; error?: string }) => void
+    string,
+    {
+      serverRequestId: number | string;
+      message: ServerMessage;
+      finish(value: { answered: boolean; payload?: unknown; error?: string }): void;
+    }
   >();
+  private pendingByServerId = new Map<number | string, {
+    serverRequestId: number | string;
+    finish(value: { answered: boolean; payload?: unknown; error?: string }): void;
+  }>();
 
   /** Feeds a browser client's answer into a waiting server request. */
   resolveBrowserAnswer(requestId: number | string, payload: unknown, error?: string): boolean {
-    const finish = this.browserAnswers.get(requestId);
-    if (!finish) return false;
-    finish(error ? { answered: true, error } : { answered: true, payload });
+    if (typeof requestId !== "string") return false;
+    const entry = this.browserAnswers.get(requestId);
+    if (!entry) return false;
+    entry.finish(error ? { answered: true, error } : { answered: true, payload });
     return true;
+  }
+
+  /** Cancel a waiter when app-server announces serverRequest/resolved. */
+  cancelServerRequest(serverRequestId: number | string, reason = "server request resolved upstream"): boolean {
+    const entry = this.pendingByServerId.get(serverRequestId);
+    if (!entry) return false;
+    entry.finish({ answered: false, error: reason });
+    return true;
+  }
+
+  /** Resolve and remove every app-server-owned waiter during restart/stop. */
+  resetPendingAnswers(reason = "app-server connection reset"): void {
+    this.generation += 1;
+    for (const entry of [...this.browserAnswers.values()]) {
+      entry.finish({ answered: false, error: reason });
+    }
+    this.browserAnswers.clear();
+    this.pendingByServerId.clear();
   }
 }

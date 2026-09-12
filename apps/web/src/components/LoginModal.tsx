@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore } from "../store";
+import { validatedHttpUrl } from "../utils/validation";
 
 export function LoginModal() {
   const [open, setOpen] = useState(false);
@@ -9,8 +10,11 @@ export function LoginModal() {
   const providerMode = useStore((s) => s.providerMode);
 
   const signedIn = !!account?.account;
-  const email = account?.account?.email;
+  const email = account?.account?.type === "chatgpt" ? account.account.email : undefined;
   const apiKeyMode = !!account && !account.account && !account.requiresOpenaiAuth;
+  const verificationUrl = deviceLogin?.verificationUrl
+    ? validatedHttpUrl(deviceLogin.verificationUrl)
+    : null;
 
   const modeLabel =
     providerMode === "zhipu"
@@ -59,12 +63,15 @@ export function LoginModal() {
             ) : deviceLogin?.status === "waiting" ? (
               <div className="device-login">
                 <p>在浏览器打开下面的链接，输入设备码完成 ChatGPT 登录：</p>
-                {deviceLogin.verificationUrl && (
+                {verificationUrl && (
                   <p>
-                    <a href={deviceLogin.verificationUrl} target="_blank" rel="noreferrer">
-                      {deviceLogin.verificationUrl}
+                    <a href={verificationUrl} target="_blank" rel="noopener noreferrer">
+                      {verificationUrl}
                     </a>
                   </p>
+                )}
+                {deviceLogin.verificationUrl && !verificationUrl && (
+                  <p className="error-text">服务器返回了不安全或无效的登录地址，已阻止打开。</p>
                 )}
                 {deviceLogin.userCode && <p className="device-code">{deviceLogin.userCode}</p>}
                 <p className="dim">等待授权中…（登录完成后自动刷新）</p>

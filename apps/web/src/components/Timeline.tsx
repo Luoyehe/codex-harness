@@ -1,7 +1,10 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { validatedHttpUrl } from "../utils/validation";
 import { useStore, type Display, type TimelineItem } from "../store";
+import type { RequestPermissionProfile } from "../../../../protocol/v2/RequestPermissionProfile";
+import { describePermissions } from "../utils/permissions";
 
 // Stable reference: zustand v5 compares snapshots with Object.is, so an
 // inline `?? []` would mint a fresh array every render and loop forever
@@ -20,6 +23,15 @@ const HIDDEN_BY: Partial<Record<string, keyof Display>> = {
 // Long conversations: render the newest slice + an explicit "show older"
 // button. Rendering thousands of markdown blocks at once froze the tab.
 const RENDER_CHUNK = 150;
+
+function imageSource(value: string): string | null {
+  if (/^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(value)) return value;
+  if (/^[A-Za-z0-9+/=\r\n]+$/.test(value)) {
+    const mime = value.startsWith("iVBORw0KGgo") ? "png" : value.startsWith("/9j/") ? "jpeg" : value.startsWith("R0lGOD") ? "gif" : value.startsWith("UklGR") ? "webp" : null;
+    if (mime) return `data:image/${mime};base64,${value}`;
+  }
+  return validatedHttpUrl(value);
+}
 
 export function Timeline() {
   const activeThreadId = useStore((s) => s.activeThreadId);
@@ -40,9 +52,10 @@ export function Timeline() {
   );
 
   const last = visible[visible.length - 1];
-  const lastIsLocalUser = !!last?.local && last.type === "userMessage";
+  const lastIsLocalUser = last?.type === "localUserMessage";
   // Cheap "the tail changed" signal without depending on full item identity.
-  const lastSignature = `${visible.length}:${last?.id ?? ""}:${(last?.text ?? last?.aggregatedOutput ?? "").length}`;
+  const tailText = last && "text" in last ? last.text : last?.type === "commandExecution" ? last.aggregatedOutput ?? "" : last?.type === "reasoning" ? [...last.summary, ...last.content].join("") : "";
+  const lastSignature = `${visible.length}:${last?.id ?? ""}:${tailText.length}`;
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -79,25 +92,30 @@ export function Timeline() {
 
   if (!activeThreadId) {
     return (
-      <div className="timeline empty">
-        <div className="empty-hint">在下方输入消息即可开始新对话</div>
-      </div>
+      <>
+        <ApprovalBanner />
+        <div className="timeline empty">
+          <div className="empty-hint">在下方输入消息即可开始新对话</div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="timeline" ref={scrollRef}>
-      {plan && <PlanCard plan={plan} />}
+    <>
       <ApprovalBanner />
-      {hiddenCount > 0 && (
-        <button className="btn load-older" onClick={() => setRenderLimit((n) => n + RENDER_CHUNK)}>
-          显示更早的消息（还有 {hiddenCount} 条）
-        </button>
-      )}
-      {windowed.map((item) => (
-        <ItemView key={item.id} item={item} />
-      ))}
-    </div>
+      <div className="timeline" ref={scrollRef}>
+        {plan && <PlanCard plan={plan} />}
+        {hiddenCount > 0 && (
+          <button className="btn load-older" onClick={() => setRenderLimit((n) => n + RENDER_CHUNK)}>
+            显示更早的消息（还有 {hiddenCount} 条）
+          </button>
+        )}
+        {windowed.map((item) => (
+          <ItemView key={item.id} item={item} />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -133,25 +151,14 @@ function ApprovalBanner() {
   if (own.length === 0 && background.length === 0) return null;
 
   return (
-    <>
-      {background.map((a) => {
-        const tid = String(a.params?.threadId);
-        const title = sessions.find((s) => s.threadId === tid)?.title ?? tid.slice(0, 8);
-        const isCommand = a.method.includes("commandExecution");
-        return (
-          <div key={String(a.requestId)} className="approval-card approval-bg">
-            <div className="approval-title">
-              后台会话「{title}」等待审批：{isCommand ? "执行命令" : "修改文件"}
-              <button className="btn" style={{ marginLeft: 8, padding: "2px 10px" }} onClick={() => void openThread(tid)}>
-                查看
-              </button>
-            </div>
-          </div>
-        );
-      })}
+    <section className="approval-dock" aria-label="待处理审批">
+      <div className="approval-dock-count" role="status">
+        等待审批：{approvals.length} 项{background.length > 0 ? `（后台会话 ${background.length} 项）` : ""}
+      </div>
       {own.map((a) => {
-        const isCommand = a.method.includes("commandExecution");
-        const isPermissions = a.method.includes("permissions");
+        const isCommand = a.method === "item/commandExecution/requestApproval";
+        const isPermissions = a.method === "item/permissions/requestApproval";
+        const canApprove = !isPermissions || describePermissions(a.params.permissions).valid;
         // File-change approval params don't carry the change list; the pending
         // fileChange item (matched by itemId) does.
         const fileChangeItem = !isCommand && !isPermissions
@@ -159,7 +166,7 @@ function ApprovalBanner() {
               (it) => it.id === a.params?.itemId && it.type === "fileChange",
             )
           : undefined;
-        const changes: any[] = fileChangeItem?.changes ?? [];
+        const changes = fileChangeItem?.type === "fileChange" ? fileChangeItem.changes : [];
         const title = isCommand ? "请求执行命令" : isPermissions ? "请求提升权限" : "请求修改文件";
         return (
           <div key={String(a.requestId)} className="approval-card">
@@ -184,10 +191,10 @@ function ApprovalBanner() {
               <div className="dim">（变更明细见时间线中的文件修改条目）</div>
             )}
             <div className="approval-actions">
-              <button className="btn-primary" onClick={() => decideApproval(a.requestId, "accept")}>
+              <button className="btn-primary" disabled={!canApprove} onClick={() => decideApproval(a.requestId, "accept")}>
                 批准
               </button>
-              <button className="btn" onClick={() => decideApproval(a.requestId, "acceptForSession")}>
+              <button className="btn" disabled={!canApprove} onClick={() => decideApproval(a.requestId, "acceptForSession")}>
                 本次会话内一律批准
               </button>
               <button className="btn-danger" onClick={() => decideApproval(a.requestId, "decline")}>
@@ -197,7 +204,23 @@ function ApprovalBanner() {
           </div>
         );
       })}
-    </>
+      {background.map((a) => {
+        const tid = String(a.params?.threadId);
+        const title = sessions.find((s) => s.threadId === tid)?.title ?? tid.slice(0, 8);
+        const action = a.method === "item/commandExecution/requestApproval" ? "执行命令"
+          : a.method === "item/permissions/requestApproval" ? "提升权限" : "修改文件";
+        return (
+          <div key={String(a.requestId)} className="approval-card approval-bg">
+            <div className="approval-title">
+              后台会话「{title}」等待审批：{action}
+              <button className="btn" style={{ marginLeft: 8, padding: "2px 10px" }} onClick={() => void openThread(tid)}>
+                查看
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
@@ -208,49 +231,37 @@ function StatusBadge({ kind }: { kind?: { type?: string } | string }) {
 }
 
 /** Human-readable summary of a RequestPermissionProfile (permissions approval). */
-function PermissionsSummary({ profile }: { profile?: any }) {
-  if (!profile || typeof profile !== "object") {
-    return <div className="dim">（请求的权限明细缺失，见时间线上下文）</div>;
-  }
-  const rows: string[] = [];
-  if (profile.network?.enabled != null) {
-    rows.push(profile.network.enabled ? "网络访问：开启" : "网络访问：关闭");
-  }
-  const fs = profile.fileSystem;
-  if (fs) {
-    const reads = Array.isArray(fs.read) ? fs.read : [];
-    const writes = Array.isArray(fs.write) ? fs.write : [];
-    if (reads.length) rows.push(`额外读取（${reads.length} 项）: ${reads.slice(0, 5).join("、")}${reads.length > 5 ? " …" : ""}`);
-    if (writes.length) rows.push(`额外写入（${writes.length} 项）: ${writes.slice(0, 5).join("、")}${writes.length > 5 ? " …" : ""}`);
-  }
-  if (rows.length === 0) rows.push("（未请求额外文件系统/网络权限）");
+export function PermissionsSummary({ profile }: { profile: RequestPermissionProfile }) {
+  const { rows, valid } = describePermissions(profile);
   return (
     <div className="approval-files">
       {rows.map((r, i) => (
         <div key={i} className="file-line"><code>{r}</code></div>
       ))}
+      {!valid && <pre className="command-output">{JSON.stringify(profile, null, 2)}</pre>}
     </div>
   );
 }
 
 /** userMessage items carry `content: UserInput[]`; local echoes carry `text`. */
-function userText(item: TimelineItem): string {
-  if (typeof item.text === "string") return item.text;
-  return (item.content ?? [])
-    .filter((c: any) => c?.type === "text")
-    .map((c: any) => c.text)
+type UserMessage = Extract<TimelineItem, { type: "userMessage" | "localUserMessage" }>;
+function userText(item: UserMessage): string {
+  if (item.type === "localUserMessage") return item.text;
+  return item.content
+    .filter((c) => c.type === "text")
+    .map((c) => c.text)
     .join("\n");
 }
 
 /** Attachments from either the local optimistic echo or the server payload
  * (UserInput localImage / mention items on resumed threads). */
-function userAttachments(item: TimelineItem): Array<{ kind: "image" | "file"; name: string; path?: string; previewUrl?: string }> {
-  if (Array.isArray(item.attachments)) return item.attachments;
-  return (item.content ?? [])
-    .filter((c: any) => c?.type === "localImage" || c?.type === "mention")
-    .map((c: any) => ({
+function userAttachments(item: UserMessage): Array<{ kind: "image" | "file"; name: string; path?: string; previewUrl?: string }> {
+  if (item.type === "localUserMessage") return item.attachments;
+  return item.content
+    .filter((c) => c.type === "localImage" || c.type === "mention")
+    .map((c) => ({
       kind: c.type === "localImage" ? ("image" as const) : ("file" as const),
-      name: c.name ?? c.path,
+      name: c.type === "mention" ? c.name : c.path,
       path: c.path,
     }));
 }
@@ -261,22 +272,28 @@ function AttachmentImage({ att }: { att: { name: string; path?: string; previewU
   const readAttachment = useStore((s) => s.readAttachment);
   const [src, setSrc] = useState<string | undefined>(att.previewUrl);
   useEffect(() => {
-    if (src || !att.path) return;
+    if (att.previewUrl) {
+      setSrc(att.previewUrl);
+      return;
+    }
+    setSrc(undefined);
+    if (!att.path) return;
     let url: string | undefined;
     let alive = true;
     void readAttachment(att.path)
-      .then((res: any) => {
+      .then((res) => {
         url = URL.createObjectURL(
           new Blob([Uint8Array.from(atob(res.base64), (ch) => ch.charCodeAt(0))], { type: res.mime }),
         );
         if (alive) setSrc(url);
+        else URL.revokeObjectURL(url);
       })
       .catch(() => {});
     return () => {
       alive = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [att.path, att.previewUrl, src, readAttachment]);
+  }, [att.path, att.previewUrl, readAttachment]);
   return src ? (
     <img src={src} alt={att.name} className="attach-thumb" />
   ) : (
@@ -284,7 +301,7 @@ function AttachmentImage({ att }: { att: { name: string; path?: string; previewU
   );
 }
 
-function AttachmentRow({ item }: { item: TimelineItem }) {
+function AttachmentRow({ item }: { item: UserMessage }) {
   const atts = userAttachments(item);
   if (atts.length === 0) return null;
   return (
@@ -302,9 +319,10 @@ function AttachmentRow({ item }: { item: TimelineItem }) {
 // Memoized: streaming deltas only replace the patched item's identity, so
 // untouched items (the vast majority in a long thread) skip re-render —
 // this is what keeps long conversations responsive.
-const ItemView = memo(function ItemView({ item }: { item: TimelineItem }) {
+export const ItemView = memo(function ItemView({ item }: { item: TimelineItem }) {
   switch (item.type) {
     case "userMessage":
+    case "localUserMessage":
       return (
         <div className="item item-user">
           <div className="bubble-user">
@@ -391,9 +409,7 @@ const ItemView = memo(function ItemView({ item }: { item: TimelineItem }) {
       );
     }
     case "plan":
-      // The live plan is always visible in the sticky PlanCard at the top of
-      // the timeline — the in-flow plan item would just duplicate it.
-      return null;
+      return <div className="item item-agent"><Markdown text={item.text} /></div>;
     case "webSearch":
       return (
         <details className="item item-search">
@@ -402,13 +418,15 @@ const ItemView = memo(function ItemView({ item }: { item: TimelineItem }) {
             {item.results ? `（${item.results.length} 条结果）` : ""}
           </summary>
           <ul>
-            {(item.results ?? []).map((r: any, i: number) => (
-              <li key={i}>
-                <a href={r?.url} target="_blank" rel="noreferrer">
-                  {r?.title ?? r?.url ?? String(r)}
-                </a>
-              </li>
-            ))}
+            {(item.results ?? []).map((r, i) => {
+              const record = r && typeof r === "object" && !Array.isArray(r) ? r : {};
+              const href = validatedHttpUrl(record.url);
+              const label = typeof record.title === "string" ? record.title : typeof record.url === "string" ? record.url : JSON.stringify(r);
+              return <li key={i}>{href
+                ? <a href={href} target="_blank" rel="noopener noreferrer">{label}</a>
+                : <span>{label}</span>}
+              </li>;
+            })}
           </ul>
         </details>
       );
@@ -421,52 +439,70 @@ const ItemView = memo(function ItemView({ item }: { item: TimelineItem }) {
     case "contextCompaction":
       return (
         <div className="item item-compaction">
-          <span className="compaction-icon">⇲</span> 上下文已压缩：历史对话被总结替代，上下文空间已释放
+          <span className="compaction-icon">⇲</span> 上下文压缩记录
         </div>
       );
+    case "compactionProgress":
+      return <div className={`item ${item.status === "failed" ? "item-error" : "item-compaction"}`}>{item.message}</div>;
     case "dynamicToolCall": {
       // Protocol: contentItems: Array<{type:"inputText",text}> + success: boolean|null
       const output = Array.isArray(item.contentItems)
-        ? item.contentItems.map((c: any) => c?.text ?? "").join("\n")
+        ? item.contentItems.filter((c) => c.type === "inputText").map((c) => c.text).join("\n")
         : "";
       const statusLabel = item.success === true ? "完成" : item.success === false ? "失败" : item.status ?? "";
       return (
         <details className="item item-mcp">
           <summary>
-            工具调用：<code>{item.tool ?? item.name ?? "unknown"}</code>{" "}
+            工具调用：<code>{item.tool}</code>{" "}
             <span className="badge">{statusLabel}</span>
           </summary>
           {output && (
             <pre className="command-output">{output.slice(0, 2000)}</pre>
           )}
+          {item.contentItems?.map((content, index) => {
+            if (content.type === "inputImage") {
+              const src = imageSource(content.imageUrl);
+              return src ? <img key={index} className="generated-image" src={src} alt="工具返回的图片" /> : <div key={index}>图片地址无法显示</div>;
+            }
+            if (content.type === "inputAudio") {
+              const src = /^data:audio\/(wav|mpeg|mp3|ogg|webm);base64,[A-Za-z0-9+/=\r\n]+$/.test(content.audioUrl) ? content.audioUrl : validatedHttpUrl(content.audioUrl);
+              return src ? <audio key={index} controls src={src} /> : <div key={index}>音频地址无法播放</div>;
+            }
+            return null;
+          })}
         </details>
       );
     }
     case "subAgentActivity":
       return (
         <div className="item item-dim">
-          子代理活动：{item.kind ?? item.activity ?? "running"}
+          子代理活动：{item.kind}
         </div>
       );
     case "collabAgentToolCall":
       return (
         <div className="item item-dim">
-          协作代理：{item.name ?? item.tool ?? "unknown"} {item.status ?? ""}
+          协作代理：{item.tool} {item.status}
         </div>
       );
-    case "imageGeneration":
+    case "imageGeneration": {
+      const src = imageSource(item.result);
       return (
         <div className="item item-dim">
-          🖼 图像生成{item.size ? ` (${item.size})` : ""}{item.path ? `: ${item.path}` : ""}
+          🖼 图像生成 · {item.status}
+          {item.savedPath && <div>输出文件：<code>{item.savedPath}</code></div>}
+          {item.failure && <div className="error-text">图像生成失败：{JSON.stringify(item.failure)}</div>}
+          {src ? <img src={src} alt="生成的图片" className="generated-image" /> : item.result && <details><summary>查看生成结果</summary><pre className="command-output">{item.result}</pre></details>}
         </div>
       );
+    }
     case "hookPrompt":
       return (
-        <div className="item item-dim">钩子提示：{item.name ?? "hook"}</div>
+          <div className="item item-dim">钩子提示：{item.fragments.map((fragment) => fragment.text).join("\n")}</div>
       );
     case "sleep":
       return (
-        <div className="item item-dim">⏸ 休眠 {item.durationMs != null ? `${Math.round(item.durationMs / 1000)}s` : ""}</div>
+        <div className="item item-dim">⏸ 休眠 {Math.round(item.durationMs / 1000)}s</div>
       );
     case "enteredReviewMode":
       return <div className="item item-dim">✓ 进入审查模式</div>;
@@ -479,13 +515,17 @@ const ItemView = memo(function ItemView({ item }: { item: TimelineItem }) {
           {item.willRetry ? "（将自动重试）" : ""}
         </div>
       );
-    default:
-      return null;
+    default: {
+      // Compile-time exhaustiveness with a readable runtime fallback for a
+      // newer server variant, rather than losing the entire React tree.
+      const unsupported: never = item;
+      return <details className="item"><summary>未支持的消息内容</summary><pre>{JSON.stringify(unsupported, null, 2)}</pre></details>;
+    }
   }
 });
 
-function FileChangeItem({ item }: { item: TimelineItem }) {
-  const changes: any[] = item.changes ?? [];
+function FileChangeItem({ item }: { item: Extract<TimelineItem, { type: "fileChange" }> }) {
+  const changes = item.changes;
   return (
     <div className="item item-filechange">
       <div className="filechange-title">

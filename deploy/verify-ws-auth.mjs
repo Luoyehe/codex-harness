@@ -11,6 +11,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import WebSocket from "ws";
 
 const PORT = Number(process.env.GATEWAY_PORT ?? 8080);
 const codexHome = process.env.CODEX_HOME ?? join(homedir(), ".codex");
@@ -148,11 +149,13 @@ const goodQuery = await probe({
   path: `/ws?token=${encodeURIComponent(token)}`,
   origin: `http://127.0.0.1:${PORT}`,
 }, 2500);
-check("valid-query-token accepted (stays open)",
-  goodQuery.status === 101 && goodQuery.closeCode == null, fmt(goodQuery));
+check("valid-query-token rejected by default",
+  rejectedWith(4001)(goodQuery), fmt(goodQuery));
 
 // --- Functional: a tokenized client can actually RPC -----------------------
-const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws?token=${encodeURIComponent(token)}`);
+const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 const rpcOk = await new Promise((resolve) => {
   const timer = setTimeout(() => resolve(false), 8000);
   ws.onopen = () => ws.send(JSON.stringify({ kind: "rpc", id: 1, method: "app/status", params: {} }));

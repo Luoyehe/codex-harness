@@ -1,5 +1,12 @@
 name: CI
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -8,10 +15,13 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
@@ -20,6 +30,20 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Runtime prerequisites
+        run: |
+          python3 -c 'import sys,tomllib; assert sys.version_info >= (3, 11)'
+          shellcheck --version
+
+      - name: Reject CRLF in executable/config sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -Il $'\r$' -- '*.sh' '*.mjs' '*.yml' '*.yaml'; then
+            echo 'CRLF line endings found; repository scripts must use LF' >&2
+            exit 1
+          fi
 
       - name: Typecheck
         run: pnpm typecheck
@@ -30,10 +54,26 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Built gateway terminal lifecycle (synthetic app-server)
+        run: pnpm --filter @codex-harness/gateway exec vitest run test/terminal-ws.test.ts
+
+      - name: Isolated app-server smoke (no model requests)
+        shell: bash
+        run: |
+          set -euo pipefail
+          pinned="$(sed -n 's/^CODEX_VERSION="\([^"]*\)".*/\1/p' deploy/install.sh)"
+          [[ "$pinned" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          npm install --prefix "$RUNNER_TEMP/codex-smoke-runtime" --no-audit --no-fund "@openai/codex@$pinned"
+          CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:smoke
+          CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:defaults
+
       - name: Shell syntax (all deploy scripts)
         run: |
           set -e
           while IFS= read -r f; do bash -n "$f"; done < <(find deploy -name '*.sh')
+
+      - name: ShellCheck
+        run: find deploy scripts -name '*.sh' -print0 | xargs -0 -r shellcheck --severity=warning
 
       - name: Node syntax (all .mjs)
         run: |
@@ -42,3 +82,21 @@ jobs:
 
       - name: Release audit (no secrets / junk in tree)
         run: node scripts/release-audit.mjs .
+
+      - name: Dependency audit (high and critical)
+        run: pnpm audit --audit-level high
+
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@c20e34f438d671fc35777cc9820dd7adf8252874 # v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@c20e34f438d671fc35777cc9820dd7adf8252874 # v3

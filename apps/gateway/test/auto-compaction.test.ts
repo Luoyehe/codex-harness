@@ -17,6 +17,29 @@ const usage = (last: number, window: number) => ({
 });
 
 describe("AutoCompaction state machine", () => {
+  it("does not compact during retries or on an older turn's completion", () => {
+    const { ac, request } = makeCompaction(0.9);
+    ac.observe("turn/started", { threadId: "t1", turn: { id: "current" } });
+    ac.observe("thread/tokenUsage/updated", usage(950, 1000));
+    ac.observe("error", { threadId: "t1", turnId: "current", willRetry: true, error: {} });
+    ac.observe("turn/completed", { threadId: "t1", turn: { id: "older" } });
+    ac.observe("thread/tokenUsage/updated", usage(960, 1000));
+    expect(request).not.toHaveBeenCalled();
+    ac.observe("turn/completed", { threadId: "t1", turn: { id: "current" } });
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("does not publish a stale failure after app-server state is reset", async () => {
+    let reject!: (error: Error) => void;
+    const request = vi.fn(() => new Promise((_resolve, fail) => { reject = fail; }));
+    const notify = vi.fn();
+    const ac = new AutoCompaction({ supervisor: { request } as any, notify }, () => 0.9);
+    ac.observe("thread/tokenUsage/updated", usage(950, 1000));
+    ac.reset();
+    reject(new Error("old connection closed"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(notify).not.toHaveBeenCalledWith("thread/autoCompactFailed", expect.anything());
+  });
   it("does not compact below the threshold", () => {
     const { ac, request } = makeCompaction(0.9);
     ac.observe("thread/tokenUsage/updated", usage(100, 1000));
@@ -25,11 +48,11 @@ describe("AutoCompaction state machine", () => {
 
   it("compacts between turns when usage crosses the threshold", async () => {
     const { ac, request, notify } = makeCompaction(0.9);
-    ac.observe("turn/started", { threadId: "t1" });
+    ac.observe("turn/started", { threadId: "t1", turn: { id: "turn1" } });
     ac.observe("thread/tokenUsage/updated", usage(950, 1000));
     // turn active — must NOT fire mid-turn
     expect(request).not.toHaveBeenCalled();
-    ac.observe("turn/completed", { threadId: "t1" });
+    ac.observe("turn/completed", { threadId: "t1", turn: { id: "turn1" } });
     expect(request).toHaveBeenCalledWith("thread/compact/start", { threadId: "t1" });
     expect(notify).toHaveBeenCalledWith("thread/autoCompacting", expect.objectContaining({
       threadId: "t1",

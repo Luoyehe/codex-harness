@@ -12,19 +12,25 @@
 # supported, so the endpoint must expose POST <base_url>/responses (recent
 # vLLM builds do). Chat-only servers cannot be used as a codex provider.
 #
-# Config-set layout: this mode OWNS providers/custom/ as a self-contained set;
-# ~/.codex/config.toml becomes a symlink to it (../activate-config.sh), so
-# switching modes never edits this set.
+# Config-set layout: this mode owns providers/custom/ inside a private candidate.
+# The outer transaction publishes its config/catalog/credentials together;
+# no write below edits the currently published generation.
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$SCRIPT_DIR/..${PYTHONPATH:+:$PYTHONPATH}"
+if [ "${HARNESS_PROVIDER_TRANSACTION:-0}" != "1" ]; then
+  exec python3 "$SCRIPT_DIR/../provider_transaction.py" custom "$0" "$@"
+fi
 CH="${CODEX_HOME:-$HOME/.codex}"
 SET_DIR="$CH/providers/custom"
 CONFIG="$SET_DIR/config.toml"
 LIVE="$CH/config.toml"
+ENV_FILE="${ENV_FILE:-${CODEX_HOME:-$HOME/.codex}/secrets.env}"
 BASE_URL="${CUSTOM_BASE_URL:-}"
 MODEL="${CUSTOM_MODEL:-}"
-API_KEY="${CUSTOM_API_KEY:-EMPTY}"
+API_KEY=""
 CTX="${CUSTOM_CTX:-131072}"
 VISION="${CUSTOM_VISION:-}"
 # Reasoning effort codex sends on every request. Vocabularies differ per
@@ -36,45 +42,151 @@ EFFORT="${CUSTOM_EFFORT:-medium}"
 log() { echo "[custom-setup] $*"; }
 die() { echo "[custom-setup] ERROR: $*" >&2; exit 1; }
 
+if [ "${CUSTOM_SYNC_CATALOG:-0}" = "1" ]; then
+  # A refresh is not a settings change. Read the locked candidate snapshot,
+  # never substitute setup defaults for existing user choices.
+  EFFORT="$(python3 - "$CONFIG" <<'PY'
+import sys
+from toml_config import load_config
+data = load_config(sys.argv[1])
+value = data.get("model_reasoning_effort")
+if not isinstance(value, str):
+    raise SystemExit("当前配置缺少默认 effort；请先完成供应商配置")
+print(value)
+PY
+)"
+  PROBE_REASONING=0
+fi
+
+# A supplied replacement key is written atomically to the canonical service
+# EnvironmentFile. It is never placed in TOML or passed to Python in argv.
+persist_key() {
+  local incoming="$1"
+  CUSTOM_API_KEY="$incoming" ENV_FILE="$ENV_FILE" python3 - <<'PY'
+import os
+from atomic_write import atomic_write
+path = os.environ["ENV_FILE"]
+key = os.environ["CUSTOM_API_KEY"]
+if len(key) > 16384 or any(ord(c) < 32 or ord(c) == 127 for c in key):
+    raise SystemExit("invalid CUSTOM_API_KEY")
+os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+try:
+    with open(path, encoding="utf-8") as f: lines = f.read().splitlines()
+except FileNotFoundError:
+    lines = []
+lines = [line for line in lines if not line.startswith("CUSTOM_OPENAI_API_KEY=")]
+quoted = '"' + key.replace('\\', '\\\\').replace('"', '\\"') + '"'
+lines.append("CUSTOM_OPENAI_API_KEY=" + quoted)
+atomic_write(path, "\n".join(lines) + "\n")
+PY
+}
+
+# One-time migration from releases that embedded the token in config.toml.
+# Do it before rewriting/sanitizing the provider block so CLI and WebUI paths
+# preserve authentication without requiring the gateway to read the secret.
+if [ -z "${CUSTOM_API_KEY:-}" ] && ! grep -q '^CUSTOM_OPENAI_API_KEY=' "$ENV_FILE" 2>/dev/null; then
+  LEGACY_SOURCE=""
+  if [ -f "$CONFIG" ]; then
+    LEGACY_SOURCE="$CONFIG"
+  elif [ -f "$LIVE" ] && [ ! -L "$LIVE" ]; then
+    LEGACY_SOURCE="$LIVE"
+  fi
+  if [ -n "$LEGACY_SOURCE" ]; then
+    LEGACY_KEY="$(python3 - "$LEGACY_SOURCE" <<'PY'
+import sys
+from toml_config import load_config
+data = load_config(sys.argv[1])
+value = data.get("model_providers", {}).get("custom", {}).get("experimental_bearer_token")
+if isinstance(value, str) and value:
+    print(value)
+PY
+)"
+    if [ -n "$LEGACY_KEY" ]; then
+      persist_key "$LEGACY_KEY"
+      unset LEGACY_KEY
+      log "已把旧配置中的 bearer token 迁移到统一密钥文件"
+    fi
+  fi
+fi
+API_KEY="$(python3 - "$ENV_FILE" <<'PY'
+import shlex, sys
+try: lines = open(sys.argv[1], encoding="utf-8")
+except FileNotFoundError: raise SystemExit(0)
+for line in lines:
+    if line.startswith("CUSTOM_OPENAI_API_KEY="):
+        values = shlex.split(line.split("=", 1)[1].strip(), posix=True)
+        if len(values) == 1: print(values[0])
+PY
+)"
+[ -n "$API_KEY" ] || API_KEY="EMPTY"
+if [ -n "${CUSTOM_API_KEY:-}" ]; then API_KEY="${CUSTOM_API_KEY}"; fi
+# A blank key on a new/reconfigured endpoint means no authentication. Reuse
+# of the stored key is reserved for catalog sync of the existing endpoint;
+# otherwise changing the URL could silently send the old provider's secret.
+if [ -z "${CUSTOM_API_KEY:-}" ] && [ "${CUSTOM_REUSE_API_KEY:-0}" != "1" ]; then
+  API_KEY="EMPTY"
+fi
+
+normalize_url() {
+  BASE_URL="$(BASE_URL="$BASE_URL" python3 - <<'PY'
+import os, urllib.parse
+value = os.environ["BASE_URL"].strip().rstrip("/")
+if len(value) > 2048 or any(ord(c) < 32 or ord(c) == 127 for c in value):
+    raise SystemExit(1)
+try:
+    parsed = urllib.parse.urlsplit(value)
+    port = parsed.port
+except ValueError:
+    raise SystemExit(1)
+if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username is not None or parsed.password is not None or parsed.fragment or parsed.query:
+    raise SystemExit(1)
+if port is not None and not 1 <= port <= 65535:
+    raise SystemExit(1)
+print(value)
+PY
+)" || die "base_url 必须是无内嵌凭据、查询参数或片段的绝对 http(s) URL"
+}
+
+# Supply bearer headers over stdin so API keys never appear in curl argv or
+# process listings. These requests do not otherwise consume stdin.
+custom_curl() {
+  API_KEY="$API_KEY" python3 -c 'import os; v=os.environ["API_KEY"]; raise SystemExit(0 if len(v) <= 16384 and not any(ord(c)<32 or ord(c)==127 for c in v) else 1)' \
+    || die "API Key 过长或含控制字符"
+  if [ "$API_KEY" != "EMPTY" ]; then
+    printf 'Authorization: Bearer %s\n' "$API_KEY" | curl -H @- "$@"
+  else
+    curl "$@"
+  fi
+}
+
 # GET <base_url>/models — the endpoint's live model list.
 fetch_models() {
-  local auth=()
-  if [ -n "$API_KEY" ] && [ "$API_KEY" != "EMPTY" ]; then
-    auth=(-H "Authorization: Bearer $API_KEY")
-  fi
-  curl -s --max-time 20 "$BASE_URL/models" "${auth[@]}" 2>/dev/null | python3 -c '
+  custom_curl -sf --max-time 20 "$BASE_URL/models" 2>/dev/null | python3 -c '
 import json, sys
 try:
     d = json.load(sys.stdin)
-    ids = [m["id"] for m in d.get("data", []) if isinstance(m, dict) and m.get("id")]
+    ids = [m["id"] for m in d.get("data", []) if isinstance(m, dict) and isinstance(m.get("id"), str)]
+    if not ids or any(not 0 < len(v) <= 256 or any(ord(c)<32 or ord(c)==127 for c in v) for v in ids):
+        raise ValueError("invalid model list")
     print("\n".join(ids))
 except Exception:
-    pass
+    raise SystemExit(1)
 '
-}
-
-auth_header_args() {
-  if [ -n "$API_KEY" ] && [ "$API_KEY" != "EMPTY" ]; then
-    printf '%s' "-H Authorization: Bearer $API_KEY"
-  fi
 }
 
 if [ -t 0 ]; then
   # 1) URL first
   [ -z "$BASE_URL" ] && read -r -p "API base_url（如 http://127.0.0.1:8000/v1，需提供 /responses 端点）: " BASE_URL
-  case "$BASE_URL" in
-    http://*|https://*) ;;
-    *) die "base_url 必须以 http:// 或 https:// 开头: $BASE_URL" ;;
-  esac
+  normalize_url
   # 2) key BEFORE fetching models (authed endpoints reject the list otherwise)
   if [ "${CUSTOM_API_KEY:-}" = "" ]; then
-    read -r -p "API Key（本地无鉴权服务直接回车）: " k || true
+    read -r -s -p "API Key（本地无鉴权服务直接回车）: " k || true; echo
     [ -n "$k" ] && API_KEY="$k"
   fi
   # 3) auto-fetch the model list and let the user pick
   if [ -z "$MODEL" ]; then
     echo "正在获取模型列表..."
-    MODELS_LIST="$(fetch_models)"
+    MODELS_LIST="$(fetch_models || true)"
     if [ -n "$MODELS_LIST" ]; then
       echo "端点提供以下模型："
       echo "$MODELS_LIST" | nl -ba | sed 's/^/  /'
@@ -102,17 +214,18 @@ fi
 case "$VISION" in 1|true|yes) VISION=1 ;; *) VISION=0 ;; esac
 
 [ -n "$BASE_URL" ] || die "缺少 base_url：设置 CUSTOM_BASE_URL 或交互输入"
-case "$BASE_URL" in
-  *[!A-Za-z0-9:/._-]*) die "base_url 含非法字符（仅允许字母/数字/点/斜杠/冒号/连字符/下划线）: $BASE_URL" ;;
-esac
+normalize_url
 [ -n "$MODEL" ] || die "缺少模型 id：设置 CUSTOM_MODEL 或交互输入"
-case "$MODEL" in *[!A-Za-z0-9._/\-]*) die "模型 id 含非法字符: $MODEL" ;; esac
+if [ "${CUSTOM_SYNC_CATALOG:-0}" = "1" ]; then
+  CUSTOM_MODEL_IDS="$(fetch_models)" || die "无法获取有效模型目录；当前配置保持不变"
+  export CUSTOM_MODEL_IDS
+fi
+MODEL="$MODEL" python3 -c 'import os; v=os.environ["MODEL"]; raise SystemExit(0 if 0 < len(v) <= 256 and not any(ord(c)<32 or ord(c)==127 for c in v) else 1)' \
+  || die "模型 id 为空、过长或含控制字符"
 case "$CTX" in ''|*[!0-9]*) die "CUSTOM_CTX 必须是数字" ;; esac
-# API keys land in TOML strings and curl bodies — reject anything that could
-# escape the quoting (injection guard; keys are typically [A-Za-z0-9._\-]).
-case "$API_KEY" in
-  *[!A-Za-z0-9._\-]*) die "API Key 含非法字符（仅允许字母/数字/点/下划线/连字符）: $API_KEY" ;;
-esac
+[ "$CTX" -ge 1024 ] && [ "$CTX" -le 16777216 ] || die "CUSTOM_CTX 必须在 1024..16777216 之间"
+API_KEY="$API_KEY" python3 -c 'import os; v=os.environ["API_KEY"]; raise SystemExit(0 if len(v) <= 16384 and not any(ord(c)<32 or ord(c)==127 for c in v) else 1)' \
+  || die "API Key 过长或含控制字符"
 
 mkdir -p "$SET_DIR"
 # Migration: a pre-set-switching single config.toml seeds this set once (the
@@ -128,14 +241,12 @@ fi
 # probing errors fall back to the single configured default.
 detect_efforts() {
   local url="$BASE_URL/responses" code detected=""
-  local auth=()
-  if [ -n "$API_KEY" ] && [ "$API_KEY" != "EMPTY" ]; then
-    auth=(-H "Authorization: Bearer $API_KEY")
-  fi
   for E in none minimal low medium high xhigh max; do
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$url" "${auth[@]}" \
+    local payload
+    payload="$(python3 -c 'import json,sys; print(json.dumps({"model":sys.argv[1],"input":"ping","reasoning":{"effort":sys.argv[2]},"max_output_tokens":16}))' "$MODEL" "$E")"
+    code="$(custom_curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$url" \
       -H 'Content-Type: application/json' \
-      -d "{\"model\":\"$MODEL\",\"input\":\"ping\",\"reasoning\":{\"effort\":\"$E\"},\"max_output_tokens\":16}" 2>/dev/null || echo 000)"
+      -d "$payload" 2>/dev/null || echo 000)"
     if [ "$code" = "200" ]; then
       detected="$detected $E"
     fi
@@ -149,8 +260,13 @@ case "$EFFORT" in
   *) die "CUSTOM_EFFORT 必须是 none/minimal/low/medium/high/xhigh/max 之一: $EFFORT" ;;
 esac
 
-log "探测端点支持的思考档位（使用所选模型 $MODEL）..."
-EFFORTS_DETECTED="$(detect_efforts)"
+if [ "${PROBE_REASONING:-0}" = "1" ]; then
+  log "将发送 7 个真实 API 探测请求（可能计费，模型 $MODEL）..."
+  EFFORTS_DETECTED="$(detect_efforts)"
+else
+  EFFORTS_DETECTED=""
+  log "跳过付费思考档位探测（设置 PROBE_REASONING=1 可显式启用）"
+fi
 if [ -n "$EFFORTS_DETECTED" ]; then
   log "端点接受: ${EFFORTS_DETECTED}"
   if [ -t 0 ] && [ -z "${CUSTOM_EFFORT:-}" ]; then
@@ -172,86 +288,48 @@ if [ -n "$EFFORTS_DETECTED" ]; then
       *) die "CUSTOM_EFFORT=$EFFORT 不在端点支持列表里（支持: $EFFORTS_DETECTED）" ;;
     esac
   fi
-else
+elif [ "${PROBE_REASONING:-0}" = "1" ]; then
   log "探测失败或端点拒绝全部档位——跳过档位列表（仍使用默认 $EFFORT）"
 fi
 
-python3 - "$CONFIG" "$BASE_URL" "$MODEL" "$API_KEY" "$CTX" "$VISION" "$EFFORT" "$EFFORTS_DETECTED" <<'PY'
-import json, os, re, shutil, sys, time
+# Persist the selected authentication state, including an explicit blank.
+# Leaving an old key in the canonical store after an unauthenticated URL
+# switch would let a later catalog sync silently restore it on the new URL.
+if [ "$API_KEY" = "EMPTY" ]; then persist_key ""; else persist_key "$API_KEY"; fi
 
-config, base_url, model, api_key, ctx, vision, effort, detected = sys.argv[1:9]
+python3 - "$CONFIG" "$BASE_URL" "$MODEL" "$CTX" "$VISION" "$EFFORT" "$EFFORTS_DETECTED" "$([ "$API_KEY" != "EMPTY" ] && echo 1 || echo 0)" <<'PY'
+import json, os, sys
+from atomic_write import atomic_write
+
+config, base_url, model, ctx, vision, effort, detected, has_key = sys.argv[1:9]
+from toml_config import load_config, save_config, table
 catalog_path = os.path.join(os.path.dirname(os.path.abspath(config)), "models.json")
-
-TOP_KEYS = ("model_provider", "model", "model_reasoning_effort", "model_catalog_json")
-FEATURE_KEYS = ("mcp_2026_07_28",)
-
-def is_header(line):
-    return re.match(r"^\[[a-zA-Z_]", line) is not None
-
-lines = open(config).read().split("\n") if os.path.exists(config) else []
-out, i, removed = [], 0, []
-while i < len(lines):
-    line = lines[i]
-    s = line.strip()
-    # Third-party blocks (incl. subtables) run until the next table header.
-    if re.match(r"^\[(model_providers|mcp_servers)\.[^\]]+\]", s) or s in ("[model_providers]", "[mcp_servers]"):
-        name = s
-        i += 1
-        while i < len(lines) and not is_header(lines[i]):
-            i += 1
-        removed.append(name)
-        continue
-    if is_header(line):
-        if s == "[features]":
-            out.append(line)
-            i += 1
-            kept_any = False
-            while i < len(lines) and not is_header(lines[i]):
-                if not any(lines[i].strip().startswith(k + " ") or lines[i].strip().startswith(k + "=") for k in FEATURE_KEYS):
-                    out.append(lines[i])
-                    kept_any = kept_any or lines[i].strip() != ""
-                else:
-                    removed.append(lines[i].strip())
-                i += 1
-            if not kept_any:
-                while out and out[-1].strip() == "":
-                    out.pop()
-                if out and out[-1].strip() == "[features]":
-                    out.pop()
-            continue
-        out.append(line)
-        i += 1
-        continue
-    if any(re.match(rf"^{k}\s*=", s) for k in TOP_KEYS):
-        removed.append(s)
-        i += 1
-        continue
-    out.append(line)
-    i += 1
-
-fresh = f'''model_provider = "custom"
-model = "{model}"
-model_reasoning_effort = "{effort}"
-model_catalog_json = "{catalog_path}"
-
-[model_providers.custom]
-name = "Custom OpenAI-compatible API"
-base_url = "{base_url}"
-experimental_bearer_token = "{api_key}"
-wire_api = "responses"
-'''
-
-if removed:
-    bak = f"{config}.bak-{int(time.time())}"
-    shutil.copyfile(config, bak)
-    # copyfile doesn't preserve permissions — the backup contains the API
-    # key so tighten it to match the main config.
-    import os as _os
-    _os.chmod(bak, 0o600)
-text = fresh + "\n" + "\n".join(out).lstrip("\n")
-text = re.sub(r"\n{3,}", "\n\n", text)
-open(config, "w").write(text)
-print(f"[custom-setup] 配置已写入（剥离其它供应商/MCP {len(removed)} 项{'，已备份' if removed else ''}）")
+data = load_config(config)
+try:
+    previous_catalog = json.load(open(catalog_path, encoding="utf-8"))
+except FileNotFoundError:
+    previous_catalog = {"models": []}
+previous_provider = data.get("model_providers", {}).get("custom", {})
+same_endpoint = previous_provider.get("base_url") == base_url
+previous_entries = {
+    entry["slug"]: entry for entry in previous_catalog.get("models", [])
+    if isinstance(entry, dict) and isinstance(entry.get("slug"), str)
+} if same_endpoint else {}
+data.update(model_provider="custom", model=model,
+            model_reasoning_effort=effort, model_catalog_json=catalog_path)
+data["model_providers"] = {"custom": {
+    "name": "Custom OpenAI-compatible API", "base_url": base_url,
+    "wire_api": "responses",
+}}
+if has_key == "1":
+    data["model_providers"]["custom"]["env_key"] = "CUSTOM_OPENAI_API_KEY"
+features = table(data, "features")
+features.pop("mcp_2026_07_28", None)
+servers = table(data, "mcp_servers")
+for name in ("web-search-prime", "web-reader", "zread", "zai-mcp-server"):
+    servers.pop(name, None)
+save_config(config, data)
+print("[custom-setup] 模型配置已在候选配置集中生成，保留其它用户配置")
 
 # Single-model catalog so model/list (and the WebUI model selector) show the
 # real model instead of the built-in gpt list.
@@ -260,6 +338,8 @@ EFFORT_DESC = {
     "medium": "中等思考", "high": "深度思考", "xhigh": "超深度思考", "max": "最大思考",
 }
 levels = [{"effort": e, "description": EFFORT_DESC.get(e, e)} for e in detected.split()]
+if not detected:
+    levels = previous_entries.get(model, {}).get("supported_reasoning_levels", [])
 models = {
     "models": [
         {
@@ -295,13 +375,28 @@ models = {
         }
     ]
 }
-with open(catalog_path, "w") as f:
-    json.dump(models, f, indent=2, ensure_ascii=False)
+if os.environ.get("CUSTOM_SYNC_CATALOG") == "1":
+    ids = os.environ.get("CUSTOM_MODEL_IDS", "").splitlines()
+    if not ids or model not in ids:
+        raise SystemExit("同步目录未包含当前模型；保持当前配置，请先选择端点中存在的模型")
+    template = models["models"][0]
+    entries = []
+    for slug in dict.fromkeys(ids):
+        if not 0 < len(slug) <= 256 or any(ord(c) < 32 or ord(c) == 127 for c in slug):
+            raise SystemExit("模型目录包含非法模型 id")
+        entry = dict(previous_entries.get(slug, template))
+        entry.update(slug=slug, display_name=entry.get("display_name", slug) if slug in previous_entries else slug)
+        if slug not in previous_entries and slug != model:
+            entry["supported_reasoning_levels"] = []
+        entries.append(entry)
+    models["models"] = entries
+atomic_write(catalog_path, json.dumps(models, indent=2, ensure_ascii=False) + "\n")
 effort_list = " ".join(l["effort"] for l in levels) if levels else "(仅默认 %s)" % effort
 print("[custom-setup] models.json 目录已生成（窗口 %s tokens，effort 档位: %s）" % (ctx, effort_list))
 PY
 
-# The set contains the API key — keep it owner-only.
+# Provider config and catalog remain owner-only even though credentials now
+# live solely in the EnvironmentFile.
 chmod 600 "$CONFIG" "$SET_DIR/models.json" 2>/dev/null || true
 
 SCRIPT_PARENT="$(cd "$SCRIPT_DIR/.." && pwd)"

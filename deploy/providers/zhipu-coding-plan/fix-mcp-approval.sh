@@ -1,43 +1,25 @@
 #!/usr/bin/env bash
-# Auto-approve MCP tool calls per server, so they work even when the session
+# Auto-approve only the four bundled Zhipu servers, so they work when the session
 # approval policy is "never" (WebUI composer "never ask").
 # Official key: mcp_servers.<id>.default_tools_approval_mode = "approve".
 # Idempotent against any block layout: scans the WHOLE block (until the next
 # table header) before inserting.
 set -eu
-CONFIG="${CODEX_HOME:-$HOME/.codex}/config.toml"
+umask 077
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$SCRIPT_DIR/..${PYTHONPATH:+:$PYTHONPATH}"
+CONFIG="${CONFIG:-${CODEX_HOME:-$HOME/.codex}/config.toml}"
 python3 - "$CONFIG" <<'PY'
-import re, sys
-
+import sys
+from toml_config import load_config, save_config, table
 config = sys.argv[1]
-lines = open(config).read().split("\n")
-
-def is_header(line):
-    return re.match(r"^\[[a-zA-Z_]", line) is not None
-
-out = []
-i = 0
+data = load_config(config)
+allowed = {"web-search-prime", "web-reader", "zread", "zai-mcp-server"}
 inserted = 0
-while i < len(lines):
-    line = lines[i]
-    out.append(line)
-    if re.match(r"^\[mcp_servers\.[a-zA-Z0-9_-]+\]$", line.strip()):
-        # Collect the block first to see whether the key already exists.
-        j = i + 1
-        block = []
-        while j < len(lines) and not is_header(lines[j]):
-            block.append(lines[j])
-            j += 1
-        if not any("default_tools_approval_mode" in b for b in block):
-            out.append('default_tools_approval_mode = "approve"')
-            inserted += 1
-        out.extend(block)
-        i = j
-        continue
-    i += 1
-text = "\n".join(out)
-open(config, "w").write(text)
-total = text.count('default_tools_approval_mode = "approve"')
-print(f"approve flags: {total} (inserted {inserted})")
+for name, server in table(data, "mcp_servers").items():
+    if name in allowed and isinstance(server, dict) and "default_tools_approval_mode" not in server:
+        server["default_tools_approval_mode"] = "approve"
+        inserted += 1
+save_config(config, data)
+print(f"bundled-server approval flags inserted: {inserted}; third-party servers unchanged")
 PY
-grep -A3 'mcp_servers.web-search-prime\]' "$CONFIG" | head -4

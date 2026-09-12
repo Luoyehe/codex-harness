@@ -76,6 +76,7 @@ export function Sidebar() {
           placeholder="搜索会话标题…"
           value={sessionSearch}
           onChange={(e) => setSessionSearch(e.target.value)}
+          maxLength={200}
         />
         <div className="sb-arch-tabs">
           <button
@@ -153,6 +154,7 @@ function SessionRow({
           className="sb-rename"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          maxLength={200}
           onBlur={commitRename}
           onKeyDown={(e) => {
             if (e.key === "Enter") commitRename();
@@ -225,12 +227,14 @@ function ProjectPicker({ onClose }: { onClose: () => void }) {
     setError("");
     try {
       const res = await gateway.rpc<any>("fs/readDirectory", { path: dir });
-      const list: any[] = res?.entries ?? [];
+      const list: any[] = (Array.isArray(res?.entries) ? res.entries : [])
+        .filter((entry: any) => entry?.isDirectory === true && typeof entry?.fileName === "string")
+        .slice(0, 5_000);
       list.sort((a, b) => {
         if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
         return String(a.fileName).localeCompare(String(b.fileName));
       });
-      setEntries(list.filter((e) => e.isDirectory));
+      setEntries(list.map((entry) => ({ ...entry, fileName: entry.fileName.slice(0, 255) })));
       setBrowseDir(dir);
       setPath(dir);
     } catch (err: any) {
@@ -242,8 +246,9 @@ function ProjectPicker({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError("");
     try {
-      await addProject(path.trim(), create);
-      await selectProject(path.trim());
+      const target = path.trim().slice(0, 4096);
+      await addProject(target, create);
+      await selectProject(target);
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -262,6 +267,7 @@ function ProjectPicker({ onClose }: { onClose: () => void }) {
           placeholder="/home/user/my-project"
           value={path}
           onChange={(e) => setPath(e.target.value)}
+          maxLength={4096}
         />
         <label className="check-line">
           <input type="checkbox" checked={create} onChange={(e) => setCreate(e.target.checked)} />

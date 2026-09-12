@@ -1,7 +1,8 @@
 // List MCP servers and their registered tool names via the gateway WS API.
-import { wsUrl } from "./ws-token.mjs";
+import WebSocket from "ws";
+import { wsUrl, wsOptions } from "./ws-token.mjs";
 const WS = wsUrl(process.env.GATEWAY_WS ?? "ws://127.0.0.1:8080/ws");
-const ws = new WebSocket(WS);
+const ws = new WebSocket(WS, wsOptions());
 let nextId = 1;
 const pending = new Map();
 const rpc = (m, p) =>

@@ -1,38 +1,59 @@
 #!/usr/bin/env bash
 # Config-set switcher: each provider mode owns a fully self-contained set at
 #   <CODEX_HOME>/providers/<mode>/{config.toml,models.json}
-# and ~/.codex/config.toml is a SYMLINK to the active set. Switching modes =
-# repointing the link — no in-place edits, no per-pair strip logic, adding a
-# provider later costs one directory and nothing else.
+# Public config, provider sets and EnvironmentFile traverse one .active link.
+# This script edits only a private candidate; provider_transaction.py validates
+# and publishes its complete generation after this script succeeds.
 #
 #   activate-config.sh <mode>            # activate <mode>'s set (must exist)
-#   activate-config.sh openai            # native mode: remove the link
+#   activate-config.sh openai            # native defaults: empty managed config
 #   activate-config.sh absorb-and-link <mode> <file>
 #                                       # migration: seed <mode>'s set from a
 #                                       # legacy config.toml, then activate
 set -euo pipefail
+umask 077
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}"
 CH="${CODEX_HOME:-$HOME/.codex}"
 LIVE="$CH/config.toml"
 PROV_DIR="$CH/providers"
 log() { echo "[activate] $*"; }
 
+archive_legacy() {
+  local source="$1" destination="$2" remove_source="${3:-1}"
+  python3 - "$source" "$destination" "$remove_source" <<'PY'
+import os, sys
+from toml_config import archive_config
+source, destination = sys.argv[1:3]
+archive_config(source, destination)
+if sys.argv[3] == "1": os.unlink(source)
+PY
+}
+
 MODE="${1:-}"
+case "$MODE" in openai|custom|zhipu|absorb-and-link) ;; *) echo "[activate] ERROR: invalid provider mode" >&2; exit 1 ;; esac
+if [ "${HARNESS_PROVIDER_TRANSACTION:-0}" != "1" ]; then
+  TRANSACTION_MODE="$MODE"
+  if [ "$MODE" = "absorb-and-link" ]; then TRANSACTION_MODE="${2:?mode required}"; fi
+  exec python3 "$SCRIPT_DIR/provider_transaction.py" "$TRANSACTION_MODE" "$0" "$@"
+fi
 case "$MODE" in
   openai)
     if [ -L "$LIVE" ]; then
       rm "$LIVE"
-      log "已切回 OpenAI 原生模式（移除配置软链，零配置文件）"
+      log "候选配置已恢复 OpenAI 原生默认值（事务提交时保留公共软链）"
     elif [ -f "$LIVE" ]; then
       mkdir -p "$PROV_DIR/_pre-switching"
       BAK="$PROV_DIR/_pre-switching/config.$(date +%s).toml"
-      mv "$LIVE" "$BAK"
-      log "原有 config.toml 已备份到 $BAK；OpenAI 原生模式为零配置文件"
+      archive_legacy "$LIVE" "$BAK"
+      log "原有 config.toml 已脱敏备份到 $BAK；候选配置已恢复 OpenAI 原生默认值"
     else
-      log "已是 OpenAI 原生模式（无 config.toml）"
+      log "候选配置已是 OpenAI 原生默认值"
     fi
     ;;
   absorb-and-link)
     MODE2="${2:?mode required}"
+    case "$MODE2" in custom|zhipu) ;; *) echo "[activate] ERROR: invalid provider mode" >&2; exit 1 ;; esac
     SRC="${3:?legacy config file required}"
     SET_DIR="$PROV_DIR/$MODE2"
     mkdir -p "$SET_DIR"
@@ -49,17 +70,22 @@ case "$MODE" in
     if [ -f "$LIVE" ] && [ ! -L "$LIVE" ]; then
       # Pre-set-switching era config: back it up, never silently destroy.
       mkdir -p "$PROV_DIR/_pre-switching"
-      mv "$LIVE" "$PROV_DIR/_pre-switching/config.$(date +%s).toml"
-      log "检测到非软链的存量 config.toml，已备份到 providers/_pre-switching/"
+      archive_legacy "$LIVE" "$PROV_DIR/_pre-switching/config.$(date +%s).toml" 0
+      log "检测到非软链的存量 config.toml，已脱敏备份到 providers/_pre-switching/"
     fi
-    if [ -L "$LIVE" ] || [ -e "$LIVE" ]; then rm -f "$LIVE"; fi
-    if ln -s "$SET_FILE" "$LIVE" 2>/dev/null; then
-      log "已激活 $MODE 配置集（软链 → $SET_FILE）"
-    else
-      # Filesystem without symlinks: fall back to a copy (edits to the live
-      # file then won't persist into the set — re-run setup to refresh).
-      cp "$SET_FILE" "$LIVE"
-      log "已激活 $MODE 配置集（复制方式，文件系统不支持软链）"
-    fi
+    python3 - "$SET_FILE" "$LIVE" <<'PY'
+import os, sys, tempfile
+source, live = sys.argv[1:3]
+fd, temporary = tempfile.mkstemp(prefix=".provider-link-", dir=os.path.dirname(live))
+os.close(fd)
+try:
+    os.unlink(temporary)
+    os.symlink(os.path.abspath(source), temporary)
+    os.replace(temporary, live)
+finally:
+    try: os.unlink(temporary)
+    except FileNotFoundError: pass
+PY
+    log "已原子激活 $MODE 配置集（软链 → $SET_FILE）"
     ;;
 esac

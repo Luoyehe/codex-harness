@@ -11,7 +11,6 @@ export function App() {
   const bootstrap = useStore((s) => s.bootstrap);
   const connection = useStore((s) => s.connection);
   const codexState = useStore((s) => s.codexState);
-  const account = useStore((s) => s.account);
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const setSidebarOpen = useStore((s) => s.setSidebarOpen);
   const [settingsOpen, setSettingsOpen] = useState(false);

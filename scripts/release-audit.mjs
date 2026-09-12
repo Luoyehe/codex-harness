@@ -1,49 +1,83 @@
-// Release audit: walk the repo (excluding deps/build) and flag anything that
-// should not ship — credentials, internal hosts/paths, personal traces,
-// private-key material, editor/OS junk. Exit 1 if anything is flagged.
+// Release audit: walk a repository tree and flag credentials, internal hosts,
+// private-key material, placeholders, and junk files. Findings intentionally
+// contain only file/line/rule metadata: echoing the matching line would leak
+// the very value this command is meant to catch into CI logs.
 //
-// Extra deployment-specific patterns can be passed without committing them:
+// Deployment-specific *literal* values can be supplied without committing
+// them. Separate values with `|`; they are escaped, not treated as regexes:
 //   AUDIT_EXTRA="literal1|literal2" node scripts/release-audit.mjs .
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 
-const ROOT = process.argv[2] ?? ".";
+const ROOT = realpathSync(process.argv[2] ?? ".");
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "dev-codex-home", ".zcode"]);
+const MAX_TEXT_BYTES = 5 * 1024 * 1024;
 
 const RULES = [
-  // Structural credential shapes (no real secrets live in this file!).
-  { name: "zhipu-key", re: /\b[0-9a-f]{32}\.[A-Za-z0-9]{12,}\b/ },
+  { name: "zhipu-key", re: /\b[0-9a-f]{32}\.[A-Za-z0-9]{12,}\b/i },
   { name: "sk-key", re: /\bsk-[A-Za-z0-9_-]{16,}\b/ },
-  { name: "ghp-key", re: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/ },
-  { name: "private-ip", re: /\b(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b/ },
-  { name: "private-key", re: /BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY/ },
+  { name: "github-token", re: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/ },
+  { name: "private-ip", re: /\b(?:192\.168|10\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b/ },
+  { name: "private-key", re: /BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY/ },
   { name: "argon2-hash", re: /\$argon2id\$/ },
-  { name: "assign-secret", re: /\b(api[_-]?key|token|secret|password)\b\s*[:=]\s*["'][^"'<>{}]{12,}/i },
-  { name: "email", re: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g },
+  // Match committed string literals, not a quoted shell command substitution
+  // such as API_KEY="$(read_secret)".  The latter contains no credential and
+  // otherwise turns safe runtime loading into a permanent false positive.
+  { name: "assign-secret", re: /\b(?:api[_-]?key|token|secret|password)\b\s*[:=]\s*["'](?!\$\()[^"'<>{}]{12,}/i },
+  { name: "email", re: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/ },
+  { name: "owner-placeholder", re: /github\.com\/OWNER\//i },
 ];
-// Deployment-specific literals (old credentials, internal hostnames, personal
-// project names…) go here via env so they never enter version control:
-//   AUDIT_EXTRA="literal1|literal2" node scripts/release-audit.mjs .
-if (process.env.AUDIT_EXTRA) {
-  RULES.push({ name: "audit-extra", re: new RegExp(process.env.AUDIT_EXTRA, "i") });
-}
 
-const JUNK = /\.(tgz|zip|bak|log|tmp|DS_Store|pem|key|crt|env)$|Thumbs\.db$/i;
-// .env.example-style files and the codex env template are fine; flag real .env only.
+const extraLiterals = (process.env.AUDIT_EXTRA ?? "")
+  .split("|")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
+const JUNK = /\.(?:tgz|zip|bak|log|tmp|DS_Store|pem|key|crt|env)$|Thumbs\.db$/i;
 const hits = [];
 const junk = [];
+const skippedLarge = [];
+const unreadable = [];
+
+function recordRules(text, rel) {
+  const lines = text.split("\n");
+  lines.forEach((line, index) => {
+    for (const rule of RULES) {
+      const match = rule.re.exec(line);
+      if (!match) continue;
+      if (rule.name === "email" && /(?:example\.(?:com|org)|localhost|noreply\.github|users\.noreply)/i.test(match[0])) continue;
+      hits.push(`${rel}:${index + 1} [${rule.name}]`);
+    }
+    for (const literal of extraLiterals) {
+      if (line.toLocaleLowerCase("en-US").includes(literal.toLocaleLowerCase("en-US"))) {
+        hits.push(`${rel}:${index + 1} [audit-extra]`);
+      }
+    }
+  });
+}
 
 function walk(dir) {
-  for (const entry of readdirSync(dir)) {
+  let entries;
+  try { entries = readdirSync(dir); }
+  catch { unreadable.push(path.relative(ROOT, dir) || "."); return; }
+  for (const entry of entries) {
     const full = path.join(dir, entry);
-    const st = statSync(full);
-    if (st.isDirectory()) {
+    const rel = path.relative(ROOT, full).replace(/\\/g, "/");
+    let stat;
+    try {
+      stat = lstatSync(full);
+    } catch {
+      unreadable.push(rel);
+      continue;
+    }
+    // Never follow a repository symlink and accidentally inspect files outside
+    // the requested release tree.
+    if (stat.isSymbolicLink()) continue;
+    if (stat.isDirectory()) {
       if (!SKIP_DIRS.has(entry)) walk(full);
       continue;
     }
-    const rel = path.relative(ROOT, full).replace(/\\/g, "/");
-    if (JUNK.test(entry) && !/\.example$/.test(entry)) {
+    if (JUNK.test(entry) && !/\.example$/i.test(entry)) {
       junk.push(rel);
       continue;
     }
@@ -51,27 +85,23 @@ function walk(dir) {
       junk.push(rel);
       continue;
     }
-    let text;
-    try {
-      text = readFileSync(full, "utf8");
-    } catch {
-      continue; // binary
+    if (stat.size > MAX_TEXT_BYTES) {
+      skippedLarge.push(rel);
+      continue;
     }
-    const lines = text.split("\n");
-    lines.forEach((line, i) => {
-      for (const rule of RULES) {
-        const m = rule.re.exec(line);
-        if (!m) continue;
-        if (rule.name === "email" && /(example\.(com|org)|localhost|noreply\.github|users\.noreply)/i.test(m[0])) continue;
-        if (rule.name === "private-ip" && m[0].startsWith("127.")) continue;
-        hits.push(`${rel}:${i + 1} [${rule.name}] ${line.trim().slice(0, 110)}`);
-      }
-    });
+    try {
+      recordRules(readFileSync(full, "utf8"), rel);
+    } catch {
+      unreadable.push(rel);
+    }
   }
 }
 
 walk(ROOT);
-console.log(`=== rule hits: ${hits.length}, junk files: ${junk.length} ===`);
-for (const h of hits) console.log("HIT " + h);
-for (const j of junk) console.log("JUNK " + j);
-process.exit(hits.length + junk.length > 0 ? 1 : 0);
+console.log(`=== rule hits: ${hits.length}, junk files: ${junk.length}, large files skipped: ${skippedLarge.length}, unreadable: ${unreadable.length} ===`);
+for (const hit of hits) console.log(`HIT ${hit}`);
+for (const file of junk) console.log(`JUNK ${file}`);
+for (const file of skippedLarge) console.log(`SKIP-LARGE ${file}`);
+for (const file of unreadable) console.log(`UNREADABLE ${file}`);
+if (skippedLarge.length + unreadable.length > 0) console.error("Audit incomplete: unscanned files must be investigated before release.");
+process.exitCode = hits.length + junk.length + skippedLarge.length + unreadable.length > 0 ? 1 : 0;

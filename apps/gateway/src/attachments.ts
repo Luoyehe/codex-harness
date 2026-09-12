@@ -1,6 +1,30 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { atomicWriteFileSync } from "./atomic-file.js";
+import type { Thread } from "../../../protocol/v2/Thread.js";
+import type { ThreadReadResponse } from "../../../protocol/v2/ThreadReadResponse.js";
+
+export interface AttachmentReservation {
+  owner: string;
+  threadId: string;
+  paths: string[];
+}
+const PENDING_OWNER_PREFIX = "@codex-harness:pending:";
 
 /**
  * Browser-upload store for message attachments. Files land under
@@ -16,7 +40,15 @@ export class AttachmentStore {
    * no OTHER thread (forks, copied turns) still needs.
    */
   private refsFile: string;
+  private canonicalDir: string;
   private refs: Record<string, string[]> | null = null;
+  private refsUnknown = false;
+  private static readonly INDEX_STATE_KEY = "@codex-harness:index-state";
+  /** Synthetic owner retained when a rollout reference exists (or a scan was
+   * inconclusive).  This keeps the explicit attachment/delete RPC fail-safe
+   * even though CLI-created forks are not represented by a WebUI thread id. */
+  private static readonly ROLLOUT_OWNER = "@codex-harness:rollout-reference";
+  private static readonly INCOMPLETE_SCAN_OWNER = "@codex-harness:scan-incomplete";
   /**
    * Upload caps. Images are capped at 5MB to match the Zhipu vision MCP
    * (@z_ai/mcp-server MAX_IMAGE_SIZE_MB — larger images fail at analysis
@@ -34,6 +66,11 @@ export class AttachmentStore {
     this.dir = path.join(codexHome, "webui-uploads");
     this.refsFile = path.join(this.dir, "refs.json");
     if (!existsSync(this.dir)) mkdirSync(this.dir, { recursive: true });
+    this.canonicalDir = realpathSync(this.dir);
+    // Establish whether this is a genuinely empty store before save() creates
+    // an upload. A missing sidecar in an existing store is not proof of zero
+    // references; keep that uncertainty across later sidecar writes.
+    this.loadRefs();
   }
 
   /** Neutralize anything path-like in a client-supplied filename. */
@@ -42,40 +79,108 @@ export class AttachmentStore {
     return (base || "file").slice(0, 120);
   }
 
-  isOwned(target: string): boolean {
+  /** Resolve an existing regular upload to its single filesystem identity.
+   * All registry reads/writes use this value, so aliases such as `dir/./file`
+   * cannot bypass a refcount lookup. */
+  private canonicalOwnedPath(target: string): string | null {
+    if (typeof target !== "string" || !target || target.includes("\0")) return null;
     const resolved = path.resolve(target);
-    const root = path.resolve(this.dir);
-    return resolved === root || resolved.startsWith(root + path.sep);
+    try {
+      // Reject a symlink at the leaf, and resolve every intermediate symlink
+      // before applying the containment check. The real path, rather than a
+      // caller-supplied spelling of it, is also the ref-registry key.
+      const leaf = lstatSync(resolved);
+      if (leaf.isSymbolicLink() || !leaf.isFile()) return null;
+      const real = realpathSync(resolved);
+      if (!real.startsWith(this.canonicalDir + path.sep)) return null;
+      // refs.json and its atomic-write temporaries are store internals, never
+      // browser attachments. Compare after realpath so aliases cannot reach
+      // the sidecar either.
+      if (
+        real === path.join(this.canonicalDir, "refs.json") ||
+        (path.dirname(real) === this.canonicalDir && path.basename(real).startsWith(".refs.json."))
+      ) return null;
+      return real;
+    } catch {
+      return null;
+    }
+  }
+
+  isOwned(target: string): boolean {
+    return this.canonicalOwnedPath(target) !== null;
   }
 
   save(name: string, base64: string, kind?: "image" | "file"): { path: string; size: number } {
-    const bytes = Buffer.from(base64, "base64");
-    if (bytes.length === 0) throw new Error("附件内容为空");
     // Client-declared kind wins (the browser sniffs real content types);
     // extension sniffing is only the fallback for direct API callers.
     const isImage = kind === "image" || (kind !== "file" && AttachmentStore.mimeOf(name).startsWith("image/"));
     const cap = isImage ? this.maxImageBytes : this.maxFileBytes;
+    if (typeof base64 !== "string" || base64.length === 0) throw new Error("附件内容为空");
+    // Reject before decoding so a huge encoded string cannot multiply memory
+    // use. Only canonical RFC 4648 base64 is accepted; Buffer.from() itself is
+    // intentionally permissive and silently ignores arbitrary characters.
+    if (base64.length > Math.ceil(cap / 3) * 4) {
+      const mb = Math.floor(cap / 1024 / 1024);
+      throw new Error(`${isImage ? "图片" : "文件"}过大（上限 ${mb}MB）`);
+    }
+    if (
+      base64.length % 4 !== 0 ||
+      !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)
+    ) {
+      throw new Error("附件内容不是有效的 base64");
+    }
+    const bytes = Buffer.from(base64, "base64");
+    if (bytes.length === 0) throw new Error("附件内容为空");
     if (bytes.length > cap) {
       const mb = Math.floor(cap / 1024 / 1024);
       throw new Error(`${isImage ? "图片" : "文件"}过大（上限 ${mb}MB）`);
     }
-    const file = path.join(this.dir, `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}-${this.safeName(name)}`);
-    writeFileSync(file, bytes);
-    return { path: file, size: bytes.length };
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const file = path.join(this.dir, `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${this.safeName(name)}`);
+      try {
+        writeFileSync(file, bytes, { flag: "wx", mode: 0o600 });
+        // Return the same canonical spelling the registry uses. This also
+        // makes paths embedded in new rollouts stable when CODEX_HOME itself
+        // is reached through a symlink.
+        return { path: realpathSync(file), size: bytes.length };
+      } catch (err: any) {
+        if (err?.code !== "EEXIST" || attempt === 4) throw err;
+      }
+    }
+    throw new Error("无法分配附件文件名");
   }
 
   read(target: string): { base64: string; mime: string } {
-    if (!this.isOwned(target)) throw new Error("只能读取上传目录内的附件");
-    const data = readFileSync(target);
-    return { base64: data.toString("base64"), mime: AttachmentStore.mimeOf(target) };
+    const canonical = this.canonicalOwnedPath(target);
+    if (!canonical) throw new Error("只能读取上传目录内的附件");
+    // Open without following a leaf symlink, then verify the opened inode is
+    // the same one we inspected. This closes the check/open race where a local
+    // process swaps an upload for a symlink after the realpath check.
+    const before = lstatSync(canonical);
+    if (before.isSymbolicLink() || !before.isFile()) throw new Error("附件已被替换，拒绝读取");
+    const fd = openSync(canonical, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+    try {
+      const opened = fstatSync(fd);
+      if (
+        !opened.isFile() ||
+        opened.dev !== before.dev ||
+        opened.ino !== before.ino ||
+        opened.size > this.maxFileBytes
+      ) throw new Error("附件已被替换或大小超出限制，拒绝读取");
+      const data = readFileSync(fd);
+      return { base64: data.toString("base64"), mime: AttachmentStore.mimeOf(canonical) };
+    } finally {
+      closeSync(fd);
+    }
   }
 
   /** Remove a single uploaded file (user cancelled the attachment or the
    * turn failed). Silently skips files that are already gone or not ours. */
   remove(target: string): void {
-    if (!this.isOwned(target)) return;
+    const canonical = this.canonicalOwnedPath(target);
+    if (!canonical) return;
     try {
-      rmSync(target);
+      rmSync(canonical);
     } catch {
       /* already deleted or not writable */
     }
@@ -103,33 +208,140 @@ export class AttachmentStore {
     if (!paths.length) return;
     this.loadRefs();
     for (const p of paths) {
-      if (!this.isOwned(p)) continue;
-      const owners = new Set(this.refs![p] ?? []);
+      const canonical = this.canonicalOwnedPath(p);
+      if (!canonical) continue;
+      const owners = new Set(this.refs![canonical] ?? []);
       owners.add(threadId);
-      this.refs![p] = [...owners];
+      this.refs![canonical] = [...owners];
     }
     this.saveRefs();
   }
 
   /** Threads whose turns still reference <target> per the registry. */
   registeredOwners(target: string): string[] {
+    const canonical = this.canonicalOwnedPath(target);
+    if (!canonical) return [];
     this.loadRefs();
-    return this.refs![target] ?? [];
+    const owners = this.refs![canonical] ?? [];
+    return owners.length || !this.refsUnknown ? [...owners] : [AttachmentStore.INCOMPLETE_SCAN_OWNER];
+  }
+
+  /** Persist a lease before sending turn/start. A crash reloads an unfinished
+   * lease as a conservative reference to its real thread, so it cannot turn
+   * into an unprotected upload after the server may have accepted the turn. */
+  reservePaths(threadId: string, paths: string[]): AttachmentReservation {
+    const canonical = [...new Set(paths.map((p) => {
+      const owned = this.canonicalOwnedPath(p);
+      if (!owned) throw new Error("附件已不存在或不属于上传目录");
+      return owned;
+    }))];
+    const reservation = { owner: `${PENDING_OWNER_PREFIX}${encodeURIComponent(threadId)}:${randomUUID()}`, threadId, paths: canonical };
+    this.loadRefs();
+    for (const p of canonical) this.refs![p] = [...new Set([...(this.refs![p] ?? []), reservation.owner])];
+    try { this.saveRefs(true); } catch (error) {
+      for (const p of canonical) this.refs![p] = this.refs![p].filter((owner) => owner !== reservation.owner);
+      throw error;
+    }
+    return reservation;
+  }
+
+  settleReservation(reservation: AttachmentReservation, acceptedOrUncertain: boolean): void {
+    this.loadRefs();
+    for (const p of reservation.paths) {
+      const owners = new Set((this.refs![p] ?? []).filter((owner) => owner !== reservation.owner));
+      if (acceptedOrUncertain) owners.add(reservation.threadId);
+      if (owners.size) this.refs![p] = [...owners];
+      else delete this.refs![p];
+    }
+    this.saveRefs();
+  }
+
+  private static isScanMarker(owner: string): boolean {
+    return owner === AttachmentStore.ROLLOUT_OWNER || owner === AttachmentStore.INCOMPLETE_SCAN_OWNER;
+  }
+
+  /** An uncertain scan is a reason to recheck, not an immortal thread owner.
+   * Keep the final owner check and unlink in one synchronous section, so a
+   * turn reservation acquired while scanning cannot be missed. */
+  async removeUnreferenced(target: string): Promise<void> {
+    const canonical = this.canonicalOwnedPath(target);
+    if (!canonical) return;
+    this.loadRefs();
+    if (this.refsUnknown && !(this.refs![canonical]?.length)) {
+      this.refs![canonical] = [AttachmentStore.INCOMPLETE_SCAN_OWNER];
+    }
+    const initial = this.refs![canonical] ?? [];
+    if (initial.length > 0 && initial.every(AttachmentStore.isScanMarker)) {
+      const codexHome = path.dirname(this.dir);
+      const result = await this.findReferencedByOtherRollout([canonical], "", [
+        path.join(codexHome, "sessions"), path.join(codexHome, "archived_sessions"),
+      ]);
+      const current = this.refs![canonical] ?? [];
+      if (current.every(AttachmentStore.isScanMarker) && result.complete && !result.referenced.has(canonical)) {
+        delete this.refs![canonical];
+        this.saveRefs();
+      }
+    }
+    const owners = this.refs![canonical] ?? [];
+    if (owners.length > 0) {
+      if (owners.every(AttachmentStore.isScanMarker)) throw new Error("附件仍有历史引用，或历史扫描尚未完成；稍后可重新尝试删除");
+      throw new Error(`附件正被 ${owners.length} 个会话或发送中的回合引用，请先删除引用它的会话`);
+    }
+    this.remove(canonical);
   }
 
   private loadRefs(): void {
     if (this.refs) return;
     try {
-      this.refs = JSON.parse(readFileSync(this.refsFile, "utf8"));
-    } catch {
-      this.refs = {};
+      const parsed = JSON.parse(readFileSync(this.refsFile, "utf8"));
+      const clean: Record<string, string[]> = Object.create(null);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        for (const [file, owners] of Object.entries(parsed)) {
+          if (file === AttachmentStore.INDEX_STATE_KEY) {
+            this.refsUnknown = true;
+            continue;
+          }
+          if (!Array.isArray(owners) || owners.some((owner) => typeof owner !== "string" || !owner)) {
+            this.refsUnknown = true;
+            continue;
+          }
+          // Older sidecars used the caller's raw path spelling as the key.
+          // Canonicalise and merge them so an upgrade neither loses owners
+          // nor keeps two independently deletable aliases for one file.
+          const canonical = this.canonicalOwnedPath(file);
+          if (!canonical) continue;
+          const merged = new Set(clean[canonical] ?? []);
+          for (const owner of owners) {
+            if (typeof owner !== "string" || owner.length === 0) continue;
+            if (owner.startsWith(PENDING_OWNER_PREFIX)) {
+              try { merged.add(decodeURIComponent(owner.slice(PENDING_OWNER_PREFIX.length).split(":")[0])); }
+              catch { merged.add(AttachmentStore.INCOMPLETE_SCAN_OWNER); }
+            } else merged.add(owner);
+          }
+          clean[canonical] = [...merged];
+        }
+      } else this.refsUnknown = true;
+      this.refs = clean;
+    } catch (error: any) {
+      this.refs = Object.create(null);
+      this.refsUnknown = true;
+      if (error?.code === "ENOENT") {
+        try {
+          this.refsUnknown = readdirSync(this.dir).some((name) => !name.startsWith(".refs.json."));
+        } catch { /* unreadable store remains unknown */ }
+      }
     }
   }
 
-  private saveRefs(): void {
+  private saveRefs(required = false): void {
     try {
-      writeFileSync(this.refsFile, JSON.stringify(this.refs ?? {}));
-    } catch {
+      atomicWriteFileSync(this.refsFile, JSON.stringify({
+        ...(this.refsUnknown ? { [AttachmentStore.INDEX_STATE_KEY]: ["unknown"] } : {}),
+        ...(this.refs ?? {}),
+      }));
+    } catch (err: any) {
+      process.stderr.write(`[attachments] failed to persist refs metadata: ${err?.message ?? String(err)}\n`);
+      if (required) throw new Error("无法保护发送中的附件：引用信息持久化失败");
       /* best-effort registry */
     }
   }
@@ -147,45 +359,74 @@ export class AttachmentStore {
   private async findReferencedByOtherRollout(
     needles: string[],
     excludeThreadId: string,
-    sessionsDir: string,
-  ): Promise<Set<string>> {
+    sessionsDirs: string[],
+  ): Promise<{ referenced: Set<string>; complete: boolean }> {
     const found = new Set<string>();
     const pending = [...needles];
     const deadline = Date.now() + AttachmentStore.MAX_SCAN_MS;
     let filesLeft = AttachmentStore.MAX_SCAN_FILES;
-    const walk = async (dir: string): Promise<void> => {
-      if (pending.length === 0 || filesLeft <= 0 || Date.now() > deadline) return;
+    let complete = true;
+    const walk = async (dir: string, root = false): Promise<void> => {
+      if (pending.length === 0) return;
+      if (filesLeft <= 0 || Date.now() > deadline) {
+        complete = false;
+        return;
+      }
       let entries;
       try {
         entries = await readdir(dir, { withFileTypes: true });
-      } catch {
+      } catch (err: any) {
+        // A never-created sessions directory proves there are no rollouts.
+        // Any other unreadable directory makes the scan inconclusive.
+        if (!(root && err?.code === "ENOENT")) complete = false;
         return;
       }
       for (const e of entries) {
-        if (pending.length === 0 || filesLeft <= 0 || Date.now() > deadline) return;
+        if (pending.length === 0) return;
+        if (filesLeft <= 0 || Date.now() > deadline) {
+          complete = false;
+          return;
+        }
         const full = path.join(dir, e.name);
-        if (e.isDirectory()) {
+        if (e.isSymbolicLink()) {
+          // A linked directory/file can contain references, but following it
+          // could leave CODEX_HOME or loop forever. The scan is inconclusive.
+          complete = false;
+        } else if (e.isDirectory()) {
           await walk(full);
-        } else if (e.name.endsWith(".jsonl") && !e.name.includes(excludeThreadId)) {
+        } else if (e.name.endsWith(".jsonl") && (!excludeThreadId || !e.name.includes(excludeThreadId))) {
           filesLeft -= 1;
           try {
             const st = await stat(full);
-            if (st.size > 64 * 1024 * 1024) continue; // pathological rollout guard
+            if (st.size > 64 * 1024 * 1024) {
+              complete = false; // it may contain a reference; keep files
+              continue;
+            }
             const text = await readFile(full, "utf8");
+            if (Date.now() > deadline) complete = false;
             for (const n of [...pending]) {
-              if (text.includes(n)) {
+              // Windows backslashes (and quotes in POSIX names) are escaped
+              // in JSONL. Search the serialized form as well as plain text.
+              // The randomised basename is included for rollout compatibility
+              // with pre-migration paths whose CODEX_HOME spelling traversed a
+              // symlink. False positives only retain a file, never delete one.
+              const haystack = process.platform === "win32" ? text.toLowerCase() : text;
+              const candidates = [n, JSON.stringify(n).slice(1, -1), path.basename(n)]
+                .map((candidate) => process.platform === "win32" ? candidate.toLowerCase() : candidate);
+              if (candidates.some((candidate) => haystack.includes(candidate))) {
                 found.add(n);
                 pending.splice(pending.indexOf(n), 1);
               }
             }
           } catch {
-            /* unreadable rollout — treat as no reference */
+            // Fail safe: unreadable does not mean unreferenced.
+            complete = false;
           }
         }
       }
     };
-    await walk(sessionsDir);
-    return found;
+    for (const sessionsDir of sessionsDirs) await walk(sessionsDir, true);
+    return { referenced: found, complete };
   }
 
   /**
@@ -198,44 +439,79 @@ export class AttachmentStore {
   cleanupForThread(threadId: string, threadItems: unknown): void {
     let paths: string[];
     try {
-      const items = Array.isArray((threadItems as any)?.turns)
-        ? (threadItems as any).turns.flatMap((t: any) => t?.items ?? [])
+      // The API passes a typed ThreadReadResponse; accept the historical
+      // unwrapped Thread spelling only at this compatibility boundary.
+      const thread = (threadItems as Partial<ThreadReadResponse> | null)?.thread ?? threadItems as Partial<Thread> | null;
+      const items = Array.isArray(thread?.turns)
+        ? thread.turns.flatMap((t) => t?.items ?? [])
         : [];
       paths = [];
       for (const item of items) {
         if (item?.type !== "userMessage" || !Array.isArray(item.content)) continue;
         for (const c of item.content) {
-          if ((c?.type === "localImage" || c?.type === "mention") && typeof c.path === "string" && this.isOwned(c.path)) {
-            paths.push(c.path);
+          if ((c?.type === "localImage" || c?.type === "mention") && typeof c.path === "string") {
+            const canonical = this.canonicalOwnedPath(c.path);
+            if (canonical) paths.push(canonical);
           }
         }
       }
     } catch {
       return;
     }
+    // Generic files are sent as text notes, not protocol mention items. The
+    // persisted sidecar remains the authoritative list for those uploads.
+    this.loadRefs();
+    for (const [file, owners] of Object.entries(this.refs!)) {
+      if ((owners.includes(threadId) || owners.some(AttachmentStore.isScanMarker)) && this.isOwned(file)) paths.push(file);
+    }
+    paths = [...new Set(paths)];
     if (!paths.length) return;
     // Registry-protected files are settled synchronously (cheap); everything
     // else goes through the bounded async rollout scan in the background.
     this.loadRefs();
     const toScan: string[] = [];
     for (const p of paths) {
-      const remaining = (this.refs![p] ?? []).filter((t) => t !== threadId);
+      const remaining = (this.refs![p] ?? []).filter((t) => t !== threadId && !AttachmentStore.isScanMarker(t));
       if (remaining.length > 0) {
         // Registry says other threads still reference it → keep the file,
         // just drop this thread from the owners.
         this.refs![p] = remaining;
       } else {
+        // Keep the deleting thread as a temporary owner until the rollout
+        // scan has reached a conclusion. Otherwise an attachment/delete RPC
+        // racing this asynchronous scan could see zero owners and unlink a
+        // file that a CLI-created fork still references.
+        this.refs![p] = [threadId];
         toScan.push(p);
       }
     }
     this.saveRefs();
     if (toScan.length === 0) return;
-    const sessionsDir = path.join(path.dirname(this.dir), "sessions");
-    void this.findReferencedByOtherRollout(toScan, threadId, sessionsDir)
-      .then((referenced) => {
+    const codexHome = path.dirname(this.dir);
+    void this.findReferencedByOtherRollout(toScan, threadId, [
+      path.join(codexHome, "sessions"),
+      path.join(codexHome, "archived_sessions"),
+    ])
+      .then(({ referenced, complete }) => {
         for (const p of toScan) {
-          if (referenced.has(p)) continue; // another thread still needs it
-          try { rmSync(p); } catch { /* already gone */ }
+          // Another turn may have registered the attachment while the async
+          // rollout scan was running. Re-check before unlinking.
+          const currentOwners = (this.refs?.[p] ?? []).filter((t) => t !== threadId);
+          if (currentOwners.length > 0) {
+            this.refs![p] = currentOwners;
+            continue;
+          }
+          if (!complete) {
+            // Persist protection rather than merely skipping this one unlink:
+            // future explicit deletes must remain fail-safe too.
+            this.refs![p] = [AttachmentStore.INCOMPLETE_SCAN_OWNER];
+            continue;
+          }
+          if (referenced.has(p)) {
+            this.refs![p] = [AttachmentStore.ROLLOUT_OWNER];
+            continue;
+          }
+          this.remove(p); // repeat realpath/symlink containment at deletion
           if (this.refs) delete this.refs[p];
         }
         this.saveRefs();

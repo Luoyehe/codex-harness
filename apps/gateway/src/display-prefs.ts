@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { atomicWriteFileSync } from "./atomic-file.js";
 
 /**
  * Timeline display preferences (which item categories the WebUI shows),
@@ -67,7 +68,7 @@ export class DisplayPrefsStore {
     if (!existsSync(path.dirname(this.file))) {
       mkdirSync(path.dirname(this.file), { recursive: true });
     }
-    writeFileSync(this.file, JSON.stringify(next, null, 2));
+    atomicWriteFileSync(this.file, JSON.stringify(next, null, 2));
     return next;
   }
 }

@@ -3,12 +3,16 @@
 #   PORT          gateway port                  (default 8080)
 #   SERVICE_NAME  systemd unit                  (default codex-harness)
 #   EDGE_URL      optional https edge to probe  (e.g. https://codex.example.com)
-set -u
+set -euo pipefail
 PORT="${PORT:-8080}"
 SERVICE_NAME="${SERVICE_NAME:-codex-harness}"
 EDGE_URL="${EDGE_URL:-}"
 GATEWAY="http://127.0.0.1:${PORT}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -z "${CODEX_HOME:-}" ] && [ -f "/etc/systemd/system/${SERVICE_NAME}.service" ]; then
+  CODEX_HOME="$(sed -n 's/^Environment=CODEX_HOME=//p' "/etc/systemd/system/${SERVICE_NAME}.service" | head -1)"
+  export CODEX_HOME
+fi
 
 echo "=== 1. healthz (wait for ready)"
 STATE=""
@@ -25,24 +29,36 @@ if ! echo "$STATE" | grep -q ready; then
 fi
 
 echo "=== 2. SPA root"
-curl -s -o /dev/null -w "GET / -> %{http_code}\n" "$GATEWAY/"
+TOKEN="${GATEWAY_TOKEN:-}"
+if [ -z "$TOKEN" ] && [ -r "${CODEX_HOME:-$HOME/.codex}/gateway-token" ]; then
+  IFS= read -r TOKEN < "${CODEX_HOME:-$HOME/.codex}/gateway-token" || true
+fi
+# Keep bootstrap credentials out of curl argv and diagnostic output.
+SPA="$(printf 'Authorization: Bearer %s\n' "$TOKEN" | curl -fsS --header @- --max-time 10 "$GATEWAY/")" \
+  || { echo "FAIL: SPA request failed"; exit 1; }
+unset TOKEN
+printf '%s\n' "$SPA" | grep -q '<div id="root">' || { echo "FAIL: response is not the SPA"; exit 1; }
 
 echo "=== 3. WebSocket auth (token/origin/host triple-check)"
 GATEWAY_PORT="$PORT" node "$SCRIPT_DIR/verify-ws-auth.mjs" \
-  || { echo "WS AUTH FAILED（4001=token 问题，4003=Host/Origin 不被信任——反代域名需在 /etc/codex-harness.env 的 TRUSTED_HOSTS 里）"; exit 1; }
+  || { echo "WS AUTH FAILED（4001=token 问题，4003=Host/Origin 不被信任——检查本实例 ENV_FILE 的 TRUSTED_HOSTS）"; exit 1; }
 
-echo "=== 4. WebSocket end-to-end (app/status, thread/list, terminal, turn)"
+echo "=== 4. Read-only WebSocket checks"
 GATEWAY_WS="ws://127.0.0.1:${PORT}/ws" node "$SCRIPT_DIR/verify-ws.mjs" || { echo "WS E2E FAILED"; exit 1; }
 
-echo "=== 5. Thread pagination / search / archive round-trip"
+echo "=== 5. Read-only thread pagination / search / archived listing"
 GATEWAY_WS="ws://127.0.0.1:${PORT}/ws" node "$SCRIPT_DIR/verify-threads.mjs" || { echo "THREADS FAILED"; exit 1; }
 
 echo "=== 6. MCP servers status (via gateway)"
-GATEWAY_WS="ws://127.0.0.1:${PORT}/ws" node "$SCRIPT_DIR/list-mcp-tools.mjs" || echo "(MCP check failed — see above)"
+GATEWAY_WS="ws://127.0.0.1:${PORT}/ws" node "$SCRIPT_DIR/list-mcp-tools.mjs" || { echo "MCP STATUS FAILED"; exit 1; }
+if [ "${HARNESS_ALLOW_PAID_TESTS:-0}" = 1 ]; then
+  echo "=== Explicit paid model verification"
+  GATEWAY_WS="ws://127.0.0.1:${PORT}/ws" node "$SCRIPT_DIR/verify-full.mjs"
+fi
 
 if [ -n "$EDGE_URL" ]; then
   echo "=== 7. edge probe (expect 302/401 when auth is in front, not 502)"
-  curl -sk -o /dev/null -w "$EDGE_URL -> %{http_code}\n" "$EDGE_URL/"
+  EDGE_URL="$EDGE_URL" bash "$SCRIPT_DIR/verify-login.sh"
 fi
 
 echo "ALL SERVER CHECKS PASSED"

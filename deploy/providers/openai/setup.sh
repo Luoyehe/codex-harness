@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# OpenAI (ChatGPT account) provider: codex-native mode, NO config file.
-# Under the config-set layout this simply DEACTIVATES the live config link
-# (any existing config.toml — regular file from the pre-set era — is backed
-# up, never destroyed). The other modes' sets under providers/ are untouched.
+# OpenAI (ChatGPT account) provider: native defaults via an empty managed config.
+# The transaction preserves public aliases and publishes one new generation;
+# prior configuration and other provider sets remain in private snapshots.
 #
 # ChatGPT login itself: codex login --device-auth  (or the WebUI login button)
 set -euo pipefail

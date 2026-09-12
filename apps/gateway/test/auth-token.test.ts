@@ -23,6 +23,8 @@ function makeToken(trustedHosts?: string): AuthToken {
 afterAll(() => {
   delete process.env.TRUSTED_HOSTS;
   delete process.env.GATEWAY_TOKEN;
+  delete process.env.ALLOW_QUERY_TOKEN;
+  delete process.env.GATEWAY_BOOTSTRAP_AUTH;
   for (const d of dirs) rmSync(d, { recursive: true, force: true });
 });
 
@@ -87,6 +89,13 @@ describe("AuthToken trusted hosts", () => {
     const b = makeToken("Edge.Example.COM:443"); // mixed-case config
     expect(b.isTrustedHost("EDGE.example.com")).toBe(true);
   });
+
+  it("keeps exact loopback hosts trusted when the gateway itself uses port 443", () => {
+    delete process.env.TRUSTED_HOSTS;
+    const a = new AuthToken(tempHome(), 443);
+    expect(a.isTrustedHost("127.0.0.1:443")).toBe(true);
+    expect(a.isTrustedHost("localhost:443")).toBe(true);
+  });
 });
 
 describe("AuthToken verify", () => {
@@ -97,6 +106,16 @@ describe("AuthToken verify", () => {
     expect(a.verify(undefined)).toBe(false);
     expect(a.verify(null)).toBe(false);
     expect(a.verify(`${a.token}x`)).toBe(false);
+  });
+});
+
+describe("AuthToken extraction", () => {
+  it("rejects URL query credentials by default and supports explicit legacy opt-in", () => {
+    const a = makeToken();
+    expect(a.extract({ query: { token: a.token }, headers: {} })).toBeUndefined();
+    process.env.ALLOW_QUERY_TOKEN = "1";
+    expect(a.extract({ query: { token: a.token }, headers: {} })).toBe(a.token);
+    delete process.env.ALLOW_QUERY_TOKEN;
   });
 });
 
@@ -112,5 +131,31 @@ describe("AuthToken token format", () => {
     const a = new AuthToken(tempHome(), PORT);
     expect(a.token).toBe("A".repeat(40));
     delete process.env.GATEWAY_TOKEN;
+  });
+});
+
+describe("HTML bootstrap trust modes", () => {
+  it("preserves explicit local trust by default", () => {
+    expect(makeToken().canBootstrap({ headers: {} })).toBe(true);
+  });
+
+  it("requires a secret in strict mode and supports browser-native Basic auth", () => {
+    process.env.GATEWAY_BOOTSTRAP_AUTH = "required";
+    try {
+      const token = makeToken();
+      expect(token.canBootstrap({ headers: { host: "localhost:8410" } })).toBe(false);
+      expect(token.canBootstrap({ headers: {}, query: { token: token.token } })).toBe(false);
+      expect(token.canBootstrap({ headers: { authorization: `Basic ${Buffer.from(`codex:${token.token}`).toString("base64")}` } })).toBe(true);
+      expect(token.canBootstrap({ headers: { authorization: `Bearer ${token.token}` } })).toBe(true);
+      expect(token.canBootstrap({ headers: { cookie: `gw_token=${token.token}` } })).toBe(true);
+      expect(token.canBootstrap({ headers: { cookie: `not_gw_token=${token.token}` } })).toBe(false);
+      expect(token.canBootstrap({ headers: { authorization: "Basic !!!" } })).toBe(false);
+    } finally { delete process.env.GATEWAY_BOOTSTRAP_AUTH; }
+  });
+
+  it("rejects a misspelled trust mode instead of silently enabling local trust", () => {
+    process.env.GATEWAY_BOOTSTRAP_AUTH = "require";
+    try { expect(() => makeToken()).toThrow(/GATEWAY_BOOTSTRAP_AUTH/); }
+    finally { delete process.env.GATEWAY_BOOTSTRAP_AUTH; }
   });
 });

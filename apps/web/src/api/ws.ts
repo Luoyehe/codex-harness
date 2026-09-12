@@ -5,15 +5,20 @@
  * - serverRequest / serverRequestResponse: approvals answered from the UI
  */
 
+import type { GatewayNotification, GatewayServerRequest, ProtocolRpc } from "./protocol";
+
 export type RpcResultMsg = { kind: "rpcResult"; id: number; result?: unknown; error?: string };
-export type NotificationMsg = { kind: "notification"; method: string; params?: unknown };
-export type ServerRequestMsg = { kind: "serverRequest"; requestId: number | string; method: string; params?: unknown };
+export type NotificationMsg = { kind: "notification" } & GatewayNotification;
+export type ServerRequestMsg = { kind: "serverRequest" } & GatewayServerRequest;
 
 type ConnState = "connecting" | "open" | "closed";
 
 interface Pending {
   resolve: (value: any) => void;
   reject: (err: Error) => void;
+  /** Socket generation that issued the request. An old socket must never
+   * settle (or reject) work sent on a replacement connection. */
+  generation: number;
 }
 
 const RECONNECT_DELAYS = [500, 1_000, 2_000, 5_000, 10_000];
@@ -22,12 +27,13 @@ export class GatewayClient {
   private ws: WebSocket | null = null;
   private nextId = 1;
   private pending = new Map<number, Pending>();
-  private notifHandlers = new Set<(method: string, params: any) => void>();
+  private notifHandlers = new Set<(event: GatewayNotification) => void>();
   private stateHandlers = new Set<(state: ConnState) => void>();
   private serverRequestHandler: ((msg: ServerRequestMsg) => void) | null = null;
   private reconnectAttempt = 0;
   private reconnectTimer: number | null = null;
   private manuallyClosed = false;
+  private connectionGeneration = 0;
 
   get state(): ConnState {
     if (this.ws?.readyState === WebSocket.OPEN) return "open";
@@ -35,31 +41,70 @@ export class GatewayClient {
     return "closed";
   }
 
+  /** Monotonically increasing identity of the current connection attempt.
+   * Store-level async workflows use this to discard results that crossed a
+   * disconnect/reconnect boundary after their RPC already resolved. */
+  get generation(): number {
+    return this.connectionGeneration;
+  }
+
   private heartbeatTimer: number | null = null;
 
   connect(): void {
     this.manuallyClosed = false;
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
+    // A caller may explicitly retry before a scheduled reconnect fires.
+    // Cancel that timer now so it cannot create a second connection later.
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    if (location.protocol !== "http:" && location.protocol !== "https:") {
+      console.error(`[ws] unsupported page URL scheme: ${location.protocol}`);
+      this.notifyState("closed");
+      return;
+    }
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     // The gateway authenticates every WS with the gw_token cookie it sets
     // when serving the SPA on a trusted host — the browser presents it
     // automatically on the upgrade (cookies ignore ports, so a cookie from
     // http://127.0.0.1:8410 also covers other localhost ports).
-    // In dev, vite.config.ts's proxy strips Origin and injects the token
-    // cookie server-side, so no direct gateway visit is needed.
+    // In dev, the proxy first requires a same-origin loopback page, then
+    // supplies the token cookie server-side.
     const url = `${proto}//${location.host}/ws`;
+    // If a CLOSED socket's close callback has not run yet, settle only its
+    // own requests before replacing it. The callback may still arrive later.
+    this.failPending(new Error("connection replaced"), this.connectionGeneration);
+    const generation = ++this.connectionGeneration;
     const ws = new WebSocket(url);
     this.ws = ws;
+    this.notifyState("connecting");
 
     ws.onopen = () => {
+      if (!this.isCurrent(ws, generation)) {
+        ws.close();
+        return;
+      }
+      if (this.reconnectTimer !== null) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
       this.reconnectAttempt = 0;
       this.notifyState("open");
-      this.startHeartbeat();
+      this.startHeartbeat(ws, generation);
     };
-    ws.onmessage = (ev) => this.handleMessage(String(ev.data));
+    ws.onmessage = (ev) => {
+      if (this.isCurrent(ws, generation)) this.handleMessage(String(ev.data), generation);
+    };
     ws.onclose = () => {
+      // Always reject requests issued by this socket, but never requests from
+      // a newer one. All remaining state transitions belong to the current
+      // socket only; late callbacks from a replaced socket are inert.
+      this.failPending(new Error("connection closed"), generation);
+      if (!this.isCurrent(ws, generation)) return;
+      this.ws = null;
       this.stopHeartbeat();
-      this.failPending(new Error("connection closed"));
       this.notifyState("closed");
       this.scheduleReconnect();
     };
@@ -74,13 +119,18 @@ export class GatewayClient {
    * ping: if it doesn't answer in time, close the socket so the reconnect
    * logic kicks in instead of leaving every pending RPC hanging.
    */
-  private startHeartbeat(): void {
+  private isCurrent(ws: WebSocket, generation: number): boolean {
+    return this.ws === ws && this.connectionGeneration === generation;
+  }
+
+  private startHeartbeat(ws: WebSocket, generation: number): void {
     this.stopHeartbeat();
     this.heartbeatTimer = window.setInterval(() => {
+      if (!this.isCurrent(ws, generation) || ws.readyState !== WebSocket.OPEN) return;
       const timeout = window.setTimeout(() => {
-        if (this.ws?.readyState === WebSocket.OPEN) {
+        if (this.isCurrent(ws, generation) && ws.readyState === WebSocket.OPEN) {
           console.warn("[ws] heartbeat timeout, closing");
-          this.ws.close();
+          ws.close();
         }
       }, 10_000);
       this.rpc("app/status")
@@ -99,11 +149,15 @@ export class GatewayClient {
   close(): void {
     this.manuallyClosed = true;
     this.stopHeartbeat();
-    if (this.reconnectTimer !== null) clearTimeout(this.reconnectTimer);
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.failPending(new Error("connection closed"), this.connectionGeneration);
     this.ws?.close();
   }
 
-  private handleMessage(raw: string): void {
+  private handleMessage(raw: string, generation: number): void {
     let msg: RpcResultMsg | NotificationMsg | ServerRequestMsg;
     try {
       msg = JSON.parse(raw);
@@ -113,14 +167,14 @@ export class GatewayClient {
     switch (msg?.kind) {
       case "rpcResult": {
         const entry = this.pending.get(msg.id);
-        if (!entry) return;
+        if (!entry || entry.generation !== generation) return;
         this.pending.delete(msg.id);
         if (msg.error) entry.reject(new Error(msg.error));
         else entry.resolve(msg.result);
         return;
       }
       case "notification":
-        for (const h of this.notifHandlers) h(msg.method, msg.params ?? {});
+        for (const h of this.notifHandlers) h(msg);
         return;
       case "serverRequest":
         this.serverRequestHandler?.(msg);
@@ -128,9 +182,12 @@ export class GatewayClient {
     }
   }
 
-  private failPending(err: Error): void {
-    for (const entry of this.pending.values()) entry.reject(err);
-    this.pending.clear();
+  private failPending(err: Error, generation?: number): void {
+    for (const [id, entry] of this.pending) {
+      if (generation !== undefined && entry.generation !== generation) continue;
+      this.pending.delete(id);
+      entry.reject(err);
+    }
   }
 
   private scheduleReconnect(): void {
@@ -148,20 +205,37 @@ export class GatewayClient {
     for (const h of this.stateHandlers) h(state);
   }
 
-  rpc<T = any>(method: string, params?: unknown): Promise<T> {
-    if (this.state !== "open") return Promise.reject(new Error("gateway not connected"));
+  rpc<T = unknown>(method: string, params?: unknown): Promise<T> {
+    const ws = this.ws;
+    const generation = this.connectionGeneration;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error("gateway not connected"));
     const id = this.nextId++;
     return new Promise<T>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.ws!.send(JSON.stringify({ kind: "rpc", id, method, params: params ?? {} }));
+      this.pending.set(id, { resolve, reject, generation });
+      try {
+        ws.send(JSON.stringify({ kind: "rpc", id, method, params: params ?? {} }));
+      } catch (err) {
+        this.pending.delete(id);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 
   respondServerRequest(requestId: number | string, payload: unknown): void {
-    this.ws?.send(JSON.stringify({ kind: "serverRequestResponse", requestId, payload }));
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    try {
+      ws.send(JSON.stringify({ kind: "serverRequestResponse", requestId, payload }));
+    } catch {
+      /* the server timeout safely declines unanswered requests */
+    }
   }
 
-  onNotification(handler: (method: string, params: any) => void): () => void {
+  request<M extends keyof ProtocolRpc>(method: M, params: ProtocolRpc[M]["params"]): Promise<ProtocolRpc[M]["result"]> {
+    return this.rpc<ProtocolRpc[M]["result"]>(method, params);
+  }
+
+  onNotification(handler: (event: GatewayNotification) => void): () => void {
     this.notifHandlers.add(handler);
     return () => this.notifHandlers.delete(handler);
   }
