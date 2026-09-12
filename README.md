@@ -49,6 +49,7 @@ curl -fsSL https://raw.githubusercontent.com/Luoyehe/codex-harness/main/deploy/i
 
 - 安装全部依赖：Node 22、pnpm、codex CLI（锁定兼容版本）、智谱 MCP 组件
 - 构建前后端、注册 systemd 服务、设置开机自启并启动
+- 注册 `codex-harness` 系统管理命令（装完后在服务器任意目录直接输入即可调出维护菜单）
 - 生成网关认证 token 与安全配置
 - 自动运行完整部署验证（鉴权、WebSocket、终端、模型列表全链路），有失败项会当场提示
 
@@ -84,13 +85,15 @@ curl -fsSL https://raw.githubusercontent.com/Luoyehe/codex-harness/main/deploy/i
 
 ### 什么时候才需要登录服务器？
 
-只有网页完全打不开等极端情况。此时有一个交互式维护菜单：
+只有网页完全打不开等极端情况。安装时已注册系统命令，在服务器任意目录运行：
 
 ```bash
-bash <安装目录>/deploy/manage.sh    # 安装完成时的输出会给出确切路径；git clone 安装即仓库目录
+codex-harness
 ```
 
-涵盖：切换模型源、配置远程访问、重启、看日志、完整验证、修复重装（保留数据）、**卸载**（只移除程序与服务，保留 codex 本体、全部会话、密钥和项目文件）、检查更新（git 安装方式下可一键拉取新版本并重建）。**这些是备用入口，正常情况下你用不到它们。**
+（等价于 `bash <安装目录>/deploy/manage.sh`，安装完成时的输出会给出确切路径）
+
+涵盖：切换模型源、配置远程访问、重启、看日志、完整验证、修复重装（保留数据）、**卸载**（只移除程序、服务与 `codex-harness` 命令，保留 codex 本体、全部会话、密钥和项目文件——执行前会完整列出移除/保留清单）、检查更新（git 安装方式下可一键拉取新版本并重建）。**这些是备用入口，正常情况下你用不到它们。**
 
 ---
 

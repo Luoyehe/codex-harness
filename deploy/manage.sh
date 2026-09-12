@@ -221,10 +221,13 @@ do_reinstall() {
 
 do_uninstall() {
   need_root
+  # Registered by install.sh (BIN_DIR override supported for both sides).
+  local command_path="${CODEX_HARNESS_COMMAND:-/usr/local/bin/codex-harness}"
   cat <<EOF
 卸载将【移除】：
   · systemd 服务 ${SERVICE_NAME}（停止、禁用、删除单元文件）
   · 程序代码目录：${REPO_ROOT}
+  · 系统管理命令：${command_path}
 卸载将【保留】：
   · 运行环境：Node / pnpm / codex CLI / 智谱 MCP 组件（如需彻底清理可自行 npm -g 卸载）
   · codex 用户数据：${CODEX_HOME:-$HOME/.codex}（全部会话、各模型源配置集、API 密钥、网关 token）
@@ -240,6 +243,7 @@ EOF
   [ "$confirm" = "yes" ] || die "已取消"
   systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
   rm -f "$UNIT_FILE"
+  rm -f "$command_path"
   systemctl daemon-reload || true
   cd /
   rm -rf "$REPO_ROOT"

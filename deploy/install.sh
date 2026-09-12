@@ -2,7 +2,7 @@
 # Codex Harness WebUI — one-shot bare-metal installer.
 #
 # Simplest path:
-#   curl -fsSL https://raw.githubusercontent.com/Luoyehe/codex-harness/main/deploy/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/OWNER/codex-harness/main/deploy/install.sh | bash
 # The script clones the repository itself, then runs the wizard.
 #
 # From a checkout:
@@ -21,13 +21,13 @@
 #   SERVICE_NAME    default: codex-harness
 #   NPM_REGISTRY    default: https://registry.npmmirror.com
 #   ENV_FILE        default: /etc/codex-harness.env
-#   REPO_URL        default: https://github.com/Luoyehe/codex-harness
+#   REPO_URL        default: https://github.com/OWNER/codex-harness
 set -euo pipefail
 
 # --- self-clone: support `curl ... | bash` without a checkout ---------------
 if [ ! -d "$(dirname "${BASH_SOURCE[0]}")/providers" ]; then
   command -v git >/dev/null 2>&1 || { echo "[install] git required"; exit 1; }
-  REPO_URL="${REPO_URL:-https://github.com/Luoyehe/codex-harness}"
+  REPO_URL="${REPO_URL:-https://github.com/OWNER/codex-harness}"
   CLONE_DIR="${CLONE_DIR:-$(pwd)/codex-harness}"
   echo "[install] not run from a checkout — cloning $REPO_URL to $CLONE_DIR"
   git clone --depth 1 "$REPO_URL" "$CLONE_DIR"
@@ -208,6 +208,20 @@ rm -f /tmp/${SERVICE_NAME}.unit
 $SUDO systemctl daemon-reload
 $SUDO systemctl enable --now "$SERVICE_NAME"
 
+# --- 5.5 register the `codex-harness` management command ---------------------
+# A thin wrapper in PATH so users can run `codex-harness` from anywhere
+# (removed again by `manage.sh uninstall`). The wrapper points at the real
+# script in the install dir, so code updates never need re-registration.
+BIN_DIR="${BIN_DIR:-/usr/local/bin}"
+COMMAND_PATH="$BIN_DIR/codex-harness"
+log "registering management command: $COMMAND_PATH"
+$SUDO tee "$COMMAND_PATH" >/dev/null <<EOF
+#!/usr/bin/env bash
+# Registered by codex-harness install.sh — removed by manage.sh uninstall.
+exec bash "${INSTALL_DIR}/deploy/manage.sh" "\$@"
+EOF
+$SUDO chmod 755 "$COMMAND_PATH"
+
 # --- 6. model provider -------------------------------------------------------
 # Unattended: PROVIDER=openai|zhipu|skip. Interactive TTY: ask. curl|bash
 # (non-TTY, no PROVIDER): skip with instructions.
@@ -319,10 +333,11 @@ cat <<EOF
 
 安装完成。
   ▸ 立即使用:  http://127.0.0.1:${PORT}
-  ▸ 远程访问:  见上方远程访问向导输出（变更: bash deploy/setup-edge.sh）
+  ▸ 管理命令:  codex-harness（任意目录直接运行；也可 bash ${INSTALL_DIR}/deploy/manage.sh）
+  ▸ 远程访问:  见上方远程访问向导输出（变更: codex-harness edge 或 网页设置 → 服务器管理）
                ——网关仅监听回环地址且启用 token 认证（~/.codex/gateway-token），
                  远程访问仍须走 TLS 反代 + 登录鉴权，绝不可直接暴露端口
-  ▸ 日常维护:  bash deploy/manage.sh   （切换模型源 / 远程访问 / 服务 / 验证 / 重装 / 检查更新）
+  ▸ 日常维护:  优先在网页「设置 → 服务器管理」完成（切模型源 / 一键同步 / 重启 / 日志）
   ▸ 服务管理:  systemctl {status|restart} ${SERVICE_NAME}；日志: journalctl -u ${SERVICE_NAME} -f
-  ▸ 升级:      cd ${INSTALL_DIR} && git pull && pnpm install && pnpm build && sudo systemctl restart ${SERVICE_NAME}
+  ▸ 升级:      codex-harness update（git 安装方式下可一键拉取并重建）
 EOF
