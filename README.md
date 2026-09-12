@@ -90,7 +90,7 @@ curl -fsSL https://raw.githubusercontent.com/Luoyehe/codex-harness/main/deploy/i
 bash <安装目录>/deploy/manage.sh    # 安装完成时的输出会给出确切路径；git clone 安装即仓库目录
 ```
 
-涵盖：切换模型源、配置远程访问、重启、看日志、完整验证、修复重装（保留数据）、检查更新（git 安装方式下可一键拉取新版本并重建）。**这些是备用入口，正常情况下你用不到它们。**
+涵盖：切换模型源、配置远程访问、重启、看日志、完整验证、修复重装（保留数据）、**卸载**（只移除程序与服务，保留 codex 本体、全部会话、密钥和项目文件）、检查更新（git 安装方式下可一键拉取新版本并重建）。**这些是备用入口，正常情况下你用不到它们。**
 
 ---
 
@@ -122,7 +122,7 @@ pnpm dev        # 同时起 gateway(8410) 与 web(5173)
 
 打开 `http://127.0.0.1:5173`（Vite 代理会自动完成与网关的认证对接，无需手动拿 token）。
 
-开发期用智谱模型源建议使用项目内沙箱目录避免污染本机配置，详见 [`deploy/README.md`](deploy/README.md)。测试与构建：`pnpm test` / `pnpm typecheck` / `pnpm build`；协议类型 `protocol/` 由 `codex app-server generate-ts` 生成，随仓库提交、与 codex 版本绑定。
+测试与构建：`pnpm test` / `pnpm typecheck` / `pnpm build`；协议类型 `protocol/` 由 `codex app-server generate-ts` 生成，随仓库提交、与 codex 版本绑定。
 
 推送与 PR 会自动跑 CI（类型检查、单测、构建、部署脚本语法、密钥泄漏审计）。
 

@@ -4,7 +4,7 @@
 #   bash manage.sh                 # interactive menu
 #   bash manage.sh <command>       # direct: install provider edge status
 #                                 #           restart logs verify reinstall
-#                                 #           update version
+#                                 #           uninstall update version
 # Covers: first install, switching the model provider (exclusive config),
 # remote access, service control, verification, reinstall (keeping or wiping
 # config), and update checking (placeholder — feature lands later).
@@ -219,6 +219,35 @@ do_reinstall() {
   esac
 }
 
+do_uninstall() {
+  need_root
+  cat <<EOF
+卸载将【移除】：
+  · systemd 服务 ${SERVICE_NAME}（停止、禁用、删除单元文件）
+  · 程序代码目录：${REPO_ROOT}
+卸载将【保留】：
+  · 运行环境：Node / pnpm / codex CLI / 智谱 MCP 组件（如需彻底清理可自行 npm -g 卸载）
+  · codex 用户数据：${CODEX_HOME:-$HOME/.codex}（全部会话、各模型源配置集、API 密钥、网关 token）
+  · 服务环境文件：${ENV_FILE}（含 API Key——保留它，以后重装无需重新填写）
+  · 工作区与项目目录：${CODEX_WORKSPACE:-$HOME/codex-workspace}
+  · Caddy / Authelia 远程访问配置（可能同时服务其它站点，不触碰）
+EOF
+  case "${CODEX_WORKSPACE:-}" in
+    "${REPO_ROOT}"/*) echo "⚠ 警告：工作区位于安装目录内，将随代码一起被删除——请先备份！" ;;
+  esac
+  local confirm
+  read -r -p "输入 yes 确认卸载: " confirm || true
+  [ "$confirm" = "yes" ] || die "已取消"
+  systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
+  rm -f "$UNIT_FILE"
+  systemctl daemon-reload || true
+  cd /
+  rm -rf "$REPO_ROOT"
+  echo "[manage] 卸载完成。浏览器将无法再访问本服务；所有会话与密钥仍保留在 ${CODEX_HOME:-$HOME/.codex}。"
+  echo "[manage] 以后重新部署：git clone https://github.com/Luoyehe/codex-harness && ./deploy/install.sh"
+  exit 0
+}
+
 do_update() {
   need_root
   if [ ! -d "$REPO_ROOT/.git" ]; then
@@ -278,19 +307,21 @@ menu() {
     echo "  4) 重启服务"
     echo "  5) 查看日志"
     echo "  6) 运行验证"
-    echo "  7) 重装（修复 / 完全重置）"
-    echo "  8) 检查更新（git 对比远程，可选拉取并重建）"
-    echo "  0) 退出"
-    read -r -p "请选择: " choice || return 0
-    case "$choice" in
-      1) do_install ;;
-      2) do_provider ;;
-      3) do_edge ;;
-      4) do_restart ;;
-      5) do_logs ;;
-      6) do_verify ;;
-      7) do_reinstall ;;
-      8) do_update ;;
+  echo "  7) 重装（修复 / 完全重置）"
+  echo "  8) 检查更新（git 对比远程，可选拉取并重建）"
+  echo "  9) 卸载（移除程序与服务；保留 codex、会话、密钥、项目）"
+  echo "  0) 退出"
+  read -r -p "请选择: " choice || return 0
+  case "$choice" in
+    1) do_install ;;
+    2) do_provider ;;
+    3) do_edge ;;
+    4) do_restart ;;
+    5) do_logs ;;
+    6) do_verify ;;
+    7) do_reinstall ;;
+    8) do_update ;;
+    9) do_uninstall ;;
       0|q|quit) return 0 ;;
       *) echo "无效选择" ;;
     esac
@@ -306,7 +337,8 @@ case "${1:-menu}" in
   logs)     do_logs ;;
   verify)   do_verify ;;
   reinstall) shift; do_reinstall "${1:-}" ;;
+  uninstall) do_uninstall ;;
   update|version) do_update ;;
   menu|"")  menu ;;
-  *) die "未知命令: $1（可用: install provider edge status restart logs verify reinstall update）" ;;
+  *) die "未知命令: $1（可用: install provider edge status restart logs verify reinstall uninstall update）" ;;
 esac
