@@ -90,8 +90,13 @@ test("stale catalog-sync inputs cannot send the current key to an old endpoint",
     const setup = invoke({});
     assert.equal(setup.status, 0, setup.stderr + setup.stdout);
     for (let iteration = 0; iteration < 2; iteration++) {
+      const activeBefore = realpathSync(path.join(home, "providers/.active"));
       const sync = invoke({ CUSTOM_SYNC_CATALOG: "1", CUSTOM_BASE_URL: "https://stale.example/v1", CUSTOM_MODEL: "stale-model", CUSTOM_CTX: "1024", CUSTOM_VISION: "0", CUSTOM_EFFORT: "low", CUSTOM_API_KEY: "stale-fixture-key", CUSTOM_REUSE_API_KEY: "0" });
       assert.equal(sync.status, 0, sync.stderr + sync.stdout);
+      if (iteration === 1) {
+        assert.equal(realpathSync(path.join(home, "providers/.active")), activeBefore, "unchanged refresh must not publish another generation");
+        assert.ok(sync.stdout.endsWith('[codex-harness-result] {"changed":false,"restartRequired":false}\n'));
+      }
     }
     const sent = readFileSync(capture, "utf8");
     assert.ok(sent.includes("https://current.example/v1/models"));
@@ -100,7 +105,8 @@ test("stale catalog-sync inputs cannot send the current key to an old endpoint",
     const config = readFileSync(path.join(home, "config.toml"), "utf8");
     assert.ok(config.includes("current-model") && config.includes("high") && !config.includes("stale"));
     const catalog = JSON.parse(readFileSync(path.join(home, "providers/custom/models.json"), "utf8"));
-    assert.deepEqual(catalog.models.map(item => item.slug), ["current-model", "new-model"]);
+    assert.deepEqual(catalog.models.map(item => item.slug), ["current-model"]);
+    assert.deepEqual(catalog.unconfigured_models, [{ id: "new-model", capabilities: "unknown" }]);
     assert.equal(catalog.models[0].context_window, 65536);
     assert.deepEqual(catalog.models[0].input_modalities, ["text", "image"]);
   } finally { rmSync(fixture, { recursive: true, force: true }); }

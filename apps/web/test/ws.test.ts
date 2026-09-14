@@ -12,7 +12,8 @@ class FakeWebSocket {
   sent: string[] = [];
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event?: { code?: number }) => void) | null = null;
+  bufferedAmount = 0;
   onerror: (() => void) | null = null;
 
   constructor(readonly url: string) {
@@ -97,5 +98,42 @@ describe("GatewayClient connection generations", () => {
     expect(FakeWebSocket.instances).toHaveLength(2);
     expect(client.state).toBe("open");
     client.close();
+  });
+
+  it.each([[4001, "authentication"], [4003, "configuration"]])("does not hot-loop on explicit auth/configuration close %s", (code, expected) => {
+    const client = new GatewayClient(); client.connect();
+    const socket = FakeWebSocket.instances[0]; socket.open(); socket.readyState = FakeWebSocket.CLOSED;
+    socket.onclose?.({ code: Number(code) });
+    vi.advanceTimersByTime(60_000);
+    expect(client.failure).toBe(expected); expect(FakeWebSocket.instances).toHaveLength(1);
+    client.connect(); expect(FakeWebSocket.instances).toHaveLength(2); client.close();
+  });
+
+  it("bounds requests, frees timed-out entries and preserves delivery uncertainty", async () => {
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    const pending = Array.from({ length: 128 }, () => client.rpc("test/pending").catch((error) => error));
+    await expect(client.rpc("test/excess")).rejects.toMatchObject({ delivery: "not_sent" });
+    await vi.advanceTimersByTimeAsync(180_000);
+    const results = await Promise.all(pending);
+    expect(results.every((error) => (error as { delivery?: string }).delivery === "unknown")).toBe(true);
+    const next = client.rpc("test/next"); const id = JSON.parse(socket.sent.at(-1)!).id;
+    socket.message({ kind: "rpcResult", id, error: "upstream uncertain", errorCode: "OPERATION_UNKNOWN", operationState: "unknown" });
+    await expect(next).rejects.toMatchObject({ delivery: "unknown", code: "OPERATION_UNKNOWN" });
+    client.close();
+  });
+
+  it("rejects an over-budget outbound socket before enqueueing additional bytes", async () => {
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    socket.bufferedAmount = 40 * 1024 * 1024 + 1;
+    await expect(client.rpc("test/excess")).rejects.toMatchObject({ delivery: "not_sent" });
+    expect(socket.sent).toHaveLength(0); client.close();
+  });
+
+  it("preserves management transport uncertainty instead of calling it a rejection", async () => {
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    const pending = client.rpc("admin/provider/switch"); const id = JSON.parse(socket.sent.at(-1)!).id;
+    socket.message({ kind: "rpcResult", id, error: "worker timeout", errorCode: "MANAGEMENT_UNKNOWN" });
+    await expect(pending).rejects.toMatchObject({ delivery: "unknown", code: "MANAGEMENT_UNKNOWN" });
+    expect(socket.sent).toHaveLength(1); client.close();
   });
 });

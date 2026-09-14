@@ -87,7 +87,9 @@ describe("connection-owned terminals", () => {
     sessions.reset(); sessions.create("browser", processId);
     resolve({ exitCode: 0 });
     await new Promise((done) => setImmediate(done));
-    expect(notify).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledWith("terminal/started", { processId });
+    expect(notify).not.toHaveBeenCalledWith("terminal/exited", expect.anything());
     expect(() => sessions.require("browser", processId)).not.toThrow();
   });
 });

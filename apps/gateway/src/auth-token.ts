@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { readFileSync, mkdirSync, existsSync, chmodSync } from "node:fs";
 import path from "node:path";
 import { atomicWriteFileSync } from "./atomic-file.js";
@@ -8,8 +8,8 @@ import type { FastifyReply, FastifyRequest } from "fastify";
  * Gateway authentication token + trusted-host gate.
  *
  * Threat model: loopback binding blocks remote networks, but NOT other local
- * processes/users on the same host. Default HTML bootstrap deliberately
- * trusts those local clients; the trusted-host list blocks DNS rebinding (attacker resolves
+ * processes/users on the same host. HTML bootstrap always requires a secret;
+ * the trusted-host list additionally blocks DNS rebinding (attacker resolves
  * evil.com to 127.0.0.1 — Origin/Host both match evil.com but the host is
  * not in our allowlist, so no cookie is set and WS is rejected).
  *
@@ -19,14 +19,18 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 export class AuthToken {
   readonly token: string;
   private file: string;
- readonly trustedHosts: Set<string>;
-  readonly bootstrapAuth: "local" | "required";
+  readonly trustedHosts: Set<string>;
+  readonly bootstrapAuth: "required";
+  readonly cookieName: string;
 
   constructor(codexHome: string, port: number) {
     this.file = path.join(codexHome, "gateway-token");
-    const bootstrapAuth = process.env.GATEWAY_BOOTSTRAP_AUTH ?? "local";
-    if (bootstrapAuth !== "local" && bootstrapAuth !== "required") throw new Error("GATEWAY_BOOTSTRAP_AUTH must be local or required");
-    this.bootstrapAuth = bootstrapAuth;
+    const bootstrapAuth = process.env.GATEWAY_BOOTSTRAP_AUTH ?? "required";
+    if (bootstrapAuth !== "required") throw new Error("GATEWAY_BOOTSTRAP_AUTH must be required; local automatic login is no longer supported");
+    this.bootstrapAuth = "required";
+    // Cookies do not have a port scope. Distinct names prevent accidental
+    // collisions, not hostile same-host services (use distinct hostnames).
+    this.cookieName = `gw_token_${createHash("sha256").update(`${path.resolve(codexHome)}:${port}`).digest("hex").slice(0, 16)}`;
 
     // Trusted hosts: loopback variants + env-configured external domains.
     this.trustedHosts = new Set([
@@ -125,7 +129,7 @@ export class AuthToken {
     if (typeof auth === "string" && auth.startsWith("Bearer ")) return auth.slice(7);
     const cookie = req?.headers?.cookie;
     if (typeof cookie === "string") {
-      const m = /(?:^|;\s*)gw_token=([a-zA-Z0-9_-]+)(?:;|$)/.exec(cookie);
+      const m = new RegExp(`(?:^|;\\s*)${this.cookieName}=([a-zA-Z0-9_-]+)(?:;|$)`).exec(cookie);
       if (m) return m[1];
     }
     if (process.env.ALLOW_QUERY_TOKEN === "1") {
@@ -139,7 +143,6 @@ export class AuthToken {
    * authenticated proxy injecting Bearer credentials. Never put secrets in URLs.
    * The surrounding HTML route must still enforce the trusted Host gate. */
   canBootstrap(req: any): boolean {
-    if (this.bootstrapAuth === "local") return true;
     if (this.verify(this.extract({ headers: req?.headers }))) return true;
     const auth = req?.headers?.authorization;
     if (typeof auth !== "string" || !auth.startsWith("Basic ")) return false;
@@ -155,7 +158,7 @@ export class AuthToken {
    * Path=/ ensures /index.html also gets the cookie.
    */
   cookieHeader(secure: boolean): string {
-    return `gw_token=${this.token}; Path=/; HttpOnly; SameSite=Strict${secure ? "; Secure" : ""}`;
+    return `${this.cookieName}=${this.token}; Path=/; HttpOnly; SameSite=Strict${secure ? "; Secure" : ""}`;
   }
 }
 

@@ -37,6 +37,83 @@ def guard_delete(tree, preserved):
     return str(target)
 
 
+def registered_projects(home):
+    """Do not claim project preservation when the registry cannot be read."""
+    registry = Path(home) / "webui-projects.json"
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        descriptor = os.open(registry, flags)
+        with os.fdopen(descriptor, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size > 1024 * 1024:
+                raise ValueError(f"project registry is not a bounded regular file: {registry}")
+            raw = stream.read(1024 * 1024 + 1)
+    except FileNotFoundError:
+        # A missing/dangling registry cannot prove there were no registrations
+        # before a failed startup or partial data loss. Require an explicit
+        # valid inventory instead of making an unsafe preservation promise.
+        raise ValueError(f"project registry is missing or unreadable: {registry}") from None
+    if len(raw) > 1024 * 1024:
+        raise ValueError(f"project registry exceeds inventory limit: {registry}")
+    registry_data = json.loads(raw)
+    # ProjectRegistry persists an object, not the projects/list RPC's array.
+    # Unknown/missing shapes must still fail closed: never interpret an invalid
+    # inventory as proof that there are no retained projects.
+    if not isinstance(registry_data, dict) or not isinstance(registry_data.get("projects"), list):
+        raise ValueError(f"invalid project registry: {registry}")
+    entries = registry_data["projects"]
+    result = []
+    for entry in entries:
+        value = entry.get("path") if isinstance(entry, dict) else None
+        if not isinstance(value, str) or not value or not Path(value).is_absolute():
+            raise ValueError(f"invalid registered project path: {registry}")
+        # resolve(strict=False) still reports loops, ENOTDIR and denied
+        # ancestors. Those errors must block cleanup, not omit a project.
+        result.append(str(Path(value).resolve()))
+    return result
+
+
+def guard_uninstall(tree, home, env, workspace, instance, unit_directory="/etc/systemd/system", control_home=None):
+    preserved = {"CODEX_HOME": home, "ENV_FILE": env, "CODEX_WORKSPACE": workspace}
+    if control_home:
+        preserved["GATEWAY_CONTROL_HOME"] = control_home
+    for index, project in enumerate(registered_projects(home)):
+        preserved[f"registered project {index + 1}"] = project
+    directory = Path(unit_directory)
+    # scandir is intentional: a denied inventory must not silently become an
+    # empty glob. Read all gateway units, including custom SERVICE_NAME values.
+    for entry in directory.iterdir():
+        if not entry.name.endswith(".service") or entry.name == instance + ".service":
+            continue
+        try:
+            text = entry.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            if entry.is_symlink():
+                raise ValueError(f"cannot inspect service alias: {entry}") from None
+            raise
+        if not re.search(r"^WorkingDirectory=.*?/apps/gateway\s*$", text, re.M):
+            continue
+        values = {}
+        for key in ("CODEX_HOME", "ENV_FILE", "CODEX_WORKSPACE"):
+            matches = re.findall(r"^Environment=" + key + r"=(.+)$", text, re.M)
+            if len(matches) != 1 or not Path(matches[0]).is_absolute():
+                raise ValueError(f"cannot reliably inventory {key} for {entry}")
+            values[key] = matches[0]
+            preserved[f"{entry.name} {key}"] = matches[0]
+        roots = re.findall(r"^WorkingDirectory=(.+)/apps/gateway\s*$", text, re.M)
+        if len(roots) != 1:
+            raise ValueError(f"cannot reliably inventory program directory for {entry}")
+        preserved[f"{entry.name} program directory"] = roots[0]
+        controls = re.findall(r"^Environment=GATEWAY_CONTROL_HOME=(.+)$", text, re.M)
+        if len(controls) > 1 or (controls and not Path(controls[0]).is_absolute()):
+            raise ValueError(f"cannot reliably inventory control directory for {entry}")
+        if controls:
+            preserved[f"{entry.name} control directory"] = controls[0]
+        for index, project in enumerate(registered_projects(values["CODEX_HOME"])):
+            preserved[f"{entry.name} project {index + 1}"] = project
+    return guard_delete(tree, preserved)
+
+
 def atomic_text(path, content):
     path = Path(path).resolve()
     previous = path.stat() if path.exists() else None
@@ -212,7 +289,7 @@ def sync_cookies(text, hosts, owned, verified_urls=()):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=["provider", "guard-delete", "remove", "upsert", "hosts", "auth-hosts", "auth-in-use", "cookies"])
+    parser.add_argument("action", choices=["provider", "guard-delete", "guard-uninstall", "remove", "upsert", "hosts", "auth-hosts", "auth-in-use", "cookies"])
     parser.add_argument("args", nargs="+")
     action, args = vars(parser.parse_args()).values()
     if action == "provider":
@@ -221,6 +298,9 @@ def main():
     if action == "guard-delete":
         tree, home, env, workspace = args
         print(guard_delete(tree, {"CODEX_HOME": home, "ENV_FILE": env, "CODEX_WORKSPACE": workspace}))
+        return
+    if action == "guard-uninstall":
+        print(guard_uninstall(*args))
         return
     path = Path(args[0])
     text = path.read_text(encoding="utf-8") if path.exists() else ""

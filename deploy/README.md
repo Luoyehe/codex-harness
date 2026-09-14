@@ -1,6 +1,6 @@
 # 部署指南
 
-**裸跑（systemd）是唯一支持的部署方式**——没有容器路径映射问题，Codex 任务可使用原生沙箱（Landlock/bwrap）。升级请使用下文的事务式 `sudo codex-harness update`，不要把运行中部署简化为一次 `git pull`；网页终端的权限边界另见“裸跑注意事项”。
+**Linux 裸跑（systemd）是唯一支持的服务器部署方式**，Codex 任务可使用原生沙箱（Landlock/bwrap）。v1.1.0 引入独立的网关账号与控制目录，旧版须先按[首次迁移](#首次迁移到-v110)完成修复重装；此后使用事务式 `sudo codex-harness update`。不要在服务运行时直接 `git pull`；网页终端的权限边界另见“裸跑注意事项”。
 
 ## 〇、统一管理入口（推荐）
 
@@ -42,8 +42,10 @@ cd /opt/codex-harness
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `RUN_USER` | root 首装时为 `codex-harness` | systemd 服务用户；默认账号的 home 是 `/var/lib/codex-harness`，不接受 UID 0 的账号 |
-| `INSTALL_DIR` | 当前检出目录；root 一行安装为 `/opt/codex-harness` | 源码与构建产物目录，服务用户必须能穿越父目录并读取产物 |
+| `RUN_USER` | root 首装时为 `codex-harness` | Agent/终端及数据维护的 worker 账号；home 默认 `/var/lib/codex-harness`，不接受 UID 0 |
+| `GATEWAY_USER` | 默认实例为 `codex-harness-gateway`；其它实例自动生成独立名称 | 管理网关账号，必须与 worker、root 不同 |
+| `GATEWAY_CONTROL_HOME` | `/var/lib/codex-harness-control/<SERVICE_NAME>` | 网关私有目录（0700），保存管理令牌、发送受理账本、最近管理操作结果及 `gateway.env`；worker 无权读取 |
+| `INSTALL_DIR` | 当前检出目录；root 一行安装为 `/opt/codex-harness` | 源码、依赖、构建产物及祖先须为 root 所有，不能被 worker/其它用户修改；两个账号均需能读取运行文件 |
 | `PORT` | `8080` | 网关端口（始终只监听 127.0.0.1） |
 | `CODEX_HOME` | `<服务用户 home>/.codex` | codex 配置/凭据目录 |
 | `CODEX_WORKSPACE` | `<服务用户 home>/codex-workspace` | 新会话默认工作目录 |
@@ -61,9 +63,11 @@ cd /opt/codex-harness
 
 root 一行安装的实际状态目录是 `/var/lib/codex-harness/.codex`，默认工作区是 `/var/lib/codex-harness/codex-workspace`。安装器会把自己新建的状态目录设为服务用户所有、模式 `0700`，并把 `secrets.env` 设为服务用户所有、模式 `0600`；对已存在的目录或项目树只做可访问性检查，**不会递归 `chown`**。自定义路径时，请明确授予服务用户对各级父目录的穿越权限和业务所需的读写权限；不要把安装目录放在它无法穿越的 `/root` 下。
 
-网页日志通过 root 所有的实例专属 helper 读取本实例最近最多 300 行并脱敏；服务用户仅获该固定命令的 sudo 授权，不加入 `systemd-journal` 等全局日志权限组。
+管理网关与 Agent 使用不同 Unix 身份。网关只通过私有 stdio 启动固定的 worker 后端；后端没有 HTTP/WS 监听入口，配置、会话与附件仍由原 worker 账号维护，不需要把已有私有数据改成组可读。root 所有的实例 helper 仅向网关账号授权固定的后端启动、本实例重启与最近 300 行日志；worker 没有这些 sudo 权限，也不加入全局日志权限组。网关令牌不会传入 worker 环境。
 
-需要 Python 3.11+；推荐 Ubuntu 24.04+ 或 Debian 12+。安装器使用 `/usr/local/lib/codex-harness/codex/<版本>/` 下的独立 CLI，并将运行路径固定到 unit，不替换其他应用的全局 Codex。多实例共享默认服务用户，不构成操作系统用户隔离；需要隔离时显式指定不同 `RUN_USER`。卸载会先检查源码目录与所有保留路径的包含关系，冲突时在任何删除之前拒绝；应先迁移数据并更新 unit。
+首次打开页面（包括本机和 SSH 隧道）需要浏览器 Basic 登录：用户名任意，密码由管理员用 `sudo` 读取 `<GATEWAY_CONTROL_HOME>/gateway-token`。不要把令牌粘贴给 Agent 或提交到仓库。旧单账号部署升级时会生成新的管理令牌；仅迁移旧环境中的合法 `TRUSTED_HOSTS` / `GATEWAY_HTTPS`，不复用 worker 曾经能读取的旧令牌。供应商密钥仍位于 `ENV_FILE`；网关/反代设置改放 `GATEWAY_CONTROL_HOME/gateway.env`。
+
+需要 Python 3.11+；推荐 Ubuntu 24.04+ 或 Debian 12+。安装器使用 `/usr/local/lib/codex-harness/codex/<版本>/` 下的独立 CLI，不替换其它应用的全局 Codex。多实例默认共享 worker 账号，因此各实例的 Agent 数据不构成 OS 隔离；需要该隔离时显式使用不同 `RUN_USER`。卸载会检查默认路径、全部 `webui-projects.json` 注册项目及其它已注册实例的程序/数据引用；重叠、失效或无法读取的清单均拒绝自动删除。程序目录祖先不受 root 控制时也拒绝自动删除，须由管理员单独处理。
 
 Linux 安装在注册服务前还会检查发行版 `bubblewrap`，必要时通过系统包管理器安装；Ubuntu 开启 AppArmor 非特权用户命名空间限制时，使用发行版的专用 `bwrap-userns-restrict` profile。不会全局关闭 AppArmor/user namespace 限制，也不会覆盖管理员定制 profile。随后在工作区内以实际非 root 服务账号运行显式只读的 `codex sandbox -c 'sandbox_mode="read-only"' -- /usr/bin/true`，失败则停止安装。此检查不调用模型。仅网关 ready 或初始化 smoke 成功，不能证明命令沙箱可用。详见 [OpenAI 沙箱前置条件](https://learn.chatgpt.com/docs/sandboxing)。
 
@@ -86,9 +90,11 @@ sudo codex-harness provider zhipu
 sudo codex-harness provider custom
 ```
 
-管理命令会从已安装的 systemd unit 读取 `User`、`HOME` 和 `CODEX_HOME`，以服务用户执行配置脚本并自动重启服务。日常使用绑定实例的管理命令，不要直接以 root 运行 `sudo bash deploy/providers/*/setup.sh`；辅助脚本会拒绝缺少明确非 root `RUN_USER` 的 root 调用。确需直接调用脚本时，先切换到服务用户，并显式传入该用户的 `HOME`、`CODEX_HOME` 和该实例的 `ENV_FILE`。
+管理命令会从已安装的 systemd unit 读取 worker `RUN_USER` 和 `CODEX_HOME`，以 worker 的真实 `HOME` 执行配置脚本并重启服务。日常使用绑定实例的管理命令，不要直接以 root 运行 `sudo bash deploy/providers/*/setup.sh`；辅助脚本会拒绝缺少明确非 root `RUN_USER` 的 root 调用。确需直接调用脚本时，先切换到 worker 账号，并显式传入该用户的 `HOME`、`CODEX_HOME` 和该实例的 `ENV_FILE`。
 
-> **注意**：切换模式不会删除其它模式的配置或密钥。规范 `ENV_FILE` 是访问当前密钥的稳定入口，不应替换其软链；旧代恢复快照可能仍含旧凭据，应按保留策略私密管理。edge 修改信任字段也使用供应商事务锁，并保持链接与其它密钥不变。
+> **注意**：切换模式不会删除其它模式的配置或密钥。规范 `ENV_FILE` 是访问当前密钥的稳定入口，不应替换其软链；旧代恢复快照可能仍含旧凭据，应按保留策略私密管理。edge 仅修改网关自己的 `gateway.env`，不读取或重写 worker 的供应商密钥。同步在线目录失败时不提交；目录内容相同则不生成新代，也不重启。智谱内置目录仅用于首次配置的离线后备，不用于刷新回退。
+
+网页管理操作会在控制目录内保留最近一条带操作 ID 的状态记录，不记录密钥或配置内容。配置脚本完成、重启待确认、失败、结果未知和服务已恢复分别显示；页面重连不会抹掉上次结果，也不代表供应商业务验证成功。若请求超时而脚本可能仍在运行，新任务和其它管理操作会保持暂停，直到确认旧后台进程已停止；请核对当前配置，必要时通过服务器管理入口处理。不会自动重试结果未知的操作。
 
 ### A. 原生 OpenAI（ChatGPT 账号）
 
@@ -112,7 +118,7 @@ sudo codex-harness provider zhipu   # 交互式隐藏输入 Key，并原子写�
 
 安装向导最后一步二选一（之后使用 `sudo codex-harness edge` 变更；自定义实例使用其专属管理命令）：
 
-1. **仅本机 / SSH 隧道**——不额外开放网关端口，也不需要部署网页登录服务。在你自己的电脑上执行 `ssh -N -L 8080:127.0.0.1:8080 用户@服务器`，保持 SSH 连接，再用这台电脑的浏览器打开 `http://127.0.0.1:8080`。SSH 本身仍需认证；自定义过网关端口时替换转发目标端口。
+1. **仅本机 / SSH 隧道**——不额外开放网关端口，也不需要部署 Authelia。在你自己的电脑上执行 `ssh -N -L 127.0.0.1:8080:127.0.0.1:8080 用户@服务器`，保持 SSH 连接，再用这台电脑的浏览器打开 `http://127.0.0.1:8080`。SSH 与网关管理登录都仍需认证；自定义网关端口时同步替换命令中两个端口和浏览器地址，端口不一致会被 Host 校验拒绝。
 2. **Caddy (TLS) + Authelia (登录鉴权)**——脚本自动安装/复用 Caddy 与 Authelia、追加站点配置并 reload。所有参数交互引导：**访问域名、对外 HTTPS 端口、Authelia 用户名与密码**，以及证书三选一：
    - **自动 ACME（默认）**：域名正确解析且公网验证端口可达时，由 Caddy 自动申请与续签
    - **自签**：仅建议内网测试；Caddy 内置 CA 签发，浏览器首次访问需手动信任
@@ -128,7 +134,9 @@ sudo codex-harness provider zhipu   # 交互式隐藏输入 Key，并原子写�
    EDGE_LISTEN_PORT=443 bash deploy/setup-edge.sh
    ```
 
-   已有 Caddy/Authelia 的服务器会被自动探测并复用。站点 marker 包含实例名；参数记录在 `/etc/codex-harness/<SERVICE_NAME>.edge.json`，后续禁用使用同一组路径。项目拥有的 Authelia 会补齐新域名的 `session.cookies` 并恢复自启；外部认证配置必须预先覆盖域名及访问策略，否则配置操作失败并回滚。自定义认证 unit 的状态目录是 `/var/lib/<AUTHELIA_UNIT>`。配置先完整校验，再仅重启一次认证服务并检查本机健康；失败时恢复旧配置及服务状态。
+   已有 Caddy/Authelia 的服务器会被自动探测并复用。站点 marker 包含实例名；参数记录在 `/etc/codex-harness/<SERVICE_NAME>.edge.json`，后续禁用使用同一组路径。项目拥有的 Authelia 会补齐新域名的 `session.cookies` 并恢复自启；自定义认证 unit 的状态目录是 `/var/lib/<AUTHELIA_UNIT>`。受管理配置先校验，再重启认证服务并检查本机健康，失败时尝试恢复旧配置及服务状态。**回滚也可能失败**，必须检查报错与实际服务状态，不能只凭脚本结束认定入口已恢复。
+
+   外部自行维护的 Authelia 必须预先配置 cookie 域、规范登录 URL 和访问策略。脚本只检查部分配置关系，**不能完整验证外部访问策略或认证服务健康**；管理员需在实际入口分别验证未登录被拦截、登录成功及 WebSocket 连接。不要将配置校验通过当成公网或认证验收完成。
 
    无人值守且未设置密码时，随机初始密码只保存在认证目录的 `initial-password`（root 600），不会打印。哈希通过受控终端输入，不使用密码命令行参数；自定义密码支持普通 Unicode，但必须是无 C0/DEL 控制字符的单行，UTF-8 不超过 4096 字节。手工 Caddyfile 参考（同域 `/authelia` 门户模式）：
 
@@ -158,6 +166,8 @@ sudo codex-harness provider zhipu   # 交互式隐藏输入 Key，并原子写�
 
 ## 四、验证与运维
 
+线上验证应由管理员或有权读取管理目录的账号执行。`verify-server.sh` 会从已安装实例的 unit 识别 `GATEWAY_CONTROL_HOME`；单独运行下面的 Node 验证脚本时，需要显式设置该目录（默认实例通常为 `/var/lib/codex-harness-control/codex-harness`）。脚本不再读取 `CODEX_HOME/gateway-token`，也不复用 worker 曾经能读取的旧令牌。认证检查从已认证页面取得本实例实际下发的 Cookie，不把真实管理令牌放进 URL。
+
 ```bash
 pnpm test:smoke                     # 默认日常验证：隔离 CODEX_HOME，真实 app-server，但不发 turn
 systemctl status codex-harness
@@ -173,18 +183,50 @@ HARNESS_ALLOW_PAID_TESTS=1 bash deploy/verify-server.sh
 HARNESS_ALLOW_PAID_TESTS=1 GATEWAY_WS=ws://127.0.0.1:8080/ws node deploy/verify-full.mjs
 HARNESS_ALLOW_PAID_TESTS=1 node deploy/verify-mcp-tools.mjs    # 四组 MCP 工具真实任务（智谱预设）
 
-# 事务式升级（隔离工作树先测试/审计/构建，应用失败自动回滚）
+# 迁移到 v1.1.0 后的事务式升级（先验证候选版本，失败时尝试回滚）
 sudo codex-harness update
 ```
 
-事务式更新仅适用于 Git 检出（包括一行安装命令自动克隆的目录）：它拒绝脏工作树和非快进历史；候选应用及其固定 CLI 通过检查和隔离 smoke 后，保存旧产物与系统文件，短暂停止目标服务并发布已验证产物、CLI 路径、unit、helper、sudoers 和实例入口。失败时恢复旧提交、已保存产物与系统文件，不依赖再次联网或成功重建。旧版 CLI 为其它实例及恢复需要保留，不自动清理共享运行时。文件拷贝部署没有 `.git` 元数据，需先取得新版，再运行对应实例的 `reinstall repair`。
+每个显式验证回合只生成一个发送操作 ID、提交一次；连接中断或结果未知不会自动重发。验证失败不是供应商成功验收，也不应通过反复启动真实回合来掩盖。
+
+事务式更新仅适用于 Git 检出（包括一行安装命令自动克隆的目录）：它拒绝脏工作树和非快进历史；候选应用及其固定 CLI 通过检查和隔离 smoke 后，保存旧产物与系统文件，短暂停止目标服务并发布已验证产物、CLI 路径、unit、helper、sudoers 和实例入口。root 更新时，测试通过 systemd DynamicUser 在独立的可执行临时副本内运行，不以 root 跑业务测试，也不将测试副本写回候选源码。失败时尝试恢复旧提交、已保存产物与系统文件，不依赖再次联网或成功重建；恢复失败会保留恢复材料并报告，需要人工处理。旧版 CLI 为其它实例及恢复需要保留，不自动清理共享运行时。文件拷贝部署没有 `.git` 元数据，需先取得新版，再运行对应实例的 `reinstall repair`。
+
+完全重置只清除明确显示的 worker 配置、会话及附件，并重新安装；管理账号、独立管理令牌与发送受理账本保留，避免把先前结果未知的发送误当作可以安全重试。数据删除始终以 worker 身份进行，确认前记录路径身份，确认后使用不跟随软链的目录描述符清理；目标或祖先被替换时拒绝继续，不会将软链解析成 root 的删除目标。
+
+### 首次迁移到 v1.1.0
+
+这是旧版单账号部署的**停机迁移**，不是普通在线更新。请预留维护时间，不要让旧版更新器执行新版候选测试，也不要只替换前后端构建文件。
+
+1. 结束所有任务和网页终端，确认实例名、原安装目录、worker 账号、Node/工具路径、`CODEX_HOME`、`ENV_FILE`、工作区及现有 edge 配置。自定义实例全程使用相同 `SERVICE_NAME`。
+2. 停止该实例，并备份旧源码/构建、systemd unit、管理入口、数据与实际配置链接目标、项目，以及已有的控制目录和 edge 配置。备份含凭证，应保存在私有位置；不要只复制 `secrets.env` 软链。修复重装不删除这些数据，但不能替代备份。
+3. 确认原安装目录、Node 与工具路径及其祖先均为 root 所有且不可被普通用户修改。旧 root 服务、普通用户持有的运行时，或 root 所有的旧数据/环境文件，须先按“一、安装”中的账号与路径要求明确迁移；不要批量 `chown` 整棵项目或共享运行时。
+4. 在**原实例的安装目录**取得 v1.1.0，然后直接使用新版 `deploy/manage.sh` 修复重装。下面仅适用于默认实例、默认路径、已满足权限要求且无本地修改的 Git 部署，各步失败后应停止检查，不要继续执行下一步：
+
+   ```bash
+   sudo -i
+   cd /opt/codex-harness
+   git status --short                 # 必须无输出；有修改时先保存并处理
+   systemctl stop codex-harness       # 应已完成上面的停机备份
+   git fetch origin --tags
+   git merge --ff-only v1.1.0
+   SERVICE_NAME=codex-harness bash deploy/manage.sh reinstall repair
+   ```
+
+   自定义实例替换服务名和目录；直接调用脚本不会自动选择另一个实例。文件拷贝部署需自行将发布源码放到原实例的可信安装目录，并保留数据，随后执行相同的 `reinstall repair`；不要把压缩包解压到状态目录。迁移中的修复重装不提供普通事务式更新的整套自动回滚，失败时保留备份、检查服务是否停止并人工恢复。
+5. 确认安装输出中的 worker 与 gateway 是不同的非 root 账号，使用新控制目录的 `gateway-token` 重新登录。执行对应实例的 `status`、`verify`；检查已有项目/会话及选定模型源。若使用 HTTPS，还需实际验证登录与 WebSocket；最后用一条简单消息验证模型（会使用额度）。
+
+修复重装使用 `PROVIDER=skip` 并保留现有 edge，不要求重新填写所有模型凭证。迁移不能撤回旧令牌或凭证可能已经发生的泄露；请检查历史日志、备份和暴露范围，必要时主动轮换。
+
+### 验证脚本的边界
+
+默认 `verify` 和 smoke 不做商业模型调用。目录、工具列表或初始化成功，也不等于工具任务成功；`list-mcp-tools.mjs` 当前还缺少完整的超时/错误退出保证，不能仅凭其退出码验收。失败或状态未知时不要自动重跑真实任务。低优先级 UI 与运维限制见 [CHANGELOG](../CHANGELOG.md#已知限制与验证边界)。
 
 ## 裸跑注意事项
 
 - **服务用户**：root 安装时默认创建专用 `codex-harness` 非登录用户（home 为 `/var/lib/codex-harness`）；需要复用现有账号时可显式设置 `RUN_USER`。安装/修复及供应商配置维护要求非 root 服务账号，不再支持 root 绕过。若发行版限制非特权 userns，请按系统安全策略为 Codex 沙箱启用所需能力，不要把整个网关改回 root。
 - **项目路径与权限**：注册项目只是在应用中记录目录并选择工作目录，不会授予权限，也不是 OS 沙箱。目录各级父路径必须允许服务用户穿越，项目本身还需按任务授予读写权限；安装器不会递归改动现有项目树的属主。
-- **网页终端**：终端不受 Codex 任务的 Landlock/bwrap 沙箱约束，而是拥有 systemd 服务用户的完整 shell 权限。选中项目只决定新终端的初始 `cwd`；该用户在宿主机上有权访问的其它路径仍可访问。
-- **同机访问认证**：默认 `GATEWAY_BOOTSTRAP_AUTH=local` 保留 loopback 免登录流程，不能隔离同机其它用户。需要严格认证时在服务环境中设置 `GATEWAY_BOOTSTRAP_AUTH=required`：浏览器原生 Basic 对话框用户名任意，密码为该实例的 `gateway-token`；Bearer 与已有 cookie 同样可用。该选项不替代远程 TLS 和登录反代。
+- **网页终端**：终端通过固定版本 app-server 的 `command/exec` 运行，未显式指定的沙箱策略取决于 Codex 配置；它不继承 Composer 当前回合的权限选择。进程始终属于 worker 账号。选中项目只决定初始 `cwd`，注册项目本身不是隔离机制；不要把“已选项目”理解为只能访问该目录。
+- **同机访问认证**：默认要求管理令牌，包括 loopback。网关与 worker 的独立身份、私有管理目录及固定 stdio 后端共同构成权限边界；仅设置 `required` 不足以保护同一 Unix 账号运行的手工部署。Bearer 与已有 cookie 同样可用。各实例 cookie 名独立，但不同端口本身不是浏览器 cookie 的安全隔离边界；远程仍需 TLS 和登录反代。
 - **MCP 密钥**：`<CODEX_HOME>/secrets.env` 是当前代密钥的稳定入口；私有旧代保留恢复副本。`config.toml` 只含环境变量名，密钥不会进入 TOML、命令参数或诊断输出
 - **mcpServerStatus 显示的工具数是懒握手/缓存**：真实健康以 verify-mcp-tools 的实际调用为准
 - **会话持久化范围**：codex 的 rollout 只保留消息、MCP 调用、文件修改与最终回复；思考过程与命令执行条目刷新后不回放（codex 核心行为）

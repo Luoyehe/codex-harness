@@ -7,7 +7,7 @@
 
 import type { GatewayNotification, GatewayServerRequest, ProtocolRpc } from "./protocol";
 
-export type RpcResultMsg = { kind: "rpcResult"; id: number; result?: unknown; error?: string };
+export type RpcResultMsg = { kind: "rpcResult"; id: number; result?: unknown; error?: string; errorCode?: string; operationState?: string };
 export type NotificationMsg = { kind: "notification" } & GatewayNotification;
 export type ServerRequestMsg = { kind: "serverRequest" } & GatewayServerRequest;
 
@@ -19,6 +19,11 @@ interface Pending {
   /** Socket generation that issued the request. An old socket must never
    * settle (or reject) work sent on a replacement connection. */
   generation: number;
+  timer: number;
+}
+
+export class GatewayRpcError extends Error {
+  constructor(message: string, readonly delivery: "not_sent" | "unknown" | "rejected", readonly code?: string) { super(message); }
 }
 
 const RECONNECT_DELAYS = [500, 1_000, 2_000, 5_000, 10_000];
@@ -34,6 +39,7 @@ export class GatewayClient {
   private reconnectTimer: number | null = null;
   private manuallyClosed = false;
   private connectionGeneration = 0;
+  failure: "authentication" | "configuration" | "network" | null = null;
 
   get state(): ConnState {
     if (this.ws?.readyState === WebSocket.OPEN) return "open";
@@ -51,6 +57,7 @@ export class GatewayClient {
   private heartbeatTimer: number | null = null;
 
   connect(): void {
+    this.failure = null;
     this.manuallyClosed = false;
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
     // A caller may explicitly retry before a scheduled reconnect fires.
@@ -66,12 +73,10 @@ export class GatewayClient {
       return;
     }
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    // The gateway authenticates every WS with the gw_token cookie it sets
-    // when serving the SPA on a trusted host — the browser presents it
-    // automatically on the upgrade (cookies ignore ports, so a cookie from
-    // http://127.0.0.1:8410 also covers other localhost ports).
+    // The gateway uses an instance-specific cookie. Cookies do not isolate
+    // ports: separate hostnames remain necessary for security isolation.
     // In dev, the proxy first requires a same-origin loopback page, then
-    // supplies the token cookie server-side.
+    // supplies Bearer authorization server-side.
     const url = `${proto}//${location.host}/ws`;
     // If a CLOSED socket's close callback has not run yet, settle only its
     // own requests before replacing it. The callback may still arrive later.
@@ -97,7 +102,7 @@ export class GatewayClient {
     ws.onmessage = (ev) => {
       if (this.isCurrent(ws, generation)) this.handleMessage(String(ev.data), generation);
     };
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       // Always reject requests issued by this socket, but never requests from
       // a newer one. All remaining state transitions belong to the current
       // socket only; late callbacks from a replaced socket are inert.
@@ -105,8 +110,9 @@ export class GatewayClient {
       if (!this.isCurrent(ws, generation)) return;
       this.ws = null;
       this.stopHeartbeat();
+      this.failure = event?.code === 4001 ? "authentication" : event?.code === 4003 ? "configuration" : "network";
       this.notifyState("closed");
-      this.scheduleReconnect();
+      if (this.failure === "network") this.scheduleReconnect();
     };
     ws.onerror = () => {
       /* close event follows */
@@ -158,6 +164,7 @@ export class GatewayClient {
   }
 
   private handleMessage(raw: string, generation: number): void {
+    if (raw.length > 40 * 1024 * 1024) { this.ws?.close(1009, "response too large"); return; }
     let msg: RpcResultMsg | NotificationMsg | ServerRequestMsg;
     try {
       msg = JSON.parse(raw);
@@ -169,7 +176,8 @@ export class GatewayClient {
         const entry = this.pending.get(msg.id);
         if (!entry || entry.generation !== generation) return;
         this.pending.delete(msg.id);
-        if (msg.error) entry.reject(new Error(msg.error));
+        clearTimeout(entry.timer);
+        if (msg.error) entry.reject(new GatewayRpcError(msg.error, msg.operationState === "unknown" || msg.errorCode === "OPERATION_UNKNOWN" || msg.errorCode === "MANAGEMENT_UNKNOWN" ? "unknown" : "rejected", msg.errorCode));
         else entry.resolve(msg.result);
         return;
       }
@@ -186,7 +194,8 @@ export class GatewayClient {
     for (const [id, entry] of this.pending) {
       if (generation !== undefined && entry.generation !== generation) continue;
       this.pending.delete(id);
-      entry.reject(err);
+      clearTimeout(entry.timer);
+      entry.reject(new GatewayRpcError(err.message, "unknown"));
     }
   }
 
@@ -208,26 +217,33 @@ export class GatewayClient {
   rpc<T = unknown>(method: string, params?: unknown): Promise<T> {
     const ws = this.ws;
     const generation = this.connectionGeneration;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error("gateway not connected"));
+    if (!ws || ws.readyState !== WebSocket.OPEN) return Promise.reject(new GatewayRpcError("gateway not connected", "not_sent"));
+    if (this.pending.size >= 128 || ws.bufferedAmount > 40 * 1024 * 1024) return Promise.reject(new GatewayRpcError("网关请求队列已满，请稍后重试", "not_sent"));
     const id = this.nextId++;
     return new Promise<T>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject, generation });
+      const timer = window.setTimeout(() => {
+        this.pending.delete(id);
+        reject(new GatewayRpcError("请求确认超时，结果可能已经生效", "unknown"));
+      }, method.startsWith("admin/") ? 600_000 : 180_000);
+      this.pending.set(id, { resolve, reject, generation, timer });
       try {
         ws.send(JSON.stringify({ kind: "rpc", id, method, params: params ?? {} }));
       } catch (err) {
         this.pending.delete(id);
-        reject(err instanceof Error ? err : new Error(String(err)));
+        clearTimeout(timer);
+        reject(new GatewayRpcError(err instanceof Error ? err.message : String(err), "not_sent"));
       }
     });
   }
 
-  respondServerRequest(requestId: number | string, payload: unknown): void {
+  respondServerRequest(requestId: number | string, payload: unknown): boolean {
     const ws = this.ws;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 40 * 1024 * 1024) return false;
     try {
       ws.send(JSON.stringify({ kind: "serverRequestResponse", requestId, payload }));
+      return true;
     } catch {
-      /* the server timeout safely declines unanswered requests */
+      return false;
     }
   }
 

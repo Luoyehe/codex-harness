@@ -27,8 +27,9 @@ await new Promise((resolve) => reserve.close(resolve));
 const base = `http://127.0.0.1:${port}`;
 const wsBase = `ws://127.0.0.1:${port}/ws`;
 const env = { ...process.env, CODEX_HOME: codexHome, CODEX_WORKSPACE: workspace,
-  GATEWAY_TOKEN: token, HOST: "127.0.0.1", PORT: String(port), ALLOW_QUERY_TOKEN: "0", GATEWAY_BOOTSTRAP_AUTH: "local" };
-for (const name of ["OPENAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_KEY", "CUSTOM_API_KEY", "CUSTOM_OPENAI_API_KEY", "TRUSTED_HOSTS", "GATEWAY_HTTPS", "CODEX_PERSISTENT_ROOTS"]) delete env[name];
+  GATEWAY_TOKEN: token, GATEWAY_CONTROL_HOME: path.join(scratch, "control"), GATEWAY_UNSAFE_SINGLE_USER: "1",
+  HOST: "127.0.0.1", PORT: String(port), ALLOW_QUERY_TOKEN: "0", GATEWAY_BOOTSTRAP_AUTH: "required" };
+for (const name of ["OPENAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_KEY", "CUSTOM_API_KEY", "CUSTOM_OPENAI_API_KEY", "TRUSTED_HOSTS", "GATEWAY_HTTPS", "CODEX_PERSISTENT_ROOTS", "CODEX_WORKER_LAUNCHER", "CODEX_HARNESS_ADMIN_HELPER"]) delete env[name];
 const gateway = spawn(process.execPath, [path.join(root, "apps/gateway/dist/index.js")], {
   cwd: workspace, env, stdio: ["ignore", "ignore", "pipe"], windowsHide: true,
 });
@@ -74,7 +75,10 @@ try {
   }
   assert.ok(ready, `app-server failed to become ready: ${errors}`);
   console.log("PASS isolated gateway + real app-server initialization");
-  const html = await fetch(base, { signal: AbortSignal.timeout(5000) });
+  const unauthenticated = await fetch(base, { signal: AbortSignal.timeout(5000) });
+  assert.equal(unauthenticated.status, 401);
+  assert.equal(unauthenticated.headers.get("set-cookie"), null);
+  const html = await fetch(base, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
   assert.equal(html.status, 200);
   assert.ok(html.headers.get("set-cookie")?.includes("HttpOnly"));
   assert.ok((await html.text()).includes('<div id="root">'));
@@ -93,7 +97,7 @@ try {
   const status = (await exchange({ headers: auth })).message;
   assert.equal(status?.result?.codexState, "ready");
   assert.equal(status.error, undefined);
-  assert.ok((await exchange({ headers: { Cookie: `gw_token=${token}` } })).message?.result);
+  assert.ok((await exchange({ headers: { Cookie: html.headers.get("set-cookie").split(";")[0] } })).message?.result);
   const account = (await exchange({ headers: auth, method: "account/read" })).message;
   assert.equal(account?.error, undefined);
   assert.equal(account?.result?.account, null);
@@ -109,7 +113,7 @@ try {
     } else {
       const closed = new Promise((resolve) => gateway.once("exit", resolve));
       gateway.kill("SIGTERM");
-      await Promise.race([closed, new Promise((resolve) => setTimeout(resolve, 3000))]);
+      await Promise.race([closed, new Promise((resolve) => setTimeout(resolve, 15000))]);
       if (gateway.exitCode === null) gateway.kill("SIGKILL");
     }
   }

@@ -137,7 +137,7 @@ describe("attachment send reservations", () => {
     const sending = dispatch("turn/start", { threadId: "t1", text: "read", attachments: [{ path: file.path }] });
     await expect(dispatch("attachment/delete", { path: file.path })).rejects.toThrow(/引用/);
     expect(existsSync(file.path)).toBe(true);
-    expect(new AttachmentStore(home).registeredOwners(file.path)).toEqual(["t1"]);
+    expect(new AttachmentStore(home).registeredOwners(file.path)).toEqual(["@codex-harness:scan-incomplete"]);
     accept({ turn: { id: "turn1" } });
     await sending;
     expect(store.registeredOwners(file.path)).toEqual(["t1"]);
@@ -173,7 +173,7 @@ describe("attachment send reservations", () => {
       supervisor: { request: async () => { throw new Error("connection lost"); } } as any,
     });
     await expect(dispatch("turn/start", { threadId: "t1", text: "read", attachments: [{ path: file.path }] })).rejects.toThrow("connection lost");
-    expect(store.registeredOwners(file.path)).toEqual(["t1"]);
+    expect(store.registeredOwners(file.path)[0]).toMatch(/^@codex-harness:pending:t1:/);
     await expect(dispatch("attachment/delete", { path: file.path })).rejects.toThrow(/引用/);
     store.cleanupForThread("t1", {});
     await new Promise((resolve) => setTimeout(resolve, 50));

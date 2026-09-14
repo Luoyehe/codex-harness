@@ -1,5 +1,6 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { validateModelEffort } from "./model-capabilities.js";
 import type { CodexSupervisor } from "./codex/process.js";
 import type { ProjectRegistry } from "./projects.js";
 import type { DisplayPrefsStore } from "./display-prefs.js";
@@ -9,7 +10,7 @@ import type { RequestParams } from "./protocol.js";
 import type { ThreadSourceKind } from "../../../protocol/v2/ThreadSourceKind.js";
 import type { SandboxPolicy } from "../../../protocol/v2/SandboxPolicy.js";
 import type { UserInput } from "../../../protocol/v2/UserInput.js";
-import { runScript, scheduleServiceRestart, serviceStatus, recentLogs, syncCatalog } from "./admin.js";
+import { runScript, scriptChangeResult, scheduleServiceRestart, serviceStatus, recentLogs, syncCatalog } from "./admin.js";
 import { TurnDefaults } from "./turn-defaults.js";
 import { Terminals } from "./terminals.js";
 
@@ -121,8 +122,12 @@ const SANDBOX_PRESETS = {
   full: { type: "dangerFullAccess" },
 } satisfies Record<string, SandboxPolicy>;
 
-/** Reasoning-effort values the WebUI per-turn selector may send (whitelist). */
-const EFFORT_PRESETS = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]);
+/** Pinned protocol uses string; actual support comes from the selected model. */
+function requireEffort(value: unknown, field: string): string {
+  const effort = requireString(value, field, 32);
+  if (!/^[a-z][a-z0-9-]{0,31}$/.test(effort)) throw new Error(`${field} has an unsupported identifier`);
+  return effort;
+}
 
 type Handler = (params: Record<string, unknown>, ctx: ApiContext) => Promise<unknown>;
 
@@ -291,7 +296,13 @@ const handlers: Record<string, Handler> = {
     } catch {
       /* thread may already be gone; nothing to clean */
     }
-    const result = await ctx.supervisor.request("thread/delete", { threadId });
+    ctx.attachments.beginThreadDeletion(threadId);
+    let result;
+    try { result = await ctx.supervisor.request("thread/delete", { threadId }); }
+    catch (error) {
+      if (error instanceof AppServerRequestError) ctx.attachments.cancelThreadDeletion(threadId);
+      throw error;
+    }
     ctx.attachments.cleanupForThread(threadId, threadData ?? {});
     ctx.onThreadDeleted?.(threadId);
     return result;
@@ -364,7 +375,7 @@ const handlers: Record<string, Handler> = {
       body.approvalPolicy = requireEnum(params.approvalPolicy, "approvalPolicy", APPROVAL_POLICIES);
     }
     if (params?.effort != null && params.effort !== "") {
-      body.effort = requireEnum(params.effort, "effort", EFFORT_PRESETS);
+      body.effort = requireEffort(params.effort, "effort");
     }
     if (params?.sandbox != null && params.sandbox !== "") {
       const sandbox = requireString(params.sandbox, "sandbox", 32);
@@ -386,6 +397,11 @@ const handlers: Record<string, Handler> = {
         body.effort = defaults.reasoningEffort;
       }
     }
+    // An explicit browser override must be advertised by this model. A null
+    // reset instead uses the pinned server's effective default, which can be
+    // valid even when an unprobed/non-reasoning model advertises no overrides.
+    // Still send that concrete default to clear a previous sticky effort.
+    if (body.effort && params.effort !== null) await validateModelEffort(ctx.supervisor, body.threadId, body.model ?? undefined, body.effort);
     const reservation = attachmentPaths.length ? ctx.attachments.reservePaths(body.threadId, attachmentPaths) : null;
     try {
       const result = await ctx.supervisor.request("turn/start", body);
@@ -394,7 +410,10 @@ const handlers: Record<string, Handler> = {
     } catch (error) {
       // Only a JSON-RPC error proves rejection. After a lost response keep a
       // conservative reference to the real thread until its history is removed.
-      if (reservation) ctx.attachments.settleReservation(reservation, !(error instanceof AppServerRequestError));
+      if (reservation) ctx.attachments.settleReservation(reservation, !(error instanceof AppServerRequestError), !(error instanceof AppServerRequestError));
+      if (!(error instanceof AppServerRequestError) && error instanceof Error) {
+        Object.assign(error, { delivery: "unknown" });
+      }
       throw error;
     }
   },
@@ -431,6 +450,7 @@ const handlers: Record<string, Handler> = {
     const cwd = ctx.projects.resolveRegistered(requestedCwd);
     if (!cwd) throw new Error("terminal cwd must be an existing registered project");
     const processId = ctx.terminals!.create(ctx.terminalOwner!, params.processId);
+    ctx.notify("terminal/started", { processId });
     const epoch = ctx.terminals!.epoch;
     // The terminal intentionally provides a shell with the service account's
     // OS permissions, independent of turn sandbox settings. Fix its argv/env
@@ -442,6 +462,9 @@ const handlers: Record<string, Handler> = {
         tty: true,
         streamStdoutStderr: true,
         disableTimeout: true,
+        // Deliberate administrator terminal, not an accidental dependency on
+        // whatever turn sandbox happens to be configured in this generation.
+        sandboxPolicy: { type: "dangerFullAccess" },
         cwd,
         size: { rows, cols },
       })
@@ -496,18 +519,21 @@ const handlers: Record<string, Handler> = {
   "admin/logs": async (params) => ({ logs: await recentLogs(clampLimit(params?.lines, 10, 300, 80)) }),
 
   "admin/service/restart": async () => {
-    scheduleServiceRestart();
+    void scheduleServiceRestart().catch((error) => process.stderr.write(`[admin] restart failed: ${error.message}\n`));
     return { ok: true, restarting: true, note: "服务将在约 1 秒后重启，页面会自动重连" };
   },
 
   "admin/catalog/sync": async (_params, ctx) => {
     if (!ctx.providerReader) throw new Error("admin 未接线（providerReader 缺失）");
     const result = await syncCatalog(ctx.providerReader as any);
-    if (result.code === 0) scheduleServiceRestart();
+    if (result.restartRequired) void scheduleServiceRestart().catch((error) => process.stderr.write(`[admin] restart failed: ${error.message}\n`));
     return {
       ok: result.code === 0,
       mode: result.mode,
-      restarting: result.code === 0,
+      changed: result.changed === true,
+      restartRequired: result.restartRequired === true,
+      restarting: result.restartRequired === true,
+      executionPending: result.executionPending === true,
       output: result.output.slice(-8000),
     };
   },
@@ -552,49 +578,24 @@ const handlers: Record<string, Handler> = {
           : {}),
         ...(params?.customVision === true ? { CUSTOM_VISION: "1" } : {}),
         ...(params?.customEffort !== undefined && params.customEffort !== ""
-          ? { CUSTOM_EFFORT: requireEnum(params.customEffort, "customEffort", EFFORT_PRESETS) }
+          ? { CUSTOM_EFFORT: requireEffort(params.customEffort, "customEffort") }
           : {}),
       });
     }
-    if (result.code === 0) scheduleServiceRestart();
-    return { ok: result.code === 0, restarting: result.code === 0, output: result.output.slice(-8000) };
+    const status = scriptChangeResult(result);
+    if (status.restartRequired) void scheduleServiceRestart().catch((error) => process.stderr.write(`[admin] restart failed: ${error.message}\n`));
+    return { ok: status.code === 0, changed: status.changed === true, restartRequired: status.restartRequired === true, restarting: status.restartRequired === true, executionPending: status.executionPending === true, output: status.output.slice(-8000) };
   },
 
-  "admin/edge/config": async (params) => {
-    if (typeof process.getuid === "function" && process.getuid() !== 0) {
-      return {
-        ok: false,
-        restarting: false,
-        output: "Caddy/Authelia 是 root 级系统配置；安全默认下网关无此权限。请在服务器运行：sudo codex-harness edge",
-      };
-    }
-    if (params?.disable === true) {
-      const result = await runScript("setup-edge.sh", { EDGE_ACTION: "disable" });
-      return { ok: result.code === 0, restarting: false, output: result.output.slice(-8000) };
-    }
-    const domain = requireString(params?.domain, "domain", 253);
-    if (!/^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,62})\.)*[A-Za-z0-9](?:[A-Za-z0-9-]{0,62})$/.test(domain)) {
-      throw new Error("domain is not a valid DNS hostname");
-    }
-    const listenPort = boundedInteger(params?.listenPort, 1, 65_535, 443);
-    if (params?.tls !== undefined && (typeof params.tls !== "string" || !["auto", "own", "selfsigned"].includes(params.tls))) {
-      throw new Error("tls must be auto, own or selfsigned");
-    }
-    const tlsMode = params?.tls === "own" || params?.tls === "selfsigned" ? params.tls : "auto";
-    const env: Record<string, string> = {
-      EDGE: "caddy-authelia",
-      EDGE_DOMAIN: domain,
-      EDGE_LISTEN_PORT: String(listenPort),
-      EDGE_TLS: tlsMode,
-    };
-    if (tlsMode === "own" && typeof params?.certDir === "string" && params.certDir) {
-      env.EDGE_CERT_DIR = requireString(params.certDir, "certDir", MAX_PATH_CHARS);
-    }
-    if (typeof params?.username === "string" && params.username) env.EDGE_USER = requireString(params.username, "username", 128);
-    if (typeof params?.password === "string" && params.password) env.EDGE_PASS = requireString(params.password, "password", 4096);
-    const result = await runScript("setup-edge.sh", env);
-    return { ok: result.code === 0, restarting: false, output: result.output.slice(-8000) };
-  },
+  // Kept as a read-only compatibility response for older browser bundles.
+  // Root-only edge mutation has no place in either supported service account.
+  "admin/edge/config": async () => ({
+    ok: false,
+    changed: false,
+    restartRequired: false,
+    restarting: false,
+    output: "Caddy/Authelia 是 root 级系统配置，网页不提供此权限。请在服务器运行：sudo codex-harness edge（自定义实例请使用其管理命令）",
+  }),
 };
 
 export function makeDispatcher(ctx: ApiContext) {

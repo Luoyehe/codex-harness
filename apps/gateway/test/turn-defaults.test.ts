@@ -82,7 +82,9 @@ describe("effective turn defaults", () => {
   });
 
   it("gateway translates null to explicit values and fails closed if resolution fails", async () => {
-    const request = vi.fn(async () => ({ turn: { id: "t" } }));
+    const request = vi.fn(async (method: string) => method === "model/list"
+      ? { data: [{ model: "base", supportedReasoningEfforts: [{ reasoningEffort: "low" }] }], nextCursor: null }
+      : { turn: { id: "t" } });
     const resolve = vi.fn(async () => ({ model: "base", approvalPolicy: "on-request", sandbox: { type: "readOnly" }, reasoningEffort: "low" }));
     const dispatch = makeDispatcher({ supervisor: { request }, attachments: {}, turnDefaults: { resolve } } as any);
     await dispatch("turn/start", { threadId: "thread", text: "fixture", model: null, approvalPolicy: null, sandbox: null, effort: null });
@@ -90,5 +92,35 @@ describe("effective turn defaults", () => {
     resolve.mockRejectedValueOnce(new Error("defaults unavailable"));
     await expect(dispatch("turn/start", { threadId: "thread", text: "fixture", sandbox: null })).rejects.toThrow("defaults unavailable");
     expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores the native default with no advertised efforts but still rejects the same explicit override", async () => {
+    const request = vi.fn(async (method: string) => method === "model/list"
+      ? { data: [{ model: "unprobed", defaultReasoningEffort: "medium", supportedReasoningEfforts: [] }], nextCursor: null }
+      : { turn: { id: "t" } });
+    const resolve = vi.fn(async () => ({ model: "unprobed", approvalPolicy: "on-request", sandbox: { type: "readOnly" }, reasoningEffort: "medium" }));
+    const dispatch = makeDispatcher({ supervisor: { request }, attachments: {}, turnDefaults: { resolve } } as any);
+    const defaults = { threadId: "thread", text: "fixture", model: null, approvalPolicy: null, sandbox: null, effort: null };
+
+    await dispatch("turn/start", defaults);
+    expect(request).toHaveBeenCalledExactlyOnceWith("turn/start", expect.objectContaining({ model: "unprobed", effort: "medium" }));
+
+    await expect(dispatch("turn/start", { ...defaults, effort: "medium" })).rejects.toThrow("未声明支持");
+    await expect(dispatch("turn/start", { ...defaults, effort: "arbitrary-vendor-effort" })).rejects.toThrow("未声明支持");
+    expect(request.mock.calls.filter(([method]) => method === "turn/start")).toHaveLength(1);
+  });
+
+  it("uses the model catalog default when the native thread effort is null and overrides are empty", async () => {
+    const { defaults, request, state } = fixture();
+    state.effort = null;
+    const original = request.getMockImplementation()!;
+    request.mockImplementation(async (method, params) => {
+      if (method === "model/list") return { data: [{ model: "base", defaultReasoningEffort: "none", supportedReasoningEfforts: [] }], nextCursor: null };
+      if (method === "turn/start") return { turn: { id: "t" } };
+      return original(method, params);
+    });
+    const dispatch = makeDispatcher({ supervisor: { request }, attachments: {}, turnDefaults: defaults } as any);
+    await dispatch("turn/start", { threadId: "thread", text: "fixture", model: null, effort: null });
+    expect(request).toHaveBeenCalledWith("turn/start", expect.objectContaining({ model: "base", effort: "none" }));
   });
 });

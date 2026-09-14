@@ -43,7 +43,12 @@ export class AttachmentStore {
   private canonicalDir: string;
   private refs: Record<string, string[]> | null = null;
   private refsUnknown = false;
+  private deletingThreads = new Set<string>();
+  private recoveryCursor = "";
+  private recovering = false;
   private static readonly INDEX_STATE_KEY = "@codex-harness:index-state";
+  private static readonly DELETIONS_KEY = "@codex-harness:deletions";
+  private static readonly CURSOR_KEY = "@codex-harness:gc-cursor";
   /** Synthetic owner retained when a rollout reference exists (or a scan was
    * inconclusive).  This keeps the explicit attachment/delete RPC fail-safe
    * even though CLI-created forks are not represented by a WebUI thread id. */
@@ -73,10 +78,11 @@ export class AttachmentStore {
     this.loadRefs();
   }
 
-  /** Neutralize anything path-like in a client-supplied filename. */
-  private safeName(name: string): string {
-    const base = path.basename(String(name ?? "file")).replace(/[^\w.\-\u4e00-\u9fa5 ]+/g, "_");
-    return (base || "file").slice(0, 120);
+  /** Disk names have a fixed ASCII byte budget. Original names belong to
+   * message metadata, not a filesystem component (NAME_MAX is bytes). */
+  private safeExtension(name: string): string {
+    const extension = path.extname(String(name ?? ""));
+    return /^\.[a-zA-Z0-9]{1,16}$/.test(extension) ? extension.toLowerCase() : "";
   }
 
   /** Resolve an existing regular upload to its single filesystem identity.
@@ -136,7 +142,7 @@ export class AttachmentStore {
       throw new Error(`${isImage ? "图片" : "文件"}过大（上限 ${mb}MB）`);
     }
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const file = path.join(this.dir, `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${this.safeName(name)}`);
+      const file = path.join(this.dir, `${randomUUID()}${this.safeExtension(name)}`);
       try {
         writeFileSync(file, bytes, { flag: "wx", mode: 0o600 });
         // Return the same canonical spelling the registry uses. This also
@@ -245,11 +251,14 @@ export class AttachmentStore {
     return reservation;
   }
 
-  settleReservation(reservation: AttachmentReservation, acceptedOrUncertain: boolean): void {
+  settleReservation(reservation: AttachmentReservation, acceptedOrUncertain: boolean, uncertain = false): void {
     this.loadRefs();
     for (const p of reservation.paths) {
       const owners = new Set((this.refs![p] ?? []).filter((owner) => owner !== reservation.owner));
-      if (acceptedOrUncertain) owners.add(reservation.threadId);
+      // A lost response in the CURRENT app-server generation can still be
+      // running before its rollout is flushed. Keep its live lease; only a
+      // subsequent backend generation may reconcile this persisted intent.
+      if (acceptedOrUncertain) owners.add(uncertain ? reservation.owner : reservation.threadId);
       if (owners.size) this.refs![p] = [...owners];
       else delete this.refs![p];
     }
@@ -296,7 +305,13 @@ export class AttachmentStore {
       const parsed = JSON.parse(readFileSync(this.refsFile, "utf8"));
       const clean: Record<string, string[]> = Object.create(null);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const deleting = parsed[AttachmentStore.DELETIONS_KEY];
+        if (Array.isArray(deleting) && deleting.every((id) => typeof id === "string" && id.length > 0 && id.length <= 256)) {
+          this.deletingThreads = new Set(deleting);
+        }
+        if (Array.isArray(parsed[AttachmentStore.CURSOR_KEY]) && typeof parsed[AttachmentStore.CURSOR_KEY][0] === "string") this.recoveryCursor = parsed[AttachmentStore.CURSOR_KEY][0];
         for (const [file, owners] of Object.entries(parsed)) {
+          if (file === AttachmentStore.DELETIONS_KEY || file === AttachmentStore.CURSOR_KEY) continue;
           if (file === AttachmentStore.INDEX_STATE_KEY) {
             this.refsUnknown = true;
             continue;
@@ -314,14 +329,19 @@ export class AttachmentStore {
           for (const owner of owners) {
             if (typeof owner !== "string" || owner.length === 0) continue;
             if (owner.startsWith(PENDING_OWNER_PREFIX)) {
-              try { merged.add(decodeURIComponent(owner.slice(PENDING_OWNER_PREFIX.length).split(":")[0])); }
-              catch { merged.add(AttachmentStore.INCOMPLETE_SCAN_OWNER); }
-            } else merged.add(owner);
+              // A crashed send is uncertain, not a permanent real-thread
+              // reference. Keep it protected but eligible for a complete,
+              // bounded scan on the next explicit/background cleanup.
+              merged.add(AttachmentStore.INCOMPLETE_SCAN_OWNER);
+            } else merged.add(this.deletingThreads.has(owner) ? AttachmentStore.INCOMPLETE_SCAN_OWNER : owner);
           }
           clean[canonical] = [...merged];
         }
       } else this.refsUnknown = true;
       this.refs = clean;
+      // Every affected owner has now become a durable/recoverable scan
+      // marker. A one-time delete intent need not grow forever after recovery.
+      this.deletingThreads.clear();
     } catch (error: any) {
       this.refs = Object.create(null);
       this.refsUnknown = true;
@@ -337,6 +357,8 @@ export class AttachmentStore {
     try {
       atomicWriteFileSync(this.refsFile, JSON.stringify({
         ...(this.refsUnknown ? { [AttachmentStore.INDEX_STATE_KEY]: ["unknown"] } : {}),
+        ...(this.deletingThreads.size ? { [AttachmentStore.DELETIONS_KEY]: [...this.deletingThreads] } : {}),
+        ...(this.recoveryCursor ? { [AttachmentStore.CURSOR_KEY]: [this.recoveryCursor] } : {}),
         ...(this.refs ?? {}),
       }));
     } catch (err: any) {
@@ -344,6 +366,60 @@ export class AttachmentStore {
       if (required) throw new Error("无法保护发送中的附件：引用信息持久化失败");
       /* best-effort registry */
     }
+  }
+
+  /** Write intent BEFORE thread/delete. On a crash either side of the upstream
+   * response, restart scans all rollouts (including this thread if it survived)
+   * instead of preserving a deleted thread id forever. */
+  beginThreadDeletion(threadId: string): void {
+    this.loadRefs();
+    this.deletingThreads.add(threadId);
+    this.saveRefs(true);
+  }
+  cancelThreadDeletion(threadId: string): void {
+    this.deletingThreads.delete(threadId);
+    this.saveRefs();
+  }
+
+  /** The supervisor calls this synchronously only once the previous child has
+   * actually exited. Transport loss alone is not sufficient proof. */
+  reconcileGeneration(): void {
+    this.loadRefs();
+    for (const [file, owners] of Object.entries(this.refs!)) {
+      this.refs![file] = [...new Set(owners.map((owner) => owner.startsWith(PENDING_OWNER_PREFIX) ? AttachmentStore.INCOMPLETE_SCAN_OWNER : owner))];
+    }
+    this.saveRefs();
+  }
+
+  /** Called only after the backend has started its NEW app-server generation.
+   * Bounded recovery uses one scan, and rechecks newly admitted reservations
+   * before unlinking. Incomplete/oversized histories retain every uncertain file. */
+  async recoverCleanup(): Promise<void> {
+    if (this.recovering) return;
+    this.recovering = true;
+    try { await this.recoverBatch(); } finally { this.recovering = false; }
+  }
+  private async recoverBatch(): Promise<void> {
+    this.loadRefs();
+    const eligible = Object.entries(this.refs!).filter(([, owners]) => owners.length && owners.every(AttachmentStore.isScanMarker)).map(([file]) => file).sort();
+    // Persist a moving cursor: referenced/incomplete entries at the front
+    // must not starve later orphaned uploads across periodic passes/restarts.
+    let start = eligible.findIndex((file) => file > this.recoveryCursor);
+    if (start < 0) start = 0;
+    const candidates = eligible.slice(start, start + 128);
+    if (!candidates.length) return;
+    this.recoveryCursor = candidates[candidates.length - 1];
+    this.saveRefs(true);
+    const codexHome = path.dirname(this.dir);
+    const result = await this.findReferencedByOtherRollout(candidates, "", [path.join(codexHome, "sessions"), path.join(codexHome, "archived_sessions")]);
+    for (const file of candidates) {
+      const owners = this.refs![file] ?? [];
+      if (!owners.every(AttachmentStore.isScanMarker)) continue;
+      if (!result.complete || result.referenced.has(file)) continue;
+      this.remove(file);
+      delete this.refs![file];
+    }
+    this.saveRefs();
   }
 
   /**
@@ -462,29 +538,30 @@ export class AttachmentStore {
     // persisted sidecar remains the authoritative list for those uploads.
     this.loadRefs();
     for (const [file, owners] of Object.entries(this.refs!)) {
-      if ((owners.includes(threadId) || owners.some(AttachmentStore.isScanMarker)) && this.isOwned(file)) paths.push(file);
+      if ((owners.some((owner) => owner === threadId || owner.startsWith(`${PENDING_OWNER_PREFIX}${encodeURIComponent(threadId)}:`)) || owners.some(AttachmentStore.isScanMarker)) && this.isOwned(file)) paths.push(file);
     }
     paths = [...new Set(paths)];
-    if (!paths.length) return;
+    if (!paths.length) { this.cancelThreadDeletion(threadId); return; }
     // Registry-protected files are settled synchronously (cheap); everything
     // else goes through the bounded async rollout scan in the background.
     this.loadRefs();
     const toScan: string[] = [];
     for (const p of paths) {
-      const remaining = (this.refs![p] ?? []).filter((t) => t !== threadId && !AttachmentStore.isScanMarker(t));
+      const remaining = (this.refs![p] ?? []).filter((t) => t !== threadId && !t.startsWith(`${PENDING_OWNER_PREFIX}${encodeURIComponent(threadId)}:`) && !AttachmentStore.isScanMarker(t));
       if (remaining.length > 0) {
         // Registry says other threads still reference it → keep the file,
         // just drop this thread from the owners.
         this.refs![p] = remaining;
       } else {
-        // Keep the deleting thread as a temporary owner until the rollout
+        // Keep a recoverable scan marker until the rollout
         // scan has reached a conclusion. Otherwise an attachment/delete RPC
         // racing this asynchronous scan could see zero owners and unlink a
         // file that a CLI-created fork still references.
-        this.refs![p] = [threadId];
+        this.refs![p] = [AttachmentStore.INCOMPLETE_SCAN_OWNER];
         toScan.push(p);
       }
     }
+    this.deletingThreads.delete(threadId);
     this.saveRefs();
     if (toScan.length === 0) return;
     const codexHome = path.dirname(this.dir);
@@ -496,7 +573,7 @@ export class AttachmentStore {
         for (const p of toScan) {
           // Another turn may have registered the attachment while the async
           // rollout scan was running. Re-check before unlinking.
-          const currentOwners = (this.refs?.[p] ?? []).filter((t) => t !== threadId);
+          const currentOwners = (this.refs?.[p] ?? []).filter((t) => !AttachmentStore.isScanMarker(t));
           if (currentOwners.length > 0) {
             this.refs![p] = currentOwners;
             continue;

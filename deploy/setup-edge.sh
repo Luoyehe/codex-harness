@@ -85,6 +85,18 @@ if [ -z "${RUN_USER:-}" ] && [ -f "/etc/systemd/system/${GATEWAY_UNIT}.service" 
   RUN_USER="$(sed -n 's/^User=//p' "/etc/systemd/system/${GATEWAY_UNIT}.service" | head -1)"
 fi
 export RUN_USER="${RUN_USER:-}"
+# New managed deployments isolate gateway settings from worker credentials.
+# The edge editor uses the gateway identity and its own lock/private directory.
+UNIT_PATH="/etc/systemd/system/${GATEWAY_UNIT}.service"
+if [ -f "$UNIT_PATH" ]; then
+  CONTROL_HOME="$(sed -n 's/^Environment=GATEWAY_CONTROL_HOME=//p' "$UNIT_PATH" | head -1)"
+  if [ -n "$CONTROL_HOME" ]; then
+    CODEX_HOME="$CONTROL_HOME"
+    ENV_FILE="$CONTROL_HOME/gateway.env"
+    RUN_USER="$(sed -n 's/^User=//p' "$UNIT_PATH" | head -1)"
+    export RUN_USER CODEX_HOME
+  fi
+fi
 
 log() { echo "[edge] $*"; }
 die() { echo "[edge] ERROR: $*" >&2; exit 1; }

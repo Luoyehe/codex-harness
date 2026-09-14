@@ -27,6 +27,11 @@ export class TerminalSession {
   private frame: number | null = null;
   private observer: ResizeObserver;
   private subscriptions: Array<{ dispose(): void }>;
+  private writeQueue: Uint8Array[] = [];
+  private queuedBytes = 0;
+  private writing = false;
+  private inputBlocked = false;
+  private outputBytes = 0;
 
   constructor(
     readonly term: Terminal,
@@ -38,11 +43,19 @@ export class TerminalSession {
     // Install listeners before open/fit: fit only emits when dimensions change.
     this.subscriptions = [
       term.onData((data) => {
-        if (!this.ready || this.exited || this.disposed) return;
+        if (!this.ready || this.exited || this.disposed || this.inputBlocked) return;
         const bytes = new TextEncoder().encode(data);
-        let binary = "";
-        for (const byte of bytes) binary += String.fromCharCode(byte);
-        void rpc("terminal/write", { processId: this.processId, base64: btoa(binary) }).catch(() => {});
+        // Refuse the whole new paste before admitting any of it. Previously
+        // >64 KiB pastes were silently discarded by the gateway.
+        if (this.queuedBytes + bytes.length > 1024 * 1024) {
+          this.term.writeln("\r\n[输入队列已满：本次输入未发送，请等待后重试。]");
+          return;
+        }
+        // Split bytes, not JavaScript characters. The PTY is a byte stream;
+        // multi-byte UTF-8 sequences crossing frames reassemble unchanged.
+        for (let offset = 0; offset < bytes.length; offset += 32 * 1024) this.writeQueue.push(bytes.slice(offset, offset + 32 * 1024));
+        this.queuedBytes += bytes.length;
+        void this.drainWrites();
       }),
       term.onResize(() => this.syncDimensions()),
     ];
@@ -85,7 +98,13 @@ export class TerminalSession {
     } else if (method === "command/exec/outputDelta" && params.processId === this.processId) {
       try {
         const binary = atob(params.deltaBase64);
-        this.term.write(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+        if (this.outputBytes + binary.length > 4 * 1024 * 1024) {
+          this.markExited("终端输出超过显示队列上限，已停止进程；请新建终端");
+          void this.rpc("terminal/terminate", { processId: this.processId }).catch(() => {});
+          return;
+        }
+        this.outputBytes += binary.length;
+        this.term.write(Uint8Array.from(binary, (char) => char.charCodeAt(0)), () => { this.outputBytes -= binary.length; });
       } catch { /* Discard malformed output without breaking the subscriber. */ }
     }
   }
@@ -93,8 +112,33 @@ export class TerminalSession {
   markExited(message: string): void {
     if (this.disposed || this.exited) return;
     this.exited = true;
+    this.writeQueue = [];
+    this.queuedBytes = 0;
     this.term.writeln(`\r\n\x1b[90m[${message}]\x1b[0m`);
     this.onExited();
+  }
+
+  private async drainWrites(): Promise<void> {
+    if (this.writing) return;
+    this.writing = true;
+    try {
+      while (this.writeQueue.length && !this.disposed && !this.exited && !this.inputBlocked) {
+        const bytes = this.writeQueue.shift()!;
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        try {
+          await this.rpc("terminal/write", { processId: this.processId, base64: btoa(binary) });
+          this.queuedBytes = Math.max(0, this.queuedBytes - bytes.length);
+        } catch {
+          // A lost acknowledgement may follow a successful write. Never
+          // replay this chunk (or the remaining suffix) as a shell command.
+          this.inputBlocked = true;
+          this.writeQueue = [];
+          this.queuedBytes = 0;
+          if (!this.disposed) this.term.writeln("\r\n[输入传输中断：部分内容可能已经执行，未自动重发，后续输入已暂停。请检查输出并新建终端。]");
+        }
+      }
+    } finally { this.writing = false; }
   }
 
   fitVisible(): void {
@@ -113,6 +157,8 @@ export class TerminalSession {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.writeQueue = [];
+    this.queuedBytes = 0;
     this.observer.disconnect();
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     for (const subscription of this.subscriptions) subscription.dispose();

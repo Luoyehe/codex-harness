@@ -11,6 +11,7 @@
  * intentionally unsupported because process arguments are visible in /proc.
  */
 import { lstatSync, readFileSync } from "node:fs";
+import { postMcp, isResponseFor, isSupportedProtocolVersion, RemoteHttpError, ResponseTooLargeError } from "./mcp-http-transport.mjs";
 
 const DEFAULT_MAX_REQUEST_BYTES = 1024 * 1024;
 const DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
@@ -103,120 +104,27 @@ async function send(message) {
 }
 process.stdout.on("error", () => fail("stdout transport closed"));
 
-class RemoteHttpError extends Error {
-  constructor(status) {
-    super(`remote HTTP ${status}`);
-    this.status = status;
-  }
-}
-
-class ResponseTooLargeError extends Error {}
-
-async function readBounded(response) {
-  const declared = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > maxResponseBytes) {
-    await response.body?.cancel().catch(() => {});
-    throw new ResponseTooLargeError();
-  }
-  if (!response.body) return "";
-  const chunks = [];
-  let total = 0;
-  for await (const chunk of response.body) {
-    total += chunk.byteLength;
-    if (total > maxResponseBytes) throw new ResponseTooLargeError();
-    chunks.push(Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks, total).toString("utf8");
-}
-
-async function readSse(response, onMessage) {
-  if (!response.body) return;
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let data = [];
-  let bytes = 0;
-  const line = async (value) => {
-    if (value === "") {
-      const event = data.join("\n");
-      data = [];
-      if (event && event !== "[DONE]") return onMessage(JSON.parse(event));
-    } else if (value.startsWith("data:")) {
-      data.push(value.slice(5).replace(/^ /, ""));
-    }
-    return false;
-  };
-  for await (const chunk of response.body) {
-    bytes += chunk.byteLength;
-    // This bounds both incomplete events and total bytes per response. Events
-    // already delivered are not retained while waiting for a later result.
-    if (bytes > maxResponseBytes) throw new ResponseTooLargeError();
-    buffer += decoder.decode(chunk, { stream: true });
-    let match;
-    while ((match = /\r\n|\r|\n/.exec(buffer))) {
-      if (match[0] === "\r" && match.index === buffer.length - 1) break;
-      const value = buffer.slice(0, match.index);
-      buffer = buffer.slice(match.index + match[0].length);
-      if (await line(value)) return; // release/cancel a stream once its response arrived
-    }
-  }
-  buffer += decoder.decode();
-  if (buffer && await line(buffer.replace(/\r$/, ""))) return;
-  await line("");
-}
-
 async function postOnce(body, currentSession, onMessage, signal) {
   const started = Date.now();
-  const response = await fetch(endpoint, {
-    method: "POST",
-    redirect: "error",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json, text/event-stream",
-      Authorization: `Bearer ${token}`,
-      "MCP-Protocol-Version": currentSession.version,
-      ...(currentSession.id ? { "Mcp-Session-Id": currentSession.id } : {}),
-    },
-    body: JSON.stringify(body),
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]) : AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  const sessionId = await postMcp(endpoint, body, {
+    token, session: currentSession, onMessage, signal, maxResponseBytes, timeoutMs: REQUEST_TIMEOUT_MS,
   });
-  // Error bodies are neither needed nor safe to retain. Session headers are
-  // only adopted from a successful initialize, never a concurrent stale call.
-  if (!response.ok) {
-    await response.body?.cancel().catch(() => {});
-    throw new RemoteHttpError(response.status);
-  }
-  const declared = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > maxResponseBytes) {
-    await response.body?.cancel().catch(() => {});
-    throw new ResponseTooLargeError();
-  }
-
-  const type = (response.headers.get("content-type") ?? "").toLowerCase();
-  if (type.includes("text/event-stream")) {
-    await readSse(response, onMessage);
-  } else {
-    const text = await readBounded(response);
-    if (text.trim()) {
-      if (!type.includes("application/json") && !type.includes("+json")) throw new Error("unexpected response content type");
-      await onMessage(JSON.parse(text));
-    }
-  }
   if (verboseMetadata) {
-    process.stderr.write(`[mcp-http-bridge] remote status=${response.status} elapsed_ms=${Date.now() - started}\n`);
+    process.stderr.write(`[mcp-http-bridge] remote elapsed_ms=${Date.now() - started}\n`);
   }
-  return response.headers.get("mcp-session-id") ?? "";
+  return sessionId;
 }
 
 async function initializeRemote(message, forward) {
   let result;
   const id = await postOnce(message, { id: "", version: session.version }, async (response) => {
-    if (response?.id === message.id && !response.method) { result = response; return true; }
+    if (isResponseFor(response, message.id)) { result = response; return true; }
     if (forward && response?.method && response.id == null) await send(response);
     return false;
   });
   if (!result || Object.hasOwn(result, "error") || !result.result || typeof result.result !== "object" || Array.isArray(result.result)) throw new Error("initialize failed");
   const version = result.result.protocolVersion;
-  if (typeof version !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(version) || id.length > 4096) throw new Error("invalid initialize metadata");
+  if (!isSupportedProtocolVersion(version) || id.length > 4096) throw new Error("invalid initialize metadata");
   session = { id, version };
   if (forward) await send(result);
 }
@@ -279,7 +187,7 @@ async function handle(message, job) {
       // does not implement, so they are dropped instead of confusing Codex.
       if (response.method && response.id != null) return false;
       if (response.method && response.id == null) await send(response);
-      else if (!isNotification && response.id === message.id) {
+      else if (!isNotification && isResponseFor(response, message.id)) {
         if (matched) return true;
         matched = true;
         await send(response);
@@ -337,7 +245,7 @@ function enqueue(message, bytes) {
     // The control lane never waits for tools/call. Bind it to the target's
     // session generation and do not recover/replay a cancellation elsewhere.
     void target.barrier.then(async () => {
-      if (target.session) await postOnce(message, target.session, async () => false);
+      if (target.session) await postOnce(message, target.session, async () => false, AbortSignal.timeout(1000));
     }).catch(() => {}).finally(() => { target.controller.abort(); controls--; });
     return;
   }

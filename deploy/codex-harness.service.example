@@ -1,6 +1,6 @@
 # Reference unit for manual setups; install.sh generates this automatically.
 # The gateway authenticates WebSocket clients with a token
-# (~/.codex/gateway-token, 600) plus a trusted-host allowlist (DNS-rebinding
+# (GATEWAY_CONTROL_HOME/gateway-token, 600) plus a trusted-host allowlist (DNS-rebinding
 # defense) — but it is still loopback-only by design: remote access goes
 # through a TLS reverse proxy with forward-auth, never a direct port.
 [Unit]
@@ -10,23 +10,29 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=codex-harness
-Group=codex-harness
+User=codex-harness-gateway
+Group=codex-harness-gateway
 WorkingDirectory=/opt/codex-harness/apps/gateway
 Environment=HOST=127.0.0.1
 Environment=PORT=8080
-Environment=HOME=/var/lib/codex-harness
+Environment=HOME=/var/lib/codex-harness-control/codex-harness
+Environment=RUN_USER=codex-harness
+Environment=GATEWAY_USER=codex-harness-gateway
+Environment=GATEWAY_CONTROL_HOME=/var/lib/codex-harness-control/codex-harness
+Environment=GATEWAY_ENV_FILE=/var/lib/codex-harness-control/codex-harness/gateway.env
+Environment=GATEWAY_BOOTSTRAP_AUTH=required
 Environment=CODEX_HOME=/var/lib/codex-harness/.codex
 Environment=CODEX_WORKSPACE=/var/lib/codex-harness/codex-workspace
 Environment=GATEWAY_UNIT=codex-harness
 Environment=ENV_FILE=/var/lib/codex-harness/.codex/secrets.env
 Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin-codex-harness
-# Extra env (Z_AI_API_KEY for the Zhipu HTTP MCP servers, etc.)
-EnvironmentFile=-/var/lib/codex-harness/.codex/secrets.env
+Environment=CODEX_WORKER_LAUNCHER=/usr/local/libexec/codex-harness-admin-codex-harness
+# Provider secrets are loaded only by the worker AFTER switching identity.
+EnvironmentFile=-/var/lib/codex-harness-control/codex-harness/gateway.env
 # install-runtime.sh provides the immutable CLI for this protocol version.
 UnsetEnvironment=CODEX_BIN
 ExecStart=/usr/bin/env CODEX_BIN=/usr/local/lib/codex-harness/codex/0.149.0/node_modules/.bin/codex /usr/bin/node /opt/codex-harness/apps/gateway/dist/index.js
-# Optional in EnvironmentFile: GATEWAY_BOOTSTRAP_AUTH=required. Basic username
+# Basic username
 # is arbitrary; password is gateway-token. Bearer/cookie authentication also works.
 Restart=always
 RestartSec=3
@@ -38,6 +44,9 @@ ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
+TasksMax=512
+KillMode=control-group
+TimeoutStopSec=15
 
 [Install]
 WantedBy=multi-user.target

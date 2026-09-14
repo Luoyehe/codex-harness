@@ -15,7 +15,6 @@ export interface CustomEndpointInfo {
   vision: boolean;
 }
 
-const OPENAI_EFFORTS = ["minimal", "low", "medium", "high"];
 const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
 const MAX_CATALOG_BYTES = 8 * 1024 * 1024;
 
@@ -156,7 +155,9 @@ export class ProviderInfoReader {
 
   read(): ProviderInfo {
     const snap = this.snapshot();
-    if (snap.mode === "openai") return { mode: snap.mode, efforts: [...OPENAI_EFFORTS] };
+    // There is no provider-wide OpenAI effort list. The selected model's
+    // model/list capability record is the authority (including unknown).
+    if (snap.mode === "openai") return { mode: snap.mode, efforts: [] };
 
     const candidates: string[] = [];
     if (snap.config) {

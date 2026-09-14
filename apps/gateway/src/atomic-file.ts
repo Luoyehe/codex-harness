@@ -1,6 +1,5 @@
 import {
   closeSync,
-  existsSync,
   fsyncSync,
   openSync,
   renameSync,
@@ -18,33 +17,17 @@ export function atomicWriteFileSync(target: string, data: string | Buffer, mode 
   const dir = path.dirname(target);
   const nonce = `${process.pid}.${Date.now().toString(36)}.${Math.random().toString(36).slice(2)}`;
   const temp = path.join(dir, `.${path.basename(target)}.${nonce}.tmp`);
-  const backup = path.join(dir, `.${path.basename(target)}.${nonce}.bak`);
   let fd: number | null = null;
-  let movedOld = false;
   try {
     fd = openSync(temp, "wx", mode);
     writeFileSync(fd, data);
     fsyncSync(fd);
     closeSync(fd);
     fd = null;
-    try {
-      renameSync(temp, target);
-    } catch (err: any) {
-      // POSIX rename replaces atomically. Some Windows filesystems reject an
-      // existing destination; move it aside so replacement is recoverable.
-      if (!existsSync(target) || !["EEXIST", "EPERM", "EACCES"].includes(err?.code)) throw err;
-      renameSync(target, backup);
-      movedOld = true;
-      try {
-        renameSync(temp, target);
-      } catch (replaceErr) {
-        renameSync(backup, target);
-        movedOld = false;
-        throw replaceErr;
-      }
-      rmSync(backup, { force: true });
-      movedOld = false;
-    }
+    // Native same-directory rename replaces the destination atomically. If the
+    // platform refuses replacement, preserve the old file and fail closed: moving
+    // it aside first would leave a crash window with no authoritative record.
+    renameSync(temp, target);
     // Persist the directory entry on POSIX. Windows does not allow opening a
     // directory this way, so failure is intentionally non-fatal there.
     try {
@@ -56,11 +39,5 @@ export function atomicWriteFileSync(target: string, data: string | Buffer, mode 
       try { closeSync(fd); } catch { /* already closed */ }
     }
     try { rmSync(temp, { force: true }); } catch { /* best effort */ }
-    if (movedOld && !existsSync(target)) {
-      try { renameSync(backup, target); } catch { /* caller receives original failure */ }
-    }
-    if (!movedOld) {
-      try { rmSync(backup, { force: true }); } catch { /* best effort */ }
-    }
   }
 }

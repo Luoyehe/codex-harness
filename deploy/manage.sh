@@ -54,9 +54,17 @@ case "$PORT" in ''|*[!0-9]*) echo "[manage] ERROR: PORT must be an integer" >&2;
 # without this, `sudo bash manage.sh reinstall repair` would rewrite the unit
 # as root even if it originally ran as a dedicated user.
 if [ -z "${RUN_USER:-}" ] && [ -f "$UNIT_FILE" ]; then
-  UNIT_USER="$(grep -oP '(?<=^User=).*' "$UNIT_FILE" 2>/dev/null | head -1 || true)"
+  UNIT_USER="$(sed -n 's/^Environment=RUN_USER=//p' "$UNIT_FILE" | head -1)"
+  [ -n "$UNIT_USER" ] || UNIT_USER="$(grep -oP '(?<=^User=).*' "$UNIT_FILE" 2>/dev/null | head -1 || true)"
   [ -n "$UNIT_USER" ] && export RUN_USER="$UNIT_USER"
 fi
+for control_name in GATEWAY_USER GATEWAY_CONTROL_HOME GATEWAY_ENV_FILE; do
+  if [ -z "${!control_name:-}" ] && [ -f "$UNIT_FILE" ]; then
+    control_value="$(sed -n "s/^Environment=${control_name}=//p" "$UNIT_FILE" | head -1)"
+    [ -z "$control_value" ] || export "$control_name=$control_value"
+  fi
+done
+GATEWAY_ENV_FILE="${GATEWAY_ENV_FILE:-$ENV_FILE}"
 if [ -z "${CODEX_WORKSPACE:-}" ] && [ -f "$UNIT_FILE" ]; then
   UNIT_WS="$(grep -oP '(?<=Environment=CODEX_WORKSPACE=).*' "$UNIT_FILE" 2>/dev/null | head -1 || true)"
   [ -n "$UNIT_WS" ] && export CODEX_WORKSPACE="$UNIT_WS"
@@ -64,7 +72,7 @@ fi
 
 # Recover only named runtime paths, never source the unit or secret store and
 # never import an arbitrary saved PATH into a root management command.
-for runtime_name in NODE_BIN TOOLS_BIN_DIR; do
+for runtime_name in NODE_BIN NODE_BIN_DIR TOOLS_BIN_DIR; do
   if [ -z "${!runtime_name:-}" ] && [ -f "$UNIT_FILE" ]; then
     runtime_value="$(sed -n "s/^Environment=${runtime_name}=//p" "$UNIT_FILE" | head -1)"
     [ -z "$runtime_value" ] || export "$runtime_name=$runtime_value"
@@ -73,18 +81,26 @@ done
 if [ -n "${NODE_BIN:-}" ]; then
   case "$NODE_BIN" in /*) ;; *) echo '[manage] NODE_BIN must be absolute' >&2; exit 1 ;; esac
   case "$NODE_BIN" in *[!A-Za-z0-9_./@+-]*) echo '[manage] unsafe NODE_BIN' >&2; exit 1 ;; esac
-  export PATH="${NODE_BIN%/*}:$PATH"
+  NODE_BIN_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" directory "${NODE_BIN_DIR:-${NODE_BIN%/*}}")"
+  NODE_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$NODE_BIN")"
+  [ "$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$NODE_BIN_DIR/node")" = "$NODE_BIN" ] \
+    || { echo '[manage] NODE_BIN_DIR must expose the configured node runtime' >&2; exit 1; }
+  export NODE_BIN NODE_BIN_DIR
+  export PATH="$NODE_BIN_DIR:$PATH"
 fi
 if [ -n "${TOOLS_BIN_DIR:-}" ] || { [ "$HAD_INSTALLED_UNIT" = 1 ] && command -v npm >/dev/null 2>&1; }; then
   TOOLS_BIN_DIR="$(python3 "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}")"
   export TOOLS_BIN_DIR
-  export PATH="${NODE_BIN:+${NODE_BIN%/*}:}$TOOLS_BIN_DIR:$PATH"
+  export PATH="${NODE_BIN_DIR:+$NODE_BIN_DIR:}$TOOLS_BIN_DIR:$PATH"
 fi
 
 log()  { echo "[manage] $*"; }
 die()  { echo "[manage] ERROR: $*" >&2; exit 1; }
 need_root() { [ "$(id -u)" -eq 0 ] || die "该操作需要 root（sudo bash manage.sh ...）"; }
 assert_instance_checkout() {
+  REPO_ROOT="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" directory "$REPO_ROOT")"
+  SCRIPT_DIR="$REPO_ROOT/deploy"
+  BIN_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" missing-directory "${BIN_DIR:-/usr/local/bin}")"
   if [ -f "$UNIT_FILE" ] && ! grep -qxF "WorkingDirectory=$REPO_ROOT/apps/gateway" "$UNIT_FILE"; then
     die "服务 $SERVICE_NAME 不属于当前程序目录 $REPO_ROOT；请使用该实例注册的管理命令"
   fi
@@ -101,19 +117,6 @@ run_as_service() {
   else
     runuser -u "$SERVICE_USER" -- env HOME="$SERVICE_HOME" CODEX_HOME="$ch" PATH="$PATH" "$@"
   fi
-}
-
-# Resolve and reject broad filesystem roots before an explicit destructive
-# reset/uninstall.  The caller still asks twice for full-reset confirmation.
-safe_tree_target() {
-  local resolved
-  resolved="$(realpath -m -- "$1")" || die "无法解析删除目标: $1"
-  case "$resolved" in
-    /|/bin|/boot|/dev|/etc|/home|/lib|/lib64|/media|/mnt|/opt|/proc|/root|/run|/sbin|/srv|/sys|/tmp|/usr|/usr/local|/var|/var/cache|/var/lib|/var/log|/var/spool)
-      die "拒绝递归删除过宽的系统路径: $resolved" ;;
-  esac
-  [ "${#resolved}" -ge 6 ] || die "拒绝递归删除可疑路径: $resolved"
-  printf '%s\n' "$resolved"
 }
 
 installed() { systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; }
@@ -141,6 +144,7 @@ do_install() {
   assert_instance_checkout
   if [ "$HAD_INSTALLED_UNIT" -eq 1 ]; then
     RUN_USER="$SERVICE_USER" CODEX_HOME="${CODEX_HOME:-$SERVICE_HOME/.codex}" \
+      GATEWAY_USER="${GATEWAY_USER:-}" GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-}" \
       CODEX_WORKSPACE="${CODEX_WORKSPACE:-$SERVICE_HOME/codex-workspace}" \
       PORT="$PORT" SERVICE_NAME="$SERVICE_NAME" ENV_FILE="$ENV_FILE" \
       NODE_BIN="${NODE_BIN:-}" TOOLS_BIN_DIR="${TOOLS_BIN_DIR:-}" \
@@ -217,10 +221,10 @@ do_edge() {
   assert_instance_checkout
   local action="${1:-configure}"
   if [ "$action" = "disable" ]; then
-    EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$ENV_FILE" \
+    EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
       bash "$SCRIPT_DIR/setup-edge.sh"
   else
-    GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$ENV_FILE" \
+    GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
       bash "$SCRIPT_DIR/setup-edge.sh"
   fi
 }
@@ -242,7 +246,7 @@ do_verify() {
   # When an edge (reverse proxy) host is registered, probe through it too —
   # a bare loopback pass would miss TRUSTED_HOSTS breakage ("gateway 未连接").
   local th=""
-  [ -f "$ENV_FILE" ] && th="$(grep -oP '(?<=^TRUSTED_HOSTS=).*' "$ENV_FILE" 2>/dev/null | head -1 || true)"
+  [ -f "$GATEWAY_ENV_FILE" ] && th="$(grep -oP '(?<=^TRUSTED_HOSTS=).*' "$GATEWAY_ENV_FILE" 2>/dev/null | head -1 || true)"
   if [ -n "$th" ]; then
     local first="${th%%,*}"
     case "$first" in
@@ -282,21 +286,32 @@ do_reinstall() {
       ;;
     full)
       echo "⚠️  完全重置将删除：${CODEX_HOME:-$HOME/.codex}（配置+会话+附件）、$ENV_FILE、服务单元"
-      local confirm1 confirm2
+      echo "管理身份、管理令牌与发送受理账本将保留：${GATEWAY_CONTROL_HOME:-独立管理目录}（不会把旧的未知发送当作可安全重试）"
+      local confirm1 confirm2 codex_tree codex_identity
+      codex_tree="${CODEX_HOME:-$SERVICE_HOME/.codex}"
+      # Record the exact directory identities before confirmation. Do not
+      # resolve a service-writable symlink into a privileged deletion target.
+      codex_identity="$(run_as_service python3 "$SCRIPT_DIR/safe_delete.py" prepare "$codex_tree" data)" \
+        || die "数据目录不是可安全清理的普通目录；未执行重置"
       read -r -p "输入 yes 确认: " confirm1 || true
       [ "$confirm1" = "yes" ] || die "已取消"
       read -r -p "再次输入 yes 确认清空一切: " confirm2 || true
       [ "$confirm2" = "yes" ] || die "已取消"
-      local codex_tree
-      codex_tree="$(safe_tree_target "${CODEX_HOME:-$HOME/.codex}")"
-      if ! EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$ENV_FILE" \
+      if ! EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
         bash "$SCRIPT_DIR/setup-edge.sh"; then
         log "警告：远程站点清理失败；继续重置前请检查 Caddy/Authelia 配置"
       fi
       systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
+      # All writable data is removed with its owner identity. The helper pins
+      # descriptors, verifies the pre-confirmation identities and never follows
+      # symlinks. Root only removes its own system integration files.
+      run_as_service python3 "$SCRIPT_DIR/safe_delete.py" delete "$codex_tree" data "$codex_identity" \
+        || die "安全清理失败，服务已停止；目标替换或权限问题需要人工检查"
+      if [ -e "$ENV_FILE" ] || [ -L "$ENV_FILE" ]; then
+        run_as_service python3 "$SCRIPT_DIR/safe_delete.py" unlink-file "$ENV_FILE" \
+          || die "密钥文件清理失败；请检查其所有权（不会以 root 删除服务数据）"
+      fi
       rm -f "$UNIT_FILE"
-      rm -rf -- "$codex_tree"
-      rm -f "$ENV_FILE"
       systemctl daemon-reload || true
       log "已请求移除本项目的远程站点块；共享的 Caddy/Authelia 安装与其它站点不受影响"
       log "已清空，开始重新安装"
@@ -313,11 +328,13 @@ do_uninstall() {
   local command_name="codex-harness-$SERVICE_NAME"
   [ "$SERVICE_NAME" != codex-harness ] || command_name=codex-harness
   local command_path="${BIN_DIR:-/usr/local/bin}/$command_name"
-  local repo_tree
-  repo_tree="$(safe_tree_target "$REPO_ROOT")"
-  python3 "$SCRIPT_DIR/lifecycle.py" guard-delete "$repo_tree" \
-    "${CODEX_HOME:-$HOME/.codex}" "$ENV_FILE" "${CODEX_WORKSPACE:-$HOME/codex-workspace}" >/dev/null \
-    || die "卸载目录包含承诺保留的数据；请先迁移数据并更新该实例路径"
+  local repo_tree="$REPO_ROOT" repo_identity
+  repo_identity="$(python3 "$SCRIPT_DIR/safe_delete.py" prepare "$repo_tree" code)" \
+    || die "程序目录及其祖先必须由 root 持有且不可被非 root 修改；请人工处理此非受管目录"
+  python3 "$SCRIPT_DIR/lifecycle.py" guard-uninstall "$repo_tree" \
+    "${CODEX_HOME:-$SERVICE_HOME/.codex}" "$ENV_FILE" "${CODEX_WORKSPACE:-$SERVICE_HOME/codex-workspace}" "$SERVICE_NAME" \
+    /etc/systemd/system "${GATEWAY_CONTROL_HOME:-}" >/dev/null \
+    || die "无法确认全部注册项目/其他实例数据均位于删除目录之外；请先迁移或修复清单"
   cat <<EOF
 卸载将【移除】：
   · systemd 服务 ${SERVICE_NAME}（停止、禁用、删除单元文件）
@@ -327,13 +344,14 @@ do_uninstall() {
   · 运行环境：Node / pnpm / 版本化 codex CLI / 智谱 MCP 组件（可能由其他实例共享，不自动删除）
   · codex 用户数据：${CODEX_HOME:-$HOME/.codex}（全部会话、各模型源配置集、API 密钥、网关 token）
   · 服务环境文件：${ENV_FILE}（含 API Key——保留它，以后重装无需重新填写）
+  · 独立管理目录：${GATEWAY_CONTROL_HOME:-未配置}（管理令牌、发送受理账本与网关设置）
   · 工作区与项目目录：${CODEX_WORKSPACE:-$HOME/codex-workspace}
   · Caddy / Authelia 软件及其它站点（仅移除本项目 marker 包围的站点块）
 EOF
   local confirm
   read -r -p "输入 yes 确认卸载: " confirm || true
   [ "$confirm" = "yes" ] || die "已取消"
-  if ! EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$ENV_FILE" \
+  if ! EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
     bash "$SCRIPT_DIR/setup-edge.sh"; then
     log "警告：未能自动清理远程站点，请人工检查 Caddy/Authelia 配置"
   fi
@@ -341,6 +359,12 @@ EOF
   grep -qxF 'Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin' "$UNIT_FILE" 2>/dev/null \
     && legacy_helper=1
   systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
+  # Re-read after the service is stopped, closing the confirmation window for
+  # changes made by this instance. Other registered instances are included.
+  python3 "$SCRIPT_DIR/lifecycle.py" guard-uninstall "$repo_tree" \
+    "${CODEX_HOME:-$SERVICE_HOME/.codex}" "$ENV_FILE" "${CODEX_WORKSPACE:-$SERVICE_HOME/codex-workspace}" "$SERVICE_NAME" \
+    /etc/systemd/system "${GATEWAY_CONTROL_HOME:-}" >/dev/null \
+    || die "停止服务后的保留检查失败；代码与数据均未删除"
   rm -f "$UNIT_FILE"
   if grep -qxF "# Managed instance: $SERVICE_NAME" "$command_path" 2>/dev/null; then
     rm -f "$command_path"
@@ -348,6 +372,7 @@ EOF
     log "管理命令不属于本实例或已被修改，保留: $command_path"
   fi
   rm -f "/usr/local/libexec/codex-harness-admin-${SERVICE_NAME}" \
+    "/usr/local/libexec/codex-harness-worker-${SERVICE_NAME}" \
     "/etc/codex-harness/${SERVICE_NAME}.conf" "/etc/sudoers.d/codex-harness-${SERVICE_NAME}"
   if [ "$legacy_helper" -eq 1 ]; then
     # Old releases used one shared helper. Remove it only after this unit has
@@ -362,7 +387,7 @@ EOF
   rmdir /etc/codex-harness 2>/dev/null || true
   systemctl daemon-reload || true
   cd /
-  rm -rf -- "$repo_tree"
+  python3 "$SCRIPT_DIR/safe_delete.py" delete "$repo_tree" code "$repo_identity"
   echo "[manage] 卸载完成。浏览器将无法再访问本服务；所有会话与密钥仍保留在 ${CODEX_HOME:-$HOME/.codex}。"
   echo "[manage] 以后重新部署：git clone https://github.com/Luoyehe/codex-harness && ./deploy/install.sh"
   exit 0
@@ -435,6 +460,7 @@ do_update() {
       local -a system_files=(
         "$UNIT_FILE"
         "/usr/local/libexec/codex-harness-admin-$SERVICE_NAME"
+        "/usr/local/libexec/codex-harness-worker-$SERVICE_NAME"
         "/etc/codex-harness/$SERVICE_NAME.conf"
         "/etc/sudoers.d/codex-harness-$SERVICE_NAME"
         "${BIN_DIR:-/usr/local/bin}/$command_name"
@@ -488,21 +514,24 @@ do_update() {
       }
       trap cleanup_update_stage EXIT
       git -C "$REPO_ROOT" worktree add --detach "$stage" "$remote_ref" >/dev/null
+      local pnpm_bin
+      pnpm_bin="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v pnpm)")"
       log "在隔离工作树中安装、测试、审计并构建候选版本…"
       (
         cd "$stage"
-        pnpm install --frozen-lockfile
-        pnpm typecheck
-        pnpm test
-        pnpm build
+        "$pnpm_bin" install --frozen-lockfile
+        "$pnpm_bin" typecheck
+        "$pnpm_bin" build
         node scripts/release-audit.mjs .
       )
       local candidate_version candidate_cli
       candidate_version="$(sed -n 's/^CODEX_VERSION="\([^"]*\)".*/\1/p' "$stage/deploy/install.sh")"
       [[ "$candidate_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "候选版本缺少有效 CLI 版本"
       candidate_cli="$(bash "$stage/deploy/install-runtime.sh" "$candidate_version")"
-      # Smoke the candidate CLI and app together without production credentials.
-      CODEX_BIN="$candidate_cli" node "$stage/scripts/gateway-smoke.mjs"
+      # Tests keep their real non-root assertions. A transient isolated identity
+      # validates a disposable copy; neither its source nor its build outputs
+      # can be copied back into this root-private publication/snapshot tree.
+      bash "$SCRIPT_DIR/test-candidate.sh" "$stage" "$candidate_cli"
       [ "$(git -C "$REPO_ROOT" rev-parse HEAD)" = "$local_ref" ] \
         && [ -z "$(git -C "$REPO_ROOT" status --porcelain)" ] \
         || die "验证期间工作树发生变化；未应用更新"
@@ -524,16 +553,18 @@ do_update() {
       applying=1
       systemctl stop "$SERVICE_NAME"
       git -C "$REPO_ROOT" merge --ff-only "$remote_ref" >/dev/null
-      # Publish the exact tested dependency/build trees. Rollback restores the
-      # saved trees without requiring npm access or another successful build.
+      # Publish the original root-built dependency/build trees whose read-only
+      # copy was tested. Never publish the test identity's writable copy.
+      # Rollback needs neither npm access nor another successful build.
       for item in "${artifacts[@]}"; do
         rm -rf -- "${REPO_ROOT:?}/${item:?}"
         if [ -e "$stage/$item" ]; then cp -a "$stage/$item" "$REPO_ROOT/$item"; fi
       done
       SERVICE_NAME="$SERVICE_NAME" RUN_USER="$SERVICE_USER" INSTALL_DIR="$REPO_ROOT" \
+        GATEWAY_USER="${GATEWAY_USER:-}" GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-}" \
         CODEX_HOME="${CODEX_HOME:-$SERVICE_HOME/.codex}" CODEX_WORKSPACE="${CODEX_WORKSPACE:-$SERVICE_HOME/codex-workspace}" \
         ENV_FILE="$ENV_FILE" CODEX_BIN="$candidate_cli" PORT="$PORT" \
-        NODE_BIN="${NODE_BIN:-$(command -v node)}" TOOLS_BIN_DIR="${TOOLS_BIN_DIR:-}" \
+        NODE_BIN="${NODE_BIN:-$(command -v node)}" NODE_BIN_DIR="${NODE_BIN_DIR:-}" TOOLS_BIN_DIR="${TOOLS_BIN_DIR:-}" \
         bash "$SCRIPT_DIR/register-service.sh"
       systemctl daemon-reload
       systemctl restart "$SERVICE_NAME"

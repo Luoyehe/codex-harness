@@ -3,16 +3,23 @@
 #   PORT          gateway port                  (default 8080)
 #   SERVICE_NAME  systemd unit                  (default codex-harness)
 #   EDGE_URL      optional https edge to probe  (e.g. https://codex.example.com)
+#   GATEWAY_CONTROL_HOME  private gateway state (discovered from the unit)
 set -euo pipefail
 PORT="${PORT:-8080}"
 SERVICE_NAME="${SERVICE_NAME:-codex-harness}"
 EDGE_URL="${EDGE_URL:-}"
 GATEWAY="http://127.0.0.1:${PORT}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -z "${CODEX_HOME:-}" ] && [ -f "/etc/systemd/system/${SERVICE_NAME}.service" ]; then
-  CODEX_HOME="$(sed -n 's/^Environment=CODEX_HOME=//p' "/etc/systemd/system/${SERVICE_NAME}.service" | head -1)"
-  export CODEX_HOME
+case "$SERVICE_NAME" in ''|[-_]*|*[!A-Za-z0-9_-]*) echo 'FAIL: invalid SERVICE_NAME' >&2; exit 1 ;; esac
+[ "${#SERVICE_NAME}" -le 128 ] || { echo 'FAIL: invalid SERVICE_NAME' >&2; exit 1; }
+if [ -z "${GATEWAY_CONTROL_HOME:-}" ] && [ -f "/etc/systemd/system/${SERVICE_NAME}.service" ]; then
+  GATEWAY_CONTROL_HOME="$(sed -n 's/^Environment=GATEWAY_CONTROL_HOME=//p' "/etc/systemd/system/${SERVICE_NAME}.service" | head -1)"
+  [ -n "$GATEWAY_CONTROL_HOME" ] || [ -n "${GATEWAY_TOKEN:-}" ] \
+    || { echo 'FAIL: installed unit has no GATEWAY_CONTROL_HOME; migrate the service or set it explicitly' >&2; exit 1; }
 fi
+# Match the development gateway default, never its worker CODEX_HOME.
+GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-$HOME/.codex-harness-control}"
+export GATEWAY_CONTROL_HOME
 
 echo "=== 1. healthz (wait for ready)"
 STATE=""
@@ -30,9 +37,10 @@ fi
 
 echo "=== 2. SPA root"
 TOKEN="${GATEWAY_TOKEN:-}"
-if [ -z "$TOKEN" ] && [ -r "${CODEX_HOME:-$HOME/.codex}/gateway-token" ]; then
-  IFS= read -r TOKEN < "${CODEX_HOME:-$HOME/.codex}/gateway-token" || true
+if [ -z "$TOKEN" ] && [ -r "$GATEWAY_CONTROL_HOME/gateway-token" ]; then
+  IFS= read -r TOKEN < "$GATEWAY_CONTROL_HOME/gateway-token" || true
 fi
+[ -n "$TOKEN" ] || { echo 'FAIL: no readable control-plane token; set GATEWAY_CONTROL_HOME or GATEWAY_TOKEN' >&2; exit 1; }
 # Keep bootstrap credentials out of curl argv and diagnostic output.
 SPA="$(printf 'Authorization: Bearer %s\n' "$TOKEN" | curl -fsS --header @- --max-time 10 "$GATEWAY/")" \
   || { echo "FAIL: SPA request failed"; exit 1; }
@@ -41,7 +49,7 @@ printf '%s\n' "$SPA" | grep -q '<div id="root">' || { echo "FAIL: response is no
 
 echo "=== 3. WebSocket auth (token/origin/host triple-check)"
 GATEWAY_PORT="$PORT" node "$SCRIPT_DIR/verify-ws-auth.mjs" \
-  || { echo "WS AUTH FAILED（4001=token 问题，4003=Host/Origin 不被信任——检查本实例 ENV_FILE 的 TRUSTED_HOSTS）"; exit 1; }
+  || { echo "WS AUTH FAILED（4001=token 问题，4003=Host/Origin 不被信任——检查本实例 GATEWAY_CONTROL_HOME/gateway.env 的 TRUSTED_HOSTS）"; exit 1; }
 
 echo "=== 4. Read-only WebSocket checks"
 GATEWAY_WS="ws://127.0.0.1:${PORT}/ws" node "$SCRIPT_DIR/verify-ws.mjs" || { echo "WS E2E FAILED"; exit 1; }

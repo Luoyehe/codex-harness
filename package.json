@@ -1,7 +1,7 @@
 {
   "name": "codex-harness",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Self-hosted WebUI for the open-source Codex harness (codex app-server), with provider presets for OpenAI and Zhipu Coding Plan.",
   "license": "MIT",
   "packageManager": "pnpm@11.22.0",

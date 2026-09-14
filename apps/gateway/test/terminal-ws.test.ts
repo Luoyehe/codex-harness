@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import WebSocket from "ws";
 import { describe, expect, it, vi } from "vitest";
+import { verifyWebSocketAuth } from "../../../deploy/ws-auth-probe.mjs";
 
 const gatewayEntry = fileURLToPath(new URL("../dist/index.js", import.meta.url));
 
@@ -22,6 +23,7 @@ const journal = path.join(home, "events.jsonl");
 const hold = path.join(home, "hold-initialize");
 const restart = path.join(home, "restart-now");
 const pendingExec = new Map();
+const pendingModels = [];
 let initialize;
 const record = (event) => fs.appendFileSync(journal, JSON.stringify(event) + "\n");
 const reply = (id, result) => process.stdout.write(JSON.stringify({ id, result }) + "\n");
@@ -44,12 +46,18 @@ input.on("line", (line) => {
     pendingExec.delete(params.processId);
     reply(id, {});
     if (execId != null) reply(execId, { exitCode: 0, stdout: "", stderr: "" });
-  } else if (method === "model/list") reply(id, { data: [], nextCursor: null });
+  } else if (method === "model/list") {
+    if (fs.existsSync(path.join(home, "hold-models"))) pendingModels.push(id);
+    else reply(id, { data: [], nextCursor: null });
+  }
   else if (method === "account/read") reply(id, { account: null, requiresOpenaiAuth: true });
   else reply(id, {});
 });
 input.on("close", () => process.exit(0));
 setInterval(() => {
+  if (!fs.existsSync(path.join(home, "hold-models"))) {
+    for (const id of pendingModels.splice(0)) reply(id, { data: [], nextCursor: null });
+  }
   if (fs.existsSync(restart)) {
     fs.unlinkSync(restart);
     record({ method: "fixture/restarting" });
@@ -75,7 +83,10 @@ class BrowserClient {
   private pending = new Map<number, { resolve(value: any): void; reject(error: Error): void; timer: NodeJS.Timeout }>();
 
   constructor(url: string, token: string) {
-    this.socket = new WebSocket(url, { headers: { Cookie: `gw_token=${token}`, Origin: url.replace(/^ws:/, "http:").replace(/\/ws$/, "") } });
+    // This protocol fixture is not a browser cookie jar. Authenticate using
+    // the supported non-browser header; cookie naming/bootstrap is covered by
+    // the HTTP authentication tests and must not be hard-coded here.
+    this.socket = new WebSocket(url, { headers: { Authorization: `Bearer ${token}`, Origin: url.replace(/^ws:/, "http:").replace(/\/ws$/, "") } });
     this.opened = new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.socket.terminate(); reject(new Error("fixture WebSocket open timed out")); }, 3000);
       this.socket.once("open", () => { clearTimeout(timer); resolve(); });
@@ -99,6 +110,7 @@ class BrowserClient {
   }
 
   rpc(method: string, params: Record<string, unknown> = {}): Promise<any> {
+    if (this.socket.readyState !== WebSocket.OPEN) return Promise.reject(new Error("fixture socket is not open"));
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`fixture RPC timed out: ${method}`)); }, 3000);
@@ -134,7 +146,8 @@ function makeFixture(port: number) {
     if (process.env[key] !== undefined) env[key] = process.env[key];
   }
   Object.assign(env, { CODEX_BIN: process.execPath, CODEX_HOME: codexHome, CODEX_WORKSPACE: workspace,
-    GATEWAY_TOKEN: token, HOST: "127.0.0.1", PORT: String(port), GATEWAY_BOOTSTRAP_AUTH: "required", ALLOW_QUERY_TOKEN: "0" });
+    GATEWAY_TOKEN: token, GATEWAY_CONTROL_HOME: path.join(scratch, "control"), GATEWAY_UNSAFE_SINGLE_USER: "1",
+    HOST: "127.0.0.1", PORT: String(port), GATEWAY_BOOTSTRAP_AUTH: "required", ALLOW_QUERY_TOKEN: "0" });
   const clients: BrowserClient[] = [];
   let child: ChildProcess | undefined;
   let errors = "";
@@ -144,6 +157,7 @@ function makeFixture(port: number) {
   };
   return {
     codexHome, workspace, events,
+    verifyAuth: () => verifyWebSocketAuth({ port, token, timeoutMs: 2000, log: () => {} }),
     launch() {
       child = spawn(process.execPath, [gatewayEntry], { cwd: workspace, env, stdio: ["ignore", "ignore", "pipe"],
         windowsHide: true, detached: process.platform !== "win32" });
@@ -192,11 +206,43 @@ function makeFixture(port: number) {
 }
 
 describe.runIf(existsSync(gatewayEntry))("built gateway WebSocket terminal lifecycle (synthetic app-server)", () => {
+  it("bounds actual socket concurrency without starving operation reconciliation", async () => {
+    const reserved = await reservePort(); await closeServer(reserved.server);
+    const fixture = makeFixture(reserved.port);
+    const work: Promise<any>[] = [];
+    try {
+      fixture.launch(); await fixture.ready();
+      const clients = await Promise.all(Array.from({ length: 5 }, () => fixture.browser()));
+      const initial = fixture.events().filter((event) => event.method === "model/list").length;
+      writeFileSync(path.join(fixture.codexHome, "hold-models"), "synthetic flow control");
+      for (const client of clients.slice(0, 4)) {
+        for (let index = 0; index < 8; index++) {
+          const pending = client.rpc("model/list");
+          void pending.catch(() => {});
+          work.push(pending);
+        }
+      }
+      await vi.waitFor(() => expect(fixture.events().filter((event) => event.method === "model/list")).toHaveLength(initial + 32));
+      await expect(clients[0].rpc("model/list")).rejects.toThrow("队列");
+      await expect(clients[4].rpc("model/list")).rejects.toThrow("队列");
+      // This read-only lookup must use the reserved control budget even when
+      // ordinary calls exhaust both the socket and global admissions.
+      const reconciliation = await clients[0].rpc("turn/operation", { clientOperationId: randomUUID() });
+      expect(reconciliation).toBeDefined();
+      await expect(clients[0].rpc("management/status")).resolves.toMatchObject({ state: "idle" });
+      expect(fixture.events().filter((event) => event.method === "model/list")).toHaveLength(initial + 32);
+      rmSync(path.join(fixture.codexHome, "hold-models"));
+      await Promise.all(work);
+      await expect(clients[4].rpc("model/list")).resolves.toEqual({ data: [], nextCursor: null });
+    } finally { await fixture.cleanup(); await Promise.allSettled(work); }
+  }, 15000);
+
   it("routes disconnect cleanup to the owner and refuses creation while the app-server restarts", async () => {
     const reserved = await reservePort(); await closeServer(reserved.server);
     const fixture = makeFixture(reserved.port);
     try {
       fixture.launch(); await fixture.ready();
+      expect(await fixture.verifyAuth()).toBe(true);
       const a = await fixture.browser(), b = await fixture.browser();
       const aid = randomUUID(), bid = randomUUID();
       expect(await a.rpc("terminal/exec", { processId: aid, cols: 120, rows: 40 })).toEqual({ processId: aid });

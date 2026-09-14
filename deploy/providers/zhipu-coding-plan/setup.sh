@@ -106,8 +106,12 @@ if zhipu_curl -sf --max-time 20 "$CATALOG_URL" -o "$CATALOG_TMP" 2>/dev/null \
   CATALOG_SRC="$CATALOG_TMP"
   log "已获取在线模型目录"
 else
+  if [ "${ZHIPU_SYNC_CATALOG:-0}" = "1" ]; then
+    log "在线目录刷新失败；当前活动目录、配置和密钥均保持不变，未请求重启"
+    exit 1
+  fi
   CATALOG_SRC="$SCRIPT_DIR/models.json"
-  log "在线目录获取失败——使用内置目录"
+  log "首次配置无法获取在线目录——使用内置离线目录（不是成功刷新）"
 fi
 
 # --- 2) pick a model ----------------------------------------------------------

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Hub } from "../src/hub.js";
 
 function makeClient() {
@@ -7,6 +7,79 @@ function makeClient() {
 }
 
 describe("Hub", () => {
+  afterEach(() => vi.useRealTimers());
+
+  const questions = { questions: [{ id: "q", header: "Choice", question: "Choose", isOther: false, isSecret: false, options: [{ label: "yes", description: "" }, { label: "no", description: "" }] }] };
+
+  it("rejects invalid input without consuming the waiter and accepts a corrected second answer", async () => {
+    const hub = new Hub();
+    const browser = makeClient();
+    hub.addClient(browser.client);
+    const wait = hub.waitForBrowserAnswer(1, "item/tool/requestUserInput", questions);
+    const id = browser.sent[0].requestId;
+    const secret = "example";
+    expect(hub.resolveBrowserAnswer(id, { answers: { q: { answers: [secret] } } })).toBe(false);
+    expect(browser.sent.at(-1)).toMatchObject({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: id } });
+    expect(JSON.stringify(browser.sent)).not.toContain(secret);
+    expect(hub.resolveBrowserAnswer(id, { answers: { q: { answers: ["yes"] } } })).toBe(true);
+    await expect(wait).resolves.toMatchObject({ answered: true, payload: { answers: { q: { answers: ["yes"] } } } });
+  });
+
+  it("replays input prompts after reconnect while declining approvals immediately", async () => {
+    vi.useFakeTimers();
+    const hub = new Hub({ inputDisconnectGraceMs: 1000 });
+    const first = makeClient();
+    hub.addClient(first.client);
+    const input = hub.waitForBrowserAnswer(1, "item/tool/requestUserInput", questions);
+    const approval = hub.waitForBrowserAnswer(2, "item/fileChange/requestApproval", {});
+    const inputId = first.sent[0].requestId;
+    hub.removeClient(first.client);
+    await expect(approval).resolves.toMatchObject({ answered: false });
+    await vi.advanceTimersByTimeAsync(999);
+    const next = makeClient();
+    hub.addClient(next.client);
+    expect(next.sent).toEqual([expect.objectContaining({ kind: "serverRequest", requestId: inputId, method: "item/tool/requestUserInput" })]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(hub.resolveBrowserAnswer(inputId, { answers: {} })).toBe(true);
+    await expect(input).resolves.toMatchObject({ answered: true, payload: { answers: {} } });
+  });
+
+  it("ends input waiters on reconnect grace, original timeout, and upstream cancellation", async () => {
+    vi.useFakeTimers();
+    const hub = new Hub({ inputDisconnectGraceMs: 100, serverRequestTimeoutMs: 200 });
+    const noBrowser = hub.waitForBrowserAnswer(1, "item/tool/requestUserInput", questions);
+    await vi.advanceTimersByTimeAsync(100);
+    await expect(noBrowser).resolves.toMatchObject({ answered: false, error: "browser reconnect grace expired" });
+    const browser = makeClient();
+    hub.addClient(browser.client);
+    const timeout = hub.waitForBrowserAnswer(2, "item/tool/requestUserInput", questions);
+    await vi.advanceTimersByTimeAsync(200);
+    await expect(timeout).resolves.toMatchObject({ answered: false, error: "browser answer timeout" });
+    const cancelled = hub.waitForBrowserAnswer(3, "item/tool/requestUserInput", questions);
+    expect(hub.cancelServerRequest(3)).toBe(true);
+    await expect(cancelled).resolves.toMatchObject({ answered: false });
+  });
+
+  it("bounds pending input count and prompt bytes", async () => {
+    const hub = new Hub();
+    hub.addClient(makeClient().client);
+    const waiting = Array.from({ length: 32 }, (_, id) => hub.waitForBrowserAnswer(id, "item/tool/requestUserInput", questions));
+    await expect(hub.waitForBrowserAnswer(33, "item/tool/requestUserInput", questions)).resolves.toMatchObject({ answered: false, error: "pending browser input limit reached" });
+    await expect(hub.waitForBrowserAnswer(34, "item/tool/requestUserInput", { value: "x".repeat(512 * 1024) })).resolves.toMatchObject({ answered: false, error: "browser prompt exceeded size limit" });
+    hub.resetPendingAnswers();
+    await Promise.all(waiting);
+  });
+
+  it("does not accept an unsupported MCP schema but permits explicit cancellation", async () => {
+    const hub = new Hub();
+    const browser = makeClient();
+    hub.addClient(browser.client);
+    const wait = hub.waitForBrowserAnswer(1, "mcpServer/elicitation/request", { mode: "form", requestedSchema: { type: "object", properties: { x: { type: "string", pattern: "^safe$" } } } });
+    const id = browser.sent[0].requestId;
+    expect(hub.resolveBrowserAnswer(id, { action: "accept", content: { x: "unsafe" }, _meta: null })).toBe(false);
+    expect(hub.resolveBrowserAnswer(id, { action: "cancel", content: null, _meta: null })).toBe(true);
+    await expect(wait).resolves.toMatchObject({ answered: true, payload: { action: "cancel" } });
+  });
   it("replays pending approvals to a replacement client and never replays resolved ones", async () => {
     const hub = new Hub();
     const first = makeClient();

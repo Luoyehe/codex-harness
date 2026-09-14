@@ -1,6 +1,6 @@
 /**
  * WebUI-facing administration: runs the SAME deploy scripts the interactive
- * installer uses (single source of truth for provider/edge/service logic) and
+ * installer uses for provider configuration, and
  * schedules the service restart that applies the changes.
  *
  * Security: these handlers are only reachable over the authenticated WS
@@ -19,12 +19,12 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const DEPLOY_DIR = path.resolve(HERE, "../../..", "deploy");
 const SERVICE_UNIT = process.env.GATEWAY_UNIT ?? "codex-harness";
 const SCRIPT_TIMEOUT_MS = 300_000;
+const EXIT_CONFIRMATION_MS = 5_000;
 const OUTPUT_CAP = 64 * 1024;
 const ALLOWED_SCRIPTS = new Set([
   "providers/openai/setup.sh",
   "providers/zhipu-coding-plan/setup.sh",
   "providers/custom-openai/setup.sh",
-  "setup-edge.sh",
 ]);
 let scriptRunning = false;
 const SECRET_ENV_NAMES = ["Z_AI_API_KEY", "ZHIPU_KEY", "CUSTOM_API_KEY", "CUSTOM_OPENAI_API_KEY", "GATEWAY_TOKEN", "EDGE_PASS", "AUTH_PASS"];
@@ -123,6 +123,24 @@ export class RedactedOutputRing {
 export interface ScriptResult {
   code: number;
   output: string;
+  changed?: boolean;
+  restartRequired?: boolean;
+  /** The caller returned, but a configuration process is not confirmed dead. */
+  executionPending?: true;
+}
+
+export function scriptChangeResult(result: ScriptResult): ScriptResult {
+  if (result.code !== 0) return { ...result, changed: false, restartRequired: false };
+  const line = result.output.trimEnd().split("\n").reverse().find((entry) => entry.startsWith("[codex-harness-result] "));
+  if (line) {
+    try {
+      const status = JSON.parse(line.slice("[codex-harness-result] ".length));
+      if (status && typeof status.changed === "boolean" && typeof status.restartRequired === "boolean") {
+        return { ...result, changed: status.changed, restartRequired: status.restartRequired };
+      }
+    } catch { /* old script: conservative successful change */ }
+  }
+  return { ...result, changed: true, restartRequired: true };
 }
 
 /** Run a deploy script unattended (env-var driven), capture combined output. */
@@ -135,11 +153,12 @@ export function runScript(
   if (!ALLOWED_SCRIPTS.has(script)) {
     return Promise.resolve({ code: -1, output: "deploy script is not allowlisted" });
   }
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647) return Promise.resolve({ code: -1, output: "invalid deploy script timeout" });
   const full = path.join(DEPLOY_DIR, script);
   if (!existsSync(full)) {
     return Promise.resolve({ code: -1, output: `script not found on the server: ${script}` });
   }
-  if (scriptRunning) return Promise.resolve({ code: 75, output: "已有服务器配置操作正在运行，请等待完成后重试" });
+  if (scriptRunning) return Promise.resolve({ code: 75, executionPending: true, output: "已有服务器配置操作正在运行，请等待完成后重试" });
   scriptRunning = true;
   const secrets = SECRET_ENV_NAMES.map((name) => env[name]).filter((value): value is string => !!value);
   return new Promise((resolve) => {
@@ -161,15 +180,43 @@ export function runScript(
     const stdout = ring.stream();
     const stderr = ring.stream();
     let settled = false;
-    const finish = (result: ScriptResult) => {
+    let closed = false;
+    let stopRequested = false;
+    let failureCode: number | undefined;
+    let confirmationTimer: ReturnType<typeof setTimeout> | undefined;
+    // Settling the caller is separate from releasing the operation lock. A
+    // failed kill or delayed exit must not admit another configuration writer.
+    const settle = (result: ScriptResult) => {
       if (settled) return;
       settled = true;
       stdout.flush();
       stderr.flush();
       if (result.output) ring.appendMessage(result.output);
+      resolve({ ...result, output: ring.value() });
+    };
+    const confirmClosed = (result: ScriptResult) => {
+      if (closed) return;
+      closed = true;
       scriptRunning = false;
       clearTimeout(timer);
-      resolve({ ...result, output: ring.value() });
+      if (confirmationTimer) clearTimeout(confirmationTimer);
+      settle(result);
+    };
+    const requestStop = (code: number, message: string) => {
+      if (closed || stopRequested) return;
+      stopRequested = true;
+      failureCode = code;
+      clearTimeout(timer);
+      ring.appendMessage(message);
+      confirmationTimer = setTimeout(() => {
+        settle({ code, executionPending: true, output: "\n[admin] process termination is unconfirmed; the configuration lock remains held until close" });
+      }, EXIT_CONFIRMATION_MS);
+      try {
+        if (process.platform !== "win32" && child.pid) process.kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
+      } catch {
+        ring.appendMessage("\n[admin] could not confirm process termination after kill request");
+      }
     };
     child.stdout?.setEncoding("utf8");
     child.stderr?.setEncoding("utf8");
@@ -178,42 +225,38 @@ export function runScript(
     child.stdout?.on("end", () => stdout.flush());
     child.stderr?.on("end", () => stderr.flush());
     const timer = setTimeout(() => {
-      try {
-        if (process.platform !== "win32" && child.pid) process.kill(-child.pid, "SIGKILL");
-        else child.kill("SIGKILL");
-      } catch { /* already gone */ }
-      finish({ code: 124, output: "\n[admin] script timed out" });
+      requestStop(124, "\n[admin] script timed out");
     }, timeoutMs);
     child.on("close", (code) => {
-      finish({ code: code ?? -1, output: "" });
+      confirmClosed({ code: failureCode ?? code ?? -1, output: "" });
     });
     child.on("error", (err) => {
-      finish({ code: -1, output: `\n[admin] spawn failed: ${err.message}` });
+      if (!child.pid) {
+        // ENOENT/EACCES with no PID means no process was created. Its late
+        // close event must not unlock a subsequently started operation.
+        confirmClosed({ code: -1, output: `\n[admin] spawn failed: ${err.message}` });
+      } else requestStop(-1, `\n[admin] child process error: ${err.message}`);
     });
   });
 }
 
 /**
- * Restart the systemd unit ~1s from now, detached, so the HTTP/WS response
- * that triggered it can reach the browser first. The frontend's reconnect
- * logic picks the gateway back up automatically.
+ * Start the systemd restart ~1s from now so its acknowledgement can reach
+ * the browser first. The returned promise tracks the actual restart command;
+ * the management gate retains the pending state until it settles.
  */
-export function scheduleServiceRestart(): void {
-  setTimeout(() => {
-    try {
-      const helper = process.env.CODEX_HARNESS_ADMIN_HELPER ?? "/usr/local/libexec/codex-harness-admin";
-      const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
-      const command = existsSync(helper) ? (isRoot ? helper : "sudo") : "systemctl";
-      const args = existsSync(helper)
-        ? (isRoot ? ["restart-service"] : ["-n", helper, "restart-service"])
-        : ["restart", SERVICE_UNIT];
-      const child = spawn(command, args, { detached: true, stdio: "ignore", windowsHide: true });
-      child.on("error", (err) => process.stderr.write(`[admin] restart failed: ${err.message}\n`));
-      child.unref();
-    } catch (err: any) {
-      process.stderr.write(`[admin] restart scheduling failed: ${err?.message}\n`);
-    }
-  }, 1_000);
+export async function scheduleServiceRestart(): Promise<void> {
+  // Worker data-plane code may configure its own provider, but can neither
+  // restart the control plane nor inherit its sudo grant.
+  if (process.env.CODEX_HARNESS_WORKER === "1") return;
+  await new Promise((resolve) => setTimeout(resolve, 1_000));
+  const helper = process.env.CODEX_HARNESS_ADMIN_HELPER ?? "/usr/local/libexec/codex-harness-admin";
+  const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+  const command = existsSync(helper) ? (isRoot ? helper : "sudo") : "systemctl";
+  const args = existsSync(helper)
+    ? (isRoot ? ["restart-service"] : ["-n", helper, "restart-service"])
+    : ["restart", SERVICE_UNIT];
+  await execFileAsync(command, args, { timeout: 15_000, maxBuffer: OUTPUT_CAP, windowsHide: true });
 }
 
 export async function serviceStatus(
@@ -284,7 +327,7 @@ export async function syncCatalog(providerInfo: ProviderInfoReader): Promise<Scr
     env.ZHIPU_SYNC_CATALOG = "1";
     env.PROBE_REASONING = "0";
     const r = await runScript("providers/zhipu-coding-plan/setup.sh", env);
-    return { ...r, mode };
+    return { ...scriptChangeResult(r), mode };
   }
   if (mode === "custom") {
     const ep = custom;
@@ -299,7 +342,7 @@ export async function syncCatalog(providerInfo: ProviderInfoReader): Promise<Scr
       CUSTOM_CTX: String(ep.ctx),
       CUSTOM_VISION: ep.vision ? "1" : "0",
     });
-    return { ...r, mode };
+    return { ...scriptChangeResult(r), mode };
   }
-  return { code: 0, output: "OpenAI 原生模式使用 codex 内置目录，无需同步。", mode };
+  return { code: 0, changed: false, restartRequired: false, output: "OpenAI 原生模式使用 codex 内置目录，无需同步。", mode };
 }

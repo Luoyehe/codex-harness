@@ -135,8 +135,8 @@ describe("AuthToken token format", () => {
 });
 
 describe("HTML bootstrap trust modes", () => {
-  it("preserves explicit local trust by default", () => {
-    expect(makeToken().canBootstrap({ headers: {} })).toBe(true);
+  it("never grants implicit local trust by default", () => {
+    expect(makeToken().canBootstrap({ headers: {} })).toBe(false);
   });
 
   it("requires a secret in strict mode and supports browser-native Basic auth", () => {
@@ -147,7 +147,7 @@ describe("HTML bootstrap trust modes", () => {
       expect(token.canBootstrap({ headers: {}, query: { token: token.token } })).toBe(false);
       expect(token.canBootstrap({ headers: { authorization: `Basic ${Buffer.from(`codex:${token.token}`).toString("base64")}` } })).toBe(true);
       expect(token.canBootstrap({ headers: { authorization: `Bearer ${token.token}` } })).toBe(true);
-      expect(token.canBootstrap({ headers: { cookie: `gw_token=${token.token}` } })).toBe(true);
+      expect(token.canBootstrap({ headers: { cookie: `${token.cookieName}=${token.token}` } })).toBe(true);
       expect(token.canBootstrap({ headers: { cookie: `not_gw_token=${token.token}` } })).toBe(false);
       expect(token.canBootstrap({ headers: { authorization: "Basic !!!" } })).toBe(false);
     } finally { delete process.env.GATEWAY_BOOTSTRAP_AUTH; }
@@ -158,4 +158,15 @@ describe("HTML bootstrap trust modes", () => {
     try { expect(() => makeToken()).toThrow(/GATEWAY_BOOTSTRAP_AUTH/); }
     finally { delete process.env.GATEWAY_BOOTSTRAP_AUTH; }
   });
+});
+
+it("uses distinct persistent cookie names for instances on the same hostname", () => {
+  const home = tempHome();
+  const a = new AuthToken(home, 8410);
+  const b = new AuthToken(home, 8411);
+  expect(a.cookieName).not.toBe(b.cookieName);
+  const combined = `${a.cookieName}=${a.token}; ${b.cookieName}=${b.token}`;
+  expect(a.extract({ headers: { cookie: combined } })).toBe(a.token);
+  expect(b.extract({ headers: { cookie: combined } })).toBe(b.token);
+  expect(new AuthToken(home, 8410).cookieName).toBe(a.cookieName);
 });

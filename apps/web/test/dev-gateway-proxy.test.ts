@@ -1,15 +1,42 @@
 import { describe, expect, it, vi } from "vitest";
-import { prepareDevGatewayProxy, trustedDevGatewayRequest } from "../dev-gateway-proxy";
+import { prepareDevGatewayProxy, readDevGatewayToken, trustedDevGatewayRequest } from "../dev-gateway-proxy";
 
 describe("credential-bearing development proxy", () => {
   it.each(["127.0.0.1:5173", "localhost:5173"])("accepts the configured same-origin loopback host %s", (host) => {
     const request = { removeHeader: vi.fn(), setHeader: vi.fn(), destroy: vi.fn() };
     const socket = { destroy: vi.fn() };
-    const readToken = vi.fn(() => "synthetic-token");
+    const readToken = vi.fn(() => "x".repeat(40));
     expect(prepareDevGatewayProxy({ host, origin: `http://${host}` }, request, socket, readToken)).toBe(true);
     expect(request.removeHeader).toHaveBeenCalledWith("origin");
-    expect(request.setHeader).toHaveBeenCalledWith("cookie", "gw_token=synthetic-token");
+    expect(request.removeHeader).toHaveBeenCalledWith("cookie");
+    expect(request.removeHeader).toHaveBeenCalledWith("authorization");
+    expect(request.setHeader).toHaveBeenCalledExactlyOnceWith("authorization", `Bearer ${"x".repeat(40)}`);
     expect(socket.destroy).not.toHaveBeenCalled();
+  });
+
+  it.each(["", "short", `${"x".repeat(40)}\r\nInjected: yes`])("rejects missing or malformed credentials", (token) => {
+    const request = { removeHeader: vi.fn(), setHeader: vi.fn(), destroy: vi.fn() };
+    const socket = { destroy: vi.fn() };
+    expect(prepareDevGatewayProxy({ host: "localhost:5173", origin: "http://localhost:5173" }, request, socket, () => token)).toBe(false);
+    expect(request.setHeader).not.toHaveBeenCalled();
+    expect(request.destroy).toHaveBeenCalledOnce();
+    expect(socket.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("reads the configured control directory lazily and never the Agent home", () => {
+    const readFile = vi.fn(() => `  ${"x".repeat(40)}\n`);
+    expect(readDevGatewayToken({ GATEWAY_CONTROL_HOME: "control" }, "user-home", readFile)).toBe("x".repeat(40));
+    expect(readFile).toHaveBeenCalledExactlyOnceWith("control");
+    readFile.mockClear();
+    readDevGatewayToken({}, "user-home", readFile);
+    expect(readFile).toHaveBeenCalledExactlyOnceWith("user-home/.codex-harness-control");
+  });
+
+  it("prioritizes an explicit token without reading a file and tolerates not-yet-created files", () => {
+    const readFile = vi.fn(() => { throw new Error("not created"); });
+    expect(readDevGatewayToken({ GATEWAY_TOKEN: "x".repeat(40), GATEWAY_CONTROL_HOME: "control" }, "home", readFile)).toBe("x".repeat(40));
+    expect(readFile).not.toHaveBeenCalled();
+    expect(readDevGatewayToken({}, "home", readFile)).toBe("");
   });
 
   it.each([

@@ -1,5 +1,5 @@
-import { useRef, useState, type KeyboardEvent } from "react";
-import { useStore, type ApprovalPolicy, type ReasoningEffort, type SandboxPreset } from "../store";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { selectedModelEfforts, useStore, type ApprovalPolicy, type ReasoningEffort, type SandboxPreset, type SendOperation } from "../store";
 
 const MIB = 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * MIB;
@@ -21,6 +21,13 @@ interface PendingAttachment {
   previewUrl?: string;
 }
 
+interface DraftAttempt {
+  text: string;
+  textRevision: number;
+  attachments: PendingAttachment[];
+  operation: SendOperation | null;
+}
+
 /**
  * Message composer with per-turn model / approval-policy / sandbox selectors
  * and a "+" attachment picker (images + files, uploaded to the gateway and
@@ -37,6 +44,9 @@ export function Composer() {
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadBatchActive = useRef(false);
   const sendActive = useRef(false);
+  const textRevision = useRef(0);
+  const draftAttempt = useRef<DraftAttempt | null>(null);
+  const [draftOperation, setDraftOperation] = useState<SendOperation | null>(null);
   const activeThreadId = useStore((s) => s.activeThreadId);
   const historyReady = useStore((s) => !s.activeThreadId || !!s.historyLoaded[s.activeThreadId]);
   const turnActive = useStore((s) => (s.activeThreadId ? !!s.turnActive[s.activeThreadId] : false));
@@ -50,11 +60,57 @@ export function Composer() {
   const selectedPolicy = useStore((s) => s.settings.selectedApprovalPolicy);
   const selectedSandbox = useStore((s) => s.settings.selectedSandbox);
   const selectedEffort = useStore((s) => s.settings.selectedEffort);
-  const reasoningEfforts = useStore((s) => s.reasoningEfforts);
   const updateSettings = useStore((s) => s.updateSettings);
   const models = useStore((s) => s.models);
+  const reasoningEfforts = selectedModelEfforts(models, selectedModel);
+  const sendOperation = useStore((s) => s.activeThreadId ? s.sendOperations[s.activeThreadId] : undefined);
+  const checkSendOperation = useStore((s) => s.checkSendOperation);
+  const acknowledgeUnknownSend = useStore((s) => s.acknowledgeUnknownSend);
+  // The draft is shared across thread navigation. Its unresolved send must
+  // remain locked even while a different (idle) thread is selected.
+  const unresolvedOperation = draftOperation?.state === "unknown" ? draftOperation
+    : sendOperation?.state === "unknown" ? sendOperation : undefined;
+  const unresolved = !!unresolvedOperation;
+  const management = useStore((state) => state.management);
   const connection = useStore((s) => s.connection);
   const uploadAttachment = useStore((s) => s.uploadAttachment);
+
+  function releaseAttempt(attempt: DraftAttempt) {
+    if (draftAttempt.current !== attempt) return;
+    draftAttempt.current = null;
+    setDraftOperation(null);
+    sendActive.current = false;
+    setSending(false);
+  }
+
+  function settleAttempt(attempt: DraftAttempt, operation: SendOperation) {
+    if (draftAttempt.current !== attempt || attempt.operation?.threadId !== operation.threadId ||
+        attempt.operation.clientOperationId !== operation.clientOperationId) return;
+    attempt.operation = operation;
+    const acknowledged = operation.state === "acknowledged_unknown";
+    if (operation.state !== "accepted" && !acknowledged) {
+      setDraftOperation(operation);
+      return;
+    }
+    setText((current) => textRevision.current === attempt.textRevision && current === attempt.text ? "" : current);
+    setAttachments((current) => current.filter((attachment) => !attempt.attachments.includes(attachment)));
+    // Accepted previews belong to the optimistic timeline until its server
+    // echo replaces them. Acknowledgment removes that optimistic item instead.
+    if (acknowledged) for (const attachment of attempt.attachments) {
+      if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    }
+    setUploadError(acknowledged ? "已按确认放弃原草稿。原请求结果仍未知；没有重发，也没有删除服务器附件。" : "已确认上一条消息已被服务器受理，未重复发送。");
+    releaseAttempt(attempt);
+  }
+
+  useEffect(() => useStore.subscribe((state) => {
+    const attempt = draftAttempt.current;
+    if (!attempt?.operation) return;
+    const operation = state.sendOperations[attempt.operation.threadId];
+    // Observe synchronously, including background/cross-tab acknowledgment
+    // immediately followed by a new operation before React renders again.
+    if (operation?.clientOperationId === attempt.operation.clientOperationId) settleAttempt(attempt, operation);
+  }), []);
 
   function fmtTokens(n: number): string {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -66,6 +122,8 @@ export function Composer() {
     const value = text.trim();
     if (
       sendActive.current ||
+      unresolved ||
+      management.state !== "idle" ||
       connection !== "open" ||
       turnActive ||
       compacting ||
@@ -74,33 +132,66 @@ export function Composer() {
       uploading > 0
     ) return;
     sendActive.current = true;
+    const attempt: DraftAttempt = { text, textRevision: textRevision.current, attachments: [...attachments], operation: null };
+    draftAttempt.current = attempt;
     setSending(true);
     setUploadError(null);
-    const originalText = text;
-    const sentAttachments = [...attachments];
     // Clear AFTER the send pipeline succeeds — if newThread() or sendTurn()
     // throws, the composer text and attachments survive for the user to retry.
-    void sendMessage(value, sentAttachments.length ? sentAttachments : undefined)
+    void sendMessage(value, attempt.attachments.length ? attempt.attachments : undefined, (identity) => {
+      if (draftAttempt.current !== attempt) return;
+      attempt.operation = { ...identity, state: "unknown" };
+      setDraftOperation(attempt.operation);
+    })
       .then(() => {
-        // Preserve anything typed while the request was in flight.
-        setText((current) => current === originalText ? "" : current);
-        const sentPaths = new Set(sentAttachments.map((a) => a.path));
-        // Ownership of each preview URL moved to the optimistic timeline
-        // item in sendTurn(). The store revokes it only when the server echo
-        // replaces that item; revoking here can leave a broken thumbnail in
-        // the interval between turn/start's RPC result and its notification.
-        setAttachments((current) => current.filter((a) => !sentPaths.has(a.path)));
+        if (attempt.operation) settleAttempt(attempt, { ...attempt.operation, state: "accepted" });
       })
       .catch((err: any) => {
-        setUploadError(`发送失败: ${err?.message ?? err}`);
+        if (draftAttempt.current !== attempt) return;
+        const identity = attempt.operation;
+        const latest = identity && useStore.getState().sendOperations[identity.threadId];
+        const operation = latest?.clientOperationId === identity?.clientOperationId ? latest : identity;
+        if (operation?.state === "accepted" || operation?.state === "acknowledged_unknown") {
+          settleAttempt(attempt, operation);
+          return;
+        }
+        if (operation?.state === "unknown") {
+          settleAttempt(attempt, operation);
+          setUploadError("发送结果待确认：可能已经执行，请勿重复发送。草稿与附件暂时保留。");
+        } else {
+          releaseAttempt(attempt);
+          setUploadError(`发送失败: ${err?.message ?? err}`);
+        }
         // Turn failures are also shown in the timeline. Keep the draft here
         // as well because a failed first-thread creation has no timeline yet.
         // Keep text/attachments so the user can fix and retry.
       })
       .finally(() => {
+        if (draftAttempt.current !== attempt) return;
         sendActive.current = false;
         setSending(false);
       });
+  }
+
+  function acknowledgeUnknownDraft() {
+    const operation = unresolvedOperation;
+    if (!operation || sending || sendActive.current || uploading > 0) return;
+    if (!confirm("服务器可能已经执行这次请求，当前没有足够证据确认成功或失败。\n\n请先核对原会话历史与实际执行结果。继续只放弃这次发送捕获的原草稿及附件选择，保留后续编辑、服务器附件和未知执行记录，不会重发、取消或停止原请求。之后再次输入同一指令仍可能重复执行。\n\n确认已核对，并放弃原草稿？")) return;
+    if (!acknowledgeUnknownSend(operation.threadId, operation.clientOperationId)) {
+      setUploadError("未能记录你的确认，草稿未清空；请检查浏览器存储或重新核对发送状态。");
+      return;
+    }
+    const attempt = draftAttempt.current;
+    if (attempt) settleAttempt(attempt, { ...operation, state: "acknowledged_unknown" });
+    setUploadError("已按确认放弃原草稿。原请求结果仍未知；没有重发，也没有删除服务器附件。");
+  }
+
+  async function checkUnknownDraft() {
+    const operation = unresolvedOperation;
+    if (!operation) return;
+    const attempt = draftAttempt.current;
+    const checked = await checkSendOperation(operation.threadId, operation.clientOperationId);
+    if (attempt && checked) settleAttempt(attempt, checked);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>, behavior: "send" | "newline") {
@@ -193,6 +284,13 @@ export function Composer() {
 
   return (
     <div className="composer">
+      {management.state !== "idle" && <div className="dim" role="status">{management.state === "unknown" ? "服务器管理操作结果未知，请在设置中核对管理状态；暂时不能提交新任务。" : `管理操作 ${management.operation ?? ""} 正在进行，暂时不能提交新任务。`}</div>}
+      {unresolved && <div className="error-text" role="status">
+        上一条消息是否受理尚未确认，发送已暂停以防重复执行。
+        <button className="btn" disabled={connection !== "open"} onClick={() => void checkUnknownDraft()}>核对发送状态</button>
+        <button className="btn" disabled={sending || uploading > 0} onClick={acknowledgeUnknownDraft}>已核对历史，放弃这次草稿</button>
+      </div>}
+      {sendOperation?.state === "acknowledged_unknown" && <div className="dim" role="status">你已确认放弃未知结果请求的草稿；服务器执行结果仍未确定。新消息会使用新的发送标识，重复输入原指令可能重复执行。</div>}
       <textarea
         value={text}
         placeholder={
@@ -200,7 +298,7 @@ export function Composer() {
             ? "给 Codex 发消息…（Enter 发送，Shift+Enter 换行）"
             : "输入消息开始新对话（使用当前项目与所选设置）…"
         }
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => { ++textRevision.current; setText(e.target.value); }}
         onKeyDown={(e) => onKeyDown(e, enterBehavior)}
         maxLength={1_000_000}
         rows={3}
@@ -216,7 +314,7 @@ export function Composer() {
               <span className="attach-name" title={a.name}>
                 {a.name}
               </span>
-              <button className="attach-remove" title="移除附件" disabled={sending} onClick={() => removeAttachment(a.path)}>
+              <button className="attach-remove" title="移除附件" disabled={sending || unresolved} onClick={() => removeAttachment(a.path)}>
                 ×
               </button>
             </span>
@@ -305,8 +403,8 @@ export function Composer() {
         {reasoningEfforts.length > 0 && (
           <select
             className="composer-select"
-            title="思考程度（对下一条消息生效）。自定义 API/智谱模式的选项来自配置时对端点的自动探测或目录声明；OpenAI 模式为官方标准档位。默认=当前模型默认档"
-            value={selectedEffort}
+            title="思考程度来自所选模型的能力声明；未确认的模型不提供推测档位。默认=当前模型默认档"
+            value={reasoningEfforts.includes(selectedEffort as Exclude<ReasoningEffort, "">) ? selectedEffort : ""}
             onChange={(e) => updateSettings({ selectedEffort: e.target.value as ReasoningEffort })}
           >
             <option value="">默认思考</option>
@@ -324,7 +422,7 @@ export function Composer() {
         ) : (
           <button
             className="btn-primary"
-            disabled={connection !== "open" || !historyReady || compacting || sending || (!text.trim() && attachments.length === 0) || uploading > 0}
+            disabled={connection !== "open" || management.state !== "idle" || unresolved || !historyReady || compacting || sending || (!text.trim() && attachments.length === 0) || uploading > 0}
             onClick={send}
           >
             {sending ? "发送中…" : activeThreadId ? "发送" : "发送并新建"}

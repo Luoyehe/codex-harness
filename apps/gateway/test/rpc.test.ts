@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { PassThrough } from "node:stream";
-import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { PassThrough, Writable } from "node:stream";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { AppServerConnection, initialize, type AppServerHandlers } from "../src/codex/rpc.js";
+import { AppServerConnection, AppServerRequestError, RPC_LIMITS, appServerEnvironment, initialize, type AppServerHandlers } from "../src/codex/rpc.js";
 
 /**
  * attach() lets tests drive the JSONL transport with fake streams instead of
@@ -33,6 +33,198 @@ function makeFake(overrides: Partial<AppServerHandlers> = {}) {
 }
 
 describe("AppServerConnection", () => {
+  it("reports unexpected transport loss once, before cleanup, but not for deliberate stop", async () => {
+    const lost = vi.fn();
+    const failed = makeFake({ onTransportLost: lost });
+    failed.stdout.destroy(new Error("synthetic pipe loss"));
+    await vi.waitFor(() => expect(lost).toHaveBeenCalledOnce());
+    await failed.conn.kill();
+    expect(lost).toHaveBeenCalledOnce();
+
+    const intentional = makeFake({ onTransportLost: lost });
+    await intentional.conn.kill();
+    intentional.stdout.end();
+    expect(lost).toHaveBeenCalledOnce();
+  });
+
+  it.each([0, 17])("requires the cleanup owner's exact exit status, independent of stdout claims (exit %s)", async (code) => {
+    const onExit = vi.fn();
+    const onCleanupUnconfirmed = vi.fn();
+    const conn = new AppServerConnection(process.execPath, ["-e", `console.log(JSON.stringify({method:"cleanup/complete",params:{clean:true}}));setTimeout(()=>process.exit(${code}),100)`], {}, {
+      onNotification() {}, onServerRequest: async () => ({}), onExit, onStderr() {}, onCleanupUnconfirmed,
+    }, { cleanExitCode: 0 });
+    conn.spawn();
+    if (code === 0) {
+      await vi.waitFor(() => expect(onExit).toHaveBeenCalledOnce());
+      await conn.kill();
+      expect(onCleanupUnconfirmed).not.toHaveBeenCalled();
+    } else {
+      await vi.waitFor(() => expect(onCleanupUnconfirmed).toHaveBeenCalledOnce());
+      await expect(conn.kill()).rejects.toThrow("cleanup was not confirmed");
+      expect(onExit).not.toHaveBeenCalled();
+    }
+  });
+
+  it("waits for a cleanup owner to finish after EOF instead of killing its authority", async () => {
+    let ready = false;
+    let settled = false;
+    const conn = new AppServerConnection(process.execPath, ["-e", 'process.stdin.resume();process.stdin.on("end",()=>setTimeout(()=>process.exit(0),150));console.log(JSON.stringify({method:"ready"}));'], {}, {
+      onNotification() { ready = true; }, onServerRequest: async () => ({}), onExit() {}, onStderr() {},
+    }, { cleanExitCode: 0, terminateGraceMs: 1 });
+    conn.spawn();
+    await vi.waitFor(() => expect(ready).toBe(true));
+    const completion = conn.kill().then(() => { settled = true; });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(settled).toBe(false);
+    await completion;
+  });
+
+  it.runIf(process.platform === "linux")("fails closed if the cleanup owner is killed, even after a fake success frame", async () => {
+    let ownerPid = 0;
+    const onExit = vi.fn();
+    const onCleanupUnconfirmed = vi.fn();
+    const conn = new AppServerConnection(process.execPath, ["-e", 'console.log(JSON.stringify({method:"cleanup/complete",params:{pid:process.pid,clean:true}}));setInterval(()=>{},1000);'], {}, {
+      onNotification: (_method, params: any) => { ownerPid = params.pid; }, onServerRequest: async () => ({}), onExit, onStderr() {}, onCleanupUnconfirmed,
+    }, { cleanExitCode: 0 });
+    conn.spawn();
+    await vi.waitFor(() => expect(ownerPid).toBeGreaterThan(0));
+    process.kill(ownerPid, "SIGKILL");
+    await vi.waitFor(() => expect(onCleanupUnconfirmed).toHaveBeenCalledOnce());
+    await expect(conn.kill()).rejects.toThrow("cleanup was not confirmed");
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  it("supports a bounded per-transport timeout without changing long-lived command semantics", async () => {
+    vi.useFakeTimers();
+    const handlers = { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} };
+    const conn = new AppServerConnection("fake", [], {}, handlers, { requestTimeoutMs: 10 });
+    conn.attach(new PassThrough(), new PassThrough());
+    const timed = expect(conn.request("model/list")).rejects.toThrow("timed out after 0.01s");
+    let commandSettled = false;
+    const command = conn.request("command/exec").catch(() => { commandSettled = true; });
+    try {
+      await vi.advanceTimersByTimeAsync(10);
+      await timed;
+      expect(commandSettled).toBe(false);
+    } finally { await conn.kill(); await command; vi.useRealTimers(); }
+    for (const requestTimeoutMs of [0, -1, 1.5, NaN, Infinity, 2_147_483_648]) {
+      expect(() => new AppServerConnection("fake", [], {}, handlers, { requestTimeoutMs })).toThrow(/positive bounded integer/);
+    }
+  });
+  it("scrubs gateway control-plane credentials, including case variants and explicit overrides", () => {
+    vi.stubEnv("Gateway_Token", "do-not-inherit");
+    vi.stubEnv("CODEX_HARNESS_MANAGED_WORKER", "1");
+    try {
+      const env = appServerEnvironment({ GATEWAY_TOKEN: "also-remove", EDGE_PASSWORD: "secret", SUDO_USER: "root", AUTHELIA_SECRET: "secret", Z_AI_API_KEY: "provider-worker-key", CODEX_HOME: "/worker/home" });
+      expect(Object.keys(env).some((key) => /^(GATEWAY_|EDGE_|SUDO_|AUTHELIA_)/i.test(key))).toBe(false);
+      expect(env.Z_AI_API_KEY).toBe("provider-worker-key");
+      expect(env.CODEX_HOME).toBe("/worker/home");
+      expect(env.CODEX_HARNESS_MANAGED_WORKER).toBeUndefined();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it("preserves explicit upstream error delivery metadata", async () => {
+    const { conn, reply } = makeFake();
+    const request = conn.request("turn/start");
+    reply({ id: 1, error: { code: -32000, message: "unknown", data: { delivery: "unknown" } } });
+    await expect(request).rejects.toMatchObject({ rpcError: { code: -32000, data: { delivery: "unknown" } } });
+  });
+
+  it("bounds pending requests while reserving control admission", async () => {
+    const { conn, frames } = makeFake();
+    const requests = Array.from({ length: RPC_LIMITS.pending }, () => conn.request("command/exec").catch((error) => error));
+    await expect(conn.request("model/list")).rejects.toBeInstanceOf(AppServerRequestError);
+    const control = conn.request("turn/interrupt").catch((error) => error);
+    expect(frames).toHaveLength(RPC_LIMITS.pending + 1);
+    await conn.kill();
+    await Promise.all([...requests, control]);
+  });
+
+  it("backpressures stdin, prioritizes control, and expires unsent queued requests without executing them", async () => {
+    vi.useFakeTimers();
+    const written: any[] = [];
+    const callbacks: Array<(error?: Error) => void> = [];
+    const stdin = new Writable({ highWaterMark: 1, write(chunk, _encoding, callback) { written.push(JSON.parse(String(chunk))); callbacks.push(callback); } });
+    const stdout = new PassThrough();
+    const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
+    conn.attach(stdin, stdout);
+    try {
+      const first = conn.request("command/exec").catch((error) => error);
+      const expired = conn.request("model/list").catch((error) => error);
+      const control = conn.request("command/exec/terminate").catch((error) => error);
+      expect(written.map((frame) => frame.method)).toEqual(["command/exec"]);
+      callbacks.shift()!();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(written.map((frame) => frame.method)).toEqual(["command/exec", "command/exec/terminate"]);
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(await expired).toBeInstanceOf(AppServerRequestError);
+      callbacks.shift()!();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(written.some((frame) => frame.method === "model/list")).toBe(false);
+      await conn.kill();
+      await Promise.all([first, control]);
+    } finally { await conn.kill(); vi.useRealTimers(); }
+  });
+
+  it("rejects oversized outbound frames before writing and bounds unterminated input", async () => {
+    const { conn, frames, handlers, writeRaw } = makeFake();
+    await expect(conn.request("too-big", { text: "x".repeat(RPC_LIMITS.frameBytes) })).rejects.toBeInstanceOf(AppServerRequestError);
+    expect(frames).toHaveLength(0);
+    writeRaw("x".repeat(RPC_LIMITS.frameBytes + 1));
+    expect(handlers.onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds queued plus native writable bytes under a stalled consumer", async () => {
+    let writes = 0;
+    const stdin = new Writable({ highWaterMark: 1, write() { writes++; /* deliberately stalled */ } });
+    const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
+    conn.attach(stdin, new PassThrough());
+    const payload = { text: "x".repeat(25 * 1024 * 1024) };
+    const first = conn.request("command/exec", payload).catch((error) => error);
+    await expect(conn.request("command/exec", payload)).rejects.toBeInstanceOf(AppServerRequestError);
+    expect(writes).toBe(1);
+    expect(stdin.writableLength).toBeLessThan(RPC_LIMITS.queuedBytes);
+    await conn.kill();
+    await first;
+    stdin.destroy();
+  });
+
+  it("caps concurrent server requests and sends an explicit rejection for excess work", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const { conn, handlers, frames, reply } = makeFake({ onServerRequest: vi.fn(async () => { await held; return {}; }) });
+    for (let id = 1; id <= RPC_LIMITS.serverRequests + 1; id++) reply({ id, method: "approval" });
+    expect(handlers.onServerRequest).toHaveBeenCalledTimes(RPC_LIMITS.serverRequests);
+    expect(frames.at(-1)).toMatchObject({ id: RPC_LIMITS.serverRequests + 1, error: { message: expect.stringContaining("concurrency") } });
+    release();
+    await conn.kill();
+  });
+
+  it.runIf(process.platform === "linux")("waits for SIGTERM-ignoring child and its descendant to stop before reporting exit", async () => {
+    let pids: number[] = [];
+    const onExit = vi.fn();
+    const childScript = 'process.on("SIGTERM",()=>{});console.log("ready");setInterval(()=>{},1000)';
+    const script = `process.on("SIGTERM",()=>{});const {spawn}=require("node:child_process");const child=spawn(process.execPath,["-e",${JSON.stringify(childScript)}],{detached:true,stdio:["ignore","pipe","ignore"]});child.stdout.once("data",()=>console.log(JSON.stringify({method:"ready",params:[process.pid,child.pid]})));setInterval(()=>{},1000)`;
+    const conn = new AppServerConnection(process.execPath, ["-e", script], {}, {
+      onNotification: (_method, params) => { pids = params as number[]; },
+      onServerRequest: async () => ({}), onExit, onStderr() {},
+    });
+    const live = (pid: number) => {
+      try { const stat = readFileSync(`/proc/${pid}/stat`, "utf8"); return !["Z", "X"].includes(stat.slice(stat.lastIndexOf(")") + 2)[0]); }
+      catch { return false; }
+    };
+    try {
+      conn.spawn();
+      await vi.waitFor(() => expect(pids).toHaveLength(2));
+      const stopped = conn.kill();
+      expect(onExit).not.toHaveBeenCalled();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(pids.every(live)).toBe(true);
+      await stopped;
+      expect(pids.some(live)).toBe(false);
+      expect(onExit).toHaveBeenCalledTimes(1);
+    } finally { await conn.kill(); }
+  }, 8_000);
   it.runIf(process.platform === "win32")("stops a Windows descendant even when it ignores stdin EOF", async () => {
     let childPid: number | undefined;
     const conn = new AppServerConnection("node", ["-e", 'console.log(JSON.stringify({method:"test/pid",params:{pid:process.pid}}));setTimeout(()=>{},10000)'], {}, {
@@ -147,10 +339,10 @@ describe("AppServerConnection", () => {
     expect(handlers.onStderr).toHaveBeenCalledWith(expect.stringContaining("consumer boom"));
   });
 
-  it("forwards non-JSON lines to onStderr", () => {
+  it("reports non-JSON stdout without logging untrusted payloads", () => {
     const { handlers, writeRaw } = makeFake();
     writeRaw("this is not json\n");
-    expect(handlers.onStderr).toHaveBeenCalledWith(expect.stringContaining("this is not json"));
+    expect(handlers.onStderr).toHaveBeenCalledWith("[gateway-rpc] ignored non-JSON stdout frame\n");
   });
 
   it("answers server-initiated requests with the handler result", async () => {

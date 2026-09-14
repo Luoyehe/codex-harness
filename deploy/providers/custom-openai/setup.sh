@@ -255,10 +255,8 @@ detect_efforts() {
   echo $detected
 }
 
-case "$EFFORT" in
-  none|minimal|low|medium|high|xhigh|max) ;;
-  *) die "CUSTOM_EFFORT 必须是 none/minimal/low/medium/high/xhigh/max 之一: $EFFORT" ;;
-esac
+EFFORT="$EFFORT" python3 -c 'import os,re; raise SystemExit(0 if re.fullmatch(r"[a-z][a-z0-9-]{0,31}",os.environ["EFFORT"]) else 1)' \
+  || die "CUSTOM_EFFORT 必须是有界的档位标识；具体支持情况由该模型的配置/探测结果决定"
 
 if [ "${PROBE_REASONING:-0}" = "1" ]; then
   log "将发送 7 个真实 API 探测请求（可能计费，模型 $MODEL）..."
@@ -379,17 +377,32 @@ if os.environ.get("CUSTOM_SYNC_CATALOG") == "1":
     ids = os.environ.get("CUSTOM_MODEL_IDS", "").splitlines()
     if not ids or model not in ids:
         raise SystemExit("同步目录未包含当前模型；保持当前配置，请先选择端点中存在的模型")
-    template = models["models"][0]
     entries = []
+    unconfigured = []
     for slug in dict.fromkeys(ids):
         if not 0 < len(slug) <= 256 or any(ord(c) < 32 or ord(c) == 127 for c in slug):
             raise SystemExit("模型目录包含非法模型 id")
-        entry = dict(previous_entries.get(slug, template))
-        entry.update(slug=slug, display_name=entry.get("display_name", slug) if slug in previous_entries else slug)
-        if slug not in previous_entries and slug != model:
-            entry["supported_reasoning_levels"] = []
-        entries.append(entry)
+        if slug not in previous_entries:
+            # /models declares identifiers, not context length, modalities,
+            # reasoning or tools. Codex's catalog requires concrete values;
+            # inventing them would silently send unsupported requests. Keep
+            # discoveries separate until this model is explicitly configured.
+            unconfigured.append({"id": slug, "capabilities": "unknown"})
+            continue
+        entries.append(dict(previous_entries[slug]))
     models["models"] = entries
+    models["unconfigured_models"] = unconfigured
+    if unconfigured:
+        print("[custom-setup] %d 个新模型能力未知，已登记但未启用；请按模型单独配置上下文、图片与 effort" % len(unconfigured))
+elif same_endpoint:
+    # Explicitly configuring another model at this same endpoint should add
+    # its own capabilities, not discard previously configured models. Never
+    # carry these declarations across an endpoint URL change.
+    models["models"].extend(entry for slug, entry in previous_entries.items() if slug != model)
+    discoveries = previous_catalog.get("unconfigured_models", [])
+    models["unconfigured_models"] = [entry for entry in discoveries
+        if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+        and entry["id"] != model and entry["id"] not in previous_entries]
 atomic_write(catalog_path, json.dumps(models, indent=2, ensure_ascii=False) + "\n")
 effort_list = " ".join(l["effort"] for l in levels) if levels else "(仅默认 %s)" % effort
 print("[custom-setup] models.json 目录已生成（窗口 %s tokens，effort 档位: %s）" % (ctx, effort_list))

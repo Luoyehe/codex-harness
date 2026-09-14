@@ -139,7 +139,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import stat
 def safe(path): return SimpleNamespace(st_uid=0, st_mode=stat.S_IFDIR | 0o755)
-expected = str(Path("/opt/custom-npm/bin").resolve())
+expected = "/opt/custom-npm/bin"
 assert resolve_tools_bin(prefix_fn=lambda: "/opt/custom-npm", stat_fn=safe) == expected
 assert resolve_tools_bin("/opt/custom-npm/bin", prefix_fn=lambda: (_ for _ in ()).throw(AssertionError("npm should not run")), stat_fn=safe) == expected
 for invalid in ("relative/bin", "/opt/custom tools/bin", "/opt/custom:tools/bin", "/opt/tools/not-bin"):
@@ -197,7 +197,8 @@ test("server verification asserts SPA content and never starts production turns 
     f.command("curl", 'printf "curl %s\\n" "$*" >> "$FIXTURE_LOG"\ncase "$*" in *healthz*) printf \'{"ok":true,"codexState":"ready"}\' ;; *) read -r header; [ "$header" = "Authorization: Bearer fixture-private-token" ] || exit 22; printf "%s" "$FIXTURE_SPA" ;; esac');
     f.command("node", 'printf "%s\\n" "$*" >> "$FIXTURE_LOG"');
     const run = (html) => spawnSync("bash", [path.join(deploy, "verify-server.sh")], {
-      encoding: "utf8", timeout: 10000, env: { ...f.env, GATEWAY_TOKEN: "fixture-private-token", HARNESS_ALLOW_PAID_TESTS: "0", EDGE_URL: "", FIXTURE_SPA: html },
+      encoding: "utf8", timeout: 10000, env: { ...f.env, GATEWAY_TOKEN: "fixture-private-token", GATEWAY_CONTROL_HOME: path.join(f.dir, "control"),
+        SERVICE_NAME: "codex-harness-verification-test-no-unit", HARNESS_ALLOW_PAID_TESTS: "0", EDGE_URL: "", FIXTURE_SPA: html },
     });
     assert.equal(run('<html><div id="root"></div></html>').status, 0);
     const calls = readFileSync(f.env.FIXTURE_LOG, "utf8");
@@ -211,19 +212,21 @@ test("server verification asserts SPA content and never starts production turns 
 test("service registration binds custom instance identity and immutable CLI without real system writes", shOptions, () => {
   const f = fixture();
   try {
-    f.command("id", 'case "$1" in -u) if [ "$#" -eq 1 ]; then echo 0; else echo 1000; fi ;; -gn) echo fixture ;; *) echo fixture ;; esac');
+    f.command("id", 'case "$1" in -u) if [ "$#" -eq 1 ]; then echo 0; elif [ "$2" = fixture-control ]; then echo 1001; else echo 1000; fi ;; -gn) echo fixture ;; *) echo fixture ;; esac');
     f.command("getent", 'echo "fixture:x:1000:1000::/var/lib/fixture:/usr/sbin/nologin"');
     f.command("runuser", 'exit 0');
     f.command("visudo", 'exit 0');
     // The permission decision is exercised above. Relocate this filesystem
     // boundary so the integration fixture never needs a root-owned /opt tree.
-    f.command("python3", 'case "$1" in */runtime_paths.py) [ "${FIXTURE_BAD_TOOLS:-0}" != 1 ] || exit 73; printf "%s\\n" "$FIXTURE_TOOLS_BIN" ;; *) exit 91 ;; esac');
+    f.command("python3", 'case "$1" in */runtime_paths.py) [ "${FIXTURE_BAD_TOOLS:-0}" != 1 ] || exit 73; printf "%s\\n" "$FIXTURE_TOOLS_BIN" ;; -I) if [[ "$2" = */trusted_paths.py ]]; then case "$4" in /opt/fixture-source-alias) printf "%s\\n" "$FIXTURE_SOURCE" ;; */node_modules/.bin/codex) printf "%s\\n" "$FIXTURE_CANONICAL_CLI" ;; *) printf "%s\\n" "$4" ;; esac; else cat >/dev/null; fi ;; *) exit 91 ;; esac');
     f.command("install", 'printf "install %s\\n" "$*" >> "$FIXTURE_LOG"\n[ "$1" != -d ] || exit 0\nargs=("$@"); count=${#args[@]}; target=${args[count-1]}; source=${args[count-2]}; mkdir -p "$FIXTURE_CAPTURE$(dirname "$target")"; cp "$source" "$FIXTURE_CAPTURE$target"');
     const service = `codex-fixture-${process.pid}`;
     const cli = "/usr/local/lib/codex-harness/codex/0.149.0/node_modules/.bin/codex";
+    const canonicalCli = "/usr/local/lib/codex-harness/codex/0.149.0/node_modules/@openai/codex/bin/codex.js";
     // register-service copies only this helper from the source tree.
     mkdirSync(path.join(f.dir, "deploy"));
     writeFileSync(path.join(f.dir, "deploy", "privileged-helper.sh"), "fixture helper\n");
+    writeFileSync(path.join(f.dir, "deploy", "worker_launcher.py"), "fixture worker launcher\n");
     const toolsBin = path.join(f.dir, "custom-npm", "bin");
     const nodePath = path.join(f.dir, "private-node", "bin", "node");
     mkdirSync(toolsBin, { recursive: true });
@@ -236,7 +239,8 @@ test("service registration binds custom instance identity and immutable CLI with
     const capture = path.join(f.dir, "capture");
     const result = spawnSync("bash", [path.join(deploy, "register-service.sh")], {
       encoding: "utf8", timeout: 10000,
-      env: { ...f.env, FIXTURE_CAPTURE: capture, FIXTURE_TOOLS_BIN: toolsBin, SERVICE_NAME: service, RUN_USER: "fixture", INSTALL_DIR: f.dir,
+      env: { ...f.env, FIXTURE_CAPTURE: capture, FIXTURE_TOOLS_BIN: toolsBin, FIXTURE_SOURCE: f.dir, FIXTURE_CANONICAL_CLI: canonicalCli,
+        SERVICE_NAME: service, RUN_USER: "fixture", GATEWAY_USER: "fixture-control", GATEWAY_CONTROL_HOME: `${f.dir}/control`, INSTALL_DIR: "/opt/fixture-source-alias",
         CODEX_HOME: `${f.dir}/state`, CODEX_WORKSPACE: `${f.dir}/workspace`, ENV_FILE: `${f.dir}/state/secrets.env`, CODEX_BIN: cli,
         NODE_BIN: nodePath, PORT: "18410", BIN_DIR: "/usr/local/bin" },
     });
@@ -248,10 +252,13 @@ test("service registration binds custom instance identity and immutable CLI with
     assert.ok(wrapper.includes(`export TOOLS_BIN_DIR=${toolsBin}`));
     assert.ok(!wrapper.includes("$PATH"), "wrapper must not persist or inherit an ambient executable search path");
     const unit = readFileSync(`${capture}/etc/systemd/system/${service}.service`, "utf8");
-    assert.ok(unit.includes(`ExecStart=/usr/bin/env CODEX_BIN=${cli}`));
+    assert.ok(unit.includes(`ExecStart=/usr/bin/env CODEX_BIN=${canonicalCli}`));
+    assert.ok(unit.includes(`WorkingDirectory=${f.dir}/apps/gateway`));
+    assert.ok(!unit.includes("/opt/fixture-source-alias") && !wrapper.includes("/opt/fixture-source-alias"));
     assert.ok(unit.includes(`CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin-${service}`));
-    assert.ok(unit.includes(`Environment=NODE_BIN=${nodePath}\nEnvironment=TOOLS_BIN_DIR=${toolsBin}\n`));
+    assert.ok(unit.includes(`Environment=NODE_BIN=${nodePath}\nEnvironment=NODE_BIN_DIR=${path.dirname(nodePath)}\nEnvironment=TOOLS_BIN_DIR=${toolsBin}\n`));
     const unitPath = unit.match(/^Environment=PATH=(.+)$/m)[1];
+    assert.ok(unitPath.startsWith(`${path.dirname(cli)}:`), "canonical CLI execution must not lose the original trusted bare-command directory");
     assert.ok(unitPath.includes(`:${toolsBin}:`));
     const wrapped = spawnSync("bash", [`${capture}/usr/local/bin/codex-harness-${service}`, "provider", "openai"], {
       encoding: "utf8", timeout: 10000, env: f.env,
@@ -259,7 +266,11 @@ test("service registration binds custom instance identity and immutable CLI with
     assert.equal(wrapped.status, 0, wrapped.stderr);
     assert.equal(wrapped.stdout, `${toolsBin}\n${nodePath}\n${unitPath}\n${toolsBin}/zai-mcp-server\n`);
     const grant = readFileSync(`${capture}/etc/sudoers.d/codex-harness-${service}`, "utf8");
-    assert.equal(grant, `fixture ALL=(root) NOPASSWD: /usr/local/libexec/codex-harness-admin-${service} restart-service, /usr/local/libexec/codex-harness-admin-${service} recent-logs\n`);
+    assert.equal(grant, `fixture-control ALL=(root) NOPASSWD: /usr/local/libexec/codex-harness-admin-${service} restart-service, /usr/local/libexec/codex-harness-admin-${service} recent-logs, /usr/local/libexec/codex-harness-admin-${service} worker-backend\n`);
+    assert.ok(unit.includes("User=fixture-control\n"));
+    assert.ok(unit.includes("Environment=RUN_USER=fixture\n"));
+    assert.ok(unit.includes(`EnvironmentFile=-${f.dir}/control/gateway.env\n`));
+    assert.ok(!unit.includes(`EnvironmentFile=-${f.dir}/state/secrets.env`));
     assert.ok(!grant.includes("journalctl") && !grant.includes("*"), "sudo grants must not expose arbitrary journal arguments");
   } finally { rmSync(f.dir, { recursive: true, force: true }); }
 });
@@ -347,7 +358,7 @@ test("direct management recovers custom Node/tools paths for provider scripts wi
     writeFileSync(path.join(repo, "deploy/providers/openai/setup.sh"), 'printf "%s\\n" "$TOOLS_BIN_DIR" "$PATH" > "$FIXTURE_SERVICE_ENV"\ncommand -v node >> "$FIXTURE_SERVICE_ENV"\ncommand -v zai-mcp-server >> "$FIXTURE_SERVICE_ENV"\n');
     f.command("id", 'case "$1" in -u) echo 0 ;; -un) echo operator ;; *) echo fixture ;; esac');
     f.command("getent", 'printf "fixture:x:1000:1000::%s:/usr/sbin/nologin\\n" "$FIXTURE_HOME"');
-    f.command("python3", 'case "$1" in */runtime_paths.py) printf "%s\\n" "$FIXTURE_TOOLS_BIN" ;; */lifecycle.py) echo openai ;; *) exit 91 ;; esac');
+    f.command("python3", 'case "$1" in */runtime_paths.py) printf "%s\\n" "$FIXTURE_TOOLS_BIN" ;; */lifecycle.py) echo openai ;; -I) [[ "$2" = */trusted_paths.py ]] || exit 91; printf "%s\\n" "$4" ;; *) exit 91 ;; esac');
     f.command("runuser", 'while [ "$1" != -- ]; do shift; done; shift; exec "$@"');
     f.command("systemctl", 'printf "systemctl %s\\n" "$*" >> "$FIXTURE_LOG"');
     const capture = path.join(f.dir, "service-env");
@@ -404,6 +415,7 @@ test("update failure unwinds its real Bash transaction scope and restores artifa
     { failure: "register", code: 76, active: "0", rollbackFails: false },
     { failure: "health", code: 54, active: "1", rollbackFails: false },
     { failure: "typecheck", code: 53, active: "1", rollbackFails: false },
+    { failure: "test", code: 51, active: "1", rollbackFails: false },
     { failure: "smoke", code: 52, active: "1", rollbackFails: false },
     { failure: "register", code: 75, active: "1", rollbackFails: true },
     { failure: "none", code: 0, active: "1", rollbackFails: false },
@@ -425,6 +437,10 @@ test("update failure unwinds its real Bash transaction scope and restores artifa
       }
       writeFileSync(path.join(candidate, "deploy", "install.sh"), 'CODEX_VERSION="0.149.0"\n');
       writeFileSync(path.join(candidate, "deploy", "install-runtime.sh"), 'printf "%s\\n" "$FIXTURE_CLI"\n');
+      // Substitute only the transient-service boundary. The real helper has
+      // separate isolated-identity tests; retain transaction failure/rollback
+      // assertions for both test and smoke failures before publication.
+      writeFileSync(path.join(repo, "deploy", "test-candidate.sh"), 'set -eu\n[ "$2" = "$FIXTURE_CLI" ]\ncd "$1"\npnpm test\nCODEX_BIN="$2" node scripts/gateway-smoke.mjs\n');
       writeFileSync(path.join(repo, "deploy", "register-service.sh"), String.raw`set -eu
 printf 'register\n' >> "$FIXTURE_LOG"
 [ "$TOOLS_BIN_DIR" = /opt/fixture-tools/bin ] || exit 89
@@ -435,6 +451,7 @@ printf 'introduced-system\n' > "$FIXTURE_SYSTEM/introduced"
 if [ "$FIXTURE_FAIL_STAGE" = register ]; then exit "$FIXTURE_FAIL_CODE"; fi
 `);
       f.command("flock", "exit 0");
+      f.command("python3", 'test "$1" = -I; [[ "$2" = */trusted_paths.py ]]; printf "%s\\n" "$4"');
       f.command("git", String.raw`repo=$2
 shift 2
 printf 'git %s\n' "$*" >> "$FIXTURE_LOG"
@@ -554,6 +571,7 @@ test("CLI install publishes a verified version once and leaves global CLI unchan
     // Substitute the root ownership boundary so this fixture also runs as
     // nobody; every remaining operation stays in the temporary runtime tree.
     f.command("install", 'test "$1" = -d; target="${@: -1}"; mkdir -p -- "$target"; chmod 755 "$target"');
+    f.command("python3", 'test "$1" = -I; [[ "$2" = */trusted_paths.py ]]; printf "%s\\n" "$4"');
     f.command("codex", 'echo global-cli-unchanged');
     f.command("npm", 'printf "npm %s\\n" "$*" >> "$FIXTURE_LOG"\nwhile [ "$#" -gt 0 ]; do case "$1" in --prefix) shift; prefix=$1 ;; @openai/codex@*) version=${1##*@} ;; esac; shift; done\nmkdir -p "$prefix/node_modules/.bin"\nprintf \'#!/usr/bin/env bash\\necho "codex-cli %s"\\n\' "$version" > "$prefix/node_modules/.bin/codex"\nchmod 755 "$prefix/node_modules/.bin/codex"');
     const base = path.join(f.dir, "runtimes");

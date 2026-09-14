@@ -18,9 +18,9 @@ sudo codex-harness provider custom
 
 - 写入 `model_provider = "custom"` + `[model_providers.custom]`（`wire_api = "responses"`）
 - **排他激活**：替换供应商选择和本项目管理的智谱 MCP 设置，保留其它用户配置与自定义 MCP；与 OpenAI 原生/智谱预设互不干扰
-- 生成单模型 `models.json` 目录，WebUI 的模型下拉会显示你的真实模型；`CUSTOM_CTX` 声明上下文窗口（默认 131072，按服务实际填写，例如 vLLM 的 `max_model_len`）
+- 首次生成所选模型的 `models.json` 条目；同一端点再配置其它模型时保留各自已声明的能力。WebUI 下拉仅显示已配置的真实模型；`CUSTOM_CTX` 声明该模型的上下文窗口（默认 131072，按服务实际填写，例如 vLLM 的 `max_model_len`）
 - **effort 档位默认不探测**：按配置的默认档生成 catalog，不产生推理请求。只有明确接受真实 API 请求及可能费用时，才用 `sudo PROBE_REASONING=1 codex-harness provider custom` 逐一探测 7 档（none/minimal/low/medium/high/xhigh/max）；`CUSTOM_EFFORT` 可指定默认档
-- **同步目录不等于重配**：WebUI 同步会读取端点 `/models`，保留当前模型、默认 effort 和同端点已经确认的档位；新增模型使用手动声明的端点窗口/图片设置，但不宣称其 effort 已被验证。当前模型不在返回目录中或获取失败时不提交，且同步永不发付费探测。
+- **同步目录不等于重配**：WebUI 同步会读取端点 `/models`，保留当前模型和各已配置模型自己的能力。只返回 ID 的新模型记入 `unconfigured_models`，能力标记为未知，不能继承当前模型的窗口、图片、工具或 effort，也不会直接出现在可用模型下拉中；先按该模型的实际规格单独配置再使用。当前模型不在返回目录中或获取失败时不提交；同步永不发付费探测，内容不变时不重启。
 - `CUSTOM_VISION=1`（或交互选 y）声明图片输入：codex 会把上传的图片原生发给端点（vLLM 需 `--limit-mm-per-prompt.image`）；实测 Qwen 视觉描述准确
 - 本地无鉴权服务 Key 留空即可；生成的 provider 配置会省略 `env_key`，请求也不会发送 `Authorization` 头。为空表示明确使用无鉴权，不会沿用其它端点的旧 Key
 

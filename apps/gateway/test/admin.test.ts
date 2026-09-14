@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { recentLogs, redactSecrets, RedactedOutputRing, runScript, serviceStatus } from "../src/admin.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
+import { recentLogs, redactSecrets, RedactedOutputRing, runScript, scriptChangeResult, serviceStatus } from "../src/admin.js";
 
 function logExecutor(stdout: string, failure?: string) {
   const calls: { command: string; args: string[]; options: Record<string, unknown> }[] = [];
@@ -146,6 +148,92 @@ describe("administrator output redaction", () => {
 });
 
 describe("administrator script allowlist", () => {
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+  const throwingSpawn = (() => { throw new Error("spawn exploded"); }) as typeof import("node:child_process").spawn;
+  function fakeChild(pid: number | undefined = 123456) {
+    const child = Object.assign(new EventEmitter(), { pid, stdout: new PassThrough(), stderr: new PassThrough(), kill: vi.fn(() => true) });
+    const spawn = vi.fn(() => child) as unknown as typeof import("node:child_process").spawn;
+    return { child, spawn };
+  }
+
+  it("keeps timeout work locked until actual close and then returns the timeout result", async () => {
+    vi.useFakeTimers();
+    const processKill = vi.spyOn(process, "kill").mockReturnValue(true);
+    const { child, spawn } = fakeChild();
+    const completed = vi.fn();
+    const first = runScript("providers/openai/setup.sh", {}, 100, spawn);
+    void first.then(completed);
+    try {
+      await vi.advanceTimersByTimeAsync(100);
+      if (process.platform === "win32") expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+      else expect(processKill).toHaveBeenCalledWith(-123456, "SIGKILL");
+      expect(completed).not.toHaveBeenCalled();
+      await expect(runScript("providers/openai/setup.sh", {}, 100, spawn)).resolves.toMatchObject({ code: 75, executionPending: true });
+      expect(spawn).toHaveBeenCalledTimes(1);
+      child.emit("close", null);
+      await expect(first).resolves.toMatchObject({ code: 124, output: expect.stringContaining("timed out") });
+      expect((await first).executionPending).toBeUndefined();
+      await expect(runScript("providers/openai/setup.sh", {}, 100, throwingSpawn)).resolves.toMatchObject({ code: -1 });
+    } finally { child.emit("close", null); await first; }
+  });
+
+  it("returns a bounded unconfirmed result without unlocking and ignores an old duplicate close", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(process, "kill").mockReturnValue(true);
+    const firstFixture = fakeChild(), secondFixture = fakeChild(123457);
+    const first = runScript("providers/openai/setup.sh", {}, 100, firstFixture.spawn);
+    let second: ReturnType<typeof runScript> | undefined;
+    try {
+      await vi.advanceTimersByTimeAsync(5100);
+      await expect(first).resolves.toMatchObject({ code: 124, executionPending: true, output: expect.stringContaining("unconfirmed") });
+      await expect(runScript("providers/openai/setup.sh", {}, 100, secondFixture.spawn)).resolves.toMatchObject({ code: 75, executionPending: true });
+      expect(secondFixture.spawn).not.toHaveBeenCalled();
+      firstFixture.child.emit("close", null);
+      second = runScript("providers/openai/setup.sh", {}, 100, secondFixture.spawn);
+      firstFixture.child.emit("close", null);
+      await expect(runScript("providers/openai/setup.sh", {}, 100, throwingSpawn)).resolves.toMatchObject({ code: 75 });
+      secondFixture.child.emit("close", 0);
+      await expect(second).resolves.toMatchObject({ code: 0 });
+    } finally { firstFixture.child.emit("close", null); secondFixture.child.emit("close", null); await first; if (second) await second; }
+  });
+
+  it("does not treat an error event on an existing process as an exit confirmation", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(process, "kill").mockReturnValue(true);
+    const { child, spawn } = fakeChild();
+    const first = runScript("providers/openai/setup.sh", {}, 100, spawn);
+    const completed = vi.fn();
+    void first.then(completed);
+    try {
+      child.emit("error", new Error("synthetic process failure"));
+      await Promise.resolve();
+      expect(completed).not.toHaveBeenCalled();
+      await expect(runScript("providers/openai/setup.sh", {}, 100, spawn)).resolves.toMatchObject({ code: 75 });
+      child.emit("close", 1);
+      await expect(first).resolves.toMatchObject({ code: -1, output: expect.stringContaining("child process error") });
+    } finally { child.emit("close", null); await first; }
+  });
+
+  it("releases an asynchronous spawn failure with no PID and ignores its late close", async () => {
+    const firstFixture = fakeChild(), secondFixture = fakeChild();
+    firstFixture.child.pid = undefined;
+    const first = runScript("providers/openai/setup.sh", {}, 100, firstFixture.spawn);
+    firstFixture.child.emit("error", new Error("spawn ENOENT"));
+    await expect(first).resolves.toMatchObject({ code: -1 });
+    const second = runScript("providers/openai/setup.sh", {}, 100, secondFixture.spawn);
+    try {
+      firstFixture.child.emit("close", -1);
+      await expect(runScript("providers/openai/setup.sh", {}, 100, throwingSpawn)).resolves.toMatchObject({ code: 75 });
+      secondFixture.child.emit("close", 0);
+      await expect(second).resolves.toMatchObject({ code: 0 });
+    } finally { secondFixture.child.emit("close", null); await second; }
+  });
+
+  it("copies only allowlisted boolean status fields from script output", () => {
+    const output = '[codex-harness-result] {"changed":false,"restartRequired":false,"code":999,"output":"replace-output","executionPending":true,"other":"ignored"}\n';
+    expect(scriptChangeResult({ code: 0, output })).toEqual({ code: 0, output, changed: false, restartRequired: false });
+    expect(scriptChangeResult({ code: 124, output, executionPending: true })).toEqual({ code: 124, output, executionPending: true, changed: false, restartRequired: false });
+  });
   it("cannot execute a caller-selected path", async () => {
     await expect(runScript("../../bin/anything", {})).resolves.toEqual({
       code: -1,
@@ -154,9 +242,8 @@ describe("administrator script allowlist", () => {
   });
 
   it("releases the single-operation lock when spawn throws synchronously", async () => {
-    const throwingSpawn = (() => { throw new Error("spawn exploded"); }) as typeof import("node:child_process").spawn;
-    const first = await runScript("setup-edge.sh", {}, 100, throwingSpawn);
-    const second = await runScript("setup-edge.sh", {}, 100, throwingSpawn);
+    const first = await runScript("providers/openai/setup.sh", {}, 100, throwingSpawn);
+    const second = await runScript("providers/openai/setup.sh", {}, 100, throwingSpawn);
     expect(first).toMatchObject({ code: -1 });
     expect(second).toMatchObject({ code: -1 });
     expect(second.output).not.toContain("正在运行");

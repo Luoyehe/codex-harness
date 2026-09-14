@@ -20,7 +20,7 @@ it("requires credentials before issuing a cookie in strict HTTP bootstrap", asyn
       host: "localhost:8410", authorization: `Basic ${Buffer.from(`codex:${token.token}`).toString("base64")}`,
     } });
     expect(authorized.statusCode).toBe(200);
-    expect(authorized.headers["set-cookie"]).toContain(`gw_token=${token.token}; Path=/; HttpOnly; SameSite=Strict`);
+    expect(authorized.headers["set-cookie"]).toContain(`${token.cookieName}=${token.token}; Path=/; HttpOnly; SameSite=Strict`);
     const untrusted = await app.inject({ url: "/", headers: { host: "attacker.example", authorization: `Bearer ${token.token}` } });
     expect(untrusted.headers["set-cookie"]).toBeUndefined();
   } finally { await app.close(); }

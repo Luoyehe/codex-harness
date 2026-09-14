@@ -11,6 +11,7 @@
 import type { DynamicToolCallParams } from "../../../protocol/v2/DynamicToolCallParams.js";
 import type { DynamicToolCallResponse } from "../../../protocol/v2/DynamicToolCallResponse.js";
 import type { DynamicToolCallOutputContentItem } from "../../../protocol/v2/DynamicToolCallOutputContentItem.js";
+import { isResponseFor, isSupportedProtocolVersion, postMcp, RemoteHttpError } from "../../../deploy/providers/zhipu-coding-plan/mcp-http-transport.mjs";
 
 const ZHIPU_ENDPOINTS: Record<string, string> = {
   "web-search-prime": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp",
@@ -26,11 +27,8 @@ function token(): string {
 // same-millisecond concurrent calls, which some endpoints mis-route.
 let nextMcpRequestId = 1;
 
-// Per-endpoint session ids handed out at initialize; required on later calls.
-const sessionIds = new Map<string, string>();
-// Endpoints whose initialize completed even when the server handed out no
-// session id (some don't) — don't re-handshake on every call.
-const initialized = new Set<string>();
+interface Session { id: string; version: string; }
+const sessions = new Map<string, Session>();
 // Concurrent tool calls must not race duplicate initialize handshakes.
 const initInFlight = new Map<string, Promise<void>>();
 
@@ -42,50 +40,25 @@ export function isProxyableToolCall(namespace: string | null): boolean {
   return typeof namespace === "string" && Object.hasOwn(ZHIPU_ENDPOINTS, namespace);
 }
 
-async function fetchMcp(url: string, body: unknown): Promise<{ status: number; ctype: string; text: string }> {
+async function fetchMcp(url: string, body: any, session: Session, signal?: AbortSignal): Promise<{ payload: any; sessionId: string }> {
   if (!token()) throw new Error("Z_AI_API_KEY is not configured");
-  const sid = sessionIds.get(url);
-  const res = await fetch(url, {
-    method: "POST",
-    redirect: "error",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json, text/event-stream",
-      ...(token() ? { Authorization: `Bearer ${token()}` } : {}),
-      ...(sid ? { "Mcp-Session-Id": sid } : {}),
-    },
-    body: JSON.stringify(body),
-    // A hung remote endpoint must not hang the agent turn forever.
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  const sid2 = res.headers.get("mcp-session-id");
-  if (sid2) sessionIds.set(url, sid2);
-  const ctype = res.headers.get("content-type") ?? "";
-  const declared = Number(res.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
-    await res.body?.cancel().catch(() => {});
-    throw new Error(`MCP response exceeded ${MAX_RESPONSE_BYTES} bytes`);
-  }
-  const chunks: Buffer[] = [];
-  let total = 0;
-  if (res.body) {
-    for await (const chunk of res.body) {
-      const bytes = Buffer.from(chunk);
-      total += bytes.byteLength;
-      if (total > MAX_RESPONSE_BYTES) {
-        await res.body.cancel().catch(() => {});
-        throw new Error(`MCP response exceeded ${MAX_RESPONSE_BYTES} bytes`);
+  let payload: any;
+  const sessionId = await postMcp(url, body, {
+    token: token(), session, signal, timeoutMs: FETCH_TIMEOUT_MS, maxResponseBytes: MAX_RESPONSE_BYTES,
+    onMessage(message) {
+      if (body.id != null && isResponseFor(message, body.id)) {
+        payload = message;
+        return true;
       }
-      chunks.push(bytes);
-    }
-  }
-  const text = Buffer.concat(chunks, total).toString("utf8");
-  return { status: res.status, ctype, text };
+      return false;
+    },
+  });
+  return { payload, sessionId };
 }
 
 /** Ensure an initialized session exists for this endpoint (deduped). */
 function ensureSession(url: string): Promise<void> {
-  if (initialized.has(url)) return Promise.resolve();
+  if (sessions.has(url)) return Promise.resolve();
   const existing = initInFlight.get(url);
   if (existing) return existing;
   const p = (async () => {
@@ -94,16 +67,17 @@ function ensureSession(url: string): Promise<void> {
         jsonrpc: "2.0",
         id: nextMcpRequestId++,
         method: "initialize",
-        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "codex-harness-gateway", version: "1.0.1" } },
-      });
-      if (init.status >= 400) throw new Error(`MCP initialize failed: HTTP ${init.status}`);
-      const handshake = parsePayload(init.ctype, init.text);
+        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "codex-harness-gateway", version: "1.1.0" } },
+      }, { id: "", version: "2025-03-26" });
+      const handshake = init.payload;
       if (!handshake?.result || handshake.error) throw new Error("MCP initialize returned an invalid response");
-      await fetchMcp(url, { jsonrpc: "2.0", method: "notifications/initialized" });
-      initialized.add(url);
+      const version = handshake.result.protocolVersion;
+      if (typeof version !== "string" || !isSupportedProtocolVersion(version) || init.sessionId.length > 4096) throw new Error("MCP initialize returned invalid metadata");
+      const session = { id: init.sessionId, version };
+      await fetchMcp(url, { jsonrpc: "2.0", method: "notifications/initialized" }, session);
+      sessions.set(url, session);
     } catch (error) {
-      sessionIds.delete(url);
-      initialized.delete(url);
+      sessions.delete(url);
       throw error;
     } finally {
       initInFlight.delete(url);
@@ -113,44 +87,22 @@ function ensureSession(url: string): Promise<void> {
   return p;
 }
 
-/** Session-expiry statuses: the stored Mcp-Session-Id is no longer valid. */
-function looksLikeSessionError(status: number): boolean {
-  return status === 400 || status === 404 || status === 410;
+async function awaitSession(url: string, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  const ready = ensureSession(url);
+  if (!signal) return ready;
+  await new Promise<void>((resolve, reject) => {
+    const aborted = () => reject(signal.reason ?? new DOMException("aborted", "AbortError"));
+    signal.addEventListener("abort", aborted, { once: true });
+    void ready.then(resolve, reject).finally(() => signal.removeEventListener("abort", aborted));
+  });
 }
 
-function parsePayload(ctype: string, text: string): any {
-  if (ctype.includes("text/event-stream")) {
-    for (const block of text.split(/\n\s*\n/)) {
-      const data = block
-        .split("\n")
-        .filter((l) => l.startsWith("data:"))
-        .map((l) => l.slice(5).trim())
-        .join("");
-      if (!data) continue;
-      try {
-        const msg = JSON.parse(data);
-        if (msg?.result !== undefined || msg?.error !== undefined) return msg;
-      } catch {
-        /* skip */
-      }
-    }
-    return null;
-  }
-  if (text.trim()) {
-    try {
-      return JSON.parse(text);
-    } catch {
-      /* non-JSON error body */
-    }
-  }
-  return null;
-}
-
-export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, "namespace" | "tool" | "arguments">): Promise<DynamicToolCallResponse> {
+export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, "namespace" | "tool" | "arguments">, options: { signal?: AbortSignal } = {}): Promise<DynamicToolCallResponse> {
   const url = isProxyableToolCall(params.namespace) ? ZHIPU_ENDPOINTS[params.namespace!] : undefined;
   if (!url) throw new Error(`no executor for tool namespace: ${params.namespace}`);
 
-  await ensureSession(url);
+  await awaitSession(url, options.signal);
 
   const callBody = {
     jsonrpc: "2.0",
@@ -159,19 +111,22 @@ export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, 
     params: { name: params.tool, arguments: params.arguments ?? {} },
   };
 
-  let res = await fetchMcp(url, callBody);
-  if (res.status >= 400 && looksLikeSessionError(res.status)) {
-    // The session expired server-side — re-initialize once and retry.
-    sessionIds.delete(url);
-    initialized.delete(url);
-    await ensureSession(url);
-    res = await fetchMcp(url, callBody);
-  }
-  if (res.status >= 400) {
-    throw new Error(`MCP tools/call failed: HTTP ${res.status}`);
+  options.signal?.throwIfAborted();
+  const usedSession = sessions.get(url)!;
+  let res;
+  try {
+    res = await fetchMcp(url, callBody, usedSession, options.signal);
+  } catch (error) {
+    // Only explicit rejection of an established session is retryable. A
+    // transport timeout is ambiguous and must never replay a tool operation.
+    if (!(error instanceof RemoteHttpError) || ![401, 404, 410].includes(error.status) || !usedSession.id || options.signal?.aborted) throw error;
+    if (sessions.get(url) === usedSession) sessions.delete(url);
+    await awaitSession(url, options.signal);
+    options.signal?.throwIfAborted();
+    res = await fetchMcp(url, callBody, sessions.get(url)!, options.signal);
   }
 
-  const payload = parsePayload(res.ctype, res.text);
+  const payload = res.payload;
   if (payload?.id !== callBody.id || payload?.error || !payload?.result) {
     throw new Error("MCP tools/call returned an invalid or error response");
   }

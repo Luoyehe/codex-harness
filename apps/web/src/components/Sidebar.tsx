@@ -41,13 +41,13 @@ export function Sidebar() {
           <div
             key={p.path}
             className={`sb-project ${p.path === currentProject ? "current" : ""}`}
-            onClick={() => void selectProject(p.path)}
-            title={p.path}
+            onClick={() => p.available !== false && void selectProject(p.path)}
+            title={p.available === false ? `${p.path}（目录不存在或无权访问，可移除注册）` : p.path}
           >
             <span className="sb-project-dot" aria-hidden />
-            <span className="sb-project-name">{pathBasename(p.path)}</span>
+            <span className="sb-project-name">{pathBasename(p.path)}{p.available === false ? "（不可用）" : ""}</span>
             <span className="sb-time">{relativeTime(Math.floor(p.lastUsedAt / 1000))}</span>
-            {projects.length > 1 && (
+            {(projects.length > 1 || p.available === false) && (
               <button
                 className="sb-x"
                 title="移除注册（不删除文件）"

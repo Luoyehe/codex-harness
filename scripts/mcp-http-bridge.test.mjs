@@ -114,7 +114,8 @@ test("SSE delivers a matching response and releases the request without waiting 
   const { instance, url } = await server(async (req, res) => {
     const request = await requestBody(req);
     res.setHeader("content-type", "text/event-stream");
-    res.write('data: ' + JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { done: true } }) + "\n\n");
+    res.write('data: {"id":123456,"result":{"wrong":true}}\r\n\r\n');
+    res.write(`data: {"jsonrpc":"2.0","id":${request.id},\r\ndata: "result":{"done":true}}\r\n\r\n`);
   });
   t.after(() => { instance.closeAllConnections(); instance.close(); });
   const run = liveBridge(t, url);
@@ -122,6 +123,52 @@ test("SSE delivers a matching response and releases the request without waiting 
   run.child.stdin.end();
   await run.waitFor(() => run.frames.length === 1 && run.child.exitCode !== null);
   assert.deepEqual(run.frames, [{ jsonrpc: "2.0", id: 9, result: { done: true } }]);
+});
+
+test("SSE terminal errors are matched by id and complete without EOF", { timeout: 8000 }, async (t) => {
+  const { instance, url } = await server(async (req, res) => {
+    const request = await requestBody(req);
+    res.setHeader("content-type", "text/event-stream");
+    res.write('data: {"id":-1,"error":{"code":-1}}\n\n');
+    res.write('data: ' + JSON.stringify({ id: request.id, error: { code: -42, message: "test" } }) + "\n\n");
+  });
+  t.after(() => { instance.closeAllConnections(); instance.close(); });
+  const run = liveBridge(t, url);
+  run.send({ id: 9, method: "tools/call" });
+  run.child.stdin.end();
+  await run.waitFor(() => run.frames.length === 1 && run.child.exitCode !== null);
+  assert.deepEqual(run.frames, [{ id: 9, error: { code: -42, message: "test" } }]);
+});
+
+test("cancellation aborts a held tool even if its control notification never receives a response", { timeout: 8000 }, async (t) => {
+  let initialized = false;
+  let closed = false;
+  let cancelling = false;
+  const { instance, url } = await server(async (req, res) => {
+    const request = await requestBody(req);
+    if (request.method === "initialize") {
+      res.setHeader("mcp-session-id", "session");
+      jsonResponse(res, request, { protocolVersion: "2025-06-18" });
+    } else if (request.method === "notifications/initialized") { initialized = true; res.writeHead(202).end(); }
+    else if (request.method === "notifications/cancelled") { cancelling = true; /* hung control request */ }
+    else {
+      res.setHeader("content-type", "text/event-stream");
+      res.write('data: {"method":"notifications/progress"}\n\n');
+      res.on("close", () => { closed = true; });
+    }
+  });
+  t.after(() => { instance.closeAllConnections(); instance.close(); });
+  const run = liveBridge(t, url);
+  run.send({ id: 1, method: "initialize" });
+  run.send({ method: "notifications/initialized" });
+  await run.waitFor(() => initialized);
+  run.send({ id: 2, method: "tools/call" });
+  await run.waitFor(() => run.frames.some((frame) => frame.method === "notifications/progress"));
+  run.send({ method: "notifications/cancelled", params: { requestId: 2 } });
+  await run.waitFor(() => cancelling && closed);
+  run.child.stdin.end();
+  assert.deepEqual(await run.closed, [0, null]);
+  assert.equal(run.frames.some((frame) => frame.id === 2), false);
 });
 
 test("SSE rejects an oversized unfinished event with bounded buffering", { timeout: 8000 }, async (t) => {
@@ -185,6 +232,7 @@ for (const initializationResult of [
   { error: { code: -1, message: "private failure" } },
   { result: {} },
   { result: null },
+  { result: { protocolVersion: "2099-01-01" } },
 ]) test(`invalid initialize ${JSON.stringify(initializationResult)} with a session header blocks later calls`, { timeout: 8000 }, async (t) => {
   const methods = [];
   const { instance, url } = await server(async (req, res) => {

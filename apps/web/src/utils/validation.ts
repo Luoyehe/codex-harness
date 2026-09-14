@@ -25,32 +25,3 @@ export function validatedApiBaseUrl(value: unknown): string | null {
   if (!input) return null;
   return new URL(input).search ? null : input;
 }
-
-/** Caddy's domain field is a host only; scheme, path, query and embedded port
- * are configured elsewhere and must not be smuggled into the generated site
- * address. IPv6 literals in brackets are accepted by URL parsing. */
-export function validatedHostname(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const input = value.trim();
-  if (!input || input.length > 253 || /\s/.test(input)) return null;
-  try {
-    const parsed = new URL(`https://${input}`);
-    if (
-      !parsed.hostname ||
-      parsed.username ||
-      parsed.password ||
-      parsed.port ||
-      parsed.pathname !== "/" ||
-      parsed.search ||
-      parsed.hash
-    ) return null;
-    return input;
-  } catch {
-    return null;
-  }
-}
-
-export function clampedInteger(value: number, min: number, max: number, fallback: number): number {
-  if (!Number.isFinite(value)) return fallback;
-  return Math.min(max, Math.max(min, Math.trunc(value)));
-}

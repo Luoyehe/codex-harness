@@ -13,6 +13,7 @@ export interface ProjectEntry {
   path: string;
   addedAt: number;
   lastUsedAt: number;
+  available?: boolean;
 }
 
 interface Registry {
@@ -114,7 +115,12 @@ export class ProjectRegistry {
         seen.add(p.path);
         return true;
       })
-      .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0));
+      .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0))
+      .map((entry) => {
+        let available = false;
+        try { available = statSync(entry.path).isDirectory(); } catch { /* retain removable stale entries */ }
+        return { ...entry, available };
+      });
   }
 
   /**
@@ -133,7 +139,7 @@ export class ProjectRegistry {
         if (!statSync(entry.path).isDirectory()) return null;
         return entry.path;
       } catch {
-        return null;
+        continue;
       }
     }
     return null;

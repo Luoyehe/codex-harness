@@ -5,6 +5,7 @@ import { validatedHttpUrl } from "../utils/validation";
 import { useStore, type Display, type TimelineItem } from "../store";
 import type { RequestPermissionProfile } from "../../../../protocol/v2/RequestPermissionProfile";
 import { describePermissions } from "../utils/permissions";
+import { InputRequests } from "./InputRequests";
 
 // Stable reference: zustand v5 compares snapshots with Object.is, so an
 // inline `?? []` would mint a fresh array every render and loop forever
@@ -93,7 +94,7 @@ export function Timeline() {
   if (!activeThreadId) {
     return (
       <>
-        <ApprovalBanner />
+        <RequestDock />
         <div className="timeline empty">
           <div className="empty-hint">在下方输入消息即可开始新对话</div>
         </div>
@@ -103,7 +104,7 @@ export function Timeline() {
 
   return (
     <>
-      <ApprovalBanner />
+      <RequestDock />
       <div className="timeline" ref={scrollRef}>
         {plan && <PlanCard plan={plan} />}
         {hiddenCount > 0 && (
@@ -134,6 +135,13 @@ function PlanCard({ plan }: { plan: { explanation: string | null; steps: Array<{
       ))}
     </div>
   );
+}
+
+function RequestDock() {
+  const hasApprovals = useStore((state) => state.approvals.length > 0);
+  const hasInputs = useStore((state) => (state.inputRequests?.length ?? 0) > 0);
+  if (!hasApprovals && !hasInputs) return null;
+  return <div className="request-docks"><ApprovalBanner /><InputRequests /></div>;
 }
 
 function ApprovalBanner() {
@@ -257,6 +265,7 @@ function userText(item: UserMessage): string {
  * (UserInput localImage / mention items on resumed threads). */
 function userAttachments(item: UserMessage): Array<{ kind: "image" | "file"; name: string; path?: string; previewUrl?: string }> {
   if (item.type === "localUserMessage") return item.attachments;
+  if (Array.isArray(item.harnessAttachments)) return item.harnessAttachments;
   return item.content
     .filter((c) => c.type === "localImage" || c.type === "mention")
     .map((c) => ({

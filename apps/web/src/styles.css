@@ -1597,3 +1597,8 @@ details summary {
   margin-bottom: 10px;
   font-size: 13px;
 }
+.request-docks { flex: 0 0 auto; max-height: min(40vh, 320px); overflow-y: auto; }
+.request-docks .approval-dock { max-height: none; overflow: visible; }
+.input-request-form { flex: 0 0 auto; }
+.input-request-field { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.input-request-field input, .input-request-field select { max-width: 100%; padding: 8px; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }

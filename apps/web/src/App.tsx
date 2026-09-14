@@ -10,6 +10,7 @@ import { SettingsModal } from "./components/SettingsModal";
 export function App() {
   const bootstrap = useStore((s) => s.bootstrap);
   const connection = useStore((s) => s.connection);
+  const connectionError = useStore((s) => s.connectionError);
   const codexState = useStore((s) => s.codexState);
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const setSidebarOpen = useStore((s) => s.setSidebarOpen);
@@ -44,6 +45,7 @@ export function App() {
           </button>
         </div>
       </header>
+      {connectionError && <div className="error-text" role="alert">{connectionError} <button className="btn" onClick={() => location.reload()}>重新认证 / 刷新</button></div>}
       <div className="body">
         <div className={`sidebar-wrap ${sidebarOpen ? "open" : ""}`}>
           <Sidebar />

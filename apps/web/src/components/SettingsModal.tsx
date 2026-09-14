@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { gateway } from "../api/ws";
 import { useStore } from "../store";
-import { clampedInteger, validatedApiBaseUrl, validatedHostname } from "../utils/validation";
+import { validatedApiBaseUrl } from "../utils/validation";
+import { managementOperationLabel, managementOutcomeText, type ManagementOperation } from "../utils/management";
 
 /**
  * Settings modal — organized by scope, matching the user's mental model:
@@ -100,6 +101,7 @@ function GeneralTab() {
 function ConversationTab() {
   const display = useStore((s) => s.display);
   const updateDisplay = useStore((s) => s.updateDisplay);
+  const displayError = useStore((s) => s.displayError);
   const connection = useStore((s) => s.connection);
 
   const thresholds = [0, 0.8, 0.85, 0.9, 0.95];
@@ -119,6 +121,7 @@ function ConversationTab() {
         对话内容的显示与上下文管理。保存在服务器端，对所有浏览器和重启后的会话生效。
       </div>
       {connection !== "open" && <div className="dim">网关未连接，修改暂不会保存</div>}
+      {displayError && <div className="error-text" role="alert">{displayError}</div>}
 
       <section>
         <div className="settings-label">对话中显示的内容</div>
@@ -213,8 +216,28 @@ function McpSection() {
 interface AdminResult {
   ok: boolean;
   restarting: boolean;
+  changed?: boolean;
+  restartRequired?: boolean;
   output?: string;
   mode?: string;
+  operationId?: string;
+  uncertain?: boolean;
+}
+
+export function AdminResultFeedback({ result, record }: { result: AdminResult; record?: ManagementOperation }) {
+  const matching = result.operationId && record?.operationId === result.operationId ? record : undefined;
+  const pending = result.uncertain || result.restarting || result.restartRequired;
+  const summary = matching ? managementOutcomeText(matching) : result.uncertain
+    ? "请求结果待确认：服务器可能已修改配置。请核对管理状态，未自动重试。"
+    : !result.ok ? "请求失败，请核对错误与服务器状态。"
+    : pending ? "配置步骤已完成，重启结果待确认；这不是完整成功结果。"
+    : result.changed === false ? "配置没有变化，无需重启。" : "配置已更新，无需重启。";
+  return <>
+    <div className="settings-label">本次请求回执</div>
+    <div className="dim settings-hint" role="status">{summary}</div>
+    {result.operationId && <div className="dim settings-hint">操作标识：{result.operationId}</div>}
+    <pre className="admin-output">{result.output || "(无输出)"}</pre>
+  </>;
 }
 
 function redactKnownSecrets(output: unknown, secrets: string[]): string {
@@ -225,14 +248,19 @@ function redactKnownSecrets(output: unknown, secrets: string[]): string {
   return text;
 }
 
-function ServerTab() {
+export function ServerTab() {
   const connection = useStore((s) => s.connection);
   const providerMode = useStore((s) => s.providerMode);
+  const management = useStore((s) => s.management);
+  const managementError = useStore((s) => s.managementError);
+  const refreshManagement = useStore((s) => s.refreshManagement);
   const [status, setStatus] = useState<{ currentModel?: string; unit?: string; active?: string } | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [localBusy, setBusy] = useState<string | null>(null);
+  const busy = localBusy ?? (management.state === "idle" ? null : management.operation ?? "management");
   const [result, setResult] = useState<AdminResult | null>(null);
   const [logs, setLogs] = useState<string | null>(null);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [checkingManagement, setCheckingManagement] = useState(false);
   // Results render at the BOTTOM of this long panel — without scrolling to
   // them, a click looks like "nothing happened".
   const resultRef = useRef<HTMLDivElement>(null);
@@ -251,21 +279,12 @@ function ServerTab() {
   const [customModel, setCustomModel] = useState("");
   const [customKey, setCustomKey] = useState("");
   const [customVision, setCustomVision] = useState(false);
-  // remote access form
-  const [edgeDomain, setEdgeDomain] = useState("");
-  const [edgePort, setEdgePort] = useState(443);
-  const [edgeTls, setEdgeTls] = useState<"auto" | "selfsigned" | "own">("auto");
-  const [edgeCertDir, setEdgeCertDir] = useState("");
-  const [edgeUser, setEdgeUser] = useState("admin");
-  const [edgePass, setEdgePass] = useState("");
-
   const validCustomUrl = validatedApiBaseUrl(customUrl);
-  const validEdgeDomain = validatedHostname(edgeDomain);
-  const validEdgeCertDir = edgeTls !== "own" || edgeCertDir.trim().startsWith("/");
 
   useEffect(() => {
     let cancelled = false;
     const generation = gateway.generation;
+    void refreshManagement();
     void gateway.rpc<any>("admin/status").then((next) => {
       if (!cancelled && generation === gateway.generation) setStatus(next);
     }).catch(() => {});
@@ -276,7 +295,7 @@ function ServerTab() {
   }, []);
 
   async function run(label: string, fn: () => Promise<AdminResult>, secrets: string[] = []) {
-    if (busyRef.current) return;
+    if (busyRef.current || management.state !== "idle" || connection !== "open") return;
     busyRef.current = true;
     setBusy(label);
     setResult(null);
@@ -287,12 +306,14 @@ function ServerTab() {
       setResult({
         ok: false,
         restarting: false,
+        uncertain: err?.delivery !== "not_sent" && err?.delivery !== "rejected",
         output: redactKnownSecrets(err?.message ?? String(err), secrets),
       });
     } finally {
       busyRef.current = false;
       setBusy(null);
       scrollTo(resultRef);
+      void refreshManagement();
       const generation = gateway.generation;
       void gateway.rpc<any>("admin/status").then((next) => {
         if (generation === gateway.generation) setStatus(next);
@@ -300,7 +321,7 @@ function ServerTab() {
     }
   }
 
-  const restarting = result?.restarting && connection !== "open";
+  const restarting = management.state === "restart_pending" && connection !== "open";
 
   function switchToOpenAi(): void {
     setZhipuKey("");
@@ -341,31 +362,35 @@ function ServerTab() {
     );
   }
 
-  function configureEdge(): void {
-    if (!validEdgeDomain || !validEdgeCertDir) return;
-    const password = edgePass;
-    setEdgePass("");
-    void run(
-      "edge",
-      () => gateway.rpc<any>("admin/edge/config", {
-        domain: validEdgeDomain,
-        listenPort: clampedInteger(edgePort, 1, 65_535, 443),
-        tls: edgeTls,
-        certDir: edgeCertDir.trim().slice(0, 4_096) || undefined,
-        username: edgeUser.trim().slice(0, 64) || undefined,
-        password: password || undefined,
-      }),
-      [password],
-    );
-  }
-
   return (
     <div className="settings-body">
       {restarting && (
         <div className="admin-restarting">
-          配置已应用，服务正在重启… 页面会自动重连，无需手动操作。
+          重启结果待确认，页面会自动尝试重连；请以服务器管理记录为准，不要重复提交配置。
         </div>
       )}
+      {management.state !== "idle" && <div className="dim settings-hint" role="status">
+        {management.state === "unknown" ? "管理操作结果未知，暂时不能开始新任务或再次配置。请核对管理状态；必要时通过服务器终端检查。"
+          : management.state === "restart_pending" ? "配置步骤已完成，正在等待服务重启；重启结果仍待确认。" : "服务器配置操作正在进行；完成前不能开始新任务或另一项配置操作。"}
+      </div>}
+      {connection !== "open" && !restarting && <div className="dim settings-hint" role="status">网关未连接，服务器管理操作暂不可用。</div>}
+
+      <section>
+        <div className="settings-label">服务器管理记录</div>
+        {management.lastOperation ? <div className="admin-card">
+          <div>{managementOperationLabel(management.lastOperation.operation)}</div>
+          <div role="status">{managementOutcomeText(management.lastOperation)}</div>
+          <div className="dim settings-hint">操作标识：{management.lastOperation.operationId}</div>
+          {management.lastOperation.error && <pre className="admin-output error-text" role="alert">{management.lastOperation.error}</pre>}
+        </div> : <div className="dim settings-hint">暂无已记录的管理操作。</div>}
+        {management.error && <div className="error-text" role="alert">{management.error}</div>}
+        {managementError && <div className="error-text" role="alert">{managementError}</div>}
+        <button className="btn" disabled={connection !== "open" || checkingManagement} onClick={() => {
+          setCheckingManagement(true);
+          void refreshManagement().finally(() => setCheckingManagement(false));
+        }}>{checkingManagement ? "核对中…" : "核对管理状态（不会重试配置）"}</button>
+        <div className="dim settings-hint">记录保存在服务器，刷新或重连后重新核对；仅显示最近一次操作。配置成功不等于外部模型或 MCP 业务验证通过。</div>
+      </section>
 
       <section>
         <div className="settings-label">当前状态</div>
@@ -377,21 +402,21 @@ function ServerTab() {
         <div className="admin-actions">
           <button
             className="btn"
-            disabled={!!busy}
+            disabled={!!busy || connection !== "open"}
             onClick={() => run("sync", () => gateway.rpc<any>("admin/catalog/sync"))}
           >
             {busy === "sync" ? "同步中…" : "⟳ 一键同步上游模型与思考档位"}
           </button>
           <button
             className="btn"
-            disabled={!!busy}
+            disabled={!!busy || connection !== "open"}
             onClick={() => run("restart", () => gateway.rpc<any>("admin/service/restart"))}
           >
             {busy === "restart" ? "重启中…" : "重启服务"}
           </button>
           <button
             className="btn"
-            disabled={!!busy || logsLoading}
+            disabled={!!busy || logsLoading || connection !== "open"}
             onClick={() => {
               // Toggle: a second click collapses the (long) log block.
               if (logs !== null && !logsLoading) {
@@ -423,19 +448,23 @@ function ServerTab() {
           </button>
         </div>
         <div className="dim settings-hint">
-          同步会从模型源拉取最新目录并保留已知能力，不发起付费思考档位探测；完成后自动重启服务生效。
+          同步读取当前模型源的目录并保留已知能力，不发起付费思考档位探测。OpenAI 原生目录无需同步；其他模式仅在配置变化且需要重启时自动重启，无变化不会重启。
+        </div>
+        <div className="dim settings-hint">
+          更改配置或手动重启前，请先结束运行中的任务和网页终端；不会为管理操作强行中断工作。
         </div>
       </section>
 
       <section>
-        <div className="settings-label">切换模型源（三选一，切换后自动重启）</div>
+        <div className="settings-label">切换模型源（三选一）</div>
+        <div className="dim settings-hint">切换或更新配置后，服务器仅在需要时安排重启；配置无变化时不会重启。</div>
 
         <div className="admin-card">
           <div className="admin-card-title">1 · OpenAI / ChatGPT 原生</div>
           <div className="dim">启用空的受管理配置，使用 Codex 原生默认值；其它模式的配置与密钥保留。切换后可用页面右上角设备码登录。</div>
           <button
             className="btn-primary"
-            disabled={!!busy || providerMode === "openai"}
+            disabled={!!busy || connection !== "open" || providerMode === "openai"}
             onClick={switchToOpenAi}
           >
             {providerMode === "openai" ? "当前模式" : busy === "openai" ? "切换中…" : "切换到 OpenAI 原生"}
@@ -465,7 +494,7 @@ function ServerTab() {
           </div>
           <button
             className="btn-primary"
-            disabled={!!busy}
+            disabled={!!busy || connection !== "open"}
             onClick={configureZhipu}
           >
             {busy === "zhipu" ? "配置中…" : providerMode === "zhipu" ? "更新智谱 Key / 模型" : "切换到智谱 Coding Plan"}
@@ -501,7 +530,7 @@ function ServerTab() {
           </div>
           <button
             className="btn-primary"
-            disabled={!!busy || !validCustomUrl || !customModel.trim()}
+            disabled={!!busy || connection !== "open" || !validCustomUrl || !customModel.trim()}
             onClick={configureCustom}
           >
             {busy === "custom" ? "配置中…" : providerMode === "custom" ? "重新配置自定义 API" : "切换到自定义 API"}
@@ -514,62 +543,20 @@ function ServerTab() {
       <section>
         <div className="settings-label">远程访问（Caddy + Authelia HTTPS）</div>
         <div className="dim settings-hint">
-          这是 root 级系统配置。默认非 root 服务会给出安全提示，请在服务器运行 sudo codex-harness edge；仅旧式 root 服务可从此表单直接应用。
+          HTTPS 入口和认证服务属于系统配置。网关与 Agent 使用独立的非 root 账号，网页不提供系统配置权限，也不支持旧式 root 服务直配。
         </div>
-        <div className="admin-form">
-          <input type="text" placeholder="对外域名，如 codex.example.com" value={edgeDomain} onChange={(e) => setEdgeDomain(e.target.value)} maxLength={253} spellCheck={false} />
-          {edgeDomain.trim() && !validEdgeDomain && <div className="error-text">只填写主机名，不要包含协议、端口或路径</div>}
-          <input
-            type="number"
-            placeholder="HTTPS 端口（默认 443）"
-            value={edgePort}
-            min={1}
-            max={65_535}
-            step={1}
-            onChange={(e) => setEdgePort(clampedInteger(e.target.valueAsNumber, 1, 65_535, 443))}
-          />
-          <div className="seg-group">
-            <button className={`seg ${edgeTls === "auto" ? "active" : ""}`} onClick={() => setEdgeTls("auto")}>自动 ACME</button>
-            <button className={`seg ${edgeTls === "selfsigned" ? "active" : ""}`} onClick={() => setEdgeTls("selfsigned")}>自签证书</button>
-            <button className={`seg ${edgeTls === "own" ? "active" : ""}`} onClick={() => setEdgeTls("own")}>自有证书</button>
-          </div>
-          {edgeTls === "own" && (
-            <>
-              <input type="text" placeholder="证书目录（cert.pem+key.pem 等）" value={edgeCertDir} onChange={(e) => setEdgeCertDir(e.target.value)} maxLength={4_096} spellCheck={false} />
-              {!validEdgeCertDir && <div className="error-text">自有证书目录必须是绝对路径</div>}
-            </>
-          )}
-          <input type="text" placeholder="Authelia 登录用户名（默认 admin；已配置则忽略）" value={edgeUser} onChange={(e) => setEdgeUser(e.target.value)} maxLength={64} autoComplete="username" />
-          <input
-            type="password"
-            placeholder="Authelia 密码（已配置则忽略；留空自动生成）"
-            value={edgePass}
-            onChange={(e) => setEdgePass(e.target.value)}
-            maxLength={1_024}
-            autoComplete="new-password"
-          />
+        <div className="admin-card">
+          <div>请通过 SSH 登录服务器，在服务器终端配置或变更入口：</div>
+          <pre className="admin-output">sudo codex-harness edge</pre>
+          <div>关闭当前实例的远程入口，恢复仅本机 / SSH 隧道访问：</div>
+          <pre className="admin-output">sudo codex-harness edge disable</pre>
+          <div className="dim settings-hint">以上为默认实例命令。自定义实例请使用安装时生成的专属管理命令；不要在网页终端尝试提权，也无需在网页提交域名、证书或认证密码。</div>
         </div>
-        <button
-          className="btn-primary"
-          disabled={!!busy || !validEdgeDomain || !validEdgeCertDir}
-          onClick={configureEdge}
-        >
-          {busy === "edge" ? "配置中…" : "应用远程访问配置"}
-        </button>
-        <button
-          className="btn"
-          disabled={!!busy}
-          onClick={() => run("edge-disable", () => gateway.rpc<any>("admin/edge/config", { disable: true }))}
-        >
-          {busy === "edge-disable" ? "关闭中…" : "关闭远程访问（恢复仅本机/SSH 隧道）"}
-        </button>
       </section>
 
       {result && (
         <section ref={resultRef}>
-          <div className="settings-label">上次操作结果（{result.ok ? "成功" : "失败"}）</div>
-          <pre className="admin-output">{result.output || "(无输出)"}</pre>
-          {result.restarting && <div className="dim settings-hint">服务将自动重启，页面重连后新配置生效。</div>}
+          <AdminResultFeedback result={result} record={management.lastOperation} />
         </section>
       )}
 

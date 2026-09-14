@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { gateway, type ServerRequestMsg } from "./api/ws";
 import { type ApprovalRequest, type GatewayNotification, type TimelineItem } from "./api/protocol";
 import type { Thread } from "../../../protocol/v2/Thread";
-import type { ThreadItem } from "../../../protocol/v2/ThreadItem";
 import type { ThreadListParams } from "../../../protocol/v2/ThreadListParams";
 import type { ThreadListResponse } from "../../../protocol/v2/ThreadListResponse";
 import type { ThreadStartParams } from "../../../protocol/v2/ThreadStartParams";
@@ -11,6 +10,10 @@ import type { McpServerStatus } from "../../../protocol/v2/McpServerStatus";
 import type { PermissionsRequestApprovalResponse } from "../../../protocol/v2/PermissionsRequestApprovalResponse";
 import type { CommandExecutionRequestApprovalResponse } from "../../../protocol/v2/CommandExecutionRequestApprovalResponse";
 import { describePermissions } from "./utils/permissions";
+import { operationId } from "./utils/operation-id";
+import { validateResponse, type InputRequest } from "./utils/input-forms";
+import { budgetTimeline } from "./utils/timeline-budget";
+import { normalizeManagement, type ManagementSnapshot } from "./utils/management";
 export type { TimelineItem } from "./api/protocol";
 
 /**
@@ -29,11 +32,14 @@ export interface ProjectEntry {
   path: string;
   addedAt: number;
   lastUsedAt: number;
+  available?: boolean;
 }
 
 export type ApprovalPolicy = "" | "untrusted" | "on-request" | "never";
 export type SandboxPreset = "" | "network" | "full";
-export type ReasoningEffort = "" | "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+// The pinned protocol intentionally leaves this extensible. Only a bounded
+// identifier advertised by the selected model is admissible for a turn.
+export type ReasoningEffort = string;
 export type ProviderMode = "openai" | "zhipu" | "custom";
 
 /**
@@ -98,7 +104,7 @@ const DEFAULT_SETTINGS: Settings = {
 
 const APPROVAL_POLICIES = new Set<ApprovalPolicy>(["", "untrusted", "on-request", "never"]);
 const SANDBOX_PRESETS = new Set<SandboxPreset>(["", "network", "full"]);
-const REASONING_EFFORTS = new Set<ReasoningEffort>(["", "none", "minimal", "low", "medium", "high", "xhigh", "max"]);
+const EFFORT_IDENTIFIER = /^[a-z][a-z0-9-]{0,31}$/;
 const MAX_MODEL_ID_LENGTH = 256;
 /** 25MiB file cap encoded as base64. Keep the exact transport bound here as
  * a second line of defense for non-Composer callers. */
@@ -125,8 +131,8 @@ function normalizeSettings(value: unknown): Settings {
   const sandbox = SANDBOX_PRESETS.has(source.selectedSandbox as SandboxPreset)
     ? source.selectedSandbox as SandboxPreset
     : "";
-  const effort = REASONING_EFFORTS.has(source.selectedEffort as ReasoningEffort)
-    ? source.selectedEffort as ReasoningEffort
+  const effort = typeof source.selectedEffort === "string" && EFFORT_IDENTIFIER.test(source.selectedEffort)
+    ? source.selectedEffort
     : "";
   return {
     theme,
@@ -147,9 +153,58 @@ function normalizeReasoningEfforts(value: unknown): Exclude<ReasoningEffort, "">
   return [...new Set(
     value.filter(
       (entry): entry is Exclude<ReasoningEffort, ""> =>
-        typeof entry === "string" && entry !== "" && REASONING_EFFORTS.has(entry as ReasoningEffort),
+        typeof entry === "string" && EFFORT_IDENTIFIER.test(entry),
     ),
-  )].slice(0, REASONING_EFFORTS.size - 1);
+  )].slice(0, 128);
+}
+
+export interface ModelInfo {
+  id: string;
+  displayName?: string;
+  reasoningEfforts?: Exclude<ReasoningEffort, "">[];
+  defaultReasoningEffort?: ReasoningEffort;
+  isDefault?: boolean;
+}
+
+export function selectedModelEfforts(models: ModelInfo[], selected: string): Exclude<ReasoningEffort, "">[] {
+  const model = selected ? models.find((entry) => entry.id === selected) : models.find((entry) => entry.isDefault);
+  return model?.reasoningEfforts ?? [];
+}
+
+export interface SendOperation {
+  clientOperationId: string;
+  threadId: string;
+  state: "unknown" | "accepted" | "not_received" | "rejected" | "acknowledged_unknown";
+  error?: string;
+}
+export type SendIdentity = Pick<SendOperation, "threadId" | "clientOperationId">;
+const OPERATIONS_KEY = "codex-harness-pending-operation-v1:";
+function loadSendOperations(): Record<string, SendOperation> {
+  try {
+    const entries: any[] = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(OPERATIONS_KEY)) continue;
+      try { entries.push(JSON.parse(localStorage.getItem(key) ?? "null")); } catch { /* Ignore unrelated corrupt storage entries. */ }
+    }
+    const valid = entries.filter((entry) => entry && ["unknown", "acknowledged_unknown"].includes(entry.state) &&
+      typeof entry.threadId === "string" && entry.threadId.length <= 256 &&
+      typeof entry.clientOperationId === "string" && /^[a-z0-9-]{36}$/i.test(entry.clientOperationId));
+    // Unresolved records take precedence over historical acknowledgments.
+    valid.sort((a, b) => Number(a.state === "unknown") - Number(b.state === "unknown"));
+    return Object.fromEntries(valid.slice(-100).map((entry) => [entry.threadId, {
+      threadId: entry.threadId, clientOperationId: entry.clientOperationId, state: entry.state as SendOperation["state"],
+    }]));
+  } catch { return {}; }
+}
+function saveSendOperation(operation: SendOperation): void {
+  // No prompts, paths, attachments or credentials are written to browser storage.
+  // One key per operation avoids read/modify/write races between browser tabs.
+  // Save only the changed operation; stale snapshots from another tab must
+  // not rewrite an acknowledgment of a different operation back to unknown.
+  const key = `${OPERATIONS_KEY}${operation.clientOperationId}`;
+  if (operation.state === "unknown" || operation.state === "acknowledged_unknown") localStorage.setItem(key, JSON.stringify({ clientOperationId: operation.clientOperationId, threadId: operation.threadId, state: operation.state }));
+  else localStorage.removeItem(key);
 }
 
 function normalizeDisplay(value: unknown, base: Display = DEFAULT_DISPLAY): Display {
@@ -216,23 +271,28 @@ let projectRequestSeq = 0;
 let mcpRequestSeq = 0;
 let openThreadRequestSeq = 0;
 let newThreadRequestSeq = 0;
+let managementRequestSeq = 0;
+let managementNotificationVersion = 0;
 
 interface AppStore {
   connection: "connecting" | "open" | "closed";
+  connectionError: string | null;
+  management: ManagementSnapshot;
+  managementError: string | null;
   codexState: string;
   gatewayVersion: string;
   workspaceRoot: string;
-  /** Active provider preset (exclusive) — "custom" enables the effort selector. */
+  /** Active provider preset. Model capabilities come from model/list. */
   providerMode: ProviderMode;
-  /** Effort options probed from the custom endpoint (empty = hide selector). */
-  reasoningEfforts: Array<Exclude<ReasoningEffort, "">>;
   account: GetAccountResponse | null;
   projects: ProjectEntry[];
   currentProject: string;
-  models: Array<{ id: string; displayName?: string }>;
+  models: ModelInfo[];
   mcpServers: McpServerStatus[];
   settings: Settings;
   display: Display;
+  displayError: string | null;
+  sendOperations: Record<string, SendOperation>;
   sessions: SessionInfo[];
   /** Pagination cursor from the last thread/list response (null = no more). */
   sessionCursor: string | null;
@@ -253,12 +313,15 @@ interface AppStore {
   compacting: Record<string, boolean>;
   plan: Record<string, { explanation: string | null; steps: Array<{ step: string; status: string }> } | null>;
   approvals: PendingServerRequest[];
+  inputRequests: InputRequest[];
+  inputRequestErrors: Record<string, string>;
   deviceLogin: DeviceLogin | null;
   drawerTab: "diff" | "terminal" | null;
   sidebarOpen: boolean;
 
   bootstrap(): void;
   refresh(): Promise<void>;
+  refreshManagement(): Promise<void>;
   refreshSessions(): Promise<void>;
   loadMoreSessions(): Promise<void>;
   setSessionSearch(term: string): void;
@@ -272,18 +335,21 @@ interface AppStore {
   selectProject(path: string): Promise<void>;
   updateSettings(patch: Partial<Settings>): void;
   updateDisplay(patch: Partial<Display>): void;
+  checkSendOperation(threadId: string, clientOperationId?: string): Promise<SendOperation | undefined>;
+  acknowledgeUnknownSend(threadId: string, clientOperationId: string): boolean;
   uploadAttachment(name: string, base64: string, kind?: "image" | "file"): Promise<{ path: string; size: number }>;
   readAttachment(path: string): Promise<{ base64: string; mime: string }>;
   deleteAttachment(path: string): Promise<void>;
   openThread(threadId: string): Promise<void>;
   newThread(): Promise<string | null>;
-  sendMessage(text: string, attachments?: Array<{ kind: "image" | "file"; name: string; path: string; previewUrl?: string }>): Promise<void>;
-  sendTurn(text: string, attachments?: Array<{ kind: "image" | "file"; name: string; path: string }>): Promise<void>;
+  sendMessage(text: string, attachments?: Array<{ kind: "image" | "file"; name: string; path: string; previewUrl?: string }>, onOperation?: (identity: SendIdentity) => void): Promise<void>;
+  sendTurn(text: string, attachments?: Array<{ kind: "image" | "file"; name: string; path: string }>, onOperation?: (identity: SendIdentity) => void): Promise<void>;
   interruptTurn(): Promise<void>;
   renameThread(threadId: string, name: string): Promise<void>;
   archiveThread(threadId: string): Promise<void>;
   deleteThread(threadId: string): Promise<void>;
   decideApproval(requestId: number | string, decision: "accept" | "acceptForSession" | "decline"): void;
+  respondInputRequest(requestId: number | string, payload: unknown): boolean;
   compactThread(): Promise<void>;
   startDeviceLogin(): Promise<void>;
   setDrawerTab(tab: "diff" | "terminal" | null): void;
@@ -312,43 +378,17 @@ function flattenTurns(thread: Thread): TimelineItem[] {
   return turns.flatMap((t) => t?.items ?? []);
 }
 
-/** Preserve events received during a history read. Text snapshots can already
- * contain a prefix of the live stream, so never concatenate them blindly. */
-function mergeStreamText(snapshot: string, live: string): string {
-  if (snapshot.includes(live)) return snapshot;
-  if (live.includes(snapshot)) return live;
-  // KMP suffix/prefix overlap keeps long tool output merges linear.
-  const prefix = new Uint32Array(live.length);
-  for (let i = 1, matched = 0; i < live.length; i++) {
-    while (matched && live[i] !== live[matched]) matched = prefix[matched - 1];
-    if (live[i] === live[matched]) matched++;
-    prefix[i] = matched;
-  }
-  let overlap = 0;
-  const tail = snapshot.slice(-live.length);
-  for (let i = 0; i < tail.length; i++) {
-    const char = tail[i];
-    while (overlap && char !== live[overlap]) overlap = prefix[overlap - 1];
-    if (char === live[overlap]) overlap++;
-  }
-  return snapshot + live.slice(overlap);
-}
-
-function mergeHistory(snapshot: TimelineItem[], live: TimelineItem[], baseline: TimelineItem[]): TimelineItem[] {
-  const before = new Map(baseline.map((item) => [item.id, item]));
+/** Upstream has no snapshot sequence/cut. Only a complete live item, or a
+ * stream whose item/started was observed during this read, can supersede a
+ * snapshot. Content overlap is not evidence of identity ("abc" may repeat). */
+function mergeHistory(snapshot: TimelineItem[], live: TimelineItem[], started: Set<string>): TimelineItem[] {
   const result = new Map(snapshot.map((item) => [item.id, item]));
+  const acceptedOperations = new Set(snapshot.filter((item) => item.type === "userMessage").map((item) => item.clientOperationId).filter(Boolean));
   for (const item of live) {
+    if (item.type === "localUserMessage" && item.clientOperationId && acceptedOperations.has(item.clientOperationId)) continue;
     const saved = result.get(item.id);
     if (!saved) { result.set(item.id, item); continue; }
-    if (before.get(item.id) === item) continue;
-    if (!item.completed && (item.type === "agentMessage" || item.type === "plan") && saved.type === item.type) {
-      result.set(item.id, { ...item, text: mergeStreamText(saved.text, item.text) });
-    } else if (!item.completed && item.type === "commandExecution" && saved.type === "commandExecution") {
-      result.set(item.id, { ...item, aggregatedOutput: mergeStreamText(saved.aggregatedOutput ?? "", item.aggregatedOutput ?? "") });
-    } else if (!item.completed && item.type === "reasoning" && saved.type === "reasoning") {
-      const mergeParts = (savedParts: string[], liveParts: string[]) => Array.from({ length: Math.max(savedParts.length, liveParts.length) }, (_, index) => mergeStreamText(savedParts[index] ?? "", liveParts[index] ?? ""));
-      result.set(item.id, { ...item, content: mergeParts(saved.content, item.content), summary: mergeParts(saved.summary, item.summary) });
-    } else result.set(item.id, item);
+    if (item.completed || started.has(item.id)) result.set(item.id, item);
   }
   return [...result.values()];
 }
@@ -360,13 +400,6 @@ function makeErrorItem(message: string, willRetry = false): Extract<TimelineItem
     message: boundedString(message, 20_000) || "unknown error",
     willRetry,
   };
-}
-
-function userTextOf(item: Extract<ThreadItem, { type: "userMessage" }>): string {
-  return item.content
-    .filter((c) => c.type === "text")
-    .map((c) => c.text)
-    .join("\n");
 }
 
 /** Sync the active thread into the URL so refresh/back restores the view. */
@@ -381,10 +414,32 @@ function syncUrl(threadId: string | null): void {
   }
 }
 
-export const useStore = create<AppStore>((set, get) => {
+export const useStore = create<AppStore>((rawSet, get) => {
+  const overflowThreads = new Set<string>();
+  const set = (partial: Partial<AppStore> | ((state: AppStore) => Partial<AppStore>)) => rawSet((state) => {
+    const patch = { ...(typeof partial === "function" ? partial(state) : partial) };
+    const active = patch.activeThreadId === undefined ? state.activeThreadId : patch.activeThreadId;
+    // Lifecycle/diff dictionaries otherwise retain every session ever seen,
+    // even when its actual timeline was evicted from the bounded cache.
+    const keys = ["turnActive", "activeTurnId", "turnDiff", "tokenUsage", "compacting", "plan", "historyLoaded", "historyLoading"] as const;
+    for (const key of keys) {
+      const value = patch[key];
+      if (!value) continue;
+      const entries = Object.entries(value).reverse().sort(([a], [b]) => a === active ? -1 : b === active ? 1 : 0).slice(0, key === "turnDiff" || key === "plan" ? 8 : 128);
+      (patch as Record<string, unknown>)[key] = Object.fromEntries(entries);
+    }
+    if (patch.turnDiff) patch.turnDiff = Object.fromEntries(Object.entries(patch.turnDiff).map(([id, diff]) => [id, diff.length > 1024 * 1024 ? `${diff.slice(0, 1024 * 1024)}\n[浏览器 Diff 显示预算已达到，剩余内容请在服务器查看。]` : diff]));
+    if (!patch.items) return patch;
+    const budget = budgetTimeline(patch.items, active);
+    for (const threadId of budget.overflow) overflowThreads.add(threadId);
+    const historyLoaded = { ...state.historyLoaded, ...patch.historyLoaded };
+    for (const threadId of [...budget.evicted, ...budget.overflow]) delete historyLoaded[threadId];
+    return { ...patch, items: budget.items, historyLoaded };
+  });
   let sessionsRefreshTimer: number | null = null;
   let bootstrapped = false;
   let runtimeVersion = 0;
+  const submittedInputs = new Set<string | number>();
   const activityVersions = new Map<string, number>();
   const deletedThreads = new Set<string>();
   // Only sessions actually created here may bridge delayed server indexing.
@@ -408,6 +463,7 @@ export const useStore = create<AppStore>((set, get) => {
       turnActive: drop(s.turnActive), activeTurnId: drop(s.activeTurnId),
       compacting: drop(s.compacting), plan: drop(s.plan), turnDiff: drop(s.turnDiff), tokenUsage: drop(s.tokenUsage),
       approvals: s.approvals.filter((a) => a.params.threadId !== threadId),
+      inputRequests: s.inputRequests.filter((request) => request.params.threadId !== threadId),
     }));
     if (!get().activeThreadId) syncUrl(null);
   }
@@ -416,9 +472,11 @@ export const useStore = create<AppStore>((set, get) => {
     runtimeVersion += 1;
     invalidateAsyncWork();
     activityVersions.clear();
+    overflowThreads.clear();
+    submittedInputs.clear();
     set({
       items: {}, historyLoaded: {}, historyLoading: {}, turnActive: {}, activeTurnId: {},
-      compacting: {}, plan: {}, turnDiff: {}, tokenUsage: {}, approvals: [], deviceLogin: null,
+      compacting: {}, plan: {}, turnDiff: {}, tokenUsage: {}, approvals: [], inputRequests: [], inputRequestErrors: {}, deviceLogin: null,
     });
   }
 
@@ -458,42 +516,10 @@ export const useStore = create<AppStore>((set, get) => {
     return DELTA_METHODS.some((method) => method === event.method);
   }
   let deltaBuffer: Delta[] = [];
-  const pendingHistoryDeltas = new Map<string, Delta[]>();
-
-  function mergePendingDeltas(items: TimelineItem[], pending: Delta[]): TimelineItem[] {
-    const suffixes = new Map<string, { sample: Delta; text: string }>();
-    for (const delta of pending) {
-      const index = delta.method === "item/reasoning/textDelta" ? delta.params.contentIndex :
-        delta.method === "item/reasoning/summaryTextDelta" ? delta.params.summaryIndex : 0;
-      const key = `${delta.params.itemId}:${delta.method}:${index}`;
-      const previous = suffixes.get(key);
-      suffixes.set(key, { sample: delta, text: (previous?.text ?? "") + delta.params.delta });
-    }
-    let result = items;
-    for (const { sample, text } of suffixes.values()) {
-      result = patchItem(result, sample.params.itemId, (item) => {
-        switch (sample.method) {
-          case "item/agentMessage/delta": case "item/plan/delta":
-            return item.type === "agentMessage" || item.type === "plan" ? { ...item, text: mergeStreamText(item.text, text) } : item;
-          case "item/commandExecution/outputDelta":
-            return item.type === "commandExecution" ? { ...item, aggregatedOutput: mergeStreamText(item.aggregatedOutput ?? "", text) } : item;
-          case "item/reasoning/textDelta": {
-            if (item.type !== "reasoning") return item;
-            const content = [...item.content]; const index = sample.params.contentIndex;
-            content[index] = mergeStreamText(content[index] ?? "", text);
-            return { ...item, content };
-          }
-          case "item/reasoning/summaryTextDelta": {
-            if (item.type !== "reasoning") return item;
-            const summary = [...item.summary]; const index = sample.params.summaryIndex;
-            summary[index] = mergeStreamText(summary[index] ?? "", text);
-            return { ...item, summary };
-          }
-        }
-      });
-    }
-    return result;
-  }
+  let deltaBufferChars = 0;
+  const pendingHistoryDeltas = new Map<string, Set<string>>();
+  const historyStarts = new Map<string, Set<string>>();
+  const pausedStreams = new Map<string, Set<string>>();
   let deltaFlushTimer: number | null = null;
 
   function invalidateAsyncWork(): void {
@@ -505,7 +531,10 @@ export const useStore = create<AppStore>((set, get) => {
     openThreadRequestSeq += 1;
     newThreadRequestSeq += 1;
     deltaBuffer = [];
+    deltaBufferChars = 0;
     pendingHistoryDeltas.clear();
+    historyStarts.clear();
+    pausedStreams.clear();
     if (deltaFlushTimer !== null) {
       clearTimeout(deltaFlushTimer);
       deltaFlushTimer = null;
@@ -524,15 +553,24 @@ export const useStore = create<AppStore>((set, get) => {
     if (deltaBuffer.length === 0) return;
     const batch = deltaBuffer;
     deltaBuffer = [];
+    deltaBufferChars = 0;
     set((s) => {
       const nextItems = { ...s.items };
       for (const delta of batch) {
         const { method, params } = delta;
+        if (overflowThreads.has(params.threadId)) continue;
+        if (pausedStreams.get(params.threadId)?.has(params.itemId)) continue;
+        if (s.historyLoading[params.threadId] && !historyStarts.get(params.threadId)?.has(params.itemId)) {
+          const pending = pendingHistoryDeltas.get(params.threadId) ?? new Set<string>();
+          if (pending.size < 2000) pending.add(params.itemId);
+          pendingHistoryDeltas.set(params.threadId, pending);
+          continue;
+        }
         const list = nextItems[params.threadId];
         if (!list?.some((item) => item.id === params.itemId)) {
           if (s.historyLoading[params.threadId]) {
-            const pending = pendingHistoryDeltas.get(params.threadId) ?? [];
-            pending.push(delta);
+            const pending = pendingHistoryDeltas.get(params.threadId) ?? new Set<string>();
+            if (pending.size < 2000) pending.add(params.itemId);
             pendingHistoryDeltas.set(params.threadId, pending);
           }
           continue;
@@ -575,7 +613,16 @@ export const useStore = create<AppStore>((set, get) => {
 
   function applyNotification(event: GatewayNotification): void {
     if (isDelta(event)) {
+      if (overflowThreads.has(event.params.threadId)) return;
+      if (event.params.delta.length > 1024 * 1024) {
+        overflowThreads.add(event.params.threadId);
+        appendToThread(event.params.threadId, makeErrorItem("单次流片段超过浏览器预算，显示已暂停；请通过完整历史核对结果。"));
+        set((state) => ({ historyLoaded: { ...state.historyLoaded, [event.params.threadId]: false } }));
+        return;
+      }
       deltaBuffer.push(event);
+      deltaBufferChars += event.params.delta.length;
+      if (deltaBuffer.length >= 512 || deltaBufferChars >= 1024 * 1024) { flushDeltas(); return; }
       if (deltaFlushTimer === null) {
         deltaFlushTimer = window.setTimeout(() => {
           deltaFlushTimer = null;
@@ -594,21 +641,57 @@ export const useStore = create<AppStore>((set, get) => {
       }
     }
     switch (method) {
+      case "serverRequest/answerRejected": {
+        const requestId = params.serverRequestId ?? params.requestId;
+        if (requestId === undefined) return;
+        if (!get().inputRequests.some((request) => request.requestId === requestId)) return;
+        submittedInputs.delete(requestId);
+        set((state) => ({ inputRequestErrors: { ...state.inputRequestErrors, [String(requestId)]: boundedString(params.error, 2000) || "服务器拒绝了此回答，请检查后重试。" } }));
+        return;
+      }
+      case "harness/turnAccepted": {
+        const operation = get().sendOperations[params.threadId];
+        if (operation?.clientOperationId === params.clientOperationId && operation.state !== "acknowledged_unknown") {
+          const sendOperations = { ...get().sendOperations, [params.threadId]: { ...operation, state: "accepted" as const } };
+          try { saveSendOperation(sendOperations[params.threadId]); } catch { /* Durable unknown remains recoverable. */ }
+          set({ sendOperations });
+        }
+        set((state) => {
+          let items = (state.items[params.threadId] ?? []).map((item) => item.type === "userMessage" && item.turnId === params.turnId
+            ? { ...item, harnessAttachments: params.attachments, clientOperationId: params.clientOperationId } : item);
+          if (items.some((item) => item.type === "userMessage" && item.clientOperationId === params.clientOperationId)) {
+            items = items.filter((item) => {
+              if (item.type !== "localUserMessage" || item.clientOperationId !== params.clientOperationId) return true;
+              for (const attachment of item.attachments) if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+              return false;
+            });
+          }
+          return { items: { ...state.items, [params.threadId]: items } };
+        });
+        return;
+      }
+      case "management/stateChanged":
+        managementNotificationVersion++;
+        set({ management: normalizeManagement(params), managementError: null });
+        return;
       case "item/started":
       case "item/completed": {
         if (!params?.item?.id || !params?.threadId) return;
+        if (overflowThreads.has(params.threadId)) return;
         // upsertItem merges, so explicitly drop the local streaming marker —
         // otherwise a completed reasoning item keeps "思考中…" forever.
-        const item: TimelineItem = { ...params.item, threadId: params.threadId, streaming: false, completed: method === "item/completed" };
+        const item: TimelineItem = { ...params.item, threadId: params.threadId, turnId: params.turnId, streaming: false, completed: method === "item/completed" };
+        if (method === "item/started" && get().historyLoading[params.threadId]) historyStarts.get(params.threadId)?.add(item.id);
+        if (method === "item/completed") {
+          pendingHistoryDeltas.get(params.threadId)?.delete(item.id);
+          pausedStreams.get(params.threadId)?.delete(item.id);
+        }
         set((s) => {
           let items = s.items[params.threadId] ?? [];
-          // The server echoes the user message we already inserted optimistically.
-          // The echo's text may carry appended attachment notes, so a prefix
-          // match is used; dropping the local echo also frees its previews.
+          // Match the gateway's durable operation ID, not natural language.
           if (item.type === "userMessage") {
-            const text = userTextOf(item);
             for (const it of items) {
-              if (it.type === "localUserMessage" && (it.text === text || text.startsWith(it.text))) {
+              if (it.type === "localUserMessage" && item.clientOperationId && it.clientOperationId === item.clientOperationId) {
                 for (const att of it.attachments ?? []) {
                   if (att.previewUrl) URL.revokeObjectURL(att.previewUrl);
                 }
@@ -618,8 +701,7 @@ export const useStore = create<AppStore>((set, get) => {
               (it) =>
                 !(
                   it.type === "localUserMessage" &&
-                  typeof it.text === "string" &&
-                  (it.text === text || text.startsWith(it.text))
+                  !!item.clientOperationId && it.clientOperationId === item.clientOperationId
                 ),
             );
           }
@@ -653,6 +735,11 @@ export const useStore = create<AppStore>((set, get) => {
         // Titles (first-message preview) and timestamps settle server-side
         // only after rollout indexing; refresh once the turn is done.
         scheduleSessionsRefresh();
+        if (pausedStreams.get(params.threadId)?.size && get().activeThreadId === params.threadId && !get().historyLoading[params.threadId]) {
+          pausedStreams.delete(params.threadId);
+          set((state) => ({ historyLoaded: { ...state.historyLoaded, [params.threadId]: false } }));
+          void get().openThread(params.threadId);
+        }
         return;
       }
       case "turn/diff/updated": {
@@ -815,7 +902,11 @@ export const useStore = create<AppStore>((set, get) => {
         // auto-decline path); accept both spellings defensively.
         const rid = params?.requestId ?? params?.serverRequestId;
         if (rid === undefined) return;
-        set((s) => ({ approvals: s.approvals.filter((a) => a.requestId !== rid) }));
+        submittedInputs.delete(rid);
+        set((s) => {
+          const inputRequestErrors = { ...s.inputRequestErrors }; delete inputRequestErrors[String(rid)];
+          return { approvals: s.approvals.filter((a) => a.requestId !== rid), inputRequests: s.inputRequests.filter((request) => request.requestId !== rid), inputRequestErrors };
+        });
         return;
       }
       default:
@@ -824,9 +915,7 @@ export const useStore = create<AppStore>((set, get) => {
   }
 
   function handleServerRequest(msg: ServerRequestMsg): void {
-    // Approval-type requests get the approval banner UI. Other interactive
-    // request types (elicitation forms, tool user input) are surfaced as
-    // error items with context — they'd otherwise hang for 10 minutes.
+    // Prompts remain pending until explicit user action or server timeout.
     if (msg.method === "item/commandExecution/requestApproval" || msg.method === "item/fileChange/requestApproval" || msg.method === "item/permissions/requestApproval") {
       set((s) => ({
         approvals: [
@@ -837,34 +926,20 @@ export const useStore = create<AppStore>((set, get) => {
       return;
     }
     if (msg.method === "item/tool/requestUserInput" || msg.method === "mcpServer/elicitation/request") {
-      const tid = msg.params.threadId;
-      const isElicitation = msg.method === "mcpServer/elicitation/request";
-      const desc = isElicitation
-        ? "MCP 服务器请求交互确认（此请求类型暂不支持交互界面，已自动拒绝）"
-        : "服务器请求用户输入（此请求类型暂不支持交互界面，已自动取消）";
-      if (tid) {
-        appendToThread(tid, makeErrorItem(desc));
-      } else {
-        console.warn("[serverRequest]", msg.method);
-      }
-      // Return protocol-correct refusal shapes — NOT {error:...} which the
-      // app-server would treat as a successful (but malformed) response.
-      if (isElicitation) {
-        gateway.respondServerRequest(msg.requestId, { action: "decline", content: null, _meta: null });
-      } else {
-        gateway.respondServerRequest(msg.requestId, { answers: {} });
-      }
+      set((state) => ({ inputRequests: [...state.inputRequests.filter((request) => request.requestId !== msg.requestId), msg].slice(-128) }));
       return;
     }
   }
 
   return {
   connection: "connecting",
+  connectionError: null,
+  management: { state: "idle" },
+  managementError: null,
   codexState: "unknown",
   gatewayVersion: "",
   workspaceRoot: "",
   providerMode: "openai",
-  reasoningEfforts: [],
   account: null,
     projects: [],
     currentProject: loadCurrentProject(),
@@ -872,6 +947,8 @@ export const useStore = create<AppStore>((set, get) => {
     mcpServers: [],
     settings: loadSettings(),
     display: { ...DEFAULT_DISPLAY },
+    displayError: null,
+    sendOperations: loadSendOperations(),
     sessions: [],
     sessionCursor: null,
     sessionLoading: false,
@@ -889,6 +966,8 @@ export const useStore = create<AppStore>((set, get) => {
     compacting: {},
     plan: {},
     approvals: [],
+    inputRequests: [],
+    inputRequestErrors: {},
     deviceLogin: null,
     drawerTab: null,
     sidebarOpen: false,
@@ -914,6 +993,8 @@ export const useStore = create<AppStore>((set, get) => {
           clearRuntimeState();
           set({
             connection: state,
+            connectionError: gateway.failure === "authentication" ? "网关认证已失效，请重新打开登录入口完成认证后刷新页面。"
+              : gateway.failure === "configuration" ? "网关拒绝此页面来源，请检查访问域名、端口与反向代理配置后刷新页面。" : null,
             approvals: [],
             deviceLogin: null,
             sessionLoading: false,
@@ -921,7 +1002,8 @@ export const useStore = create<AppStore>((set, get) => {
           });
           return;
         }
-        set({ connection: state });
+        set((current) => ({ connection: state, connectionError: null,
+          management: current.management.state === "idle" ? { ...current.management, state: "unknown", error: "正在核对服务器管理状态。" } : current.management }));
         if (everConnected) {
           // A real DROP-then-reconnect: the gateway or app-server may have
           // restarted server-side. Cached items are potentially stale, and a
@@ -930,9 +1012,18 @@ export const useStore = create<AppStore>((set, get) => {
           clearRuntimeState();
         }
         everConnected = true;
+        // This control-plane query remains available even if the data worker
+        // cannot serve app/status. Reconnect observes; it never replays writes.
+        void get().refreshManagement();
         void get().refresh();
+        for (const operation of Object.values(get().sendOperations)) {
+          if (operation.state === "unknown") void get().checkSendOperation(operation.threadId);
+        }
       });
       gateway.onNotification(applyNotification);
+      window.addEventListener?.("storage", (event) => {
+        if (event.key?.startsWith(OPERATIONS_KEY)) set((state) => ({ sendOperations: { ...state.sendOperations, ...loadSendOperations() } }));
+      });
       gateway.setServerRequestHandler(handleServerRequest);
       gateway.connect();
 
@@ -941,14 +1032,13 @@ export const useStore = create<AppStore>((set, get) => {
     async refresh() {
       const seq = ++refreshRequestSeq;
       const generation = gateway.generation;
+      const managementVersion = managementNotificationVersion;
       try {
         const status = await gateway.rpc<any>("app/status");
         if (seq !== refreshRequestSeq || generation !== gateway.generation) return;
         const providerMode = normalizeProviderMode(status?.providerMode);
-        const reasoningEfforts = normalizeReasoningEfforts(status?.reasoningEfforts);
         const providerChanged = providerMode !== get().providerMode;
         let settings = get().settings;
-        const effortInvalid = !!settings.selectedEffort && !reasoningEfforts.includes(settings.selectedEffort);
         if (providerChanged) {
           // Models and effort catalogs are provider-specific. Reset both the
           // visible catalogs and persisted selections immediately instead of
@@ -956,7 +1046,7 @@ export const useStore = create<AppStore>((set, get) => {
           modelRequestSeq += 1;
           modelsLoadedFor = null;
         }
-        if (providerChanged || effortInvalid) {
+        if (providerChanged) {
           settings = normalizeSettings({
             ...settings,
             ...(providerChanged ? { selectedModel: "" } : {}),
@@ -969,9 +1059,9 @@ export const useStore = create<AppStore>((set, get) => {
           codexState: boundedString(status?.codexState, 64) || "unknown",
           workspaceRoot: boundedString(status?.workspaceRoot, 4096),
           providerMode,
-          reasoningEfforts,
+          ...(managementVersion === managementNotificationVersion && status?.management ? { management: normalizeManagement(status.management) } : {}),
           ...(providerChanged ? { models: [], mcpServers: [], account: null } : {}),
-          ...((providerChanged || effortInvalid) ? { settings } : {}),
+          ...(providerChanged ? { settings } : {}),
           display: normalizeDisplay({ autoCompactThreshold: status?.autoCompactThreshold }, get().display),
         });
         await Promise.all([
@@ -1006,6 +1096,21 @@ export const useStore = create<AppStore>((set, get) => {
         initialThreadSelected = true;
       } catch {
         /* next reconnect retries */
+      }
+    },
+
+    async refreshManagement() {
+      const seq = ++managementRequestSeq;
+      const generation = gateway.generation;
+      const version = managementNotificationVersion;
+      try {
+        const snapshot = await gateway.rpc<unknown>("management/status");
+        if (seq !== managementRequestSeq || generation !== gateway.generation || version !== managementNotificationVersion) return;
+        managementNotificationVersion++;
+        set({ management: normalizeManagement(snapshot), managementError: null });
+      } catch (error) {
+        if (seq !== managementRequestSeq || generation !== gateway.generation || version !== managementNotificationVersion) return;
+        set((current) => ({ management: { ...current.management, state: "unknown" }, managementError: `管理状态未能核对：${error instanceof Error ? error.message : String(error)}` }));
       }
     },
 
@@ -1155,6 +1260,7 @@ export const useStore = create<AppStore>((set, get) => {
             path: boundedString(entry?.path, 4096),
             addedAt: typeof entry?.addedAt === "number" && Number.isFinite(entry.addedAt) ? entry.addedAt : 0,
             lastUsedAt: typeof entry?.lastUsedAt === "number" && Number.isFinite(entry.lastUsedAt) ? entry.lastUsedAt : 0,
+            available: entry?.available !== false,
           }))
           .filter((entry: ProjectEntry) => entry.path);
         const previous = get().currentProject;
@@ -1198,7 +1304,7 @@ export const useStore = create<AppStore>((set, get) => {
       const connectionGeneration = gateway.generation;
       const provider = get().providerMode;
       try {
-        const all: Array<{ id: string; displayName?: string }> = [];
+        const all: ModelInfo[] = [];
         const seen = new Set<string>();
         let cursor: string | null = null;
         let lastCursor: string | null = null;
@@ -1214,7 +1320,9 @@ export const useStore = create<AppStore>((set, get) => {
             const id = boundedString(m?.id, MAX_MODEL_ID_LENGTH);
             if (!id || seen.has(id)) continue;
             seen.add(id);
-            all.push({ id, displayName: boundedString(m?.displayName, 256) || id });
+            all.push({ id, displayName: boundedString(m?.displayName, 256) || id,
+              reasoningEfforts: normalizeReasoningEfforts(m?.supportedReasoningEfforts?.map((entry) => entry.reasoningEffort)),
+              defaultReasoningEffort: normalizeReasoningEfforts([m?.defaultReasoningEffort])[0], isDefault: m?.isDefault === true });
           }
           cursor = res?.nextCursor ?? null;
           if (!cursor || cursor === lastCursor) break;
@@ -1303,16 +1411,58 @@ export const useStore = create<AppStore>((set, get) => {
 
     updateSettings(patch) {
       const settings = normalizeSettings({ ...get().settings, ...patch });
+      if (patch.selectedModel !== undefined && !selectedModelEfforts(get().models, settings.selectedModel).includes(settings.selectedEffort as Exclude<ReasoningEffort, "">)) settings.selectedEffort = "";
       saveSettings(settings);
       set({ settings });
       applyTheme(settings.theme);
     },
 
     updateDisplay(patch) {
-      // Optimistic local apply; the gateway persists it for every browser.
-      const display = normalizeDisplay(patch, get().display);
-      set({ display });
-      void gateway.rpc("displayPrefs/set", display).catch(() => {});
+      const validated: Partial<Display> = {};
+      for (const key of ["reasoning", "commands", "fileChanges", "mcpCalls", "webSearch"] as const) {
+        if (typeof patch[key] === "boolean") validated[key] = patch[key];
+      }
+      if (typeof patch.autoCompactThreshold === "number" && Number.isFinite(patch.autoCompactThreshold) && patch.autoCompactThreshold >= 0 && patch.autoCompactThreshold <= 1) validated.autoCompactThreshold = patch.autoCompactThreshold;
+      if (!Object.keys(validated).length) return;
+      // Only send the requested fields. A stale tab must not overwrite other
+      // browsers' unrelated preferences. No optimistic state to roll back.
+      set({ displayError: null });
+      // The ordered displayPrefs/updated broadcast is authoritative. A full
+      // RPC snapshot could be older than a different tab's later broadcast.
+      void gateway.rpc("displayPrefs/set", validated).catch((error) => set({ displayError: `设置未保存：${error instanceof Error ? error.message : String(error)}` }));
+    },
+
+    async checkSendOperation(threadId, clientOperationId) {
+      const current = get().sendOperations[threadId];
+      const operation: SendOperation | undefined = clientOperationId && current?.clientOperationId !== clientOperationId
+        ? { threadId, clientOperationId, state: "unknown" } : current;
+      if (!operation || operation.state !== "unknown") return;
+      try {
+        const result = await gateway.rpc<{ state: SendOperation["state"]; error?: string }>("turn/operation", { clientOperationId: operation.clientOperationId });
+        if (!["accepted", "not_received", "rejected", "unknown"].includes(result?.state)) return;
+        const latest = get().sendOperations[threadId];
+        if (latest?.clientOperationId === operation.clientOperationId && latest.state !== "unknown") return latest;
+        const checked = { ...operation, state: result.state, error: result.error };
+        // A Composer may still own an older draft after another tab starts a
+        // newer operation. Resolve that exact ID without replacing the new one.
+        if (latest?.clientOperationId === operation.clientOperationId) {
+          saveSendOperation(checked);
+          set({ sendOperations: { ...get().sendOperations, [threadId]: checked } });
+        }
+        return checked;
+      } catch { /* Retain unknown until the same operation can be reconciled. */ }
+    },
+
+    acknowledgeUnknownSend(threadId, clientOperationId) {
+      const operation = get().sendOperations[threadId];
+      if (!operation || operation.clientOperationId !== clientOperationId || operation.state !== "unknown") return false;
+      const acknowledged: SendOperation = { ...operation, state: "acknowledged_unknown" };
+      // A local release is not evidence of acceptance/rejection. Keep the
+      // original ID recorded and never mutate/retry its server-side ledger.
+      try { saveSendOperation(acknowledged); } catch { return false; }
+      set((state) => ({ sendOperations: { ...state.sendOperations, [threadId]: acknowledged },
+        items: { ...state.items, [threadId]: (state.items[threadId] ?? []).filter((item) => item.type !== "localUserMessage" || item.clientOperationId !== clientOperationId) } }));
+      return true;
     },
 
     uploadAttachment(name, base64, kind) {
@@ -1337,6 +1487,7 @@ export const useStore = create<AppStore>((set, get) => {
     async openThread(threadId) {
       threadId = boundedString(threadId, 256);
       if (!threadId || deletedThreads.has(threadId)) return;
+      overflowThreads.delete(threadId);
       newThreadRequestSeq += 1;
       const requestSeq = ++openThreadRequestSeq;
       const generation = gateway.generation;
@@ -1348,8 +1499,8 @@ export const useStore = create<AppStore>((set, get) => {
       set({ activeThreadId: threadId, sidebarOpen: false });
       syncUrl(threadId);
       if (get().historyLoaded[threadId]) return;
-      const baseline = get().items[threadId] ?? [];
       pendingHistoryDeltas.delete(threadId);
+      historyStarts.set(threadId, new Set());
       set((s) => ({ historyLoading: { ...s.historyLoading, [threadId]: true } }));
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -1365,12 +1516,17 @@ export const useStore = create<AppStore>((set, get) => {
           flushDeltas();
           if (get().activeThreadId === threadId) {
             const items = flattenTurns(thread).map((it) => ({ ...it, threadId }));
+            const uncertain = pendingHistoryDeltas.get(threadId);
+            if (uncertain?.size) {
+              pausedStreams.set(threadId, uncertain);
+              items.push({ ...makeErrorItem("重连期间的流片段没有序号，无法与快照安全对齐；暂时显示快照，等待完整条目或任务结束后刷新。"), threadId });
+            }
             if (activationError) items.push({ ...makeErrorItem(`历史已加载，但会话无法激活: ${activationError instanceof Error ? activationError.message : String(activationError)}（重新选择可重试）`, false), threadId, historyLoadError: true });
             const running = [...thread.turns].reverse().find((turn) => turn.status === "inProgress");
             const unchanged = activityVersion === (activityVersions.get(threadId) ?? 0);
             const projectChanged = !!thread.cwd && thread.cwd !== get().currentProject;
             set((s) => ({
-              items: { ...s.items, [threadId]: mergePendingDeltas(mergeHistory(items, (s.items[threadId] ?? []).filter((item) => item.type !== "errorItem" || !item.historyLoadError), baseline), pendingHistoryDeltas.get(threadId) ?? []) },
+              items: { ...s.items, [threadId]: mergeHistory(items, (s.items[threadId] ?? []).filter((item) => item.type !== "errorItem" || !item.historyLoadError), historyStarts.get(threadId) ?? new Set()) },
               historyLoaded: { ...s.historyLoaded, [threadId]: !activationError },
               historyLoading: { ...s.historyLoading, [threadId]: false },
               ...(unchanged ? {
@@ -1382,6 +1538,7 @@ export const useStore = create<AppStore>((set, get) => {
               ...(projectChanged ? { currentProject: thread.cwd, sessions: [], sessionCursor: null } : {}),
             }));
             pendingHistoryDeltas.delete(threadId);
+            historyStarts.delete(threadId);
             if (projectChanged) {
               try { localStorage.setItem(PROJECT_KEY, thread.cwd); } catch { /* storage unavailable */ }
               await get().refreshSessions();
@@ -1468,7 +1625,7 @@ export const useStore = create<AppStore>((set, get) => {
     },
 
     /** Composer entry: typing with no session selected starts a new one. */
-    async sendMessage(text, attachments) {
+    async sendMessage(text, attachments, onOperation) {
       let targetThreadId = get().activeThreadId;
       if (!targetThreadId) {
         try {
@@ -1481,15 +1638,30 @@ export const useStore = create<AppStore>((set, get) => {
       if (!targetThreadId || get().activeThreadId !== targetThreadId) {
         throw new Error("创建会话期间已切换项目或会话，消息未发送");
       }
-      await get().sendTurn(text, attachments);
+      await get().sendTurn(text, attachments, onOperation);
     },
 
-    async sendTurn(text, attachments) {
+    async sendTurn(text, attachments, onOperation) {
       const runtime = runtimeVersion;
       const threadId = get().activeThreadId;
       if (!threadId) return;
+      if (get().management.state !== "idle") throw new Error("管理操作正在进行，请完成后再发送消息");
       if (!get().historyLoaded[threadId]) throw new Error("会话历史尚未完成加载，请稍后重试");
       if (get().turnActive[threadId]) throw new Error("会话正在运行，请等待完成或先停止");
+      if (get().sendOperations[threadId]?.state === "unknown") throw new Error("上一条消息是否已受理尚未确认；请先核对发送状态，不能重复发送");
+      if (Object.values(get().sendOperations).filter((entry) => entry.state === "unknown").length >= 100) throw new Error("待确认发送过多，请先核对已有会话");
+      const clientOperationId = operationId();
+      const operation: SendOperation = { clientOperationId, threadId, state: "unknown" };
+      const pendingOperations = { ...get().sendOperations, [threadId]: operation };
+      try {
+        saveSendOperation(operation);
+        const prior = get().sendOperations[threadId];
+        if (prior?.state === "acknowledged_unknown") localStorage.removeItem(`${OPERATIONS_KEY}${prior.clientOperationId}`);
+      } catch { throw new Error("浏览器无法保存发送标识，消息未发送；请允许本站本地存储后重试"); }
+      // Bind UI ownership only after a real thread and durable operation exist,
+      // but before any observable state change or asynchronous delivery.
+      onOperation?.({ threadId, clientOperationId });
+      set({ sendOperations: pendingOperations });
       const activityVersion = (activityVersions.get(threadId) ?? 0) + 1;
       activityVersions.set(threadId, activityVersion);
       const atts = attachments ?? [];
@@ -1500,7 +1672,7 @@ export const useStore = create<AppStore>((set, get) => {
           ...s.items,
           [threadId]: [
             ...(s.items[threadId] ?? []),
-            { id: localId, type: "localUserMessage", text, threadId, attachments: atts },
+            { id: localId, type: "localUserMessage", text, threadId, attachments: atts, clientOperationId },
           ],
         },
       }));
@@ -1513,11 +1685,12 @@ export const useStore = create<AppStore>((set, get) => {
         // local vLLM) could 400 against a different endpoint.
         const { selectedModel, selectedApprovalPolicy, selectedSandbox, selectedEffort } = get().settings;
         const modelOk = selectedModel && get().models.some((m) => m.id === selectedModel);
-        const effortOk = selectedEffort && get().reasoningEfforts.includes(selectedEffort);
+        const effortOk = selectedEffort && selectedModelEfforts(get().models, selectedModel).includes(selectedEffort);
         // null selects the gateway's configured defaults. The gateway resolves
         // concrete values because app-server null does not reset sticky values.
         await gateway.request("turn/start", {
           threadId,
+          clientOperationId,
           text,
           ...(atts.length ? { attachments: atts.map(({ kind, name, path }) => ({ kind, name, path })) } : {}),
           model: modelOk ? selectedModel : null,
@@ -1525,7 +1698,17 @@ export const useStore = create<AppStore>((set, get) => {
           sandbox: selectedSandbox || null,
           effort: effortOk ? selectedEffort : null,
         });
+        if (get().sendOperations[threadId]?.clientOperationId !== clientOperationId || get().sendOperations[threadId]?.state === "acknowledged_unknown") return;
+        const sendOperations = { ...get().sendOperations, [threadId]: { ...operation, state: "accepted" as const } };
+        try { saveSendOperation(sendOperations[threadId]); } catch { /* Keep durable unknown; it resolves safely on next load. */ }
+        set({ sendOperations });
       } catch (err: any) {
+        if (get().sendOperations[threadId]?.clientOperationId !== clientOperationId || get().sendOperations[threadId]?.state === "acknowledged_unknown") throw err;
+        if (get().sendOperations[threadId]?.clientOperationId === clientOperationId && get().sendOperations[threadId]?.state === "accepted") return;
+        const definitive = err?.delivery === "not_sent" || err?.delivery === "rejected" && err?.code !== "OPERATION_UNKNOWN";
+        const sendOperations = { ...get().sendOperations, [threadId]: { ...operation, state: definitive ? "rejected" as const : "unknown" as const, error: String(err?.message ?? err).slice(0, 1000) } };
+        try { saveSendOperation(sendOperations[threadId]); } catch { /* Do not lose the in-memory lock. */ }
+        set({ sendOperations });
         if (runtime !== runtimeVersion || deletedThreads.has(threadId)) throw err;
         set((s) => ({
           ...(activityVersion === activityVersions.get(threadId)
@@ -1538,7 +1721,7 @@ export const useStore = create<AppStore>((set, get) => {
             [threadId]: (s.items[threadId] ?? []).filter((item) => item.id !== localId),
           },
         }));
-        appendToThread(threadId, makeErrorItem(err.message));
+        appendToThread(threadId, makeErrorItem(definitive ? err.message : "发送结果待确认：服务器可能已开始执行，未自动重发。请点击「核对发送状态」。"));
         // Do not delete attachments here. A connection can close after the
         // server accepted turn/start but before its response reached us; in
         // that ambiguous case deletion would break durable conversation
@@ -1612,6 +1795,19 @@ export const useStore = create<AppStore>((set, get) => {
         return;
       }
       forgetThread(threadId, true);
+    },
+
+    respondInputRequest(requestId, payload) {
+      const request = get().inputRequests.find((entry) => entry.requestId === requestId);
+      if (!request || submittedInputs.has(requestId) || !payload || typeof payload !== "object") return false;
+      if (validateResponse(request, payload).error) return false;
+      if (!gateway.respondServerRequest(requestId, payload)) return false;
+      submittedInputs.add(requestId);
+      set((state) => {
+        const inputRequestErrors = { ...state.inputRequestErrors }; delete inputRequestErrors[String(requestId)];
+        return { inputRequestErrors };
+      });
+      return true;
     },
 
     decideApproval(requestId, decision) {

@@ -1,4 +1,18 @@
-/** Credential-bearing dev traffic is restricted to a loopback, same-origin page. */
+/** Resolve only the control-plane credential; CODEX_HOME belongs to the Agent. */
+export function readDevGatewayToken(
+  env: { GATEWAY_TOKEN?: string; GATEWAY_CONTROL_HOME?: string },
+  homeDirectory: string,
+  readControlToken: (directory: string) => string,
+): string {
+  if (env.GATEWAY_TOKEN) return env.GATEWAY_TOKEN;
+  try {
+    return readControlToken(env.GATEWAY_CONTROL_HOME ?? `${homeDirectory}/.codex-harness-control`).trim();
+  } catch {
+    return "";
+  }
+}
+
+/** Trusted-local-development shortcut, not an Agent/control-plane boundary. */
 export function trustedDevGatewayRequest(headers: { host?: unknown; origin?: unknown }): boolean {
   if (headers.host !== "127.0.0.1:5173" && headers.host !== "localhost:5173") return false;
   return headers.origin === `http://${headers.host}`;
@@ -16,8 +30,18 @@ export function prepareDevGatewayProxy(
     socket.destroy();
     return false;
   }
+  let token: string;
+  try { token = readToken(); } catch { token = ""; }
+  // Match the gateway's credential syntax and fail closed if startup has not yet
+  // generated the token (or it cannot be read). Do not forward browser cookies.
+  if (!/^[a-zA-Z0-9_-]{32,}$/.test(token)) {
+    request.destroy();
+    socket.destroy();
+    return false;
+  }
   request.removeHeader("origin");
-  const token = readToken();
-  if (token) request.setHeader("cookie", `gw_token=${token}`);
+  request.removeHeader("cookie");
+  request.removeHeader("authorization");
+  request.setHeader("authorization", `Bearer ${token}`);
   return true;
 }

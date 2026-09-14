@@ -180,7 +180,7 @@ test("installer rejects a root service before package, build, or environment ope
   const dir = mkdtempSync(path.join(tmpdir(), "install-service-identity-"));
   try {
     const source = readFileSync(path.join(deploy, "install.sh"), "utf8");
-    const preflight = source.slice(source.indexOf('INSTALL_DIR="${INSTALL_DIR:-$REPO_ROOT}"'), source.indexOf('\nRUN_GROUP="'))
+    const preflight = source.slice(source.indexOf('INSTALL_DIR="${INSTALL_DIR:-$REPO_ROOT}"'), source.indexOf('\nRUN_HOME="'))
       .replaceAll("/etc/systemd/system/", `${dir}/units/`);
     for (const [account, bypass] of [["root", "0"], ["root", "1"], ["0", "1"]]) {
       const result = spawnSync("bash", ["-c", `set -eu\n${preflight}\nprintf UNEXPECTED_MUTATION\n`], { encoding: "utf8", timeout: 10000,
@@ -207,9 +207,9 @@ test("full reinstall rejects another checkout before any stop, cleanup, or delet
     const state = path.join(dir, "state");
     mkdirSync(state); writeFileSync(path.join(state, "keep"), "fixture");
     writeFileSync(unit, "WorkingDirectory=/installed-repo/apps/gateway\n");
-    const script = `set -eu\nneed_root() { :; }\ndie() { exit 17; }\nlog() { :; }\n${extract("manage.sh", "assert_instance_checkout")}\n${extract("manage.sh", "do_reinstall")}\ndo_install() { echo UNEXPECTED_INSTALL; }\nsafe_tree_target() { echo UNEXPECTED_TARGET; exit 19; }\nsystemctl() { echo UNEXPECTED_SERVICE; }\ndo_reinstall full\n`;
+    const script = `set -eu\nneed_root() { :; }\ndie() { exit 17; }\nlog() { :; }\npython3() { test "$1" = -I; printf '%s\\n' "$4"; }\n${extract("manage.sh", "assert_instance_checkout")}\n${extract("manage.sh", "do_reinstall")}\ndo_install() { echo UNEXPECTED_INSTALL; }\nsafe_tree_target() { echo UNEXPECTED_TARGET; exit 19; }\nsystemctl() { echo UNEXPECTED_SERVICE; }\ndo_reinstall full\n`;
     const result = spawnSync("bash", ["-c", script], { input: "yes\nyes\n", encoding: "utf8", timeout: 10000,
-      env: { ...process.env, REPO_ROOT: "/different-repo", UNIT_FILE: unit, SERVICE_NAME: "fixture", CODEX_HOME: state, ENV_FILE: path.join(state, "secrets.env") } });
+      env: { ...process.env, REPO_ROOT: "/different-repo", SCRIPT_DIR: "/different-repo/deploy", UNIT_FILE: unit, SERVICE_NAME: "fixture", CODEX_HOME: state, ENV_FILE: path.join(state, "secrets.env") } });
     assert.equal(result.status, 17, result.stderr);
     assert.equal(result.stdout, "");
     assert.equal(readFileSync(path.join(state, "keep"), "utf8"), "fixture");

@@ -64,7 +64,8 @@ if grep -qxF 'Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-ha
 fi
 if [ -z "${RUN_USER:-}" ]; then
   if [ -f "$EXISTING_UNIT" ]; then
-    RUN_USER="$(sed -n 's/^User=//p' "$EXISTING_UNIT" | head -1)"
+    RUN_USER="$(sed -n 's/^Environment=RUN_USER=//p' "$EXISTING_UNIT" | head -1)"
+    [ -n "$RUN_USER" ] || RUN_USER="$(sed -n 's/^User=//p' "$EXISTING_UNIT" | head -1)"
     RUN_USER="${RUN_USER:-root}"
   elif [ "$(id -u)" -eq 0 ]; then
     RUN_USER="codex-harness"
@@ -75,6 +76,12 @@ if [ -z "${RUN_USER:-}" ]; then
     RUN_USER="$(id -un)"
   fi
 fi
+for control_name in GATEWAY_USER GATEWAY_CONTROL_HOME; do
+  if [ -z "${!control_name:-}" ] && [ -f "$EXISTING_UNIT" ]; then
+    control_value="$(sed -n "s/^Environment=${control_name}=//p" "$EXISTING_UNIT" | head -1)"
+    [ -z "$control_value" ] || export "$control_name=$control_value"
+  fi
+done
 id "$RUN_USER" >/dev/null 2>&1 || { echo "[install] unknown RUN_USER: $RUN_USER" >&2; exit 1; }
 case "$RUN_USER" in ''|[-.]*|*[!A-Za-z0-9_.-]*) echo "[install] unsafe RUN_USER for sudoers: $RUN_USER" >&2; exit 1 ;; esac
 if [ "$(id -u "$RUN_USER")" -eq 0 ]; then
@@ -85,7 +92,6 @@ if [ "$(id -u "$RUN_USER")" -eq 0 ]; then
   echo "[install] ALLOW_ROOT_SERVICE=1 no longer bypasses this requirement." >&2
   exit 1
 fi
-RUN_GROUP="$(id -gn "$RUN_USER")"
 RUN_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
 [ -n "$RUN_HOME" ] || { echo "[install] cannot determine home for $RUN_USER" >&2; exit 1; }
 INSTANCE_HOME="$RUN_HOME"
@@ -153,15 +159,21 @@ SUDO=""
 
 # Fail before package installs, builds or secret-file changes if this name belongs
 # to another checkout. Python 3.11 is also needed by the provider configuration.
-if [ -f "$EXISTING_UNIT" ] && ! grep -qxF "WorkingDirectory=${INSTALL_DIR}/apps/gateway" "$EXISTING_UNIT"; then
-  echo "[install] service belongs to another checkout; choose a different SERVICE_NAME" >&2
-  exit 1
-fi
 if ! python3 -c 'import sys,tomllib; assert sys.version_info >= (3,11)' >/dev/null 2>&1; then
   $SUDO apt-get update
   $SUDO apt-get install -y python3
   python3 -c 'import sys,tomllib; assert sys.version_info >= (3,11)' \
     || { echo "[install] Python 3.11+ required (Ubuntu 24.04+ or Debian 12+)" >&2; exit 1; }
+fi
+
+# Fail before executing configured runtimes or building candidate application
+# code. Registration later persists this same canonical, root-controlled path.
+INSTALL_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" tree "$INSTALL_DIR")"
+SCRIPT_DIR="$INSTALL_DIR/deploy"
+REPO_ROOT="$INSTALL_DIR"
+if [ -f "$EXISTING_UNIT" ] && ! grep -qxF "WorkingDirectory=${INSTALL_DIR}/apps/gateway" "$EXISTING_UNIT"; then
+  echo "[install] service belongs to another checkout; choose a different SERVICE_NAME" >&2
+  exit 1
 fi
 
 log() { echo "[install] $*"; }
@@ -180,10 +192,17 @@ run_as_service() {
 if [ -z "${NODE_BIN:-}" ] && [ -f "$EXISTING_UNIT" ]; then
   NODE_BIN="$(sed -n 's/^Environment=NODE_BIN=//p' "$EXISTING_UNIT" | head -1)"
 fi
+if [ -z "${NODE_BIN_DIR:-}" ] && [ -f "$EXISTING_UNIT" ]; then
+  NODE_BIN_DIR="$(sed -n 's/^Environment=NODE_BIN_DIR=//p' "$EXISTING_UNIT" | head -1)"
+fi
 if [ -n "${NODE_BIN:-}" ]; then
   validate_unit_path NODE_BIN "$NODE_BIN"
+  NODE_BIN_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" directory "${NODE_BIN_DIR:-${NODE_BIN%/*}}")"
+  NODE_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$NODE_BIN")"
+  [ "$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$NODE_BIN_DIR/node")" = "$NODE_BIN" ] \
+    || { log "ERROR: NODE_BIN_DIR must expose the configured node runtime"; exit 1; }
   [ -x "$NODE_BIN" ] || { log "ERROR: configured NODE_BIN is not executable"; exit 1; }
-  export PATH="${NODE_BIN%/*}:$PATH"
+  export PATH="$NODE_BIN_DIR:$PATH"
 fi
 install_node() {
   log "installing Node.js 22 from the signed NodeSource apt repository..."
@@ -203,32 +222,40 @@ install_node() {
   $SUDO apt-get install -y nodejs
 }
 
-if ! command -v node >/dev/null 2>&1; then
+if command -v node >/dev/null 2>&1; then
+  NODE_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v node)")"
+fi
+if [ -z "${NODE_BIN:-}" ]; then
   install_node
-elif [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 22 ]; then
-  log "Node $(node --version) found, need >= 22"
+elif [ "$("$NODE_BIN" -p 'process.versions.node.split(".")[0]')" -lt 22 ]; then
+  log "Node $("$NODE_BIN" --version) found, need >= 22"
   install_node
 fi
-log "Node.js: $(node --version)"
-NODE_BIN="$(command -v node)"
+NODE_BIN_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" directory "$(dirname "$(command -v node)")")"
+NODE_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$NODE_BIN_DIR/node")"
+log "Node.js: $("$NODE_BIN" --version)"
 if [ -z "${TOOLS_BIN_DIR:-}" ] && [ -f "$EXISTING_UNIT" ]; then
   TOOLS_BIN_DIR="$(sed -n 's/^Environment=TOOLS_BIN_DIR=//p' "$EXISTING_UNIT" | head -1)"
 fi
+NPM_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v npm)")"
+export NODE_BIN NODE_BIN_DIR NPM_BIN
+export PATH="$NODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 TOOLS_BIN_DIR="$(python3 "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}" --allow-missing)"
 TOOLS_PREFIX="${TOOLS_BIN_DIR%/bin}"
-NPM_BIN="$(command -v npm)"
-export NODE_BIN TOOLS_BIN_DIR
+export TOOLS_BIN_DIR
 # Only persist these known directories, not an installer's ambient PATH.
-export PATH="${NODE_BIN%/*}:$TOOLS_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+export PATH="$NODE_BIN_DIR:$TOOLS_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # --- 2. pnpm + codex CLI + both provider presets -----------------------------
 # Universal install: dependencies for BOTH provider modes are deployed up
 # front (OpenAI needs nothing extra; the Zhipu preset needs @z_ai/mcp-server).
 # Only the config the user picks is ever ACTIVATED — the two modes stay
 # exclusive in ~/.codex and can be switched later via providers/*/setup.sh.
-corepack enable 2>/dev/null || $SUDO corepack enable
-corepack prepare pnpm@11.22.0 --activate
-log "pnpm: $(pnpm --version)"
+COREPACK_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v corepack)")"
+"$COREPACK_BIN" enable 2>/dev/null || $SUDO "$COREPACK_BIN" enable
+"$COREPACK_BIN" prepare pnpm@11.22.0 --activate
+PNPM_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v pnpm)")"
+log "pnpm: $("$PNPM_BIN" --version)"
 
 [ -z "$NPM_REGISTRY" ] || export npm_config_registry="$NPM_REGISTRY"
 CODEX_VERSION="0.149.0"   # protocol/ generated from this version; bump both.
@@ -237,7 +264,7 @@ ZAI_MCP_VERSION="0.1.4"   # pinned — floating latest may break tool names/prot
                            # vision MCP tests in deploy/ pass on this version)
 
 # The gateway uses a private versioned runtime, never another app's global CLI.
-CODEX_BIN="$($SUDO env PATH="$PATH" bash "$INSTALL_DIR/deploy/install-runtime.sh" "$CODEX_VERSION")"
+CODEX_BIN="$($SUDO env PATH="$PATH" NPM_BIN="$NPM_BIN" bash "$INSTALL_DIR/deploy/install-runtime.sh" "$CODEX_VERSION")"
 export CODEX_BIN
 log "codex: $("$CODEX_BIN" --version)"
 
@@ -258,8 +285,8 @@ TOOLS_BIN_DIR="$(python3 "$SCRIPT_DIR/runtime_paths.py" "$TOOLS_BIN_DIR")"
 # --- 3. build ----------------------------------------------------------------
 log "building gateway + web ($INSTALL_DIR)..."
 cd "$INSTALL_DIR"
-pnpm install --frozen-lockfile
-pnpm build
+"$PNPM_BIN" install --frozen-lockfile
+"$PNPM_BIN" build
 run_as_service test -r "$INSTALL_DIR/apps/gateway/dist/index.js" \
   || { log "ERROR: build output is not readable by service user $RUN_USER"; exit 1; }
 
@@ -272,11 +299,9 @@ case "$CODEX_HOME" in
 esac
 ensure_service_directory() {
   local path="$1" label="$2"
-  if [ ! -e "$path" ]; then
-    $SUDO install -d -o "$RUN_USER" -g "$RUN_GROUP" -m 0700 "$path"
-  fi
-  [ -d "$path" ] || { log "ERROR: $label is not a directory: $path"; exit 1; }
-  if ! run_as_service test -r "$path" || ! run_as_service test -w "$path" || ! run_as_service test -x "$path"; then
+  local -a private=()
+  [ "$label" != CODEX_HOME ] || private=(--private)
+  if ! $SUDO python3 -I "$SCRIPT_DIR/service_directory.py" "$RUN_USER" "$path" "${private[@]}"; then
     log "ERROR: $label is not readable/writable by service user $RUN_USER: $path"
     log "Adjust ownership deliberately, then rerun (the installer will not recursively chown an existing project tree)."
     exit 1
@@ -326,10 +351,14 @@ fi
 log "registering system files for $SERVICE_NAME..."
 if ! command -v visudo >/dev/null 2>&1; then $SUDO apt-get install -y sudo; fi
 COMMAND_PATH="$($SUDO env SERVICE_NAME="$SERVICE_NAME" RUN_USER="$RUN_USER" INSTALL_DIR="$INSTALL_DIR" \
+  GATEWAY_USER="${GATEWAY_USER:-}" GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-}" \
   CODEX_HOME="$CODEX_HOME" CODEX_WORKSPACE="$CODEX_WORKSPACE" ENV_FILE="$ENV_FILE" \
-  CODEX_BIN="$CODEX_BIN" NODE_BIN="$NODE_BIN" TOOLS_BIN_DIR="$TOOLS_BIN_DIR" PATH="$PATH" \
+  CODEX_BIN="$CODEX_BIN" NODE_BIN="$NODE_BIN" NODE_BIN_DIR="$NODE_BIN_DIR" TOOLS_BIN_DIR="$TOOLS_BIN_DIR" PATH="$PATH" \
   PORT="$PORT" BIN_DIR="${BIN_DIR:-/usr/local/bin}" \
   bash "$INSTALL_DIR/deploy/register-service.sh")"
+GATEWAY_CONTROL_HOME="$(sed -n 's/^Environment=GATEWAY_CONTROL_HOME=//p' "$UNIT_FILE" | head -1)"
+GATEWAY_ENV_FILE="$GATEWAY_CONTROL_HOME/gateway.env"
+export GATEWAY_CONTROL_HOME GATEWAY_ENV_FILE
 $SUDO systemctl daemon-reload
 $SUDO systemctl enable --now "$SERVICE_NAME"
 if [ "$LEGACY_ADMIN_FOR_THIS" -eq 1 ]; then
@@ -432,7 +461,8 @@ configure_provider() {
 }
 
 configure_provider
-$SUDO chmod 700 "$CODEX_HOME"
+# Provider setup already runs as the worker. Never follow its pathname with a
+# privileged chmod after handing that worker control of its directory entry.
 
 # --- 7. restart + health check ------------------------------------------------
 $SUDO systemctl restart "$SERVICE_NAME"
@@ -453,7 +483,7 @@ run_as_service env CODEX_BIN="$CODEX_BIN" node "$INSTALL_DIR/scripts/gateway-smo
 if [ "${SKIP_EDGE_SETUP:-0}" = "1" ]; then
   log "保留现有远程访问配置（修复重装不改 Caddy/Authelia）"
 else
-  GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$ENV_FILE" \
+  GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
     bash "$INSTALL_DIR/deploy/setup-edge.sh" \
     || log "(远程访问配置未完成，可稍后运行: bash $INSTALL_DIR/deploy/setup-edge.sh)"
 fi
@@ -464,7 +494,9 @@ cat <<EOF
   ▸ 立即使用:  http://127.0.0.1:${PORT}
   ▸ 管理命令:  ${COMMAND_PATH}（已绑定服务 ${SERVICE_NAME}）
   ▸ 远程访问:  见上方远程访问向导输出（系统级变更: sudo codex-harness edge）
-               ——网关仅监听回环地址且启用 token 认证（~/.codex/gateway-token），
+               ——网关仅监听回环地址，首次访问以任意用户名及管理令牌为密码登录。
+                 管理令牌：${GATEWAY_CONTROL_HOME}/gateway-token（sudo 读取，勿公开分享）。
+                 Agent 使用独立的 worker 账号，不能读取该目录或调用管理 helper。
                  远程访问仍须走 TLS 反代 + 登录鉴权，绝不可直接暴露端口
   ▸ 日常维护:  优先在网页「设置 → 服务器管理」完成（切模型源 / 一键同步 / 重启 / 日志）
   ▸ 服务管理:  systemctl {status|restart} ${SERVICE_NAME}；日志: journalctl -u ${SERVICE_NAME} -f

@@ -12,7 +12,9 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const { TurnDefaults } = await import(pathToFileURL(process.argv[2] ?? path.join(root, "apps/gateway/dist/turn-defaults.js")).href);
+const defaultsModule = pathToFileURL(process.argv[2] ?? path.join(root, "apps/gateway/dist/turn-defaults.js"));
+const { TurnDefaults } = await import(defaultsModule.href);
+const { makeDispatcher } = await import(new URL("./api.js", defaultsModule).href);
 const bin = process.env.CODEX_BIN;
 assert.ok(bin && path.isAbsolute(bin), "CODEX_BIN must be an absolute pinned binary path");
 const version = spawnSync(bin, ["--version"], { encoding: "utf8", windowsHide: true });
@@ -22,15 +24,17 @@ const scratch = mkdtempSync(path.join(tmpdir(), "harness-default-reset-"));
 const home = path.join(scratch, "home"), cwd = path.join(scratch, "workspace");
 mkdirSync(home, { mode: 0o700 }); mkdirSync(cwd, { mode: 0o700 });
 const sample = JSON.parse(readFileSync(process.argv[3] ?? path.join(root, "deploy/providers/zhipu-coding-plan/models.json"), "utf8")).models[0];
-writeFileSync(path.join(home, "models.json"), JSON.stringify({ models: ["fixture-a", "fixture-b"].map(slug => ({
+writeFileSync(path.join(home, "models.json"), JSON.stringify({ models: ["fixture-a", "fixture-b", "fixture-unprobed", "fixture-no-summaries"].map(slug => ({
   ...sample, slug, display_name: slug, base_instructions: "Reply OK without tools.", default_reasoning_level: "low",
-  supported_reasoning_levels: [{ effort: "low", description: "fixture" }, { effort: "high", description: "fixture" }],
+  supported_reasoning_levels: ["fixture-unprobed", "fixture-no-summaries"].includes(slug)
+    ? [] : [{ effort: "low", description: "fixture" }, { effort: "high", description: "fixture" }],
+  supports_reasoning_summaries: slug !== "fixture-no-summaries",
 })) }), { mode: 0o600 });
-const servedModels = [];
+const servedModels = [], servedRequests = [];
 const server = http.createServer(async (req, res) => {
   if (req.method !== "POST" || !req.url.endsWith("/responses")) { res.writeHead(404); res.end(); return; }
   let raw = ""; for await (const chunk of req) raw += chunk;
-  const request = JSON.parse(raw); servedModels.push(request.model);
+  const request = JSON.parse(raw); servedModels.push(request.model); servedRequests.push(request);
   const message = { id: `msg-${servedModels.length}`, type: "message", status: "completed", role: "assistant", content: [{ type: "output_text", text: "OK", annotations: [] }] };
   const response = { id: `resp-${servedModels.length}`, object: "response", created_at: Math.floor(Date.now() / 1000), status: "completed", model: request.model, output: [message],
     usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2, input_tokens_details: { cached_tokens: 0 }, output_tokens_details: { reasoning_tokens: 0 } } };
@@ -67,8 +71,8 @@ const rpc = (method, params) => new Promise((resolve, reject) => {
   pending.set(id, { resolve, reject, timer }); child.stdin.write(JSON.stringify({ id, method, params }) + "\n");
 });
 resolver = new TurnDefaults({ request: rpc });
-const turn = async (threadId, overrides) => {
-  const result = await rpc("turn/start", { threadId, input: [{ type: "text", text: "Reply OK without tools.", text_elements: [] }], ...overrides });
+const dispatch = makeDispatcher({ supervisor: { request: rpc }, turnDefaults: resolver, attachments: {} });
+const waitForTurn = async (result) => {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
     const end = notes.find(note => note.method === "turn/completed" && note.params?.turn?.id === result.turn.id);
@@ -77,6 +81,12 @@ const turn = async (threadId, overrides) => {
   }
   throw new Error("turn completion missing");
 };
+const turn = async (threadId, overrides) => waitForTurn(await rpc("turn/start", {
+  threadId, input: [{ type: "text", text: "Reply OK without tools.", text_elements: [] }], ...overrides,
+}));
+const composerTurn = async (threadId, overrides = {}) => waitForTurn(await dispatch("turn/start", {
+  threadId, text: "Reply OK without tools.", model: null, approvalPolicy: null, sandbox: null, effort: null, ...overrides,
+}));
 const pick = r => ({ model: r.model, approvalPolicy: r.approvalPolicy, sandbox: r.sandbox.type, reasoningEffort: r.reasoningEffort });
 try {
   await rpc("initialize", { clientInfo: { name: "harness-default-reset-regression", version: "1" } });
@@ -89,13 +99,48 @@ try {
   await turn(threadId, { model: "fixture-b", approvalPolicy: "never", sandboxPolicy: { type: "dangerFullAccess" }, effort: "high" });
   const overridden = await rpc("thread/resume", { threadId });
   const defaults = await resolver.resolve(threadId);
-  await turn(threadId, { model: defaults.model, approvalPolicy: defaults.approvalPolicy, sandboxPolicy: defaults.sandbox, effort: defaults.reasoningEffort });
+  await composerTurn(threadId);
   const afterReset = await rpc("thread/resume", { threadId });
   assert.deepEqual(pick(afterReset), pick(initial));
   assert.deepEqual(servedModels, ["fixture-b", "fixture-a"]);
+  assert.equal(servedRequests[0].reasoning?.effort, "high");
+  assert.equal(servedRequests[1].reasoning?.effort, defaults.reasoningEffort);
+
+  const emptyCapabilityResults = [];
+  for (const model of ["fixture-unprobed", "fixture-no-summaries"]) {
+    const catalog = await rpc("model/list", { includeHidden: true });
+    assert.deepEqual(catalog.data.find(entry => entry.model === model)?.supportedReasoningEfforts, []);
+    const baseline = await rpc("thread/start", { cwd, model });
+    const id = baseline.thread.id;
+    // The ordinary first message must work when the catalog has no effort
+    // overrides. Selecting a model retains its native configured default.
+    await composerTurn(id, { model });
+    assert.equal(servedModels.at(-1), model);
+    const firstDefaultRequest = servedRequests.at(-1);
+    // Establish a sticky native override without claiming it is advertised by
+    // the gateway. The canned server executes no inference or tools.
+    await turn(id, { effort: "high" });
+    assert.equal((await rpc("thread/resume", { threadId: id })).reasoningEffort, "high");
+    await composerTurn(id, { model });
+    const restored = await rpc("thread/resume", { threadId: id });
+    assert.equal(restored.reasoningEffort, baseline.reasoningEffort);
+    const restoredRequest = servedRequests.at(-1);
+    // In pinned 0.149.0, supports_reasoning_summaries:false does not suppress
+    // a configured effort on the wire. Preserve that native default behavior;
+    // neither this flag nor an empty override list means "omit reasoning".
+    assert.equal(firstDefaultRequest.reasoning?.effort, baseline.reasoningEffort);
+    assert.equal(restoredRequest.reasoning?.effort, baseline.reasoningEffort);
+    const count = servedRequests.length;
+    for (const effort of [baseline.reasoningEffort, "arbitrary-vendor-effort"]) {
+      await assert.rejects(dispatch("turn/start", { threadId: id, text: "Must not dispatch.", model, effort }), /未声明支持/);
+    }
+    assert.equal(servedRequests.length, count);
+    emptyCapabilityResults.push({ model, defaultEffort: baseline.reasoningEffort, restoredEffort: restored.reasoningEffort,
+      reasoningOnWire: restoredRequest.reasoning ?? null, explicitOverridesRejected: true });
+  }
   assert.equal(notes.filter(note => note.method === "thread/started" && note.params?.thread?.ephemeral).length, 0);
   console.log(JSON.stringify({ binary: "0.149.0", externalRequests: 0, fixtureResponses: servedModels.length,
-    servedModels, initial: pick(initial), overridden: pick(overridden), afterReset: pick(afterReset), passed: true }));
+    servedModels, initial: pick(initial), overridden: pick(overridden), afterReset: pick(afterReset), emptyCapabilityResults, passed: true }));
 } finally {
   for (const item of pending.values()) clearTimeout(item.timer);
   const stopped = once(child, "exit").catch(() => {}); child.kill("SIGTERM");

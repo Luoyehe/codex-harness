@@ -33,7 +33,7 @@ function fixture() {
   }) };
   const container = { style: { display: "" }, remove: vi.fn() };
   const create = deferred<{ processId: string }>();
-  const rpc = vi.fn((method: string) => method === "terminal/exec" ? create.promise : Promise.resolve({}));
+  const rpc = vi.fn((method: string, _params?: Record<string, unknown>) => method === "terminal/exec" ? create.promise : Promise.resolve({}));
   const exited = vi.fn();
   const session = new TerminalSession(term as unknown as Terminal, fit as unknown as FitAddon, container as unknown as HTMLDivElement, rpc as ConstructorParameters<typeof TerminalSession>[3], exited);
   return { session, term, fit, container, rpc, exited, create, disconnect, disposeListener, order,
@@ -43,6 +43,50 @@ function fixture() {
 }
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("terminal bounded ordered byte transport", () => {
+  it("chunks multi-byte pastes beyond 64 KiB and serializes subsequent keystrokes without loss", async () => {
+    const f = fixture(); const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    const acknowledged = deferred<{}>();
+    f.rpc.mockImplementation((method) => method === "terminal/write" ? acknowledged.promise : Promise.resolve({}));
+    const paste = "中🙂abc".repeat(15_000);
+    f.data(paste); f.data("\r");
+    expect(f.rpc.mock.calls.filter(([method]) => method === "terminal/write")).toHaveLength(1);
+    acknowledged.resolve({});
+    for (let index = 0; index < 20; index++) await Promise.resolve();
+    const chunks = f.rpc.mock.calls.filter(([method]) => method === "terminal/write").map(([, params]) => atob(String(params?.base64)));
+    expect(chunks.every((chunk) => chunk.length <= 32 * 1024)).toBe(true);
+    expect(chunks.length).toBeGreaterThan(2);
+    expect(new TextDecoder().decode(Uint8Array.from(chunks.join(""), (char) => char.charCodeAt(0)))).toBe(paste + "\r");
+    f.session.dispose();
+  });
+
+  it("never replays an unacknowledged chunk or executes the remaining suffix", async () => {
+    const f = fixture(); const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    f.rpc.mockImplementation((method) => method === "terminal/write" ? Promise.reject(new Error("connection closed")) : Promise.resolve({}));
+    f.data("a".repeat(100_000) + "\r");
+    for (let index = 0; index < 5; index++) await Promise.resolve();
+    f.data("echo should-not-run\r");
+    expect(f.rpc.mock.calls.filter(([method]) => method === "terminal/write")).toHaveLength(1);
+    expect(f.term.writeln).toHaveBeenCalledWith(expect.stringContaining("部分内容可能已经执行"));
+    f.session.dispose();
+  });
+
+  it("refuses oversized input as a whole and stops runaway unrendered output", async () => {
+    const f = fixture(); const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    f.data("x".repeat(1024 * 1024 + 1));
+    expect(f.rpc.mock.calls.some(([method]) => method === "terminal/write")).toBe(false);
+    expect(f.term.writeln).toHaveBeenCalledWith(expect.stringContaining("本次输入未发送"));
+    const data = btoa("x".repeat(1024 * 1024));
+    for (let index = 0; index < 5; index++) f.session.handleNotification({ method: "command/exec/outputDelta", params: { processId: f.session.processId, deltaBase64: data, stream: "stdout", capReached: false } });
+    expect(f.session.exited).toBe(true);
+    expect(f.rpc).toHaveBeenCalledWith("terminal/terminate", { processId: f.session.processId });
+    f.session.dispose();
+  });
+});
 
 describe("terminal startup and geometry", () => {
   it("allocates a valid random UUID when a LAN HTTP context lacks randomUUID", () => {
@@ -59,7 +103,7 @@ describe("terminal startup and geometry", () => {
     f.session.handleNotification({ method: "command/exec/outputDelta", params: { processId: f.session.processId, deltaBase64: btoa("startup output"), stream: "stdout", capReached: false } });
     f.session.handleNotification({ method: "terminal/exited", params: { processId: f.session.processId, exitCode: 1, error: "synthetic failure" } });
     f.create.resolve({ processId: f.session.processId }); await starting;
-    expect(f.term.write).toHaveBeenCalledWith(new TextEncoder().encode("startup output"));
+    expect(f.term.write).toHaveBeenCalledWith(new TextEncoder().encode("startup output"), expect.any(Function));
     expect(f.session.exited).toBe(true); expect(f.exited).toHaveBeenCalledOnce();
     expect(f.term.writeln).toHaveBeenCalledWith(expect.stringContaining("synthetic failure"));
     f.data("do not send after exit");

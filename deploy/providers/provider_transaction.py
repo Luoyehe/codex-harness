@@ -196,6 +196,17 @@ def validate_generation(generation):
             raise ValueError("候选目录不包含当前模型")
 
 
+def effective_state(generation):
+    """Compare behavior, not staging paths, JSON whitespace or file inodes."""
+    config = load_config(generation / "config.toml")
+    declared = config.pop("model_catalog_json", None)
+    catalog = None
+    if declared:
+        with open(declared, encoding="utf-8") as stream:
+            catalog = json.load(stream)
+    return config, catalog, (generation / "secrets.env").read_bytes()
+
+
 def ensure_public_link(destination, source):
     if destination.is_symlink() and os.readlink(destination) == str(source):
         return
@@ -257,6 +268,7 @@ def execute(mode, command):
         child_env = dict(os.environ, CODEX_HOME=str(generation), ENV_FILE=str(generation / "secrets.env"),
                          HARNESS_PROVIDER_TRANSACTION="1", PYTHONDONTWRITEBYTECODE="1")
         try:
+            before = effective_state(generation)
             if os.environ.get("CUSTOM_SYNC_CATALOG") == "1":
                 custom_sync_environment(generation, child_env)
             if os.environ.get("ZHIPU_SYNC_CATALOG") == "1":
@@ -265,9 +277,15 @@ def execute(mode, command):
             if result.returncode:
                 return result.returncode
             validate_generation(generation)
+            is_refresh = os.environ.get("CUSTOM_SYNC_CATALOG") == "1" or os.environ.get("ZHIPU_SYNC_CATALOG") == "1"
+            if is_refresh and effective_state(generation) == before:
+                print("[provider-transaction] 在线目录与当前配置相同；未发布新版本，无需重启", flush=True)
+                print('[codex-harness-result] {"changed":false,"restartRequired":false}', flush=True)
+                return 0
             private_generation(generation)
             publish(home, env_file, versions, generation)
             print("[provider-transaction] 配置、目录和密钥已作为同一版本提交；旧版本保留供恢复", flush=True)
+            print('[codex-harness-result] {"changed":true,"restartRequired":true}', flush=True)
             return 0
         finally:
             # Failed candidates contain private data; remove only this exact

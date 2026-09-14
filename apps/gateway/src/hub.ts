@@ -6,13 +6,18 @@
  * are broadcast to all clients; the first client to answer wins and everyone
  * else observes `serverRequest/resolved`.
  */
+import { validateResponse } from "../../../shared/input-forms.mjs";
+
+const INPUT_METHODS = new Set(["item/tool/requestUserInput", "mcpServer/elicitation/request"]);
+const MAX_PENDING_ANSWERS = 32;
+const MAX_PROMPT_BYTES = 512 * 1024;
 
 export type ClientMessage =
   | { kind: "rpc"; id: number; method: string; params?: unknown }
   | { kind: "serverRequestResponse"; requestId: number | string; payload: unknown; error?: string };
 
 export type ServerMessage =
-  | { kind: "rpcResult"; id: number; result?: unknown; error?: string }
+  | { kind: "rpcResult"; id: number; result?: unknown; error?: string; errorCode?: string }
   | { kind: "notification"; method: string; params?: unknown }
   | { kind: "serverRequest"; requestId: number | string; method: string; params?: unknown };
 
@@ -23,16 +28,21 @@ export interface BrowserClient {
 export interface HubOptions {
   /** How long a broadcast server request waits for a browser answer. */
   serverRequestTimeoutMs?: number;
+  /** Brief reconnect window only for non-approval input prompts. */
+  inputDisconnectGraceMs?: number;
 }
 
 export class Hub {
   private clients = new Set<BrowserClient>();
   private generation = 0;
   private nextBrowserRequestId = 0;
+  private disconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly options: HubOptions = {}) {}
 
   addClient(client: BrowserClient): void {
+    if (this.disconnectTimer) clearTimeout(this.disconnectTimer);
+    this.disconnectTimer = null;
     this.clients.add(client);
     // A second tab can replace the original without the client count ever
     // reaching zero. Transfer every still-pending prompt to that tab too.
@@ -44,12 +54,24 @@ export class Hub {
 
   removeClient(client: BrowserClient): void {
     this.clients.delete(client);
-    // If this was the LAST client and there are pending approval waiters,
-    // resolve them immediately — nobody can answer, so waiting out the full
-    // timeout just blocks the codex turn for no reason.
     if (this.clients.size === 0) {
-      this.resetPendingAnswers("all browser clients disconnected");
+      // Permissions never survive the loss of all reviewing browsers. Plain
+      // input forms can survive a short reconnect without inventing answers.
+      for (const entry of [...this.browserAnswers.values()]) {
+        if (!INPUT_METHODS.has(entry.message.method)) entry.finish({ answered: false, error: "all browser clients disconnected" });
+      }
+      this.startDisconnectGrace();
     }
+  }
+
+  private startDisconnectGrace(): void {
+    if (this.disconnectTimer || this.clients.size > 0 || !this.browserAnswers.size) return;
+    const grace = Math.max(0, Math.min(120_000, this.options.inputDisconnectGraceMs ?? 30_000));
+    this.disconnectTimer = setTimeout(() => {
+      this.disconnectTimer = null;
+      if (this.clients.size) return;
+      for (const entry of [...this.browserAnswers.values()]) entry.finish({ answered: false, error: "browser reconnect grace expired" });
+    }, grace);
   }
 
   get clientCount(): number {
@@ -81,9 +103,13 @@ export class Hub {
     method: string,
     params: unknown,
   ): Promise<{ answered: boolean; payload?: unknown; error?: string }> {
-    if (this.clients.size === 0) {
+    try {
+      if (params !== undefined && Buffer.byteLength(JSON.stringify(params)) > MAX_PROMPT_BYTES) return Promise.resolve({ answered: false, error: "browser prompt exceeded size limit" });
+    } catch { return Promise.resolve({ answered: false, error: "invalid browser prompt" }); }
+    if (this.clients.size === 0 && !INPUT_METHODS.has(method)) {
       return Promise.resolve({ answered: false, error: "no browser client connected" });
     }
+    if (this.browserAnswers.size >= MAX_PENDING_ANSWERS && !this.pendingByServerId.has(serverRequestId)) return Promise.resolve({ answered: false, error: "pending browser input limit reached" });
     const timeoutMs = this.options.serverRequestTimeoutMs ?? 600_000;
     return new Promise((resolve) => {
       // app-server request ids restart at small integers after a reconnect.
@@ -99,6 +125,10 @@ export class Hub {
         const entry = this.browserAnswers.get(browserRequestId);
         if (entry?.finish === finish) {
           this.browserAnswers.delete(browserRequestId);
+          if (!this.browserAnswers.size && this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+            this.disconnectTimer = null;
+          }
           if (this.pendingByServerId.get(serverRequestId) === entry) {
             this.pendingByServerId.delete(serverRequestId);
           }
@@ -112,13 +142,14 @@ export class Hub {
         resolve(value);
       };
       const timer = setTimeout(() => finish({ answered: false, error: "browser answer timeout" }), timeoutMs);
-      const message: ServerMessage = { kind: "serverRequest", requestId: browserRequestId, method, params };
+      const message: Extract<ServerMessage, { kind: "serverRequest" }> = { kind: "serverRequest", requestId: browserRequestId, method, params };
       const entry = { serverRequestId, finish, message };
       this.browserAnswers.set(browserRequestId, entry);
       this.pendingByServerId.set(serverRequestId, entry);
       // Install the waiter before broadcasting. A synchronous test client (or
       // future in-process client) is then allowed to answer from send().
       this.broadcast(message);
+      this.startDisconnectGrace();
     });
   }
 
@@ -126,7 +157,7 @@ export class Hub {
     string,
     {
       serverRequestId: number | string;
-      message: ServerMessage;
+      message: Extract<ServerMessage, { kind: "serverRequest" }>;
       finish(value: { answered: boolean; payload?: unknown; error?: string }): void;
     }
   >();
@@ -140,6 +171,15 @@ export class Hub {
     if (typeof requestId !== "string") return false;
     const entry = this.browserAnswers.get(requestId);
     if (!entry) return false;
+    let invalid: string | undefined;
+    if (error !== undefined && (typeof error !== "string" || error.length > 2000)) invalid = "回答错误字段无效";
+    else if (!error && INPUT_METHODS.has(entry.message.method)) invalid = validateResponse({ method: entry.message.method as "item/tool/requestUserInput" | "mcpServer/elicitation/request", params: entry.message.params }, payload).error;
+    if (invalid) {
+      // Do not consume the waiter. A corrected second answer must still be
+      // possible and other tabs must not interpret rejection as resolution.
+      this.broadcastNotification("serverRequest/answerRejected", { serverRequestId: requestId, error: invalid });
+      return false;
+    }
     entry.finish(error ? { answered: true, error } : { answered: true, payload });
     return true;
   }
@@ -154,6 +194,8 @@ export class Hub {
 
   /** Resolve and remove every app-server-owned waiter during restart/stop. */
   resetPendingAnswers(reason = "app-server connection reset"): void {
+    if (this.disconnectTimer) clearTimeout(this.disconnectTimer);
+    this.disconnectTimer = null;
     this.generation += 1;
     for (const entry of [...this.browserAnswers.values()]) {
       entry.finish({ answered: false, error: reason });

@@ -15,6 +15,76 @@ afterEach(() => {
 });
 
 describe("AttachmentStore containment and cleanup", () => {
+  it("uses bounded ASCII disk filenames for multibyte names and long extensions", () => {
+    const store = new AttachmentStore(home());
+    for (const name of ["中".repeat(120) + ".csv", "😀".repeat(120) + ".png", "a." + "é".repeat(300)]) {
+      const saved = store.save(name, "eA==", "file");
+      expect(Buffer.byteLength(path.basename(saved.path))).toBeLessThan(64);
+      expect(store.read(saved.path).base64).toBe("eA==");
+    }
+  });
+
+  it("recovers a crash after delete intent or during background GC without immortal owners", async () => {
+    for (const phase of ["before-response", "during-scan"]) {
+      const root = home();
+      const store = new AttachmentStore(root);
+      const saved = store.save("data.csv", "eA==", "file");
+      store.rememberPaths("deleted", [saved.path]);
+      store.beginThreadDeletion("deleted");
+      if (phase === "during-scan") {
+        (store as any).findReferencedByOtherRollout = () => new Promise(() => {});
+        store.cleanupForThread("deleted", {});
+      }
+      const restarted = new AttachmentStore(root);
+      expect(restarted.registeredOwners(saved.path)).toEqual(["@codex-harness:scan-incomplete"]);
+      await restarted.recoverCleanup();
+      expect(existsSync(saved.path)).toBe(false);
+    }
+  });
+
+  it("recovered pending sends retain surviving rollouts and incomplete scans", async () => {
+    const root = home();
+    const store = new AttachmentStore(root);
+    const saved = store.save("data.csv", "eA==", "file");
+    store.reservePaths("thread", [saved.path]);
+    mkdirSync(path.join(root, "sessions"));
+    const rollout = path.join(root, "sessions", "thread.jsonl");
+    writeFileSync(rollout, JSON.stringify({ input: saved.path }));
+    const restarted = new AttachmentStore(root);
+    await restarted.recoverCleanup();
+    expect(existsSync(saved.path)).toBe(true);
+    rmSync(rollout);
+    (restarted as any).findReferencedByOtherRollout = async () => ({ referenced: new Set(), complete: false });
+    await restarted.recoverCleanup();
+    expect(existsSync(saved.path)).toBe(true);
+  });
+
+  it("reconciles same-process stale leases only after a confirmed new generation", async () => {
+    const store = new AttachmentStore(home());
+    const saved = store.save("data.csv", "eA==", "file");
+    store.reservePaths("thread", [saved.path]);
+    await store.recoverCleanup();
+    expect(existsSync(saved.path)).toBe(true);
+    store.reconcileGeneration();
+    await store.recoverCleanup();
+    expect(existsSync(saved.path)).toBe(false);
+  });
+
+  it("persists a moving recovery cursor so 128 retained entries cannot starve later orphans", async () => {
+    const root = home();
+    const store = new AttachmentStore(root);
+    const files = Array.from({ length: 129 }, () => store.save("data.csv", "eA==", "file").path).sort();
+    for (const file of files) store.reservePaths("old-thread", [file]);
+    const first = new AttachmentStore(root);
+    (first as any).findReferencedByOtherRollout = async (needles: string[]) => ({ referenced: new Set(needles.filter((file) => file !== files[128])), complete: true });
+    await first.recoverCleanup();
+    expect(existsSync(files[128])).toBe(true);
+    const next = new AttachmentStore(root);
+    (next as any).findReferencedByOtherRollout = (first as any).findReferencedByOtherRollout;
+    await next.recoverCleanup();
+    expect(existsSync(files[128])).toBe(false);
+    expect(existsSync(files[0])).toBe(true);
+  });
   it.each(["missing", "corrupt", "array", "invalid-owners", "unreadable"])("recovers conservatively from a %s reference index", async (problem) => {
     const root = home();
     const first = new AttachmentStore(root);
@@ -129,7 +199,7 @@ describe("AttachmentStore containment and cleanup", () => {
     const equivalent = `${path.dirname(saved.path)}${path.sep}.${path.sep}${path.basename(saved.path)}`;
     // attachment/delete performs this lookup before unlinking. It must not
     // observe a zero-owner gap while the fallback scan is outstanding.
-    expect(store.registeredOwners(equivalent)).toContain("deleted-thread");
+    expect(store.registeredOwners(equivalent)).toContain("@codex-harness:scan-incomplete");
 
     releaseScan({ referenced: new Set(), complete: true });
     await scan;

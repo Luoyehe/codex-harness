@@ -191,9 +191,34 @@ test("custom catalog refresh retains configured effort and known capabilities", 
     run(code, [...args.slice(0, 6), "", "1"], { CUSTOM_SYNC_CATALOG: "1", CUSTOM_MODEL_IDS: "chosen\nnew-model" });
     const catalog = JSON.parse(readFileSync(path.join(dir, "models.json"), "utf8"));
     assert.equal(parsed(config).model_reasoning_effort, "high");
-    assert.deepEqual(catalog.models.map(m => m.slug), ["chosen", "new-model"]);
+    assert.deepEqual(catalog.models.map(m => m.slug), ["chosen"]);
     assert.deepEqual(catalog.models[0].supported_reasoning_levels.map(l => l.effort), ["low", "high"]);
-    assert.deepEqual(catalog.models[1].supported_reasoning_levels, []);
+    assert.deepEqual(catalog.unconfigured_models, [{ id: "new-model", capabilities: "unknown" }]);
+    assert.ok(!("context_window" in catalog.unconfigured_models[0]));
+    assert.ok(!("input_modalities" in catalog.unconfigured_models[0]));
+    assert.ok(!("default_reasoning_level" in catalog.unconfigured_models[0]));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("custom models keep independently declared capabilities when another model is configured", options, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "provider-model-capabilities-"));
+  try {
+    const config = path.join(dir, "config.toml");
+    const code = block("custom-openai/setup.sh", "config, base_url, model, ctx");
+    run(code, [config, "https://api.example.com/v1", "vision-large", "262144", "1", "high", "low high", "0"]);
+    run(code, [config, "https://api.example.com/v1", "text-small", "8192", "0", "low", "low", "0"]);
+    run(code, [config, "https://api.example.com/v1", "text-small", "8192", "0", "low", "", "0"], {
+      CUSTOM_SYNC_CATALOG: "1", CUSTOM_MODEL_IDS: "vision-large\ntext-small\nunknown-model",
+    });
+    const catalog = JSON.parse(readFileSync(path.join(dir, "models.json"), "utf8"));
+    const vision = catalog.models.find(entry => entry.slug === "vision-large");
+    const text = catalog.models.find(entry => entry.slug === "text-small");
+    assert.equal(vision.context_window, 262144);
+    assert.deepEqual(vision.input_modalities, ["text", "image"]);
+    assert.equal(text.context_window, 8192);
+    assert.deepEqual(text.input_modalities, ["text"]);
+    assert.equal(text.default_reasoning_level, "low");
+    assert.deepEqual(catalog.unconfigured_models, [{ id: "unknown-model", capabilities: "unknown" }]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

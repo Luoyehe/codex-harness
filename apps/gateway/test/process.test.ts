@@ -83,6 +83,64 @@ describe("CodexSupervisor connection generations", () => {
     vi.useRealTimers();
   });
 
+  it.each([false, true])("hands managed loss off without publishing cleanup or admitting more work (callback throws=%s)", async (throws) => {
+    const fatal = vi.fn(() => { if (throws) throw new Error("synthetic callback failure"); });
+    const { supervisor, connections, events } = makeSupervisor({ onFatalConnectionLoss: fatal });
+    supervisor.start();
+    connections[0].initialization.resolve({});
+    await flushPromises();
+    vi.mocked(events.onStateChange).mockClear();
+    connections[0].handlers.onTransportLost?.(new Error("app-server naturally exited"));
+    connections[0].exit();
+    connections[0].handlers.onTransportLost?.(new Error("late pipe close"));
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(fatal).toHaveBeenCalledOnce();
+    expect(connections).toHaveLength(1);
+    expect(connections[0].killed).toBe(false);
+    expect(events.onStateChange).not.toHaveBeenCalled();
+    await expect(supervisor.request("model/list", {})).rejects.toThrow("stopped");
+    expect(connections[0].requests.map((request) => request.method)).toEqual(["initialize"]);
+  });
+
+  it("escalates managed initialization failure before attempting inner cleanup", async () => {
+    const fatal = vi.fn();
+    const { supervisor, connections } = makeSupervisor({ onFatalConnectionLoss: fatal });
+    supervisor.start();
+    connections[0].initialization.reject(new Error("initialize failed"));
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(fatal).toHaveBeenCalledOnce();
+    expect(connections[0].killed).toBe(false);
+    expect(connections).toHaveLength(1);
+  });
+
+  it("rejects a queued readiness continuation if managed loss happens before it resumes", async () => {
+    const { supervisor, connections } = makeSupervisor({ onFatalConnectionLoss: vi.fn() });
+    supervisor.start();
+    const waiting = expect(supervisor.request("model/list", {})).rejects.toThrow("unavailable");
+    // Resolve waiters synchronously, then invalidate before their microtasks.
+    (supervisor as any).setState("ready");
+    connections[0].handlers.onTransportLost?.(new Error("lost immediately after ready"));
+    await waiting;
+    expect(connections[0].requests.map((request) => request.method)).toEqual(["initialize"]);
+  });
+
+  it("blocks replacement and readiness after an unconfirmed cleanup-owner exit", async () => {
+    const { supervisor, connections, events } = makeSupervisor();
+    supervisor.start();
+    const waiting = expect(supervisor.waitReady()).rejects.toThrow("owner killed");
+    connections[0].handlers.onCleanupUnconfirmed?.(new Error("owner killed"));
+    await waiting;
+    connections[0].exit();
+    connections[0].initialization.resolve({});
+    supervisor.start();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(supervisor.state).toBe("blocked");
+    expect(connections).toHaveLength(1);
+    expect(events.onStateChange).not.toHaveBeenCalledWith("restarting");
+    expect(events.onStateChange).not.toHaveBeenCalledWith("stopped");
+    await expect(supervisor.request("model/list", {})).rejects.toThrow("cleanup is unconfirmed");
+  });
+
   it("ignores every callback from a replaced connection", async () => {
     const { supervisor, connections, events } = makeSupervisor();
     supervisor.start();
@@ -164,6 +222,37 @@ describe("CodexSupervisor connection generations", () => {
     supervisor.start();
     supervisor.start();
     expect(connections).toHaveLength(1);
+  });
+
+  it("does not restart after initialize failure until termination is confirmed", async () => {
+    const { supervisor, connections } = makeSupervisor();
+    supervisor.start();
+    const stopped = deferred<void>();
+    vi.spyOn(connections[0], "kill").mockImplementation(() => stopped.promise as any);
+    connections[0].initialization.reject(new Error("initialization rejected"));
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(connections).toHaveLength(1);
+    stopped.resolve();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(connections).toHaveLength(2);
+    await supervisor.stop();
+  });
+
+  it("cannot start over a stop that is still waiting for the old worker", async () => {
+    const { supervisor, connections } = makeSupervisor();
+    supervisor.start();
+    connections[0].initialization.resolve({});
+    await flushPromises();
+    const stopped = deferred<void>();
+    vi.spyOn(connections[0], "kill").mockImplementation(() => stopped.promise as any);
+    const completion = supervisor.stop();
+    supervisor.start();
+    expect(connections).toHaveLength(1);
+    stopped.resolve();
+    await completion;
+    supervisor.start();
+    expect(connections).toHaveLength(2);
+    await supervisor.stop();
   });
 
   it("waits through a restart and dispatches to the new connection", async () => {

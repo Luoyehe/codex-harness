@@ -132,7 +132,10 @@ export class VerificationClient {
 
 export async function completedTurn(client, threadId, overrides = {}) {
   requirePaidVerification();
-  const response = await client.rpc("turn/start", { text: "Reply with exactly OK. Do not use any tools.", approvalPolicy: "on-request", ...overrides, threadId });
+  // One ID for this logical verification turn, one submission only. A lost
+  // acknowledgement remains uncertain; do not generate/retry another turn.
+  const clientOperationId = randomUUID();
+  const response = await client.rpc("turn/start", { text: "Reply with exactly OK. Do not use any tools.", approvalPolicy: "on-request", ...overrides, threadId, clientOperationId });
   const turnId = response?.turn?.id;
   if (!turnId) throw new Error("turn/start returned no turn ID");
   const end = await client.waitFor(note => note.method === "turn/completed" && note.params?.threadId === threadId && note.params?.turn?.id === turnId);

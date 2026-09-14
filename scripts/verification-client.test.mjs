@@ -35,6 +35,7 @@ async function fixture(t, onMessage = () => {}) {
     connections.push({ socket, request });
     socket.on("message", data => {
       const message = JSON.parse(data.toString());
+      if (message.method === "turn/start") assert.match(message.params?.clientOperationId ?? "", /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, "public turn/start requires a stable operation ID");
       messages.push(message);
       onMessage(socket, message);
     });
@@ -209,9 +210,26 @@ test("completedTurn correlates the exact thread and turn and treats provider fai
     }
   });
   const client = await f.client();
-  assert.equal(await completedTurn(client, "target-thread", { threadId: "cannot-override-target" }), "turn-1");
+  assert.equal(await completedTurn(client, "target-thread", { threadId: "cannot-override-target", clientOperationId: "cannot-override-operation" }), "turn-1");
   assert.equal(f.messages[0].params.threadId, "target-thread");
   await assert.rejects(completedTurn(client, "target-thread", { text: "fail" }), /provider errors are not successful/);
+  assert.equal(f.messages.length, 2);
+  assert.notEqual(f.messages[0].params.clientOperationId, f.messages[1].params.clientOperationId);
+});
+
+test("completedTurn submits one operation and never retries an unknown transport outcome", async t => {
+  const previous = process.env.HARNESS_ALLOW_PAID_TESTS;
+  process.env.HARNESS_ALLOW_PAID_TESTS = "1";
+  t.after(() => { if (previous === undefined) delete process.env.HARNESS_ALLOW_PAID_TESTS; else process.env.HARNESS_ALLOW_PAID_TESTS = previous; });
+  const calls = [];
+  const client = {
+    async rpc(method, params) { calls.push({ method, params }); throw new Error("synthetic transport uncertainty"); },
+    async waitFor() { throw new Error("must not wait without admission response"); },
+  };
+  await assert.rejects(completedTurn(client, "test-thread"), /transport uncertainty/);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, "turn/start");
+  assert.match(calls[0].params.clientOperationId, /^[0-9a-f-]{36}$/i);
 });
 
 test("cleanup reconnects after remote close with the original auth, deletes, and closes the temporary connection", { timeout: 5000 }, async t => {

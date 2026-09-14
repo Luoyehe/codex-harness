@@ -13,15 +13,19 @@ import type { GetAccountResponse } from "../../../../protocol/v2/GetAccountRespo
 import type { ModelListResponse } from "../../../../protocol/v2/ModelListResponse";
 import type { ListMcpServerStatusResponse } from "../../../../protocol/v2/ListMcpServerStatusResponse";
 import type { LoginAccountResponse } from "../../../../protocol/v2/LoginAccountResponse";
+import type { ManagementSnapshot } from "../utils/management";
 
 /** The gateway passes upstream notifications through, except approval IDs, and
  * adds these lifecycle events. Keep this boundary separate from UI state. */
 export type GatewayNotification = Exclude<ServerNotification, { method: "serverRequest/resolved" }> |
   { method: "serverRequest/resolved"; params: { requestId?: string | number; serverRequestId?: string | number } } |
+  { method: "serverRequest/answerRejected"; params: { serverRequestId?: string | number; requestId?: string | number; error: string } } |
   { method: "appServer/stateChanged"; params: { state: string } } |
   { method: "thread/autoCompacting"; params: { threadId: string; usedTokens: number; windowTokens: number } } |
   { method: "thread/autoCompactFailed"; params: { threadId: string; error: string } } |
   { method: "displayPrefs/updated"; params: unknown } |
+  { method: "management/stateChanged"; params: ManagementSnapshot } |
+  { method: "harness/turnAccepted"; params: { clientOperationId: string; threadId: string; turnId: string; attachments: Attachment[] } } |
   { method: "terminal/allExited"; params: { reason?: string } } |
   { method: "terminal/exited"; params: { processId: string; exitCode: number | null; error?: string } };
 
@@ -42,7 +46,7 @@ export type TimelineItem = (ThreadItem |
   { type: "localUserMessage"; id: string; text: string; attachments: Attachment[] } |
   { type: "errorItem"; id: string; message: string; willRetry: boolean; historyLoadError?: boolean } |
   { type: "compactionProgress"; id: string; message: string; status: "inProgress" | "completed" | "failed" }
-) & { threadId?: string; streaming?: boolean; completed?: boolean };
+) & { threadId?: string; turnId?: string; streaming?: boolean; completed?: boolean; harnessAttachments?: Attachment[]; clientOperationId?: string };
 
 /** Gateway-owned request shapes intentionally differ from raw app-server input. */
 export interface ProtocolRpc {
@@ -51,7 +55,7 @@ export interface ProtocolRpc {
   "thread/start": { params: Pick<ThreadStartParams, "cwd" | "model" | "approvalPolicy">; result: ThreadStartResponse };
   "thread/list": { params: ThreadListParams; result: ThreadListResponse };
   "turn/start": { params: Pick<TurnStartParams, "threadId" | "model" | "approvalPolicy" | "effort"> & {
-    text: string; attachments?: Attachment[]; sandbox?: "network" | "full" | null;
+    text: string; attachments?: Attachment[]; sandbox?: "network" | "full" | null; clientOperationId: string;
   }; result: TurnStartResponse };
   "account/read": { params: undefined; result: GetAccountResponse };
   "account/login/start": { params: { type: "chatgptDeviceCode" }; result: LoginAccountResponse };
