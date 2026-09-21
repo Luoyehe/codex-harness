@@ -264,7 +264,11 @@ export class AuthToken {
       const raw = readBoundedRegularTextFileSync(this.file, 4098, (fd) => {
         // Apply permissions to the exact inode that was validated and read;
         // chmod(path) would reintroduce a swap race after the read.
-        if (process.platform !== "win32") fchmodSync(fd, 0o600);
+        // Even chmod to the existing mode updates ctime on Linux. Avoid
+        // invalidating another constructor's stable read of the same token.
+        if (process.platform !== "win32" && (fstatSync(fd).mode & 0o7777) !== 0o600) {
+          fchmodSync(fd, 0o600);
+        }
       });
       // The terminating newline distinguishes a complete published token from
       // old direct-write crash debris and rejects plausible-looking prefixes.
