@@ -1,6 +1,7 @@
 """Import user-supplied TLS material into a root-managed Caddy directory."""
 import argparse
 import contextlib
+import json
 import os
 from pathlib import Path
 import pwd
@@ -12,14 +13,19 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from trusted_paths import trusted_path
+from bounded_read import read_text_bounded
 
 
 CERT_LIMIT = 8 * 1024 * 1024
 KEY_LIMIT = 1024 * 1024
 COPY_CHUNK = 64 * 1024
+ADAPTED_CONFIG_LIMIT = 16 * 1024 * 1024
+COLLECTION_PAIR_LIMIT = 1024
+COLLECTION_BYTE_LIMIT = 64 * 1024 * 1024
 MANAGED_ROOT = "/etc/codex-harness/tls"
 UNIT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}")
 TEMPORARY = re.compile(r"\.(cert|key)\.pem\.[0-9a-f]{32}\.tmp")
+PAIR_DIRECTORY = re.compile(r"pair-[0-9a-f]{32}")
 DIR_FLAGS = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
 SOURCE_FLAGS = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
 
@@ -137,8 +143,25 @@ def _expected_entry(info, owner_uid, group_gid, mode):
     )
 
 
-def _validate_entries(directory_fd, owner_uid, group_gid, *, allow_partial):
-    names = set(os.listdir(directory_fd))
+def _directory_names(directory_fd):
+    names = set()
+    # Give each scan its own directory offset while retaining the pinned path.
+    scan_fd = os.open(".", DIR_FLAGS, dir_fd=directory_fd)
+    try:
+        with os.scandir(scan_fd) as entries:
+            for entry in entries:
+                names.add(entry.name)
+                if len(names) > COLLECTION_PAIR_LIMIT + 2:
+                    raise ValueError("managed TLS directory exceeds its entry limit")
+    finally:
+        os.close(scan_fd)
+    return names
+
+
+def _validate_entries(directory_fd, owner_uid, group_gid, *, allow_partial, allow_pairs=False):
+    names = _directory_names(directory_fd)
+    if allow_pairs:
+        names = {name for name in names if not PAIR_DIRECTORY.fullmatch(name)}
     if names - {"cert.pem", "key.pem"}:
         raise ValueError("managed TLS directory contains unexpected entries")
     if not allow_partial and names != {"cert.pem", "key.pem"}:
@@ -154,7 +177,7 @@ def _validate_entries(directory_fd, owner_uid, group_gid, *, allow_partial):
 
 def _remove_stale_temporaries(directory_fd, owner_uid, group_gid):
     removed = False
-    for name in os.listdir(directory_fd):
+    for name in _directory_names(directory_fd):
         match = TEMPORARY.fullmatch(name)
         if not match:
             continue
@@ -318,6 +341,195 @@ def remove_pair(target_dir, owner_uid, reader_gid):
         os.close(parent_fd)
 
 
+def _inventory(target_dir, owner_uid, reader_gid):
+    """Validate the entire collection before copying or removing any pair."""
+    directory_fd = _open_directory(target_dir, owner_uid, reader_gid, 0o750)
+    try:
+        _remove_stale_temporaries(directory_fd, owner_uid, reader_gid)
+        result = {"": _validate_entries(directory_fd, owner_uid, reader_gid, allow_partial=True, allow_pairs=True)}
+        for name in sorted(_directory_names(directory_fd)):
+            if not PAIR_DIRECTORY.fullmatch(name):
+                continue
+            child_fd = _open_directory(os.path.join(target_dir, name), owner_uid, reader_gid, 0o750)
+            try:
+                _remove_stale_temporaries(child_fd, owner_uid, reader_gid)
+                result[name] = _validate_entries(child_fd, owner_uid, reader_gid, allow_partial=True)
+            finally:
+                os.close(child_fd)
+        _check_collection_budget(target_dir, result)
+        return result
+    finally:
+        os.close(directory_fd)
+
+
+def _check_collection_budget(directory, inventory):
+    if len(inventory) - 1 > COLLECTION_PAIR_LIMIT:
+        raise ValueError("managed TLS collection exceeds its pair limit")
+    total = sum(os.stat(os.path.join(directory, name, entry), follow_symlinks=False).st_size
+                for name, entries in inventory.items() for entry in entries)
+    if total > COLLECTION_BYTE_LIMIT:
+        raise ValueError("managed TLS collection exceeds its byte limit")
+
+
+def _copy_entries(source_dir, target_dir, names, owner_uid, group_gid, *, private):
+    """Copy validated entries into a fresh directory, including partial pairs."""
+    directory_fd = _open_directory(target_dir, owner_uid, group_gid, 0o700 if private else 0o750)
+    try:
+        for name in sorted(names):
+            source = _open_source(
+                os.path.join(source_dir, name), CERT_LIMIT if name == "cert.pem" else KEY_LIMIT,
+                private=name == "key.pem", allow_group_read=True,
+            )
+            try:
+                fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600, dir_fd=directory_fd)
+                try:
+                    copied = _copy_pinned(source, fd)
+                    _revalidate(source, copied)
+                    os.fchown(fd, owner_uid, group_gid)
+                    os.fchmod(fd, 0o600 if private else (0o644 if name == "cert.pem" else 0o640))
+                    os.fsync(fd)
+                finally:
+                    os.close(fd)
+            finally:
+                os.close(source[0])
+        _fsync_directory(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
+def _make_directory(path, owner_uid, group_gid, mode):
+    os.mkdir(path, mode)
+    os.chown(path, owner_uid, group_gid)
+    os.chmod(path, mode)
+    parent_fd = os.open(os.path.dirname(path), DIR_FLAGS)
+    try:
+        _fsync_directory(parent_fd)
+    finally:
+        os.close(parent_fd)
+
+
+def install_managed(cert_path, key_path, target_dir, owner_uid, reader_gid):
+    # A new immutable identity also protects references from other instances or
+    # manually maintained sites. An update never overwrites a referenced pair.
+    inventory = _inventory(target_dir, owner_uid, reader_gid)
+    if len(inventory) - 1 >= COLLECTION_PAIR_LIMIT:
+        raise ValueError("managed TLS collection has no room for another pair")
+    pair_dir = os.path.join(target_dir, "pair-" + secrets.token_hex(16))
+    _make_directory(pair_dir, owner_uid, reader_gid, 0o750)
+    try:
+        install_pair(cert_path, key_path, pair_dir, owner_uid, reader_gid)
+        _inventory(target_dir, owner_uid, reader_gid)
+    except BaseException:
+        remove_pair(pair_dir, owner_uid, reader_gid)
+        raise
+    return pair_dir
+
+
+def snapshot_managed(target_dir, backup_dir, owner_uid, reader_gid):
+    inventory = _inventory(target_dir, owner_uid, reader_gid)
+    _make_directory(backup_dir, owner_uid, owner_uid, 0o700)
+    for name, entries in inventory.items():
+        destination = os.path.join(backup_dir, name)
+        if name:
+            _make_directory(destination, owner_uid, owner_uid, 0o700)
+        _copy_entries(os.path.join(target_dir, name), destination, entries, owner_uid, owner_uid, private=True)
+
+
+def _backup_inventory(backup_dir, owner_uid):
+    result = {}
+    parent_fd = _open_directory(backup_dir, owner_uid, owner_uid, 0o700)
+    try:
+        children = _directory_names(parent_fd) - {"cert.pem", "key.pem"}
+        if any(not PAIR_DIRECTORY.fullmatch(name) for name in children):
+            raise ValueError("TLS backup contains unexpected entries")
+        for name in ["", *sorted(children)]:
+            fd = _open_directory(os.path.join(backup_dir, name), owner_uid, owner_uid, 0o700)
+            try:
+                entries = _directory_names(fd) - (children if not name else set())
+                if entries - {"cert.pem", "key.pem"}:
+                    raise ValueError("TLS backup contains unexpected entries")
+                for entry in entries:
+                    info = os.stat(entry, dir_fd=fd, follow_symlinks=False)
+                    limit = CERT_LIMIT if entry == "cert.pem" else KEY_LIMIT
+                    if not _expected_entry(info, owner_uid, owner_uid, 0o600) or not 0 < info.st_size <= limit:
+                        raise ValueError("TLS backup file has unsafe metadata")
+                result[name] = entries
+            finally:
+                os.close(fd)
+        _check_collection_budget(backup_dir, result)
+        return result
+    finally:
+        os.close(parent_fd)
+
+
+def referenced_paths(config):
+    """Use Caddy's adapted JSON so imports, snippets and quoted paths count."""
+    if not isinstance(config, dict):
+        raise ValueError("adapted Caddy configuration must be an object")
+    paths, folders = set(), set()
+    pending = [config]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            if isinstance(value.get("load_folders"), list):
+                folders.update(os.path.realpath(folder) for folder in value["load_folders"] if isinstance(folder, str))
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+        elif isinstance(value, str):
+            # Resolving symlinks preserves indirect refs. Only load_folders is
+            # recursive: an unrelated HTTP route "/" must not retain all keys.
+            paths.add(os.path.realpath(value))
+    return {"files": paths, "folders": folders}
+
+
+def remove_managed(target_dir, owner_uid, reader_gid, *, references=None):
+    try:
+        inventory = _inventory(target_dir, owner_uid, reader_gid)
+    except FileNotFoundError:
+        if os.path.lexists(target_dir):
+            raise
+        return
+    target_dir = os.fspath(target_dir)
+    root_fd = _open_directory(target_dir, owner_uid, reader_gid, 0o750)
+    try:
+        for name, entries in inventory.items():
+            pair_dir = os.path.join(target_dir, name)
+            paths = [os.path.realpath(os.path.join(pair_dir, entry)) for entry in ("cert.pem", "key.pem")]
+            if references is not None and (
+                any(path in references["files"] for path in paths)
+                or any(path.startswith(folder.rstrip(os.sep) + os.sep) for path in paths for folder in references["folders"])
+            ):
+                continue
+            if name:
+                remove_pair(pair_dir, owner_uid, reader_gid)
+            else:
+                for entry in entries:
+                    os.unlink(entry, dir_fd=root_fd)
+        _fsync_directory(root_fd)
+        empty = not _directory_names(root_fd)
+    finally:
+        os.close(root_fd)
+    if empty:
+        os.rmdir(target_dir)
+        parent_fd = os.open(os.path.dirname(target_dir), DIR_FLAGS)
+        try:
+            _fsync_directory(parent_fd)
+        finally:
+            os.close(parent_fd)
+
+
+def restore_managed(target_dir, backup_dir, owner_uid, reader_gid):
+    inventory = _backup_inventory(backup_dir, owner_uid)
+    remove_managed(target_dir, owner_uid, reader_gid)
+    _make_directory(target_dir, owner_uid, reader_gid, 0o750)
+    for name, entries in inventory.items():
+        destination = os.path.join(target_dir, name)
+        if name:
+            _make_directory(destination, owner_uid, reader_gid, 0o750)
+        _copy_entries(os.path.join(backup_dir, name), destination, entries, owner_uid, reader_gid, private=False)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -337,6 +549,10 @@ def main(argv=None):
     remove = subparsers.add_parser("remove")
     remove.add_argument("unit")
     remove.add_argument("caddy_user")
+    prune = subparsers.add_parser("prune")
+    prune.add_argument("unit")
+    prune.add_argument("caddy_user")
+    prune.add_argument("adapted_config")
     args = parser.parse_args(argv)
     if os.name != "posix" or not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
         raise ValueError("managed TLS import requires Linux no-follow descriptors")
@@ -346,15 +562,17 @@ def main(argv=None):
     target = _managed_path(args.unit)
     if args.command == "install":
         target = _ensure_managed_directory(args.unit, account.pw_gid)
-        install_pair(args.certificate, args.private_key, target, 0, account.pw_gid)
-        print(os.path.join(target, "cert.pem") + "\t" + os.path.join(target, "key.pem"))
+        print(install_managed(args.certificate, args.private_key, target, 0, account.pw_gid))
     elif args.command == "snapshot":
-        snapshot_pair(target, args.backup, 0, account.pw_gid)
+        snapshot_managed(target, args.backup, 0, account.pw_gid)
     elif args.command == "restore":
         target = _ensure_managed_directory(args.unit, account.pw_gid)
-        install_pair(os.path.join(args.backup, "cert.pem"), os.path.join(args.backup, "key.pem"), target, 0, account.pw_gid)
+        restore_managed(target, args.backup, 0, account.pw_gid)
+    elif args.command == "prune":
+        references = referenced_paths(json.loads(read_text_bounded(args.adapted_config, ADAPTED_CONFIG_LIMIT)))
+        remove_managed(target, 0, account.pw_gid, references=references)
     else:
-        remove_pair(target, 0, account.pw_gid)
+        remove_managed(target, 0, account.pw_gid)
 
 
 if __name__ == "__main__":

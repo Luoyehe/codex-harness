@@ -56,6 +56,7 @@ export function Composer() {
   const activeThreadId = useStore((s) => s.activeThreadId);
   const historyReady = useStore((s) => !s.activeThreadId || !!s.historyLoaded[s.activeThreadId]);
   const turnActive = useStore((s) => (s.activeThreadId ? !!s.turnActive[s.activeThreadId] : false));
+  const interruptPending = useStore((s) => (s.activeThreadId ? !!s.interruptPending[s.activeThreadId] : false));
   const usage = useStore((s) => (s.activeThreadId ? s.tokenUsage[s.activeThreadId] : undefined));
   const compacting = useStore((s) => (s.activeThreadId ? !!s.compacting[s.activeThreadId] : false));
   const sendMessage = useStore((s) => s.sendMessage);
@@ -530,8 +531,8 @@ export function Composer() {
           </select>
         )}
         {turnActive ? (
-          <button className="btn-danger" onClick={() => void interruptTurn()}>
-            停止
+          <button className="btn-danger" disabled={interruptPending} onClick={() => void interruptTurn()}>
+            {interruptPending ? "停止请求中…" : "停止"}
           </button>
         ) : (
           <button

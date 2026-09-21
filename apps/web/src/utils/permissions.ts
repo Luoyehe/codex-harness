@@ -1,5 +1,6 @@
 import type { RequestPermissionProfile } from "../../../../protocol/v2/RequestPermissionProfile";
 import type { FileSystemPath } from "../../../../protocol/v2/FileSystemPath";
+import type { NetworkApprovalContext } from "../../../../protocol/v2/NetworkApprovalContext";
 import { unreachable, type ApprovalRequest, type TimelineItem } from "../api/protocol";
 
 const MAX_PERMISSION_PATH_LENGTH = 4_096;
@@ -186,6 +187,17 @@ function optionalApprovalText(params: Record<string, unknown>, key: string, max:
   return value == null || typeof value === "string" && value.length <= max;
 }
 
+/** Both the approval card and the write guard must recognize the complete
+ * network-only context before allowing a missing command. */
+export function normalizeNetworkApprovalContext(value: unknown): NetworkApprovalContext | null {
+  if (!value || typeof value !== "object" || Array.isArray(value) || !hasOnlyDataKeys(value, ["host", "protocol"])) return null;
+  const context = value as Record<string, unknown>;
+  const protocol = context.protocol;
+  if (protocol !== "http" && protocol !== "https" && protocol !== "socks5Tcp" && protocol !== "socks5Udp") return null;
+  if (typeof context.host !== "string" || context.host.length > 2_048 || !context.host.trim()) return null;
+  return { protocol, host: context.host };
+}
+
 /** Approval responses are writes. Enforce the same runtime contract in the
  * store as in the UI so a stale callback or direct caller cannot bypass a
  * disabled button and approve context the browser could not show faithfully. */
@@ -204,20 +216,18 @@ export function approvalCanAccept(
   if (approval.method === "item/fileChange/requestApproval") {
     return optionalApprovalText(params, "grantRoot", 4_096) && fileChangeApprovalContext(approval, items).valid;
   }
-  if (typeof params.command !== "string" || params.command.length > 200_000) return false;
-  const network = params.networkApprovalContext;
-  if (network != null) {
-    if (!network || typeof network !== "object" || Array.isArray(network)) return false;
-    const context = network as Record<string, unknown>;
-    if (typeof context.protocol !== "string" || !new Set(["http", "https", "socks5Tcp", "socks5Udp"]).has(context.protocol) ||
-        !validPathText(context.host) || (context.host as string).length > 2_048) return false;
-  }
+  const network = normalizeNetworkApprovalContext(params.networkApprovalContext);
+  if (params.networkApprovalContext != null && !network) return false;
+  // A protocol-valid managed-network callback can omit command entirely.
+  // A supplied malformed command must never be rescued by its network target.
+  if (params.command == null ? !network :
+      typeof params.command !== "string" || params.command.length > 200_000 || !params.command.trim()) return false;
   const networkRules = params.proposedNetworkPolicyAmendments;
   if (networkRules != null && (!Array.isArray(networkRules) || networkRules.length > 500 || networkRules.some((rule) => {
-    if (!rule || typeof rule !== "object" || Array.isArray(rule)) return true;
+    if (!rule || typeof rule !== "object" || Array.isArray(rule) || !hasOnlyDataKeys(rule, ["action", "host"])) return true;
     const record = rule as Record<string, unknown>;
     return (record.action !== "allow" && record.action !== "deny") ||
-      typeof record.host !== "string" || !record.host || record.host.length > 2_048;
+      typeof record.host !== "string" || record.host.length > 2_048 || !record.host.trim();
   }))) return false;
   const execRule = params.proposedExecpolicyAmendment;
   return execRule == null || Array.isArray(execRule) && execRule.length <= 500 &&

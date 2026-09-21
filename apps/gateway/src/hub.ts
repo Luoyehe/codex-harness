@@ -78,6 +78,9 @@ export interface HubOptions {
   serverRequestTimeoutMs?: number;
   /** Brief reconnect window only for non-approval input prompts. */
   inputDisconnectGraceMs?: number;
+  /** Owner-level notification transport. When supplied, it handles browser
+   * fan-out and observes resolutions even when no browser remains connected. */
+  broadcastNotification?(method: string, params: unknown): void;
 }
 
 export class Hub {
@@ -137,7 +140,8 @@ export class Hub {
   }
 
   broadcastNotification(method: string, params: unknown): void {
-    this.broadcast({ kind: "notification", method, params });
+    if (this.options.broadcastNotification) this.options.broadcastNotification(method, params);
+    else this.broadcast({ kind: "notification", method, params });
   }
 
   /**

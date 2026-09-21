@@ -291,6 +291,9 @@ for (const failing of [false, true]) test(`maintenance edge disable never restar
   const f = scratch("harness-stopped-edge-");
   try {
     const units = path.join(f.dir, "units"); mkdirSync(units); writeFileSync(path.join(units, "fixture.service"), "fixture\n");
+    const auth = path.join(f.dir, "authelia"); mkdirSync(auth);
+    writeFileSync(path.join(auth, "configuration.yml"), "session:\n  cookies:\n    - domain: fixture.invalid\n      authelia_url: https://fixture.invalid/authelia/\n");
+    const calls = path.join(f.dir, "calls");
     let block;
     if (failing) {
       block = extract("setup-edge.sh", "cleanup_disable") + "\ntrap cleanup_disable EXIT\nexit 23\n";
@@ -300,16 +303,26 @@ for (const failing of [false, true]) test(`maintenance edge disable never restar
     }
     block = block.replaceAll("/etc/systemd/system/", units + "/");
     const backup = path.join(f.dir, "backup"); mkdirSync(backup);
-    const script = `set -eu\nneed_root() { :; }\nlock_edge() { :; }\nload_saved_edge_state() { :; }\nvalidate_edge_values() { :; }\ncheck_edge_paths() { :; }\nlog() { :; }\npython3() { :; }\nsystemctl() { return 1; }\nsystemctl_do() { echo "$*"; }\n${block}\n`;
+    const script = `set -eu\nneed_root() { :; }\nlock_edge() { :; }\nload_saved_edge_state() { :; }\nvalidate_edge_values() { :; }\ncheck_edge_paths() { :; }\ndie() { echo "$*" >&2; exit 19; }\nlog() { printf 'LOG %s\\n' "$*" >> "$FIXTURE_CALLS"; }\npython3() {\n  printf 'PYTHON %s\\n' "$*" >> "$FIXTURE_CALLS"\n  if [ "$2" = "$SCRIPT_DIR/lifecycle.py" ] && [ "$3" = guard-edge-removal ]; then command python3 "$@"; fi\n}\nsystemctl() { return 1; }\nsystemctl_do() { echo "$*"; }\n${block}\n`;
     const result = spawnSync("bash", ["-c", script], { encoding: "utf8", timeout: 5000, env: { ...process.env,
       TMPDIR: f.dir, EDGE_ACTION: "disable", EDGE_GATEWAY_STOPPED: "1", DISABLE_BACKUP: backup,
       CADDY_FILE: path.join(f.dir, "no-Caddyfile"), SCRIPT_DIR: deploy, CODEX_HOME: f.dir, ENV_FILE: path.join(f.dir, "gateway.env"),
       EDGE_STATE: path.join(f.dir, "edge.json"), DISABLE_EDGE_STATE_CHANGED: "0", DISABLE_EDGE_STATE_EXISTED: "0",
       DISABLE_CADDY_CHANGED: "0", DISABLE_ENV_CHANGED: "1", DISABLE_AUTH_CHANGED: "0", SERVICE_MGR: "systemd", GATEWAY_PORT: "8080",
-      AUTHELIA_UNIT: "fixture-auth", AUTHELIA_ADDR: "127.0.0.1:1", GATEWAY_UNIT: "fixture",
+      AUTHELIA_DIR: auth, AUTHELIA_UNIT: "fixture-auth", AUTHELIA_ADDR: "127.0.0.1:1", GATEWAY_UNIT: "fixture", FIXTURE_CALLS: calls,
       MANAGED_TLS_DIR: path.join(f.dir, "managed-tls"), CADDY_USER: "caddy" } });
     assert.equal(result.status, failing ? 23 : 0, result.stderr);
     assert.ok(!result.stdout.includes("restart fixture"), result.stdout);
+    const events = readFileSync(calls, "utf8");
+    if (failing) {
+      assert.match(events, /edge_env\.py .* restore /, "the EXIT trap must really restore the edge environment");
+      assert.equal(existsSync(backup), false, "successful rollback must finish its private snapshot cleanup");
+    } else {
+      assert.match(events, /lifecycle\.py guard-edge-removal /, "run the real read-only shared-portal guard");
+      assert.match(events, /edge_env\.py .* snapshot /);
+      assert.match(events, /edge_env\.py .* set /);
+      assert.match(events, /LOG 本实例远程站点已移除/, "disable must reach its final success branch");
+    }
   } finally { f.clean(); }
 });
 
@@ -388,18 +401,30 @@ for (const rollback of [false, true]) test(`edge disable ${rollback ? "restores"
   const f = scratch("harness-edge-state-transaction-");
   try {
     const state = path.join(f.dir, "edge.json"); writeFileSync(state, "fixture-state\n");
+    const auth = path.join(f.dir, "authelia"); mkdirSync(auth);
+    writeFileSync(path.join(auth, "configuration.yml"), "session:\n  cookies:\n    - domain: fixture.invalid\n      authelia_url: https://fixture.invalid/authelia/\n");
+    const calls = path.join(f.dir, "calls");
     const source = readFileSync(path.join(deploy, "setup-edge.sh"), "utf8");
     let block = source.slice(source.indexOf('if [ "${EDGE_ACTION:-}" = "disable" ]; then'), source.indexOf("random_hex()"));
     block = block.replaceAll("/etc/systemd/system/", path.join(f.dir, "units") + "/");
-    const script = `set -eu\nneed_root() { :; }\nlock_edge() { :; }\nload_saved_edge_state() { :; }\nvalidate_edge_values() { :; }\ncheck_edge_paths() { :; }\nlog() { [ "$FIXTURE_ROLLBACK" != 1 ]; }\npython3() { :; }\nsystemctl_do() { :; }\n${block}\n`;
+    const script = `set -eu\nneed_root() { :; }\nlock_edge() { :; }\nload_saved_edge_state() { :; }\nvalidate_edge_values() { :; }\ncheck_edge_paths() { :; }\ndie() { echo "$*" >&2; exit 19; }\nlog() {\n  printf 'LOG %s\\n' "$*" >> "$FIXTURE_CALLS"\n  if [ "$FIXTURE_ROLLBACK" = 1 ]; then\n    [ ! -e "$EDGE_STATE" ] || return 77\n    printf 'FAIL_AFTER_STATE_REMOVAL\\n' >> "$FIXTURE_CALLS"\n    return 23\n  fi\n}\npython3() {\n  printf 'PYTHON %s\\n' "$*" >> "$FIXTURE_CALLS"\n  if [ "$2" = "$SCRIPT_DIR/lifecycle.py" ] && [ "$3" = guard-edge-removal ]; then command python3 "$@"; fi\n}\nsystemctl_do() { :; }\n${block}\n`;
     const result = spawnSync("bash", ["-c", script], { encoding: "utf8", timeout: 5000, env: { ...process.env,
       TMPDIR: f.dir, FIXTURE_ROLLBACK: rollback ? "1" : "0", EDGE_ACTION: "disable", EDGE_GATEWAY_STOPPED: "1", SERVICE_MGR: "none",
       CADDY_FILE: path.join(f.dir, "Caddyfile"), EDGE_STATE: state, SCRIPT_DIR: deploy, CODEX_HOME: f.dir,
-      ENV_FILE: path.join(f.dir, "gateway.env"), AUTHELIA_UNIT: "fixture-auth", AUTHELIA_ADDR: "127.0.0.1:1",
+      ENV_FILE: path.join(f.dir, "gateway.env"), AUTHELIA_DIR: auth, AUTHELIA_UNIT: "fixture-auth", AUTHELIA_ADDR: "127.0.0.1:1", FIXTURE_CALLS: calls,
       GATEWAY_UNIT: "fixture", GATEWAY_PORT: "8080", MANAGED_TLS_DIR: path.join(f.dir, "managed-tls"), CADDY_USER: "caddy" } });
-    assert.equal(result.status === 0, !rollback, result.stdout + result.stderr);
+    assert.equal(result.status, rollback ? 23 : 0, result.stdout + result.stderr);
+    const events = readFileSync(calls, "utf8");
+    assert.match(events, /lifecycle\.py guard-edge-removal /, "run the real read-only shared-portal guard");
+    assert.match(events, /edge_env\.py .* snapshot /);
+    assert.match(events, /edge_env\.py .* set /);
+    assert.match(events, /LOG 本实例远程站点已移除/, "failure must be injected only after the state removal branch");
     assert.equal(existsSync(state), rollback, result.stdout + result.stderr);
-    if (rollback) assert.equal(readFileSync(state, "utf8"), "fixture-state\n");
+    if (rollback) {
+      assert.match(events, /FAIL_AFTER_STATE_REMOVAL/);
+      assert.match(events, /edge_env\.py .* restore /);
+      assert.equal(readFileSync(state, "utf8"), "fixture-state\n");
+    } else assert.doesNotMatch(events, /FAIL_AFTER_STATE_REMOVAL|edge_env\.py .* restore /);
   } finally { f.clean(); }
 });
 

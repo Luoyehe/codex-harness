@@ -1,11 +1,11 @@
 // Explicitly paid usage verification. No unauthenticated legacy WS path.
 import assert from "node:assert/strict";
-import { VerificationClient, completedTurn, cleanupThread, requirePaidVerification } from "../../../deploy/verification-client.mjs";
+import { VerificationClient, startVerificationThread, completedTurn, cleanupThread, requirePaidVerification } from "../../../deploy/verification-client.mjs";
 requirePaidVerification();
 const client = new VerificationClient();
 let threadId;
 try {
-  threadId = (await client.rpc("thread/start")).thread.id;
+  threadId = (await startVerificationThread(client)).thread.id;
   await completedTurn(client, threadId);
   const usage = (await client.waitFor(note => note.method === "thread/tokenUsage/updated" && note.params?.threadId === threadId, 10000)).params.tokenUsage;
   assert.ok(Number.isFinite(usage?.total?.totalTokens) && usage.total.totalTokens >= 0);

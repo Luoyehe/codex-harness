@@ -141,7 +141,7 @@ function taskResult(data, reply, task) {
 
 /** Pure evidence check, including thread AND turn IDs. A started tool, a
  * failed turn with an earlier good reply, or another turn's output cannot pass.
- * HTTP bridge dynamicToolCall and native stdio mcpToolCall are both supported. */
+ * Dynamic-tool wrapper and thread-native mcpToolCall results are supported. */
 export function taskEvidence(notes, threadId, turnId, task) {
   const own = notes.filter(note => note.params?.threadId === threadId &&
     (note.params?.turnId === turnId || note.params?.turn?.id === turnId));
@@ -218,7 +218,7 @@ export async function runMcpVerification(argv = process.argv.slice(2), {
   if (process.env.HARNESS_ALLOW_PAID_TESTS !== "1") throw new Error("Set HARNESS_ALLOW_PAID_TESTS=1 explicitly for paid MCP verification");
   const { policy, tasks } = selection(argv);
   const expected = expectations(env);
-  const { VerificationClient, completedTurn, cleanupThread, requirePaidVerification } = await import("./verification-client.mjs");
+  const { VerificationClient, startVerificationThread, hasPendingVerificationThread, completedTurn, cleanupThread, requirePaidVerification, verificationMcpApprovalRequired } = await import("./verification-client.mjs");
   requirePaidVerification();
   const client = createClient ? createClient() : new VerificationClient();
   let failed = 0, preflightFailure = null;
@@ -226,6 +226,7 @@ export async function runMcpVerification(argv = process.argv.slice(2), {
     log("Testing " + tasks.length + " MCP task(s), approvalPolicy=" + policy + "; model/MCP requests may incur charges.");
     log("Each task permits one named tool call and no retries. Prompts constrain intent only; observed extra calls fail. Turn/tool counts do not bound provider request counts or spending.");
     log("Checks require task-relevant tool results and grounded reply markers; natural-language accuracy still needs a spot-check.");
+    log("Interactive MCP requests are declined only on this verifier's own threads and fail with interactive_approval_required; no schema, URL or metadata grants automatic approval.");
     if (expected.mode) {
       try {
         const status = await client.rpc("app/status");
@@ -243,7 +244,7 @@ export async function runMcpVerification(argv = process.argv.slice(2), {
       try {
         if (preflightFailure) throw new TaskFailure(preflightFailure);
         stage = "thread-start";
-        const response = await client.rpc("thread/start", { sandbox: "read-only", ...(expected.cwd ? { cwd: expected.cwd } : {}) });
+        const response = await startVerificationThread(client, { sandbox: "read-only", ...(expected.cwd ? { cwd: expected.cwd } : {}) });
         threadId = response?.thread?.id;
         record.threadId = safeId(threadId);
         if (!record.threadId) throw new TaskFailure("invalid_thread_identity");
@@ -286,7 +287,11 @@ export async function runMcpVerification(argv = process.argv.slice(2), {
             record.failure = { stage: "evidence", code: "model_rerouted" };
           }
         }
-        if (typeof threadId === "string" && threadId) {
+        if (verificationMcpApprovalRequired(client, threadId)) {
+          record.status = "failed";
+          record.failure = { stage: "approval", code: "interactive_approval_required" };
+        }
+        if (typeof threadId === "string" && threadId || hasPendingVerificationThread(client)) {
           record.cleanup.attempted = true;
           try { await cleanupThread(client, threadId); record.cleanup.ok = true; }
           catch { record.status = "failed"; record.cleanup.ok = false; record.failure ??= { stage: "cleanup", code: "thread_cleanup_failed" }; }

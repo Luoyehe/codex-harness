@@ -165,6 +165,46 @@ describe("AttachmentStore containment and cleanup", () => {
     expect(legacyResult.referenced).toContain(legacy);
   });
 
+  it.each(["你", "😀"])("accepts valid %s split by the header cap and reclaims only unreferenced uploads", async (character) => {
+    const root = home();
+    const store = new AttachmentStore(root);
+    const orphan = store.save("orphan.txt", "eA==", "file");
+    const referenced = store.save("referenced.txt", "eA==", "file");
+    store.reservePaths("old-thread", [orphan.path, referenced.path]);
+    const sessions = path.join(root, "sessions");
+    mkdirSync(sessions);
+    const prefix = `${JSON.stringify({ type: "session_meta", payload: { id: "other-thread" } })}\n{"text":"`;
+    const text = prefix + "x".repeat(256 * 1024 - 1 - Buffer.byteLength(prefix)) + character
+      + `"}\n${JSON.stringify({ path: referenced.path })}\n`;
+    for (const line of text.trim().split("\n")) expect(() => JSON.parse(line)).not.toThrow();
+    writeFileSync(path.join(sessions, "other.jsonl"), text);
+    const restarted = new AttachmentStore(root);
+    const scanned = await (restarted as any).findReferencedByOtherRollout([orphan.path, referenced.path], "old-thread", [sessions]);
+    expect(scanned).toEqual({ complete: true, referenced: new Set([referenced.path]) });
+    await restarted.recoverCleanup();
+    expect(existsSync(orphan.path)).toBe(false);
+    expect(existsSync(referenced.path)).toBe(true);
+  });
+
+  it.each(["inside-header", "at-eof", "past-header"])("keeps orphan candidates when UTF-8 is actually invalid (%s)", async (position) => {
+    const root = home();
+    const store = new AttachmentStore(root);
+    const saved = store.save("retained.txt", "eA==", "file");
+    store.reservePaths("old-thread", [saved.path]);
+    const sessions = path.join(root, "sessions");
+    mkdirSync(sessions);
+    const padding = position === "inside-header" ? 10 : position === "at-eof" ? 256 * 1024 - 1 : 256 * 1024 + 1;
+    // 0xE4 is a valid lead byte only when two continuation bytes follow.
+    writeFileSync(path.join(sessions, "invalid.jsonl"), Buffer.concat([
+      Buffer.alloc(padding, 0x20), Buffer.from([0xe4]),
+    ]));
+    const restarted = new AttachmentStore(root);
+    const scanned = await (restarted as any).findReferencedByOtherRollout([saved.path], "", [sessions]);
+    expect(scanned.complete).toBe(false);
+    await restarted.recoverCleanup();
+    expect(existsSync(saved.path)).toBe(true);
+  });
+
   it("yields repeatedly while scanning a near-limit no-match rollout", async () => {
     const root = home();
     const store = new AttachmentStore(root);

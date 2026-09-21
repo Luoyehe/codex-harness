@@ -180,24 +180,45 @@ app.get("/ws", { websocket: true }, (socket, req) => {
       return;
     }
     if (msg?.kind === "serverRequestResponse") {
+      // Retain only the response protocol fields across worker attachment. In
+      // particular, unknown fields in the parsed frame must not stay captured
+      // by the asynchronous answer/rejection callbacks.
+      const response = {
+        kind: "serverRequestResponse" as const,
+        requestId: msg.requestId,
+        payload: msg.payload,
+        ...(msg.error !== undefined ? { error: msg.error } : {}),
+      };
+      msg = response;
       let responseBytes = Number.POSITIVE_INFINITY;
-      try { responseBytes = Buffer.byteLength(JSON.stringify({ payload: msg.payload, error: msg.error })); } catch { /* rejected below */ }
-      if (typeof msg.requestId !== "string" || msg.requestId.length === 0 || msg.requestId.length > 256 || msg.requestId.includes("\0") ||
+      // The 1 MiB response limit includes its envelope, not just payload/error,
+      // so four/eight maximum-size answers fit the per-client/global reserve.
+      try { responseBytes = Buffer.byteLength(JSON.stringify(response)); } catch { /* rejected below */ }
+      if (typeof response.requestId !== "string" || response.requestId.length === 0 || response.requestId.length > 256 || response.requestId.includes("\0") ||
           responseBytes > MAX_SERVER_RESPONSE_BYTES ||
-          (msg.error !== undefined && (typeof msg.error !== "string" || msg.error.length > 4096))) {
+          (response.error !== undefined && (typeof response.error !== "string" || response.error.length > 4096))) {
         socket.close(1008, "invalid server response");
         return;
       }
       let release: () => void;
-      try { release = budget.acquire(clientId, "serverRequestResponse"); }
+      // Charge the complete received frame even when it contains ignored
+      // fields or whitespace; normalization must never make admission free.
+      try { release = budget.acquire(clientId, "serverRequestResponse", raw.byteLength); }
       catch (error) {
-        client.send({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: msg.requestId, error: (error as Error).message } });
+        client.send({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: response.requestId, error: (error as Error).message } });
         return;
       }
+      const requestId = response.requestId;
+      const responseError = response.error;
+      let responsePayload = response.payload;
       // First answer wins; later ones are ignored because the waiter is gone.
-      void connected.then(() => controller.answer(msg.requestId as string, msg.payload, msg.error)).catch((error) => {
+      void connected.then(() => {
+        const payload = responsePayload;
+        responsePayload = undefined;
+        return controller.answer(requestId, payload, responseError);
+      }).catch((error) => {
         const message = error instanceof Error ? error.message : "server response failed";
-        client.send({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: msg.requestId, error: message.slice(0, 4096) } });
+        client.send({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: requestId, error: message.slice(0, 4096) } });
       }).finally(release);
     }
   });

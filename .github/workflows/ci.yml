@@ -82,6 +82,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/codex-smoke-runtime" --no-audit --no-fund "@openai/codex@$pinned"
           CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:smoke
           CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:defaults
+          CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:mcp-context
 
       - name: Shell syntax (all deploy scripts)
         run: |

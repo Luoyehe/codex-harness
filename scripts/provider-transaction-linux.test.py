@@ -78,6 +78,92 @@ class ProviderTransactionFaultTests(unittest.TestCase):
                 self.assertEqual(outside.read_text(encoding="utf-8"), "keep")
                 self.assertEqual(list(versions.iterdir()), [])
 
+    def test_legacy_config_links_migrate_and_retain_the_previous_generation(self):
+        for mode in transaction.MODES:
+            for relative in (False, True):
+                with self.subTest(mode=mode, relative=relative), tempfile.TemporaryDirectory() as directory:
+                    home, providers, versions = self.make_layout(Path(directory))
+                    source = providers / mode
+                    source.mkdir(mode=0o700)
+                    config = source / "config.toml"
+                    config.write_text('model = "legacy-model"\n', encoding="utf-8")
+                    os.chmod(config, 0o600)
+                    live = home / "config.toml"
+                    live.symlink_to(Path("providers") / mode / "config.toml" if relative else config)
+                    env_file = home / "secrets.env"
+                    env_file.write_text("FIXTURE=retained\n", encoding="utf-8")
+                    os.chmod(env_file, 0o600)
+                    generation, identity = transaction.snapshot(home, env_file, versions)
+                    self.assertEqual(transaction.load_config(generation / "config.toml"), {"model": "legacy-model"})
+                    # Publish an OpenAI-style empty candidate through the real
+                    # migration path, including its retained predecessor.
+                    (generation / "config.toml").write_text("", encoding="utf-8")
+                    transaction.private_generation(generation, identity)
+                    transaction.publish(home, env_file, versions, generation, identity)
+                    self.assertEqual(transaction.load_config(live), {})
+                    self.assertEqual(env_file.read_text(encoding="utf-8"), "FIXTURE=retained\n")
+                    predecessor = (generation / transaction.PREVIOUS_GENERATION_FILE).read_text().strip()
+                    self.assertEqual(transaction.load_config(versions / predecessor / "config.toml"), {"model": "legacy-model"})
+
+    def test_config_link_copy_rejects_unsafe_legacy_targets_and_mutations(self):
+        cases = ("external", "traversal", "target-link", "directory-link", "target-writable",
+                 "directory-writable", "foreign-owner", "replace-link", "replace-target", "replace-directory")
+        for kind in cases:
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                home, providers, _ = self.make_layout(base)
+                source = providers / "custom"
+                source.mkdir(mode=0o700)
+                config = source / "config.toml"
+                config.write_text('model = "legacy"\n', encoding="utf-8")
+                os.chmod(config, 0o600)
+                outside = base / "outside"
+                outside.write_text("never copy this", encoding="utf-8")
+                live = home / "config.toml"
+                live.symlink_to(config)
+                output = base / "output"
+                output.mkdir(mode=0o700)
+                if kind == "external":
+                    live.unlink(); live.symlink_to(outside)
+                elif kind == "traversal":
+                    live.unlink(); live.symlink_to("providers/custom/../custom/config.toml")
+                elif kind == "target-link":
+                    config.unlink(); config.symlink_to(outside)
+                elif kind == "directory-link":
+                    source.rename(providers / "moved"); source.symlink_to(providers / "moved", target_is_directory=True)
+                elif kind == "target-writable":
+                    os.chmod(config, 0o620)
+                elif kind == "directory-writable":
+                    os.chmod(source, 0o720)
+                real_copy = transaction._copy_regular_at
+                def mutate_after_copy(*args):
+                    result = real_copy(*args)
+                    if kind == "replace-link":
+                        # Keep the original inode allocated. Unlink/recreate
+                        # can reuse both inode and coarse timestamps, turning
+                        # this intended identity change into an identical link.
+                        live.rename(home / "old-config-link"); live.symlink_to(config)
+                    elif kind == "replace-target":
+                        config.rename(source / "old-config")
+                        config.write_text('model = "replacement"\n', encoding="utf-8")
+                    elif kind == "replace-directory":
+                        source.rename(providers / "old-custom")
+                        source.mkdir(mode=0o700)
+                    return result
+                home_fd = os.open(home, os.O_RDONLY | os.O_DIRECTORY)
+                output_fd = os.open(output, os.O_RDONLY | os.O_DIRECTORY)
+                try:
+                    with patch.object(transaction, "_copy_regular_at", side_effect=mutate_after_copy):
+                        with patch.object(transaction.os, "geteuid", return_value=os.geteuid() + (kind == "foreign-owner")):
+                            with self.assertRaises((ValueError, RuntimeError, OSError)):
+                                transaction._copy_active_config(home_fd, home, output_fd, transaction._new_snapshot_budget())
+                    self.assertEqual(outside.read_text(encoding="utf-8"), "never copy this")
+                    if kind in ("external", "traversal", "target-link", "directory-link", "target-writable", "directory-writable", "foreign-owner"):
+                        self.assertFalse((output / "config.toml").exists())
+                finally:
+                    os.close(output_fd)
+                    os.close(home_fd)
+
     def test_snapshot_detects_growth_and_same_name_replacement(self):
         for mutation in ("grow", "replace"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
@@ -388,7 +474,8 @@ active_provider() { printf openai; }
 run_as_service() {
   if [ "$1" = python3 ] && [ "$4" = active-name ]; then printf generation-old; return 0; fi
   if [ "$1" = python3 ] && [ "$4" = restore-active ]; then
-    printf 'restore:%s\n' "$5" >> "$FIXTURE_LOG"
+    [ "$#" = 6 ] && [ "$6" = "$(cat "$FIXTURE_CANDIDATE")" ] || return 99
+    printf 'restore:%s:%s\n' "$5" "$6" >> "$FIXTURE_LOG"
     [ "$FIXTURE_ROLLBACK_FAIL" != 1 ]
     return
   fi
@@ -417,7 +504,8 @@ printf 'status:%s\n' "$status" >> "$FIXTURE_LOG"
                 setup.parent.mkdir(parents=True)
                 home.mkdir()
                 setup.write_text(
-                    'printf "setup:%s\\n" "$PROVIDER_EXPECTED_ACTIVE" >> "$FIXTURE_LOG"\n',
+                    'printf "setup:%s\\n" "$PROVIDER_EXPECTED_ACTIVE" >> "$FIXTURE_LOG"\n'
+                    'printf "%s\\n" "$PROVIDER_NEW_GENERATION" > "$FIXTURE_CANDIDATE"\n',
                     encoding="utf-8")
                 runner = base / "runner.sh"
                 runner.write_text(
@@ -429,6 +517,7 @@ printf 'status:%s\n' "$status" >> "$FIXTURE_LOG"
                     "FIXTURE_HOME": str(home),
                     "FIXTURE_LOG": str(log),
                     "FIXTURE_HEALTH_COUNT": str(base / "health-count"),
+                    "FIXTURE_CANDIDATE": str(base / "candidate"),
                     "FIXTURE_ROLLBACK_FAIL": "1" if rollback_fails else "0",
                 }
                 result = subprocess.run(
@@ -438,7 +527,9 @@ printf 'status:%s\n' "$status" >> "$FIXTURE_LOG"
                 calls = log.read_text(encoding="utf-8")
                 self.assertIn("setup:generation-old", calls)
                 self.assertIn("systemctl:restart fixture-provider", calls)
-                self.assertIn("restore:generation-old", calls)
+                candidate = (base / "candidate").read_text().strip()
+                self.assertRegex(candidate, r"^generation-[a-f0-9]{32}$")
+                self.assertIn("restore:generation-old:" + candidate, calls)
                 self.assertIn("status:1", calls)
                 if rollback_fails:
                     self.assertIn("恢复代际仍保留", result.stdout)

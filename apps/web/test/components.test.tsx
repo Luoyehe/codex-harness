@@ -6,7 +6,9 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import type { RequestPermissionProfile } from "../../../protocol/v2/RequestPermissionProfile";
 import { describePermissions } from "../src/utils/permissions";
 import { Drawer } from "../src/components/Drawer";
-import { DiffView, ItemView, Markdown, PermissionsSummary, Timeline } from "../src/components/Timeline";
+import { DiffView, ItemView, Markdown, MarkdownBoundary, PermissionsSummary, Timeline } from "../src/components/Timeline";
+import { markdownWithinBudget, remarkBoundedTree } from "../src/utils/markdown-budget";
+import { malformedNetworkApprovals, networkOnlyParams, networkProtocols } from "./network-approval-fixtures";
 
 const view = vi.hoisted(() => ({
   drawerTab: null as "diff" | "terminal" | null,
@@ -33,6 +35,79 @@ beforeEach(() => {
   view.drawerTab = null; view.activeThreadId = null; view.approvals = []; view.items = {};
   view.approvalSubmissions = {}; view.approvalErrors = {};
   view.decideApproval.mockReset(); view.openThread.mockReset(); view.readAttachment.mockReset();
+});
+
+describe("Markdown structural budgets and per-message recovery", () => {
+  it.each([
+    ["quotes", "> ".repeat(10_000) + "nested model response"],
+    ["lists", Array.from({ length: 150 }, (_, n) => "  ".repeat(n) + "- item").join("\n")],
+    ["links", "[".repeat(10_000) + "text" + "]".repeat(10_000)],
+    ["emphasis", "*a ".repeat(1_000) + "text" + " a*".repeat(1_000)],
+  ])("rejects deeply nested %s before invoking the parser and preserves literal content", (_kind, text) => {
+    expect(text.length).toBeLessThan(200_000);
+    expect(markdownWithinBudget(text)).toBe(false);
+    let renderer!: ReactTestRenderer;
+    expect(() => act(() => { renderer = create(<Markdown text={text} />); })).not.toThrow();
+    expect(renderer.root.findByProps({ className: "markdown-plain" }).props.children).toBe(text);
+    expect(JSON.stringify(renderer.toJSON())).toContain("已安全显示为纯文本");
+    act(() => renderer.unmount());
+  });
+
+  it.each(["agentMessage", "userMessage", "plan"])("contains hostile Markdown in real %s timeline history", (type) => {
+    const text = "> ".repeat(10_000) + "history";
+    view.activeThreadId = "T";
+    view.items = { T: [{ type, id: "hostile", text, content: [{ type: "text", text }] },
+      { type: "agentMessage", id: "healthy", text: "**still available**" }] };
+    let renderer!: ReactTestRenderer;
+    expect(() => act(() => { renderer = create(<Timeline />); })).not.toThrow();
+    expect(renderer.root.findByProps({ className: "markdown-plain" }).props.children).toBe(text);
+    expect(renderer.root.findByType("strong").props.children).toBe("still available");
+    act(() => renderer.unmount());
+  });
+
+  it("keeps ordinary GFM and large literal fenced snippets formatted", () => {
+    const text = "# Heading\n\n> A quote with **bold**\n\n- first\n  - nested\n\n| A | B |\n| - | - |\n| 1 | 2 |\n\n~~done~~";
+    const html = renderToStaticMarkup(<Markdown text={text} />);
+    expect(html).toContain("<h1>Heading</h1>");
+    expect(html).toContain("<blockquote>");
+    expect(html).toContain("<table>");
+    expect(html).toContain("<del>done</del>");
+    const shallow = Array.from({ length: 1_000 }, (_, n) => `* **item ${n}**`).join("\n");
+    expect(markdownWithinBudget(shallow)).toBe(true);
+    expect(renderToStaticMarkup(<Markdown text={shallow} />).match(/<strong>/g)).toHaveLength(1_000);
+    for (const marker of ["```", "~~~~"]) {
+      const code = `${marker}text\n${"> [*~_".repeat(20_000)}\n${marker}`;
+      expect(markdownWithinBudget(code)).toBe(true);
+      const rendered = renderToStaticMarkup(<Markdown text={code} />);
+      expect(rendered).toContain("<pre><code");
+      expect(rendered).not.toContain("markdown-plain");
+    }
+  });
+
+  it("bounds a constructed AST iteratively before later recursive render traversals", () => {
+    let tree: unknown = { type: "text", value: "deep" };
+    for (let depth = 0; depth < 10_000; depth++) tree = { children: [tree] };
+    expect(() => remarkBoundedTree()(tree)).toThrow("Markdown structure exceeds browser budget");
+    expect(() => remarkBoundedTree()({ children: Array.from({ length: 20_001 }, () => ({})) })).toThrow("Markdown structure exceeds browser budget");
+  });
+
+  it("contains unexpected parser/render errors within one message and retries when its text changes", () => {
+    function Broken(): never { throw new Error("synthetic renderer failure"); }
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    let renderer!: ReactTestRenderer;
+    try {
+      act(() => { renderer = create(<div><button>停止</button><MarkdownBoundary text="literal source"><Broken /></MarkdownBoundary><Markdown text="healthy" /></div>); });
+      expect(renderer.root.findByType("button").props.children).toBe("停止");
+      expect(renderer.root.findByProps({ className: "markdown-plain" }).props.children).toBe("literal source");
+      expect(renderer.root.findByType("p").props.children).toBe("healthy");
+      act(() => renderer.update(<div><button>停止</button><MarkdownBoundary text="recovered"><strong>recovered</strong></MarkdownBoundary><Markdown text="healthy" /></div>));
+      expect(renderer.root.findAllByProps({ className: "markdown-plain" })).toHaveLength(0);
+      expect(renderer.root.findByType("strong").props.children).toBe("recovered");
+    } finally {
+      act(() => renderer?.unmount());
+      errors.mockRestore();
+    }
+  });
 });
 
 describe("reachable drawer controls", () => {
@@ -153,6 +228,41 @@ describe("permission and output rendering", () => {
     expect(html).toContain("后续网络规则"); expect(html).toContain("allow api.example.test");
   });
 
+  it.each(networkProtocols.flatMap(protocol => [null, undefined].map(command => ({ protocol, command }))))(
+    "renders complete network-only $protocol context with command=$command and permits both approvals", ({ protocol, command }) => {
+      view.activeThreadId = "T";
+      view.approvals = [{ requestId: "network-only", method: "item/commandExecution/requestApproval", params: networkOnlyParams(command, protocol) }];
+      let renderer!: ReactTestRenderer;
+      act(() => { renderer = create(<Timeline />); });
+      try {
+        const rendered = JSON.stringify(renderer.toJSON());
+        expect(rendered).toContain("请求访问网络");
+        expect(rendered).not.toContain("命令结构无效");
+        expect(rendered).not.toContain("请求执行命令");
+        expect(rendered).toContain("Fetch the requested resource");
+        expect(rendered).toContain("/network-project");
+        const context = renderer.root.findByProps({ className: "approval-context" });
+        expect(context.findAllByType("code").map(node => Array.isArray(node.props.children) ? node.props.children.join("") : node.props.children))
+          .toEqual(["/network-project", `${protocol}://api.example.test:8443`, "allow api.example.test", "deny blocked.example.test", '["curl","--header","X-Label: two words"]']);
+        const approvalButtons = renderer.root.findByProps({ className: "approval-actions" }).findAllByType("button");
+        expect(approvalButtons.map(button => button.props.disabled)).toEqual([false, false, false]);
+        act(() => approvalButtons[0].props.onClick());
+        expect(view.decideApproval).toHaveBeenLastCalledWith("network-only", "accept");
+        act(() => approvalButtons[1].props.onClick());
+        expect(view.decideApproval).toHaveBeenLastCalledWith("network-only", "acceptForSession");
+      } finally { act(() => renderer.unmount()); }
+    },
+  );
+
+  it.each(malformedNetworkApprovals)("fails closed without hiding refusal for network callbacks with %s", (_label, patch) => {
+    view.activeThreadId = "T";
+    view.approvals = [{ requestId: "invalid-network", method: "item/commandExecution/requestApproval", params: { ...networkOnlyParams(), ...patch } }];
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("已禁用批准");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+    expect(html).toMatch(/<button class="btn-danger">拒绝<\/button>/);
+  });
+
   it("ignores malformed optional approval context without crashing the whole request dock", () => {
     view.activeThreadId = "T";
     view.approvals = [{ requestId: "malformed-context", method: "item/commandExecution/requestApproval", params: {
@@ -235,6 +345,60 @@ describe("permission and output rendering", () => {
     expect(html).toContain("已禁用批准");
     expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
   });
+
+  it.each([
+    ["ordinary", "/project/important-destination.txt"],
+    ["maximum length", `/${"d".repeat(4_091)}.txt`],
+    ["HTML-like filename", '/project/<img src=x onerror="alert(1)">.txt'],
+  ])("shows the complete rename destination before approval and in history (%s)", (_label, destination) => {
+    const item = {
+      type: "fileChange", id: "rename", threadId: "T", turnId: "turn", status: "inProgress",
+      changes: [{ path: "/project/source.txt", kind: { type: "update", move_path: destination }, diff: "" }],
+    };
+    view.activeThreadId = "T";
+    view.items = { T: [item] };
+    view.approvals = [{ requestId: "rename", method: "item/fileChange/requestApproval", params: {
+      threadId: "T", turnId: "turn", itemId: "rename",
+    } }];
+    const approval = renderToStaticMarkup(<Timeline />);
+    const history = renderToStaticMarkup(<ItemView item={item as any} />);
+    const escapedDestination = renderToStaticMarkup(<bdi>{destination}</bdi>);
+    for (const html of [approval, history]) {
+      expect(html).toContain(`<bdi>/project/source.txt</bdi> → ${escapedDestination}`);
+      expect(html).not.toContain("<img");
+      expect(html).not.toContain("<script");
+    }
+    expect(approval.match(/<button[^>]*disabled=""[^>]*>/g) ?? []).toHaveLength(0);
+  });
+
+  it.each([undefined, "", "/".repeat(4_097), { unexpected: true }, ["/wrong-shape"]])(
+    "keeps invalid move destinations rejectable without rendering unsafe data (%j)", (destination) => {
+      const item = {
+        type: "fileChange", id: "rename", threadId: "T", turnId: "turn", status: "inProgress",
+        changes: [{ path: "/source", kind: { type: "update", move_path: destination }, diff: "" }],
+      };
+      view.activeThreadId = "T";
+      view.items = { T: [item] };
+      view.approvals = [{ requestId: "rename", method: "item/fileChange/requestApproval", params: {
+        threadId: "T", turnId: "turn", itemId: "rename",
+      } }];
+      const html = renderToStaticMarkup(<Timeline />);
+      expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+      expect(html).toMatch(/<button class="btn-danger">拒绝<\/button>/);
+      expect(html).not.toContain("[object Object]");
+      expect(html).not.toContain("/".repeat(4_097));
+      expect(() => renderToStaticMarkup(<ItemView item={item as any} />)).not.toThrow();
+    },
+  );
+
+  it.each([{ type: "add" }, { type: "delete" }, { type: "update", move_path: null }])(
+    "keeps ordinary file changes free of a spurious destination (%j)", (kind) => {
+      const html = renderToStaticMarkup(<ItemView item={{ type: "fileChange", id: "normal", status: "completed",
+        changes: [{ path: "/source", kind, diff: "" }] } as any} />);
+      expect(html).toContain("/source");
+      expect(html).not.toContain(" → ");
+    },
+  );
 
   it("keeps a submitted approval visible with busy state and a retryable rejection error", () => {
     view.activeThreadId = "T";
@@ -363,6 +527,28 @@ describe("permission and output rendering", () => {
     Object.defineProperty(changes, "200", { get: () => { throw new Error("untrusted tail inspected"); } });
     changes.length = 1_000;
     expect(() => renderToStaticMarkup(<ItemView item={{ type: "fileChange", id: "bounded", status: "completed", changes } as any} />)).not.toThrow();
+  });
+
+  it.each(["agentMessage", "plan"])("discloses %s truncation only above the exact Markdown budget", (type) => {
+    for (const length of [199_999, 200_000, 200_001]) {
+      const html = renderToStaticMarkup(<ItemView item={{ type, id: "text", text: "x".repeat(length) } as any} />);
+      expect(html.includes("内容超过浏览器 Markdown 解析预算")).toBe(length > 200_000);
+      expect(html).toContain("x".repeat(Math.min(length, 200_000)));
+      expect(html).not.toContain("x".repeat(200_001));
+    }
+  });
+
+  it("keeps an unfinished Markdown block from absorbing the truncation notice and bounds parser input", () => {
+    const text = `\`\`\`\n${"x".repeat(200_000)}MISSING_TAIL`;
+    const html = renderToStaticMarkup(<ItemView item={{ type: "agentMessage", id: "long", text } as any} />);
+    expect(html).not.toContain("MISSING_TAIL");
+    expect(html).toContain('</code></pre><div class="output-truncation" role="status">内容超过浏览器 Markdown 解析预算');
+    // Verify the actual parser receives only the bounded prefix, even when a
+    // caller passes a whole history-budget-sized string into this component.
+    const markdown = Markdown({ text: "x".repeat(20 * 1024 * 1024) });
+    expect(markdown.props.children[0].props.text).toHaveLength(200_000);
+    expect(markdown.props.children[0].props.children.props.children).toHaveLength(200_000);
+    expect(markdown.props.children[1].props.role).toBe("status");
   });
 
   it("keeps malformed fields on known timeline variants from crashing the conversation", () => {

@@ -1,11 +1,11 @@
 // Explicitly paid model verification with bounded RPC and reliable cleanup.
-import { VerificationClient, exactReplyTurn, cleanupThread, requirePaidVerification } from "./verification-client.mjs";
+import { VerificationClient, startVerificationThread, exactReplyTurn, cleanupThread, requirePaidVerification } from "./verification-client.mjs";
 requirePaidVerification();
 const client = new VerificationClient();
 let threadId;
 let passed = false;
 try {
-  threadId = (await client.rpc("thread/start")).thread.id;
+  threadId = (await startVerificationThread(client)).thread.id;
   await exactReplyTurn(client, threadId);
   passed = true;
 } catch (error) { console.error(error.message); process.exitCode = 1; }

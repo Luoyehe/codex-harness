@@ -109,6 +109,7 @@ export class GatewayController {
   private readonly retiredLoginIds = new Set<string>();
   private retiredLoginIdsSaturated = false;
   private uncertainLogin = false;
+  private uncertainTurnStart = false;
   private activityUnknown = false;
   private readonly pendingServerRequests = new Set<string>();
   private readonly answeringServerRequests = new Set<string>();
@@ -176,6 +177,7 @@ export class GatewayController {
         // below cannot unlock an uncertain provider configuration operation.
         if (state === "restarting" || state === "stopped") {
           this.backendEpoch += 1;
+          this.uncertainTurnStart = false;
           this.pendingDisconnects.clear();
           try { this.management.backendTerminated(); }
           catch (error: any) {
@@ -210,7 +212,7 @@ export class GatewayController {
   private hasJobs(): boolean {
     return this.activeTurns.size > 0 || this.activeStatusThreads.size > 0
       || this.activeTerminals.size > 0 || this.compactions.size > 0
-      || this.pendingLoginStarts.size > 0 || this.activeLogins.size > 0 || this.uncertainLogin || this.activityUnknown
+      || this.pendingLoginStarts.size > 0 || this.activeLogins.size > 0 || this.uncertainLogin || this.uncertainTurnStart || this.activityUnknown
       || this.pendingServerRequests.size > 0 || this.answeringServerRequests.size > 0 || this.pendingDisconnects.size > 0;
   }
   private markActivityUnknown(): void {
@@ -389,6 +391,8 @@ export class GatewayController {
       error: "后台清理未得到确认。请通过服务器终端重启整个受管 systemd 服务；不会自动替换后端或重试操作。" };
     if (this.activityUnknown) return { ...snapshot, state: "unknown" as const,
       error: "后台任务活动通知无效或超过容量，当前活动状态无法确认；请重启完整受管服务后再更改配置。" };
+    if (this.uncertainTurnStart) return { ...snapshot, state: "unknown" as const,
+      error: "任务启动结果未知，可能已执行；请先核对历史，不要重复发送。恢复配置操作前，请在服务器终端重启完整受管服务以确认旧后台已停止。" };
     return [...this.compactions.values()].some((entry) => entry.uncertain) ? { ...snapshot, state: "unknown" as const,
       error: "压缩操作结果未知；不会自动重试。请重启完整受管服务以确认旧后台已停止。" } : snapshot;
   }
@@ -571,6 +575,9 @@ export class GatewayController {
     if (method === "admin/logs") return { logs: await recentLogs(Number(params.lines) || 80) };
     params = canonicalControlParams(method, params);
     if (this.codexState === "blocked") throw Object.assign(new Error("worker cleanup is unconfirmed; restart the complete managed systemd service"), { errorCode: "BACKEND_CLEANUP_UNCONFIRMED" });
+    // Existing turn receipts must keep their original accepted/unknown meaning.
+    // Fresh turn dispatch is checked inside the ledger callback below instead.
+    if (this.uncertainTurnStart && method !== "turn/start" && !SAFE_CONCURRENT.has(method)) throw Object.assign(new Error("任务启动结果未知；请核对历史，并通过服务器终端重启完整受管服务后再进行新操作。"), { errorCode: "BUSY", delivery: "rejected" });
     if (method === "thread/compact/start") return this.startCompaction(params, clientId);
     if (this.compactions.size && COMPACTION_CONFLICTS.has(method)) throw Object.assign(new Error("compaction is running or its outcome is unknown"), { errorCode: "BUSY" });
     if (method === "admin/status") {
@@ -603,23 +610,37 @@ export class GatewayController {
           // attachment proves this callback never dispatched a turn.
           try { await attached; }
           catch { throw new AppServerRequestError("worker attachment failed before sending turn", { code: -32000, data: { delivery: "rejected" } }); }
+          if (this.uncertainTurnStart) throw new AppServerRequestError("任务启动结果未知；本次新发送未派发。请先核对历史，并通过服务器终端重启完整受管服务。", { code: -32000, data: { delivery: "rejected" } });
           const start = { threadId: request.threadId as string, ended: new Set<string>(), invalidated: false };
+          const epoch = this.backendEpoch;
           this.pendingTurnStarts.add(start);
           try {
             const accepted = await this.worker(method, request, clientId);
             // The response can precede turn/started. Conversely completion can
             // precede the response: never revive that turn or another generation.
             const turn = accepted?.turn;
+            if (!validActivityId(turn?.id)) throw Object.assign(new Error("turn/start returned no valid turn identity; execution outcome is unknown"), { delivery: "unknown" });
             const current = this.activeTurns.get(start.threadId);
-            if (turn?.status === "inProgress" && !start.invalidated) {
-              if (!validActivityId(turn.id)) this.markActivityUnknown();
-              else if (!start.ended.has(turn.id)) {
+            // An omitted/unrecognized status is not terminal evidence. Keep
+            // the exact turn reserved until a matching completion arrives.
+            if (!["completed", "interrupted", "failed"].includes(turn.status) && !start.invalidated) {
+              if (!start.ended.has(turn.id)) {
                 if (current && current !== turn.id) this.markActivityUnknown();
                 else if (!current && this.activeTurns.size >= MAX_ACTIVE_TURNS) this.markActivityUnknown();
                 else this.activeTurns.set(start.threadId, turn.id);
               }
             }
             return accepted;
+          } catch (error) {
+            // Neither a timeout nor an unrelated/late completion proves that
+            // this dispatched request cannot still start. Only confirmed outer
+            // worker termination releases this bounded reservation. Its epoch
+            // also prevents an old rejection from relocking a new backend.
+            if (!isDefiniteAppServerRejection(error) && epoch === this.backendEpoch) {
+              this.uncertainTurnStart = true;
+              this.broadcast("management/stateChanged", this.managementStatus());
+            }
+            throw error;
           } finally { this.pendingTurnStarts.delete(start); }
         }, isDefiniteAppServerRejection);
         // ledger.run() has already synchronously projected the request. Drop

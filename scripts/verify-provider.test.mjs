@@ -145,7 +145,11 @@ test("successful business verification starts exactly three turns across two cli
   assert.deepEqual(f.reads, [env.HARNESS_VERIFY_EXPECTED_FILE]);
   assert.equal(f.clients.length, 2);
   assert.ok(f.clients.every(client => client.closed));
-  assert.deepEqual(f.calls.filter(call => call.method === "thread/start").map(call => call.params), [
+  assert.deepEqual(f.calls.filter(call => call.method === "thread/start").map(call => {
+    const { clientOperationId, ...params } = call.params;
+    assert.match(clientOperationId, /^[a-zA-Z0-9_-]{16,128}$/);
+    return params;
+  }), [
     { cwd: env.HARNESS_VERIFY_CWD, approvalPolicy: "never", sandbox: "read-only" },
   ]);
   assert.equal(f.calls.find(call => call.method === "thread/resume").connection, 1);

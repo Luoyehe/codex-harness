@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GatewayNotification, GatewayServerRequest } from "../src/api/protocol";
 import type { ThreadReadResponse } from "../../../protocol/v2/ThreadReadResponse";
 import { agent, deferred, thread, turn } from "./fixtures";
+import { malformedNetworkApprovals, networkOnlyParams, networkProtocols } from "./network-approval-fixtures";
 
 const wire = vi.hoisted(() => ({
   generation: 1,
@@ -90,7 +91,330 @@ beforeEach(async () => {
 
 afterEach(() => { search = ""; vi.useRealTimers(); vi.unstubAllGlobals(); });
 
+describe("interrupt requests never stand in for terminal activity evidence", () => {
+  function active() {
+    store.setState({ activeThreadId: "T", connection: "open", management: { state: "idle" }, historyLoaded: { T: true },
+      items: { T: [] }, turnActive: { T: true }, activeTurnId: { T: "original" } });
+  }
+
+  it.each(["not_sent", "rejected", "unknown"])("keeps the precise running turn after an interrupt fails with delivery=%s", async (delivery) => {
+    active();
+    const interruption = deferred<unknown>();
+    wire.rpc.mockReturnValueOnce(interruption.promise);
+    const stopping = store.getState().interruptTurn();
+    expect(store.getState().interruptPending.T).toEqual({ turnId: "original" });
+    expect(store.getState().turnActive.T).toBe(true);
+    expect(store.getState().activeTurnId.T).toBe("original");
+    await store.getState().interruptTurn();
+    await expect(store.getState().sendTurn("must wait")).rejects.toThrow("会话正在运行");
+    expect(wire.rpc).toHaveBeenCalledTimes(1);
+    expect(store.getState().sendOperationRecords).toEqual({});
+
+    interruption.reject(Object.assign(new Error("stop failed"), { delivery }));
+    await stopping;
+    expect(store.getState().interruptPending.T).toBeUndefined();
+    expect(store.getState().turnActive.T).toBe(true);
+    expect(store.getState().activeTurnId.T).toBe("original");
+    expect(store.getState().items.T).toEqual([expect.objectContaining({ type: "errorItem",
+      message: expect.stringContaining(delivery === "unknown" ? "停止结果待确认" : "停止请求失败") })]);
+    wire.rpc.mockResolvedValueOnce({});
+    await store.getState().interruptTurn();
+    expect(wire.rpc).toHaveBeenLastCalledWith("turn/interrupt", { threadId: "T", turnId: "original" });
+    // An acknowledgement still is not evidence that the old turn ended.
+    expect(store.getState().turnActive.T).toBe(true);
+    expect(store.getState().activeTurnId.T).toBe("original");
+  });
+
+  it.each(["turn/completed", "thread/status/changed", "error"])("does not resurrect activity when %s arrives before the stop failure", async (method) => {
+    active();
+    const interruption = deferred<unknown>();
+    wire.rpc.mockReturnValueOnce(interruption.promise);
+    const stopping = store.getState().interruptTurn();
+    const params = method === "turn/completed" ? { threadId: "T", turn: turn("original", [], "interrupted") }
+      : method === "thread/status/changed" ? { threadId: "T", status: { type: "idle" } }
+      : { threadId: "T", turnId: "original", willRetry: false, error: { message: "ended" } };
+    notify({ method, params } as GatewayNotification);
+    expect(store.getState().turnActive.T).toBe(false);
+    expect(store.getState().interruptPending.T).toBeUndefined();
+    interruption.reject(new Error("late stop failure"));
+    await stopping;
+    expect(store.getState().turnActive.T).toBe(false);
+    expect(store.getState().activeTurnId.T).toBeNull();
+    expect(JSON.stringify(store.getState().items.T)).not.toContain("late stop failure");
+  });
+
+  it("keeps a new turn's interruption owner when the previous turn's stop resolves late", async () => {
+    active();
+    const old = deferred<unknown>();
+    const current = deferred<unknown>();
+    wire.rpc.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
+    const oldStop = store.getState().interruptTurn();
+    notify({ method: "turn/completed", params: { threadId: "T", turn: turn("original", [], "interrupted") } });
+    notify({ method: "turn/started", params: { threadId: "T", turn: turn("new-turn", [], "inProgress") } });
+    const newStop = store.getState().interruptTurn();
+    const newOwner = store.getState().interruptPending.T;
+    old.reject(new Error("old stop failed"));
+    await oldStop;
+    expect(store.getState().interruptPending.T).toBe(newOwner);
+    expect(store.getState().activeTurnId.T).toBe("new-turn");
+    notify({ method: "turn/completed", params: { threadId: "T", turn: turn("original", [], "interrupted") } });
+    expect(store.getState().interruptPending.T).toBe(newOwner);
+    current.resolve({});
+    await newStop;
+    expect(store.getState().turnActive.T).toBe(true);
+    expect(store.getState().activeTurnId.T).toBe("new-turn");
+    expect(store.getState().interruptPending.T).toBeUndefined();
+  });
+
+  it("ignores an old-runtime stop response and preserves a newly discovered turn identity", async () => {
+    active();
+    store.setState({ activeTurnId: {} });
+    const old = deferred<unknown>();
+    wire.rpc.mockReturnValueOnce(old.promise);
+    const oldStop = store.getState().interruptTurn();
+    expect(wire.rpc).toHaveBeenLastCalledWith("turn/interrupt", { threadId: "T", turnId: undefined });
+    notify({ method: "turn/started", params: { threadId: "T", turn: turn("discovered", [], "inProgress") } });
+    expect(store.getState().interruptPending.T).toBeDefined();
+    notify({ method: "appServer/stateChanged", params: { state: "starting" } });
+    expect(store.getState().interruptPending).toEqual({});
+    notify({ method: "turn/started", params: { threadId: "T", turn: turn("new-runtime", [], "inProgress") } });
+    old.reject(new Error("stale runtime"));
+    await oldStop;
+    expect(store.getState().turnActive.T).toBe(true);
+    expect(store.getState().activeTurnId.T).toBe("new-runtime");
+    expect(store.getState().interruptPending).toEqual({});
+    expect(JSON.stringify(store.getState().items)).not.toContain("stale runtime");
+  });
+});
+
+describe("model catalogs belong to the runtime that loaded them", () => {
+  it.each(["restart", "reconnect"])("does not send old model or effort after same-mode %s and catalog failure", async (lifecycle) => {
+    store.setState({ providerMode: "custom", connection: "open", activeThreadId: "T" });
+    wire.rpc.mockResolvedValueOnce({ data: [{ id: "endpoint-a", supportedReasoningEfforts: [{ reasoningEffort: "high" }] }], nextCursor: null });
+    await store.getState().refreshModels();
+    store.getState().updateSettings({ selectedModel: "endpoint-a", selectedEffort: "high" });
+    if (lifecycle === "restart") notify({ method: "appServer/stateChanged", params: { state: "starting" } });
+    else { connection("closed"); wire.generation += 1; }
+    expect(store.getState().models).toEqual([]);
+    // Preserve preferences, not their authority: a new successful catalog can
+    // revalidate them; a failed catalog must use the new endpoint's defaults.
+    expect(store.getState().settings.selectedModel).toBe("endpoint-a");
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation(async (method, params) => {
+      if (method === "app/status") return { providerMode: "custom", codexState: "ready", management: { state: "idle" }, workspaceRoot: "P" };
+      if (method === "model/list") throw new Error("endpoint-b catalog offline");
+      return defaults(method, params);
+    });
+    store.setState({ connection: "open" });
+    await store.getState().refresh();
+    await settle();
+    expect(store.getState().modelLoad.state).toBe("error");
+    expect(store.getState().historyLoaded.T).toBe(true);
+    await store.getState().sendTurn("use endpoint-b default");
+    const sent = wire.rpc.mock.calls.find(([method]) => method === "turn/start")![1];
+    expect(sent.model).toBeNull();
+    expect(sent.effort).toBeNull();
+    await store.getState().newThread();
+    const created = wire.rpc.mock.calls.find(([method]) => method === "thread/start")![1];
+    expect(created).not.toHaveProperty("model");
+  });
+
+  it("discards a late old-runtime catalog while allowing a new successful catalog to validate preferences", async () => {
+    store.setState({ providerMode: "custom" });
+    const old = deferred<unknown>();
+    wire.rpc.mockReturnValueOnce(old.promise);
+    const loading = store.getState().refreshModels();
+    notify({ method: "appServer/stateChanged", params: { state: "starting" } });
+    old.resolve({ data: [{ id: "old-endpoint" }], nextCursor: null });
+    await loading;
+    expect(store.getState().models).toEqual([]);
+    store.setState({ settings: { ...store.getState().settings, selectedModel: "new-endpoint", selectedEffort: "high" } });
+    wire.rpc.mockResolvedValueOnce({ data: [{ id: "new-endpoint", supportedReasoningEfforts: [{ reasoningEffort: "high" }] }], nextCursor: null });
+    await store.getState().refreshModels();
+    expect(store.getState().models.map((entry) => entry.id)).toEqual(["new-endpoint"]);
+    wire.rpc.mockRejectedValueOnce(new Error("same-runtime transient failure"));
+    await store.getState().refreshModels();
+    expect(store.getState().models.map((entry) => entry.id)).toEqual(["new-endpoint"]);
+    store.setState({ connection: "open", management: { state: "idle" }, activeThreadId: "T", items: { T: [] }, historyLoaded: { T: true } });
+    await store.getState().sendTurn("same runtime remains eligible");
+    expect(wire.rpc.mock.calls.find(([method]) => method === "turn/start")![1]).toMatchObject({ model: "new-endpoint", effort: "high" });
+  });
+});
+
 describe("history snapshots and lifecycle recovery", () => {
+  it.each(["reconnect", "restart"] as const)("restores loaded history after a full %s lifecycle", async (lifecycle) => {
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: { threadId?: string }) => method === "thread/read"
+      ? Promise.resolve({ thread: thread(params!.threadId!, [turn("finished", [agent("answer", "persisted answer")])]) })
+      : defaults(method, params));
+    connection("open"); await settle();
+    await store.getState().openThread("T");
+    expect(store.getState().historyCwd.T).toBe("P");
+    if (lifecycle === "reconnect") connection("closed");
+    else notify({ method: "appServer/stateChanged", params: { state: "starting" } });
+    expect(store.getState().items).toEqual({});
+    expect(store.getState().historyLoaded).toEqual({});
+    expect(store.getState().historyCwd).toEqual({});
+    wire.rpc.mockClear();
+    if (lifecycle === "reconnect") {
+      wire.generation += 1; connection("connecting"); connection("open");
+    } else notify({ method: "appServer/stateChanged", params: { state: "ready" } });
+    await settle();
+    expect(wire.rpc).toHaveBeenCalledWith("thread/resume", { threadId: "T" });
+    expect(wire.rpc).toHaveBeenCalledWith("thread/read", { threadId: "T", includeTurns: true });
+    expect(store.getState().items.T).toEqual(expect.arrayContaining([expect.objectContaining({ id: "answer", text: "persisted answer" })]));
+    expect(store.getState().historyLoaded.T).toBe(true);
+    expect(store.getState().historyCwd.T).toBe("P");
+  });
+
+  it("keeps cwd and loaded metadata aligned with cache eviction, removal and project reset", async () => {
+    for (let index = 0; index < 10; index++) await store.getState().openThread(`T${index}`);
+    const state = store.getState();
+    expect(Object.keys(state.items)).toHaveLength(8);
+    expect(Object.keys(state.historyLoaded).sort()).toEqual(Object.keys(state.items).sort());
+    expect(Object.keys(state.historyCwd).sort()).toEqual(Object.keys(state.items).sort());
+    const evicted = Array.from({ length: 10 }, (_, index) => `T${index}`).find((id) => !state.items[id])!;
+    wire.rpc.mockClear();
+    await store.getState().openThread(evicted);
+    expect(wire.rpc).toHaveBeenCalledWith("thread/read", { threadId: evicted, includeTurns: true });
+    notify({ method: "thread/archived", params: { threadId: evicted } });
+    expect(store.getState().items[evicted]).toBeUndefined();
+    expect(store.getState().historyLoaded[evicted]).toBeUndefined();
+    expect(store.getState().historyCwd[evicted]).toBeUndefined();
+    await store.getState().selectProject("Q");
+    expect(store.getState().items).toEqual({});
+    expect(store.getState().historyLoaded).toEqual({});
+    expect(store.getState().historyCwd).toEqual({});
+  });
+
+  it("invalidates both history metadata fields when a streaming item exceeds the cache budget", async () => {
+    await store.getState().openThread("T");
+    store.setState({ items: { T: [agent("large", "x".repeat(20 * 1024 * 1024 - 1024))] } });
+    notify({ method: "item/agentMessage/delta", params: { threadId: "T", turnId: "turn", itemId: "large", delta: "y".repeat(2048) } });
+    await vi.advanceTimersByTimeAsync(120);
+    expect(store.getState().items.T[0]).toMatchObject({ id: "history-budget-T", type: "errorItem" });
+    expect(store.getState().historyLoaded.T).toBeUndefined();
+    expect(store.getState().historyCwd.T).toBeUndefined();
+  });
+
+  it("restores the cached thread's project after background-approval navigation without rereading history", async () => {
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: { threadId?: string }) => method === "thread/read"
+      ? Promise.resolve({ thread: thread(params!.threadId!, [], { cwd: params!.threadId === "Q-thread" ? "Q" : "P" }) })
+      : defaults(method, params));
+    await store.getState().openThread("P-thread");
+    await store.getState().openThread("Q-thread");
+    expect(store.getState().currentProject).toBe("Q");
+    expect(store.getState().historyCwd).toEqual({ "P-thread": "P", "Q-thread": "Q" });
+    wire.rpc.mockClear();
+    await store.getState().openThread("P-thread");
+    expect(store.getState()).toMatchObject({ activeThreadId: "P-thread", currentProject: "P" });
+    expect(localStorage.getItem("codex-harness-current-project")).toBe("P");
+    expect(wire.rpc).toHaveBeenCalledWith("thread/list", expect.objectContaining({ cwd: "P" }));
+    expect(wire.rpc.mock.calls.some(([method]) => method === "thread/read" || method === "thread/resume")).toBe(false);
+  });
+
+  it("does not activate a cached thread whose project is now unavailable", async () => {
+    await store.getState().openThread("T");
+    store.setState({ currentProject: "Q", projects: [{ path: "Q", addedAt: 1, lastUsedAt: 1, available: true }] });
+    wire.rpc.mockClear();
+    await store.getState().openThread("T");
+    expect(store.getState()).toMatchObject({ currentProject: "Q", activeThreadId: null, sessionLoad: { state: "error" } });
+    expect(store.getState().historyLoaded.T).toBe(false);
+    expect(wire.rpc).not.toHaveBeenCalled();
+  });
+
+  it("rereads legacy or incomplete cache metadata instead of guessing its project", async () => {
+    store.setState({ activeThreadId: "T", items: { T: [] }, historyLoaded: { T: true } });
+    await store.getState().openThread("T");
+    expect(wire.rpc).toHaveBeenCalledWith("thread/read", { threadId: "T", includeTurns: true });
+    expect(store.getState().historyCwd.T).toBe("P");
+  });
+
+  it.each([
+    [true, "P", false], [true, "Q", false],
+    [false, "P", false], [false, "P", true],
+    [false, "Q", false], [false, "Q", true],
+  ] as const)("preserves newer thread navigation over a delayed project selection (cached=%s, cwd=%s, touchFirst=%s)", async (cached, cwd, touchFirst) => {
+    store.setState({ projects: [...store.getState().projects, { path: "R", addedAt: 1, lastUsedAt: 1, available: true }] });
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: any) => method === "thread/read"
+      ? Promise.resolve({ thread: thread(params.threadId, [turn("finished", [agent("answer", "kept history")])], { cwd: params.threadId === "target" ? cwd : "P" }) })
+      : defaults(method, params));
+    if (cached) await store.getState().openThread("target");
+    await store.getState().openThread("initial");
+    const touch = deferred<unknown>();
+    const read = deferred<ThreadReadResponse>();
+    wire.rpc.mockClear();
+    wire.rpc.mockImplementation((method: string, params?: any) => method === "projects/touch" ? touch.promise
+      : method === "thread/read" ? read.promise : defaults(method, params));
+    const selecting = store.getState().selectProject("R");
+    const opening = store.getState().openThread("target");
+    await settle();
+    if (touchFirst) { touch.resolve({}); await selecting; }
+    read.resolve({ thread: thread("target", [turn("finished", [agent("answer", "kept history")])], { cwd }) });
+    await opening;
+    touch.resolve({}); await selecting;
+    expect(store.getState()).toMatchObject({ currentProject: cwd, activeThreadId: "target", historyCwd: { target: cwd }, historyLoaded: { target: true } });
+    expect(store.getState().items.target).toEqual(expect.arrayContaining([expect.objectContaining({ text: "kept history" })]));
+    expect(wire.rpc.mock.calls.filter(([method]) => method === "thread/read")).toHaveLength(cached ? 0 : 1);
+    expect(wire.rpc.mock.calls.some(([method, params]) => method === "thread/list" && params.cwd === "R")).toBe(false);
+    expect(history.replaceState).not.toHaveBeenCalledWith(null, "", "/");
+  });
+
+  it("invalidates an earlier project lookup before it can start touching the old selection", async () => {
+    await store.getState().openThread("T");
+    const projects = deferred<unknown>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: unknown) => method === "projects/list" ? projects.promise : defaults(method, params));
+    const selecting = store.getState().selectProject("R");
+    await store.getState().openThread("T");
+    projects.resolve({ projects: [...store.getState().projects, { path: "R", addedAt: 1, lastUsedAt: 1, available: true }] });
+    await selecting;
+    expect(store.getState()).toMatchObject({ currentProject: "P", activeThreadId: "T" });
+    expect(wire.rpc).not.toHaveBeenCalledWith("projects/touch", { path: "R" });
+  });
+
+  it("does not let an old cross-project history completion cancel a later project selection", async () => {
+    store.setState({ projects: [...store.getState().projects, { path: "R", addedAt: 1, lastUsedAt: 1, available: true }] });
+    const read = deferred<ThreadReadResponse>();
+    const touch = deferred<unknown>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: unknown) => method === "thread/read" ? read.promise
+      : method === "projects/touch" ? touch.promise : defaults(method, params));
+    const opening = store.getState().openThread("Q-thread");
+    await settle();
+    const selecting = store.getState().selectProject("R");
+    read.resolve({ thread: thread("Q-thread", [], { cwd: "Q" }) });
+    await opening;
+    touch.resolve({}); await selecting;
+    expect(store.getState()).toMatchObject({ currentProject: "R", activeThreadId: null, items: {}, historyCwd: {} });
+  });
+
+  it("keeps a newer blank browser-history navigation when an older project touch finishes", async () => {
+    await store.getState().openThread("T");
+    const touch = deferred<unknown>();
+    wire.rpc.mockReturnValueOnce(touch.promise);
+    const selecting = store.getState().selectProject("Q");
+    for (const handler of popstateHandlers) handler();
+    touch.resolve({}); await selecting;
+    expect(store.getState()).toMatchObject({ currentProject: "P", activeThreadId: null, historyLoaded: { T: true } });
+  });
+
+  it("does not let an older cross-project history read override a newer creation", async () => {
+    const read = deferred<ThreadReadResponse>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: unknown) => method === "thread/read" ? read.promise : defaults(method, params));
+    const opening = store.getState().openThread("Q-thread");
+    await settle();
+    await expect(store.getState().newThread()).resolves.toBe("new");
+    read.resolve({ thread: thread("Q-thread", [], { cwd: "Q" }) });
+    await opening;
+    expect(store.getState()).toMatchObject({ currentProject: "P", activeThreadId: "new", historyLoaded: { new: true }, historyCwd: { new: "P" } });
+    expect(store.getState().historyLoading["Q-thread"]).toBe(false);
+    expect(store.getState().items["Q-thread"]).toBeUndefined();
+  });
+
   it("loads full history when background notifications created only a partial cache", async () => {
     notify({ method: "item/completed", params: { threadId: "B", turnId: "b", completedAtMs: 0, item: agent("tail", "new") } });
     wire.rpc.mockImplementation(async (method) => ({ thread: thread("B", method === "thread/read" ? [turn("old-turn", [agent("old", "history")])] : []) }));
@@ -1844,16 +2168,42 @@ describe("compaction, approval and list contracts", () => {
   it("loads sessions after adding the first project even when refresh already selected it", async () => {
     store.setState({ currentProject: "", activeThreadId: null, sessions: [] });
     wire.rpc.mockImplementation(async (method: string) => {
-      if (method === "projects/add") return {};
+      if (method === "projects/add") return { project: { path: "P", addedAt: 1, lastUsedAt: 1 } };
       if (method === "projects/list") return { projects: [{ path: "P", addedAt: 1, lastUsedAt: 1 }] };
       if (method === "thread/list") return { data: [thread("existing")], nextCursor: null };
       return {};
     });
-    await store.getState().addProject("P", true);
-    await store.getState().selectProject("P");
+    const registeredPath = await store.getState().addProject("P", true);
+    await store.getState().selectProject(registeredPath);
     expect(store.getState().currentProject).toBe("P");
     expect(store.getState().sessions.map((session) => session.threadId)).toEqual(["existing"]);
   });
+
+  it.each(["Q/", "/alias-to-Q"])("returns the registered identity for selection after adding %s", async (input) => {
+    wire.rpc.mockImplementation(async (method: string) => {
+      if (method === "projects/add") return { project: { path: "Q", addedAt: 1, lastUsedAt: 1 } };
+      if (method === "projects/list") return { projects: [{ path: "P", addedAt: 1, lastUsedAt: 1 }, { path: "Q", addedAt: 1, lastUsedAt: 1 }] };
+      if (method === "thread/list") return { data: [thread("q-existing")], nextCursor: null };
+      return {};
+    });
+    const registeredPath = await store.getState().addProject(input, false);
+    expect(registeredPath).toBe("Q");
+    expect(wire.rpc).toHaveBeenCalledWith("projects/add", { path: input, create: false });
+    await store.getState().selectProject(registeredPath);
+    expect(wire.rpc).toHaveBeenCalledWith("projects/touch", { path: "Q" });
+    expect(store.getState().currentProject).toBe("Q");
+    expect(store.getState().sessions.map((session) => session.threadId)).toEqual(["q-existing"]);
+  });
+
+  it.each([null, {}, { project: {} }, { project: { path: 42 } }, { project: { path: "" } },
+    { project: { path: " " } }, { project: { path: "x".repeat(4_097) } }, { project: { path: "Q\0other" } }])(
+    "does not guess a project identity from an invalid registration receipt %#", async (result) => {
+      wire.rpc.mockResolvedValue(result);
+      await expect(store.getState().addProject("Q/", false)).rejects.toThrow("未自动切换");
+      expect(store.getState().currentProject).toBe("P");
+      expect(wire.rpc.mock.calls.filter(([method]) => method === "projects/touch")).toEqual([]);
+    },
+  );
 
   it("does not keep an old project's active conversation after removing the current project", async () => {
     store.setState({
@@ -2036,6 +2386,42 @@ describe("compaction, approval and list contracts", () => {
     expect(store.getState().approvals).toHaveLength(0);
   });
 
+  it.each(networkProtocols.flatMap(protocol => [null, undefined].flatMap(command =>
+    (["accept", "acceptForSession"] as const).map(decision => ({ protocol, command, decision })))))(
+    "accepts valid network-only $protocol callbacks with command=$command and decision=$decision", ({ protocol, command, decision }) => {
+      const params = networkOnlyParams(command, protocol);
+      expect(Object.prototype.hasOwnProperty.call(params, "command")).toBe(command !== undefined);
+      wire.serverRequest({ method: "item/commandExecution/requestApproval", requestId: "network-only", params });
+      store.getState().decideApproval("network-only", decision);
+      expect(wire.respondServerRequest).toHaveBeenCalledExactlyOnceWith("network-only", { decision });
+      expect(store.getState().approvalSubmissions["network-only"]).toBe(true);
+      expect(store.getState().approvals).toHaveLength(1);
+      store.getState().decideApproval("network-only", decision);
+      expect(wire.respondServerRequest).toHaveBeenCalledTimes(1);
+      notify({ method: "serverRequest/resolved", params: { requestId: "network-only" } });
+      expect(store.getState().approvals).toHaveLength(0);
+    },
+  );
+
+  it.each(malformedNetworkApprovals)("only permits refusal for network callbacks with %s", (_label, patch) => {
+    wire.serverRequest({ method: "item/commandExecution/requestApproval", requestId: "invalid-network", params: {
+      ...networkOnlyParams(), ...patch,
+    } } as GatewayServerRequest);
+    expect(() => store.getState().decideApproval("invalid-network", "accept")).not.toThrow();
+    expect(() => store.getState().decideApproval("invalid-network", "acceptForSession")).not.toThrow();
+    expect(wire.respondServerRequest).not.toHaveBeenCalled();
+    store.getState().decideApproval("invalid-network", "decline");
+    expect(wire.respondServerRequest).toHaveBeenCalledExactlyOnceWith("invalid-network", { decision: "decline" });
+  });
+
+  it.each([undefined, null])("still permits a valid ordinary command with network context=%s", (networkApprovalContext) => {
+    wire.serverRequest({ method: "item/commandExecution/requestApproval", requestId: "ordinary-command", params: {
+      ...networkOnlyParams(), command: "pwd", networkApprovalContext,
+    } });
+    store.getState().decideApproval("ordinary-command", "accept");
+    expect(wire.respondServerRequest).toHaveBeenCalledExactlyOnceWith("ordinary-command", { decision: "accept" });
+  });
+
   it("only permits refusal when command approval context cannot be rendered faithfully", () => {
     wire.serverRequest({ method: "item/commandExecution/requestApproval", requestId: "bad-command-context", params: {
       threadId: "T", turnId: "r", itemId: "command", startedAtMs: 0, environmentId: null,
@@ -2135,6 +2521,131 @@ describe("compaction, approval and list contracts", () => {
     expect(store.getState().acknowledgeUnknownThreadCreate("11111111-1111-4111-8111-111111111111")).toBe(true);
     expect(store.getState().threadCreateOperation?.state).toBe("acknowledged_unknown");
     expect(localStorage.getItem("codex-harness-thread-create-operation-v1")).toContain("acknowledged_unknown");
+  });
+
+  it.each(["unknown", "accepted", "rejected", "not_received", "error"] as const)("preserves creation acknowledgement over a delayed %s lookup", async (outcome) => {
+    const operation = { clientOperationId: "11111111-1111-4111-8111-111111111111", cwd: "P", state: "unknown" as const };
+    store.setState({ threadCreateOperation: operation });
+    const receipt = deferred<unknown>(); wire.rpc.mockReturnValueOnce(receipt.promise);
+    const checking = store.getState().checkThreadCreateOperation();
+    expect(store.getState().acknowledgeUnknownThreadCreate(operation.clientOperationId)).toBe(true);
+    const acknowledged = store.getState().threadCreateOperation;
+    if (outcome === "error") receipt.reject(new Error("delayed lookup failure"));
+    else receipt.resolve({ state: outcome, threadId: "created-earlier", cwd: "P" });
+    await checking;
+    expect(store.getState().threadCreateOperation).toBe(acknowledged);
+    expect(localStorage.getItem("codex-harness-thread-create-operation-v1")).toContain("acknowledged_unknown");
+    expect(store.getState().activeThreadId).toBeNull();
+  });
+
+  it("records accepted creation without overriding navigation chosen while its lookup was pending", async () => {
+    const operation = { clientOperationId: "11111111-1111-4111-8111-111111111111", cwd: "P", state: "unknown" as const };
+    store.setState({ threadCreateOperation: operation });
+    const receipt = deferred<unknown>(); wire.rpc.mockReturnValueOnce(receipt.promise);
+    const checking = store.getState().checkThreadCreateOperation();
+    await store.getState().openThread("selected-later");
+    receipt.resolve({ state: "accepted", threadId: "created-earlier", cwd: "P" });
+    await checking;
+    expect(store.getState().activeThreadId).toBe("selected-later");
+    expect(store.getState().threadCreateOperation).toMatchObject({ state: "accepted", threadId: "created-earlier" });
+    expect(localStorage.getItem("codex-harness-thread-create-operation-v1")).toContain("created-earlier");
+    expect(wire.rpc).not.toHaveBeenCalledWith("thread/resume", { threadId: "created-earlier" });
+  });
+
+  it("does not activate a recovered creation while a later project selection is in flight", async () => {
+    store.setState({ threadCreateOperation: { clientOperationId: "11111111-1111-4111-8111-111111111111", cwd: "P", state: "unknown" } });
+    const receipt = deferred<unknown>(); const touch = deferred<unknown>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: unknown) => method === "thread/start/operation" ? receipt.promise
+      : method === "projects/touch" ? touch.promise : defaults(method, params));
+    const checking = store.getState().checkThreadCreateOperation();
+    const selecting = store.getState().selectProject("Q");
+    receipt.resolve({ state: "accepted", threadId: "created-earlier", cwd: "P" });
+    await checking;
+    expect(store.getState().activeThreadId).toBeNull();
+    touch.resolve({}); await selecting;
+    expect(store.getState()).toMatchObject({ currentProject: "Q", activeThreadId: null });
+  });
+
+  it.each(["project-first", "creation-first"] as const)("preserves the later navigation and durable creation receipt (%s)", async (order) => {
+    const touch = deferred<unknown>();
+    const response = deferred<unknown>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: any) => method === "projects/touch" && params.path === "Q" ? touch.promise
+      : method === "thread/start" ? response.promise : defaults(method, params));
+    const selecting = order === "project-first" ? store.getState().selectProject("Q") : undefined;
+    const creating = store.getState().newThread();
+    const operation = store.getState().threadCreateOperation!;
+    const laterSelection = order === "creation-first" ? store.getState().selectProject("Q") : undefined;
+    response.resolve({ thread: thread("created"), clientOperationId: operation.clientOperationId });
+    await expect(creating).resolves.toBe(order === "project-first" ? "created" : null);
+    touch.resolve({}); await (selecting ?? laterSelection);
+    if (order === "project-first") {
+      expect(store.getState()).toMatchObject({ currentProject: "P", activeThreadId: "created", historyLoaded: { created: true } });
+    } else {
+      expect(store.getState()).toMatchObject({ currentProject: "Q", activeThreadId: null });
+      expect(store.getState().threadCreateOperation).toMatchObject({ state: "accepted", threadId: "created" });
+      expect(localStorage.getItem("codex-harness-thread-create-operation-v1")).toContain("created");
+    }
+  });
+
+  it.each(["runtime", "connection"] as const)("ignores a creation lookup from an obsolete %s", async (boundary) => {
+    const operation = { clientOperationId: "11111111-1111-4111-8111-111111111111", cwd: "P", state: "unknown" as const };
+    store.setState({ threadCreateOperation: operation });
+    const receipt = deferred<unknown>(); wire.rpc.mockReturnValueOnce(receipt.promise);
+    const checking = store.getState().checkThreadCreateOperation();
+    if (boundary === "runtime") notify({ method: "appServer/stateChanged", params: { state: "starting" } });
+    else wire.generation += 1;
+    receipt.resolve({ state: "accepted", threadId: "created-earlier", cwd: "P" });
+    await checking;
+    expect(store.getState().threadCreateOperation).toBe(operation);
+    expect(store.getState().activeThreadId).toBeNull();
+  });
+
+  it.each([false, true])("preserves recovered creation history, whether cached=%s", async (cached) => {
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: { threadId?: string }) => method === "thread/read"
+      ? Promise.resolve({ thread: thread(params!.threadId!, [turn("finished", [agent("answer", "completed answer")])]) })
+      : method === "thread/start/operation" ? Promise.resolve({ state: "accepted", threadId: "created-earlier", cwd: "P" })
+      : defaults(method, params));
+    store.setState({ threadCreateOperation: { clientOperationId: "11111111-1111-4111-8111-111111111111", cwd: "P", state: "unknown" } });
+    if (cached) await store.getState().openThread("created-earlier");
+    wire.rpc.mockClear();
+    await store.getState().checkThreadCreateOperation();
+    expect(store.getState().items["created-earlier"]).toEqual(expect.arrayContaining([expect.objectContaining({ id: "answer", text: "completed answer" })]));
+    expect(store.getState().historyLoaded["created-earlier"]).toBe(true);
+    expect(store.getState().historyCwd["created-earlier"]).toBe("P");
+    expect(wire.rpc.mock.calls.filter(([method]) => method === "thread/read")).toHaveLength(cached ? 0 : 1);
+  });
+
+  it("keeps a newer durable creation while the recovered thread's history read is settling", async () => {
+    const oldId = "11111111-1111-4111-8111-111111111111";
+    const read = deferred<ThreadReadResponse>(); const createResponse = deferred<unknown>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method: string, params?: unknown) => method === "thread/start/operation"
+      ? Promise.resolve({ state: "accepted", threadId: "old-created", cwd: "P" })
+      : method === "thread/read" ? read.promise
+      : method === "thread/start" ? createResponse.promise : defaults(method, params));
+    store.setState({ threadCreateOperation: { clientOperationId: oldId, cwd: "P", state: "unknown" } });
+    const checking = store.getState().checkThreadCreateOperation(); await settle();
+    const creating = store.getState().newThread();
+    const newer = store.getState().threadCreateOperation!;
+    expect(newer.clientOperationId).not.toBe(oldId);
+    read.resolve({ thread: thread("old-created") }); await checking;
+    expect(store.getState().threadCreateOperation).toBe(newer);
+    expect(JSON.parse(localStorage.getItem("codex-harness-thread-create-operation-v1")!).clientOperationId).toBe(newer.clientOperationId);
+    createResponse.resolve({ thread: thread("new-created"), clientOperationId: newer.clientOperationId }); await creating;
+  });
+
+  it("does not undo an acknowledgement when the original creation response arrives late", async () => {
+    const response = deferred<unknown>(); wire.rpc.mockReturnValueOnce(response.promise);
+    const creating = store.getState().newThread();
+    const operation = store.getState().threadCreateOperation!;
+    store.getState().acknowledgeUnknownThreadCreate(operation.clientOperationId);
+    response.resolve({ thread: thread("old-created"), clientOperationId: operation.clientOperationId });
+    await expect(creating).resolves.toBeNull();
+    expect(store.getState().threadCreateOperation?.state).toBe("acknowledged_unknown");
+    expect(store.getState().activeThreadId).toBeNull();
   });
 
   it("keeps global and config warnings visible in a bounded dismissible queue", () => {

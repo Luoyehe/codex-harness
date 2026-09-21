@@ -217,12 +217,16 @@ def _read_private_regular_at(directory_fd, name, limit=256):
     return data
 
 
-def _create_generation(versions, versions_fd):
+def _create_generation(versions, versions_fd, requested_name=None):
+    if requested_name is not None and not re.fullmatch(r"generation-[a-f0-9]{32}", requested_name):
+        raise ValueError("requested provider generation name is invalid")
     for _ in range(128):
-        name = "generation-" + uuid.uuid4().hex
+        name = requested_name or "generation-" + uuid.uuid4().hex
         try:
             os.mkdir(name, 0o700, dir_fd=versions_fd)
         except FileExistsError:
+            if requested_name is not None:
+                raise ValueError("requested provider generation already exists") from None
             continue
         info = os.stat(name, dir_fd=versions_fd, follow_symlinks=False)
         descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
@@ -427,12 +431,35 @@ def _copy_directory_entry(source_parent_fd, name, target_parent_fd, budget):
         os.close(source_fd)
 
 
+@contextlib.contextmanager
+def _stable_config_directory(parent_fd, name):
+    before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    _checked_source_info(before, directory=True)
+    if before.st_mode & 0o022:
+        raise ValueError("provider config directory is writable by another account")
+    descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent_fd)
+    try:
+        if _stable_metadata(before) != _stable_metadata(os.fstat(descriptor)):
+            raise RuntimeError("provider config directory changed while opening")
+        yield descriptor
+        current = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+        if (_stable_metadata(before) != _stable_metadata(current)
+                or _stable_metadata(before) != _stable_metadata(os.fstat(descriptor))):
+            raise RuntimeError("provider config directory changed while copying")
+    finally:
+        os.close(descriptor)
+
+
 def _copy_active_config(source_fd, source_path, target_fd, budget):
+    # Also accepts the pre-generation layout, but only its original exact
+    # config.toml -> providers/{custom,zhipu}/config.toml link. Every target
+    # component is opened without following links and checked again afterward.
     before = os.stat("config.toml", dir_fd=source_fd, follow_symlinks=False)
     if stat.S_ISREG(before.st_mode):
         _copy_regular_at(source_fd, "config.toml", target_fd, "config.toml", budget)
         return
-    if not stat.S_ISLNK(before.st_mode) or before.st_uid != os.geteuid():
+    if (not stat.S_ISLNK(before.st_mode) or before.st_uid != os.geteuid()
+            or before.st_nlink != 1):
         raise ValueError("active provider config has an unsafe type or owner")
     target_input = Path(os.readlink("config.toml", dir_fd=source_fd))
     if ".." in target_input.parts:
@@ -442,24 +469,23 @@ def _copy_active_config(source_fd, source_path, target_fd, budget):
     allowed = {source_path / "providers" / mode / "config.toml" for mode in MODES}
     if target not in allowed:
         raise ValueError("active provider config link leaves its generation")
-    providers_fd = os.open("providers", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
-                           dir_fd=source_fd)
-    try:
-        mode_fd = os.open(target.parent.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
-                          dir_fd=providers_fd)
-        try:
+    with _stable_config_directory(source_fd, "providers") as providers_fd:
+        with _stable_config_directory(providers_fd, target.parent.name) as mode_fd:
+            source_info = os.stat("config.toml", dir_fd=mode_fd, follow_symlinks=False)
+            _checked_source_info(source_info, regular=True)
+            if source_info.st_mode & 0o022:
+                raise ValueError("provider config target is writable by another account")
             _copy_regular_at(mode_fd, "config.toml", target_fd, "config.toml", budget)
-        finally:
-            os.close(mode_fd)
-    finally:
-        os.close(providers_fd)
+            current = os.stat("config.toml", dir_fd=mode_fd, follow_symlinks=False)
+            if _stable_metadata(source_info) != _stable_metadata(current):
+                raise RuntimeError("provider config target changed while copying")
     current = os.stat("config.toml", dir_fd=source_fd, follow_symlinks=False)
     if _stable_metadata(before) != _stable_metadata(current):
         raise RuntimeError("active provider config link changed while copying")
 
 
-def _snapshot_with_layout(home, env_file, versions, home_fd, providers_fd, versions_fd):
-    generation, created, generation_fd = _create_generation(versions, versions_fd)
+def _snapshot_with_layout(home, env_file, versions, home_fd, providers_fd, versions_fd, requested_name=None):
+    generation, created, generation_fd = _create_generation(versions, versions_fd, requested_name)
     budget = _new_snapshot_budget()
     try:
         os.mkdir("providers", 0o700, dir_fd=generation_fd)
@@ -512,7 +538,7 @@ def _snapshot_with_layout(home, env_file, versions, home_fd, providers_fd, versi
                 except FileNotFoundError:
                     _empty_regular_at(generation_fd, "config.toml")
                 else:
-                    _copy_regular_at(home_fd, "config.toml", generation_fd, "config.toml", budget)
+                    _copy_active_config(home_fd, home, generation_fd, budget)
                 env_parent_fd = open_directory(Path(env_file).parent)
                 try:
                     try:
@@ -549,11 +575,11 @@ def _snapshot_with_layout(home, env_file, versions, home_fd, providers_fd, versi
             pass
 
 
-def snapshot(home, env_file, versions, layout=None):
+def snapshot(home, env_file, versions, layout=None, requested_name=None):
     if layout is not None:
-        return _snapshot_with_layout(home, env_file, versions, *layout)
+        return _snapshot_with_layout(home, env_file, versions, *layout, requested_name=requested_name)
     with _opened_or_create_layout(home, versions) as opened:
-        return _snapshot_with_layout(home, env_file, versions, *opened)
+        return _snapshot_with_layout(home, env_file, versions, *opened, requested_name=requested_name)
 
 
 def _same_identity(left, right):
@@ -1090,6 +1116,28 @@ def _prune_generations_opened(versions, keep_history, problems,
         raise ValueError("provider versions directory is not private")
     _assert_versions_budget(versions_fd, reserve_generations=0)
     active_name, active_info = _active_generation(providers_fd, versions_fd, versions)
+    # The immediately previous generation is the recovery target until the
+    # new provider passes its service health check. Repeated failed switches
+    # must not evict that stable target merely because newer failures exist.
+    predecessor = None
+    active_fd = _open_candidate_fd(versions_fd, versions / active_name,
+                                   active_info, require_private=True)
+    try:
+        try:
+            raw = _read_private_regular_at(active_fd, PREVIOUS_GENERATION_FILE)
+        except FileNotFoundError:
+            pass  # Generations from before predecessor metadata remain valid.
+        else:
+            try:
+                predecessor = raw.decode("ascii").rstrip("\n")
+            except UnicodeDecodeError:
+                raise ValueError("provider predecessor metadata is invalid") from None
+            if (not GENERATION_NAME.fullmatch(predecessor)
+                    or raw != (predecessor + "\n").encode("ascii")):
+                raise ValueError("provider predecessor metadata is invalid")
+            _generation_info(versions_fd, predecessor, required=True)
+    finally:
+        os.close(active_fd)
     history = []
     with os.scandir(versions_fd) as entries:
         for entry in entries:
@@ -1098,18 +1146,21 @@ def _prune_generations_opened(versions, keep_history, problems,
                 if problems is not None:
                     problems.append("unmanaged")
                 continue
-            if _same_identity(info, active_info):
+            if _same_identity(info, active_info) or entry.name == predecessor:
                 continue
             history.append((info.st_mtime_ns, entry.name, info))
     history.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    # Count the protected predecessor inside the history allowance, while
+    # retaining it even when callers request zero optional historical copies.
+    optional_history = max(0, keep_history - int(predecessor is not None and predecessor != active_name))
     removed = []
-    for _, name, expected in history[keep_history:]:
+    for _, name, expected in history[optional_history:]:
         # Re-read the active link before every destructive operation. A valid
         # concurrent transaction holds the same lock, while this also refuses
         # a surprising out-of-band link swap.
         current_name, current_info = _active_generation(providers_fd, versions_fd, versions)
-        if name == current_name or _same_identity(expected, current_info):
-            continue
+        if current_name != active_name or not _same_identity(active_info, current_info):
+            raise RuntimeError("active provider generation changed during history retention")
         try:
             _remove_managed_generation(versions_fd, name, expected)
         except (OSError, RuntimeError, ValueError):
@@ -1326,12 +1377,13 @@ def active_generation_name():
         return name
 
 
-def predecessor_generation_name():
+def predecessor_generation_name(expected_active=None):
     if os.geteuid() == 0:
         drop_service_privileges(os.environ.get("RUN_USER"))
     home = _provider_home()
     versions = home / "providers" / ".versions"
     with _opened_or_create_layout(home, versions) as layout, transaction_lock(home, layout[0]):
+        _assert_expected_active(layout[1], layout[2], versions, expected_active)
         name, expected = _active_generation(layout[1], layout[2], versions)
         generation = versions / name
         candidate_fd = _open_candidate_fd(layout[2], generation, expected, require_private=True)
@@ -1349,7 +1401,7 @@ def predecessor_generation_name():
         return previous
 
 
-def restore_generation(name):
+def restore_generation(name, expected_active=None):
     if not isinstance(name, str) or not GENERATION_NAME.fullmatch(name):
         raise ValueError("provider restore generation name is invalid")
     if os.geteuid() == 0:
@@ -1358,6 +1410,9 @@ def restore_generation(name):
     versions = home / "providers" / ".versions"
     generation = versions / name
     with _opened_or_create_layout(home, versions) as layout, transaction_lock(home, layout[0]):
+        # Automated recovery must not overwrite a later successful publisher.
+        # The comparison and rename share the same transaction lock.
+        _assert_expected_active(layout[1], layout[2], versions, expected_active)
         expected = _generation_info(layout[2], name, required=True)
         candidate_fd = _open_candidate_fd(layout[2], generation, expected, require_private=True)
         try:
@@ -1397,7 +1452,8 @@ def execute(mode, command):
         if os.environ.get("ZHIPU_SYNC_CATALOG") == "1" and (mode != "zhipu" or current.get("model_provider") != "ZAI"):
             raise ValueError("活动供应商已改变，未同步过期的智谱目录")
         _assert_versions_budget(layout[2])
-        generation, generation_identity = snapshot(home, env_file, versions, layout=layout)
+        generation, generation_identity = snapshot(home, env_file, versions, layout=layout,
+                                                  requested_name=os.environ.get("PROVIDER_NEW_GENERATION"))
         child_env = _provider_child_environment(generation)
         published = False
         try:
@@ -1461,13 +1517,13 @@ def main(argv):
         print(name)
         return 0
     if argv[0] == "restore-active":
-        if len(argv) != 2:
-            raise ValueError("restore-active requires one generation name")
-        return restore_generation(argv[1])
+        if len(argv) not in (2, 3):
+            raise ValueError("restore-active requires a generation and optional expected active generation")
+        return restore_generation(argv[1], argv[2] if len(argv) == 3 else None)
     if argv[0] == "predecessor-name":
-        if len(argv) != 1:
-            raise ValueError("predecessor-name takes no arguments")
-        print(predecessor_generation_name())
+        if len(argv) not in (1, 2):
+            raise ValueError("predecessor-name takes an optional expected active generation")
+        print(predecessor_generation_name(argv[1] if len(argv) == 2 else None))
         return 0
     return execute(argv[0], argv[1:])
 

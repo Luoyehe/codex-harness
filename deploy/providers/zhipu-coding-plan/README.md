@@ -19,7 +19,8 @@ sudo codex-harness provider zhipu
 | 问题 | 修复 |
 |---|---|
 | codex 0.149 新 MCP 栈默认未启用，MCP 工具不注入 | `[features] mcp_2026_07_28 = true` |
-| 会话审批策略为 `never` 时，codex 客户端会拒绝未经预批的 MCP 调用 | 只给本预设的四个固定内置服务器写 `default_tools_approval_mode = "approve"`；网关自动应答也同时校验固定服务器名、表单与 `codex_approval_kind=mcp_tool_call`，不泛化到第三方服务器或其它 elicitation |
+| 会话审批策略为 `never` 时，codex 客户端会拒绝未经预批的 MCP 调用 | 只给本预设的四个固定内置服务器写 `default_tools_approval_mode = "approve"`；上游仍发出的审批表单交由浏览器确认，网关不会仅凭同名标识自动批准 |
+| 项目配置或已加载的同名 MCP 可能与全局预设不同 | 动态桥接调用通过原生 `mcpServer/tool/call` 使用该会话已加载的连接，不另取全局 Key 或改投固定 HTTP 端点；失败不自动重试 |
 | codex 以最小环境变量 spawn stdio MCP 子进程 | 配置通过 `env_vars = ["Z_AI_API_KEY"]` 从 600 权限的服务 EnvironmentFile 继承；Key 不写入 TOML、桥接器参数或诊断日志 |
 | 官方 `mcp-remote` 桥在 tools/call 上挂死（openai/codex#14793 的一环） | 自研 `mcp-http-bridge.mjs`（stdio ↔ streamable-http） |
 | 智谱端点在 initialize 应答里下发 `Mcp-Session-Id`，tools/call 必须回放该头，否则 401 | 桥内维护会话头状态 |

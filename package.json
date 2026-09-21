@@ -1,7 +1,7 @@
 {
   "name": "codex-harness",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Self-hosted WebUI for the open-source Codex harness (codex app-server), with provider presets for OpenAI and Zhipu Coding Plan.",
   "license": "MIT",
   "packageManager": "pnpm@11.22.0",
@@ -21,6 +21,7 @@
     "build": "pnpm --filter @codex-harness/web build && pnpm --filter @codex-harness/gateway build",
     "test:smoke": "node scripts/gateway-smoke.mjs",
     "test:defaults": "node scripts/defaults-integration.mjs",
+    "test:mcp-context": "node scripts/mcp-config-integration.mjs",
     "test": "pnpm --filter @codex-harness/gateway test && pnpm --filter @codex-harness/web test && node --test scripts/*.test.mjs",
     "typecheck": "pnpm -r typecheck && pnpm --filter @codex-harness/gateway exec tsc -p ../../protocol/tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters"
   },

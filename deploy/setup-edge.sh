@@ -217,6 +217,12 @@ if [ "${EDGE_ACTION:-}" = "disable" ]; then
   load_saved_edge_state
   validate_edge_values
   check_edge_paths
+  # Removing this site's /authelia route must not strand another instance's
+  # shared cookie at a login URL that no longer exists. Check before snapshots
+  # or public edits; external authentication configuration is never rewritten.
+  python3 -I "$SCRIPT_DIR/lifecycle.py" guard-edge-removal "$CADDY_FILE" \
+    "$GATEWAY_UNIT" "$GATEWAY_PORT" "$AUTHELIA_ADDR" "$AUTHELIA_DIR/configuration.yml" \
+    || die "仍有站点依赖本实例的共享登录入口；请先迁移 Authelia 规范入口后重试"
   DISABLE_BACKUP="$(mktemp -d)"
   DISABLE_CADDY_CHANGED=0
   DISABLE_ENV_CHANGED=0
@@ -298,6 +304,19 @@ if [ "${EDGE_ACTION:-}" = "disable" ]; then
   if [ -f "$CADDY_FILE" ]; then
     DISABLE_CADDY_CHANGED=1
     python3 -I "$SCRIPT_DIR/lifecycle.py" remove "$CADDY_FILE" "$GATEWAY_UNIT" "$GATEWAY_PORT"
+    # Caddy rejects a zero-directive Caddyfile with EOF. Keep an empty global
+    # block when the last site was removed; real syntax errors still fail.
+    python3 -I - "$CADDY_FILE" "$SCRIPT_DIR" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[2])
+from lifecycle import atomic_text, file_identity, read_text_bounded, MAX_EDGE_CONFIG_BYTES
+path = Path(sys.argv[1])
+expected = file_identity(path)
+text = read_text_bounded(path, MAX_EDGE_CONFIG_BYTES)
+if not any(line.strip() and not line.lstrip().startswith("#") for line in text.splitlines()):
+    atomic_text(path, text + "\n{\n}\n", expected)
+PY
     if ! cmp -s "$CADDY_FILE" "$DISABLE_BACKUP/Caddyfile"; then
       DISABLE_CADDY_CHANGED=1
       caddy validate --config "$CADDY_FILE" >/dev/null
@@ -318,8 +337,16 @@ if [ "${EDGE_ACTION:-}" = "disable" ]; then
   fi
   if [ "${EDGE_GATEWAY_STOPPED:-0}" != 1 ] && [ -f "/etc/systemd/system/${GATEWAY_UNIT}.service" ]; then systemctl_do restart "$GATEWAY_UNIT"; fi
   if [ "$DISABLE_TLS_PRESENT" = 1 ]; then
+    # Expand imports/snippets before pruning, including references from sites
+    # which are not owned by this instance. Validate the final files afterward.
+    if [ -f "$CADDY_FILE" ]; then
+      caddy adapt --adapter caddyfile --config "$CADDY_FILE" > "$DISABLE_BACKUP/caddy.json"
+    else
+      printf '{}\n' > "$DISABLE_BACKUP/caddy.json"
+    fi
     DISABLE_TLS_CHANGED=1
-    python3 -I "$SCRIPT_DIR/edge_tls.py" remove "$GATEWAY_UNIT" "$CADDY_USER"
+    python3 -I "$SCRIPT_DIR/edge_tls.py" prune "$GATEWAY_UNIT" "$CADDY_USER" "$DISABLE_BACKUP/caddy.json"
+    if [ -f "$CADDY_FILE" ]; then caddy validate --config "$CADDY_FILE" >/dev/null; fi
   fi
   # The state file selects custom Caddy/Authelia resources on the next run.
   # Remove it only after every public/runtime change succeeds, and restore it
@@ -772,7 +799,7 @@ log "caddy: $(caddy version)"
 
 if [ "$TLS_MODE" = "own" ]; then
   TLS_STATE_TOUCHED=1
-  if ! python3 -I "$SCRIPT_DIR/edge_tls.py" install "$GATEWAY_UNIT" "$CERT_SOURCE" "$KEY_SOURCE" "$CADDY_USER" >/dev/null; then
+  if ! MANAGED_TLS_DIR="$(python3 -I "$SCRIPT_DIR/edge_tls.py" install "$GATEWAY_UNIT" "$CERT_SOURCE" "$KEY_SOURCE" "$CADDY_USER")"; then
     log "自有证书未通过有界常规文件、链接数、权限或稳定性检查"
     rollback
   fi
@@ -1072,11 +1099,13 @@ if [ "$FRESH_AUTHELIA" = "1" ]; then
   log "Authelia 配置校验通过"
 fi
 systemctl_do reload caddy || systemctl_do restart caddy
-if [ "$TLS_MODE" != "own" ] && [ "$RB_TLS_PRESENT" = "1" ]; then
-  # The live Caddy configuration no longer references the old managed pair.
-  # Remove it only now; a later failure restores both it and the old Caddyfile.
+if [ "$TLS_MODE" = "own" ] || [ "$RB_TLS_PRESENT" = "1" ]; then
+  # Keep every pair still referenced by the complete configuration, including
+  # old instance-level paths. A later failure restores the whole collection.
+  caddy adapt --adapter caddyfile --config "$CADDY_FILE" > "$RB_DIR/caddy.json" || rollback
   TLS_STATE_TOUCHED=1
-  python3 -I "$SCRIPT_DIR/edge_tls.py" remove "$GATEWAY_UNIT" "$CADDY_USER" || rollback
+  python3 -I "$SCRIPT_DIR/edge_tls.py" prune "$GATEWAY_UNIT" "$CADDY_USER" "$RB_DIR/caddy.json" || rollback
+  caddy validate --config "$CADDY_FILE" >/dev/null 2>&1 || { log "证书清理后的 Caddyfile 校验失败"; rollback; }
 fi
 
 # --- 6.5 register the public host with the gateway ----------------------------

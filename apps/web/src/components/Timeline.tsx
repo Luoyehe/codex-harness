@@ -1,13 +1,14 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { Component, memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { validatedHttpUrl } from "../utils/validation";
 import { useStore, type Display, type TimelineItem } from "../store";
 import type { RequestPermissionProfile } from "../../../../protocol/v2/RequestPermissionProfile";
-import { approvalCanAccept, describePermissions, fileChangeApprovalContext } from "../utils/permissions";
+import { approvalCanAccept, describePermissions, fileChangeApprovalContext, normalizeNetworkApprovalContext } from "../utils/permissions";
 import { InputRequests } from "./InputRequests";
 import { boundedRuntimeJson } from "../utils/bounded-runtime";
 import { historicalImageUrls, type HistoricalImageLease } from "../utils/historical-image-urls";
+import { markdownWithinBudget, remarkBoundedTree } from "../utils/markdown-budget";
 
 // Stable reference: zustand v5 compares snapshots with Object.is, so an
 // inline `?? []` would mint a fresh array every render and loop forever
@@ -233,21 +234,13 @@ function ApprovalBanner() {
         };
         const commandParams = isCommand && paramsValid ? a.params : null;
         const fileParams = a.method === "item/fileChange/requestApproval" && paramsValid ? a.params : null;
-        const command = typeof commandParams?.command === "string" && commandParams.command.length <= 200_000
+        const command = typeof commandParams?.command === "string" && commandParams.command.length <= 200_000 && commandParams.command.trim()
           ? commandParams.command : null;
         const cwd = optionalContextText(params.cwd, 4_096);
         const rawNetwork = commandParams?.networkApprovalContext as unknown;
-        const networkValid = rawNetwork == null || !!rawNetwork && typeof rawNetwork === "object" &&
-          typeof (rawNetwork as { protocol?: unknown }).protocol === "string" &&
-          typeof (rawNetwork as { host?: unknown }).host === "string" &&
-          (rawNetwork as { protocol: string }).protocol.length > 0 && (rawNetwork as { protocol: string }).protocol.length <= 32 &&
-          (rawNetwork as { host: string }).host.length > 0 && (rawNetwork as { host: string }).host.length <= 2_048;
-        if (!networkValid) contextValid = false;
-        const network = rawNetwork != null && networkValid
-          ? {
-              protocol: (rawNetwork as { protocol: string }).protocol,
-              host: (rawNetwork as { host: string }).host,
-            } : null;
+        const network = normalizeNetworkApprovalContext(rawNetwork);
+        if (rawNetwork != null && !network) contextValid = false;
+        const networkOnly = isCommand && commandParams?.command == null && network !== null;
         const rawNetworkRules: unknown = commandParams?.proposedNetworkPolicyAmendments;
         const networkRulesValid = rawNetworkRules == null || Array.isArray(rawNetworkRules) && rawNetworkRules.length <= 500 && rawNetworkRules.every(
           (rule) => !!rule && typeof rule === "object" &&
@@ -277,8 +270,9 @@ function ApprovalBanner() {
         const requestKey = String(a.requestId);
         const submitting = approvalSubmissions[requestKey] === true;
         const approvalError = approvalErrors[requestKey];
-        const canApprove = connected && !submitting && contextValid && approvalCanAccept(a, items);
-        const title = isCommand ? "请求执行命令" : isPermissions ? "请求提升权限" : "请求修改文件";
+        contextValid = contextValid && approvalCanAccept(a, items);
+        const canApprove = connected && !submitting && contextValid;
+        const title = isCommand ? networkOnly ? "请求访问网络" : "请求执行命令" : isPermissions ? "请求提升权限" : "请求修改文件";
         return (
           <div key={String(a.requestId)} className="approval-card">
             <div className="approval-title">
@@ -298,11 +292,11 @@ function ApprovalBanner() {
                 {networkRules.map((rule, index) => (
                   <div key={`network-${index}`}><span>后续网络规则</span><code>{rule.action} {rule.host}</code></div>
                 ))}
-                {execRule.length > 0 && <div><span>后续命令规则</span><code>{execRule.join(" ")}</code></div>}
+                {execRule.length > 0 && <div><span>后续命令规则</span><code>{JSON.stringify(execRule)}</code></div>}
               </div>
             )}
             {isCommand ? (
-              <pre className="approval-command">{command ?? "（命令结构无效或过长，已禁用批准）"}</pre>
+              !networkOnly && <pre className="approval-command">{command ?? "（命令结构无效或过长，已禁用批准）"}</pre>
             ) : isPermissions ? (
               <PermissionsSummary profile={permissionProfile} />
             ) : changes.length > 0 ? (
@@ -310,7 +304,7 @@ function ApprovalBanner() {
                 {changes.map((c, i) => (
                   <div key={i} className="file-line">
                     <StatusBadge kind={c.kind} />
-                    <code>{runtimeText(c.path, "（路径格式无效）")}</code>
+                    <FileChangePaths path={c.path} kind={c.kind} />
                   </div>
                 ))}
                 {normalizedChanges.total > changes.length && <div className="output-truncation">仅显示前 {changes.length} / {normalizedChanges.total} 项（已达到浏览器预算）</div>}
@@ -357,6 +351,17 @@ function StatusBadge({ kind }: { kind?: { type?: string } | string }) {
   const type = typeof candidate === "string" && /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(candidate) ? candidate : "";
   if (!type) return null;
   return <span className={`status-badge status-${type}`}>{type}</span>;
+}
+
+function FileChangePaths({ path, kind }: { path: unknown; kind: unknown }) {
+  const record = kind && typeof kind === "object" && !Array.isArray(kind) ? kind as Record<string, unknown> : null;
+  const destination = record?.type === "update" ? record.move_path : null;
+  const pathText = (value: unknown) => typeof value === "string" && value.length > 0 && value.length <= 4_096
+    ? value : "（路径格式无效或过长）";
+  return <code className="file-change-paths">
+    <bdi>{pathText(path)}</bdi>
+    {destination != null && <> → <bdi>{pathText(destination)}</bdi></>}
+  </code>;
 }
 
 /** Human-readable summary of a RequestPermissionProfile (permissions approval). */
@@ -551,7 +556,7 @@ export const ItemView = memo(function ItemView({ item }: { item: TimelineItem })
     case "agentMessage":
       return (
         <div className="item item-agent">
-          <Markdown text={runtimeText(item.text, "（消息格式无效）")} />
+          <Markdown text={item.text} fallback="（消息格式无效）" />
         </div>
       );
     case "reasoning": {
@@ -620,7 +625,7 @@ export const ItemView = memo(function ItemView({ item }: { item: TimelineItem })
       );
     }
     case "plan":
-      return <div className="item item-agent"><Markdown text={runtimeText(item.text, "（计划格式无效）")} /></div>;
+      return <div className="item item-agent"><Markdown text={item.text} fallback="（计划格式无效）" /></div>;
     case "webSearch":
       {
       const rawResults: unknown[] = Array.isArray(item.results) ? item.results : [];
@@ -802,7 +807,7 @@ function FileChangeItem({ item }: { item: Extract<TimelineItem, { type: "fileCha
           <div className="file-line">
             <StatusBadge kind={typeof c.kind === "string" || c.kind && typeof c.kind === "object" && !Array.isArray(c.kind)
               ? c.kind as string | { type?: string } : undefined} />
-            <code>{runtimeText(c.path, "（路径格式无效）", 4_096)}</code>
+            <FileChangePaths path={c.path} kind={c.kind} />
           </div>
           {typeof c.diff === "string" && c.diff && <DiffView text={c.diff} />}
         </div>
@@ -814,15 +819,38 @@ function FileChangeItem({ item }: { item: Extract<TimelineItem, { type: "fileCha
   );
 }
 
-export function Markdown({ text }: { text: string }) {
+function PlainMarkdown({ text }: { text: string }) {
+  return <>
+    <pre className="markdown-plain" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{text}</pre>
+    <div className="output-truncation" role="status">Markdown 结构过于复杂或解析失败，已安全显示为纯文本。</div>
+  </>;
+}
+
+/** Isolate parser/plugin/render errors to one message, including historical
+ * messages. New streamed text gets another bounded attempt, not a permanently
+ * poisoned component or an error that removes the entire application. */
+export class MarkdownBoundary extends Component<{ text: string; children: ReactNode }, { text: string; failed: boolean }> {
+  state = { text: this.props.text, failed: false };
+  static getDerivedStateFromProps(props: { text: string }, state: { text: string; failed: boolean }) {
+    return props.text === state.text ? null : { text: props.text, failed: false };
+  }
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? <PlainMarkdown text={this.props.text} /> : this.props.children; }
+}
+
+export function Markdown({ text, fallback = "" }: { text: unknown; fallback?: string }) {
   const MAX_MARKDOWN_CHARS = 200_000;
-  const bounded = text.length <= MAX_MARKDOWN_CHARS
-    ? text
-    : `${text.slice(0, MAX_MARKDOWN_CHARS)}\n\n> 内容超过浏览器 Markdown 解析预算，剩余部分未解析。`;
+  // Inspect and slice exactly once, before the parser sees model-controlled
+  // text. Keep the notice outside Markdown so an unfinished fence/HTML block
+  // cannot hide it, and callers cannot silently lose the truncation signal.
+  const source = typeof text === "string" ? text : fallback;
+  const truncated = source.length > MAX_MARKDOWN_CHARS;
+  const bounded = source.slice(0, MAX_MARKDOWN_CHARS);
   return (
     <div className="markdown">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+      <MarkdownBoundary text={bounded}>
+      {markdownWithinBudget(bounded) ? <ReactMarkdown
+        remarkPlugins={[remarkBoundedTree, remarkGfm]}
         components={{
           a({ href, children }) {
             const safe = validatedHttpUrl(href);
@@ -840,7 +868,9 @@ export function Markdown({ text }: { text: string }) {
               : <span>（图片地址已阻止）</span>;
           },
         }}
-      >{bounded}</ReactMarkdown>
+      >{bounded}</ReactMarkdown> : <PlainMarkdown text={bounded} />}
+      </MarkdownBoundary>
+      {truncated && <div className="output-truncation" role="status">内容超过浏览器 Markdown 解析预算，剩余部分未解析。</div>}
     </div>
   );
 }

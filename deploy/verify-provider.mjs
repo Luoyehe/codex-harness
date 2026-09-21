@@ -176,7 +176,7 @@ export async function runProviderVerification({
     }
     phase = "thread-start";
     // Do not override model: this checks the installed provider/model defaults.
-    const initial = await client.rpc("thread/start", { cwd: config.cwd, approvalPolicy: "never", sandbox: "read-only" });
+    const initial = await helpers.startVerificationThread(client, { cwd: config.cwd, approvalPolicy: "never", sandbox: "read-only" });
     threadId = initial?.thread?.id;
     summary.threadId = safeId(threadId);
     assertThread(initial, config);
@@ -221,7 +221,9 @@ export async function runProviderVerification({
       (reply, id, notes) => reply === JSON.stringify({ nonce, sum: left + right }) && toolCounts(notes, threadId, id).started === 0);
     phase = "reconnect-resume";
     client.close();
-    client = makeClient(client);
+    const previousClient = client;
+    client = makeClient(previousClient);
+    helpers.inheritVerificationThreads(client, previousClient);
     const resumed = await client.rpc("thread/resume", { threadId });
     assertThread(resumed, config, threadId);
     await runTurn("resumed-memory", 'Without using tools, recall the nonce supplied in my previous user message. Reply only with compact JSON {"nonce":"REMEMBERED_NONCE"}, replacing REMEMBERED_NONCE with that earlier value. No extra keys, markdown, or other text.',
@@ -232,7 +234,7 @@ export async function runProviderVerification({
   } catch (error) {
     summary.failure = { phase, code: error instanceof VerificationFailure ? error.code : "operation_failed" };
   } finally {
-    if (client && typeof threadId === "string" && threadId) {
+    if (client && (typeof threadId === "string" && threadId || helpers.hasPendingVerificationThread(client))) {
       summary.cleanup.attempted = true;
       try { await helpers.cleanupThread(client, threadId); summary.cleanup.ok = true; }
       catch { summary.cleanup.ok = false; summary.ok = false; summary.failure ??= { phase: "cleanup", code: "thread_cleanup_failed" }; }

@@ -126,9 +126,11 @@ export function appServerEnvironment(overrides: Record<string, string>): NodeJS.
  * Methods whose response legitimately arrives long after the request (e.g.
  * command/exec resolves at process exit for interactive shells). These are
  * exempt from the client-side timeout — killing them would falsely mark a
- * live PTY as exited.
+ * live PTY as exited. Native MCP calls likewise retain their pending slot
+ * until the server's tool timeout/reply or transport shutdown: a local
+ * timeout cannot stop the tool or safely release its execution capacity.
  */
-const NO_TIMEOUT_METHODS = new Set(["command/exec"]);
+const NO_TIMEOUT_METHODS = new Set(["command/exec", "mcpServer/tool/call"]);
 
 /** The upstream explicitly rejected the request. Transport failures/timeouts
  * are deliberately different: their acceptance outcome is unknown. */

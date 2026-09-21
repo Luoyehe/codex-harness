@@ -32,17 +32,15 @@ it("limits concurrent dynamic MCP executions independently of generic server req
   vi.stubEnv("CODEX_WORKSPACE", home);
   const finishes: Array<(value: unknown) => void> = [];
   fixture.tool.mockImplementation(() => new Promise((resolve) => finishes.push(resolve)));
-  const { ProviderInfoReader } = await import("../src/provider-info.js");
-  vi.spyOn(ProviderInfoReader.prototype, "isManagedZhipuMcpServer").mockReturnValue(true);
   const { createEngine } = await import("../src/engine.js");
   const { DYNAMIC_TOOL_LIMITS } = await import("../src/mcp-proxy.js");
   const engine = createEngine(() => {});
-  const params = { namespace: "web-reader", tool: "read", arguments: {} };
+  const params = { threadId: "T", namespace: "web-reader", tool: "read", arguments: {} };
   const running = Array.from({ length: DYNAMIC_TOOL_LIMITS.concurrent }, (_, index) =>
     fixture.events.onServerRequest(`tool-${index}`, "item/tool/call", params));
   try {
     await expect(fixture.events.onServerRequest("tool-overflow", "item/tool/call", params)).rejects.toThrow(/concurrency/);
-    expect(fixture.tool).toHaveBeenCalledTimes(DYNAMIC_TOOL_LIMITS.concurrent);
+    await vi.waitFor(() => expect(fixture.tool).toHaveBeenCalledTimes(DYNAMIC_TOOL_LIMITS.concurrent));
     for (const finish of finishes) finish({ contentItems: [], success: true });
     await Promise.all(running);
   } finally {
@@ -50,20 +48,19 @@ it("limits concurrent dynamic MCP executions independently of generic server req
   }
 });
 
-it("rejects the fixed dynamic HTTP proxy when the active provider/config proof fails", async () => {
+it("does not retry a native execution failure or redirect it to an HTTP fallback", async () => {
   const home = mkdtempSync(path.join(tmpdir(), "harness-engine-mcp-"));
   homes.push(home);
   vi.stubEnv("CODEX_HOME", home);
   vi.stubEnv("CODEX_WORKSPACE", home);
-  const { ProviderInfoReader } = await import("../src/provider-info.js");
-  vi.spyOn(ProviderInfoReader.prototype, "isManagedZhipuMcpServer").mockReturnValue(false);
+  fixture.tool.mockRejectedValue(new Error("native execution outcome unknown"));
   const { createEngine } = await import("../src/engine.js");
   const engine = createEngine(() => {});
   try {
     await expect(fixture.events.onServerRequest("tool-untrusted", "item/tool/call", {
-      namespace: "web-reader", tool: "read", arguments: {},
-    })).rejects.toThrow(/active managed Zhipu/);
-    expect(fixture.tool).not.toHaveBeenCalled();
+      threadId: "T", namespace: "web-reader", tool: "read", arguments: {},
+    })).rejects.toThrow(/outcome unknown/);
+    expect(fixture.tool).toHaveBeenCalledOnce();
   } finally {
     await engine.stop();
   }

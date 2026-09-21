@@ -3,7 +3,7 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GatewayNotification, GatewayServerRequest } from "../src/api/protocol";
 import type { SendOperation } from "../src/store";
-import { deferred, thread } from "./fixtures";
+import { deferred, thread, turn } from "./fixtures";
 
 const wire = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -99,6 +99,7 @@ beforeEach(async () => {
   store.getState().bootstrap();
   store.setState({
     activeThreadId: "A", currentProject: "P", connection: "open", historyLoaded: { A: true, B: true }, management: { state: "idle" },
+    items: { A: [], B: [] }, historyCwd: { A: "P", B: "P" },
     projects: [{ path: "P", addedAt: 1, lastUsedAt: 1, available: true }], projectsLoad: { state: "loaded", error: null },
   });
   const { Composer } = await import("../src/components/Composer");
@@ -108,6 +109,34 @@ beforeEach(async () => {
 afterEach(() => { act(() => view?.unmount()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Composer send ownership through the real store", () => {
+  it("keeps Stop and the draft locked until terminal evidence, including a failed stop request", async () => {
+    const interruption = deferred<unknown>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method, params) => method === "turn/interrupt" ? interruption.promise : defaults(method, params));
+    act(() => store.setState({ turnActive: { A: true }, activeTurnId: { A: "original" } }));
+    edit("second task must wait");
+    act(() => button("停止").props.onClick());
+    expect(button("停止请求中…").props.disabled).toBe(true);
+    expect(view.root.findAllByProps({ className: "btn-primary" })).toHaveLength(0);
+    expect(store.getState().activeTurnId.A).toBe("original");
+    act(() => view.root.findByType("textarea").props.onKeyDown({ key: "Enter", shiftKey: false, nativeEvent: { isComposing: false }, preventDefault() {} }));
+    expect(turnCalls()).toHaveLength(0);
+    expect(text()).toBe("second task must wait");
+    await act(async () => { interruption.reject(Object.assign(new Error("not confirmed"), { delivery: "unknown" })); await settle(); });
+    expect(button("停止").props.disabled).toBe(false);
+    expect(store.getState().turnActive.A).toBe(true);
+    expect(store.getState().activeTurnId.A).toBe("original");
+    expect(turnCalls()).toHaveLength(0);
+
+    wire.rpc.mockResolvedValueOnce({});
+    await act(async () => { button("停止").props.onClick(); await settle(); });
+    expect(button("停止")).toBeDefined();
+    expect(view.root.findAllByProps({ className: "btn-primary" })).toHaveLength(0);
+    act(() => wire.notification({ method: "turn/completed", params: { threadId: "A", turn: turn("original", [], "interrupted") } }));
+    expect(sendButton().props.disabled).toBe(false);
+    expect(text()).toBe("second task must wait");
+  });
+
   it("surfaces a model catalog failure and retries it explicitly without blocking the composer", async () => {
     act(() => store.setState({ modelLoad: { state: "error", error: "catalog unavailable" } }));
     const retry = button("模型加载失败，重试");

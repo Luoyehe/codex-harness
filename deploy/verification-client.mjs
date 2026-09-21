@@ -15,11 +15,35 @@ const MAX_OUTGOING_RPC_BYTES = 4 * 1024 * 1024;
 const MAX_RETAINED_NOTIFICATION_BYTES = 16 * 1024 * 1024;
 const MAX_RETAINED_NOTIFICATIONS = 4096;
 const MAX_PENDING_RPCS = 64;
+const MAX_OWNED_THREADS = 64;
+// A verifier shares the same broadcast stream as real browser sessions. Only
+// a successful creation (or its durable accepted receipt) establishes ownership.
+const verificationOwnership = new WeakMap();
+
+function ownership(client) {
+  let state = verificationOwnership.get(client);
+  if (!state) {
+    state = { threads: new Set(), mcpApprovalRequired: new Set() };
+    verificationOwnership.set(client, state);
+  }
+  return state;
+}
+
+export function inheritVerificationThreads(client, previous) {
+  verificationOwnership.set(client, ownership(previous));
+}
+
+export function verificationMcpApprovalRequired(client, threadId) {
+  return verificationOwnership.get(client)?.mcpApprovalRequired.has(threadId) ?? false;
+}
 
 /** Only a correlated, explicit gateway error proves RPC rejection. Socket
  * loss, malformed data and local timeouts must not satisfy negative probes. */
 export class VerificationRpcError extends Error {
-  constructor(method) { super(`RPC ${method} rejected`); this.method = method; }
+  constructor(method, delivery) {
+    super(`RPC ${method} rejected`); this.method = method;
+    this.delivery = ["rejected", "not_sent", "unknown"].includes(delivery) ? delivery : "unknown";
+  }
 }
 
 function declineRequest(message) {
@@ -106,8 +130,17 @@ export class VerificationClient {
           this.pending.delete(message.id);
           if (message.error != null) {
             waiter.reject(typeof message.error === "string" && message.error.length
-              ? new VerificationRpcError(waiter.method) : new Error("Invalid gateway RPC error"));
-          } else waiter.resolve(message.result);
+              ? new VerificationRpcError(waiter.method, message.delivery) : new Error("Invalid gateway RPC error"));
+          } else {
+            // Register the correlated successful creation in the receive
+            // handler, before a following frame from the same socket batch
+            // can carry its first prompt. The helper also validates the ID.
+            const threadId = message.result?.thread?.id;
+            if (waiter.verificationCreation && typeof threadId === "string" && threadId && threadId.length <= 256 && !threadId.includes("\0")) {
+              ownership(this).threads.add(threadId);
+            }
+            waiter.resolve(message.result);
+          }
         }
       } else if (message.kind === "notification") {
         if (this.notes.length === 0) this.notesBytes = 0;
@@ -127,6 +160,12 @@ export class VerificationClient {
           this.ws.terminate();
           return;
         }
+        const threadId = message.params?.threadId ?? message.params?.conversationId;
+        const owned = verificationOwnership.get(this);
+        // Missing/foreign ownership is not authorization even to decline:
+        // silently leave unrelated approvals for their actual browser owner.
+        if (typeof threadId !== "string" || !owned?.threads.has(threadId)) return;
+        if (message.method === "mcpServer/elicitation/request") owned.mcpApprovalRequired.add(threadId);
         try {
           this.ws.send(JSON.stringify(declineRequest(message)), error => {
             if (error) { this.rejectPending(new Error("Interactive refusal send failed")); this.ws.terminate(); }
@@ -161,7 +200,8 @@ export class VerificationClient {
     if (Buffer.byteLength(wire) > MAX_OUTGOING_RPC_BYTES) throw new Error(`RPC ${method} exceeds verification request limit`);
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`RPC ${method} timed out`)); }, timeoutMs);
-      this.pending.set(id, { method, resolve, reject, timer });
+      const verificationCreation = method === "thread/start" && pendingThreadCreations.get(this)?.has(params?.clientOperationId) === true;
+      this.pending.set(id, { method, resolve, reject, timer, verificationCreation });
       const sendFailed = () => { clearTimeout(timer); this.pending.delete(id); reject(new Error(`RPC ${method} send failed`)); };
       try { this.ws.send(wire, error => { if (error) sendFailed(); }); }
       catch { sendFailed(); }
@@ -180,6 +220,36 @@ export class VerificationClient {
   }
 
   close() { this.rejectPending(new Error("Verification finished")); this.ws.terminate(); }
+}
+
+const pendingThreadCreations = new WeakMap();
+
+export function hasPendingVerificationThread(client) {
+  return (pendingThreadCreations.get(client)?.size ?? 0) > 0;
+}
+
+/** One operation ID and one submission per logical creation. Keep uncertain
+ * IDs for finally/cleanup even when no thread ID was returned to the caller. */
+export async function startVerificationThread(client, params = {}) {
+  if (ownership(client).threads.size >= MAX_OWNED_THREADS) throw new Error("Too many owned verification threads");
+  const clientOperationId = randomUUID();
+  let pending = pendingThreadCreations.get(client);
+  if (!pending) { pending = new Set(); pendingThreadCreations.set(client, pending); }
+  if (pending.size >= 64) throw new Error("Too many unresolved verification thread creations");
+  pending.add(clientOperationId);
+  try {
+    const response = await client.rpc("thread/start", { ...params, clientOperationId });
+    const id = response?.thread?.id;
+    if (typeof id !== "string" || !id || id.length > 256 || id.includes("\0")) {
+      throw new Error("thread/start returned no valid thread ID");
+    }
+    ownership(client).threads.add(id);
+    pending.delete(clientOperationId);
+    return response;
+  } catch (error) {
+    if (error instanceof VerificationRpcError && ["rejected", "not_sent"].includes(error.delivery)) pending.delete(clientOperationId);
+    throw error;
+  }
 }
 
 export async function completedTurn(client, threadId, overrides = {}) {
@@ -248,22 +318,44 @@ export async function completedCompaction(client, threadId) {
 }
 
 export async function cleanupThread(client, threadId) {
-  if (!threadId) return;
+  const uncertain = pendingThreadCreations.get(client);
+  if (!threadId && !uncertain?.size) return;
   let cleanupClient = client;
   const temporaryClients = [];
   const reconnect = () => {
     const next = new VerificationClient(client.url, client.options, { openTimeoutMs: client.openTimeoutMs });
+    inheritVerificationThreads(next, client);
     temporaryClients.push(next);
     return next;
   };
   try {
     if (client.closed || client.ws.readyState !== WebSocket.OPEN) cleanupClient = reconnect();
+    if (!threadId) {
+      for (const operationId of [...uncertain]) {
+        const receipt = await cleanupClient.rpc("thread/start/operation", { clientOperationId: operationId });
+        if (receipt?.state === "rejected") { uncertain.delete(operationId); continue; }
+        const acceptedId = receipt?.threadId;
+        if (receipt?.state !== "accepted" || typeof acceptedId !== "string" || !acceptedId
+            || acceptedId.length > 256 || acceptedId.includes("\0")) {
+          // Neither unknown nor not_received permits another creation or a
+          // claim of successful cleanup. Retain the ID for manual reconciliation.
+          throw new Error(`Verification creation ${operationId} remains unresolved; no creation was retried`);
+        }
+        ownership(cleanupClient).threads.add(acceptedId);
+        await cleanupThread(cleanupClient, acceptedId);
+        uncertain.delete(operationId);
+      }
+      return;
+    }
     try { await cleanupClient.rpc("turn/interrupt", { threadId }, 3000); } catch { /* may already be idle */ }
     // A disconnect during interruption must not silently abandon the thread.
     // Whether this was the original socket or an initial cleanup reconnect,
     // use one fresh connection for the authoritative deletion attempt.
     if (cleanupClient.closed || cleanupClient.ws.readyState !== WebSocket.OPEN) cleanupClient = reconnect();
     await cleanupClient.rpc("thread/delete", { threadId });
+    const owned = verificationOwnership.get(client);
+    owned?.threads.delete(threadId);
+    owned?.mcpApprovalRequired.delete(threadId);
   } finally {
     for (const temporary of temporaryClients) temporary.close();
   }

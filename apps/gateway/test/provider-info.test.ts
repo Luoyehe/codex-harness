@@ -1,7 +1,6 @@
 import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { PROVIDER_INFO_LIMITS, ProviderInfoReader } from "../src/provider-info.js";
 
@@ -21,53 +20,6 @@ function fixtureData(config: string, catalog?: unknown): { home: string; reader:
 
 function fixture(config: string, catalog?: unknown): ProviderInfoReader {
   return fixtureData(config, catalog).reader;
-}
-
-const managedBridge = fileURLToPath(new URL("../../../deploy/providers/zhipu-coding-plan/mcp-http-bridge.mjs", import.meta.url));
-function managedZhipuConfig(): string {
-  return `model_provider = "ZAI"
-model = "glm-5.3"
-
-[model_providers.ZAI]
-name = "Zhipu Coding Plan"
-base_url = "https://open.bigmodel.cn/api/v1"
-env_key = "Z_AI_API_KEY"
-wire_api = "responses"
-
-[features]
-mcp_2026_07_28 = true
-
-[mcp_servers.web-search-prime]
-type = "local"
-startup_timeout_sec = 120
-default_tools_approval_mode = "approve"
-command = "node"
-env_vars = ["Z_AI_API_KEY"]
-args = [${JSON.stringify(managedBridge)}, "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp"]
-
-[mcp_servers.web-reader]
-type = "local"
-startup_timeout_sec = 120
-default_tools_approval_mode = "approve"
-command = "node"
-env_vars = ["Z_AI_API_KEY"]
-args = [${JSON.stringify(managedBridge)}, "https://open.bigmodel.cn/api/mcp/web_reader/mcp"]
-
-[mcp_servers.zread]
-type = "local"
-startup_timeout_sec = 120
-default_tools_approval_mode = "approve"
-command = "node"
-env_vars = ["Z_AI_API_KEY"]
-args = [${JSON.stringify(managedBridge)}, "https://open.bigmodel.cn/api/mcp/zread/mcp"]
-
-[mcp_servers.zai-mcp-server]
-type = "local"
-default_tools_approval_mode = "approve"
-command = "zai-mcp-server"
-env_vars = ["Z_AI_API_KEY"]
-env = { Z_AI_MODE = "ZHIPU" }
-`;
 }
 
 describe("ProviderInfoReader", () => {
@@ -155,47 +107,19 @@ describe("ProviderInfoReader", () => {
     expect(reader.customEndpoint()).toBeNull();
   });
 
-  it("recognizes only the complete active managed Zhipu MCP configuration", () => {
-    const reader = fixture(managedZhipuConfig());
-    for (const server of ["web-search-prime", "web-reader", "zread", "zai-mcp-server"]) {
-      expect(reader.isManagedZhipuMcpServer(server)).toBe(true);
-    }
-    expect(reader.isManagedZhipuMcpServer("attacker")).toBe(false);
-  });
-
-  it.each([
-    ["provider mode", 'model_provider = "ZAI"', 'model_provider = "custom"'],
-    ["provider table", 'name = "Zhipu Coding Plan"', 'name = "lookalike"'],
-    ["feature flag", "mcp_2026_07_28 = true", "mcp_2026_07_28 = false"],
-    ["HTTP endpoint", "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp", "https://attacker.invalid/mcp"],
-    ["HTTP bridge", JSON.stringify(managedBridge), JSON.stringify(`${managedBridge}.attacker`)],
-    ["HTTP approval", 'default_tools_approval_mode = "approve"', 'default_tools_approval_mode = "prompt"'],
-    ["HTTP environment", 'env_vars = ["Z_AI_API_KEY"]', 'env_vars = ["Z_AI_API_KEY", "NODE_OPTIONS"]'],
-  ])("fails closed when the managed HTTP server's %s is changed", (_label, from, to) => {
-    const reader = fixture(managedZhipuConfig().replace(from, to));
-    expect(reader.isManagedZhipuMcpServer("web-search-prime")).toBe(false);
-  });
-
-  it.each([
-    ["command", 'command = "zai-mcp-server"', 'command = "npx"'],
-    ["environment names", 'env_vars = ["Z_AI_API_KEY"]\nenv = { Z_AI_MODE = "ZHIPU" }', 'env_vars = ["PATH", "Z_AI_API_KEY"]\nenv = { Z_AI_MODE = "ZHIPU" }'],
-    ["mode", 'env = { Z_AI_MODE = "ZHIPU" }', 'env = { Z_AI_MODE = "OPENAI" }'],
-  ])("fails closed when the managed vision server's %s is changed", (_label, from, to) => {
-    const reader = fixture(managedZhipuConfig().replace(from, to));
-    expect(reader.isManagedZhipuMcpServer("zai-mcp-server")).toBe(false);
-  });
-
-  it("invalidates cached config generations after tampering, read failure, and repair", () => {
-    const original = managedZhipuConfig();
+  it("invalidates cached config generations after edits, read failure, and repair", () => {
+    const original = 'model_provider = "custom"\nmodel = "original"\n[model_providers.custom]\nbase_url = "https://api.example.com/v1"\n';
     const { home, reader } = fixtureData(original);
     const config = path.join(home, "config.toml");
-    expect(reader.isManagedZhipuMcpServer("web-reader")).toBe(true);
-    writeFileSync(config, `${original.replace("https://open.bigmodel.cn/api/mcp/web_reader/mcp", "https://attacker.invalid/mcp")}\n# changed`);
-    expect(reader.isManagedZhipuMcpServer("web-reader")).toBe(false);
+    expect(reader.readModeAndModel()).toEqual({ mode: "custom", model: "original" });
+    writeFileSync(config, original.replace('model = "original"', 'model = "updated"'));
+    expect(reader.readModeAndModel()).toEqual({ mode: "custom", model: "updated" });
     rmSync(config);
-    expect(reader.isManagedZhipuMcpServer("web-reader")).toBe(false);
+    expect(reader.readModeAndModel()).toEqual({ mode: "openai", model: "" });
+    expect(reader.customEndpoint()).toBeNull();
     writeFileSync(config, original);
-    expect(reader.isManagedZhipuMcpServer("web-reader")).toBe(true);
+    expect(reader.readModeAndModel()).toEqual({ mode: "custom", model: "original" });
+    expect(reader.customEndpoint()?.baseUrl).toBe("https://api.example.com/v1");
   });
 
   it("aligns catalog bytes with deploy and rejects oversized collections before capability iteration", () => {

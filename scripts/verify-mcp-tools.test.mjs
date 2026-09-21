@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import { once } from "node:events";
+import { WebSocketServer } from "ws";
 import { MCP_TASKS, runMcpVerification, taskEvidence, taskToolCounts } from "../deploy/verify-mcp-tools.mjs";
 
 const oldToken = process.env.GATEWAY_TOKEN;
@@ -374,6 +376,55 @@ async function paid(operation) {
   finally { if (prior === undefined) delete process.env.HARNESS_ALLOW_PAID_TESTS; else process.env.HARNESS_ALLOW_PAID_TESTS = prior; }
 }
 
+test("an owned interactive MCP prompt is refused and explicitly fails acceptance without retries", { timeout: 5000 }, async t => paid(async () => {
+  const { VerificationClient } = await import("../deploy/verification-client.mjs");
+  const server = new WebSocketServer({ host: "127.0.0.1", port: 0 });
+  await once(server, "listening");
+  const sockets = [], messages = [], output = [];
+  t.after(async () => {
+    for (const socket of sockets) socket.terminate();
+    await new Promise(resolve => server.close(resolve));
+  });
+  server.on("connection", socket => {
+    sockets.push(socket);
+    socket.on("message", data => {
+      const message = JSON.parse(data.toString());
+      messages.push(message);
+      if (message.kind === "serverRequestResponse") {
+        // Even plausible later success notifications cannot turn a required,
+        // refused interactive approval into unattended acceptance evidence.
+        for (const note of notes("completed", "mcpToolCall", MCP_TASKS[1])) socket.send(JSON.stringify(note));
+        return;
+      }
+      const result = message.method === "thread/start" ? { thread: { id: "t" } }
+        : message.method === "turn/start" ? { turn: { id: "r" } } : {};
+      socket.send(JSON.stringify({ kind: "rpcResult", id: message.id, result }));
+      if (message.method === "turn/start") socket.send(JSON.stringify({
+        kind: "serverRequest", requestId: "approval", method: "mcpServer/elicitation/request", params: {
+          threadId: "t", turnId: "r", serverName: "web-reader", mode: "form",
+          _meta: { codex_approval_kind: "mcp_tool_call", tool: "webReader" },
+          requestedSchema: { type: "object", properties: {} },
+        },
+      }));
+    });
+  });
+  const ok = await runMcpVerification(["never", "web-reader"], {
+    env: {}, createClient: () => new VerificationClient(`ws://127.0.0.1:${server.address().port}/ws`, {}, { openTimeoutMs: 200 }),
+    log: line => output.push(line), error: line => output.push(line),
+  });
+  assert.equal(ok, false);
+  assert.deepEqual(messages.find(message => message.kind === "serverRequestResponse"), {
+    kind: "serverRequestResponse", requestId: "approval", payload: { action: "decline", content: null, _meta: null },
+  });
+  const record = JSON.parse(output.find(line => line.startsWith("{")));
+  assert.deepEqual(record.failure, { stage: "approval", code: "interactive_approval_required" });
+  assert.equal(record.status, "failed");
+  assert.equal(record.cleanup.ok, true);
+  assert.equal(messages.filter(message => message.method === "turn/start").length, 1);
+  assert.equal(messages.filter(message => message.method === "thread/delete").length, 1);
+  assert.equal(output.some(line => line.startsWith("PASS ") || line === "MCP-TOOLS-PASS"), false);
+}));
+
 test("all four tasks emit final machine-readable evidence, bounded counts and cleanup without raw data", async () => paid(async () => {
   const env = { HARNESS_VERIFY_CWD: "/isolated/mcp-fixture", HARNESS_VERIFY_MODE: "zhipu", HARNESS_VERIFY_PROVIDER: "ZAI", HARNESS_VERIFY_MODEL: "glm-5.3" };
   const f = runnerFixture("none", env);
@@ -382,7 +433,13 @@ test("all four tasks emit final machine-readable evidence, bounded counts and cl
   assert.equal(records.length, 4);
   assert.equal(f.calls.filter(call => call.method === "turn/start").length, 4);
   assert.equal(f.calls.filter(call => call.method === "thread/delete").length, 4);
-  for (const call of f.calls.filter(call => call.method === "thread/start")) assert.deepEqual(call.params, { sandbox: "read-only", cwd: env.HARNESS_VERIFY_CWD });
+  const creations = f.calls.filter(call => call.method === "thread/start");
+  assert.equal(new Set(creations.map(call => call.params.clientOperationId)).size, 4);
+  for (const call of creations) {
+    const { clientOperationId, ...params } = call.params;
+    assert.match(clientOperationId, /^[a-zA-Z0-9_-]{16,128}$/);
+    assert.deepEqual(params, { sandbox: "read-only", cwd: env.HARNESS_VERIFY_CWD });
+  }
   for (const [index, record] of records.entries()) {
     assert.equal(record.status, "completed"); assert.equal(record.turnStatus, "completed");
     assert.equal(record.rerouteCount, 0);

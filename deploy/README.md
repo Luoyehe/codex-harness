@@ -1,6 +1,6 @@
 # 部署指南
 
-**Linux 裸跑（systemd）是唯一支持的服务器部署方式**，Codex 任务可使用原生沙箱（Landlock/bwrap）。v1.1.0 引入独立的网关账号与控制目录，旧版须先按[首次迁移](#首次迁移到-v110)完成修复重装；此后使用事务式 `sudo codex-harness update`。不要在服务运行时直接 `git pull`；网页终端的权限边界另见“裸跑注意事项”。
+**Linux 裸跑（systemd）是唯一支持的服务器部署方式**，Codex 任务可使用原生沙箱（Landlock/bwrap）。旧版（包括 v1.1.0 / v1.2.0）须先按[迁移与工具链更新步骤](#首次迁移到-v110)，使用 v1.2.1 脚本完成修复重装；之后再使用事务式 `sudo codex-harness update`。不要在服务运行时直接 `git pull`；网页终端的权限边界另见“裸跑注意事项”。
 
 ## 〇、统一管理入口（推荐）
 
@@ -185,7 +185,7 @@ HARNESS_ALLOW_PAID_TESTS=1 bash deploy/verify-server.sh
 HARNESS_ALLOW_PAID_TESTS=1 GATEWAY_WS=ws://127.0.0.1:8080/ws node deploy/verify-full.mjs
 HARNESS_ALLOW_PAID_TESTS=1 node deploy/verify-mcp-tools.mjs    # 四组 MCP 工具真实任务（智谱预设）
 
-# 迁移到 v1.1.0 后的事务式升级（先验证候选版本，失败时尝试回滚）
+# 已用 v1.2.1 脚本修复重装后的事务式升级（旧版先按下方步骤迁移）
 sudo codex-harness update
 ```
 
@@ -197,12 +197,12 @@ sudo codex-harness update
 
 ### 首次迁移到 v1.1.0
 
-这是旧版单账号部署的**停机迁移**，不是普通在线更新。请预留维护时间，不要让旧版更新器执行新版候选测试，也不要只替换前后端构建文件。
+这是旧版单账号部署的**停机迁移**，也适用于 v1.1.0 / v1.2.0 升级到 v1.2.1 时的管理工具链修复，不是普通在线更新。请预留维护时间，不要让旧版更新器执行新版候选测试，也不要只替换前后端构建文件。
 
 1. 结束所有任务和网页终端，确认实例名、原安装目录、worker 账号、Node/工具路径、`CODEX_HOME`、`ENV_FILE`、工作区及现有 edge 配置。自定义实例全程使用相同 `SERVICE_NAME`。
 2. 停止该实例，并备份旧源码/构建、systemd unit、管理入口、数据与实际配置链接目标、项目，以及已有的控制目录和 edge 配置。备份含凭证，应保存在私有位置；不要只复制 `secrets.env` 软链。修复重装不删除这些数据，但不能替代备份。
 3. 确认原安装目录、Node 与工具路径及其祖先均为 root 所有且不可被普通用户修改。旧 root 服务、普通用户持有的运行时，或 root 所有的旧数据/环境文件，须先按“一、安装”中的账号与路径要求明确迁移；不要批量 `chown` 整棵项目或共享运行时。
-4. 在**原实例的安装目录**取得当前 v1.2.0，然后直接使用新版 `deploy/manage.sh` 修复重装。旧版可以直接迁移；已使用 v1.1.0 的实例也用这一步应用新版候选验证器、服务注册和启动器。下面仅适用于默认实例、默认路径、已满足权限要求且无本地修改的 Git 部署，各步失败后应停止检查，不要继续执行下一步：
+4. 在**原实例的安装目录**取得当前 v1.2.1，然后直接使用新版 `deploy/manage.sh` 修复重装。旧版可以直接迁移；v1.1.0 / v1.2.0 实例也用这一步更新管理入口、候选验证器、服务注册和启动器，不要用旧升级器引导本次升级。下面仅适用于默认实例、默认路径、已满足权限要求且无本地修改的 Git 部署，各步失败后应停止检查，不要继续执行下一步：
 
    ```bash
    sudo -i
@@ -210,7 +210,7 @@ sudo codex-harness update
    git status --short                 # 必须无输出；有修改时先保存并处理
    systemctl stop codex-harness       # 应已完成上面的停机备份
    git fetch origin --tags
-   git merge --ff-only v1.2.0
+   git merge --ff-only v1.2.1
    SERVICE_NAME=codex-harness bash deploy/manage.sh reinstall repair
    ```
 
@@ -221,7 +221,7 @@ sudo codex-harness update
 
 ### 验证脚本的边界
 
-默认 `verify` 和 smoke 不做商业模型调用。`list-mcp-tools.mjs` 已对连接、RPC、总执行时间、分页和游标设置界限，并在检查失败时非零退出；但目录、工具列表或初始化成功仍不等于真实工具任务成功，不能仅凭列表退出码完成业务验收。失败或状态未知时不要自动重跑真实任务。其余外部验收边界见 [CHANGELOG](../CHANGELOG.md#v120-验证边界)。
+默认 `verify` 和 smoke 不做商业模型调用。`list-mcp-tools.mjs` 已对连接、RPC、总执行时间、分页和游标设置界限，并在检查失败时非零退出；但目录、工具列表或初始化成功仍不等于真实工具任务成功，不能仅凭列表退出码完成业务验收。失败或状态未知时不要自动重跑真实任务。其余外部验收边界见 [CHANGELOG](../CHANGELOG.md#v121-验证边界)。
 
 ## 裸跑注意事项
 

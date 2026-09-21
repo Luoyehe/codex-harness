@@ -620,6 +620,12 @@ code {
   margin: 4px 0;
 }
 
+.file-change-paths {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .status-badge {
   font-size: 12px;
   border: 1px solid var(--border);

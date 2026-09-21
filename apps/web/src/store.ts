@@ -476,6 +476,7 @@ let modelRequestSeq = 0;
  * otherwise overwrite data loaded by the replacement connection. */
 let refreshRequestSeq = 0;
 let projectRequestSeq = 0;
+/** Project selection ownership is superseded by any later navigation intent. */
 let projectSelectionSeq = 0;
 let mcpRequestSeq = 0;
 let openThreadRequestSeq = 0;
@@ -529,9 +530,14 @@ interface AppStore {
   activeThreadId: string | null;
   items: Record<string, TimelineItem[]>;
   historyLoaded: Record<string, boolean>;
+  /** Verified cwd belongs to the same bounded lifetime as its history cache. */
+  historyCwd: Record<string, string>;
   historyLoading: Record<string, boolean>;
   turnActive: Record<string, boolean>;
   activeTurnId: Record<string, string | null>;
+  /** Request identity is separate from activity: an interrupt ACK is not a
+   * terminal event and cannot authorize the next turn. */
+  interruptPending: Record<string, { turnId: string | undefined }>;
   turnDiff: Record<string, string>;
   tokenUsage: Record<string, { total: number; window: number | null }>;
   compacting: Record<string, boolean>;
@@ -558,7 +564,7 @@ interface AppStore {
   refreshProjects(): Promise<void>;
   refreshModels(): Promise<void>;
   refreshMcp(): Promise<void>;
-  addProject(path: string, create: boolean): Promise<void>;
+  addProject(path: string, create: boolean): Promise<string>;
   removeProject(path: string): Promise<void>;
   selectProject(path: string): Promise<void>;
   updateSettings(patch: Partial<Settings>): void;
@@ -843,6 +849,23 @@ function mergeHistory(snapshot: TimelineItem[], live: TimelineItem[], started: S
   return [...result.values()];
 }
 
+function retainedHistoryMetadata(
+  items: Record<string, TimelineItem[]>,
+  loaded: Record<string, boolean>,
+  cwds: Record<string, string>,
+  overflow: readonly string[],
+): Pick<AppStore, "historyLoaded" | "historyCwd"> {
+  const invalid = new Set(overflow);
+  const historyLoaded: Record<string, boolean> = {};
+  const historyCwd: Record<string, string> = {};
+  for (const threadId of Object.keys(items)) {
+    if (invalid.has(threadId)) continue;
+    if (Object.hasOwn(loaded, threadId)) historyLoaded[threadId] = loaded[threadId];
+    if (Object.hasOwn(cwds, threadId)) historyCwd[threadId] = cwds[threadId];
+  }
+  return { historyLoaded, historyCwd };
+}
+
 /** Object identity is the ownership token for an optimistic timeline preview. */
 function timelinePreviewOwners(items: Record<string, TimelineItem[]>): Map<object, unknown> {
   const result = new Map<object, unknown>();
@@ -921,9 +944,23 @@ export const useStore = create<AppStore>((rawSet, get) => {
     const active = patch.activeThreadId === undefined ? state.activeThreadId : patch.activeThreadId;
     const project = patch.currentProject === undefined ? state.currentProject : patch.currentProject;
     if (active !== state.activeThreadId || project !== state.currentProject) cancelAttachmentReads();
+    if (patch.turnActive || patch.activeTurnId) {
+      const pending = { ...(patch.interruptPending ?? state.interruptPending) };
+      for (const threadId of Object.keys(pending)) {
+        // Terminal evidence or a different known turn invalidates ownership
+        // of the old stop request. Its late response must not affect a newer
+        // turn (or clear that turn's new interruption-pending indicator).
+        if (patch.turnActive?.[threadId] === false ||
+            patch.activeTurnId && Object.hasOwn(patch.activeTurnId, threadId) &&
+            state.activeTurnId[threadId] && patch.activeTurnId[threadId] !== state.activeTurnId[threadId]) {
+          delete pending[threadId];
+        }
+      }
+      patch.interruptPending = pending;
+    }
     // Lifecycle/diff dictionaries otherwise retain every session ever seen,
     // even when its actual timeline was evicted from the bounded cache.
-    const keys = ["turnActive", "activeTurnId", "turnDiff", "tokenUsage", "compacting", "plan", "historyLoaded", "historyLoading"] as const;
+    const keys = ["turnActive", "activeTurnId", "interruptPending", "turnDiff", "tokenUsage", "compacting", "plan", "historyLoaded", "historyLoading"] as const;
     for (const key of keys) {
       const value = patch[key];
       if (!value) continue;
@@ -953,13 +990,16 @@ export const useStore = create<AppStore>((rawSet, get) => {
     if (!patch.items) return patch;
     const budget = budgetTimeline(patch.items, active);
     for (const threadId of budget.overflow) rememberBoundedSet(overflowThreads, threadId, 2_048);
-    const historyLoaded = { ...state.historyLoaded, ...patch.historyLoaded };
-    for (const threadId of [...budget.evicted, ...budget.overflow]) delete historyLoaded[threadId];
+    // Store dictionaries are replacements, including explicit empty resets.
+    // Metadata must disappear with removed/evicted timelines, not outlive them
+    // and cause openThread to mistake an absent history for a complete cache.
+    const history = retainedHistoryMetadata(budget.items,
+      patch.historyLoaded ?? state.historyLoaded, patch.historyCwd ?? state.historyCwd, budget.overflow);
     releaseDroppedTimelinePreviews(state.items, budget.items);
     // A newly created optimistic item can itself be rejected by the budget and
     // therefore never appear in `state.items`; release that candidate too.
     releaseDroppedTimelinePreviews(patch.items, budget.items);
-    return { ...patch, items: budget.items, historyLoaded };
+    return { ...patch, items: budget.items, ...history };
   });
   let sessionsRefreshTimer: number | null = null;
   let bootstrapped = false;
@@ -1015,19 +1055,25 @@ export const useStore = create<AppStore>((rawSet, get) => {
     sessionFreshPrefixIds.clear();
   }
 
-  async function activateCreatedThread(threadId: string, cwd: string): Promise<boolean> {
+  async function activateCreatedThread(threadId: string, cwd: string, freshlyCreated = false): Promise<boolean> {
     if (cwd !== get().currentProject ||
         !get().projects.some((project) => project.path === cwd && project.available !== false)) return false;
     if (sessionSearchTimer !== null) {
       clearTimeout(sessionSearchTimer);
       sessionSearchTimer = null;
     }
-    const local: SessionInfo = { threadId, title: "新对话", updatedAt: Math.floor(Date.now() / 1000) };
+    const local: SessionInfo = get().sessions.find((session) => session.threadId === threadId) ??
+      { threadId, title: "新对话", updatedAt: Math.floor(Date.now() / 1000) };
     rememberLocalSession(threadId, { session: local, cwd });
     sessionRequestSeq += 1;
     set((state) => ({
-      items: { ...state.items, [threadId]: [] },
-      historyLoaded: { ...state.historyLoaded, [threadId]: true },
+      // Only an immediately created, unseen thread is known to be empty. An
+      // admission receipt may identify a thread that has since acquired turns.
+      ...(freshlyCreated && !Object.hasOwn(state.items, threadId) ? {
+        items: { ...state.items, [threadId]: [] },
+        historyLoaded: { ...state.historyLoaded, [threadId]: true },
+        historyCwd: { ...state.historyCwd, [threadId]: cwd },
+      } : {}),
       sessions: [local, ...(!state.sessionArchived && !state.sessionSearch
         ? state.sessions.filter((session) => session.threadId !== threadId) : [])],
       sessionArchived: false,
@@ -1037,7 +1083,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
     }));
     await get().openThread(threadId);
     void get().refreshSessions().catch(() => {});
-    return true;
+    return get().activeThreadId === threadId && get().currentProject === cwd && !!get().historyLoaded[threadId];
   }
 
   type AttachmentReadResult = { base64: string; mime: string };
@@ -1265,7 +1311,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
         sessions: s.sessions.filter((entry) => entry.threadId !== threadId),
         activeThreadId: s.activeThreadId === threadId ? null : s.activeThreadId,
         items: drop(s.items), historyLoaded: drop(s.historyLoaded), historyLoading: drop(s.historyLoading),
-        turnActive: drop(s.turnActive), activeTurnId: drop(s.activeTurnId),
+        turnActive: drop(s.turnActive), activeTurnId: drop(s.activeTurnId), interruptPending: drop(s.interruptPending),
         compacting: drop(s.compacting), plan: drop(s.plan), turnDiff: drop(s.turnDiff), tokenUsage: drop(s.tokenUsage),
         // Pending approvals are gateway-owned requests. Even deletion/archive
         // is not proof that the callback was resolved; the ordered
@@ -1300,12 +1346,17 @@ export const useStore = create<AppStore>((rawSet, get) => {
     pendingDeviceLoginAttempt = null;
     earlyDeviceLoginCompletions.clear();
     invalidateAsyncWork();
+    // A restart/reconnect may replace an endpoint without changing its mode
+    // (custom -> custom). Old catalogs must not authorize model/effort
+    // overrides until a directory from this runtime has been validated.
+    modelsLoadedFor = null;
     activityVersions.clear();
     overflowThreads.clear();
     submittedInputs.clear();
     resetSessionWindow();
     set({
-      items: {}, historyLoaded: {}, historyLoading: {}, turnActive: {}, activeTurnId: {},
+      items: {}, historyLoaded: {}, historyLoading: {}, turnActive: {}, activeTurnId: {}, interruptPending: {},
+      models: [], modelLoad: loadingStatus(),
       compacting: {}, plan: {}, turnDiff: {}, tokenUsage: {}, approvals: [], approvalSubmissions: {}, approvalErrors: {}, inputRequests: [], inputRequestErrors: {}, deviceLogin: preservedLogin,
     });
   }
@@ -1616,13 +1667,11 @@ export const useStore = create<AppStore>((rawSet, get) => {
       }
       const budget = budgetTimeline(nextItems, s.activeThreadId);
       for (const threadId of budget.overflow) rememberBoundedSet(overflowThreads, threadId, 2_048);
-      const historyLoaded = { ...s.historyLoaded };
       const dropped = new Set([...budget.evicted, ...budget.overflow]);
       for (const threadId of dropped) {
-        delete historyLoaded[threadId];
         releaseTimelinePreviews(nextItems[threadId] ?? s.items[threadId]);
       }
-      return { items: budget.items, historyLoaded };
+      return { items: budget.items, ...retainedHistoryMetadata(budget.items, s.historyLoaded, s.historyCwd, budget.overflow) };
     });
   }
 
@@ -2158,9 +2207,11 @@ export const useStore = create<AppStore>((rawSet, get) => {
     activeThreadId: null,
     items: {},
     historyLoaded: {},
+    historyCwd: {},
     historyLoading: {},
     turnActive: {},
     activeTurnId: {},
+    interruptPending: {},
     turnDiff: {},
     tokenUsage: {},
     compacting: {},
@@ -2237,6 +2288,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
           return;
         }
         historyNavigationTarget = undefined;
+        projectSelectionSeq += 1;
         newThreadRequestSeq += 1;
         const previous = get().activeThreadId;
         if (previous) {
@@ -2778,8 +2830,15 @@ export const useStore = create<AppStore>((rawSet, get) => {
     async addProject(path, create) {
       const target = path.trim().slice(0, 4096);
       if (!target) throw new Error("项目路径不能为空");
-      await gateway.rpc("projects/add", { path: target, create: create === true });
+      const result = await gateway.rpc<{ project?: { path?: unknown } }>("projects/add", { path: target, create: create === true });
+      const registeredPath = result?.project?.path;
+      if (typeof registeredPath !== "string" || registeredPath.length > 4_096 || !registeredPath.trim() || registeredPath.includes("\0")) {
+        throw new Error("项目注册响应缺少有效路径，未自动切换；请刷新项目列表确认结果");
+      }
       await get().refreshProjects();
+      // The registry owns identity: normalization and an existing realpath
+      // alias may both make its path differ from the submitted spelling.
+      return registeredPath;
     },
 
     async removeProject(path) {
@@ -3028,11 +3087,19 @@ export const useStore = create<AppStore>((rawSet, get) => {
       try {
         const operation = get().threadCreateOperation;
         if (!operation || operation.state !== "unknown") return operation;
+        const runtime = runtimeVersion;
+        const generation = gateway.generation;
+        const navigation = openThreadRequestSeq;
+        const projectSelection = projectSelectionSeq;
+        // Object identity also detects a same-ID acknowledgement or cross-tab
+        // state replacement while this immutable receipt lookup is in flight.
+        const isCurrent = () => get().threadCreateOperation === operation &&
+          runtime === runtimeVersion && generation === gateway.generation;
         try {
         const result = await gateway.request("thread/start/operation", {
           clientOperationId: operation.clientOperationId,
         });
-        if (get().threadCreateOperation?.clientOperationId !== operation.clientOperationId) {
+        if (!isCurrent()) {
           return get().threadCreateOperation;
         }
         if (!result || typeof result !== "object" ||
@@ -3044,10 +3111,16 @@ export const useStore = create<AppStore>((rawSet, get) => {
           const cwd = boundedString(result.cwd, 4096);
           if (!threadId || cwd !== operation.cwd) throw new Error("会话创建收据身份或项目不匹配");
           const accepted: ThreadCreateOperation = { ...operation, state: "accepted", threadId };
-          set({ threadCreateOperation: accepted });
-          const activated = cwd === get().currentProject && await activateCreatedThread(threadId, cwd);
-          try { saveThreadCreateOperation(activated ? null : accepted); }
+          try { saveThreadCreateOperation(accepted); }
           catch { /* the accepted state remains visible for this browser lifetime */ }
+          set({ threadCreateOperation: accepted });
+          const activated = navigation === openThreadRequestSeq && projectSelection === projectSelectionSeq &&
+            cwd === get().currentProject && await activateCreatedThread(threadId, cwd);
+          // Loading recovered history can itself overlap a newer creation or
+          // navigation. Never clear that newer operation's durable receipt.
+          if (activated && get().threadCreateOperation === accepted && runtime === runtimeVersion && generation === gateway.generation) {
+            try { saveThreadCreateOperation(null); } catch { /* stale acceptance can be recovered after reload */ }
+          }
           return accepted;
         }
         if (result.state === "not_received" || result.state === "rejected") {
@@ -3069,7 +3142,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
         set({ threadCreateOperation: next });
         return next;
         } catch (error) {
-          if (get().threadCreateOperation?.clientOperationId !== operation.clientOperationId) return get().threadCreateOperation;
+          if (!isCurrent()) return get().threadCreateOperation;
           const next: ThreadCreateOperation = {
             ...operation,
             error: loadFailure("会话创建状态核对失败", error).error ?? "会话创建状态核对失败",
@@ -3118,6 +3191,10 @@ export const useStore = create<AppStore>((rawSet, get) => {
       const fromHistory = historyNavigationTarget === threadId;
       if (fromHistory) historyNavigationTarget = undefined;
       overflowThreads.delete(threadId);
+      // A click is a newer navigation intent even when the thread is cached
+      // in the current project. Invalidate pending project touches now, not
+      // when a later history response discovers a different cwd.
+      projectSelectionSeq += 1;
       newThreadRequestSeq += 1;
       const requestSeq = ++openThreadRequestSeq;
       const generation = gateway.generation;
@@ -3133,7 +3210,26 @@ export const useStore = create<AppStore>((rawSet, get) => {
       }
       set({ activeThreadId: threadId, sidebarOpen: false });
       if (!fromHistory) syncUrl(threadId, "push");
-      if (get().historyLoaded[threadId]) return;
+      const cachedCwd = get().historyCwd[threadId];
+      if (get().historyLoaded[threadId] && get().items[threadId] && cachedCwd) {
+        if (!get().projects.some((project) => project.path === cachedCwd && project.available !== false)) {
+          set((state) => ({
+            activeThreadId: null,
+            historyLoaded: { ...state.historyLoaded, [threadId]: false },
+            sessionLoad: { state: "error", error: `会话所属项目当前不可用：${boundedString(cachedCwd, 512)}。未切换项目。` },
+          }));
+          syncUrl(null);
+          return;
+        }
+        if (cachedCwd !== get().currentProject) {
+          sessionRequestSeq += 1;
+          resetSessionWindow();
+          set({ currentProject: cachedCwd, sessions: [], sessionCursor: null, sessionLoad: loadingStatus() });
+          try { localStorage.setItem(PROJECT_KEY, cachedCwd); } catch { /* storage unavailable */ }
+          await get().refreshSessions();
+        }
+        return;
+      }
       const previousOwner = historyLoadOwners.get(threadId);
       if (previousOwner) releaseHistoryLoad(threadId, previousOwner);
       else {
@@ -3146,7 +3242,10 @@ export const useStore = create<AppStore>((rawSet, get) => {
       const loadOwner = Symbol(`history:${requestSeq}`);
       historyLoadOwners.set(threadId, loadOwner);
       historyStarts.set(threadId, new Set());
-      set((s) => ({ historyLoading: { ...s.historyLoading, [threadId]: true } }));
+      set((s) => ({
+        historyLoaded: { ...s.historyLoaded, [threadId]: false },
+        historyLoading: { ...s.historyLoading, [threadId]: true },
+      }));
       let preservePaused = false;
       let terminalConsistencyRereads = 0;
       let terminalObservedDuringLoad = false;
@@ -3218,13 +3317,13 @@ export const useStore = create<AppStore>((rawSet, get) => {
               const unchanged = !terminalObservedDuringLoad && activityVersion === (activityVersions.get(threadId) ?? 0);
               if (projectChanged) {
                 sessionRequestSeq += 1;
-                projectSelectionSeq += 1;
                 newThreadRequestSeq += 1;
                 resetSessionWindow();
               }
               set((s) => ({
                 items: { ...s.items, [threadId]: mergeHistory(items, (s.items[threadId] ?? []).filter((item) => item.type !== "errorItem" || !item.historyLoadError), historyStarts.get(threadId) ?? new Set()) },
                 historyLoaded: { ...s.historyLoaded, [threadId]: !activationError && !terminalRaceUnresolved },
+                historyCwd: { ...s.historyCwd, [threadId]: projection.cwd },
                 historyLoading: { ...s.historyLoading, [threadId]: false },
                 ...(unchanged ? {
                   turnActive: { ...s.turnActive, [threadId]: projection.statusType === "active" || !!projection.runningTurnId },
@@ -3283,6 +3382,8 @@ export const useStore = create<AppStore>((rawSet, get) => {
         const operation: ThreadCreateOperation = { clientOperationId, cwd: currentProject, state: "unknown" };
         try { saveThreadCreateOperation(operation); }
         catch { throw new Error("浏览器无法保存会话创建标识，会话未创建；请允许本站本地存储后重试"); }
+        const projectSelection = ++projectSelectionSeq;
+        openThreadRequestSeq += 1;
         set({ threadCreateOperation: operation });
         const params: Pick<ThreadStartParams, "cwd" | "model" | "approvalPolicy"> & { clientOperationId: string } = {
           cwd: currentProject,
@@ -3299,6 +3400,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
         try {
           res = await gateway.request("thread/start", params);
         } catch (error: any) {
+          if (get().threadCreateOperation !== operation) throw error;
           const definitive = error?.delivery === "not_sent" || error?.delivery === "rejected";
           const failed: ThreadCreateOperation = {
             ...operation,
@@ -3313,6 +3415,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
           set({ threadCreateOperation: failed });
           throw new Error(failed.error);
         }
+        if (get().threadCreateOperation !== operation) return null;
         const threadId = boundedString(res?.thread?.id, 256);
         if (!threadId || res?.clientOperationId !== clientOperationId) {
           const unknown: ThreadCreateOperation = {
@@ -3326,6 +3429,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
         set({ threadCreateOperation: accepted });
         if (
           requestSeq !== newThreadRequestSeq || generation !== gateway.generation ||
+          projectSelection !== projectSelectionSeq ||
           currentProject !== get().currentProject
         ) {
           // Acceptance is known, but navigation moved. Never redirect or send
@@ -3337,7 +3441,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
         let storageCleared = true;
         try { saveThreadCreateOperation(null); } catch { storageCleared = false; }
         void gateway.rpc("projects/touch", { path: currentProject }).catch(() => {});
-        await activateCreatedThread(threadId, currentProject);
+        await activateCreatedThread(threadId, currentProject, true);
         if (storageCleared && get().threadCreateOperation?.clientOperationId === clientOperationId) {
           set({ threadCreateOperation: null });
         }
@@ -3518,8 +3622,10 @@ export const useStore = create<AppStore>((rawSet, get) => {
     async interruptTurn() {
       const runtime = runtimeVersion;
       const threadId = get().activeThreadId;
-      if (!threadId) return;
-      const activityVersion = activityVersions.get(threadId) ?? 0;
+      if (!threadId || !get().turnActive[threadId] || get().interruptPending[threadId]) return;
+      const turnId = get().activeTurnId[threadId] ?? undefined;
+      const pending = { turnId };
+      set((s) => ({ interruptPending: { ...s.interruptPending, [threadId]: pending } }));
       // A pending approval blocks the turn server-side — decline it first or
       // the turn survives the interrupt request.
       for (const a of get().approvals) {
@@ -3530,19 +3636,26 @@ export const useStore = create<AppStore>((rawSet, get) => {
       }
       // activeTurnId may be unknown (refresh mid-turn / missed turn/started);
       // the gateway falls back to its own tracked id — send regardless.
-      const turnId = get().activeTurnId[threadId] ?? undefined;
-      // Optimistic: the button must flip back immediately; turn/completed
-      // confirms, and a missed terminal notification can no longer wedge it.
-      set((s) => ({
-        turnActive: { ...s.turnActive, [threadId]: false },
-        activeTurnId: { ...s.activeTurnId, [threadId]: null },
-      }));
-      await gateway.rpc("turn/interrupt", { threadId, turnId }).catch((err: any) => {
-        if (runtime !== runtimeVersion || activityVersion !== (activityVersions.get(threadId) ?? 0)) return;
-        appendToThread(threadId, makeErrorItem(`停止失败: ${err.message}`));
-        // Turn might actually still be running — restore the button state.
-        set((s) => ({ turnActive: { ...s.turnActive, [threadId]: true } }));
-      });
+      try {
+        await gateway.rpc("turn/interrupt", { threadId, turnId });
+        // Keep the running flag and precise turn ID even after the ACK. Only
+        // a terminal notification or an authoritative history/status snapshot
+        // proves the task ended; neither an ACK nor a timeout proves that.
+      } catch (error) {
+        if (runtime !== runtimeVersion || get().interruptPending[threadId] !== pending) return;
+        const delivery = error && typeof error === "object" ? (error as { delivery?: unknown }).delivery : undefined;
+        const message = delivery === "not_sent" || delivery === "rejected"
+          ? "停止请求失败；任务仍按运行中处理" : "停止结果待确认；任务仍按运行中处理";
+        appendToThread(threadId, makeErrorItem(loadFailure(message, error).error!));
+      } finally {
+        if (runtime === runtimeVersion && get().interruptPending[threadId] === pending) {
+          set((s) => {
+            const interruptPending = { ...s.interruptPending };
+            delete interruptPending[threadId];
+            return { interruptPending };
+          });
+        }
+      }
     },
 
     async renameThread(threadId, name) {

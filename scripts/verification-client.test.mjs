@@ -10,7 +10,7 @@ import { WebSocketServer } from "ws";
 // Import with a synthetic credential so ws-token never reads a real Codex home.
 const oldToken = process.env.GATEWAY_TOKEN;
 process.env.GATEWAY_TOKEN = "verification-test-only-000000000000";
-const { VerificationClient, completedTurn, completedCompaction, finalAnswer, terminalMarkerPredicate, cleanupThread, cleanupTerminal, requirePaidVerification } = await import("../deploy/verification-client.mjs");
+const { VerificationClient, startVerificationThread, hasPendingVerificationThread, inheritVerificationThreads, verificationMcpApprovalRequired, completedTurn, completedCompaction, finalAnswer, terminalMarkerPredicate, cleanupThread, cleanupTerminal, requirePaidVerification } = await import("../deploy/verification-client.mjs");
 if (oldToken === undefined) delete process.env.GATEWAY_TOKEN;
 else process.env.GATEWAY_TOKEN = oldToken;
 
@@ -35,7 +35,7 @@ async function fixture(t, onMessage = () => {}) {
     connections.push({ socket, request });
     socket.on("message", data => {
       const message = JSON.parse(data.toString());
-      if (message.method === "turn/start") assert.match(message.params?.clientOperationId ?? "", /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, "public turn/start requires a stable operation ID");
+      if (["turn/start", "thread/start"].includes(message.method)) assert.match(message.params?.clientOperationId ?? "", /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, "public creation requires a stable operation ID");
       messages.push(message);
       onMessage(socket, message);
     });
@@ -60,6 +60,42 @@ async function fixture(t, onMessage = () => {}) {
 function result(socket, message, value, error) {
   socket.send(JSON.stringify({ kind: "rpcResult", id: message.id, result: value, ...(error ? { error } : {}) }));
 }
+
+test("lost creation acknowledgement reconnects only to reconcile and clean the accepted thread", async t => {
+  let operationId;
+  const f = await fixture(t, (socket, message) => {
+    if (message.method === "thread/start") {
+      operationId = message.params.clientOperationId;
+      socket.close();
+    } else if (message.method === "thread/start/operation") {
+      assert.equal(message.params.clientOperationId, operationId);
+      result(socket, message, { state: "accepted", threadId: "owned-thread" });
+    } else {
+      assert.ok(["turn/interrupt", "thread/delete"].includes(message.method));
+      assert.equal(message.params.threadId, "owned-thread");
+      result(socket, message, {});
+    }
+  });
+  const client = await f.client({ headers: { Authorization: "Bearer synthetic-fixture" } });
+  await assert.rejects(startVerificationThread(client), /closed/);
+  assert.equal(hasPendingVerificationThread(client), true);
+  await cleanupThread(client, undefined);
+  assert.equal(hasPendingVerificationThread(client), false);
+  assert.equal(f.connections.length, 2);
+  assert.equal(f.connections[1].request.headers.authorization, "Bearer synthetic-fixture");
+  assert.deepEqual(f.messages.map(message => message.method), ["thread/start", "thread/start/operation", "turn/interrupt", "thread/delete"]);
+});
+
+test("wire-level definitive creation rejection does not trigger an uncertain cleanup", async t => {
+  const f = await fixture(t, (socket, message) => socket.send(JSON.stringify({
+    kind: "rpcResult", id: message.id, error: "fixture rejection", delivery: "rejected", errorCode: "OPERATION_REJECTED",
+  })));
+  const client = await f.client();
+  await assert.rejects(startVerificationThread(client), { delivery: "rejected" });
+  await cleanupThread(client, undefined);
+  assert.equal(f.messages.length, 1);
+  assert.equal(hasPendingVerificationThread(client), false);
+});
 
 test("RPC timeout removes its waiter, ignores late results, and permits a subsequent RPC", { timeout: 5000 }, async t => {
   const f = await fixture(t, (socket, message) => {
@@ -170,8 +206,12 @@ test("notification waiting returns a matching frame and rejects a missing frame 
 });
 
 test("interactive requests use protocol-specific refusals, never affirmative permissions", { timeout: 5000 }, async t => {
-  const f = await fixture(t);
+  const f = await fixture(t, (socket, message) => {
+    if (message.method === "thread/start") result(socket, message, { thread: { id: "owned-thread" } });
+  });
   const client = await f.client();
+  await startVerificationThread(client);
+  f.messages.length = 0;
   const reason = "Unattended verification declines interactive requests";
   const cases = [
     ["item/commandExecution/requestApproval", { decision: "decline" }],
@@ -185,11 +225,52 @@ test("interactive requests use protocol-specific refusals, never affirmative per
   ];
   for (const [index, [method, payload, error]] of cases.entries()) {
     const requestId = index % 2 ? index : `request-${index}`;
-    f.connections[0].socket.send(JSON.stringify({ kind: "serverRequest", requestId, method, params: { permissions: { network: { enabled: true } } } }));
+    f.connections[0].socket.send(JSON.stringify({ kind: "serverRequest", requestId, method, params: { threadId: "owned-thread", permissions: { network: { enabled: true } } } }));
     await eventually(() => f.messages.length === index + 1);
     assert.deepEqual(f.messages[index], { kind: "serverRequestResponse", requestId, payload, ...(error ? { error } : {}) });
   }
   assert.equal(client.closed, false);
+});
+
+test("verification never answers another thread's broadcast approvals or unowned MCP metadata", { timeout: 5000 }, async t => {
+  const f = await fixture(t, (socket, message) => {
+    if (message.method === "thread/start") result(socket, message, { thread: { id: "owned-thread" } });
+    else if (message.method === "echo") result(socket, message, {});
+  });
+  const client = await f.client();
+  await startVerificationThread(client);
+  const prompt = { kind: "serverRequest", method: "mcpServer/elicitation/request", requestId: "external", params: {
+    threadId: "external-thread", serverName: "web-reader", mode: "form", requestedSchema: { type: "object", properties: {} },
+    _meta: { codex_approval_kind: "mcp_tool_call" },
+  } };
+  for (const threadId of ["external-thread", undefined]) {
+    f.connections[0].socket.send(JSON.stringify({ ...prompt, params: { ...prompt.params, threadId } }));
+  }
+  // An RPC roundtrip proves prior inbound frames were processed without
+  // requiring a sleep to infer that no response was sent.
+  await client.rpc("echo");
+  assert.equal(f.messages.some(message => message.kind === "serverRequestResponse"), false);
+  assert.equal(verificationMcpApprovalRequired(client, "external-thread"), false);
+  const reconnected = await f.client();
+  inheritVerificationThreads(reconnected, client);
+  f.connections[1].socket.send(JSON.stringify({ ...prompt, requestId: "owned", params: { ...prompt.params, threadId: "owned-thread" } }));
+  await eventually(() => f.messages.some(message => message.requestId === "owned"));
+  assert.deepEqual(f.messages.find(message => message.requestId === "owned")?.payload, { action: "decline", content: null, _meta: null });
+  assert.equal(verificationMcpApprovalRequired(reconnected, "owned-thread"), true);
+});
+
+test("creation acknowledgement establishes prompt ownership before a following socket frame", { timeout: 5000 }, async t => {
+  const f = await fixture(t, (socket, message) => {
+    if (message.method !== "thread/start") return;
+    result(socket, message, { thread: { id: "new-thread" } });
+    socket.send(JSON.stringify({ kind: "serverRequest", requestId: "immediate-prompt", method: "mcpServer/elicitation/request",
+      params: { threadId: "new-thread", serverName: "web-reader", mode: "url", url: "https://example.test/interactive" } }));
+  });
+  const client = await f.client();
+  await startVerificationThread(client);
+  await eventually(() => f.messages.some(message => message.requestId === "immediate-prompt"));
+  assert.deepEqual(f.messages.find(message => message.requestId === "immediate-prompt")?.payload, { action: "decline", content: null, _meta: null });
+  assert.equal(verificationMcpApprovalRequired(client, "new-thread"), true);
 });
 
 test("paid opt-in accepts only exact 1 and completedTurn enforces it before sending", { timeout: 5000 }, async t => {

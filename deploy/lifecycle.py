@@ -94,6 +94,18 @@ def registered_projects(home):
     return result
 
 
+def masked_unit(path):
+    """Recognize only systemd's stable root-owned, direct /dev/null mask."""
+    before = file_identity(path)
+    if before is None:
+        raise FileNotFoundError(path)
+    if (not stat.S_ISLNK(before[2]) or before[3] != 0 or before[5] != 1):
+        return False
+    target = os.readlink(path)
+    require_identity(path, before)
+    return target == "/dev/null"
+
+
 def guard_uninstall(tree, home, env, workspace, instance, unit_directory="/etc/systemd/system", control_home=None):
     preserved = {"CODEX_HOME": home, "ENV_FILE": env, "CODEX_WORKSPACE": workspace}
     if control_home:
@@ -105,6 +117,8 @@ def guard_uninstall(tree, home, env, workspace, instance, unit_directory="/etc/s
     # empty glob. Read all gateway units, including custom SERVICE_NAME values.
     for entry in directory.iterdir():
         if not entry.name.endswith(".service") or entry.name == instance + ".service":
+            continue
+        if masked_unit(entry):
             continue
         try:
             # Unit aliases can legitimately be root-owned symlinks.  Pin the
@@ -262,12 +276,7 @@ def auth_origin(value):
     return parsed.hostname.lower(), parsed.port or 443
 
 
-def sync_cookies(text, hosts, owned, verified_urls=()):
-    """Edit only the cookie list in a project-owned generated YAML config.
-
-    External config is never rewritten. Its simple scalar cookie domains are
-    checked; YAML aliases/complex unsupported forms require manual integration.
-    """
+def _cookie_layout(text):
     lines = text.splitlines(keepends=True)
     starts = [i for i, line in enumerate(lines) if re.match(r"^session:\s*(?:#.*)?$", line.rstrip())]
     if len(starts) != 1:
@@ -278,12 +287,6 @@ def sync_cookies(text, hosts, owned, verified_urls=()):
     if cookie is None:
         raise ValueError("session.cookies must be configured before this edge can be activated")
     cookie_end = next((i for i in range(cookie + 1, end) if lines[i].strip() and not lines[i].lstrip().startswith("#") and len(lines[i]) - len(lines[i].lstrip()) <= 2), end)
-    # A canonical login portal may serve several sites. Retain it if its
-    # origin is still routed to this Authelia, or the operator has verified an
-    # external canonical portal. Domain coverage alone says nothing about its
-    # port still being served after a migration.
-    routes = {auth_origin("https://" + host + "/authelia/") for host in hosts if host}
-    verified = {auth_origin(value) for value in verified_urls}
     entries = []
     for i in range(cookie + 1, cookie_end):
         match = re.match(r"^    - domain:\s*['\"]?([A-Za-z0-9.-]+)['\"]?\s*(?:#.*)?$", lines[i].rstrip())
@@ -293,6 +296,56 @@ def sync_cookies(text, hosts, owned, verified_urls=()):
             raise ValueError("complex session.cookies requires manual Authelia integration")
     if not entries:
         raise ValueError("cannot verify simple Authelia session.cookies entries")
+    return lines, cookie_end, entries
+
+
+def _cookie_url(lines, entry_start, entry_end):
+    urls = [(i, re.match(r"^(      authelia_url:\s*)['\"]?(https://[^\s'\"]+)['\"]?(\s*(?:#.*)?)$", lines[i].rstrip()))
+            for i in range(entry_start + 1, entry_end) if re.match(r"^      authelia_url:", lines[i])]
+    if len(urls) != 1 or urls[0][1] is None:
+        raise ValueError("cannot verify Authelia canonical URL; configure a scalar authelia_url")
+    line_index, match = urls[0]
+    return line_index, match, auth_origin(match.group(2))
+
+
+def guard_edge_removal(text, authentication, instance, port, auth):
+    """Refuse removal of a portal still used by a retained shared cookie."""
+    remaining = edit_edge(text, instance, port)
+    old_hosts = edge_hosts(text, auth=auth)
+    hosts = edge_hosts(remaining, auth=auth)
+    origins = lambda values: {auth_origin("https://" + host + "/authelia/") for host in values}
+    removed = origins(old_hosts) - origins(hosts)
+    # Unmarked routes and imports may have consumers outside our inventory.
+    # Preserve their known canonical portal rather than guessing their domains.
+    unmarked = "".join(body for marker, body in blocks(remaining) if marker is None)
+    unknown_consumers = bool(re.search(r"^\s*import\s", remaining, re.M)
+                             or re.search(r"^\s*forward_auth\s+" + re.escape(auth) + r"\s*\{", unmarked, re.M))
+    if not removed or (not hosts and not unknown_consumers):
+        return
+    lines, cookie_end, entries = _cookie_layout(authentication)
+    domains = [auth_origin("https://" + host + "/authelia/")[0] for host in hosts]
+    for index, (entry_start, domain) in enumerate(entries):
+        if not unknown_consumers and not any(host == domain or host.endswith("." + domain) for host in domains):
+            continue
+        entry_end = entries[index + 1][0] if index + 1 < len(entries) else cookie_end
+        _line_index, _match, origin = _cookie_url(lines, entry_start, entry_end)
+        if origin in removed:
+            raise ValueError("cannot remove a shared Authelia login portal; migrate session.cookies.authelia_url for the retained sites first")
+
+
+def sync_cookies(text, hosts, owned, verified_urls=()):
+    """Edit only the cookie list in a project-owned generated YAML config.
+
+    External config is never rewritten. Its simple scalar cookie domains are
+    checked; YAML aliases/complex unsupported forms require manual integration.
+    """
+    lines, cookie_end, entries = _cookie_layout(text)
+    # A canonical login portal may serve several sites. Retain it if its
+    # origin is still routed to this Authelia, or the operator has verified an
+    # external canonical portal. Domain coverage alone says nothing about its
+    # port still being served after a migration.
+    routes = {auth_origin("https://" + host + "/authelia/") for host in hosts if host}
+    verified = {auth_origin(value) for value in verified_urls}
     domains = [domain for _, domain in entries]
     for index, (entry_start, domain) in enumerate(entries):
         candidates = [host for host in hosts if auth_origin("https://" + host + "/authelia/")[0] == domain
@@ -300,12 +353,7 @@ def sync_cookies(text, hosts, owned, verified_urls=()):
         if not candidates:
             continue
         entry_end = entries[index + 1][0] if index + 1 < len(entries) else cookie_end
-        urls = [(i, re.match(r"^(      authelia_url:\s*)['\"]?(https://[^\s'\"]+)['\"]?(\s*(?:#.*)?)$", lines[i].rstrip()))
-                for i in range(entry_start + 1, entry_end) if re.match(r"^      authelia_url:", lines[i])]
-        if len(urls) != 1 or urls[0][1] is None:
-            raise ValueError("cannot verify Authelia canonical URL; configure a scalar authelia_url")
-        line_index, match = urls[0]
-        origin = auth_origin(match.group(2))
+        line_index, match, origin = _cookie_url(lines, entry_start, entry_end)
         if origin in routes or origin in verified:
             continue
         if not owned:
@@ -333,7 +381,7 @@ def sync_cookies(text, hosts, owned, verified_urls=()):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=["provider", "guard-delete", "guard-uninstall", "remove", "upsert", "hosts", "auth-hosts", "auth-in-use", "cookies"])
+    parser.add_argument("action", choices=["provider", "guard-delete", "guard-uninstall", "guard-edge-removal", "remove", "upsert", "hosts", "auth-hosts", "auth-in-use", "cookies"])
     parser.add_argument("args", nargs="+")
     action, args = vars(parser.parse_args()).values()
     if action == "provider":
@@ -349,6 +397,11 @@ def main():
     path = Path(args[0])
     expected = file_identity(path)
     text = read_text_bounded(path, MAX_EDGE_CONFIG_BYTES, missing_ok=True)
+    if action == "guard-edge-removal":
+        instance, port, auth, configuration = args[1:]
+        authentication = read_text_bounded(configuration, MAX_EDGE_CONFIG_BYTES, missing_ok=True)
+        guard_edge_removal(text, authentication, instance, port, auth)
+        return
     if action == "cookies":
         owned, *hosts = args[1:]
         canonical = os.environ.get("AUTHELIA_VERIFIED_CANONICAL_URL", "")

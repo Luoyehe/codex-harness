@@ -37,6 +37,12 @@ const MAX_DISCOVERED_UPLOADS = 100_000;
 const MAX_STORE_FILES = 4096;
 const MAX_STORE_BYTES = 4 * 1024 * 1024 * 1024;
 
+interface RolloutScanState {
+  deadline: number;
+  expired: boolean;
+  closeFailed: boolean;
+}
+
 /**
  * Browser-upload store for message attachments. Files land under
  * CODEX_HOME/webui-uploads so they persist next to the codex sessions that
@@ -59,6 +65,9 @@ export class AttachmentStore {
   private recovering = false;
   private scanTail: Promise<void> = Promise.resolve();
   private queuedScans = 0;
+  // A deadline releases the caller, not an uncancellable filesystem request.
+  // Retain this lease until the physical scan and all its closes have settled.
+  private scanIoInFlight = false;
   private inventoryKnown = true;
   private storedFiles = 0;
   private storedBytes = 0;
@@ -791,10 +800,47 @@ export class AttachmentStore {
     return result;
   }
 
-  private async findReferencedByOtherRollout(
+  private findReferencedByOtherRollout(
     needles: string[],
     excludeThreadId: string,
     sessionsDirs: string[],
+  ): Promise<{ referenced: Set<string>; complete: boolean }> {
+    const incomplete = () => ({ referenced: new Set<string>(), complete: false });
+    if (this.scanIoInFlight) return Promise.resolve(incomplete());
+    this.scanIoInFlight = true;
+    const state: RolloutScanState = {
+      deadline: performance.now() + AttachmentStore.MAX_SCAN_MS,
+      expired: false,
+      closeFailed: false,
+    };
+    return new Promise((resolve) => {
+      // Race the whole physical scan, including close(), against one absolute
+      // deadline. In particular, no finally block may hold the caller/queue
+      // hostage when the filesystem stops responding. The physical scan keeps
+      // ownership of its handles; after a late read/stat settles it closes them
+      // in order, and a late open/opendir is closed before doing any more I/O.
+      const timer = setTimeout(() => {
+        state.expired = true;
+        resolve(incomplete());
+      }, Math.max(0, state.deadline - performance.now()));
+      const finish = (result: { referenced: Set<string>; complete: boolean }) => {
+        clearTimeout(timer);
+        // A failed close leaves resource ownership uncertain. Keep the lease
+        // in that case as well, so retries cannot leak more handles. A hung
+        // operation/close likewise retains this single lease until it settles.
+        this.scanIoInFlight = state.closeFailed;
+        resolve(state.expired || performance.now() >= state.deadline ? incomplete() : result);
+      };
+      void this.scanRollouts(needles, excludeThreadId, sessionsDirs, state)
+        .then(finish, () => finish(incomplete()));
+    });
+  }
+
+  private async scanRollouts(
+    needles: string[],
+    excludeThreadId: string,
+    sessionsDirs: string[],
+    state: RolloutScanState,
   ): Promise<{ referenced: Set<string>; complete: boolean }> {
     const found = new Set<string>();
     const uniqueNeedles = [...new Set(needles)];
@@ -821,7 +867,13 @@ export class AttachmentStore {
     // by an attacker-selected 128-pattern substring loop.
     if (legacy.size > AttachmentStore.MAX_LEGACY_SCAN_NEEDLES) return { referenced: found, complete: false };
     // A wall-clock adjustment must not extend a bounded cleanup scan.
-    const deadline = performance.now() + AttachmentStore.MAX_SCAN_MS;
+    const deadline = state.deadline;
+    const io = <T>(operation: () => Promise<T>): Promise<T> => {
+      if (state.expired || state.closeFailed || performance.now() >= deadline) {
+        throw new Error("Attachment rollout scan deadline exceeded or cleanup failed");
+      }
+      return operation();
+    };
     let filesLeft = AttachmentStore.MAX_SCAN_FILES;
     let entriesLeft = AttachmentStore.MAX_SCAN_ENTRIES;
     let bytesLeft = AttachmentStore.MAX_SCAN_BYTES;
@@ -829,14 +881,14 @@ export class AttachmentStore {
     const scanFile = async (full: string): Promise<void> => {
       let handle: Awaited<ReturnType<typeof open>> | undefined;
       try {
-        const st = await lstat(full);
+        const st = await io(() => lstat(full));
         if (!st.isFile() || st.isSymbolicLink() || st.nlink !== 1 || st.size > 64 * 1024 * 1024) {
           complete = false;
           return;
         }
         if (st.size > bytesLeft) { complete = false; return; }
-        handle = await open(full, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-        const opened = await handle.stat();
+        handle = await io(() => open(full, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK));
+        const opened = await io(() => handle!.stat());
         if (!opened.isFile() || opened.nlink !== 1 || opened.dev !== st.dev || opened.ino !== st.ino || opened.size !== st.size) {
           complete = false;
           return;
@@ -849,7 +901,7 @@ export class AttachmentStore {
         const header = Buffer.allocUnsafe(headerLength);
         let headerOffset = 0;
         while (headerOffset < headerLength) {
-          const { bytesRead } = await handle.read(header, headerOffset, headerLength - headerOffset, headerOffset);
+          const { bytesRead } = await io(() => handle!.read(header, headerOffset, headerLength - headerOffset, headerOffset));
           if (bytesRead === 0) break;
           headerOffset += bytesRead;
           if (performance.now() > deadline) { complete = false; return; }
@@ -857,7 +909,9 @@ export class AttachmentStore {
         }
         if (headerOffset !== headerLength) { complete = false; return; }
         let headerText: string;
-        try { headerText = new TextDecoder("utf-8", { fatal: true }).decode(header); }
+        // The byte cap may split a valid code point. Only a real EOF must
+        // flush the decoder; the full scan below validates the remaining bytes.
+        try { headerText = new TextDecoder("utf-8", { fatal: true }).decode(header, { stream: headerLength < opened.size }); }
         catch { complete = false; return; }
         if (excludeThreadId && AttachmentStore.rolloutBelongsToThread(headerText, excludeThreadId)) return;
 
@@ -875,7 +929,7 @@ export class AttachmentStore {
         while (position < opened.size && pending.size > 0) {
           if (performance.now() > deadline) { complete = false; return; }
           const length = Math.min(buffer.length, opened.size - position);
-          const { bytesRead } = await handle.read(buffer, 0, length, position);
+          const { bytesRead } = await io(() => handle!.read(buffer, 0, length, position));
           if (bytesRead === 0) { complete = false; return; }
           position += bytesRead;
           const final = position === opened.size;
@@ -903,7 +957,7 @@ export class AttachmentStore {
           overlap = haystack.slice(-overlapChars);
           await new Promise<void>((resolve) => setImmediate(resolve));
         }
-        const after = await handle.stat();
+        const after = await io(() => handle!.stat());
         if (after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size
             || after.mtimeMs !== opened.mtimeMs || after.ctimeMs !== opened.ctimeMs || after.nlink !== 1) {
           complete = false;
@@ -911,7 +965,8 @@ export class AttachmentStore {
       } catch {
         complete = false;
       } finally {
-        try { await handle?.close(); } catch { complete = false; }
+        try { await handle?.close(); }
+        catch { complete = false; state.closeFailed = true; }
         // Even cached filesystem reads must yield between files so interrupts,
         // heartbeats and terminal controls are not starved by text matching.
         await new Promise<void>((resolve) => setImmediate(resolve));
@@ -924,13 +979,13 @@ export class AttachmentStore {
         const current = directories.pop()!;
         let handle: Awaited<ReturnType<typeof opendir>> | undefined;
         try {
-          handle = await opendir(current.dir);
+          handle = await io(() => opendir(current.dir));
         } catch (err: any) {
           if (!(current.root && err?.code === "ENOENT")) complete = false;
           continue;
         }
         try {
-          for (let entry = await handle.read(); entry; entry = await handle.read()) {
+          for (let entry = await io(() => handle!.read()); entry; entry = await io(() => handle!.read())) {
             entriesLeft -= 1;
             if (entriesLeft < 0 || performance.now() > deadline) { complete = false; break; }
             const full = path.join(current.dir, entry.name);
@@ -943,7 +998,7 @@ export class AttachmentStore {
               // no-follow metadata lookup; unreadable/odd entries make the
               // traversal incomplete rather than being silently skipped.
               try {
-                const info = await lstat(full);
+                const info = await io(() => lstat(full));
                 entryKind = info.isSymbolicLink() ? "symlink"
                   : info.isDirectory() ? "directory"
                     : info.isFile() ? "file" : "other";
@@ -967,7 +1022,13 @@ export class AttachmentStore {
         } catch {
           complete = false;
         } finally {
-          try { await handle.close(); } catch { /* async iteration may already close it */ }
+          try { await handle.close(); }
+          catch (error: any) {
+            if (error?.code !== "ERR_DIR_CLOSED") {
+              complete = false;
+              state.closeFailed = true;
+            }
+          }
         }
         if (entriesLeft < 0 || performance.now() > deadline) break;
         if (pending.size > 0 && (bytesLeft <= 0 || filesLeft <= 0)) {

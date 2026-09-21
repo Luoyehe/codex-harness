@@ -40,6 +40,7 @@ const REGISTRY_CAP_BYTES = 16 * 1024 * 1024;
 const MAX_PROJECTS = 10_000;
 const MAX_PROJECT_PATH = 4096;
 const FILESYSTEM_CONCURRENCY = 8;
+const MAX_FILESYSTEM_WAITERS = 64;
 const FILESYSTEM_BUDGET_MS = 2_500;
 const SNAPSHOT_TTL_MS = 1_000;
 const MAX_ANCESTORS = 256;
@@ -51,6 +52,51 @@ class ProjectIoTimeout extends Error {
 function rawIdentity(target: string): string {
   const normalized = path.normalize(target);
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+type IoResult = { ok: true; value: unknown } | { ok: false; error: unknown };
+interface PendingIo { waiters: Set<(result: IoResult) => void> }
+
+// Shared by every registry instance and every inspection route. A caller's
+// timeout cannot cancel realpath/stat/mkdir in the OS; only physical settlement
+// releases this slot. Do not queue new paths behind disconnected mounts.
+const pendingFilesystemIo = new Map<string, PendingIo>();
+let filesystemWaiters = 0;
+
+function filesystemIo<T>(kind: "realpath" | "stat" | "mkdir", target: string, start: () => Promise<T>, deadline: number): Promise<T> {
+  const remaining = Math.ceil(deadline - performance.now());
+  if (remaining <= 0 || filesystemWaiters >= MAX_FILESYSTEM_WAITERS) return Promise.reject(new ProjectIoTimeout());
+  const key = `${kind}:${rawIdentity(path.resolve(target))}`;
+  let entry = pendingFilesystemIo.get(key);
+  const fresh = !entry;
+  if (!entry) {
+    if (pendingFilesystemIo.size >= FILESYSTEM_CONCURRENCY) return Promise.reject(new ProjectIoTimeout());
+    entry = { waiters: new Set() };
+    pendingFilesystemIo.set(key, entry);
+  }
+  const pending = entry;
+  return new Promise<T>((resolve, reject) => {
+    const finish = (result: IoResult) => {
+      if (!pending.waiters.delete(finish)) return;
+      filesystemWaiters -= 1;
+      clearTimeout(timer);
+      if (result.ok) resolve(result.value as T);
+      else reject(result.error);
+    };
+    const timer = setTimeout(() => finish({ ok: false, error: new ProjectIoTimeout() }), remaining);
+    timer.unref?.();
+    pending.waiters.add(finish);
+    filesystemWaiters += 1;
+    if (!fresh) return;
+    const settled = (result: IoResult) => {
+      if (pendingFilesystemIo.get(key) === pending) pendingFilesystemIo.delete(key);
+      for (const waiter of pending.waiters) waiter(result);
+    };
+    // Exactly one callback pair is retained on the underlying operation.
+    // Expired subscribers remove themselves even if that operation never ends.
+    try { void start().then((value) => settled({ ok: true, value }), (error) => settled({ ok: false, error })); }
+    catch (error) { settled({ ok: false, error }); }
+  });
 }
 
 function eventLoopTurn(): Promise<void> {
@@ -135,7 +181,7 @@ export class ProjectRegistry {
     const missing: string[] = [];
     for (let depth = 0; depth <= MAX_ANCESTORS; depth += 1) {
       try {
-        const resolved = await withinDeadline(() => realpath(ancestor), deadline);
+        const resolved = await filesystemIo("realpath", ancestor, () => realpath(ancestor), deadline);
         return path.join(resolved, ...missing.reverse());
       } catch (error: any) {
         if (error instanceof ProjectIoTimeout) throw error;
@@ -209,7 +255,7 @@ export class ProjectRegistry {
   private async inspect(projects: readonly ProjectEntry[], deadline: number): Promise<ProjectSnapshot> {
     const compacted = ProjectRegistry.compact(await ProjectRegistry.annotate(projects, deadline));
     const availability = await mapLimited(compacted.projects, async (entry) => {
-      try { return (await withinDeadline(() => stat(entry.path), deadline)).isDirectory(); }
+      try { return (await filesystemIo("stat", entry.path, () => stat(entry.path), deadline)).isDirectory(); }
       catch { return false; }
     });
     return {
@@ -333,7 +379,7 @@ export class ProjectRegistry {
       if (!candidate) return null;
       const current = await ProjectRegistry.identity(candidate, deadline);
       if (current !== wanted) return null;
-      const info = await withinDeadline(() => stat(candidate), deadline);
+      const info = await filesystemIo("stat", candidate, () => stat(candidate), deadline);
       if (!info.isDirectory()) return null;
       if (!await this.isPersistentBefore(candidate, deadline, current)) return null;
       return candidate;
@@ -360,14 +406,14 @@ export class ProjectRegistry {
       }
       let info;
       try {
-        info = await withinDeadline(() => stat(target), deadline);
+        info = await filesystemIo("stat", target, () => stat(target), deadline);
       } catch (error: any) {
         if (error?.code !== "ENOENT" || !create) {
           if (error?.code === "ENOENT") throw new Error(`目录不存在: ${target}`);
           throw error;
         }
-        await withinDeadline(() => mkdir(target, { recursive: true }), deadline);
-        info = await withinDeadline(() => stat(target), deadline);
+        await filesystemIo("mkdir", target, () => mkdir(target, { recursive: true }), deadline);
+        info = await filesystemIo("stat", target, () => stat(target), deadline);
       }
       if (!info.isDirectory()) throw new Error(`不是目录: ${target}`);
       const targetIdentity = await ProjectRegistry.identity(target, deadline);
@@ -393,7 +439,9 @@ export class ProjectRegistry {
 
   private normalize(input: string): string {
     const root = path.parse(input).root;
-    const trimmed = input.replace(/[\\/]+$/, "");
+    // Backslashes are filename characters on POSIX, not path separators.
+    // Retain them so add, touch, and remove always address the requested path.
+    const trimmed = input.replace(process.platform === "win32" ? /[\\/]+$/ : /\/+$/, "");
     return trimmed.length < root.length ? root : trimmed || input;
   }
 
@@ -407,7 +455,15 @@ export class ProjectRegistry {
         try { wanted = await ProjectRegistry.identity(norm, deadline); } catch { /* exact stale spelling remains removable */ }
       }
       const annotated = await ProjectRegistry.annotate(registry.projects, deadline);
-      if (annotated.some((entry) => entry.timedOut)) throw new Error("项目目录检查超时；注册表未修改，请稍后重试");
+      if (annotated.some((entry) => entry.timedOut)) {
+        // Removing a registration never removes files. Even a disconnected
+        // mount must remain removable by its exact stored spelling. Preserve
+        // every other entry verbatim when canonical identities are uncertain.
+        const retained = registry.projects.filter((entry) => entry.path !== norm && entry.path !== target);
+        if (retained.length === registry.projects.length) throw new Error("项目目录检查超时；注册表未修改，请稍后重试");
+        await this.saveCompacted(retained);
+        return;
+      }
       const retained = annotated.filter((entry) => {
         if (entry.project.path === norm || entry.project.path === target) return false;
         return wanted === null || entry.identity !== wanted;

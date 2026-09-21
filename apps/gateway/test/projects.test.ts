@@ -249,6 +249,60 @@ describe("ProjectRegistry filesystem identities", () => {
     expect(await registry.resolveRegistered(root)).toBeNull();
   });
 
+  it.each(process.platform === "win32" ? ["\\", "/", "\\/\\"] : ["/", "///"])("removes host trailing separators without changing project identity (%s)", async (suffix) => {
+    const { registry, extra } = fixture(false);
+    const project = path.join(extra, "trailing-separator");
+    mkdirSync(project);
+    expect((await registry.add(`${project}${suffix}`, false)).path).toBe(project);
+    expect(await registry.resolveRegistered(project)).toBe(project);
+    await registry.remove(`${project}${suffix}`);
+    expect(await registry.resolveRegistered(project)).toBeNull();
+    expect(existsSync(project)).toBe(true);
+  });
+
+  it.runIf(process.platform === "win32")("preserves Windows drive and UNC roots when trimming separators", () => {
+    const { registry } = fixture(false);
+    for (const root of ["C:\\", "C:/", "\\\\server\\share\\", "//server/share/", "\\\\?\\C:\\"]) {
+      // Pure spelling checks avoid requiring a real network share.
+      expect((registry as any).normalize(`${root}\\/`)).toBe(root);
+    }
+  });
+
+  it.runIf(process.platform !== "win32")("keeps a literal trailing backslash distinct through add, touch, reload, and remove", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(100);
+    const { registry, home, workspace, extra } = fixture(false);
+    const plain = path.join(extra, "literal-backslash");
+    const literal = `${plain}\\`;
+    mkdirSync(plain); mkdirSync(literal);
+    expect((await registry.add(plain, false)).path).toBe(plain);
+    expect((await registry.add(`${literal}///`, false)).path).toBe(literal);
+    expect(await registry.resolveRegistered(literal)).toBe(literal);
+    vi.mocked(Date.now).mockReturnValue(200);
+    await registry.touch(literal);
+    const reloaded = new ProjectRegistry(home, workspace);
+    const projects = await reloaded.list();
+    expect(projects.find((entry) => entry.path === literal)?.lastUsedAt).toBe(200);
+    expect(projects.find((entry) => entry.path === plain)?.lastUsedAt).toBe(100);
+    await reloaded.remove(literal);
+    expect(await reloaded.resolveRegistered(literal)).toBeNull();
+    expect(await reloaded.resolveRegistered(plain)).toBe(plain);
+    expect(existsSync(literal)).toBe(true);
+    expect(existsSync(plain)).toBe(true);
+  });
+
+  it.runIf(process.platform !== "win32")("creates the requested POSIX backslash name, not its unescaped sibling", async () => {
+    const { registry, extra } = fixture(false);
+    const plain = path.join(extra, "new-literal-backslash");
+    const literal = `${plain}\\`;
+    expect((await registry.add(literal, true)).path).toBe(literal);
+    expect(existsSync(literal)).toBe(true);
+    expect(existsSync(plain)).toBe(false);
+    expect(await registry.resolveRegistered(literal)).toBe(literal);
+    await registry.remove(`${literal}/`);
+    expect(await registry.resolveRegistered(literal)).toBeNull();
+    expect(existsSync(literal)).toBe(true);
+  });
+
   it("treats configured persistent roots as additions to workspace and codex home", async () => {
     const { registry, workspace, home, extra, outside } = fixture(true);
     for (const root of [workspace, home, extra]) expect(await registry.isPersistent(path.join(root, "new"))).toBe(true);

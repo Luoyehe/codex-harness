@@ -5,6 +5,25 @@
 set -euo pipefail
 umask 022
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# The updater stages this trusted entry point before stopping its service.
+# Resolve/import its sibling dependencies without touching accounts, locks or
+# system files, so an incomplete staging bundle fails before publication.
+if [ "${1:-}" = --check-dependencies ]; then
+  [ "$#" = 1 ] || { echo 'unexpected dependency-check arguments' >&2; exit 1; }
+  bash -n "$SCRIPT_DIR/register-service.sh"
+  python3 -I - "$SCRIPT_DIR" <<'PY'
+import importlib, pathlib, sys
+sys.dont_write_bytecode = True
+directory = pathlib.Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(directory))
+for name in ("trusted_paths", "runtime_paths", "service_registration", "update_candidate"):
+    module = importlib.import_module(name)
+    if pathlib.Path(module.__file__).resolve() != directory / (name + ".py"):
+        raise SystemExit("registration dependency did not load from the staged bundle")
+PY
+  exit 0
+fi
+[ "$#" = 0 ] || { echo 'unexpected registration arguments' >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || { echo 'service registration requires root' >&2; exit 1; }
 for name in SERVICE_NAME RUN_USER INSTALL_DIR CODEX_HOME CODEX_WORKSPACE ENV_FILE CODEX_BIN; do
   [ -n "${!name:-}" ] || { echo "missing $name" >&2; exit 1; }
@@ -21,6 +40,7 @@ fi
 REGISTRATION_HELPER="$SCRIPT_DIR/service_registration.py"
 [ -f "$REGISTRATION_HELPER" ] || { echo 'missing service registration transaction helper' >&2; exit 1; }
 command -v flock >/dev/null 2>&1 || { echo 'flock is required for service registration' >&2; exit 1; }
+command -v timeout >/dev/null 2>&1 || { echo 'timeout is required for bounded service registration' >&2; exit 1; }
 REGISTRATION_LOCK="$(python3 -I "$REGISTRATION_HELPER" prepare-lock)"
 exec {REGISTRATION_LOCK_FD}<>"$REGISTRATION_LOCK"
 flock -x "$REGISTRATION_LOCK_FD"
@@ -89,14 +109,37 @@ PY
 # Carry only validated non-secret ingress settings across the identity
 # migration. Never reuse a token the worker could already have read.  The
 # candidate is published only if gateway.env was absent in the locked snapshot.
-ingress="$(runuser -u "$RUN_USER" -- python3 -I - "$ENV_FILE" <<'PY'
-import json, re, shlex, sys
+INGRESS_TMP="$(mktemp /tmp/codex-harness-ingress.XXXXXX)"
+if (
+# A timed-out filesystem syscall may outlive its reader. Do not let any child
+# keep the global registration flock alive after this command has failed.
+exec {REGISTRATION_LOCK_FD}>&-
+# Do not use command substitution here: an unkillable/late reader can retain
+# its stdout pipe after timeout exits and keep the parent waiting for EOF.
+timeout --kill-after=2s 5s runuser -u "$RUN_USER" -- python3 -I - "$ENV_FILE" > "$INGRESS_TMP" <<'PY'
+import json, os, re, shlex, stat, sys
 fields = {}
 try:
-    with open(sys.argv[1], encoding="utf-8") as stream: text = stream.read(1024 * 1024 + 1)
+    # The normal managed ENV_FILE is a symlink. Follow it as the worker, but pin
+    # and validate the final regular file before reading; O_NONBLOCK rejects a
+    # FIFO without waiting for its writer. The outer timeout also bounds NFS I/O.
+    fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
 except FileNotFoundError:
     text = ""
-if len(text) > 1024 * 1024: raise SystemExit("worker environment exceeds migration limit")
+else:
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode): raise SystemExit("worker environment must be a regular file")
+        if before.st_size > 1024 * 1024: raise SystemExit("worker environment exceeds migration limit")
+        with os.fdopen(fd, "rb", closefd=False) as stream: data = stream.read(1024 * 1024 + 1)
+        after, current = os.fstat(fd), os.stat(sys.argv[1])
+        identity = lambda v: (v.st_dev, v.st_ino, v.st_mode, v.st_uid, v.st_gid, v.st_nlink, v.st_size, v.st_mtime_ns, v.st_ctime_ns)
+        if len(data) > 1024 * 1024: raise SystemExit("worker environment exceeds migration limit")
+        if len(data) != before.st_size or identity(before) != identity(after) or identity(after) != identity(current):
+            raise SystemExit("worker environment changed during migration")
+        text = data.decode("utf-8")
+    finally:
+        os.close(fd)
 for line in text.splitlines():
     key, separator, value = line.partition("=")
     if not separator or key not in ("TRUSTED_HOSTS", "GATEWAY_HTTPS"): continue
@@ -109,7 +152,24 @@ for line in text.splitlines():
     fields[key] = value
 print(json.dumps(fields))
 PY
-)"
+); then
+  if ! ingress="$(python3 -I - "$INGRESS_TMP" <<'PY'
+import sys
+with open(sys.argv[1], "rb") as stream: payload = stream.read(65537)
+if len(payload) > 65536: raise SystemExit("ingress result exceeds limit")
+sys.stdout.write(payload.decode("utf-8"))
+PY
+)"; then
+    rm -f -- "$INGRESS_TMP"
+    exit 1
+  fi
+else
+  ingress_status=$?
+  rm -f -- "$INGRESS_TMP"
+  echo 'worker ingress migration failed or timed out; registration not published' >&2
+  exit "$ingress_status"
+fi
+rm -f -- "$INGRESS_TMP"
 TOOLS_BIN_DIR="$(PATH="$NODE_BIN_DIR:$PATH" python3 -I "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}")"
 SERVICE_PATH="$CODEX_BIN_DIR:$NODE_BIN_DIR:$TOOLS_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 runuser -u "$RUN_USER" -- test -x "$NODE_BIN"

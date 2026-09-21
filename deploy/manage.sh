@@ -183,6 +183,11 @@ do_provider() {
   case "$target" in zhipu|openai|custom) ;; *) die "未知供应商: $target（可选 zhipu|openai|custom）" ;; esac
   local transaction="$SCRIPT_DIR/providers/provider_transaction.py"
   local previous_generation="" expected_generation="" generation_status=0
+  # Choose our immutable candidate identity before setup. Reading .active after
+  # setup could observe another publisher and make its generation our rollback
+  # target by mistake. Allocation is exclusive and validated by the helper.
+  local published_generation
+  published_generation="$(python3 -I -c 'import uuid; print("generation-" + uuid.uuid4().hex)')" || return
   if previous_generation="$(run_as_service python3 -I "$transaction" active-name)"; then
     expected_generation="$previous_generation"
   else
@@ -208,24 +213,28 @@ do_provider() {
       fi
       if [ -n "$key" ]; then
         ZHIPU_KEY="$key" ENV_FILE="$ENV_FILE" PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
-          run_as_service bash "$SCRIPT_DIR/providers/zhipu-coding-plan/setup.sh"
+          PROVIDER_NEW_GENERATION="$published_generation" \
+          run_as_service bash "$SCRIPT_DIR/providers/zhipu-coding-plan/setup.sh" || return $?
       elif [ -n "$stored_key" ]; then
         ENV_FILE="$ENV_FILE" PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
-          run_as_service bash "$SCRIPT_DIR/providers/zhipu-coding-plan/setup.sh"
+          PROVIDER_NEW_GENERATION="$published_generation" \
+          run_as_service bash "$SCRIPT_DIR/providers/zhipu-coding-plan/setup.sh" || return $?
       else
         die "缺少 Key：设置 ZHIPU_KEY 或在 $ENV_FILE 填 Z_AI_API_KEY"
       fi
       ;;
     openai)
       ENV_FILE="$ENV_FILE" PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
-        run_as_service bash "$SCRIPT_DIR/providers/openai/setup.sh"
+        PROVIDER_NEW_GENERATION="$published_generation" \
+        run_as_service bash "$SCRIPT_DIR/providers/openai/setup.sh" || return $?
       log "请通过 WebUI 右上角完成该服务账号的登录"
       ;;
     custom)
       CUSTOM_BASE_URL="${CUSTOM_BASE_URL:-}" CUSTOM_MODEL="${CUSTOM_MODEL:-}" \
         CUSTOM_API_KEY="${CUSTOM_API_KEY:-}" CUSTOM_CTX="${CUSTOM_CTX:-}" ENV_FILE="$ENV_FILE" \
         PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
-        run_as_service bash "$SCRIPT_DIR/providers/custom-openai/setup.sh"
+        PROVIDER_NEW_GENERATION="$published_generation" \
+        run_as_service bash "$SCRIPT_DIR/providers/custom-openai/setup.sh" || return $?
       ;;
   esac
   local failure_status=0 rollback_failed=0
@@ -248,12 +257,12 @@ do_provider() {
   fi
   [ "$failure_status" -ge 1 ] && [ "$failure_status" -le 125 ] || failure_status=1
   if [ -z "$previous_generation" ]; then
-    if ! previous_generation="$(run_as_service python3 -I "$transaction" predecessor-name)"; then
+    if ! previous_generation="$(run_as_service python3 -I "$transaction" predecessor-name "$published_generation")"; then
       log "自动恢复未完成：无法验证首次迁移保存的旧代际；请检查 CODEX_HOME/providers/.versions"
       return "$failure_status"
     fi
   fi
-  if ! run_as_service python3 -I "$transaction" restore-active "$previous_generation"; then
+  if ! run_as_service python3 -I "$transaction" restore-active "$previous_generation" "$published_generation"; then
     rollback_failed=1
   elif ! systemctl restart "$SERVICE_NAME"; then
     rollback_failed=1
@@ -535,6 +544,17 @@ do_update() {
         /etc/sudoers.d/codex-harness
       )
       local -a artifacts=(node_modules apps/gateway/node_modules apps/web/node_modules apps/gateway/dist apps/web/dist)
+      stop_update_service() {
+        local state state_status
+        # A failed stop job can still leave the unit inactive. In either case,
+        # require an explicit stopped state before replacing any live files.
+        systemctl stop "$SERVICE_NAME" || true
+        state="$(systemctl is-active "$SERVICE_NAME" 2>/dev/null)" && state_status=0 || state_status=$?
+        case "$state:$state_status" in
+          inactive:3|failed:3|unknown:4) return 0 ;;
+          *) log "无法确认 $SERVICE_NAME 已停止；保留当前文件"; return 1 ;;
+        esac
+      }
       cleanup_update_stage() {
         local status=$?
         local rollback_failed=0
@@ -545,6 +565,10 @@ do_update() {
           [ "$status" -ne 0 ] || status=1
           log "更新失败，恢复已保存的应用产物和系统文件…"
           set +e
+          if ! stop_update_service; then
+            log "自动恢复未完成；尚未替换运行中的文件，旧产物和系统文件保留在 $snapshot"
+            exit "$status"
+          fi
           git -C "$REPO_ROOT" reset --hard "$local_ref" || rollback_failed=1
           local item
           for item in "${artifacts[@]}"; do
@@ -561,12 +585,21 @@ do_update() {
               rm -f -- "$item" || rollback_failed=1
             fi
           done
+          if [ "$rollback_failed" = 1 ]; then
+            log "自动恢复未完成；服务保持停止，旧产物和系统文件保留在 $snapshot，请先人工恢复再清理"
+            exit "$status"
+          fi
           systemctl daemon-reload || rollback_failed=1
-          if [ "$was_active" -eq 1 ]; then
-            systemctl restart "$SERVICE_NAME" || rollback_failed=1
-            health_after_update || rollback_failed=1
-          else
-            systemctl stop "$SERVICE_NAME" || rollback_failed=1
+          if [ "$rollback_failed" = 0 ]; then
+            if [ "$was_active" -eq 1 ]; then
+              systemctl restart "$SERVICE_NAME" && health_after_update || rollback_failed=1
+            else
+              systemctl stop "$SERVICE_NAME" || rollback_failed=1
+            fi
+          fi
+          if [ "$rollback_failed" = 1 ]; then
+            log "自动恢复未完成；服务恢复未确认，旧产物和系统文件保留在 $snapshot，候选运行时亦保留，请先人工恢复再清理"
+            exit "$status"
           fi
           if [ "$runtime_created" -eq 1 ]; then
             python3 -I "$trusted_apply/update_candidate.py" remove-runtime \
@@ -622,7 +655,9 @@ do_update() {
       install -o root -g root -m 700 "$SCRIPT_DIR/register-service.sh" "$trusted_apply/register-service.sh"
       install -o root -g root -m 600 "$SCRIPT_DIR/trusted_paths.py" "$trusted_apply/trusted_paths.py"
       install -o root -g root -m 600 "$SCRIPT_DIR/runtime_paths.py" "$trusted_apply/runtime_paths.py"
+      install -o root -g root -m 600 "$SCRIPT_DIR/service_registration.py" "$trusted_apply/service_registration.py"
       install -o root -g root -m 600 "$SCRIPT_DIR/update_candidate.py" "$trusted_apply/update_candidate.py"
+      bash "$trusted_apply/register-service.sh" --check-dependencies
       local runtime_lock
       runtime_lock="$(CODEX_RUNTIME_ROOT="$runtime_base" bash "$SCRIPT_DIR/install-runtime.sh" lock-path)"
       exec 9>"$runtime_lock"
@@ -652,8 +687,9 @@ do_update() {
         fi
       done
       systemctl is-active --quiet "$SERVICE_NAME" && was_active=1
+      # A stop failure before publication must not arm destructive rollback.
+      stop_update_service || die "服务停机未确认，未发布更新"
       applying=1
-      systemctl stop "$SERVICE_NAME"
       git -C "$REPO_ROOT" merge --ff-only "$remote_ref" >/dev/null
       # Publish only the fd-validated output copied from the unprivileged unit.
       # Rollback needs neither npm access nor another successful build.

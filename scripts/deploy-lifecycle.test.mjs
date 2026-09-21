@@ -425,7 +425,7 @@ test("direct management recovers custom Node/tools paths for provider scripts wi
     writeFileSync(path.join(repo, "deploy/providers/openai/setup.sh"), 'printf "%s\\n" "$TOOLS_BIN_DIR" "$PATH" > "$FIXTURE_SERVICE_ENV"\ncommand -v node >> "$FIXTURE_SERVICE_ENV"\ncommand -v zai-mcp-server >> "$FIXTURE_SERVICE_ENV"\n');
     f.command("id", 'case "$1" in -u) echo 0 ;; -un) echo operator ;; *) echo fixture ;; esac');
     f.command("getent", 'printf "fixture:x:1000:1000::%s:/usr/sbin/nologin\\n" "$FIXTURE_HOME"');
-    f.command("python3", 'case "$1" in -I) if [[ "$2" = */trusted_paths.py ]]; then printf "%s\\n" "$4"; elif [[ "$2" = */runtime_paths.py ]]; then printf "%s\\n" "$FIXTURE_TOOLS_BIN"; elif [[ "$2" = */lifecycle.py ]]; then echo openai; elif [[ "$2" = */provider_transaction.py && "$3" = active-name ]]; then echo generation-old; else exit 91; fi ;; *) exit 91 ;; esac');
+    f.command("python3", 'case "$1" in -I) if [[ "$2" = -c && "$3" = *uuid.uuid4* ]]; then echo generation-0123456789abcdef0123456789abcdef; elif [[ "$2" = */trusted_paths.py ]]; then printf "%s\\n" "$4"; elif [[ "$2" = */runtime_paths.py ]]; then printf "%s\\n" "$FIXTURE_TOOLS_BIN"; elif [[ "$2" = */lifecycle.py ]]; then echo openai; elif [[ "$2" = */provider_transaction.py && "$3" = active-name ]]; then echo generation-old; else exit 91; fi ;; *) exit 91 ;; esac');
     f.command("runuser", 'while [ "$1" != -- ]; do shift; done; shift; exec "$@"');
     f.command("systemctl", 'printf "systemctl %s\\n" "$*" >> "$FIXTURE_LOG"');
     f.command("curl", 'printf \'{"ok":true,"codexState":"ready"}\'');
@@ -551,6 +551,7 @@ test("update failure unwinds its real Bash transaction scope and restores artifa
     { failure: "typecheck", code: 53, active: "1", rollbackFails: false },
     { failure: "test", code: 51, active: "1", rollbackFails: false },
     { failure: "smoke", code: 52, active: "1", rollbackFails: false },
+    { failure: "dependencies", code: 55, active: "1", rollbackFails: false },
     { failure: "register", code: 75, active: "1", rollbackFails: false, newRuntime: true },
     { failure: "register", code: 75, active: "1", rollbackFails: true },
     { failure: "none", code: 0, active: "1", rollbackFails: false },
@@ -581,6 +582,7 @@ test("update failure unwinds its real Bash transaction scope and restores artifa
       writeFileSync(path.join(repo, "deploy", "update_candidate.py"), "# trusted fixture bridge\n");
       writeFileSync(path.join(repo, "deploy", "trusted_paths.py"), "# trusted fixture path guard\n");
       writeFileSync(path.join(repo, "deploy", "runtime_paths.py"), "# trusted fixture runtime guard\n");
+      writeFileSync(path.join(repo, "deploy", "service_registration.py"), "# trusted fixture registration\n");
       writeFileSync(path.join(repo, "deploy", "install-runtime.sh"), String.raw`set -eu
 [ "$1" = lock-path ]
 mkdir -p "$CODEX_RUNTIME_ROOT"
@@ -604,6 +606,11 @@ cp -a "$FIXTURE_RUNTIME_SEED/." "$3/runtime/"
 cp -a "$FIXTURE_CANDIDATE/deploy/privileged-helper.sh" "$FIXTURE_CANDIDATE/deploy/worker_launcher.py" "$3/service/"
 `);
       writeFileSync(path.join(repo, "deploy", "register-service.sh"), String.raw`set -eu
+if [ "$#" = 1 ] && [ "$1" = --check-dependencies ]; then
+  printf 'dependency check\n' >> "$FIXTURE_LOG"
+  if [ "$FIXTURE_FAIL_STAGE" = dependencies ]; then exit "$FIXTURE_FAIL_CODE"; fi
+  exit 0
+fi
 printf 'register\n' >> "$FIXTURE_LOG"
 [ "$TOOLS_BIN_DIR" = /opt/fixture-tools/bin ] || exit 89
 [ "$NODE_BIN" = /opt/fixture-node/bin/node ] || exit 89
@@ -646,7 +653,18 @@ case "$1" in
   *) printf 'unexpected git command\n' >&2; exit 90 ;;
 esac`);
       f.command("systemctl", String.raw`printf 'systemctl %s\n' "$*" >> "$FIXTURE_LOG"
-if [ "$1" = is-active ] && [ "$FIXTURE_ACTIVE" = 0 ]; then exit 3; fi`);
+case "$1" in
+  stop) printf '0\n' > "$FIXTURE_SYSTEM/service-state" ;;
+  restart) printf '1\n' > "$FIXTURE_SYSTEM/service-state" ;;
+  is-active)
+    active=$FIXTURE_ACTIVE
+    if [ -f "$FIXTURE_SYSTEM/service-state" ]; then active="$(cat "$FIXTURE_SYSTEM/service-state")"; fi
+    if [ "$active" = 0 ]; then
+      if [ "$2" != --quiet ]; then printf 'inactive\n'; fi
+      exit 3
+    fi
+    if [ "$2" != --quiet ]; then printf 'active\n'; fi ;;
+esac`);
       const runner = path.join(f.dir, "run-update.sh");
       writeFileSync(runner, String.raw`set -euo pipefail
 REPO_ROOT=$FIXTURE_REPO
@@ -698,9 +716,13 @@ health_after_update() {
       if (scenario.newRuntime && scenario.failure !== "none") assert.match(calls, /runtime removed/, context);
       if (publishing) {
         assert.match(calls, /git reset --hard old-ref/, context);
-        assert.match(calls, /systemctl daemon-reload/, context);
-        if (scenario.active === "1") assert.match(calls, /systemctl restart fixture-update-only\nhealth/, context);
-        else assert.ok(!calls.includes("systemctl restart"), context);
+        if (scenario.rollbackFails) {
+          assert.doesNotMatch(calls, /systemctl daemon-reload|systemctl restart|health\n|runtime removed/, context);
+        } else {
+          assert.match(calls, /systemctl daemon-reload/, context);
+          if (scenario.active === "1") assert.match(calls, /systemctl restart fixture-update-only\nhealth/, context);
+          else assert.ok(!calls.includes("systemctl restart"), context);
+        }
       } else if (scenario.failure !== "none") {
         assert.ok(!calls.includes("git merge --ff-only") && !calls.includes("systemctl stop") && !calls.includes("register\n"), context);
       }

@@ -1,7 +1,6 @@
 import { lstatSync, realpathSync, type Stats } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { parse } from "smol-toml";
 import { readBoundedRegularTextFileSync } from "./bounded-file.js";
 
@@ -195,28 +194,13 @@ function validatedHttpUrl(value: unknown): string | null {
   }
 }
 
-const sameKeys = (table: Map<string, unknown>, expected: readonly string[]): boolean =>
-  table.size === expected.length && expected.every((key) => table.has(key));
-
-const sameStringArray = (value: unknown, expected: readonly string[]): boolean =>
-  Array.isArray(value) && value.length === expected.length
-  && expected.every((item, index) => value[index] === item);
-
-const MANAGED_HTTP_SERVERS = new Map([
-  ["web-search-prime", "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp"],
-  ["web-reader", "https://open.bigmodel.cn/api/mcp/web_reader/mcp"],
-  ["zread", "https://open.bigmodel.cn/api/mcp/zread/mcp"],
-]);
-
 export class ProviderInfoReader {
   private readonly configPath: string;
-  private readonly managedHttpBridge: string;
   private configCache: CacheEntry<ParsedConfig> | null = null;
   private readonly catalogCache = new Map<string, CacheEntry<ModelCatalog>>();
 
   constructor(private codexHome: string) {
     this.configPath = path.join(codexHome, "config.toml");
-    this.managedHttpBridge = fileURLToPath(new URL("../../../deploy/providers/zhipu-coding-plan/mcp-http-bridge.mjs", import.meta.url));
   }
 
   private config(): ParsedConfig | null {
@@ -229,7 +213,7 @@ export class ProviderInfoReader {
         before.real,
       );
       // Re-resolve the active alias after the read. A concurrent preset switch
-      // must never combine an old config with a new generation's trust claim.
+      // must never combine metadata from different config generations.
       const after = regularSnapshot(this.configPath, PROVIDER_INFO_LIMITS.configBytes);
       if (!sameSnapshot(before, after)) throw new Error("provider config generation changed while reading");
       this.configCache = { ...after, value };
@@ -312,45 +296,6 @@ export class ProviderInfoReader {
       if (before) this.catalogCache.delete(before.real);
       return null;
     }
-  }
-
-  /** Prove that a bypassed MCP call belongs to the active managed Zhipu
-   * generation. Names and metadata alone are attacker-controlled. */
-  isManagedZhipuMcpServer(serverName: string): boolean {
-    const snap = this.snapshot();
-    if (!snap.config || snap.mode !== "zhipu" || snap.providerId !== "ZAI") return false;
-    const provider = snap.config.tables.get("model_providers.ZAI");
-    if (!provider || !sameKeys(provider, ["name", "base_url", "env_key", "wire_api"])
-        || provider.get("name") !== "Zhipu Coding Plan"
-        || provider.get("base_url") !== "https://open.bigmodel.cn/api/v1"
-        || provider.get("env_key") !== "Z_AI_API_KEY"
-        || provider.get("wire_api") !== "responses") return false;
-    if (snap.config.tables.get("features")?.get("mcp_2026_07_28") !== true) return false;
-
-    const server = snap.config.tables.get(`mcp_servers.${serverName}`);
-    if (!server) return false;
-    const endpoint = MANAGED_HTTP_SERVERS.get(serverName);
-    if (endpoint) {
-      const args = server.get("args");
-      return sameKeys(server, ["type", "startup_timeout_sec", "default_tools_approval_mode", "command", "env_vars", "args"])
-        && server.get("type") === "local"
-        && server.get("startup_timeout_sec") === 120
-        && server.get("default_tools_approval_mode") === "approve"
-        && server.get("command") === "node"
-        && sameStringArray(server.get("env_vars"), ["Z_AI_API_KEY"])
-        && Array.isArray(args) && args.length === 2
-        && typeof args[0] === "string" && path.isAbsolute(args[0])
-        && path.normalize(args[0]) === path.normalize(this.managedHttpBridge)
-        && args[1] === endpoint;
-    }
-    if (serverName !== "zai-mcp-server") return false;
-    const env = server.get("env");
-    return sameKeys(server, ["type", "default_tools_approval_mode", "command", "env_vars", "env"])
-      && server.get("type") === "local"
-      && server.get("default_tools_approval_mode") === "approve"
-      && server.get("command") === "zai-mcp-server"
-      && sameStringArray(server.get("env_vars"), ["Z_AI_API_KEY"])
-      && record(env) && Object.keys(env).length === 1 && env.Z_AI_MODE === "ZHIPU";
   }
 
   /** Custom-mode endpoint settings from the active provider table only. */

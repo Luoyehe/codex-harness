@@ -9,7 +9,6 @@ import { AutoCompaction } from "./auto-compaction.js";
 import { Hub, type BrowserClient, type ServerMessage } from "./hub.js";
 import { makeDispatcher } from "./api.js";
 import { DYNAMIC_TOOL_LIMITS, isProxyableToolCall, handleDynamicToolCall } from "./mcp-proxy.js";
-import { shouldAutoApproveMcpElicitation } from "./mcp-approval.js";
 import { ActiveTurns } from "./active-turns.js";
 import { TurnDefaults } from "./turn-defaults.js";
 import { Terminals } from "./terminals.js";
@@ -60,15 +59,29 @@ const DECLINE_PAYLOADS = {
 };
 
 export function createEngine(send: (clientId: string, message: ServerMessage) => void, options: { onFatalConnectionLoss?: (error: Error) => void; requestAutoCompaction?: (threadId: string) => Promise<unknown> } = {}) {
-const hub = new Hub({ serverRequestTimeoutMs: 600_000 });
 const notify = (method: string, params: unknown) => {
   // Control observes lifecycle even while every browser is disconnected.
   // One bounded IPC frame, regardless of the number of tabs. The control
   // plane observes once and fans out with per-socket backpressure.
   send("*", { kind: "notification", method, params });
 };
+// Prompt resolutions are control-plane lifecycle events too. Route them once
+// through the owner even when the last browser disconnected before resolution.
+const hub = new Hub({ serverRequestTimeoutMs: 600_000, broadcastNotification: notify });
 const toolRequests = new Map<number | string, AbortController>();
 const cancelTools = () => { for (const controller of toolRequests.values()) controller.abort(); toolRequests.clear(); };
+const browserAnswer = async (id: number | string, method: string, params: unknown) => {
+  const answer = await hub.waitForBrowserAnswer(id, method, params);
+  if (answer.answered) {
+    if (answer.error) throw new Error(answer.error);
+    return answer.payload;
+  }
+  if (APPROVAL_METHODS.has(method)) {
+    process.stderr.write(`[gateway] auto-declining ${method} (request ${id}): ${answer.error}\n`);
+    return DECLINE_PAYLOADS[method as keyof typeof DECLINE_PAYLOADS];
+  }
+  throw new Error(answer.error ?? "no browser client answered");
+};
 
 // Distinguishes "first boot" from "crash-restart" in onStateChange — only a
 // restart needs the terminal/allExited broadcast (first boot has no terminals).
@@ -85,7 +98,7 @@ let turnDefaults: TurnDefaults | null = null;
 let terminals: Terminals | null = null;
 const providerInfoReader = new ProviderInfoReader(CODEX_HOME);
 
-const supervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }, {
+const supervisor: CodexSupervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }, {
   onFatalConnectionLoss: options.onFatalConnectionLoss,
   onNotification: (method, params) => {
     // These lifecycle messages are synthesized by fixed gateway code. An
@@ -100,7 +113,9 @@ const supervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }
     const event = observedNotification(method, params);
     if (event?.method === "serverRequest/resolved") {
       toolRequests.get(event.params.requestId)?.abort();
-      toolRequests.delete(event.params.requestId);
+      // Resolution cancels the dynamic request, not the native MCP execution.
+      // Keep its slot until the native RPC settles and the handler's finally
+      // releases it; otherwise cancel/retry can exceed the real in-flight cap.
       hub.cancelServerRequest(event.params.requestId);
       // Hub translates upstream IDs to generation-safe browser IDs.
       return;
@@ -116,25 +131,14 @@ const supervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }
     }
   },
   onServerRequest: async (id, method, params) => {
-    // The mcp_2026_07_28 client gates every MCP tool call behind an
-    // elicitation "form" with _meta.codex_approval_kind = "mcp_tool_call".
-    // These are our own configured MCP servers, so auto-accept the gate;
-    // genuine elicitation forms still fall through to the browser.
-    if (method === "mcpServer/elicitation/request" && shouldAutoApproveMcpElicitation(
-      params,
-      (serverName) => providerInfoReader.isManagedZhipuMcpServer(serverName),
-    )) {
-      return { action: "accept", content: {}, _meta: null };
-    }
-    // The mcp_2026_07_28 client delegates MCP tool EXECUTION to us via
-    // dynamic tool calls — answer those here instead of asking browsers.
+    // MCP names and metadata cannot prove the identity of a loaded project
+    // server. All elicitation requests retain the normal browser review path.
+    // If Codex delegates a supported MCP execution as a dynamic tool call,
+    // use that thread's native connection instead of asking browsers to run it.
     if (method === "item/tool/call") {
       const toolParams = params as DynamicToolCallParams | null;
       const namespace = toolParams?.namespace;
       if (toolParams && typeof toolParams.tool === "string" && typeof namespace === "string" && isProxyableToolCall(namespace)) {
-        if (!providerInfoReader.isManagedZhipuMcpServer(namespace)) {
-          throw new Error("dynamic MCP execution requires the active managed Zhipu server configuration");
-        }
         if (toolRequests.has(id)) throw new Error("duplicate active dynamic MCP request id");
         if (toolRequests.size >= DYNAMIC_TOOL_LIMITS.concurrent) {
           throw new Error("dynamic MCP tool concurrency limit reached");
@@ -142,7 +146,8 @@ const supervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }
         const controller = new AbortController();
         toolRequests.set(id, controller);
         try {
-          return await handleDynamicToolCall(toolParams, { signal: controller.signal });
+          if (controller.signal.aborted) throw new Error("dynamic MCP request was cancelled");
+          return await handleDynamicToolCall(toolParams, { signal: controller.signal, supervisor });
         } catch (err: any) {
           process.stderr.write(`[gateway] dynamic tool call failed: ${err?.message}\n`);
           throw new Error(`tool execution failed: ${err?.message}`);
@@ -160,17 +165,7 @@ const supervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }
         `server request type not supported by this WebUI: ${method} (please report — the turn was aborted instead of hanging)`,
       );
     }
-    const answer = await hub.waitForBrowserAnswer(id, method, params);
-    if (answer.answered) {
-      if (answer.error) throw new Error(answer.error);
-      return answer.payload;
-    }
-    // Nobody home: fail safely. Approvals are declined, other requests error out.
-    if (APPROVAL_METHODS.has(method)) {
-      process.stderr.write(`[gateway] auto-declining ${method} (request ${id}): ${answer.error}\n`);
-      return DECLINE_PAYLOADS[method as keyof typeof DECLINE_PAYLOADS];
-    }
-    throw new Error(answer.error ?? "no browser client answered");
+    return browserAnswer(id, method, params);
   },
   onStateChange: (state) => {
     // This callback is where appServer/stateChanged is SYNTHESIZED — it never

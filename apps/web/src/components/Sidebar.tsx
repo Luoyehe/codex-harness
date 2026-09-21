@@ -447,8 +447,8 @@ function ProjectPicker({ onClose }: { onClose: () => void }) {
     setError("");
     try {
       const target = path.trim().slice(0, 4096);
-      await addProject(target, create);
-      await selectProject(target);
+      const registeredPath = await addProject(target, create);
+      await selectProject(registeredPath);
       if (mounted.current) onClose();
     } catch (err: any) {
       if (mounted.current) setError(String(err?.message ?? err).slice(0, 2_000));

@@ -4,7 +4,7 @@
 // check is a direct gateway RPC, not evidence of a model-driven tool call.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { VerificationClient, VerificationRpcError, exactReplyTurn, completedCompaction, terminalMarkerPredicate, cleanupThread, cleanupTerminal, requirePaidVerification } from "./verification-client.mjs";
+import { VerificationClient, VerificationRpcError, startVerificationThread, exactReplyTurn, completedCompaction, terminalMarkerPredicate, cleanupThread, cleanupTerminal, requirePaidVerification } from "./verification-client.mjs";
 requirePaidVerification();
 const client = new VerificationClient();
 let threadId;
@@ -15,7 +15,7 @@ try {
   assert.equal(status.codexState, "ready");
   assert.ok(Array.isArray((await client.rpc("projects/list")).projects));
   assert.ok(Array.isArray((await client.rpc("fs/readDirectory", { path: status.workspaceRoot })).entries));
-  threadId = (await client.rpc("thread/start", { cwd: status.workspaceRoot })).thread.id;
+  threadId = (await startVerificationThread(client, { cwd: status.workspaceRoot })).thread.id;
   await client.rpc("thread/name/set", { threadId, name: "temporary-verification-" + randomUUID() });
   await exactReplyTurn(client, threadId);
   assert.equal((await client.rpc("thread/read", { threadId })).thread.id, threadId);

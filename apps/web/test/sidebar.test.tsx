@@ -63,15 +63,27 @@ describe("project picker async ownership", () => {
   });
 
   it("admits a rapid double-click only once while project selection is pending", async () => {
-    const adding = deferred<void>();
+    const adding = deferred<string>();
     model.addProject.mockReturnValue(adding.promise);
     model.selectProject.mockResolvedValue(undefined);
     act(() => view.root.findByProps({ className: "text-input" }).props.onChange({ target: { value: "/new-project" } }));
     const add = view.root.findAllByType("button").find(node => node.props.children === "添加")!;
     act(() => { add.props.onClick(); add.props.onClick(); });
     expect(model.addProject).toHaveBeenCalledExactlyOnceWith("/new-project", false);
-    await act(async () => { adding.resolve(); await settle(); });
+    await act(async () => { adding.resolve("/new-project"); await settle(); });
     expect(model.selectProject).toHaveBeenCalledExactlyOnceWith("/new-project");
+  });
+
+  it.each(["/registered-project/", "/alias-to-registered-project"])("selects the registry identity instead of submitted spelling %s", async (input) => {
+    model.addProject.mockResolvedValue("/registered-project");
+    model.selectProject.mockResolvedValue(undefined);
+    act(() => view.root.findByProps({ className: "text-input" }).props.onChange({ target: { value: input } }));
+    await act(async () => {
+      view.root.findAllByType("button").find(node => node.props.children === "添加")!.props.onClick();
+      await settle();
+    });
+    expect(model.addProject).toHaveBeenCalledExactlyOnceWith(input, false);
+    expect(model.selectProject).toHaveBeenCalledExactlyOnceWith("/registered-project");
   });
 
   it("reports a malformed directory response instead of presenting an empty folder", async () => {
