@@ -9,17 +9,34 @@ import datetime
 import json
 import math
 import os
+import stat
 import tomllib
 
 from atomic_write import atomic_write
 
 
+MAX_CONFIG_BYTES = 1024 * 1024
+
+
 def load_config(path):
     try:
-        with open(path, "rb") as stream:
-            return tomllib.load(stream)
+        flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+        descriptor = os.open(path, flags)
     except FileNotFoundError:
         return {}
+    with os.fdopen(descriptor, "rb") as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_size > MAX_CONFIG_BYTES:
+            raise ValueError("provider config must be a bounded singly linked regular file")
+        raw = stream.read(MAX_CONFIG_BYTES + 1)
+        after = os.fstat(stream.fileno())
+    if len(raw) > MAX_CONFIG_BYTES or len(raw) != before.st_size:
+        raise ValueError("provider config exceeds its byte limit or changed while reading")
+    stable = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_uid,
+                            value.st_nlink, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+    if stable(before) != stable(after):
+        raise RuntimeError("provider config changed while reading")
+    return tomllib.loads(raw.decode("utf-8"))
 
 
 def _quote(value):

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Reconcile the system files for exactly one already-built deployment.
-# Caller snapshots these files during updates and controls restart/rollback.
+# Transactionally reconcile the system files for one already-built deployment.
+# Updates can leave REGISTER_ACTIVATE=0 and control their own service restart;
+# fresh/repair installs set REGISTER_ACTIVATE=1 so activation shares this rollback.
 set -euo pipefail
 umask 022
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,10 +12,24 @@ done
 case "$SERVICE_NAME" in ''|[-_]*|*[!A-Za-z0-9_-]*) exit 1 ;; esac
 [ "${#SERVICE_NAME}" -le 128 ] || exit 1
 case "$RUN_USER" in ''|[-.]*|*[!A-Za-z0-9_.-]*) exit 1 ;; esac
+REGISTER_ACTIVATE="${REGISTER_ACTIVATE:-0}"
+case "$REGISTER_ACTIVATE" in 0|1) ;; *) echo 'REGISTER_ACTIVATE must be 0 or 1' >&2; exit 1 ;; esac
 SERVICE_UID="$(id -u "$RUN_USER")" || { echo 'RUN_USER must name an existing service account' >&2; exit 1; }
 if [ "$SERVICE_UID" -eq 0 ]; then
   echo 'migrate this service to an unprivileged RUN_USER before updating (ALLOW_ROOT_SERVICE no longer bypasses this requirement)' >&2; exit 1
 fi
+REGISTRATION_HELPER="$SCRIPT_DIR/service_registration.py"
+[ -f "$REGISTRATION_HELPER" ] || { echo 'missing service registration transaction helper' >&2; exit 1; }
+command -v flock >/dev/null 2>&1 || { echo 'flock is required for service registration' >&2; exit 1; }
+REGISTRATION_LOCK="$(python3 -I "$REGISTRATION_HELPER" prepare-lock)"
+exec {REGISTRATION_LOCK_FD}<>"$REGISTRATION_LOCK"
+flock -x "$REGISTRATION_LOCK_FD"
+# Revalidate the public name after acquiring the descriptor lock.  Its parent is
+# root-private, so a non-root actor cannot exchange it between these two opens.
+[ "$(python3 -I "$REGISTRATION_HELPER" prepare-lock)" = "$REGISTRATION_LOCK" ] \
+  || { echo 'registration lock changed while it was acquired' >&2; exit 1; }
+[ "$(stat -Lc '%d:%i' "/proc/$$/fd/$REGISTRATION_LOCK_FD")" = "$(stat -Lc '%d:%i' "$REGISTRATION_LOCK")" ] \
+  || { echo 'registration lock descriptor mismatch' >&2; exit 1; }
 RUN_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
 if [ -z "${GATEWAY_USER:-}" ]; then
   GATEWAY_USER="ch-gw-$(printf '%s' "$SERVICE_NAME" | sha256sum | cut -c1-16)"
@@ -28,6 +43,8 @@ GATEWAY_UID="$(id -u "$GATEWAY_USER")"
 [ "$GATEWAY_UID" -ne 0 ] && [ "$GATEWAY_UID" -ne "$SERVICE_UID" ] \
   || { echo 'GATEWAY_USER must be distinct from root and the worker RUN_USER' >&2; exit 1; }
 GATEWAY_GROUP="$(id -gn "$GATEWAY_USER")"
+GATEWAY_GID="$(id -g "$GATEWAY_USER")"
+case "$GATEWAY_GROUP" in ''|[-.]*|*[!A-Za-z0-9_.-]*) echo 'invalid GATEWAY_GROUP' >&2; exit 1 ;; esac
 GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-/var/lib/codex-harness-control/$SERVICE_NAME}"
 GATEWAY_ENV_FILE="$GATEWAY_CONTROL_HOME/gateway.env"
 PORT="${PORT:-8080}"
@@ -68,17 +85,11 @@ if home.exists() or home.is_symlink():
     if info.st_uid != int(sys.argv[4]) or stat.S_IMODE(info.st_mode) != 0o700:
         raise SystemExit("existing GATEWAY_CONTROL_HOME must belong to GATEWAY_USER with mode 0700")
 PY
-if [ ! -d "$(dirname "$GATEWAY_CONTROL_HOME")" ]; then
-  install -d -o root -g root -m 755 "$(dirname "$GATEWAY_CONTROL_HOME")"
-fi
-if [ ! -d "$GATEWAY_CONTROL_HOME" ]; then
-  install -d -o "$GATEWAY_USER" -g "$GATEWAY_GROUP" -m 700 "$GATEWAY_CONTROL_HOME"
-fi
 # Do not import the old worker-readable gateway token or full secret store.
-if [ ! -e "$GATEWAY_ENV_FILE" ]; then
-  # Carry only validated non-secret ingress settings across the identity
-  # migration. Never reuse a token the worker could already have read.
-  ingress="$(runuser -u "$RUN_USER" -- python3 -I - "$ENV_FILE" <<'PY'
+# Carry only validated non-secret ingress settings across the identity
+# migration. Never reuse a token the worker could already have read.  The
+# candidate is published only if gateway.env was absent in the locked snapshot.
+ingress="$(runuser -u "$RUN_USER" -- python3 -I - "$ENV_FILE" <<'PY'
 import json, re, shlex, sys
 fields = {}
 try:
@@ -99,36 +110,116 @@ for line in text.splitlines():
 print(json.dumps(fields))
 PY
 )"
-  runuser -u "$GATEWAY_USER" -- python3 -I - "$GATEWAY_ENV_FILE" "$ingress" <<'PY'
-import json, os, sys
-fields = json.loads(sys.argv[2])
-fd = os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-with os.fdopen(fd, "w") as stream:
-    stream.write("# Gateway-only settings; provider credentials belong in the worker ENV_FILE.\n")
-    for key, value in fields.items(): stream.write(key + "=" + value + "\n")
-PY
-fi
-TOOLS_BIN_DIR="$(PATH="$NODE_BIN_DIR:$PATH" python3 "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}")"
+TOOLS_BIN_DIR="$(PATH="$NODE_BIN_DIR:$PATH" python3 -I "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}")"
 SERVICE_PATH="$CODEX_BIN_DIR:$NODE_BIN_DIR:$TOOLS_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 runuser -u "$RUN_USER" -- test -x "$NODE_BIN"
 runuser -u "$RUN_USER" -- test -x "$CODEX_BIN"
 runuser -u "$RUN_USER" -- test -x "$TOOLS_BIN_DIR"
 runuser -u "$GATEWAY_USER" -- test -r "$INSTALL_DIR/apps/gateway/dist/index.js"
 runuser -u "$RUN_USER" -- test -r "$INSTALL_DIR/apps/gateway/dist/worker.js"
-unit="/etc/systemd/system/$SERVICE_NAME.service"
-legacy_helper=0
-grep -qxF 'Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin' "$unit" 2>/dev/null && legacy_helper=1
-if [ -f "$unit" ] && ! grep -qxF "WorkingDirectory=$INSTALL_DIR/apps/gateway" "$unit"; then
-  echo "refusing to replace another checkout's unit: $unit" >&2; exit 1
-fi
 helper="/usr/local/libexec/codex-harness-admin-$SERVICE_NAME"
-conf="/etc/codex-harness/$SERVICE_NAME.conf"
-grant="/etc/sudoers.d/codex-harness-$SERVICE_NAME"
 command_name="codex-harness-$SERVICE_NAME"
 [ "$SERVICE_NAME" != codex-harness ] || command_name=codex-harness
-temporary="$(mktemp -d)"
-trap 'rm -rf -- "$temporary"' EXIT
-cat > "$temporary/unit" <<EOF
+REGISTRATION_TRANSACTION="$(python3 -I "$REGISTRATION_HELPER" begin "$SERVICE_NAME")"
+REGISTRATION_SYSTEMD_TOUCHED=0
+REGISTRATION_PRIOR_ENABLED=0
+REGISTRATION_PRIOR_ACTIVE=0
+
+registration_systemd_snapshot() {
+  local value status
+  value="$(/usr/bin/systemctl is-enabled "$SERVICE_NAME" 2>/dev/null)" && status=0 || status=$?
+  case "$value:$status" in
+    enabled:0|enabled-runtime:0|linked:0|linked-runtime:0|alias:0) REGISTRATION_PRIOR_ENABLED=1 ;;
+    disabled:*|static:*|indirect:*|generated:*|transient:*|not-found:*) REGISTRATION_PRIOR_ENABLED=0 ;;
+    *) echo "cannot determine prior enabled state for $SERVICE_NAME ($value)" >&2; return 1 ;;
+  esac
+  value="$(/usr/bin/systemctl is-active "$SERVICE_NAME" 2>/dev/null)" && status=0 || status=$?
+  case "$value:$status" in
+    active:0) REGISTRATION_PRIOR_ACTIVE=1 ;;
+    inactive:*|failed:*|unknown:*) REGISTRATION_PRIOR_ACTIVE=0 ;;
+    *) echo "cannot determine a stable prior active state for $SERVICE_NAME ($value)" >&2; return 1 ;;
+  esac
+}
+
+activate_registration() {
+  REGISTRATION_SYSTEMD_TOUCHED=1
+  /usr/bin/systemctl daemon-reload
+  /usr/bin/systemctl enable "$SERVICE_NAME"
+  if [ "$REGISTRATION_PRIOR_ACTIVE" = 1 ]; then
+    /usr/bin/systemctl restart "$SERVICE_NAME"
+  else
+    /usr/bin/systemctl start "$SERVICE_NAME"
+  fi
+}
+
+rollback_registration() {
+  local status="$?" rollback_failed=0 files_restored=0 service_stopped=1 probe probe_status
+  trap - EXIT INT TERM
+  if [ -z "${REGISTRATION_TRANSACTION:-}" ]; then exit "$status"; fi
+  echo "service registration failed; restoring the previous installation" >&2
+  if [ "$REGISTRATION_SYSTEMD_TOUCHED" = 1 ]; then
+    if ! /usr/bin/systemctl stop "$SERVICE_NAME"; then
+      probe="$(/usr/bin/systemctl is-active "$SERVICE_NAME" 2>/dev/null)" && probe_status=0 || probe_status=$?
+      case "$probe:$probe_status" in
+        inactive:3|failed:3|unknown:4)
+          echo "service stop returned an error, but systemd proves the unit is not active; continuing rollback" >&2
+          ;;
+        *)
+          echo "failed to stop the candidate service; refusing to replace files under a live process" >&2
+          rollback_failed=1
+          service_stopped=0
+          ;;
+      esac
+    fi
+    if [ "$REGISTRATION_PRIOR_ENABLED" = 0 ] && ! /usr/bin/systemctl disable "$SERVICE_NAME"; then
+      rollback_failed=1
+    fi
+  fi
+  if [ "$service_stopped" = 1 ]; then
+    if python3 -I "$REGISTRATION_HELPER" restore "$REGISTRATION_TRANSACTION"; then
+      files_restored=1
+    else
+      rollback_failed=1
+    fi
+  fi
+  if [ "$files_restored" = 1 ] && [ "$REGISTRATION_SYSTEMD_TOUCHED" = 1 ]; then
+    /usr/bin/systemctl daemon-reload || rollback_failed=1
+    if [ "$REGISTRATION_PRIOR_ENABLED" = 1 ]; then
+      /usr/bin/systemctl enable "$SERVICE_NAME" || rollback_failed=1
+    fi
+    if [ "$REGISTRATION_PRIOR_ACTIVE" = 1 ]; then
+      /usr/bin/systemctl start "$SERVICE_NAME" || rollback_failed=1
+    fi
+  fi
+  if [ "$rollback_failed" = 0 ] && python3 -I "$REGISTRATION_HELPER" discard "$REGISTRATION_TRANSACTION"; then
+    echo "previous service registration restored" >&2
+  else
+    echo "ERROR: registration rollback incomplete; root-private recovery retained at $REGISTRATION_TRANSACTION" >&2
+    echo "Resolve the reported runtime/filesystem issue, then retry: python3 -I '$REGISTRATION_HELPER' restore '$REGISTRATION_TRANSACTION'" >&2
+  fi
+  exit "$status"
+}
+trap rollback_registration EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+if [ "$REGISTER_ACTIVATE" = 1 ]; then
+  [ -x /usr/bin/systemctl ] || { echo '/usr/bin/systemctl is required for activated registration' >&2; exit 1; }
+  registration_systemd_snapshot
+fi
+
+asset_dir="${REGISTER_ASSET_DIR:-$INSTALL_DIR/deploy}"
+asset_dir="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" tree "$asset_dir")"
+admin_asset="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$asset_dir/privileged-helper.sh")"
+worker_asset="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$asset_dir/worker_launcher.py")"
+[ "$admin_asset" = "$asset_dir/privileged-helper.sh" ] \
+  && [ "$worker_asset" = "$asset_dir/worker_launcher.py" ] \
+  || { echo 'registration assets must be real files inside their validated directory' >&2; exit 1; }
+stage="$REGISTRATION_TRANSACTION/stage"
+umask 077
+install -o root -g root -m 600 "$admin_asset" "$stage/admin-helper"
+install -o root -g root -m 600 "$worker_asset" "$stage/worker-launcher"
+cat > "$stage/unit" <<EOF
 [Unit]
 Description=Codex Harness WebUI gateway
 After=network-online.target
@@ -159,7 +250,7 @@ Environment=CODEX_WORKER_LAUNCHER=$helper
 EnvironmentFile=-$GATEWAY_ENV_FILE
 # Keep the protocol runtime fixed even if the optional secret store has CODEX_BIN.
 UnsetEnvironment=CODEX_BIN
-ExecStart=$NODE_BIN $INSTALL_DIR/apps/gateway/dist/index.js
+ExecStart=/usr/bin/env CODEX_BIN=$CODEX_BIN $NODE_BIN $INSTALL_DIR/apps/gateway/dist/index.js
 ExecStartPre=/usr/bin/test -x $CODEX_BIN
 Environment=PATH=$SERVICE_PATH
 Restart=always
@@ -177,13 +268,11 @@ TimeoutStopSec=15
 [Install]
 WantedBy=multi-user.target
 EOF
-# CODEX_BIN is set on the command itself: EnvironmentFile cannot override it.
-sed -i "s|^ExecStart=.*|ExecStart=/usr/bin/env CODEX_BIN=$CODEX_BIN $NODE_BIN $INSTALL_DIR/apps/gateway/dist/index.js|" "$temporary/unit"
 printf 'SERVICE_NAME=%s\nRUN_USER=%s\nRUN_HOME=%s\nINSTALL_DIR=%s\nCODEX_HOME=%s\nCODEX_WORKSPACE=%s\nENV_FILE=%s\nCODEX_BIN=%s\nNODE_BIN=%s\nSERVICE_PATH=%s\n' \
-  "$SERVICE_NAME" "$RUN_USER" "$RUN_HOME" "$INSTALL_DIR" "$CODEX_HOME" "$CODEX_WORKSPACE" "$ENV_FILE" "$CODEX_BIN" "$NODE_BIN" "$SERVICE_PATH" > "$temporary/conf"
-printf '%s ALL=(root) NOPASSWD: %s restart-service, %s recent-logs, %s worker-backend\n' "$GATEWAY_USER" "$helper" "$helper" "$helper" > "$temporary/grant"
-visudo -cf "$temporary/grant" >/dev/null
-cat > "$temporary/wrapper" <<EOF
+  "$SERVICE_NAME" "$RUN_USER" "$RUN_HOME" "$INSTALL_DIR" "$CODEX_HOME" "$CODEX_WORKSPACE" "$ENV_FILE" "$CODEX_BIN" "$NODE_BIN" "$SERVICE_PATH" > "$stage/admin.conf"
+printf '%s ALL=(root) NOPASSWD: %s restart-service, %s recent-logs, %s worker-backend\n' "$GATEWAY_USER" "$helper" "$helper" "$helper" > "$stage/sudoers"
+visudo -cf "$stage/sudoers" >/dev/null
+cat > "$stage/command" <<EOF
 #!/bin/bash
 # Managed instance: $SERVICE_NAME
 export SERVICE_NAME=$SERVICE_NAME
@@ -196,20 +285,30 @@ export GATEWAY_CONTROL_HOME=$GATEWAY_CONTROL_HOME
 export PATH="$SERVICE_PATH"
 exec /bin/bash "$INSTALL_DIR/deploy/manage.sh" "\$@"
 EOF
-install -d -o root -g root -m 755 /usr/local/libexec /etc/codex-harness "$BIN_DIR"
-install -o root -g root -m 755 "$INSTALL_DIR/deploy/privileged-helper.sh" "$helper"
-install -o root -g root -m 755 "$INSTALL_DIR/deploy/worker_launcher.py" "/usr/local/libexec/codex-harness-worker-$SERVICE_NAME"
-install -o root -g root -m 600 "$temporary/conf" "$conf"
-install -o root -g root -m 440 "$temporary/grant" "$grant"
-install -o root -g root -m 644 "$temporary/unit" "$unit"
-install -o root -g root -m 755 "$temporary/wrapper" "$BIN_DIR/$command_name"
-if [ "$SERVICE_NAME" != codex-harness ] \
-   && grep -qxF "exec bash \"$INSTALL_DIR/deploy/manage.sh\" \"\$@\"" "$BIN_DIR/codex-harness" 2>/dev/null \
-   && ! grep -qxF '# Managed instance: codex-harness' "$BIN_DIR/codex-harness" \
-   && ! grep -qxF "WorkingDirectory=$INSTALL_DIR/apps/gateway" /etc/systemd/system/codex-harness.service 2>/dev/null; then
-  rm -f "$BIN_DIR/codex-harness"
+python3 -I - "$stage/gateway.env" "$ingress" <<'PY'
+import json, os, sys
+fields = json.loads(sys.argv[2])
+descriptor = os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+try:
+    payload = "# Gateway-only settings; provider credentials belong in the worker ENV_FILE.\n"
+    payload += "".join(key + "=" + value + "\n" for key, value in fields.items())
+    encoded = payload.encode("utf-8")
+    offset = 0
+    while offset < len(encoded):
+        written = os.write(descriptor, encoded[offset:])
+        if written <= 0: raise OSError("gateway environment staging write made no progress")
+        offset += written
+    os.fsync(descriptor)
+finally:
+    os.close(descriptor)
+PY
+
+python3 -I "$REGISTRATION_HELPER" apply "$REGISTRATION_TRANSACTION" "$SERVICE_NAME" "$BIN_DIR" \
+  "$GATEWAY_CONTROL_HOME" "$GATEWAY_UID" "$GATEWAY_GID" "$INSTALL_DIR"
+if [ "$REGISTER_ACTIVATE" = 1 ]; then
+  activate_registration
 fi
-if [ "$legacy_helper" = 1 ] && ! grep -lxF 'Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin' /etc/systemd/system/*.service >/dev/null 2>&1; then
-  rm -f /usr/local/libexec/codex-harness-admin /etc/codex-harness/admin.conf /etc/sudoers.d/codex-harness
-fi
+python3 -I "$REGISTRATION_HELPER" discard "$REGISTRATION_TRANSACTION"
+REGISTRATION_TRANSACTION=""
+trap - EXIT INT TERM
 printf '%s\n' "$BIN_DIR/$command_name"

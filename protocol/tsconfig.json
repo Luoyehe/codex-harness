@@ -7,5 +7,5 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["v2/**/*.ts", "serde_json/**/*.ts"]
+  "include": ["*.ts", "v2/**/*.ts", "serde_json/**/*.ts"]
 }

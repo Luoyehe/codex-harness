@@ -3,7 +3,16 @@
 import http from "node:http";
 import WebSocket from "ws";
 
+const MAX_AUTH_PROBE_FRAME_BYTES = 1024 * 1024;
+const validToken = token => typeof token === "string" && /^[A-Za-z0-9_-]{32,4096}$/.test(token);
+
 export function fetchGatewayCookie({ port, token, timeoutMs = 5000 }) {
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535 || !validToken(token)) {
+    return Promise.reject(new Error("A valid gateway port and control-plane credential are required"));
+  }
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 60_000) {
+    return Promise.reject(new Error("Invalid auth verification timeout"));
+  }
   return new Promise((resolve, reject) => {
     const request = http.get({ host: "127.0.0.1", port, path: "/", headers: { Authorization: `Bearer ${token}`, Accept: "text/html" } }, (response) => {
       const cookies = response.headers["set-cookie"] ?? [];
@@ -41,7 +50,7 @@ function probe({ port, cookie, authorization, origin, host, path = "/ws", timeou
       socket?.terminate();
       resolve({ applicationFrame, rpcReady: false, closeCode: null, ...result });
     };
-    try { socket = new WebSocket(`ws://127.0.0.1:${port}${path}`, { headers }); }
+    try { socket = new WebSocket(`ws://127.0.0.1:${port}${path}`, { headers, maxPayload: MAX_AUTH_PROBE_FRAME_BYTES }); }
     catch { done({ note: "connection-options-invalid" }); return; }
     timer = setTimeout(() => done({ note: "timeout" }), timeoutMs);
     socket.on("open", () => {
@@ -59,7 +68,7 @@ function probe({ port, cookie, authorization, origin, host, path = "/ws", timeou
 }
 
 export async function verifyWebSocketAuth({ port, token, timeoutMs = 5000, log = console.log }) {
-  if (!Number.isSafeInteger(port) || port < 1 || port > 65535 || !token) throw new Error("A valid gateway port and control-plane credential are required");
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535 || !validToken(token)) throw new Error("A valid gateway port and control-plane credential are required");
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 60_000) throw new Error("Invalid auth verification timeout");
   const cookie = await fetchGatewayCookie({ port, token, timeoutMs });
   const cookieName = cookie.slice(0, cookie.indexOf("="));

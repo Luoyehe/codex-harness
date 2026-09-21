@@ -1,7 +1,6 @@
 // Isolated, no-inference smoke test against the installed Codex app-server.
 // Run after pnpm build. Never reads the user's existing Codex home or starts a turn.
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
@@ -9,6 +8,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import WebSocket from "ws";
+import { spawnOfflineChild, stopOfflineChild } from "./offline-process.mjs";
+import { assertLocalMediaCsp } from "./csp-policy.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const scratch = mkdtempSync(path.join(tmpdir(), "codex-harness-smoke-"));
@@ -30,7 +31,7 @@ const env = { ...process.env, CODEX_HOME: codexHome, CODEX_WORKSPACE: workspace,
   GATEWAY_TOKEN: token, GATEWAY_CONTROL_HOME: path.join(scratch, "control"), GATEWAY_UNSAFE_SINGLE_USER: "1",
   HOST: "127.0.0.1", PORT: String(port), ALLOW_QUERY_TOKEN: "0", GATEWAY_BOOTSTRAP_AUTH: "required" };
 for (const name of ["OPENAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_KEY", "CUSTOM_API_KEY", "CUSTOM_OPENAI_API_KEY", "TRUSTED_HOSTS", "GATEWAY_HTTPS", "CODEX_PERSISTENT_ROOTS", "CODEX_WORKER_LAUNCHER", "CODEX_HARNESS_ADMIN_HELPER"]) delete env[name];
-const gateway = spawn(process.execPath, [path.join(root, "apps/gateway/dist/index.js")], {
+const gateway = spawnOfflineChild(process.execPath, [path.join(root, "apps/gateway/dist/index.js")], {
   cwd: workspace, env, stdio: ["ignore", "ignore", "pipe"], windowsHide: true,
 });
 let errors = "";
@@ -61,11 +62,12 @@ function exchange({ headers = {}, suffix = "", method = "app/status", id = 1 } =
   });
 }
 
+let passed = false;
 try {
   const deadline = Date.now() + 30000;
   let ready = false;
   while (Date.now() < deadline) {
-    if (gateway.exitCode !== null) throw new Error(`gateway exited: ${errors}`);
+    if (gateway.exitCode !== null || gateway.signalCode !== null) throw new Error(`gateway exited: ${errors}`);
     try {
       const response = await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(1500) });
       ready = response.ok && (await response.json()).codexState === "ready";
@@ -81,8 +83,9 @@ try {
   const html = await fetch(base, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
   assert.equal(html.status, 200);
   assert.ok(html.headers.get("set-cookie")?.includes("HttpOnly"));
+  assertLocalMediaCsp(html.headers.get("content-security-policy"));
   assert.ok((await html.text()).includes('<div id="root">'));
-  console.log("PASS production SPA + HttpOnly cookie");
+  console.log("PASS production SPA + HttpOnly cookie + local/data/blob media CSP");
   const auth = { Authorization: `Bearer ${token}` };
   for (const [name, options, close] of [
     ["missing token", {}, 4001],
@@ -104,19 +107,10 @@ try {
   const blocked = (await exchange({ headers: auth, method: "fs/readFile" })).message;
   assert.match(blocked?.error ?? "", /not allowed/);
   console.log("PASS bearer/cookie RPC, signed-out isolation, RPC allowlist");
-  console.log("GATEWAY-SMOKE-PASS (no turn, inference, provider setup, or production changes)");
+  passed = true;
 } finally {
-  if (gateway.pid && gateway.exitCode === null) {
-    if (process.platform === "win32") {
-      // Exact PID created above, including only its app-server descendants.
-      spawnSync("taskkill", ["/PID", String(gateway.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore", timeout: 10000 });
-    } else {
-      const closed = new Promise((resolve) => gateway.once("exit", resolve));
-      gateway.kill("SIGTERM");
-      await Promise.race([closed, new Promise((resolve) => setTimeout(resolve, 15000))]);
-      if (gateway.exitCode === null) gateway.kill("SIGKILL");
-    }
-  }
+  await stopOfflineChild(gateway, { graceMs: 15000, forceMs: 10000, requireCleanExit: true });
   // Only the exact mkdtemp-created test directory, never the user's home.
   rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  if (passed) console.log("GATEWAY-SMOKE-PASS (no turn, inference, provider setup, or production changes)");
 }

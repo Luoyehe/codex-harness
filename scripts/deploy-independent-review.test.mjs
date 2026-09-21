@@ -148,16 +148,21 @@ test("R01 server verification reads only control state and exports it to WS chec
     const bin = path.join(fixture, "bin"), home = path.join(fixture, "home");
     const worker = path.join(fixture, "worker"), control = path.join(home, ".codex-harness-control");
     for (const directory of [bin, worker, control]) mkdirSync(directory, { recursive: true });
-    writeFileSync(path.join(worker, "gateway-token"), "worker-token-must-not-be-read\n");
-    writeFileSync(path.join(control, "gateway-token"), "control-fixture\n");
+    writeFileSync(path.join(worker, "gateway-token"), "worker-token-must-not-be-read-00000000\n", { mode: 0o600 });
+    writeFileSync(path.join(control, "gateway-token"), "control-fixture-00000000000000000\n", { mode: 0o600 });
     writeFileSync(path.join(bin, "curl"), `#!/bin/sh
 case "$*" in
   *healthz*) printf '%s\\n' '{"codexState":"ready"}' ;;
-  *) IFS= read -r header; [ "$header" = 'Authorization: Bearer control-fixture' ] || exit 22
+  *) IFS= read -r header; [ "$header" = 'Authorization: Bearer control-fixture-00000000000000000' ] || exit 22
      printf '%s\\n' '<div id="root"></div>' ;;
 esac
 `, { mode: 0o700 });
-    writeFileSync(path.join(bin, "node"), '#!/bin/sh\n[ "$GATEWAY_CONTROL_HOME" = "$EXPECTED_CONTROL_HOME" ]\n', { mode: 0o700 });
+    writeFileSync(path.join(bin, "node"), `#!/bin/sh
+[ "$GATEWAY_CONTROL_HOME" = "$EXPECTED_CONTROL_HOME" ] || exit 18
+case "$1" in
+  *ws-token.mjs) [ -n "$GATEWAY_TOKEN" ] || [ -r "$GATEWAY_CONTROL_HOME/gateway-token" ] ;;
+esac
+`, { mode: 0o700 });
     const invoke = extra => spawnSync("bash", [path.join(deploy, "verify-server.sh")], {
       env: { ...env, PATH: bin + path.delimiter + env.PATH, HOME: home, CODEX_HOME: worker,
         SERVICE_NAME: "codex-harness-verification-test-no-unit", GATEWAY_CONTROL_HOME: "", GATEWAY_TOKEN: "",
@@ -174,7 +179,7 @@ esac
     assert.notEqual(missing.status, 0);
     assert.match(missing.stderr, /no readable control-plane token/);
     assert.doesNotMatch(missing.stdout + missing.stderr, /worker-token-must-not-be-read/);
-    const explicitToken = invoke({ GATEWAY_TOKEN: "control-fixture" });
+    const explicitToken = invoke({ GATEWAY_TOKEN: "control-fixture-00000000000000000" });
     assert.equal(explicitToken.status, 0, explicitToken.stderr + explicitToken.stdout);
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });

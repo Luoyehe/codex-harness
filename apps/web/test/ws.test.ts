@@ -113,7 +113,15 @@ describe("GatewayClient connection generations", () => {
     const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
     const pending = Array.from({ length: 128 }, () => client.rpc("test/pending").catch((error) => error));
     await expect(client.rpc("test/excess")).rejects.toMatchObject({ delivery: "not_sent" });
-    await vi.advanceTimersByTimeAsync(180_000);
+    // Keep the transport healthy while the ordinary requests exercise their
+    // own 180s timeout; the reserved heartbeat is expected to bypass 128 full
+    // ordinary slots and receive a response on each interval.
+    for (let elapsed = 0; elapsed < 180_000; elapsed += 30_000) {
+      await vi.advanceTimersByTimeAsync(30_000);
+      const heartbeat = JSON.parse(socket.sent.at(-1)!);
+      expect(heartbeat.method).toBe("app/status");
+      socket.message({ kind: "rpcResult", id: heartbeat.id, result: {} });
+    }
     const results = await Promise.all(pending);
     expect(results.every((error) => (error as { delivery?: string }).delivery === "unknown")).toBe(true);
     const next = client.rpc("test/next"); const id = JSON.parse(socket.sent.at(-1)!).id;
@@ -129,11 +137,90 @@ describe("GatewayClient connection generations", () => {
     expect(socket.sent).toHaveLength(0); client.close();
   });
 
+  it("reserves heartbeat admission when the ordinary pending queue is full", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    const pending = Array.from({ length: 128 }, () => client.rpc("test/pending").catch((error) => error));
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(socket.sent).toHaveLength(129);
+    expect(JSON.parse(socket.sent.at(-1)!)).toMatchObject({ kind: "rpc", method: "app/status" });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(socket.readyState).toBe(FakeWebSocket.CLOSED);
+    expect(warn).toHaveBeenCalledWith("[ws] heartbeat timeout, closing");
+    client.close();
+    await Promise.all(pending);
+  });
+
+  it("keeps the heartbeat watchdog armed when an over-budget send buffer rejects the probe", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    socket.bufferedAmount = 40 * 1024 * 1024 + 1;
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(socket.sent).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(socket.readyState).toBe(FakeWebSocket.CLOSED);
+    expect(warn).toHaveBeenCalledWith("[ws] heartbeat timeout, closing");
+    client.close();
+  });
+
   it("preserves management transport uncertainty instead of calling it a rejection", async () => {
     const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
     const pending = client.rpc("admin/provider/switch"); const id = JSON.parse(socket.sent.at(-1)!).id;
     socket.message({ kind: "rpcResult", id, error: "worker timeout", errorCode: "MANAGEMENT_UNKNOWN" });
     await expect(pending).rejects.toMatchObject({ delivery: "unknown", code: "MANAGEMENT_UNKNOWN" });
     expect(socket.sent).toHaveLength(1); client.close();
+  });
+
+  it.each([
+    ["unknown", "unknown"],
+    ["rejected", "rejected"],
+    ["not_sent", "not_sent"],
+  ] as const)("preserves an explicit %s delivery result from the gateway", async (delivery, expected) => {
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    const pending = client.rpc("test/delivery"); const id = JSON.parse(socket.sent.at(-1)!).id;
+    socket.message({ kind: "rpcResult", id, error: "request failed", delivery });
+    await expect(pending).rejects.toMatchObject({ delivery: expected });
+    client.close();
+  });
+
+  it("does not trust malformed delivery metadata from the gateway", async () => {
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    const pending = client.rpc("test/delivery"); const id = JSON.parse(socket.sent.at(-1)!).id;
+    socket.message({ kind: "rpcResult", id, error: "request failed", delivery: "not-sent-and-safe-to-retry" });
+    await expect(pending).rejects.toMatchObject({ delivery: "unknown" });
+    client.close();
+  });
+
+  it("fails closed when a gateway error omits its delivery receipt", async () => {
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    const pending = client.rpc("test/delivery"); const id = JSON.parse(socket.sent.at(-1)!).id;
+    socket.message({ kind: "rpcResult", id, error: "unclassified failure" });
+    await expect(pending).rejects.toMatchObject({ delivery: "unknown" });
+    client.close();
+  });
+
+  it("recognizes the legacy definite operation code when its receipt is omitted", async () => {
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    const pending = client.rpc("turn/start"); const id = JSON.parse(socket.sent.at(-1)!).id;
+    socket.message({ kind: "rpcResult", id, error: "invalid request", errorCode: "OPERATION_REJECTED" });
+    await expect(pending).rejects.toMatchObject({ delivery: "rejected", code: "OPERATION_REJECTED" });
+    client.close();
+  });
+
+  it("isolates notification subscribers so one broken view cannot starve the others", () => {
+    const report = vi.spyOn(console, "error").mockImplementation(() => {});
+    const client = new GatewayClient(); client.connect(); const socket = FakeWebSocket.instances[0]; socket.open();
+    client.onNotification(() => { throw new Error("broken subscriber"); });
+    const healthy = vi.fn(); client.onNotification(healthy);
+
+    socket.message({ kind: "notification", method: "thread/name/updated", params: { threadId: "T", name: "updated" } });
+
+    expect(healthy).toHaveBeenCalledOnce();
+    expect(report).toHaveBeenCalledWith("[ws] notification subscriber failed", expect.any(Error));
+    client.close();
   });
 });

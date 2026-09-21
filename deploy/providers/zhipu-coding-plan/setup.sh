@@ -13,9 +13,11 @@
 set -euo pipefail
 umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="$SCRIPT_DIR/..${PYTHONPATH:+:$PYTHONPATH}"
+CATALOG_LIMITS="$SCRIPT_DIR/../catalog_limits.py"
+unset PYTHONHOME
+export PYTHONPATH="$SCRIPT_DIR/.." PYTHONSAFEPATH=1 PYTHONNOUSERSITE=1
 if [ "${HARNESS_PROVIDER_TRANSACTION:-0}" != "1" ]; then
-  exec python3 "$SCRIPT_DIR/../provider_transaction.py" zhipu "$0" "$@"
+  exec python3 -I "$SCRIPT_DIR/../provider_transaction.py" zhipu "$0" "$@"
 fi
 ENV_FILE="${ENV_FILE:-${CODEX_HOME:-$HOME/.codex}/secrets.env}"
 CH="${CODEX_HOME:-$HOME/.codex}"
@@ -29,6 +31,7 @@ CATALOG_URL="https://open.bigmodel.cn/api/v1/models"
 RESPONSES_URL="https://open.bigmodel.cn/api/v1/responses"
 
 log() { echo "[zhipu-setup] $*"; }
+die() { echo "[zhipu-setup] ERROR: $*" >&2; exit 1; }
 
 # WebUI/CLI may supply a replacement key. Persist it atomically in the one
 # canonical secret store; never pass it as argv or print it.
@@ -99,20 +102,22 @@ fi
 
 # --- 1) live model catalog ----------------------------------------------------
 log "获取模型列表..."
+CATALOG_DOWNLOAD="$(mktemp /tmp/codex-harness-catalog-download.XXXXXX.json)"
 CATALOG_TMP="$(mktemp /tmp/codex-harness-catalog.XXXXXX.json)"
-trap 'rm -f "$CATALOG_TMP"' EXIT
-if zhipu_curl -sf --max-time 20 "$CATALOG_URL" -o "$CATALOG_TMP" 2>/dev/null \
-   && python3 -c 'import json,sys;json.load(open(sys.argv[1]))["models"]' "$CATALOG_TMP" 2>/dev/null; then
-  CATALOG_SRC="$CATALOG_TMP"
+trap 'rm -f "$CATALOG_DOWNLOAD" "$CATALOG_TMP"' EXIT
+if zhipu_curl -sf --max-time 20 --max-filesize 1048576 "$CATALOG_URL" -o "$CATALOG_DOWNLOAD" 2>/dev/null \
+   && python3 "$CATALOG_LIMITS" normalize-zhipu "$CATALOG_DOWNLOAD" "$CATALOG_TMP" 2>/dev/null; then
   log "已获取在线模型目录"
 else
   if [ "${ZHIPU_SYNC_CATALOG:-0}" = "1" ]; then
     log "在线目录刷新失败；当前活动目录、配置和密钥均保持不变，未请求重启"
     exit 1
   fi
-  CATALOG_SRC="$SCRIPT_DIR/models.json"
+  python3 "$CATALOG_LIMITS" normalize-zhipu "$SCRIPT_DIR/models.json" "$CATALOG_TMP" \
+    || die "内置离线模型目录无效或超过安全上限"
   log "首次配置无法获取在线目录——使用内置离线目录（不是成功刷新）"
 fi
+CATALOG_SRC="$CATALOG_TMP"
 
 # --- 2) pick a model ----------------------------------------------------------
 MODEL="${ZHIPU_MODEL:-}"
@@ -120,10 +125,11 @@ MODEL_EFFORT="max"
 MODEL_LEVELS=""
 pick_model() {
   python3 - "$CATALOG_SRC" "$MODEL" <<'PY'
-import json, re, sys
+import re, sys
+from catalog_limits import load_json_path, validate_models_catalog
 
 catalog, model = sys.argv[1], sys.argv[2]
-ms = json.load(open(catalog))["models"]
+ms = validate_models_catalog(load_json_path(catalog))["models"]
 if not model:
     model = "glm-5.3" if any(m.get("slug") == "glm-5.3" for m in ms) else ms[0]["slug"]
 entry = next((m for m in ms if m.get("slug") == model), None)
@@ -142,9 +148,9 @@ print(" ".join(levels))
 print(model)
 PY
 }
-if [ "${ZHIPU_SYNC_CATALOG:-0}" != "1" ] && [ -t 0 ] && python3 -c 'import json,sys;ms=json.load(open(sys.argv[1]))["models"];exit(0 if ms else 1)' "$CATALOG_SRC"; then
+if [ "${ZHIPU_SYNC_CATALOG:-0}" != "1" ] && [ -t 0 ] && python3 -c 'import sys;from catalog_limits import load_json_path,validate_models_catalog;ms=validate_models_catalog(load_json_path(sys.argv[1]))["models"];exit(0 if ms else 1)' "$CATALOG_SRC"; then
   # show the list, let the user pick by number
-  mapfile -t SLUGS < <(python3 -c 'import json,sys;print("\n".join(m.get("slug","?") for m in json.load(open(sys.argv[1]))["models"]))' "$CATALOG_SRC")
+  mapfile -t SLUGS < <(python3 -c 'import sys;from catalog_limits import load_json_path,validate_models_catalog;print("\n".join(m["slug"] for m in validate_models_catalog(load_json_path(sys.argv[1]))["models"]))' "$CATALOG_SRC")
   echo "Coding Plan 提供以下模型："
   for i in "${!SLUGS[@]}"; do echo "  $((i+1))  ${SLUGS[$i]}"; done
   DEFAULT_IDX=1
@@ -170,7 +176,6 @@ if PICK_OUT="$(pick_model)"; then
     esac
   fi
 else
-  die() { echo "[zhipu-setup] ERROR: $*" >&2; exit 1; }
   die "$PICK_OUT"
 fi
 
@@ -231,9 +236,10 @@ print("[zhipu-setup] 模型源键已写入候选配置集")
 PY
 log "模型源已切换为智谱（$MODEL），其它用户配置保留"
 VERIFIED="${VERIFIED:-}" python3 - "$CATALOG_SRC" "$(dirname "$CONFIG")/models.json" "$MODEL" "$MODEL_EFFORT" <<'PY'
-import json, os, sys
+import os, sys
 from atomic_write import atomic_write
-catalog = json.load(open(sys.argv[1], encoding="utf-8"))
+from catalog_limits import dump_json_limited, load_json_path, validate_models_catalog
+catalog = validate_models_catalog(load_json_path(sys.argv[1]))
 verified = os.environ.get("VERIFIED", "").split()
 for entry in catalog["models"]:
     if entry.get("slug") == sys.argv[3]:
@@ -243,7 +249,8 @@ for entry in catalog["models"]:
                 level for level in entry.get("supported_reasoning_levels", [])
                 if isinstance(level, dict) and level.get("effort") in verified
             ]
-atomic_write(sys.argv[2], json.dumps(catalog, ensure_ascii=False, indent=2) + "\n")
+validate_models_catalog(catalog)
+atomic_write(sys.argv[2], dump_json_limited(catalog, indent=2))
 PY
 
 # feature 开关（幂等）：[features] mcp_2026_07_28 = true
@@ -261,9 +268,6 @@ PY
 # --- 5) MCP 服务器（写入本模式配置集）-------------------------------------------
 CONFIG="$CONFIG" bash "$SCRIPT_DIR/setup-http-mcp.sh"
 CONFIG="$CONFIG" bash "$SCRIPT_DIR/setup-zai-mcp.sh"
-
-# 注：fix-mcp-approval.sh 用于给"其它来源"已存在的 MCP 服务器补审批白名单
-# （如 chelper 写入的块）；本仓库 setup 脚本生成的块已含该行，无需再跑。
 
 chmod 600 "$CONFIG" "$(dirname "$CONFIG")/models.json" 2>/dev/null || true
 

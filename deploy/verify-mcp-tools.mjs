@@ -112,8 +112,11 @@ function taskResult(data, reply, task) {
       // vendor-specific JSON envelope.
       for (const match of part.matchAll(/(?:^|\n)\s*(?:title|标题)\s*[:：]\s*([^\n]+)\n\s*(?:url|link|链接)\s*[:：]\s*(https?:\/\/\S+)/gi)) add(match[1], match[2]);
     }
-    const result = /openai/i.test(text) && titles.length > 0;
-    return { result, reply: result && shared(titles).length > 0 };
+    // Multiple content representations often repeat the same result. They
+    // must not manufacture the three distinct titles requested by the task.
+    const firstTitles = [...new Map(titles.map(title => [normalize(title), title])).values()].slice(0, 3);
+    const result = /openai/i.test(text) && firstTitles.length === 3;
+    return { result, reply: result && shared(firstTitles).length === 3 };
   }
   if (task.key === "web-reader") {
     const result = /example domain/i.test(text) && /(?:documentation|illustrative)\s+examples/i.test(text);
@@ -121,8 +124,8 @@ function taskResult(data, reply, task) {
   }
   if (task.key === "zread") {
     const names = [...new Set([...text.matchAll(/(?:^|[^a-z0-9_.-])(\.[a-z0-9_-]+|[a-z0-9_-]+(?:\.[a-z0-9_-]+)+|packages|docs|scripts|playground)(?=$|[^a-z0-9_.-])/gi)].map(match => match[1]))];
-    const result = names.includes("package.json") && names.length >= 3;
-    return { result, reply: result && shared(names).length >= 3 };
+    const result = names.includes("package.json") && names.length >= 5;
+    return { result, reply: result && shared(names).length >= 5 };
   }
   if (task.key === "zai-vision") {
     // Bounded fixture checks, not a claim to fully judge image descriptions.

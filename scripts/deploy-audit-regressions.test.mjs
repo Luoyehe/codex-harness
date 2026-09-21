@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -72,27 +72,32 @@ assert os.geteuid() != 0, 'run deployment fixtures as an unprivileged account'
 with tempfile.TemporaryDirectory() as directory:
     home = Path(directory)
     config = home / 'config.toml'
+    setup_script = home / 'fixture-setup.sh'
+    setup_script.write_text('#!/bin/sh\\nexit 0\\n'); setup_script.chmod(0o700)
     config.write_text('model_provider="ZAI"\\nmodel="before-lock"\\nmodel_reasoning_effort="low"\\n')
     @contextmanager
-    def changed_lock(home):
+    def changed_lock(home, home_fd):
+        assert home_fd >= 0
         config.write_text('model_provider="custom"\\n')
         yield
     env = {'CODEX_HOME':str(home), 'ENV_FILE':str(home / 'secrets.env'), 'ZHIPU_SYNC_CATALOG':'1', 'CUSTOM_SYNC_CATALOG':'0', 'ZHIPU_MODEL':'old-model'}
     with patch.dict(os.environ, env), patch.object(transaction, 'transaction_lock', changed_lock), patch.object(transaction.subprocess, 'run') as child:
-        try: transaction.execute('zhipu', ['fixture-setup'])
+        try: transaction.execute('zhipu', [str(setup_script)])
         except ValueError: pass
         else: raise AssertionError('provider changed while acquiring lock')
         child.assert_not_called()
     @contextmanager
-    def current_lock(home):
+    def current_lock(home, home_fd):
+        assert home_fd >= 0
         config.write_text('model_provider="ZAI"\\nmodel="after-lock"\\nmodel_reasoning_effort="high"\\n')
         yield
-    def setup(command, env, check):
+    def setup(command, cwd, env, check):
+        assert Path(cwd) == setup_script.parent
         assert env['ZHIPU_MODEL'] == 'after-lock' and env['ZHIPU_EFFORT'] == 'high'
         assert env['ZHIPU_KEY'] == '' and env['PROBE_REASONING'] == '0'
         return SimpleNamespace(returncode=9)
     with patch.dict(os.environ, env), patch.object(transaction, 'transaction_lock', current_lock), patch.object(transaction.subprocess, 'run', setup):
-        assert transaction.execute('zhipu', ['fixture-setup']) == 9
+        assert transaction.execute('zhipu', [str(setup_script)]) == 9
     assert 'after-lock' in config.read_text()
 `);
 });
@@ -135,6 +140,44 @@ with tempfile.TemporaryDirectory() as directory:
     try: prepare(home, env)
     except OSError: pass
     else: raise AssertionError('linked secret inode accepted')
+`);
+});
+
+test("environment reads enforce both the fstat size and a cap-plus-one growth check", posix, () => {
+  runPython(`import os,tempfile
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+import service_env
+from service_env import MAX_ENVIRONMENT_BYTES, read_regular
+with tempfile.TemporaryDirectory() as directory:
+    base = Path(directory)
+    path = base / 'secrets.env'
+    directory_fd = os.open(base, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        path.write_bytes(b'x' * MAX_ENVIRONMENT_BYTES)
+        assert len(read_regular(directory_fd, path.name)) == MAX_ENVIRONMENT_BYTES
+        path.write_bytes(b'x' * (MAX_ENVIRONMENT_BYTES + 1))
+        try: read_regular(directory_fd, path.name)
+        except ValueError: pass
+        else: raise AssertionError('oversized environment accepted by fstat check')
+        actual = path.stat()
+        stale = SimpleNamespace(st_mode=actual.st_mode, st_nlink=actual.st_nlink,
+                                st_uid=os.geteuid(), st_size=0)
+        with patch.object(service_env.os, 'fstat', return_value=stale):
+            try: read_regular(directory_fd, path.name)
+            except ValueError: pass
+            else: raise AssertionError('growing environment bypassed the bounded read')
+        path.write_bytes(b'fixture'); actual = path.stat()
+        changed = SimpleNamespace(**{name:getattr(actual,name) for name in (
+            'st_dev','st_ino','st_mode','st_nlink','st_uid','st_gid','st_size','st_atime_ns','st_mtime_ns','st_ctime_ns')})
+        changed.st_mtime_ns += 1
+        with patch.object(service_env.os, 'fstat', side_effect=[actual, changed]):
+            try: read_regular(directory_fd, path.name)
+            except ValueError as error: assert 'changed' in str(error)
+            else: raise AssertionError('mutated environment snapshot accepted')
+    finally:
+        os.close(directory_fd)
 `);
 });
 
@@ -182,9 +225,14 @@ test("installer rejects a root service before package, build, or environment ope
     const source = readFileSync(path.join(deploy, "install.sh"), "utf8");
     const preflight = source.slice(source.indexOf('INSTALL_DIR="${INSTALL_DIR:-$REPO_ROOT}"'), source.indexOf('\nRUN_HOME="'))
       .replaceAll("/etc/systemd/system/", `${dir}/units/`);
+    const bin = path.join(dir, "bin");
+    mkdirSync(bin);
+    const sudo = path.join(bin, "sudo");
+    writeFileSync(sudo, "#!/bin/sh\nexec \"$@\"\n");
+    chmodSync(sudo, 0o755);
     for (const [account, bypass] of [["root", "0"], ["root", "1"], ["0", "1"]]) {
       const result = spawnSync("bash", ["-c", `set -eu\n${preflight}\nprintf UNEXPECTED_MUTATION\n`], { encoding: "utf8", timeout: 10000,
-        env: { ...process.env, REPO_ROOT: dir, SERVICE_NAME: "isolated-fixture", RUN_USER: account, ALLOW_ROOT_SERVICE: bypass } });
+        env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}`, REPO_ROOT: dir, SCRIPT_DIR: deploy, SERVICE_NAME: "isolated-fixture", RUN_USER: account, ALLOW_ROOT_SERVICE: bypass } });
       assert.equal(result.status, 1, result.stderr);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /RUN_USER=<account>/);

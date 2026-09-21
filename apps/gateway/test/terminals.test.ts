@@ -41,6 +41,22 @@ describe("connection-owned terminals", () => {
     expect(() => sessions.create("b")).not.toThrow();
   });
 
+  it("continues bounded disconnect cleanup retries until admission recovers", async () => {
+    vi.useFakeTimers();
+    const stop = vi.fn().mockRejectedValueOnce(new Error("full-1")).mockRejectedValueOnce(new Error("full-2")).mockResolvedValue({});
+    const sessions = new Terminals(stop, 1, 1);
+    sessions.connect("a"); sessions.connect("b");
+    const id = sessions.create("a");
+    sessions.disconnect("a");
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(stop).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(stop).toHaveBeenCalledTimes(3);
+    expect(() => sessions.create("b")).toThrow("limit");
+    sessions.finish(id);
+    expect(() => sessions.create("b")).not.toThrow();
+  });
+
   it("an old exec settlement cannot remove a reused id in a new generation", () => {
     const sessions = new Terminals(async () => ({})); sessions.connect("a");
     const id = sessions.create("a"), epoch = sessions.epoch;
@@ -70,6 +86,43 @@ describe("connection-owned terminals", () => {
     await new Promise((resolve) => setImmediate(resolve));
     expect(notify).toHaveBeenCalledWith("terminal/exited", expect.objectContaining({ processId: id, error: "unavailable" }));
     expect(() => sessions.require("browser", id)).toThrow("not active");
+  });
+
+  it("projects terminal control acknowledgements and bounds deferred exit data", async () => {
+    let finish!: (value: unknown) => void;
+    const request = vi.fn((method: string) => method === "command/exec"
+      ? new Promise((resolve) => { finish = resolve; })
+      : Promise.resolve({ privatePadding: "x".repeat(100_000) }));
+    const notify = vi.fn();
+    const sessions = new Terminals(async (id) => request("command/exec/terminate", { id }));
+    sessions.connect("browser");
+    const dispatch = makeDispatcher({ supervisor: { request, state: "ready" }, projects: { resolveRegistered: () => "/fixture" },
+      workspaceRoot: "/fixture", terminals: sessions, terminalOwner: "browser", notify } as any);
+    const { processId } = await dispatch("terminal/exec", {}, "browser") as { processId: string };
+    await expect(dispatch("terminal/write", { processId, base64: "YQ==" }, "browser")).resolves.toEqual({ ok: true });
+    await expect(dispatch("terminal/resize", { processId, rows: 24, cols: 80 }, "browser")).resolves.toEqual({ ok: true });
+    await expect(dispatch("terminal/terminate", { processId }, "browser")).resolves.toEqual({ ok: true });
+    finish({ exitCode: { privatePadding: "x".repeat(100_000) } });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(notify).toHaveBeenCalledWith("terminal/exited", { processId, exitCode: null });
+  });
+
+  it("caps an untrusted deferred terminal failure before publishing it", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "command/exec") throw new Error("e".repeat(100_000));
+      return {};
+    });
+    const notify = vi.fn();
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const sessions = new Terminals(async () => ({})); sessions.connect("browser");
+    const dispatch = makeDispatcher({ supervisor: { request, state: "ready" }, projects: { resolveRegistered: () => "/fixture" },
+      workspaceRoot: "/fixture", terminals: sessions, terminalOwner: "browser", notify } as any);
+    try {
+      await dispatch("terminal/exec", {}, "browser");
+      await new Promise((resolve) => setImmediate(resolve));
+      const exited = notify.mock.calls.find(([method]) => method === "terminal/exited")?.[1];
+      expect(exited.error).toHaveLength(2000);
+    } finally { stderr.mockRestore(); }
   });
 
   it("does not queue shell creation while restarting or publish an old-generation exit", async () => {

@@ -74,16 +74,71 @@ describe("terminal bounded ordered byte transport", () => {
     f.session.dispose();
   });
 
-  it("refuses oversized input as a whole and stops runaway unrendered output", async () => {
+  it("refuses oversized input and does not claim output-overflow termination before confirmation", async () => {
     const f = fixture(); const starting = f.session.start(null);
     f.create.resolve({ processId: f.session.processId }); await starting;
     f.data("x".repeat(1024 * 1024 + 1));
     expect(f.rpc.mock.calls.some(([method]) => method === "terminal/write")).toBe(false);
     expect(f.term.writeln).toHaveBeenCalledWith(expect.stringContaining("本次输入未发送"));
+    f.rpc.mockImplementation((method) => method === "terminal/terminate" ? Promise.reject(new Error("kill failed")) : Promise.resolve({}));
     const data = btoa("x".repeat(1024 * 1024));
     for (let index = 0; index < 5; index++) f.session.handleNotification({ method: "command/exec/outputDelta", params: { processId: f.session.processId, deltaBase64: data, stream: "stdout", capReached: false } });
-    expect(f.session.exited).toBe(true);
+    expect(f.session.exited).toBe(false);
+    expect(f.exited).not.toHaveBeenCalled();
     expect(f.rpc).toHaveBeenCalledWith("terminal/terminate", { processId: f.session.processId });
+    for (let index = 0; index < 5; index++) await Promise.resolve();
+    expect(f.term.writeln).toHaveBeenCalledWith(expect.stringContaining("终止请求失败"));
+    expect(f.session.unavailable).toBe(true);
+    expect(f.exited).toHaveBeenCalledExactlyOnceWith(false);
+    f.data("echo must-not-run\r");
+    expect(f.rpc.mock.calls.some(([method]) => method === "terminal/write")).toBe(false);
+    f.session.handleNotification({ method: "terminal/exited", params: { processId: f.session.processId, exitCode: null, error: "terminated later" } });
+    expect(f.session.exited).toBe(true);
+    expect(f.exited).toHaveBeenNthCalledWith(2, true);
+    f.session.dispose();
+  });
+
+  it("marks a disconnected terminal unavailable without claiming the process exited", async () => {
+    const f = fixture(); const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    (f.session as TerminalSession & { markUnavailable(message: string): void; unavailable: boolean })
+      .markUnavailable("连接已断开，进程退出尚未确认");
+    expect((f.session as TerminalSession & { unavailable: boolean }).unavailable).toBe(true);
+    expect(f.session.exited).toBe(false);
+    expect(f.exited).toHaveBeenCalledExactlyOnceWith(false);
+    f.data("echo must-not-run\r");
+    expect(f.rpc.mock.calls.some(([method]) => method === "terminal/write")).toBe(false);
+    expect(f.term.writeln).toHaveBeenCalledWith(expect.stringContaining("退出尚未确认"));
+    f.session.handleNotification({ method: "terminal/exited", params: { processId: f.session.processId, exitCode: 0 } });
+    expect(f.session.unavailable).toBe(false);
+    expect(f.session.exited).toBe(true);
+    expect(f.exited).toHaveBeenNthCalledWith(2, true);
+    f.session.dispose();
+  });
+
+  it("marks the transcript unavailable instead of silently dropping malformed terminal output", async () => {
+    const f = fixture(); const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    f.session.handleNotification({ method: "command/exec/outputDelta", params: { processId: f.session.processId, deltaBase64: "%%%not-base64%%%", stream: "stdout", capReached: false } });
+    expect(f.session.unavailable).toBe(true);
+    expect(f.session.exited).toBe(false);
+    expect(f.exited).toHaveBeenCalledExactlyOnceWith(false);
+    expect(f.term.writeln).toHaveBeenCalledWith(expect.stringContaining("输出数据格式无效"));
+    f.data("echo must-not-run\r");
+    expect(f.rpc.mock.calls.some(([method]) => method === "terminal/write")).toBe(false);
+    f.session.dispose();
+  });
+
+  it("ignores malformed terminal notifications and still accepts later lifecycle evidence", async () => {
+    const f = fixture(); const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    expect(() => f.session.handleNotification({ method: "terminal/exited", params: null } as any)).not.toThrow();
+    expect(() => f.session.handleNotification({ method: "command/exec/outputDelta", params: null } as any)).not.toThrow();
+    expect(f.session.exited).toBe(false);
+
+    f.session.handleNotification({ method: "terminal/exited", params: { processId: f.session.processId, exitCode: 0 } });
+    expect(f.session.exited).toBe(true);
+    expect(f.exited).toHaveBeenCalledExactlyOnceWith(true);
     f.session.dispose();
   });
 });
@@ -128,6 +183,53 @@ describe("terminal startup and geometry", () => {
     expect(f.container.remove).toHaveBeenCalledOnce(); expect(f.term.dispose).toHaveBeenCalledOnce();
   });
 
+  it("keeps one resize in flight and coalesces a slow burst to the final geometry", async () => {
+    const f = fixture();
+    const firstResize = deferred<{}>();
+    let resizeCalls = 0;
+    f.rpc.mockImplementation((method) => {
+      if (method === "terminal/exec") return f.create.promise;
+      if (method === "terminal/resize" && ++resizeCalls === 1) return firstResize.promise;
+      return Promise.resolve({});
+    });
+    const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    expect(f.rpc.mock.calls.filter(([method]) => method === "terminal/resize")).toHaveLength(1);
+
+    for (const [cols, rows] of [[130, 41], [144, 50], [180, 70]] as const) {
+      f.geometry(cols, rows);
+      f.session.fitVisible();
+    }
+    expect(f.rpc.mock.calls.filter(([method]) => method === "terminal/resize")).toHaveLength(1);
+
+    firstResize.reject(new Error("slow connection closed"));
+    for (let index = 0; index < 10; index++) await Promise.resolve();
+    const resizes = f.rpc.mock.calls.filter(([method]) => method === "terminal/resize");
+    expect(resizes).toHaveLength(2);
+    expect(resizes[1]).toEqual(["terminal/resize", { processId: f.session.processId, cols: 180, rows: 70 }]);
+    f.session.dispose();
+  });
+
+  it("does not dispatch a queued resize after disconnect or close", async () => {
+    for (const end of ["disconnect", "close"] as const) {
+      const f = fixture();
+      const firstResize = deferred<{}>();
+      f.rpc.mockImplementation((method) => method === "terminal/exec" ? f.create.promise
+        : method === "terminal/resize" ? firstResize.promise : Promise.resolve({}));
+      const starting = f.session.start(null);
+      f.create.resolve({ processId: f.session.processId }); await starting;
+      f.geometry(160, 60); f.session.fitVisible();
+
+      if (end === "disconnect") f.session.markUnavailable("connection closed");
+      else f.session.dispose();
+      firstResize.resolve({});
+      for (let index = 0; index < 10; index++) await Promise.resolve();
+
+      expect(f.rpc.mock.calls.filter(([method]) => method === "terminal/resize")).toHaveLength(1);
+      if (end === "disconnect") f.session.dispose();
+    }
+  });
+
   it("fits a formerly hidden tab and cancels pending geometry work on disposal", async () => {
     const f = fixture(); const starting = f.session.start(null);
     f.create.resolve({ processId: f.session.processId }); await starting;
@@ -138,6 +240,21 @@ describe("terminal startup and geometry", () => {
     f.observe(); f.session.dispose(); f.session.dispose();
     expect(cancelAnimationFrame).toHaveBeenCalledWith(1);
     expect(f.rpc.mock.calls.filter(([method]) => method === "terminal/terminate")).toHaveLength(1);
+  });
+
+  it("reports an explicit close whose terminate request failed", async () => {
+    const f = fixture(); const starting = f.session.start(null);
+    f.create.resolve({ processId: f.session.processId }); await starting;
+    const terminationFailed = vi.fn();
+    f.rpc.mockImplementation((method) => method === "terminal/terminate"
+      ? Promise.reject(new Error("synthetic terminate failure"))
+      : Promise.resolve({}));
+
+    f.session.dispose(terminationFailed);
+    for (let index = 0; index < 5; index++) await Promise.resolve();
+
+    expect(terminationFailed).toHaveBeenCalledOnce();
+    expect(terminationFailed.mock.calls[0][0]).toMatchObject({ message: "synthetic terminate failure" });
   });
 
   it("cleans up a creation acknowledged after its view was disposed", async () => {

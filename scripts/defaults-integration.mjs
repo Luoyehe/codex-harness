@@ -3,13 +3,14 @@
 // Build gateway first. CODEX_BIN must point to the supported 0.149.0 executable.
 import assert from "node:assert/strict";
 import http from "node:http";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { createInterface } from "node:readline";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawnOfflineChild, stopOfflineChild } from "./offline-process.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const defaultsModule = pathToFileURL(process.argv[2] ?? path.join(root, "apps/gateway/dist/turn-defaults.js"));
@@ -17,7 +18,7 @@ const { TurnDefaults } = await import(defaultsModule.href);
 const { makeDispatcher } = await import(new URL("./api.js", defaultsModule).href);
 const bin = process.env.CODEX_BIN;
 assert.ok(bin && path.isAbsolute(bin), "CODEX_BIN must be an absolute pinned binary path");
-const version = spawnSync(bin, ["--version"], { encoding: "utf8", windowsHide: true });
+const version = spawnSync(bin, ["--version"], { encoding: "utf8", windowsHide: true, timeout: 10000 });
 assert.equal(version.status, 0);
 assert.match(version.stdout, /\b0\.149\.0\b/);
 const scratch = mkdtempSync(path.join(tmpdir(), "harness-default-reset-"));
@@ -51,12 +52,20 @@ const server = http.createServer(async (req, res) => {
 server.listen(0, "127.0.0.1"); await once(server, "listening");
 writeFileSync(path.join(home, "config.toml"), `model_provider = "fixture"\nmodel = "fixture-a"\napproval_policy = "on-request"\nsandbox_mode = "read-only"\nmodel_catalog_json = ${JSON.stringify(path.join(home, "models.json"))}\nmodel_reasoning_effort = "low"\n[model_providers.fixture]\nname = "Offline fixture"\nbase_url = "http://127.0.0.1:${server.address().port}/v1"\nwire_api = "responses"\n`, { mode: 0o600 });
 const env = { PATH: process.env.PATH, HOME: home, USERPROFILE: home, CODEX_HOME: home, NO_PROXY: "*", no_proxy: "*" };
-const child = spawn(bin, ["app-server"], { cwd, env, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
+const child = spawnOfflineChild(bin, ["app-server"], { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
 child.stderr.resume();
 const pending = new Map(), notes = [];
-let seq = 0, resolver;
-createInterface({ input: child.stdout }).on("line", line => {
+let seq = 0, resolver, transportError;
+const failTransport = () => {
+  transportError ??= new Error("offline app-server transport closed or failed");
+  for (const item of pending.values()) { clearTimeout(item.timer); item.reject(transportError); }
+  pending.clear();
+};
+child.on("error", failTransport); child.on("exit", failTransport);
+child.stdin.on("error", failTransport); child.stdout.on("error", failTransport); child.stderr.on("error", failTransport);
+createInterface({ input: child.stdout }).on("error", failTransport).on("line", line => {
   let msg; try { msg = JSON.parse(line); } catch { return; }
+  if (!msg || typeof msg !== "object" || Array.isArray(msg)) return;
   if (msg.id != null && pending.has(msg.id)) {
     const item = pending.get(msg.id); pending.delete(msg.id); clearTimeout(item.timer);
     msg.error ? item.reject(new Error(JSON.stringify(msg.error))) : item.resolve(msg.result);
@@ -66,15 +75,19 @@ createInterface({ input: child.stdout }).on("line", line => {
   }
 });
 const rpc = (method, params) => new Promise((resolve, reject) => {
+  if (transportError) { reject(transportError); return; }
   const id = ++seq;
   const timer = setTimeout(() => { pending.delete(id); reject(new Error(`RPC timeout: ${method}`)); }, 15000);
-  pending.set(id, { resolve, reject, timer }); child.stdin.write(JSON.stringify({ id, method, params }) + "\n");
+  pending.set(id, { resolve, reject, timer });
+  try { child.stdin.write(JSON.stringify({ id, method, params }) + "\n", error => { if (error) failTransport(); }); }
+  catch { failTransport(); }
 });
 resolver = new TurnDefaults({ request: rpc });
 const dispatch = makeDispatcher({ supervisor: { request: rpc }, turnDefaults: resolver, attachments: {} });
 const waitForTurn = async (result) => {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
+    if (transportError) throw transportError;
     const end = notes.find(note => note.method === "turn/completed" && note.params?.turn?.id === result.turn.id);
     if (end) { assert.equal(end.params.turn.status, "completed"); return; }
     await new Promise(resolve => setTimeout(resolve, 20));
@@ -88,6 +101,7 @@ const composerTurn = async (threadId, overrides = {}) => waitForTurn(await dispa
   threadId, text: "Reply OK without tools.", model: null, approvalPolicy: null, sandbox: null, effort: null, ...overrides,
 }));
 const pick = r => ({ model: r.model, approvalPolicy: r.approvalPolicy, sandbox: r.sandbox.type, reasoningEffort: r.reasoningEffort });
+let report;
 try {
   await rpc("initialize", { clientInfo: { name: "harness-default-reset-regression", version: "1" } });
   child.stdin.write(JSON.stringify({ method: "initialized", params: {} }) + "\n");
@@ -139,15 +153,14 @@ try {
       reasoningOnWire: restoredRequest.reasoning ?? null, explicitOverridesRejected: true });
   }
   assert.equal(notes.filter(note => note.method === "thread/started" && note.params?.thread?.ephemeral).length, 0);
-  console.log(JSON.stringify({ binary: "0.149.0", externalRequests: 0, fixtureResponses: servedModels.length,
-    servedModels, initial: pick(initial), overridden: pick(overridden), afterReset: pick(afterReset), emptyCapabilityResults, passed: true }));
+  report = { binary: "0.149.0", externalRequests: 0, fixtureResponses: servedModels.length,
+    servedModels, initial: pick(initial), overridden: pick(overridden), afterReset: pick(afterReset), emptyCapabilityResults, passed: true };
 } finally {
   for (const item of pending.values()) clearTimeout(item.timer);
-  const stopped = once(child, "exit").catch(() => {}); child.kill("SIGTERM");
-  await Promise.race([stopped, new Promise(resolve => setTimeout(resolve, 2000))]);
-  if (child.exitCode === null) child.kill("SIGKILL");
-  server.closeAllConnections(); server.close();
+  try { await stopOfflineChild(child); }
+  finally { server.closeAllConnections(); server.close(); }
   assert.equal(path.dirname(path.resolve(scratch)), path.resolve(tmpdir()));
   assert.ok(path.basename(scratch).startsWith("harness-default-reset-"));
   rmSync(scratch, { recursive: true, force: true });
+  if (report) console.log(JSON.stringify(report));
 }

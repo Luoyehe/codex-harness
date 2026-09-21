@@ -1,7 +1,33 @@
+import { chmodSync, linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { prepareDevGatewayProxy, readDevGatewayToken, trustedDevGatewayRequest } from "../dev-gateway-proxy";
+import { prepareDevGatewayProxy, readDevGatewayToken, readPinnedDevGatewayToken, trustedDevGatewayRequest } from "../dev-gateway-proxy";
 
 describe("credential-bearing development proxy", () => {
+  it("reads only a private, bounded, descriptor-pinned control token", () => {
+    const directory = mkdtempSync(path.join(tmpdir(), "dev-gateway-token-"));
+    const token = path.join(directory, "gateway-token");
+    try {
+      writeFileSync(token, "x".repeat(40) + "\n", { mode: 0o600 });
+      chmodSync(token, 0o600);
+      expect(readPinnedDevGatewayToken(directory).trim()).toBe("x".repeat(40));
+
+      writeFileSync(token, "x".repeat(4099), { mode: 0o600 });
+      expect(() => readPinnedDevGatewayToken(directory)).toThrow();
+      if (process.platform !== "win32") {
+        rmSync(token);
+        const target = path.join(directory, "target");
+        writeFileSync(target, "x".repeat(40) + "\n", { mode: 0o600 });
+        symlinkSync(target, token);
+        expect(() => readPinnedDevGatewayToken(directory)).toThrow();
+        rmSync(token);
+        linkSync(target, token);
+        expect(() => readPinnedDevGatewayToken(directory)).toThrow();
+      }
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  });
+
   it.each(["127.0.0.1:5173", "localhost:5173"])("accepts the configured same-origin loopback host %s", (host) => {
     const request = { removeHeader: vi.fn(), setHeader: vi.fn(), destroy: vi.fn() };
     const socket = { destroy: vi.fn() };
@@ -14,7 +40,7 @@ describe("credential-bearing development proxy", () => {
     expect(socket.destroy).not.toHaveBeenCalled();
   });
 
-  it.each(["", "short", `${"x".repeat(40)}\r\nInjected: yes`])("rejects missing or malformed credentials", (token) => {
+  it.each(["", "short", "x".repeat(4097), `${"x".repeat(40)}\r\nInjected: yes`])("rejects missing or malformed credentials", (token) => {
     const request = { removeHeader: vi.fn(), setHeader: vi.fn(), destroy: vi.fn() };
     const socket = { destroy: vi.fn() };
     expect(prepareDevGatewayProxy({ host: "localhost:5173", origin: "http://localhost:5173" }, request, socket, () => token)).toBe(false);

@@ -26,6 +26,12 @@ def atomic_write(path, text):
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, target)
+        if os.name != "nt":
+            directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
     finally:
         try:
             os.unlink(temporary)

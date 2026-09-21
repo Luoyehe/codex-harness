@@ -19,6 +19,8 @@ PROTECTED = {"/", "/bin", "/boot", "/dev", "/etc", "/home", "/lib", "/lib64",
              "/media", "/mnt", "/opt", "/proc", "/root", "/run", "/sbin", "/srv",
              "/sys", "/tmp", "/usr", "/usr/local", "/var", "/var/cache",
              "/var/lib", "/var/log", "/var/spool"}
+MAX_DELETE_ENTRIES = 250_000
+MAX_DELETE_DEPTH = 128
 
 
 def identity(value):
@@ -83,18 +85,51 @@ def prepare(path, mode):
         return json.dumps(chain, separators=(",", ":"))
 
 
-def clear_directory(descriptor, device, mount):
+def checked_child(descriptor, name, before, device, mount):
+    child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+    try:
+        actual = os.fstat(child)
+        if identity(actual) != identity(before) or actual.st_dev != device or mount_id(child) != mount:
+            raise ValueError("cleanup target changed or contains another mounted filesystem")
+        return child, actual
+    except BaseException:
+        os.close(child)
+        raise
+
+
+def inspect_directory(descriptor, device, mount, budget, depth=0):
+    """Prove the complete deletion fits fixed budgets before mutating it."""
+    if depth > MAX_DELETE_DEPTH:
+        raise ValueError("cleanup tree exceeds its depth limit; no deletion performed")
+    with os.scandir(descriptor) as entries:
+        for entry in entries:
+            budget[0] += 1
+            if budget[0] > MAX_DELETE_ENTRIES:
+                raise ValueError("cleanup tree exceeds its entry limit; no deletion performed")
+            before = os.stat(entry.name, dir_fd=descriptor, follow_symlinks=False)
+            if not stat.S_ISDIR(before.st_mode):
+                continue
+            child, _ = checked_child(descriptor, entry.name, before, device, mount)
+            try:
+                inspect_directory(child, device, mount, budget, depth + 1)
+            finally:
+                os.close(child)
+
+
+def clear_directory(descriptor, device, mount, budget, depth=0):
+    if depth > MAX_DELETE_DEPTH:
+        raise ValueError("cleanup tree changed beyond its depth limit")
     # scandir(fd) stays anchored even when another process renames the path.
     with os.scandir(descriptor) as entries:
         for entry in entries:
+            budget[0] += 1
+            if budget[0] > MAX_DELETE_ENTRIES:
+                raise ValueError("cleanup tree changed beyond its entry limit")
             before = os.stat(entry.name, dir_fd=descriptor, follow_symlinks=False)
             if stat.S_ISDIR(before.st_mode):
-                child = os.open(entry.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+                child, actual = checked_child(descriptor, entry.name, before, device, mount)
                 try:
-                    actual = os.fstat(child)
-                    if identity(actual) != identity(before) or actual.st_dev != device or mount_id(child) != mount:
-                        raise ValueError("cleanup target changed or contains another mounted filesystem")
-                    clear_directory(child, device, mount)
+                    clear_directory(child, device, mount, budget, depth + 1)
                     latest = os.stat(entry.name, dir_fd=descriptor, follow_symlinks=False)
                     if identity(latest) != identity(actual):
                         raise ValueError("directory changed during cleanup")
@@ -111,7 +146,9 @@ def delete(path, mode, expected):
     with pinned(path, mode) as (parent, target, name, chain):
         if json.loads(expected) != chain:
             raise ValueError("cleanup target changed after confirmation; no deletion performed")
-        clear_directory(target, os.fstat(target).st_dev, mount_id(target))
+        device, mount = os.fstat(target).st_dev, mount_id(target)
+        inspect_directory(target, device, mount, [0])
+        clear_directory(target, device, mount, [0])
         if identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) != identity(os.fstat(target)):
             raise ValueError("cleanup target entry changed; replacement was preserved")
         os.rmdir(name, dir_fd=parent)

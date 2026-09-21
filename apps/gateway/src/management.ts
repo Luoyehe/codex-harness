@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { lstatSync, mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { atomicWriteFileSync } from "./atomic-file.js";
+import { readBoundedRegularTextFileSync } from "./bounded-file.js";
 
 export type ManagementState = "idle" | "running" | "restart_pending" | "unknown";
 export interface ManagementOperation {
@@ -45,15 +46,20 @@ export class ManagementGate {
     mkdirSync(controlHome, { recursive: true, mode: 0o700 });
     this.journal = path.join(controlHome, "management-operation.json");
     try {
-      const info = lstatSync(this.journal);
-      if (!info.isFile() || info.isSymbolicLink() || info.size > JOURNAL_CAP) throw new Error("invalid management journal file");
-      const value = JSON.parse(readFileSync(this.journal, "utf8"));
+      const value = JSON.parse(readBoundedRegularTextFileSync(this.journal, JOURNAL_CAP));
       const record = value?.lastOperation;
+      const stateOutcomeValid = value?.state === "idle"
+        ? ["succeeded", "failed", "unknown", "recovered"].includes(record?.outcome)
+        : value?.state === "running" ? record?.outcome === "running"
+          : value?.state === "restart_pending" ? record?.outcome === "restart_pending"
+            : value?.state === "unknown" && record?.outcome === "unknown";
       if (value?.version !== 1 || !["idle", "running", "restart_pending", "unknown"].includes(value?.state)
           || !record || typeof record.operationId !== "string" || !/^[a-f0-9-]{36}$/.test(record.operationId)
           || typeof record.operation !== "string" || !/^[a-zA-Z0-9/_-]{1,80}$/.test(record.operation)
           || !["running", "restart_pending", "succeeded", "failed", "unknown", "recovered"].includes(record.outcome)
-          || !Number.isFinite(record.startedAt) || !Number.isFinite(record.updatedAt)
+          || !Number.isSafeInteger(record.startedAt) || record.startedAt < 0
+          || !Number.isSafeInteger(record.updatedAt) || record.updatedAt < record.startedAt
+          || !stateOutcomeValid
           || (record.error !== undefined && (typeof record.error !== "string" || record.error.length > 512))
           || ["changed", "restartRequired"].some((key) => record[key] !== undefined && typeof record[key] !== "boolean")) {
         throw new Error("invalid management journal content");
@@ -79,7 +85,9 @@ export class ManagementGate {
       ...(this.lastOperation?.error ? { error: this.lastOperation.error } : {}) };
   }
   private publish(state: ManagementState, record: ManagementOperation) {
-    const next = { ...record, updatedAt: Date.now() };
+    // Wall clocks can move backwards (NTP/manual correction). Journals must
+    // remain reloadable and preserve their monotonic operation invariant.
+    const next = { ...record, updatedAt: Math.max(record.startedAt, record.updatedAt, Date.now()) };
     if (this.journal) {
       try {
         const json = JSON.stringify({ version: 1, state, lastOperation: next });
@@ -116,8 +124,8 @@ export class ManagementGate {
       this.publish("idle", { ...this.lastOperation, outcome: "unknown", error: INTERRUPTED });
     }
   }
-  async admit<T>(work: () => Promise<T>): Promise<T> {
-    if (this.state !== "idle") throw Object.assign(new Error("服务器配置或重启正在进行，或结果尚未确认；请完成后再开始新任务。"), { errorCode: "BUSY" });
+  async admit<T>(work: () => Promise<T>, exclusive = false): Promise<T> {
+    if (this.state !== "idle" || (exclusive && this.admissions > 0)) throw Object.assign(new Error("服务器配置、任务启动或重启正在进行，或结果尚未确认；请完成后再开始新任务。"), { errorCode: "BUSY" });
     this.admissions++;
     try { return await work(); } finally { this.admissions--; }
   }

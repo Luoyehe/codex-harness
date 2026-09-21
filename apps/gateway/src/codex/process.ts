@@ -27,7 +27,7 @@ export type SupervisorConnectionFactory = (handlers: import("./rpc.js").AppServe
 const CLIENT_INFO = {
   name: "codex-harness-webui",
   title: "Codex Harness WebUI",
-  version: "1.1.0",
+  version: "1.2.0",
 };
 
 const RESTART_BACKOFF_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 30_000];

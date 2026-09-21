@@ -19,8 +19,11 @@ def generate_hash(binary, password, timeout=30):
     child = None
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 120, 0, 0))
-        environment = os.environ.copy()
-        environment.pop("EDGE_PASS", None)
+        # Hash generation does not need ambient configuration. In particular,
+        # never pass dynamic-loader, Go or Python injection variables from a
+        # root install shell into the privileged Authelia process.
+        environment = {"HOME": "/root", "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                       "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
         child = subprocess.Popen(
             [binary, "crypto", "hash", "generate", "argon2", "--no-confirm"],
             stdin=slave, stdout=slave, stderr=slave, env=environment,

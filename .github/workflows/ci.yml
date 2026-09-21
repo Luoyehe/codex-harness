@@ -20,6 +20,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          # The object audit below is a history audit, not another current-tree
+          # scan. A shallow checkout would silently narrow that contract.
+          fetch-depth: 0
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -43,10 +46,23 @@ jobs:
           if git grep -Il $'\r$' -- '*.sh' '*.mjs' '*.yml' '*.yaml'; then
             echo 'CRLF line endings found; repository scripts must use LF' >&2
             exit 1
+          else
+            status=$?
+            if [ "$status" -ne 1 ]; then
+              echo 'CRLF check could not inspect the Git tree' >&2
+              exit "$status"
+            fi
           fi
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Python syntax
+        run: >-
+          python3 -c 'import ast,pathlib;
+          [ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+          for root in ("deploy", "scripts")
+          for path in pathlib.Path(root).rglob("*.py")]'
 
       - name: Unit tests
         run: pnpm test
@@ -81,10 +97,39 @@ jobs:
           while IFS= read -r f; do node --check "$f"; done < <(find . -name '*.mjs' -not -path './node_modules/*')
 
       - name: Release audit (no secrets / junk in tree)
-        run: node scripts/release-audit.mjs .
+        run: |
+          node scripts/release-audit.mjs .
+          bash scripts/git-object-audit.sh .
 
-      - name: Dependency audit (high and critical)
-        run: pnpm audit --audit-level high
+      - name: Dependency audit (moderate, high and critical)
+        run: pnpm audit --audit-level moderate
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CODEX_TEST_PYTHON: python
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Runtime prerequisites
+        run: python -I -c "import sys,tomllib; assert sys.version_info >= (3, 11)"
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      # Real Windows process/.cmd paths run here; Bash, Linux ownership/mount
+      # fixtures remain explicitly platform-skipped and run in the Linux job.
+      - name: Unit tests (no real Codex or provider calls)
+        run: pnpm test
 
   codeql:
     runs-on: ubuntu-latest

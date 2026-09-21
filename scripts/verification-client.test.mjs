@@ -9,7 +9,7 @@ import { WebSocketServer } from "ws";
 
 // Import with a synthetic credential so ws-token never reads a real Codex home.
 const oldToken = process.env.GATEWAY_TOKEN;
-process.env.GATEWAY_TOKEN = "verification-test-only";
+process.env.GATEWAY_TOKEN = "verification-test-only-000000000000";
 const { VerificationClient, completedTurn, completedCompaction, finalAnswer, terminalMarkerPredicate, cleanupThread, cleanupTerminal, requirePaidVerification } = await import("../deploy/verification-client.mjs");
 if (oldToken === undefined) delete process.env.GATEWAY_TOKEN;
 else process.env.GATEWAY_TOKEN = oldToken;
@@ -133,6 +133,34 @@ test("serialization and invalid timeout failures do not leave pending timers", {
   assert.equal(await client.rpc("after-invalid"), "ok");
 });
 
+test("RPC method, payload and concurrency limits fail before another frame is sent", { timeout: 5000 }, async t => {
+  const f = await fixture(t);
+  const client = await f.client();
+  await assert.rejects(client.rpc("invalid method"), /Invalid verification RPC method/);
+  await assert.rejects(client.rpc("oversized", { value: "x".repeat(4 * 1024 * 1024) }), /request limit/);
+  const pending = Array.from({ length: 64 }, (_, index) => client.rpc(`silent/${index}`, {}, 2000));
+  await eventually(() => f.messages.length === 64);
+  await assert.rejects(client.rpc("one-too-many"), /Too many pending/);
+  f.connections[0].socket.close();
+  await Promise.all(pending.map(request => assert.rejects(request, /closed/i)));
+  assert.equal(f.messages.length, 64);
+});
+
+test("unknown envelopes and invalid server request IDs close the verification client", { timeout: 5000 }, async t => {
+  for (const message of [
+    { kind: "future-unknown" },
+    { kind: "serverRequest", requestId: { nested: true }, method: "unknown/request" },
+  ]) {
+    const f = await fixture(t);
+    const client = await f.client();
+    const pending = assert.rejects(client.rpc("silent"), /Invalid gateway/);
+    await eventually(() => f.messages.length === 1);
+    f.connections.at(-1).socket.send(JSON.stringify(message));
+    await pending;
+    assert.equal(client.closed, true);
+  }
+});
+
 test("notification waiting returns a matching frame and rejects a missing frame on timeout", { timeout: 5000 }, async t => {
   const f = await fixture(t);
   const client = await f.client();
@@ -187,7 +215,7 @@ test("paid script entrypoints fail before establishing any connection without ex
   const f = await fixture(t);
   for (const path of ["../deploy/verify-full.mjs", "../deploy/verify-model.mjs", "../apps/web/scripts/verify-usage.mjs"]) {
     await assert.rejects(runFile(process.execPath, [fileURLToPath(new URL(path, import.meta.url))], {
-      env: { ...process.env, GATEWAY_TOKEN: "verification-test-only", GATEWAY_WS: f.url, HARNESS_ALLOW_PAID_TESTS: "" },
+      env: { ...process.env, GATEWAY_TOKEN: "verification-test-only-000000000000", GATEWAY_WS: f.url, HARNESS_ALLOW_PAID_TESTS: "" },
       timeout: 3000, windowsHide: true,
     }), error => error.code === 1 && /HARNESS_ALLOW_PAID_TESTS=1/.test(error.stderr));
   }
@@ -261,6 +289,20 @@ test("cleanup reconnects when the original connection drops during interruption"
   assert.deepEqual(f.messages.map(message => message.method), ["turn/interrupt", "thread/delete"]);
 });
 
+test("cleanup reconnects again when an initial cleanup connection drops during interruption", { timeout: 5000 }, async t => {
+  const f = await fixture(t, (socket, message) => {
+    if (message.method === "turn/interrupt") socket.close();
+    else result(socket, message, {});
+  });
+  const client = await f.client();
+  client.close();
+  await eventually(() => client.closed);
+  await cleanupThread(client, "temporary-thread");
+  assert.equal(f.connections.length, 3);
+  assert.deepEqual(f.messages.map(message => message.method), ["turn/interrupt", "thread/delete"]);
+  await eventually(() => f.connections.slice(1).every(({ socket }) => socket.readyState === 3));
+});
+
 test("cleanup reports deletion rejection instead of claiming successful cleanup", { timeout: 5000 }, async t => {
   const f = await fixture(t, (socket, message) => result(socket, message, null, "rejected"));
   const client = await f.client();
@@ -279,7 +321,10 @@ test("cleanup reports unavailable reconnect instead of silently skipping deletio
 });
 
 test("terminal cleanup reconnects after close rather than abandoning the remote process", { timeout: 5000 }, async t => {
-  const f = await fixture(t, (socket, message) => result(socket, message, {}));
+  const f = await fixture(t, (socket, message) => {
+    result(socket, message, {});
+    socket.send(JSON.stringify({ kind: "notification", method: "terminal/exited", params: { processId: message.params.processId } }));
+  });
   const client = await f.client();
   client.close();
   await cleanupTerminal(client, "temporary-process");
@@ -289,9 +334,20 @@ test("terminal cleanup reconnects after close rather than abandoning the remote 
   await eventually(() => f.connections[1]?.socket.readyState === 3);
 });
 
+test("terminal cleanup does not treat a terminate acknowledgement as process exit", { timeout: 5000 }, async t => {
+  const f = await fixture(t, (socket, message) => result(socket, message, {}));
+  const client = await f.client();
+  try {
+    await assert.rejects(cleanupTerminal(client, "temporary-process", 30), /notification timed out/);
+  } finally {
+    client.close();
+  }
+});
+
 test("full verification works against an isolated protocol fixture with split terminal output and cleans its thread", { timeout: 10000 }, async t => {
   const threadId = "fixture-thread";
   const processId = "fixture-terminal";
+  let terminalExited = false;
   const notify = (socket, method, params) => socket.send(JSON.stringify({ kind: "notification", method, params }));
   const f = await fixture(t, (socket, message) => {
     switch (message.method) {
@@ -317,7 +373,12 @@ test("full verification works against an isolated protocol fixture with split te
         }
         break;
       }
+      case "terminal/terminate":
+        result(socket, message, {});
+        setTimeout(() => { terminalExited = true; notify(socket, "terminal/exited", { processId }); }, 50);
+        break;
       case "thread/compact/start":
+        if (!terminalExited) { result(socket, message, null, "terminal still running"); break; }
         result(socket, message, {});
         notify(socket, "turn/started", { threadId, turn: { id: "compact-turn", status: "inProgress" } });
         notify(socket, "item/completed", { threadId, turnId: "compact-turn", item: { id: "fixture-compaction", type: "contextCompaction" } });
@@ -328,7 +389,7 @@ test("full verification works against an isolated protocol fixture with split te
     }
   });
   const response = await runFile(process.execPath, [fileURLToPath(new URL("../deploy/verify-full.mjs", import.meta.url))], {
-    env: { ...process.env, GATEWAY_TOKEN: "verification-test-only", GATEWAY_WS: f.url, HARNESS_ALLOW_PAID_TESTS: "1" },
+    env: { ...process.env, GATEWAY_TOKEN: "verification-test-only-000000000000", GATEWAY_WS: f.url, HARNESS_ALLOW_PAID_TESTS: "1" },
     timeout: 5000, windowsHide: true,
   });
   assert.match(response.stdout, /FULL-E2E-PASS/);
@@ -371,7 +432,7 @@ for (const mode of ["valid", "commentary", "wrong-answer", "cleanup-rejected"]) 
       else result(socket, message, {});
     });
     const run = runFile(process.execPath, [fileURLToPath(new URL("../deploy/verify-model.mjs", import.meta.url))], {
-      env: { ...process.env, GATEWAY_TOKEN: "verification-test-only", GATEWAY_WS: f.url, HARNESS_ALLOW_PAID_TESTS: "1" },
+      env: { ...process.env, GATEWAY_TOKEN: "verification-test-only-000000000000", GATEWAY_WS: f.url, HARNESS_ALLOW_PAID_TESTS: "1" },
       timeout: 5000, windowsHide: true,
     });
     if (mode === "valid") assert.match((await run).stdout, /MODEL-VERIFICATION-PASS/);

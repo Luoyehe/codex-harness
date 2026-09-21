@@ -22,6 +22,7 @@ function processId(): string {
 export class TerminalSession {
   readonly processId = processId();
   exited = false;
+  unavailable = false;
   private ready = false;
   private disposed = false;
   private frame: number | null = null;
@@ -30,20 +31,23 @@ export class TerminalSession {
   private writeQueue: Uint8Array[] = [];
   private queuedBytes = 0;
   private writing = false;
+  private resizeInFlight = false;
+  private pendingDimensions: { cols: number; rows: number } | null = null;
   private inputBlocked = false;
   private outputBytes = 0;
+  private outputBlocked = false;
 
   constructor(
     readonly term: Terminal,
     readonly fit: FitAddon,
     readonly container: HTMLDivElement,
     private rpc: TerminalRpc,
-    private onExited: () => void,
+    private onEnded: (confirmedExit: boolean) => void,
   ) {
     // Install listeners before open/fit: fit only emits when dimensions change.
     this.subscriptions = [
       term.onData((data) => {
-        if (!this.ready || this.exited || this.disposed || this.inputBlocked) return;
+        if (!this.ready || this.exited || this.unavailable || this.disposed || this.inputBlocked) return;
         const bytes = new TextEncoder().encode(data);
         // Refuse the whole new paste before admitting any of it. Previously
         // >64 KiB pastes were silently discarded by the gateway.
@@ -82,6 +86,7 @@ export class TerminalSession {
       void this.rpc("terminal/terminate", { processId: this.processId }).catch(() => {});
       return;
     }
+    if (this.unavailable) return;
     this.ready = true;
     // A terminal/exited notification may already have arrived during exec.
     // Never turn that final state back into a running terminal.
@@ -91,38 +96,98 @@ export class TerminalSession {
 
   handleNotification({ method, params }: GatewayNotification): void {
     if (this.disposed || this.exited) return;
+    // A lifecycle notification is stronger evidence than a prior transport
+    // failure. It must be allowed to upgrade "unknown" to confirmed exited.
     if (method === "terminal/allExited") {
       this.markExited("服务器重启，进程已终止");
-    } else if (method === "terminal/exited" && params.processId === this.processId) {
-      this.markExited(`进程已退出${params.exitCode != null ? `，exit ${params.exitCode}` : ""}${params.error ? `：${params.error}` : ""}`);
-    } else if (method === "command/exec/outputDelta" && params.processId === this.processId) {
+      return;
+    }
+    const runtimeParams = params && typeof params === "object" && !Array.isArray(params)
+      ? params as unknown as Record<string, unknown>
+      : null;
+    if (!runtimeParams) return;
+    if (method === "terminal/exited" && runtimeParams.processId === this.processId) {
+      const exitCode = typeof runtimeParams.exitCode === "number" && Number.isFinite(runtimeParams.exitCode) ? runtimeParams.exitCode : null;
+      const error = typeof runtimeParams.error === "string" ? runtimeParams.error.slice(0, 2_000) : "";
+      this.markExited(`进程已退出${exitCode != null ? `，exit ${exitCode}` : ""}${error ? `：${error}` : ""}`);
+    } else if (this.unavailable) {
+      return;
+    } else if (method === "command/exec/outputDelta" && runtimeParams.processId === this.processId && typeof runtimeParams.deltaBase64 === "string") {
+      if (this.outputBlocked) return;
       try {
-        const binary = atob(params.deltaBase64);
+        // Reject an oversized encoded frame before atob allocates its decoded
+        // copy. Four MiB of queued binary needs at most this many base64 chars.
+        if (runtimeParams.deltaBase64.length > Math.ceil((4 * 1024 * 1024) * 4 / 3) + 4) {
+          this.stopForOutputOverflow();
+          return;
+        }
+        const binary = atob(runtimeParams.deltaBase64);
         if (this.outputBytes + binary.length > 4 * 1024 * 1024) {
-          this.markExited("终端输出超过显示队列上限，已停止进程；请新建终端");
-          void this.rpc("terminal/terminate", { processId: this.processId }).catch(() => {});
+          this.stopForOutputOverflow();
           return;
         }
         this.outputBytes += binary.length;
         this.term.write(Uint8Array.from(binary, (char) => char.charCodeAt(0)), () => { this.outputBytes -= binary.length; });
-      } catch { /* Discard malformed output without breaking the subscriber. */ }
+      } catch {
+        // Continuing after a missing/corrupt byte frame would present an
+        // incomplete transcript as trustworthy. Freeze this view and make the
+        // uncertainty explicit; closing it still requests process cleanup.
+        this.markUnavailable("终端输出数据格式无效，显示可能不完整；进程退出尚未确认，请关闭终端后核对服务器状态");
+      }
     }
+  }
+
+  private stopForOutputOverflow(): void {
+    if (this.outputBlocked) return;
+    this.outputBlocked = true;
+    this.inputBlocked = true;
+    this.writeQueue = [];
+    this.queuedBytes = 0;
+    this.term.writeln("\r\n[终端输出超过显示队列上限，已暂停显示和输入；正在请求终止进程，等待服务器确认。]");
+    void this.rpc("terminal/terminate", { processId: this.processId })
+      .then(() => {
+        if (!this.disposed && !this.exited && !this.unavailable) this.term.writeln("\r\n[终止请求已送达，仍在等待进程退出确认。]");
+      })
+      .catch((error) => {
+        if (!this.disposed && !this.exited && !this.unavailable) {
+          this.markUnavailable(`终止请求失败：${error instanceof Error ? error.message : String(error)}；进程状态仍未知，请关闭终端后核对服务器状态`);
+        }
+      });
   }
 
   markExited(message: string): void {
     if (this.disposed || this.exited) return;
     this.exited = true;
+    this.unavailable = false;
+    this.outputBlocked = true;
+    this.inputBlocked = true;
     this.writeQueue = [];
     this.queuedBytes = 0;
+    this.pendingDimensions = null;
     this.term.writeln(`\r\n\x1b[90m[${message}]\x1b[0m`);
-    this.onExited();
+    this.onEnded(true);
+  }
+
+  /** A closed browser connection makes this PTY unusable, but the gateway may
+   * still be retrying process termination. Preserve that distinction instead
+   * of presenting an unconfirmed remote process as exited. */
+  markUnavailable(message: string): void {
+    if (this.disposed || this.exited || this.unavailable) return;
+    this.unavailable = true;
+    this.outputBlocked = true;
+    this.inputBlocked = true;
+    this.writeQueue = [];
+    this.queuedBytes = 0;
+    this.pendingDimensions = null;
+    this.term.writeln(`\r\n\x1b[90m[${message}]\x1b[0m`);
+    this.onEnded(false);
   }
 
   private async drainWrites(): Promise<void> {
     if (this.writing) return;
     this.writing = true;
     try {
-      while (this.writeQueue.length && !this.disposed && !this.exited && !this.inputBlocked) {
+      while (this.writeQueue.length && !this.disposed && !this.exited && !this.unavailable && !this.inputBlocked) {
         const bytes = this.writeQueue.shift()!;
         let binary = "";
         for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -150,19 +215,56 @@ export class TerminalSession {
   }
 
   private syncDimensions(): void {
-    if (!this.ready || this.exited || this.disposed) return;
-    void this.rpc("terminal/resize", { processId: this.processId, ...this.dimensions() }).catch(() => {});
+    if (!this.ready || this.exited || this.unavailable || this.disposed) return;
+    // Geometry events can arrive much faster than a remote gateway can
+    // acknowledge them. Keep at most one request in flight and one coalesced
+    // latest value; otherwise a dragged window can exhaust the WebSocket's
+    // pending-RPC budget and starve unrelated terminal work.
+    this.pendingDimensions = this.dimensions();
+    void this.drainDimensions();
   }
 
-  dispose(): void {
+  private async drainDimensions(): Promise<void> {
+    if (this.resizeInFlight) return;
+    this.resizeInFlight = true;
+    try {
+      while (!this.disposed && !this.exited && !this.unavailable && this.pendingDimensions) {
+        const dimensions = this.pendingDimensions;
+        this.pendingDimensions = null;
+        try {
+          await this.rpc("terminal/resize", { processId: this.processId, ...dimensions });
+        } catch {
+          // Resize is idempotent and advisory. A newer queued geometry is still
+          // useful after this failure, but replaying the failed request without
+          // a new event could loop forever on a closed connection.
+        }
+      }
+    } finally {
+      this.resizeInFlight = false;
+      // No asynchronous work can interleave between the final loop condition
+      // and this block, but keep the hand-off explicit for future callers that
+      // may queue a value from an RPC completion callback.
+      if (!this.disposed && !this.exited && !this.unavailable && this.pendingDimensions) {
+        void this.drainDimensions();
+      }
+    }
+  }
+
+  dispose(onTerminationFailed?: (error: unknown) => void): void {
     if (this.disposed) return;
     this.disposed = true;
     this.writeQueue = [];
     this.queuedBytes = 0;
+    this.pendingDimensions = null;
     this.observer.disconnect();
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     for (const subscription of this.subscriptions) subscription.dispose();
-    if (!this.exited) void this.rpc("terminal/terminate", { processId: this.processId }).catch(() => {});
+    if (!this.exited) void this.rpc("terminal/terminate", { processId: this.processId }).catch((error) => {
+      // Component unmount has nowhere safe to report an error, but an
+      // explicit tab close supplies a reporter so a failed/unknown cleanup is
+      // never presented as a confirmed process exit.
+      try { onTerminationFailed?.(error); } catch { /* UI reporter failure */ }
+    });
     this.term.dispose();
     this.container.remove();
   }

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { chmodSync, linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import { once } from "node:events";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -15,9 +18,9 @@ async function server(handler) {
   return { instance, url: `http://127.0.0.1:${address.port}/mcp` };
 }
 
-function runBridge(url, lines, extraEnv = {}) {
+function runBridge(url, lines, extraEnv = {}, extraArgs = []) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [bridge, url], {
+    const child = spawn(process.execPath, [bridge, url, ...extraArgs], {
       env: { ...process.env, Z_AI_API_KEY: "bridge-test-key-never-log", MCP_BRIDGE_DEBUG: "1", ...extraEnv },
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -31,6 +34,34 @@ function runBridge(url, lines, extraEnv = {}) {
     child.stdin.end();
   });
 }
+
+test("key files are descriptor-pinned, private, singly linked and bounded", async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "mcp-key-file-"));
+  try {
+    const key = path.join(directory, "key");
+    writeFileSync(key, "private-bridge-key\n", { mode: 0o600 });
+    chmodSync(key, 0o600);
+    const valid = await runBridge("http://127.0.0.1:1/mcp", [], { Z_AI_API_KEY: "" }, ["--key-file", key]);
+    assert.equal(valid.code, 0, valid.stderr);
+
+    const oversized = path.join(directory, "oversized");
+    writeFileSync(oversized, "x".repeat(16 * 1024 + 1), { mode: 0o600 });
+    const bad = [oversized];
+    if (process.platform !== "win32") {
+      const alias = path.join(directory, "alias");
+      const linked = path.join(directory, "linked");
+      symlinkSync(key, alias);
+      linkSync(key, linked);
+      bad.push(alias, linked);
+    }
+    for (const file of bad) {
+      const result = await runBridge("http://127.0.0.1:1/mcp", [], { Z_AI_API_KEY: "" }, ["--key-file", file]);
+      assert.equal(result.code, 1);
+      assert.match(result.stderr, /cannot read key file/);
+      assert.doesNotMatch(result.stderr, /private-bridge-key/);
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 function liveBridge(t, url, extraEnv = {}) {
   const child = spawn(process.execPath, [bridge, url], {

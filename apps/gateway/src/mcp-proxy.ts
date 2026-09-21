@@ -34,6 +34,54 @@ const initInFlight = new Map<string, Promise<void>>();
 
 const FETCH_TIMEOUT_MS = 120_000;
 const MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
+export const DYNAMIC_TOOL_LIMITS = {
+  concurrent: 4,
+  argumentBytes: 1024 * 1024,
+  argumentNodes: 100_000,
+  argumentDepth: 64,
+  toolChars: 256,
+  responseContentItems: 10_000,
+} as const;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+    && [Object.prototype, null].includes(Object.getPrototypeOf(value));
+}
+
+function validatedArguments(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) {
+    throw new Error("MCP tool arguments must be a plain object");
+  }
+  const seen = new WeakSet<object>();
+  const stack: Array<{ value: unknown; depth: number }> = [{ value, depth: 0 }];
+  let nodes = 0;
+  while (stack.length) {
+    const current = stack.pop()!;
+    nodes += 1;
+    if (nodes > DYNAMIC_TOOL_LIMITS.argumentNodes) throw new Error("MCP tool arguments are too complex");
+    if (current.depth > DYNAMIC_TOOL_LIMITS.argumentDepth) throw new Error("MCP tool arguments are too deeply nested");
+    const item = current.value;
+    if (item === null || typeof item === "string" || typeof item === "boolean") continue;
+    if (typeof item === "number") {
+      if (!Number.isFinite(item)) throw new Error("MCP tool arguments contain a non-finite number");
+      continue;
+    }
+    if (!item || typeof item !== "object" || (![Object.prototype, null].includes(Object.getPrototypeOf(item)) && !Array.isArray(item))) {
+      throw new Error("MCP tool arguments contain a non-JSON value");
+    }
+    if (seen.has(item)) throw new Error("MCP tool arguments contain a cycle");
+    seen.add(item);
+    const children = Array.isArray(item) ? item : Object.values(item);
+    if (nodes + children.length > DYNAMIC_TOOL_LIMITS.argumentNodes) throw new Error("MCP tool arguments are too complex");
+    for (const child of children) stack.push({ value: child, depth: current.depth + 1 });
+  }
+  let encoded: string;
+  try { encoded = JSON.stringify(value); }
+  catch { throw new Error("MCP tool arguments are not serializable"); }
+  if (Buffer.byteLength(encoded) > DYNAMIC_TOOL_LIMITS.argumentBytes) throw new Error("MCP tool arguments exceed the 1MiB limit");
+  return value as Record<string, unknown>;
+}
 
 /** Returns true when this gateway knows how to execute the namespace. */
 export function isProxyableToolCall(namespace: string | null): boolean {
@@ -67,10 +115,12 @@ function ensureSession(url: string): Promise<void> {
         jsonrpc: "2.0",
         id: nextMcpRequestId++,
         method: "initialize",
-        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "codex-harness-gateway", version: "1.1.0" } },
+        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "codex-harness-gateway", version: "1.2.0" } },
       }, { id: "", version: "2025-03-26" });
       const handshake = init.payload;
-      if (!handshake?.result || handshake.error) throw new Error("MCP initialize returned an invalid response");
+      if (!isPlainRecord(handshake) || Object.hasOwn(handshake, "error") || !isPlainRecord(handshake.result)) {
+        throw new Error("MCP initialize returned an invalid response");
+      }
       const version = handshake.result.protocolVersion;
       if (typeof version !== "string" || !isSupportedProtocolVersion(version) || init.sessionId.length > 4096) throw new Error("MCP initialize returned invalid metadata");
       const session = { id: init.sessionId, version };
@@ -100,7 +150,10 @@ async function awaitSession(url: string, signal?: AbortSignal): Promise<void> {
 
 export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, "namespace" | "tool" | "arguments">, options: { signal?: AbortSignal } = {}): Promise<DynamicToolCallResponse> {
   const url = isProxyableToolCall(params.namespace) ? ZHIPU_ENDPOINTS[params.namespace!] : undefined;
-  if (!url) throw new Error(`no executor for tool namespace: ${params.namespace}`);
+  if (!url) throw new Error("no executor for requested tool namespace");
+  if (typeof params.tool !== "string" || params.tool.length === 0 || params.tool.length > DYNAMIC_TOOL_LIMITS.toolChars
+      || /[\u0000-\u001f\u007f]/.test(params.tool)) throw new Error("MCP tool name is invalid");
+  const toolArguments = validatedArguments(params.arguments);
 
   await awaitSession(url, options.signal);
 
@@ -108,7 +161,7 @@ export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, 
     jsonrpc: "2.0",
     id: nextMcpRequestId++,
     method: "tools/call",
-    params: { name: params.tool, arguments: params.arguments ?? {} },
+    params: { name: params.tool, arguments: toolArguments },
   };
 
   options.signal?.throwIfAborted();
@@ -127,11 +180,16 @@ export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, 
   }
 
   const payload = res.payload;
-  if (payload?.id !== callBody.id || payload?.error || !payload?.result) {
+  if (!isPlainRecord(payload) || payload.id !== callBody.id || Object.hasOwn(payload, "error") || !isPlainRecord(payload.result)) {
     throw new Error("MCP tools/call returned an invalid or error response");
   }
-  const content: any[] = Array.isArray(payload.result.content) ? payload.result.content : [];
-  const isError = payload?.result?.isError === true;
+  const result = payload.result;
+  if (!Array.isArray(result.content) || result.content.length > DYNAMIC_TOOL_LIMITS.responseContentItems
+      || (result.isError !== undefined && typeof result.isError !== "boolean")) {
+    throw new Error("MCP tools/call returned an invalid result schema");
+  }
+  const content: any[] = result.content;
+  const isError = result.isError === true;
   const contentItems: DynamicToolCallOutputContentItem[] = [];
   let skipped = 0;
   for (const item of content) {
@@ -152,6 +210,6 @@ export async function handleDynamicToolCall(params: Pick<DynamicToolCallParams, 
     contentItems: contentItems.length > 0
       ? contentItems
       : [{ type: "inputText", text: "(empty response)" }],
-    success: !isError && !!payload?.result,
+    success: !isError,
   };
 }

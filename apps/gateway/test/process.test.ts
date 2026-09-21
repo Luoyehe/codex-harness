@@ -23,6 +23,7 @@ class FakeConnection implements SupervisorConnection {
   readonly notifications: Array<{ method: string; params: unknown }> = [];
   spawned = false;
   killed = false;
+  failNotification = false;
 
   constructor(readonly handlers: AppServerHandlers) {}
 
@@ -37,6 +38,7 @@ class FakeConnection implements SupervisorConnection {
   }
 
   notify(method: string, params?: unknown): void {
+    if (this.failNotification) throw new Error("initialized notification was not sent");
     this.notifications.push({ method, params });
   }
 
@@ -111,6 +113,18 @@ describe("CodexSupervisor connection generations", () => {
     expect(fatal).toHaveBeenCalledOnce();
     expect(connections[0].killed).toBe(false);
     expect(connections).toHaveLength(1);
+  });
+
+  it("does not publish ready when the initialized notification cannot be sent", async () => {
+    const fatal = vi.fn();
+    const { supervisor, connections, events } = makeSupervisor({ onFatalConnectionLoss: fatal });
+    supervisor.start();
+    connections[0].failNotification = true;
+    connections[0].initialization.resolve({});
+    await flushPromises();
+    expect(events.onStateChange).not.toHaveBeenCalledWith("ready");
+    expect(supervisor.state).not.toBe("ready");
+    expect(fatal).toHaveBeenCalledOnce();
   });
 
   it("rejects a queued readiness continuation if managed loss happens before it resumes", async () => {

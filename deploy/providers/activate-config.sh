@@ -13,7 +13,8 @@
 set -euo pipefail
 umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}"
+unset PYTHONHOME
+export PYTHONPATH="$SCRIPT_DIR" PYTHONSAFEPATH=1 PYTHONNOUSERSITE=1
 CH="${CODEX_HOME:-$HOME/.codex}"
 LIVE="$CH/config.toml"
 PROV_DIR="$CH/providers"
@@ -35,7 +36,7 @@ case "$MODE" in openai|custom|zhipu|absorb-and-link) ;; *) echo "[activate] ERRO
 if [ "${HARNESS_PROVIDER_TRANSACTION:-0}" != "1" ]; then
   TRANSACTION_MODE="$MODE"
   if [ "$MODE" = "absorb-and-link" ]; then TRANSACTION_MODE="${2:?mode required}"; fi
-  exec python3 "$SCRIPT_DIR/provider_transaction.py" "$TRANSACTION_MODE" "$0" "$@"
+  exec python3 -I "$SCRIPT_DIR/provider_transaction.py" "$TRANSACTION_MODE" "$0" "$@"
 fi
 case "$MODE" in
   openai)

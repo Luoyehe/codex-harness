@@ -10,7 +10,7 @@ import { fetchGatewayCookie, verifyWebSocketAuth } from "../deploy/ws-auth-probe
 
 // Avoid consulting any genuine user credential during module initialization.
 const prior = process.env.GATEWAY_TOKEN;
-process.env.GATEWAY_TOKEN = "test-only";
+process.env.GATEWAY_TOKEN = "test-only-credential-00000000000000";
 const { readGatewayToken } = await import("../deploy/ws-token.mjs");
 if (prior === undefined) delete process.env.GATEWAY_TOKEN; else process.env.GATEWAY_TOKEN = prior;
 
@@ -19,15 +19,19 @@ test("verification tokens use only explicit control-home, default control-home, 
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const worker = path.join(dir, "worker"), control = path.join(dir, "control");
   mkdirSync(worker); mkdirSync(control);
-  writeFileSync(path.join(worker, "gateway-token"), "obsolete-test-value");
-  writeFileSync(path.join(control, "gateway-token"), "current-test-value");
+  const current = "current-test-value-000000000000000";
+  const fallback = "default-control-value-0000000000000";
+  const explicit = "explicit-test-value-000000000000000";
+  writeFileSync(path.join(worker, "gateway-token"), "obsolete-test-value-0000000000000\n", { mode: 0o600 });
+  writeFileSync(path.join(control, "gateway-token"), current + "\n", { mode: 0o600 });
   assert.equal(readGatewayToken({ CODEX_HOME: worker }, dir), "");
   assert.equal(readGatewayToken({ CODEX_HOME: worker, GATEWAY_CONTROL_HOME: path.join(dir, "missing") }, dir), "");
-  assert.equal(readGatewayToken({ CODEX_HOME: worker, GATEWAY_CONTROL_HOME: control }, dir), "current-test-value");
+  assert.equal(readGatewayToken({ CODEX_HOME: worker, GATEWAY_CONTROL_HOME: control }, dir), current);
   mkdirSync(path.join(dir, ".codex-harness-control"));
-  writeFileSync(path.join(dir, ".codex-harness-control", "gateway-token"), "default-control-value");
-  assert.equal(readGatewayToken({ CODEX_HOME: worker }, dir), "default-control-value");
-  assert.equal(readGatewayToken({ GATEWAY_CONTROL_HOME: control, GATEWAY_TOKEN: "explicit" }, dir), "explicit");
+  writeFileSync(path.join(dir, ".codex-harness-control", "gateway-token"), fallback + "\n", { mode: 0o600 });
+  assert.equal(readGatewayToken({ CODEX_HOME: worker }, dir), fallback);
+  assert.equal(readGatewayToken({ GATEWAY_CONTROL_HOME: control, GATEWAY_TOKEN: explicit }, dir), explicit);
+  assert.throws(() => readGatewayToken({ GATEWAY_TOKEN: "short" }, dir), /Invalid/);
   writeFileSync(path.join(control, "gateway-token"), "x".repeat(17 * 1024));
   assert.equal(readGatewayToken({ GATEWAY_CONTROL_HOME: control }, dir), "");
 });
@@ -91,4 +95,10 @@ test("auth verifier treats silence as inconclusive failure, not proof of rejecti
 test("auth verifier fails closed when authenticated HTML does not issue an instance cookie", async t => {
   const fixture = await authFixture(t, "no-cookie");
   await assert.rejects(fetchGatewayCookie({ ...fixture, timeoutMs: 200 }), /did not provide/);
+});
+
+test("auth probes reject malformed credentials and timer inputs before opening a socket", async () => {
+  await assert.rejects(fetchGatewayCookie({ port: 8080, token: "short", timeoutMs: 100 }), /valid gateway/);
+  await assert.rejects(fetchGatewayCookie({ port: 8080, token: "x".repeat(32), timeoutMs: Infinity }), /timeout/);
+  await assert.rejects(verifyWebSocketAuth({ port: 8080, token: "bad token", timeoutMs: 100 }), /valid gateway/);
 });

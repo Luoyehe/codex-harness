@@ -8,6 +8,14 @@ set -euo pipefail
 PORT="${PORT:-8080}"
 SERVICE_NAME="${SERVICE_NAME:-codex-harness}"
 EDGE_URL="${EDGE_URL:-}"
+case "$PORT" in ''|*[!0-9]*) echo 'FAIL: PORT must be an integer from 1 to 65535' >&2; exit 1 ;; esac
+[ "${#PORT}" -le 5 ] || { echo 'FAIL: PORT must be an integer from 1 to 65535' >&2; exit 1; }
+PORT_NUMBER=$((10#$PORT))
+if (( PORT_NUMBER < 1 || PORT_NUMBER > 65535 )); then
+  echo 'FAIL: PORT must be an integer from 1 to 65535' >&2
+  exit 1
+fi
+PORT="$PORT_NUMBER"
 GATEWAY="http://127.0.0.1:${PORT}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 case "$SERVICE_NAME" in ''|[-_]*|*[!A-Za-z0-9_-]*) echo 'FAIL: invalid SERVICE_NAME' >&2; exit 1 ;; esac
@@ -24,7 +32,7 @@ export GATEWAY_CONTROL_HOME
 echo "=== 1. healthz (wait for ready)"
 STATE=""
 for i in $(seq 1 20); do
-  R=$(curl -s --max-time 3 "$GATEWAY/healthz" || true)
+  R=$(curl -fsS --max-filesize 65536 --max-time 3 "$GATEWAY/healthz" 2>/dev/null || true)
   STATE=$(echo "$R" | grep -o '"codexState":"[a-z]*"' || true)
   if echo "$STATE" | grep -q ready; then echo "ready after $i tries: $R"; break; fi
   sleep 3
@@ -36,16 +44,13 @@ if ! echo "$STATE" | grep -q ready; then
 fi
 
 echo "=== 2. SPA root"
-TOKEN="${GATEWAY_TOKEN:-}"
-if [ -z "$TOKEN" ] && [ -r "$GATEWAY_CONTROL_HOME/gateway-token" ]; then
-  IFS= read -r TOKEN < "$GATEWAY_CONTROL_HOME/gateway-token" || true
-fi
-[ -n "$TOKEN" ] || { echo 'FAIL: no readable control-plane token; set GATEWAY_CONTROL_HOME or GATEWAY_TOKEN' >&2; exit 1; }
-# Keep bootstrap credentials out of curl argv and diagnostic output.
-SPA="$(printf 'Authorization: Bearer %s\n' "$TOKEN" | curl -fsS --header @- --max-time 10 "$GATEWAY/")" \
-  || { echo "FAIL: SPA request failed"; exit 1; }
-unset TOKEN
-printf '%s\n' "$SPA" | grep -q '<div id="root">' || { echo "FAIL: response is not the SPA"; exit 1; }
+# The Node verifier performs descriptor-pinned bounded token, HTML, asset and
+# readiness checks.  Never materialize a possibly growing credential or SPA
+# response in a shell variable.
+node "$SCRIPT_DIR/ws-token.mjs" --check \
+  || { echo 'FAIL: no readable control-plane token; set GATEWAY_CONTROL_HOME or GATEWAY_TOKEN' >&2; exit 1; }
+PORT="$PORT" node "$SCRIPT_DIR/verify-spa.mjs" \
+  || { echo "FAIL: authenticated SPA verification failed"; exit 1; }
 
 echo "=== 3. WebSocket auth (token/origin/host triple-check)"
 GATEWAY_PORT="$PORT" node "$SCRIPT_DIR/verify-ws-auth.mjs" \

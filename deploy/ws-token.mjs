@@ -2,9 +2,10 @@
 // All verification scripts import this instead of hardcoding a bare WS URL.
 //
 // Tokens never enter URLs, proxy logs, shell history, or exception strings.
-import { constants, closeSync, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
+import { constants, closeSync, fstatSync, lstatSync, openSync, readSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { pathToFileURL } from "node:url";
 
 export function readGatewayToken(env = process.env, home = homedir()) {
   // Never reuse CODEX_HOME/gateway-token: an Agent may have read that old
@@ -14,27 +15,35 @@ export function readGatewayToken(env = process.env, home = homedir()) {
   try {
     if (!value) {
       const file = join(controlHome, "gateway-token");
-      if (!lstatSync(file).isFile()) return "";
-      const descriptor = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+      const before = lstatSync(file);
+      if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1 || before.size > 4098) return "";
+      if (process.platform !== "win32" && (before.mode & 0o077) !== 0) return "";
+      const descriptor = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
       try {
-        const info = fstatSync(descriptor);
-        if (!info.isFile() || info.size > 16 * 1024) return "";
-        value = readFileSync(descriptor, "utf8").trim();
+        const opened = fstatSync(descriptor);
+        const same = (one, two) => one.dev === two.dev && one.ino === two.ino && one.mode === two.mode &&
+          one.nlink === two.nlink && one.size === two.size && one.mtimeMs === two.mtimeMs && one.ctimeMs === two.ctimeMs;
+        if (!opened.isFile() || !same(before, opened) || !same(opened, lstatSync(file))) return "";
+        const buffer = Buffer.allocUnsafe(4099);
+        let total = 0;
+        while (total < buffer.length) {
+          const count = readSync(descriptor, buffer, total, buffer.length - total, null);
+          if (count === 0) break;
+          total += count;
+        }
+        const after = fstatSync(descriptor);
+        if (total !== before.size || total > 4098 || !same(opened, after) || !same(after, lstatSync(file))) return "";
+        const match = /^([A-Za-z0-9_-]{32,4096})\r?\n$/.exec(buffer.subarray(0, total).toString("utf8"));
+        if (!match) return "";
+        value = match[1];
       } finally { closeSync(descriptor); }
     }
   }
   catch { return ""; }
-  if (value.length > 16 * 1024 || /[\u0000-\u001f\u007f]/.test(value)) throw new Error("Invalid gateway verification credential format");
+  if (!/^[A-Za-z0-9_-]{32,4096}$/.test(value)) throw new Error("Invalid gateway verification credential format");
   return value;
 }
 const token = readGatewayToken();
-
-/**
- * Kept for call-site compatibility; the URL is deliberately unchanged.
- */
-export function wsUrl(base) {
-  return base;
-}
 
 export function wsOptions() {
   if (!token) throw new Error("Gateway token unavailable: set GATEWAY_CONTROL_HOME and run with permission to read its gateway-token, or explicitly provide GATEWAY_TOKEN. CODEX_HOME is not a credential source.");
@@ -42,3 +51,7 @@ export function wsOptions() {
 }
 
 export { token };
+
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  if (process.argv.length !== 3 || process.argv[2] !== "--check" || !token) process.exitCode = 1;
+}

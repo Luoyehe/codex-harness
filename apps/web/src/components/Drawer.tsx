@@ -47,7 +47,7 @@ function DiffTab() {
 interface TermState {
   processId: string;
   title: string;
-  exited: boolean;
+  status: "running" | "exited" | "unavailable";
 }
 
 let termCounter = 0;
@@ -75,7 +75,7 @@ function TerminalTab() {
     });
     const states = gateway.onStateChange((state) => {
       if (state === "closed") {
-        for (const entry of terminals.current.values()) entry.markExited("连接已断开，进程已终止");
+        for (const entry of terminals.current.values()) entry.markUnavailable("连接已断开；该终端不可继续使用，进程退出尚未确认");
       }
     });
     return () => { notifications(); states(); };
@@ -130,9 +130,11 @@ function TerminalTab() {
       container = document.createElement("div");
       container.className = "term-container";
       host.appendChild(container);
-      entry = new TerminalSession(term, fit, container, (method, params) => gateway.rpc(method, params), () => {
+      entry = new TerminalSession(term, fit, container, (method, params) => gateway.rpc(method, params), (confirmedExit) => {
         const processId = entry!.processId;
-        setTerms((prev) => prev.map((t) => t.processId === processId ? { ...t, exited: true } : t));
+        setTerms((prev) => prev.map((t) => t.processId === processId
+          ? { ...t, status: confirmedExit ? "exited" : "unavailable" }
+          : t));
       });
       const processId = entry.processId;
       // Register before exec so even synchronous output/exit notifications
@@ -140,13 +142,17 @@ function TerminalTab() {
       terminals.current.set(processId, entry);
       containerRefs.current.set(processId, container);
       termCounter += 1;
-      setTerms((prev) => [...prev, { processId, title: `终端 ${termCounter}`, exited: false }]);
+      setTerms((prev) => [...prev, { processId, title: `终端 ${termCounter}`, status: "running" }]);
       setActivePid(processId);
       await entry.start(currentProject);
     } catch (err: any) {
       if (mountedRef.current) setTerminalError(`无法启动终端: ${err?.message ?? err}`);
       if (entry) {
-        if (mountedRef.current) entry.markExited(`无法启动终端: ${err?.message ?? err}`);
+        if (mountedRef.current) {
+          const definitive = err?.delivery === "not_sent" || err?.delivery === "rejected";
+          if (definitive) entry.markExited(`终端启动失败，未创建进程: ${err?.message ?? err}`);
+          else entry.markUnavailable(`终端启动结果未知: ${err?.message ?? err}`);
+        }
         else entry.dispose();
       } else { term?.dispose(); container?.remove(); }
     } finally {
@@ -158,7 +164,12 @@ function TerminalTab() {
   function closeTerminal(pid: string) {
     const entry = terminals.current.get(pid);
     if (!entry) return;
-    entry.dispose();
+    const title = terms.find((term) => term.processId === pid)?.title ?? "终端";
+    entry.dispose((error) => {
+      if (!mountedRef.current) return;
+      const detail = (error instanceof Error ? error.message : String(error)).slice(0, 1_000);
+      setTerminalError(`${title}的关闭请求未获服务器确认：${detail || "未知错误"}。进程可能仍在运行，请核对服务器状态。`);
+    });
     terminals.current.delete(pid);
     containerRefs.current.delete(pid);
     setTerms((prev) => prev.filter((t) => t.processId !== pid));
@@ -174,7 +185,7 @@ function TerminalTab() {
         {terms.map((t) => (
           <span key={t.processId} className={`term-tab ${t.processId === activePid ? "active" : ""}`}>
             <button className="term-tab-btn" onClick={() => setActivePid(t.processId)}>
-              {t.title} {t.exited ? "（已退出）" : ""}
+              {t.title} {t.status === "exited" ? "（已退出）" : t.status === "unavailable" ? "（状态未知）" : ""}
             </button>
             <button className="term-tab-close" onClick={() => closeTerminal(t.processId)} title="关闭">
               ×

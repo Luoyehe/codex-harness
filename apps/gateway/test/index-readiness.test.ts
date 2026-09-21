@@ -65,7 +65,7 @@ class Socket extends EventEmitter {
   results() { return this.send.mock.calls.map(([message]) => JSON.parse(message)); }
 }
 
-const methods = ["management/status", "turn/operation", "admin/logs"] as const;
+const methods = ["management/status", "turn/operation", "thread/start/operation", "admin/logs"] as const;
 const sockets: Socket[] = [];
 const signals = ["SIGINT", "SIGTERM"] as const;
 const originalListeners = new Map<string, ReturnType<typeof process.listeners>>();
@@ -85,6 +85,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  harness.disconnect.mockImplementation(async () => {});
   const attachment = new Promise<void>((resolve) => { attached = resolve; });
   harness.connect.mockReturnValue(attachment);
   harness.dispatch.mockImplementation(async (method, params) => ({ method, params }));
@@ -122,11 +123,67 @@ function connect(authenticated: boolean): Socket {
   return socket;
 }
 
-it("serves all three authenticated local queries during stalled attachment while ordinary RPC still waits", async () => {
+it("records a queued turn before a control-local receipt query even while worker attachment is stalled", async () => {
+  vi.stubEnv("GATEWAY_UNSAFE_SINGLE_USER", "1");
+  vi.stubEnv("CODEX_WORKER_LAUNCHER", "");
+  const { GatewayController } = await vi.importActual<typeof import("../src/control.js")>("../src/control.js");
+  const controller = new GatewayController(path.join(home, "receipt-race"));
+  const sent: unknown[] = [];
+  (controller as any).backend.request = vi.fn(async (method: string, params: any) => {
+    if (method === "gateway/connect") return new Promise<void>((resolve) => { attached = resolve; });
+    if (method === "gateway/dispatch") { sent.push(params); return { turn: { id: "accepted-turn", status: "inProgress" } }; }
+    return {};
+  });
+  harness.connect.mockImplementation(controller.connect.bind(controller));
+  harness.dispatch.mockImplementation(controller.dispatch.bind(controller));
+  harness.disconnect.mockImplementation(controller.disconnect.bind(controller));
+  const socket = connect(true);
+  const params = { clientOperationId: "queued-before-attachment", threadId: "thread-one", text: "one intended send" };
+  socket.rpc(1, "turn/start", params);
+  socket.rpc(2, "turn/operation", { clientOperationId: params.clientOperationId });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  expect(socket.results().find((message) => message.id === 2)?.result).toMatchObject({ state: "unknown", threadId: "thread-one" });
+  expect(sent).toHaveLength(0);
+  attached();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  expect(sent).toHaveLength(1);
+  expect(socket.results().find((message) => message.id === 1)?.result.turn.id).toBe("accepted-turn");
+});
+
+it("records a queued thread creation before its receipt query can overtake stalled worker attachment", async () => {
+  vi.stubEnv("GATEWAY_UNSAFE_SINGLE_USER", "1");
+  vi.stubEnv("CODEX_WORKER_LAUNCHER", "");
+  const { GatewayController } = await vi.importActual<typeof import("../src/control.js")>("../src/control.js");
+  const controller = new GatewayController(path.join(home, "thread-receipt-race"));
+  const sent: unknown[] = [];
+  (controller as any).backend.request = vi.fn(async (method: string, params: any) => {
+    if (method === "gateway/connect") return new Promise<void>((resolve) => { attached = resolve; });
+    if (method === "gateway/dispatch") { sent.push(params); return { thread: { id: "created-thread", cwd: params.params.cwd } }; }
+    return {};
+  });
+  harness.connect.mockImplementation(controller.connect.bind(controller));
+  harness.dispatch.mockImplementation(controller.dispatch.bind(controller));
+  harness.disconnect.mockImplementation(controller.disconnect.bind(controller));
+  const socket = connect(true);
+  const params = { clientOperationId: "queued-thread-before-attachment", cwd: "/project" };
+  socket.rpc(1, "thread/start", params);
+  socket.rpc(2, "thread/start/operation", { clientOperationId: params.clientOperationId });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  expect(socket.results().find((message) => message.id === 2)?.result).toMatchObject({ state: "unknown", cwd: "/project" });
+  expect(sent).toHaveLength(0);
+  attached();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  expect(sent).toHaveLength(1);
+  expect(socket.results().find((message) => message.id === 1)?.result).toMatchObject({
+    thread: { id: "created-thread" }, clientOperationId: params.clientOperationId,
+  });
+});
+
+it("serves every authenticated local query during stalled attachment while ordinary RPC still waits", async () => {
   const socket = connect(true);
   const params = { clientOperationId: "example-operation" };
   for (const [index, method] of methods.entries()) socket.rpc(index + 1, method, params);
-  socket.rpc(4, "thread/list", { limit: 1 });
+  socket.rpc(methods.length + 1, "thread/list", { limit: 1 });
 
   // A complete event-loop turn, not a timed sleep: pending attachment must not
   // prevent controller-local replies from reaching the authenticated socket.
@@ -141,11 +198,45 @@ it("serves all three authenticated local queries during stalled attachment while
 
   attached();
   await new Promise<void>((resolve) => setImmediate(resolve));
-  expect(harness.dispatch).toHaveBeenCalledTimes(4);
+  expect(harness.dispatch).toHaveBeenCalledTimes(methods.length + 1);
   expect(harness.dispatch).toHaveBeenLastCalledWith("thread/list", { limit: 1 }, clientId);
   expect(socket.results().at(-1)).toEqual({
-    kind: "rpcResult", id: 4, result: { method: "thread/list", params: { limit: 1 } },
+    kind: "rpcResult", id: methods.length + 1, result: { method: "thread/list", params: { limit: 1 } },
   });
+});
+
+it.each([
+  ["direct error metadata", Object.assign(new Error("outcome unavailable"), { delivery: "unknown" })],
+  ["app-server error data", Object.assign(new Error("worker outcome unavailable"), { rpcError: { data: { delivery: "unknown" } } })],
+  ["missing error metadata", new Error("unclassified failure")],
+])("preserves %s delivery uncertainty in browser RPC failures", async (_label, failure) => {
+  const socket = connect(true);
+  harness.dispatch.mockRejectedValueOnce(failure);
+  socket.rpc(1, "management/status", {});
+  await new Promise<void>((resolve) => setImmediate(resolve));
+
+  expect(socket.results()).toEqual([{
+    kind: "rpcResult",
+    id: 1,
+    error: failure.message,
+    delivery: "unknown",
+    operationState: "unknown",
+  }]);
+});
+
+it("marks gateway admission rejection as not sent", async () => {
+  const socket = connect(true);
+  harness.dispatch.mockImplementation(() => new Promise(() => {}));
+  for (let id = 1; id <= 8; id++) socket.rpc(id, "management/status", {});
+  socket.rpc(9, "management/status", {});
+  await new Promise<void>((resolve) => setImmediate(resolve));
+
+  expect(socket.results()).toContainEqual(expect.objectContaining({
+    kind: "rpcResult",
+    id: 9,
+    errorCode: "BUSY",
+    delivery: "not_sent",
+  }));
 });
 
 it.each(methods)("does not let an unauthenticated socket dispatch %s before worker readiness", async (method) => {

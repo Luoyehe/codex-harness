@@ -7,32 +7,36 @@ import fastify from "fastify";
 import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { AuthToken, setBootstrapCookie } from "./auth-token.js";
-import type { ClientMessage, ServerMessage } from "./hub.js";
+import { rpcFailureMessage, type ClientMessage, type ServerMessage } from "./hub.js";
 import { GatewayController } from "./control.js";
 import { FLOW_LIMITS, RpcBudget, encodeBounded } from "./flow-control.js";
+import { contentSecurityPolicy, isTrustedBrowserOrigin } from "./security-headers.js";
 
 const HOST = process.env.HOST ?? "127.0.0.1";
 const PORT = Number(process.env.PORT ?? 8410);
 if (!["127.0.0.1", "::1", "localhost"].includes(HOST)) throw new Error("HOST must be loopback-only");
 if (!Number.isSafeInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error("PORT must be an integer between 1 and 65535");
+const HTTPS_MODE = process.env.GATEWAY_HTTPS === "true";
 const controlHome = process.env.GATEWAY_CONTROL_HOME ?? path.join(os.homedir(), ".codex-harness-control");
 mkdirSync(controlHome, { recursive: true, mode: 0o700 });
 const authToken = new AuthToken(controlHome, PORT);
 const controller = new GatewayController(controlHome);
 const budget = new RpcBudget();
 const MAX_WS_PAYLOAD_BYTES = FLOW_LIMITS.frameBytes;
+const MAX_SERVER_RESPONSE_BYTES = 1024 * 1024;
 
 const app = fastify({ logger: false, bodyLimit: 1024 * 1024 });
 await app.register(fastifyWebsocket, { options: { maxPayload: MAX_WS_PAYLOAD_BYTES } });
 
-app.addHook("onSend", async (_req, reply, payload) => {
+app.addHook("onSend", async (req, reply, payload) => {
   reply.header("x-content-type-options", "nosniff");
   reply.header("referrer-policy", "no-referrer");
   reply.header("permissions-policy", "camera=(), microphone=(), geolocation=()");
   reply.header("x-frame-options", "DENY");
+  if (HTTPS_MODE) reply.header("strict-transport-security", "max-age=31536000");
   reply.header(
     "content-security-policy",
-    "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self' ws: wss:",
+    contentSecurityPolicy(authToken.isTrustedHost(req.headers.host) ? req.headers.host : null, HTTPS_MODE),
   );
   return payload;
 });
@@ -47,7 +51,7 @@ app.get("/healthz", async () => ({ ok: true, codexState: controller.codexState, 
 const webDist = fileURLToPath(new URL("../../web/dist", import.meta.url));
 if (existsSync(webDist)) {
   await app.register(fastifyStatic, { root: webDist, prefix: "/" });
-  const secure = process.env.GATEWAY_HTTPS === "true";
+  const secure = HTTPS_MODE;
   // Cookie on all HTML responses (/, /index.html, SPA fallback) — restricted
   // to trusted hosts only.
   app.addHook("onRequest", async (req, reply) => {
@@ -88,8 +92,7 @@ app.get("/ws", { websocket: true }, (socket, req) => {
   const origin = req?.headers?.origin;
   if (origin) {
     try {
-      const o = new URL(origin);
-      if (o.host.toLowerCase() !== String(host ?? "").toLowerCase()) {
+      if (!isTrustedBrowserOrigin(origin, String(host ?? ""), HTTPS_MODE)) {
         process.stderr.write(`[gateway] rejected cross-origin websocket: origin=${origin} host=${host}\n`);
         socket.close(4003, "cross-origin");
         return;
@@ -140,41 +143,62 @@ app.get("/ws", { websocket: true }, (socket, req) => {
       }
       if (ids.has(msg.id)) { socket.close(1008, "duplicate rpc id"); return; }
       let release: () => void;
-      try { release = budget.acquire(clientId, msg.method); }
-      catch (error: any) { client.send({ kind: "rpcResult", id: msg.id, error: error.message, errorCode: error.errorCode }); return; }
-      ids.add(msg.id);
-      // These authenticated, read-only controller methods remain available
-      // while worker attachment waits for readiness. In particular a broken
-      // backend must not hide the durable management result or diagnostics.
-      const requiresWorker = !["management/status", "turn/operation", "admin/logs"].includes(msg.method);
-      void (requiresWorker ? connected : Promise.resolve()).then(() => controller.dispatch(msg.method, msg.params, clientId))
+      try { release = budget.acquire(clientId, msg.method, raw.byteLength); }
+      catch (error) { client.send(rpcFailureMessage(msg.id, error, { delivery: "not_sent" })); return; }
+      const rpcId = msg.id;
+      const rpcMethod = msg.method;
+      let rpcParams = msg.params;
+      ids.add(rpcId);
+      // Controller-owned diagnostics, receipts and send admission do not wait
+      // for worker attachment. A broken backend must not hide durable results.
+      const requiresWorker = !["management/status", "turn/operation", "thread/start/operation", "account/login/status", "admin/logs", "turn/start", "thread/start"].includes(rpcMethod);
+      // Receipt queries must never overtake an already queued send and report
+      // not_received. Persist its control-plane intent now; the ledger's send
+      // callback still waits for this exact browser/worker attachment.
+      void (requiresWorker ? connected : Promise.resolve()).then(() => {
+        const params = rpcParams;
+        rpcParams = undefined;
+        return rpcMethod === "turn/start" || rpcMethod === "thread/start"
+          ? controller.dispatch(rpcMethod, params, clientId, connected)
+          : controller.dispatch(rpcMethod, params, clientId);
+      })
         .then((result) => {
           try {
-            client.send({ kind: "rpcResult", id: msg.id, result });
-          } catch (error: any) {
-            try { client.send({ kind: "rpcResult", id: msg.id, error: error.message, errorCode: error.errorCode ?? "RESPONSE_TOO_LARGE" }); }
+            client.send({ kind: "rpcResult", id: rpcId, result });
+          } catch (error) {
+            try { client.send(rpcFailureMessage(rpcId, error, { errorCode: "RESPONSE_TOO_LARGE", delivery: "unknown" })); }
             catch { socket.close(1013, "response exceeds limits; reconnect"); }
           }
         })
-        .catch((err: any) => {
+        .catch((err: unknown) => {
           try {
-            client.send({ kind: "rpcResult", id: msg.id, error: err.message, errorCode: err.errorCode });
+            client.send(rpcFailureMessage(rpcId, err));
           } catch {
             /* socket already closed — nothing to do */
           }
-        }).finally(() => { release(); ids.delete(msg.id); });
+        }).finally(() => { release(); ids.delete(rpcId); });
       return;
     }
     if (msg?.kind === "serverRequestResponse") {
-      if (typeof msg.requestId !== "string" || msg.requestId.length > 256 ||
+      let responseBytes = Number.POSITIVE_INFINITY;
+      try { responseBytes = Buffer.byteLength(JSON.stringify({ payload: msg.payload, error: msg.error })); } catch { /* rejected below */ }
+      if (typeof msg.requestId !== "string" || msg.requestId.length === 0 || msg.requestId.length > 256 || msg.requestId.includes("\0") ||
+          responseBytes > MAX_SERVER_RESPONSE_BYTES ||
           (msg.error !== undefined && (typeof msg.error !== "string" || msg.error.length > 4096))) {
         socket.close(1008, "invalid server response");
         return;
       }
+      let release: () => void;
+      try { release = budget.acquire(clientId, "serverRequestResponse"); }
+      catch (error) {
+        client.send({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: msg.requestId, error: (error as Error).message } });
+        return;
+      }
       // First answer wins; later ones are ignored because the waiter is gone.
       void connected.then(() => controller.answer(msg.requestId as string, msg.payload, msg.error)).catch((error) => {
-        client.send({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: msg.requestId, error: error.message } });
-      });
+        const message = error instanceof Error ? error.message : "server response failed";
+        client.send({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: msg.requestId, error: message.slice(0, 4096) } });
+      }).finally(release);
     }
   });
 

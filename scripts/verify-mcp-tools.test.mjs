@@ -3,18 +3,23 @@ import { after, before, test } from "node:test";
 import { MCP_TASKS, runMcpVerification, taskEvidence, taskToolCounts } from "../deploy/verify-mcp-tools.mjs";
 
 const oldToken = process.env.GATEWAY_TOKEN;
-before(() => { process.env.GATEWAY_TOKEN = "synthetic-mcp-test-token"; });
+before(() => { process.env.GATEWAY_TOKEN = "synthetic-mcp-test-token-0000000000"; });
 after(() => { if (oldToken === undefined) delete process.env.GATEWAY_TOKEN; else process.env.GATEWAY_TOKEN = oldToken; });
 
 const task = MCP_TASKS[0];
+const searchResults = [
+  { title: "OpenAI developer documentation", link: "https://platform.openai.com/docs", content: "Guides for the OpenAI API" },
+  { title: "OpenAI product announcements", link: "https://openai.com/news" },
+  { title: "OpenAI research publications", link: "https://openai.com/research" },
+];
 const fixtureResults = {
-  "web-search-prime": JSON.stringify({ search_result: [{ title: "OpenAI developer documentation", link: "https://platform.openai.com/docs", content: "Guides for the OpenAI API" }] }),
+  "web-search-prime": JSON.stringify({ search_result: searchResults }),
   "web-reader": "Example Domain\nThis domain is for use in documentation examples without needing permission.",
   zread: "vitejs/vite\npackage.json\nREADME.md\npnpm-lock.yaml\npackages\ndocs",
   "zai-vision": "A red rose with green leaves against a transparent background.",
 };
 const fixtureReplies = {
-  "web-search-prime": "The result title is OpenAI developer documentation.",
+  "web-search-prime": searchResults.map(result => result.title).join("; "),
   "web-reader": "Example Domain: This domain is for use in documentation examples without needing permission.",
   zread: "The repository contains package.json, README.md, pnpm-lock.yaml, packages and docs.",
   "zai-vision": "图片主体是一朵红色玫瑰，带有绿色叶子，背景透明。",
@@ -28,6 +33,40 @@ function notes(status = "completed", type = "mcpToolCall", selected = task) {
     { method: "turn/completed", params: { threadId: "t", turn: { id: "r", status } } },
   ];
 }
+
+test("search evidence requires three distinct returned titles and all first three in the reply", () => {
+  const entries = [
+    { title: "OpenAI developer documentation", url: "https://example.com/one" },
+    { title: "OpenAI product announcements", url: "https://example.com/two" },
+    { title: "OpenAI research publications", url: "https://example.com/three" },
+    { title: "OpenAI help articles", url: "https://example.com/four" },
+  ];
+  const check = (returned, reply) => {
+    const fixture = notes();
+    fixture[0].params.item.result = { content: [], structuredContent: returned };
+    fixture[1].params.item.text = reply;
+    return taskEvidence(fixture, "t", "r", task);
+  };
+  assert.equal(check(entries.slice(0, 1), entries[0].title).ok, false);
+  assert.equal(check([entries[0], entries[0], entries[0]], entries[0].title).ok, false);
+  assert.equal(check(entries, entries.slice(1).map(entry => entry.title).join("; ")).ok, false);
+  assert.equal(check(entries, entries.slice(0, 3).map(entry => entry.title).join("; ")).ok, true);
+});
+
+test("repository evidence requires at least five distinct returned paths and five grounded reply paths", () => {
+  const selected = MCP_TASKS.find(item => item.key === "zread");
+  const check = (returned, reply) => {
+    const fixture = notes("completed", "mcpToolCall", selected);
+    fixture[0].params.item.result.content[0].text = returned;
+    fixture[1].params.item.text = reply;
+    return taskEvidence(fixture, "t", "r", selected).ok;
+  };
+  const three = "package.json README.md pnpm-lock.yaml";
+  const five = three + " packages docs";
+  assert.equal(check(three, three), false);
+  assert.equal(check(five, three), false);
+  assert.equal(check(five, five), true);
+});
 
 test("MCP verification requires final turn success and completed evidence from the same turn", () => {
   assert.equal(taskEvidence(notes(), "t", "r", task).ok, true);
@@ -100,7 +139,7 @@ test("search accepts real structuredContent or Markdown results, not echoed argu
   structured[0].params.item.result = { content: [], structuredContent: JSON.parse(fixtureResults[task.key]) };
   assert.equal(taskEvidence(structured, "t", "r", task).ok, true);
   const markdown = notes("completed", "dynamicToolCall");
-  markdown[0].params.item.contentItems[0].text = "- [OpenAI developer documentation](https://platform.openai.com/docs)";
+  markdown[0].params.item.contentItems[0].text = searchResults.map(result => `- [${result.title}](${result.link})`).join("\n");
   assert.equal(taskEvidence(markdown, "t", "r", task).ok, true);
   for (const text of [JSON.stringify({ query: "OpenAI", results: [] }),
     JSON.stringify({ arguments: { title: "OpenAI developer documentation", url: "https://platform.openai.com/docs" }, results: [] })]) {
@@ -139,7 +178,7 @@ function encodedEvidence(text, type = "mcpToolCall", selected = task) {
 }
 
 test("single and multiple JSON-string wrappers decode real search arrays on native and dynamic transports", () => {
-  const results = [{ title: "OpenAI developer documentation", link: "https://platform.openai.com/docs", content: "Guides for the OpenAI API", refer: "fixture-reference" }];
+  const results = searchResults.map(result => ({ ...result, refer: "fixture-reference" }));
   for (const type of ["mcpToolCall", "dynamicToolCall"]) {
     for (const layers of [1, 2, 4]) {
       const evidence = encodedEvidence(encodeResult(results, layers), type);

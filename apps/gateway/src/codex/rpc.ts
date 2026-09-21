@@ -1,10 +1,12 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { statSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
+import { opendir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { StringDecoder } from "node:string_decoder";
 import type { Readable, Writable } from "node:stream";
 import type { InitializeParams } from "../../../../protocol/InitializeParams.js";
+import { OversizedResponse } from "./oversized-response.js";
 
 /**
  * JSON-RPC 2.0 connection to a `codex app-server` child process over stdio.
@@ -34,9 +36,80 @@ interface PendingEntry {
 
 /** How long to wait for an app-server response before giving up (per call). */
 const REQUEST_TIMEOUT_MS = 120_000;
-export const RPC_LIMITS = { frameBytes: 36 * 1024 * 1024, queuedBytes: 48 * 1024 * 1024, pending: 64, controlReserve: 8, serverRequests: 32 } as const;
-const CONTROL_METHODS = new Set(["turn/interrupt", "command/exec/terminate", "command/exec/resize"]);
+export const RPC_LIMITS = {
+  frameBytes: 36 * 1024 * 1024,
+  discardBytes: 128 * 1024 * 1024,
+  discardMs: 30_000,
+  queuedBytes: 48 * 1024 * 1024,
+  controlQueuedBytes: 1024 * 1024,
+  // Dynamic MCP results are bounded to 10 MiB. Keep enough independent
+  // capacity for one reply (plus JSON framing) while ordinary writes stall.
+  replyQueuedBytes: 12 * 1024 * 1024,
+  pending: 64,
+  controlReserve: 8,
+  serverRequests: 32,
+} as const;
+const CONTROL_METHODS = new Set([
+  "turn/interrupt",
+  "command/exec/terminate", "command/exec/resize",
+  // Browser API aliases are the effective methods on the control→worker IPC.
+  // The worker translates them to command/exec/* only after this queue.
+  "terminal/terminate", "terminal/resize",
+  "account/login/cancel",
+]);
+const CONTROL_ENVELOPE_METHODS = new Set(["gateway/connect", "gateway/disconnect", "gateway/answer"]);
 const TERMINATE_GRACE_MS = 2_000;
+const CLEANUP_VERIFICATION_MS = 30_000;
+export const PROC_SCAN_LIMITS = { entries: 262_144, milliseconds: 5_000 } as const;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+/** The managed gateway talks to its private worker through gateway/dispatch,
+ * so queueing policy must use the nested app-server request rather than the
+ * transport envelope. Direct app-server connections continue to work too. */
+function effectiveRequest(method: unknown, params: unknown): { method: string | null; params: unknown } {
+  if (method === "gateway/dispatch" && isObject(params) && typeof params.method === "string") {
+    return { method: params.method, params: params.params };
+  }
+  return { method: typeof method === "string" ? method : null, params };
+}
+
+function isControlRequest(method: unknown, params: unknown): boolean {
+  if (typeof method !== "string") return true; // replies to server requests
+  if (CONTROL_ENVELOPE_METHODS.has(method)) return true;
+  return CONTROL_METHODS.has(effectiveRequest(method, params).method ?? "");
+}
+
+/** A control request may bypass unrelated bulk work, but never an earlier
+ * request for the same logical resource. In particular, sending terminate or
+ * resize before the queued command/exec that creates its process turns a
+ * successful "process not found" response into a subsequently orphaned PTY.
+ * Thread controls have the equivalent start/interrupt ordering requirement. */
+function frameResourceKeys(frame: any): string[] {
+  const outerMethod = typeof frame?.method === "string" ? frame.method : null;
+  const effective = effectiveRequest(outerMethod, frame?.params);
+  const params = effective.params;
+  if (!isObject(params)) return [];
+  const resourceId = (value: unknown): string | null =>
+    typeof value === "string" && value.length > 0 && value.length <= 256 && !value.includes("\0") ? value : null;
+  const keys: string[] = [];
+  const processId = resourceId(params.processId);
+  const threadId = resourceId(params.threadId);
+  const loginId = resourceId(params.loginId);
+  const clientId = resourceId(params.clientId);
+  if (processId) keys.push(`process:${processId}`);
+  if (threadId) keys.push(`thread:${threadId}`);
+  if (loginId) keys.push(`login:${loginId}`);
+  if ((outerMethod === "gateway/connect" || outerMethod === "gateway/disconnect")
+      && clientId) keys.push(`client:${clientId}`);
+  const requestId = resourceId(params.requestId);
+  if (outerMethod === "gateway/answer" && requestId) {
+    keys.push(`request:${requestId}`);
+  }
+  return keys;
+}
 
 /** A worker must never inherit control-plane credentials from the gateway.
  * Managed installations also enforce a separate OS identity; this scrub is
@@ -60,7 +133,23 @@ const NO_TIMEOUT_METHODS = new Set(["command/exec"]);
 /** The upstream explicitly rejected the request. Transport failures/timeouts
  * are deliberately different: their acceptance outcome is unknown. */
 export class AppServerRequestError extends Error {
-  constructor(message: string, readonly rpcError?: { code?: number | string; data?: unknown }) { super(message); }
+  readonly errorCode?: "RESPONSE_TOO_LARGE";
+  constructor(message: string, readonly rpcError?: { code?: number | string; data?: unknown }) {
+    super(message);
+    if ((rpcError?.data as any)?.errorCode === "RESPONSE_TOO_LARGE") this.errorCode = "RESPONSE_TOO_LARGE";
+  }
+}
+
+/** A syntactically valid JSON-RPC error is a rejection unless its trusted
+ * worker explicitly marks delivery unknown. Local AppServerRequestErrors are
+ * raised before the frame was written (capacity, serialization or queued
+ * expiry), so they are also definite non-acceptance. Transport and malformed
+ * response failures use ordinary Error objects and remain unknown. */
+export function isDefiniteAppServerRejection(error: unknown): error is AppServerRequestError {
+  if (!(error instanceof AppServerRequestError)) return false;
+  if ((error as AppServerRequestError & { delivery?: unknown }).delivery === "unknown") return false;
+  const data = error.rpcError?.data;
+  return !(data && typeof data === "object" && !Array.isArray(data) && (data as { delivery?: unknown }).delivery === "unknown");
 }
 
 /** Windows batch shims give us cmd.exe's PID. Killing only that wrapper
@@ -85,39 +174,61 @@ function terminateChild(child: ChildProcess | null, force = false): void {
   killer.unref();
 }
 
+interface ProcessRow { identity: ProcessIdentity; parent: number; group: number; live: boolean }
+
+/** Parse only the fixed fields used by cleanup. Malformed procfs data is a
+ * verification failure, never evidence that an old process disappeared. */
+export function parseProcessStat(pid: number, value: string): ProcessRow {
+  const close = value.lastIndexOf(")");
+  if (!Number.isSafeInteger(pid) || pid <= 0 || close < 2 || close + 2 >= value.length) {
+    throw new Error("invalid proc stat identity");
+  }
+  const fields = value.slice(close + 2).trim().split(/\s+/);
+  if (fields.length < 20 || !/^[A-Za-z]$/.test(fields[0] ?? "")
+      || !/^\d+$/.test(fields[1] ?? "") || !/^\d+$/.test(fields[2] ?? "")
+      || !/^\d+$/.test(fields[19] ?? "")) throw new Error("invalid proc stat fields");
+  const parent = Number(fields[1]);
+  const group = Number(fields[2]);
+  if (!Number.isSafeInteger(parent) || !Number.isSafeInteger(group)) throw new Error("invalid proc stat numbers");
+  return { identity: { pid, start: fields[19]! }, parent, group,
+    live: fields[0] !== "Z" && fields[0] !== "X" };
+}
+
+async function scanProcesses(visit: (row: ProcessRow) => boolean): Promise<boolean> {
+  const deadline = performance.now() + PROC_SCAN_LIMITS.milliseconds;
+  const directory = await opendir("/proc");
+  let entries = 0;
+  for await (const entry of directory) {
+    entries += 1;
+    if (entries > PROC_SCAN_LIMITS.entries || performance.now() > deadline) {
+      throw new Error("proc scan exceeded its cleanup verification budget");
+    }
+    if (!/^\d+$/.test(entry.name)) continue;
+    const row = await processIdentity(Number(entry.name));
+    if (row && visit(row)) return true;
+  }
+  return false;
+}
+
 async function groupHasLiveMembers(pid: number): Promise<boolean> {
   try { process.kill(-pid, 0); } catch (error: any) { if (error?.code === "ESRCH") return false; }
   if (process.platform !== "linux") return true;
   // Orphan zombies cannot execute and may remain until PID1 reaps them. Do
   // not mistake them for running workers, but fail closed on unreadable state.
-  const names = await readdir("/proc");
-  for (const name of names) {
-    if (!/^\d+$/.test(name)) continue;
-    let stat;
-    try { stat = await readFile(`/proc/${name}/stat`, "utf8"); }
-    catch (error: any) { if (error?.code === "ENOENT" || error?.code === "ESRCH") continue; throw error; }
-    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
-    if (Number(fields[2]) === pid && fields[0] !== "Z" && fields[0] !== "X") return true;
-  }
-  return false;
+  return scanProcesses((row) => row.group === pid && row.live);
 }
 
 interface ProcessIdentity { pid: number; start: string; }
-async function processIdentity(pid: number): Promise<{ identity: ProcessIdentity; parent: number; live: boolean } | null> {
+async function processIdentity(pid: number): Promise<ProcessRow | null> {
   try {
     const stat = await readFile(`/proc/${pid}/stat`, "utf8");
-    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
-    return { identity: { pid, start: fields[19] }, parent: Number(fields[1]), live: fields[0] !== "Z" && fields[0] !== "X" };
+    return parseProcessStat(pid, stat);
   } catch (error: any) { if (error?.code === "ENOENT" || error?.code === "ESRCH") return null; throw error; }
 }
 
 async function descendantsOf(pid: number): Promise<ProcessIdentity[]> {
-  const rows = [];
-  for (const name of await readdir("/proc")) {
-    if (!/^\d+$/.test(name)) continue;
-    const row = await processIdentity(Number(name));
-    if (row) rows.push(row);
-  }
+  const rows: ProcessRow[] = [];
+  await scanProcesses((row) => { rows.push(row); return false; });
   const descendants = new Set([pid]);
   for (;;) {
     const previous = descendants.size;
@@ -169,15 +280,17 @@ export class AppServerConnection {
   private transportError: Error | null = null;
   private exitReported = false;
   private attached = false;
-  private activeServerRequests = 0;
+  private activeServerRequestIds = new Map<string, object>();
   private writeBlocked = false;
   private queuedBytes = 0;
-  private writeQueue: Array<{ encoded: string; bytes: number; control: boolean; id?: number; onError?: (err: Error) => void }> = [];
+  private writeQueue: Array<{ encoded: string; bytes: number; control: boolean; resources: string[]; id?: number; onError?: (err: Error) => void }> = [];
   private terminationTimer: ReturnType<typeof setTimeout> | null = null;
+  private discardTimer: ReturnType<typeof setTimeout> | null = null;
   private terminating = false;
   private exitCompleting = false;
   private terminationSetup: Promise<void> | null = null;
   private descendantIdentities: ProcessIdentity[] = [];
+  private descendantEnumerationFailed = false;
   private exitResolve!: () => void;
   private exitReject!: (error: Error) => void;
   private readonly exitPromise = new Promise<void>((resolve, reject) => { this.exitResolve = resolve; this.exitReject = reject; });
@@ -261,6 +374,7 @@ export class AppServerConnection {
     const decoder = new StringDecoder("utf8");
     let buffered = "";
     let bufferedBytes = 0;
+    let discarded: OversizedResponse | null = null;
     stdout.on("data", (chunk: Buffer | string) => {
       if (this.transportError) return;
       const text = typeof chunk === "string" ? chunk : decoder.write(chunk);
@@ -269,16 +383,35 @@ export class AppServerConnection {
         const newline = text.indexOf("\n", offset);
         const part = newline < 0 ? text.slice(offset) : text.slice(offset, newline);
         const partBytes = Buffer.byteLength(part);
-        if (bufferedBytes + partBytes > RPC_LIMITS.frameBytes) {
+        if (!discarded && bufferedBytes + partBytes > RPC_LIMITS.frameBytes) {
+          discarded = new OversizedResponse();
+          if (!discarded.feed(buffered)) { this.failTransport(new Error("app-server frame exceeded byte limit")); return; }
           buffered = "";
-          bufferedBytes = 0;
-          this.failTransport(new Error("app-server frame exceeded byte limit"));
-          return;
+          this.discardTimer = setTimeout(() => this.failTransport(new Error("app-server oversized frame drain timed out")), RPC_LIMITS.discardMs);
+          this.discardTimer.unref?.();
         }
-        buffered += part;
         bufferedBytes += partBytes;
+        if (discarded) {
+          if (bufferedBytes > RPC_LIMITS.discardBytes || !discarded.feed(part)) {
+            this.failTransport(new Error("app-server oversized frame exceeded drain limits or was malformed")); return;
+          }
+        } else buffered += part;
         if (newline < 0) break;
-        this.handleLine(buffered);
+        if (discarded) {
+          const id = discarded.responseId();
+          if (this.discardTimer) clearTimeout(this.discardTimer);
+          this.discardTimer = null;
+          if (id === undefined) { this.failTransport(new Error("app-server oversized frame was not an identifiable response")); return; }
+          const entry = this.pending.get(id);
+          if (entry) {
+            this.pending.delete(id);
+            if (entry.timer) clearTimeout(entry.timer);
+            // Local response failure says nothing about whether the server
+            // executed a request; never classify it as an upstream rejection.
+            entry.reject(Object.assign(new Error("app-server response exceeded safe size limit; history was not truncated"), { errorCode: "RESPONSE_TOO_LARGE", delivery: "unknown" }));
+          }
+          discarded = null;
+        } else this.handleLine(buffered);
         buffered = "";
         bufferedBytes = 0;
         if (this.transportError) return;
@@ -321,7 +454,7 @@ export class AppServerConnection {
     const hasError = Object.prototype.hasOwnProperty.call(msg, "error");
     const validId = (
       typeof msg.id === "string"
-        ? msg.id.length > 0 && msg.id.length <= 256
+        ? msg.id.length > 0 && msg.id.length <= 256 && !msg.id.includes("\0")
         : typeof msg.id === "number" && Number.isSafeInteger(msg.id)
     );
 
@@ -340,26 +473,30 @@ export class AppServerConnection {
     }
 
     if (hasMethod && hasId) {
-      if (this.activeServerRequests >= RPC_LIMITS.serverRequests) {
-        this.writeFrame({ id: msg.id, error: { code: -32000, message: "gateway server-request concurrency limit reached" } });
+      const requestKey = typeof msg.id === "string" ? `s:${msg.id}` : `n:${msg.id}`;
+      if (this.activeServerRequestIds.has(requestKey)) {
+        // Two in-flight requests with the same JSON-RPC id cannot receive
+        // distinguishable answers. Continuing could report failure for an
+        // operation that still produces side effects, so replace the broken
+        // transport instead of inventing a second correlated result.
+        this.failTransport(new Error("app-server reused an active server-request id"));
         return;
       }
-      this.activeServerRequests += 1;
+      if (this.activeServerRequestIds.size >= RPC_LIMITS.serverRequests) {
+        this.writeServerReply({ id: msg.id, error: { code: -32000, message: "gateway server-request concurrency limit reached" } });
+        return;
+      }
+      const requestToken = {};
+      this.activeServerRequestIds.set(requestKey, requestToken);
       void (async () => {
         try {
           const result = await this.handlers.onServerRequest(msg.id, msg.method, msg.params);
-          this.writeFrame({ id: msg.id, result: result ?? null }, (err) => {
-            this.handlers.onStderr(`[gateway-rpc] failed to answer server request ${String(msg.id)}: ${err.message}\n`);
-          });
+          this.writeServerReply({ id: msg.id, result: result ?? null });
         } catch (err: any) {
-          this.writeFrame(
-            { id: msg.id, error: { code: -32000, message: err?.message ?? "error" } },
-            (writeErr) => {
-              this.handlers.onStderr(`[gateway-rpc] failed to reject server request ${String(msg.id)}: ${writeErr.message}\n`);
-            },
-          );
+          this.writeServerReply({ id: msg.id, error: { code: -32000, message: String(err?.message ?? "error").slice(0, 2_000),
+            ...(["rejected", "unknown"].includes(err?.delivery) ? { data: { delivery: err.delivery } } : {}) } });
         } finally {
-          this.activeServerRequests -= 1;
+          if (this.activeServerRequestIds.get(requestKey) === requestToken) this.activeServerRequestIds.delete(requestKey);
         }
       })();
       return;
@@ -378,9 +515,17 @@ export class AppServerConnection {
       this.pending.delete(msg.id);
       if (entry.timer) clearTimeout(entry.timer);
       if (hasError) {
-        const error = msg.error && typeof msg.error === "object" ? msg.error : {};
-        const message = typeof error.message === "string" ? error.message.slice(0, 2_000) : "app-server error";
-        const code = typeof error.code === "number" || typeof error.code === "string" ? String(error.code).slice(0, 64) : "unknown";
+        const error = msg.error;
+        if (!error || typeof error !== "object" || Array.isArray(error)
+            || !Number.isSafeInteger(error.code) || typeof error.message !== "string") {
+          // Correlation identifies the request, but malformed error data is
+          // not proof of rejection. Do not release its attachment lease or
+          // advertise that the potentially accepted operation is safe to retry.
+          entry.reject(Object.assign(new Error("app-server returned a malformed error response; execution outcome is unknown"), { delivery: "unknown" }));
+          return;
+        }
+        const message = error.message.slice(0, 2_000);
+        const code = String(error.code);
         entry.reject(new AppServerRequestError(`${message} (${code})`, { code: error.code, data: error.data }));
       } else {
         entry.resolve(msg.result);
@@ -396,16 +541,33 @@ export class AppServerConnection {
     this.handlers.onStderr("[gateway-rpc] ignored malformed JSON-RPC frame\n");
   }
 
+  private writeServerReply(frame: { id: number | string; result?: unknown; error?: unknown }): void {
+    this.writeFrame(frame, (primaryError) => {
+      this.handlers.onStderr(`[gateway-rpc] failed to write server-request reply ${String(frame.id)}: ${primaryError.message}\n`);
+      if (this.transportError) return;
+      // A large/cyclic result may not fit even though a small correlated error
+      // does. Never silently abandon the id: either enqueue this fallback or
+      // fail the transport so the app-server cannot wait forever.
+      this.writeFrame({ id: frame.id, error: { code: -32000, message: "gateway could not encode or queue server-request result" } }, (fallbackError) => {
+        this.handlers.onStderr(`[gateway-rpc] failed to queue fallback server-request error ${String(frame.id)}: ${fallbackError.message}\n`);
+        this.failTransport(fallbackError);
+      });
+    });
+  }
+
   private writeFrame(frame: any, onError?: (err: Error) => void): void {
     const stream = this.stdinStream;
     if (this.transportError) {
-      onError?.(this.transportError);
+      onError?.(new AppServerRequestError("app-server transport is unavailable; request was not sent"));
       return;
     }
     if (!stream || !stream.writable || stream.destroyed) {
       const failure = new Error("app-server stdin is not writable");
+      // Reject this newly admitted request before failing older, already
+      // written requests on the transport. Its frame demonstrably did not
+      // cross the mutation boundary.
+      onError?.(new AppServerRequestError("app-server stdin is not writable; request was not sent"));
       this.failTransport(failure);
-      onError?.(failure);
       return;
     }
     let encoded: string;
@@ -416,13 +578,25 @@ export class AppServerConnection {
       return;
     }
     const bytes = Buffer.byteLength(encoded);
-    if (bytes > RPC_LIMITS.frameBytes || this.queuedBytes + stream.writableLength + bytes > RPC_LIMITS.queuedBytes) {
+    const control = isControlRequest(frame?.method, frame?.params);
+    const reply = frame?.method === undefined && (typeof frame?.id === "string" || typeof frame?.id === "number");
+    const queueLimit = RPC_LIMITS.queuedBytes + (reply
+      ? RPC_LIMITS.replyQueuedBytes
+      : control ? RPC_LIMITS.controlQueuedBytes : 0);
+    if (bytes > RPC_LIMITS.frameBytes || this.queuedBytes + stream.writableLength + bytes > queueLimit) {
       const failure = new AppServerRequestError("app-server outgoing queue/frame byte limit reached; request was not sent");
       if (onError) onError(failure);
       else this.failTransport(failure); // notifications/control replies cannot be silently lost
       return;
     }
-    this.writeQueue.push({ encoded, bytes, control: !frame.method || CONTROL_METHODS.has(frame.method), id: frame.method ? frame.id : undefined, onError });
+    this.writeQueue.push({
+      encoded,
+      bytes,
+      control,
+      resources: frameResourceKeys(frame),
+      id: frame.method ? frame.id : undefined,
+      onError,
+    });
     this.queuedBytes += bytes;
     this.flushWrites();
   }
@@ -431,7 +605,9 @@ export class AppServerConnection {
     const stream = this.stdinStream;
     if (this.transportError || this.writeBlocked || !stream) return;
     while (this.writeQueue.length && !this.writeBlocked && !this.transportError) {
-      const controlIndex = this.writeQueue.findIndex((entry) => entry.control);
+      const controlIndex = this.writeQueue.findIndex((entry, index) => entry.control && !this.writeQueue
+        .slice(0, index)
+        .some((earlier) => entry.resources.some((resource) => earlier.resources.includes(resource))));
       const entry = this.writeQueue.splice(controlIndex < 0 ? 0 : controlIndex, 1)[0];
       this.queuedBytes -= entry.bytes;
       try {
@@ -451,8 +627,11 @@ export class AppServerConnection {
   }
 
   private markTransportFailed(err: Error): void {
+    if (this.discardTimer) clearTimeout(this.discardTimer);
+    this.discardTimer = null;
     const firstFailure = !this.transportError;
     if (firstFailure) this.transportError = err;
+    this.activeServerRequestIds.clear();
     // Save input for EOF shutdown after the termination path captures child
     // identities. Closing first could orphan a detached PTY before capture.
     const stream = this.stdinStream;
@@ -489,7 +668,10 @@ export class AppServerConnection {
       // before asking the parent to exit, and never signal a reused PID.
       if (process.platform === "linux") {
         try { this.descendantIdentities = await descendantsOf(child.pid!); }
-        catch { this.handlers.onStderr("[gateway-rpc] could not enumerate app-server descendants\n"); }
+        catch {
+          this.descendantEnumerationFailed = true;
+          this.handlers.onStderr("[gateway-rpc] could not enumerate app-server descendants\n");
+        }
       }
       // This EOF is also the authenticated shutdown signal for a privileged
       // backend launcher; its supervisor owns cross-UID descendant cleanup.
@@ -530,29 +712,34 @@ export class AppServerConnection {
       if (code === this.options.cleanExitCode && signal === null) this.finishExit(code, signal);
       else {
         const error = new Error(`worker cleanup was not confirmed (owner code=${code} signal=${signal}); restart the complete managed service before retrying`);
-        this.exitReported = true;
-        this.closingInput?.destroy();
-        this.closingInput = null;
-        this.exitReject(error);
-        this.handlers.onStderr(`[gateway-rpc] ${error.message}\n`);
-        this.handlers.onCleanupUnconfirmed?.(error);
+        this.failCleanup(error);
       }
       return;
     }
     if (process.platform !== "win32" && this.child?.pid) {
       const child = this.child;
       void (async () => {
-        await this.terminationSetup;
+        try { await this.terminationSetup; }
+        catch { this.descendantEnumerationFailed = true; }
         try { terminateChild(child, true); } catch { /* check live state below */ }
         await this.signalDescendants("SIGKILL");
+        if (this.descendantEnumerationFailed) {
+          this.failCleanup(new Error("app-server descendant enumeration failed; cleanup is unconfirmed and replacement is blocked"));
+          return;
+        }
         // Do not report a synthetic exit or overlap a replacement while an
         // old descendant can still execute. An unexpected permission boundary
         // therefore fails closed instead of silently orphaning processes.
         let warned = false;
         let delay = 25;
+        const deadline = performance.now() + CLEANUP_VERIFICATION_MS;
         for (;;) {
           try { if (!await groupHasLiveMembers(child.pid!) && !await this.descendantsAreLive()) break; }
           catch { if (!warned) { this.handlers.onStderr("[gateway-rpc] cannot verify old process group termination; replacement paused\n"); warned = true; } }
+          if (performance.now() >= deadline) {
+            this.failCleanup(new Error("app-server cleanup could not be verified within its bounded deadline; replacement is blocked"));
+            return;
+          }
           await new Promise((resolve) => setTimeout(resolve, delay));
           delay = Math.min(delay * 2, 1000);
         }
@@ -561,6 +748,18 @@ export class AppServerConnection {
       return;
     }
     this.finishExit(code, signal);
+  }
+
+  private failCleanup(error: Error): void {
+    if (this.exitReported) return;
+    this.exitReported = true;
+    if (this.terminationTimer) clearTimeout(this.terminationTimer);
+    this.terminationTimer = null;
+    this.closingInput?.destroy();
+    this.closingInput = null;
+    this.exitReject(error);
+    this.handlers.onStderr(`[gateway-rpc] ${error.message}\n`);
+    this.handlers.onCleanupUnconfirmed?.(error);
   }
 
   private finishExit(code: number | null, signal: string | null): void {
@@ -574,6 +773,10 @@ export class AppServerConnection {
   }
 
   private failAllPending(err: Error): void {
+    // Queued requests have already been removed and rejected as not sent by
+    // failTransport(). Everything left in pending was handed to stream.write;
+    // loss of its reply can never be advertised as a safe rejection.
+    Object.assign(err, { delivery: "unknown" as const });
     for (const entry of this.pending.values()) {
       if (entry.timer) clearTimeout(entry.timer);
       entry.reject(err);
@@ -585,10 +788,11 @@ export class AppServerConnection {
     if (typeof method !== "string" || method.length === 0 || method.length > 512) {
       return Promise.reject(new Error("invalid app-server request method"));
     }
-    const limit = RPC_LIMITS.pending + (CONTROL_METHODS.has(method) ? RPC_LIMITS.controlReserve : 0);
+    const control = isControlRequest(method, params);
+    const limit = RPC_LIMITS.pending + (control ? RPC_LIMITS.controlReserve : 0);
     if (this.pending.size >= limit) return Promise.reject(new AppServerRequestError("app-server pending request limit reached; request was not sent"));
     const id = this.nextId++;
-    const noTimeout = NO_TIMEOUT_METHODS.has(method);
+    const noTimeout = NO_TIMEOUT_METHODS.has(effectiveRequest(method, params).method ?? "");
     return new Promise<T>((resolve, reject) => {
       const entry: PendingEntry = {
         resolve: (v) => resolve(v as T),
@@ -601,7 +805,7 @@ export class AppServerConnection {
               if (queuedIndex >= 0) {
                 this.queuedBytes -= this.writeQueue.splice(queuedIndex, 1)[0].bytes;
                 reject(new AppServerRequestError("app-server request expired in outgoing queue; request was not sent"));
-              } else reject(new Error(`app-server request timed out after ${this.requestTimeoutMs / 1000}s: ${method}`));
+              } else reject(Object.assign(new Error(`app-server request timed out after ${this.requestTimeoutMs / 1000}s: ${method}`), { delivery: "unknown" as const }));
             }, this.requestTimeoutMs),
       };
       this.pending.set(id, entry);
@@ -616,7 +820,9 @@ export class AppServerConnection {
   }
 
   notify(method: string, params?: unknown): void {
-    this.writeFrame({ method, params: params ?? {} });
+    let immediateFailure: Error | undefined;
+    this.writeFrame({ method, params: params ?? {} }, (error) => { immediateFailure = error; });
+    if (immediateFailure) throw immediateFailure;
   }
 
   kill(): Promise<void> {

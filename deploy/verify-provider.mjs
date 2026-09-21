@@ -2,7 +2,7 @@
 // not provider HTTP requests or monetary spend: one turn can make many requests.
 // The caller creates/registers an isolated cwd and supplies one synthetic file.
 import { randomBytes, randomInt } from "node:crypto";
-import { constants, closeSync, fstatSync, openSync, readFileSync } from "node:fs";
+import { constants, closeSync, fstatSync, lstatSync, openSync, readSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -36,14 +36,31 @@ export function providerVerificationConfig(env) {
   return { mode, provider, model, authMode, cwd, fixture, expectedFile };
 }
 
-function syntheticExpected(file) {
+const sameFile = (one, two) => one.dev === two.dev && one.ino === two.ino && one.mode === two.mode &&
+  one.uid === two.uid && one.gid === two.gid && one.nlink === two.nlink && one.size === two.size &&
+  one.mtimeMs === two.mtimeMs && one.ctimeMs === two.ctimeMs;
+
+export function syntheticExpected(file) {
   // This is the only local content read. Never read the fixture, account,
   // config or arbitrary logs. Require a tiny, regular, non-symlink expectation.
-  const fd = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  const before = lstatSync(file);
+  if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1 || before.size > 128) fail("invalid_synthetic_expectation");
+  const fd = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
   try {
-    const stat = fstatSync(fd);
-    if (!stat.isFile() || stat.size > 128) fail("invalid_synthetic_expectation");
-    return readFileSync(fd, "utf8").trim();
+    const opened = fstatSync(fd);
+    if (!opened.isFile() || !sameFile(before, opened)) fail("invalid_synthetic_expectation");
+    const buffer = Buffer.allocUnsafe(129);
+    let total = 0;
+    while (total < buffer.length) {
+      const count = readSync(fd, buffer, total, buffer.length - total, null);
+      if (count === 0) break;
+      total += count;
+    }
+    const after = fstatSync(fd);
+    if (total !== before.size || total > 128 || !sameFile(opened, after) || !sameFile(after, lstatSync(file))) {
+      fail("invalid_synthetic_expectation");
+    }
+    return buffer.subarray(0, total).toString("utf8").trim();
   } finally { closeSync(fd); }
 }
 
@@ -58,7 +75,8 @@ function completedItems(notes, threadId, turnId) {
   return [...items.values()];
 }
 
-const toolTypes = new Set(["commandExecution", "mcpToolCall", "dynamicToolCall", "webSearch", "imageGeneration", "collabAgentToolCall", "fileChange"]);
+const toolTypes = new Set(["commandExecution", "mcpToolCall", "dynamicToolCall", "webSearch", "imageView", "imageGeneration",
+  "collabAgentToolCall", "collabToolCall", "subAgentActivity", "sleep", "fileChange"]);
 function toolCounts(notes, threadId, turnId) {
   const started = new Set();
   for (const note of notes) {

@@ -71,3 +71,30 @@ with tempfile.TemporaryDirectory() as directory:
     assert not target.exists()
 `);
 });
+
+test("cleanup preflights entry and depth budgets before removing any data", {
+  skip: !available || process.platform !== "linux" ? "Linux descriptor fixtures required" : false,
+}, () => {
+  run(`import os,tempfile
+from pathlib import Path
+from unittest.mock import patch
+import safe_delete as cleanup
+assert os.geteuid()!=0, 'run maintenance fixtures as an unprivileged account'
+with tempfile.TemporaryDirectory() as directory:
+    target=Path(directory)/'data'; target.mkdir()
+    one=target/'one'; two=target/'two'; one.write_text('one'); two.write_text('two')
+    token=cleanup.prepare(str(target),'data')
+    with patch.object(cleanup,'MAX_DELETE_ENTRIES',1):
+        try: cleanup.delete(str(target),'data',token)
+        except ValueError as error: assert 'entry limit' in str(error)
+        else: raise AssertionError('oversized cleanup tree accepted')
+    assert one.read_text()=='one' and two.read_text()=='two'
+    one.unlink(); two.unlink(); child=target/'child'; child.mkdir(); grandchild=child/'grandchild'; grandchild.mkdir(); sentinel=grandchild/'keep'; sentinel.write_text('retained')
+    token=cleanup.prepare(str(target),'data')
+    with patch.object(cleanup,'MAX_DELETE_DEPTH',1):
+        try: cleanup.delete(str(target),'data',token)
+        except ValueError as error: assert 'depth limit' in str(error)
+        else: raise AssertionError('over-deep cleanup tree accepted')
+    assert sentinel.read_text()=='retained'
+`);
+});

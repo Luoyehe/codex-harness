@@ -7,7 +7,8 @@
 
 import type { GatewayNotification, GatewayServerRequest, ProtocolRpc } from "./protocol";
 
-export type RpcResultMsg = { kind: "rpcResult"; id: number; result?: unknown; error?: string; errorCode?: string; operationState?: string };
+type RpcDelivery = "not_sent" | "unknown" | "rejected";
+export type RpcResultMsg = { kind: "rpcResult"; id: number; result?: unknown; error?: string; errorCode?: string; delivery?: RpcDelivery; operationState?: string };
 export type NotificationMsg = { kind: "notification" } & GatewayNotification;
 export type ServerRequestMsg = { kind: "serverRequest" } & GatewayServerRequest;
 
@@ -23,7 +24,18 @@ interface Pending {
 }
 
 export class GatewayRpcError extends Error {
-  constructor(message: string, readonly delivery: "not_sent" | "unknown" | "rejected", readonly code?: string) { super(message); }
+  constructor(message: string, readonly delivery: RpcDelivery, readonly code?: string) { super(message); }
+}
+
+function rpcFailureDelivery(msg: RpcResultMsg): RpcDelivery {
+  // Any evidence of ambiguity outranks a contradictory optimistic receipt.
+  // Only exact wire values are trusted; malformed metadata fails closed.
+  if (msg.operationState === "unknown" || msg.errorCode === "OPERATION_UNKNOWN" || msg.errorCode === "MANAGEMENT_UNKNOWN") return "unknown";
+  if (msg.delivery === "not_sent" || msg.delivery === "unknown" || msg.delivery === "rejected") return msg.delivery;
+  // Compatibility with an older gateway that emitted the stable operation
+  // code but omitted its explicit delivery receipt.
+  if (msg.errorCode === "OPERATION_REJECTED") return "rejected";
+  return "unknown";
 }
 
 const RECONNECT_DELAYS = [500, 1_000, 2_000, 5_000, 10_000];
@@ -55,6 +67,7 @@ export class GatewayClient {
   }
 
   private heartbeatTimer: number | null = null;
+  private heartbeatWatchdog: number | null = null;
 
   connect(): void {
     this.failure = null;
@@ -133,22 +146,41 @@ export class GatewayClient {
     this.stopHeartbeat();
     this.heartbeatTimer = window.setInterval(() => {
       if (!this.isCurrent(ws, generation) || ws.readyState !== WebSocket.OPEN) return;
+      let sent = false;
       const timeout = window.setTimeout(() => {
+        if (this.heartbeatWatchdog === timeout) this.heartbeatWatchdog = null;
         if (this.isCurrent(ws, generation) && ws.readyState === WebSocket.OPEN) {
           console.warn("[ws] heartbeat timeout, closing");
           ws.close();
         }
       }, 10_000);
-      this.rpc("app/status")
-        .catch(() => {})
-        .finally(() => clearTimeout(timeout));
+      this.heartbeatWatchdog = timeout;
+      // Reserve one pending slot for liveness. If the browser send buffer is
+      // already over budget (or send throws), no probe reached the wire and
+      // its immediate rejection must NOT cancel the watchdog: a persistently
+      // wedged OPEN socket then closes and enters normal reconnect recovery.
+      // Any response, including an application-level error, proves transport
+      // liveness and safely disarms it.
+      void this.enqueueRpc("app/status", undefined, true, () => { sent = true; }).then(
+        () => this.clearHeartbeatWatchdog(timeout),
+        () => { if (sent) this.clearHeartbeatWatchdog(timeout); },
+      );
     }, 30_000);
+  }
+
+  private clearHeartbeatWatchdog(timeout: number): void {
+    clearTimeout(timeout);
+    if (this.heartbeatWatchdog === timeout) this.heartbeatWatchdog = null;
   }
 
   private stopHeartbeat(): void {
     if (this.heartbeatTimer !== null) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
+    }
+    if (this.heartbeatWatchdog !== null) {
+      clearTimeout(this.heartbeatWatchdog);
+      this.heartbeatWatchdog = null;
     }
   }
 
@@ -177,15 +209,19 @@ export class GatewayClient {
         if (!entry || entry.generation !== generation) return;
         this.pending.delete(msg.id);
         clearTimeout(entry.timer);
-        if (msg.error) entry.reject(new GatewayRpcError(msg.error, msg.operationState === "unknown" || msg.errorCode === "OPERATION_UNKNOWN" || msg.errorCode === "MANAGEMENT_UNKNOWN" ? "unknown" : "rejected", msg.errorCode));
+        if (msg.error) entry.reject(new GatewayRpcError(msg.error, rpcFailureDelivery(msg), msg.errorCode));
         else entry.resolve(msg.result);
         return;
       }
       case "notification":
-        for (const h of this.notifHandlers) h(msg);
+        for (const h of this.notifHandlers) {
+          try { h(msg); }
+          catch (error) { console.error("[ws] notification subscriber failed", error); }
+        }
         return;
       case "serverRequest":
-        this.serverRequestHandler?.(msg);
+        try { this.serverRequestHandler?.(msg); }
+        catch (error) { console.error("[ws] server-request subscriber failed", error); }
         return;
     }
   }
@@ -211,14 +247,23 @@ export class GatewayClient {
   }
 
   private notifyState(state: ConnState): void {
-    for (const h of this.stateHandlers) h(state);
+    for (const h of this.stateHandlers) {
+      try { h(state); }
+      catch (error) { console.error("[ws] connection-state subscriber failed", error); }
+    }
   }
 
   rpc<T = unknown>(method: string, params?: unknown): Promise<T> {
+    return this.enqueueRpc<T>(method, params, false);
+  }
+
+  private enqueueRpc<T = unknown>(method: string, params: unknown, reserved: boolean, onSent?: () => void): Promise<T> {
     const ws = this.ws;
     const generation = this.connectionGeneration;
     if (!ws || ws.readyState !== WebSocket.OPEN) return Promise.reject(new GatewayRpcError("gateway not connected", "not_sent"));
-    if (this.pending.size >= 128 || ws.bufferedAmount > 40 * 1024 * 1024) return Promise.reject(new GatewayRpcError("网关请求队列已满，请稍后重试", "not_sent"));
+    // Ordinary callers remain capped at 128. A heartbeat may use exactly one
+    // additional slot so a full business queue cannot disable health checks.
+    if (this.pending.size >= (reserved ? 129 : 128) || ws.bufferedAmount > 40 * 1024 * 1024) return Promise.reject(new GatewayRpcError("网关请求队列已满，请稍后重试", "not_sent"));
     const id = this.nextId++;
     return new Promise<T>((resolve, reject) => {
       const timer = window.setTimeout(() => {
@@ -228,6 +273,7 @@ export class GatewayClient {
       this.pending.set(id, { resolve, reject, generation, timer });
       try {
         ws.send(JSON.stringify({ kind: "rpc", id, method, params: params ?? {} }));
+        onSent?.();
       } catch (err) {
         this.pending.delete(id);
         clearTimeout(timer);

@@ -2,10 +2,11 @@ import css from "../src/styles.css?raw";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import type { RequestPermissionProfile } from "../../../protocol/v2/RequestPermissionProfile";
 import { describePermissions } from "../src/utils/permissions";
 import { Drawer } from "../src/components/Drawer";
-import { ItemView, PermissionsSummary, Timeline } from "../src/components/Timeline";
+import { DiffView, ItemView, Markdown, PermissionsSummary, Timeline } from "../src/components/Timeline";
 
 const view = vi.hoisted(() => ({
   drawerTab: null as "diff" | "terminal" | null,
@@ -13,6 +14,9 @@ const view = vi.hoisted(() => ({
   activeThreadId: null as string | null,
   currentProject: "P", connection: "open", turnDiff: {}, items: {}, plan: {}, display: {},
   approvals: [] as unknown[], sessions: [],
+  approvalSubmissions: {} as Record<string, boolean>, approvalErrors: {} as Record<string, string>,
+  decideApproval: vi.fn(), openThread: vi.fn(),
+  readAttachment: vi.fn(),
 }));
 vi.mock("../src/store", () => ({ useStore: (select: (state: typeof view) => unknown) => select(view) }));
 vi.mock("@xterm/xterm", () => ({ Terminal: class {} }));
@@ -25,7 +29,11 @@ function buttons(node: ReactNode): ReactElement<ButtonProps>[] {
   return [...(node.type === "button" ? [node] : []), ...buttons(node.props.children)];
 }
 
-beforeEach(() => { view.drawerTab = null; view.activeThreadId = null; view.approvals = []; view.items = {}; });
+beforeEach(() => {
+  view.drawerTab = null; view.activeThreadId = null; view.approvals = []; view.items = {};
+  view.approvalSubmissions = {}; view.approvalErrors = {};
+  view.decideApproval.mockReset(); view.openThread.mockReset(); view.readAttachment.mockReset();
+});
 
 describe("reachable drawer controls", () => {
   it("keeps initial controls visible and opens/closes each panel through the rendered buttons", () => {
@@ -95,6 +103,14 @@ describe("permission and output rendering", () => {
     expect(renderToStaticMarkup(<PermissionsSummary profile={profile} />)).toContain("/path-7");
   });
 
+  it("fails closed when a permission profile exceeds the safe rendering budget", () => {
+    const profile: RequestPermissionProfile = { network: null, fileSystem: {
+      read: null, write: Array.from({ length: 1_001 }, (_, index) => `/path-${index}`),
+    } };
+    expect(describePermissions(profile).valid).toBe(false);
+    expect(renderToStaticMarkup(<PermissionsSummary profile={profile} />)).toContain("已禁用批准");
+  });
+
   it("shows background approvals even when no conversation is selected", () => {
     view.approvals = [{ requestId: "req", method: "item/commandExecution/requestApproval", params: { threadId: "background", command: "pwd" } }];
     expect(renderToStaticMarkup(<Timeline />)).toContain("等待审批");
@@ -118,6 +134,148 @@ describe("permission and output rendering", () => {
     expect(css.match(/\.approval-dock-count\s*\{([^}]+)\}/)?.[1]).toMatch(/position:\s*sticky/);
   });
 
+  it("shows the execution directory, network target, and requested session write root before approval", () => {
+    view.activeThreadId = "T";
+    view.approvals = [
+      { requestId: "command", method: "item/commandExecution/requestApproval", params: {
+        threadId: "T", command: "curl https://api.example.test", cwd: "/srv/private-project",
+        networkApprovalContext: { protocol: "https", host: "api.example.test" },
+        proposedNetworkPolicyAmendments: [{ action: "allow", host: "api.example.test" }],
+      } },
+      { requestId: "files", method: "item/fileChange/requestApproval", params: {
+        threadId: "T", itemId: "file-change", grantRoot: "/srv/shared-output",
+      } },
+    ];
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("工作目录"); expect(html).toContain("/srv/private-project");
+    expect(html).toContain("网络目标"); expect(html).toContain("https://api.example.test");
+    expect(html).toContain("会话写入授权根目录"); expect(html).toContain("/srv/shared-output");
+    expect(html).toContain("后续网络规则"); expect(html).toContain("allow api.example.test");
+  });
+
+  it("ignores malformed optional approval context without crashing the whole request dock", () => {
+    view.activeThreadId = "T";
+    view.approvals = [{ requestId: "malformed-context", method: "item/commandExecution/requestApproval", params: {
+      threadId: "T", command: "echo visible", cwd: { unexpected: true },
+      networkApprovalContext: "not-an-object", proposedNetworkPolicyAmendments: { unexpected: true },
+      proposedExecpolicyAmendment: "not-an-array",
+    } }];
+    expect(() => renderToStaticMarkup(<Timeline />)).not.toThrow();
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("echo visible"); expect(html).not.toContain("[object Object]");
+  });
+
+  it("fails closed instead of crashing or approving when a command approval has no valid command", () => {
+    view.activeThreadId = "T";
+    view.approvals = [{ requestId: "malformed-command", method: "item/commandExecution/requestApproval", params: {
+      threadId: "T", command: { unexpected: true },
+    } }];
+    expect(() => renderToStaticMarkup(<Timeline />)).not.toThrow();
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("命令结构无效"); expect(html).not.toContain("[object Object]");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+    expect(html).toMatch(/<button class="btn-danger">拒绝<\/button>/);
+  });
+
+  it("keeps an approval with malformed params rejectable without crashing the request dock", () => {
+    view.activeThreadId = "T";
+    view.approvals = [{ requestId: "malformed-params", method: "item/commandExecution/requestApproval", params: null }];
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("命令结构无效");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+    expect(html).toMatch(/<button class="btn-danger">拒绝<\/button>/);
+  });
+
+  it("keeps an approval with a malformed thread owner locally rejectable", () => {
+    view.activeThreadId = "T";
+    view.approvals = [{ requestId: "malformed-owner", method: "item/commandExecution/requestApproval", params: {
+      threadId: { unexpected: true }, command: "echo visible",
+    } }];
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("请求执行命令");
+    expect(html).not.toContain("后台会话「");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+    expect(html).toMatch(/<button class="btn-danger">拒绝<\/button>/);
+  });
+
+  it("bounds file-change details duplicated into an approval card", () => {
+    view.activeThreadId = "T";
+    view.items = { T: [{
+      type: "fileChange", id: "large-change", threadId: "T", turnId: "turn", status: "inProgress",
+      changes: Array.from({ length: 101 }, (_, index) => ({ path: `/approval-path-${index}`, kind: { type: "update", move_path: null }, diff: "" })),
+    }] };
+    view.approvals = [{ requestId: "large-files", method: "item/fileChange/requestApproval", params: {
+      threadId: "T", turnId: "turn", itemId: "large-change",
+    } }];
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("/approval-path-49");
+    expect(html).not.toContain("/approval-path-50");
+    expect(html).toContain("仅显示前 50 / 101 项");
+    expect(html).toContain("不完整或过大，已禁用批准");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+  });
+
+  it("enables file approval only for complete details on the exact thread, turn, and item", () => {
+    view.activeThreadId = "T";
+    view.items = { T: [{
+      type: "fileChange", id: "exact-change", threadId: "T", turnId: "turn", status: "inProgress",
+      changes: [{ path: "/project/exact.ts", kind: { type: "update", move_path: null }, diff: "+safe" }],
+    }] };
+    view.approvals = [{ requestId: "exact-files", method: "item/fileChange/requestApproval", params: {
+      threadId: "T", turnId: "turn", itemId: "exact-change",
+    } }];
+    let html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("/project/exact.ts");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g) ?? []).toHaveLength(0);
+
+    view.approvals = [{ requestId: "wrong-turn", method: "item/fileChange/requestApproval", params: {
+      threadId: "T", turnId: "other-turn", itemId: "exact-change",
+    } }];
+    html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("已禁用批准");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+  });
+
+  it("keeps a submitted approval visible with busy state and a retryable rejection error", () => {
+    view.activeThreadId = "T";
+    view.approvals = [{ requestId: "pending", method: "item/commandExecution/requestApproval", params: {
+      threadId: "T", command: "echo safe",
+    } }];
+    view.approvalSubmissions = { pending: true };
+    let html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("等待服务器确认");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(3);
+
+    view.approvalSubmissions = { pending: false };
+    view.approvalErrors = { pending: "approval token expired" };
+    html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("approval token expired");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g) ?? []).toHaveLength(0);
+  });
+
+  it.each([
+    ["null entry", [null, { path: "/valid-after-null", kind: { type: "update" }, diff: "" }]],
+    ["non-array changes", { unexpected: true }],
+    ["invalid path and kind", [{ path: { unexpected: true }, kind: null, diff: "" }]],
+  ])("keeps malformed file-change approval details rejectable (%s)", (_label, changes) => {
+    view.activeThreadId = "T";
+    view.items = { T: [{ type: "fileChange", id: "malformed-change", threadId: "T", turnId: "turn", status: "inProgress", changes }] };
+    view.approvals = [{ requestId: "malformed-files", method: "item/fileChange/requestApproval", params: {
+      threadId: "T", turnId: "turn", itemId: "malformed-change",
+    } }];
+
+    expect(() => renderToStaticMarkup(<Timeline />)).not.toThrow();
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("审批上下文格式无效、不完整或过大，已禁用批准");
+    expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+    expect(html).toMatch(/<button class="btn-danger">拒绝<\/button>/);
+    if (_label === "null entry") {
+      expect(html).toContain("变更条目格式无效");
+      expect(html).toContain("/valid-after-null");
+    }
+  });
+
   it("renders a saved plan independently of the live structured progress card", () => {
     expect(renderToStaticMarkup(<ItemView item={{ type: "plan", id: "p", text: "First inspect the project, then implement the fix." }} />)).toContain("First inspect the project");
   });
@@ -131,5 +289,245 @@ describe("permission and output rendering", () => {
     expect(image).toContain("/outputs/result.png");
     const failure = renderToStaticMarkup(<ItemView item={{ type: "imageGeneration", id: "g", status: "failed", result: "", revisedPrompt: null, failure: { type: "usageLimitExceeded", limitId: "images", resetsAt: null } }} />);
     expect(failure).toContain("图像生成失败"); expect(failure).toContain("usageLimitExceeded");
+  });
+
+  it("labels long dynamic-tool output and lets the user reveal every character in bounded steps", () => {
+    const output = `${"x".repeat(24_000)}TAIL`;
+    const item = { type: "dynamicToolCall" as const, id: "tool", namespace: null, tool: "large-output",
+      arguments: {}, status: "completed" as const, contentItems: [{ type: "inputText" as const, text: output }], success: true, durationMs: null };
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<ItemView item={item} />); });
+    let pre = renderer.root.findByType("pre");
+    expect(String(pre.props.children)).toHaveLength(2_000);
+    expect(renderer.root.findByProps({ className: "output-truncation" }).findByType("span").props.children.join("")).toContain("2,000 / 24,004");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("TAIL");
+    act(() => { renderer.root.findByType("button").props.onClick(); });
+    act(() => { renderer.root.findByType("button").props.onClick(); });
+    pre = renderer.root.findByType("pre");
+    expect(String(pre.props.children)).toBe(output);
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    renderer.unmount();
+  });
+
+  it("bounds long command output initially without silently losing access to it", () => {
+    const output = `${"y".repeat(24_000)}COMMAND-TAIL`;
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<ItemView item={{ type: "commandExecution", id: "command", pluginId: null, scriptPath: null, source: "agent", command: "generate", cwd: "/tmp", processId: null, status: "completed", commandActions: [], aggregatedOutput: output, exitCode: 0, durationMs: 1 }} />); });
+    expect(String(renderer.root.findByType("pre").props.children)).toHaveLength(2_000);
+    expect(renderer.root.findByProps({ className: "output-truncation" }).findByType("span").props.children.join(""))
+      .toContain(`2,000 / ${output.length.toLocaleString("zh-CN")}`);
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("COMMAND-TAIL");
+    act(() => renderer.root.findByType("button").props.onClick());
+    act(() => renderer.root.findByType("button").props.onClick());
+    expect(String(renderer.root.findByType("pre").props.children)).toBe(output);
+    renderer.unmount();
+  });
+
+  it("bounds long MCP arguments and results without silently discarding them", () => {
+    const argumentsText = `${"a".repeat(24_000)}ARGUMENT-TAIL`;
+    const resultText = `${"r".repeat(24_000)}RESULT-TAIL`;
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<ItemView item={{ type: "mcpToolCall", id: "mcp", server: "server", tool: "tool", status: "completed", arguments: argumentsText, result: resultText } as any} />); });
+    const initial = renderer.root.findAllByType("pre");
+    expect(initial).toHaveLength(2);
+    expect(String(initial[0].props.children)).toHaveLength(2_000);
+    expect(String(initial[1].props.children)).toHaveLength(2_000);
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("ARGUMENT-TAIL");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("RESULT-TAIL");
+    const firstButton = renderer.root.findAllByType("button")[0];
+    act(() => firstButton.props.onClick());
+    act(() => renderer.root.findAllByType("button")[0].props.onClick());
+    expect(String(renderer.root.findAllByType("pre")[0].props.children)).toBe(argumentsText);
+    expect(renderer.root.findAllByType("button")).toHaveLength(1);
+    renderer.unmount();
+  });
+
+  it("renders very large diffs in explicit bounded line windows", () => {
+    const diff = Array.from({ length: 6_001 }, (_, index) => `+line-${index}`).join("\n");
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<DiffView text={diff} />); });
+    expect(renderer.root.findAllByProps({ className: "diff-add" })).toHaveLength(2_000);
+    expect(renderer.root.findByProps({ className: "output-truncation" }).findByType("span").props.children.join(""))
+      .toContain("2,000 / 6,001");
+    act(() => renderer.root.findByType("button").props.onClick());
+    expect(renderer.root.findAllByProps({ className: "diff-add" })).toHaveLength(4_000);
+    renderer.unmount();
+  });
+
+  it("bounds markdown parsing and file-change inspection before touching an untrusted tail", () => {
+    const markdown = renderToStaticMarkup(<Markdown text={`${"safe ".repeat(50_000)}TAIL-MARKER`} />);
+    expect(markdown).not.toContain("TAIL-MARKER");
+    expect(markdown).toContain("Markdown 解析预算");
+
+    const changes: unknown[] = Array.from({ length: 200 }, (_, index) => ({ path: `/safe-${index}`, kind: { type: "update" }, diff: "" }));
+    Object.defineProperty(changes, "200", { get: () => { throw new Error("untrusted tail inspected"); } });
+    changes.length = 1_000;
+    expect(() => renderToStaticMarkup(<ItemView item={{ type: "fileChange", id: "bounded", status: "completed", changes } as any} />)).not.toThrow();
+  });
+
+  it("keeps malformed fields on known timeline variants from crashing the conversation", () => {
+    const malformed = [
+      { type: "userMessage", id: "user", content: { unexpected: true } },
+      { type: "agentMessage", id: "agent", text: { unexpected: true } },
+      { type: "reasoning", id: "reasoning", summary: { unexpected: true }, content: null },
+      { type: "commandExecution", id: "command", command: { unexpected: true }, aggregatedOutput: { unexpected: true }, exitCode: { unexpected: true }, status: "completed" },
+      { type: "mcpToolCall", id: "mcp", server: { unexpected: true }, tool: { unexpected: true }, status: "completed" },
+      { type: "webSearch", id: "search", query: { unexpected: true }, results: { unexpected: true } },
+      { type: "fileChange", id: "file", status: "completed", changes: { unexpected: true } },
+      { type: "hookPrompt", id: "hook", fragments: { unexpected: true } },
+      { type: "imageView", id: "image-view", path: { unexpected: true } },
+      { type: "imageGeneration", id: "image-generation", status: { unexpected: true }, result: "", savedPath: null, failure: null },
+      { type: "sleep", id: "sleep", durationMs: { unexpected: true } },
+    ];
+    for (const item of malformed) {
+      expect(() => renderToStaticMarkup(<ItemView item={item as any} />)).not.toThrow();
+      expect(renderToStaticMarkup(<ItemView item={item as any} />)).not.toContain("[object Object]");
+    }
+  });
+
+  it("keeps malformed dynamic-tool content from crashing the entire timeline item", () => {
+    const malformed = JSON.parse('{"type":"dynamicToolCall","id":"bad","tool":"future-tool","status":"completed","contentItems":{"unexpected":true}}');
+    expect(() => renderToStaticMarkup(<ItemView item={malformed} />)).not.toThrow();
+    expect(renderToStaticMarkup(<ItemView item={malformed} />)).toContain("future-tool");
+  });
+
+  it("bounds nested result collections and reports the omitted count", () => {
+    const search = renderToStaticMarkup(<ItemView item={{
+      type: "webSearch", id: "search", query: "query",
+      results: Array.from({ length: 501 }, (_, index) => ({ title: `result-${index}`, url: `https://example.test/${index}` })),
+    } as any} />);
+    expect(search).toContain("result-99");
+    expect(search).not.toContain("result-100");
+    expect(search).toContain("仅显示前 100 / 501 条");
+
+    const files = renderToStaticMarkup(<ItemView item={{
+      type: "fileChange", id: "files", status: "completed",
+      changes: Array.from({ length: 101 }, (_, index) => ({ path: `/path-${index}`, kind: { type: "update" }, diff: "" })),
+    } as any} />);
+    expect(files).toContain("/path-49");
+    expect(files).not.toContain("/path-50");
+    expect(files).toContain("仅显示前 50 / 101 项");
+
+    const tool = renderToStaticMarkup(<ItemView item={{
+      type: "dynamicToolCall", id: "tool", tool: "many-results", status: "completed",
+      contentItems: Array.from({ length: 101 }, (_, index) => ({ type: "inputText", text: `chunk-${index}` })),
+    } as any} />);
+    expect(tool).toContain("chunk-99");
+    expect(tool).not.toContain("chunk-100");
+    expect(tool).toContain("仅显示前 100 / 101 项");
+
+    const content = Array.from({ length: 1_101 }, (_, index): unknown => index < 60
+      ? { type: "mention", name: index === 0 ? `${"N".repeat(300)}TAIL-NAME` : `attachment-${index}`, path: `/path-${index}` }
+      : { type: "text", text: `text-${index}` });
+    Object.defineProperty(content, "1000", {
+      configurable: true,
+      get() { throw new Error("over-budget user content was accessed"); },
+    });
+    const user = renderToStaticMarkup(<ItemView item={{ type: "userMessage", id: "bounded-user", clientId: null, content } as any} />);
+    expect(user).toContain("attachment-49");
+    expect(user).not.toContain("attachment-50");
+    expect(user).not.toContain("TAIL-NAME");
+    expect(user).toContain("另有 10 个附件");
+    expect(user).toContain("另有 101 个消息片段未检查");
+  });
+
+  it("does not auto-load remote images from model markdown and hardens explicit links", () => {
+    const html = renderToStaticMarkup(<Markdown text={'![tracking pixel](http://192.0.2.1/pixel)\n\n[open docs](https://example.test/docs)\n\n[unsafe](javascript:alert(1))'} />);
+    expect(html).not.toContain("<img");
+    expect(html).toContain('href="http://192.0.2.1/pixel"');
+    expect(html).toContain('href="https://example.test/docs"');
+    expect(html.match(/target="_blank"/g)).toHaveLength(2);
+    expect(html).not.toContain("javascript:");
+  });
+
+  it("requires a click before loading remote tool or image-generation media", () => {
+    const tool = JSON.parse('{"type":"dynamicToolCall","id":"remote-tool","tool":"image","status":"completed","contentItems":[{"type":"inputImage","imageUrl":"https://media.example.test/tool.png"}]}');
+    const generated = JSON.parse('{"type":"imageGeneration","id":"remote-generation","status":"completed","result":"https://media.example.test/generated.png","savedPath":null,"failure":null,"revisedPrompt":null}');
+    for (const item of [tool, generated]) {
+      const html = renderToStaticMarkup(<ItemView item={item} />);
+      expect(html).not.toContain("<img");
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain("media.example.test");
+    }
+    const audio = JSON.parse('{"type":"dynamicToolCall","id":"remote-audio","tool":"audio","status":"completed","contentItems":[{"type":"inputAudio","audioUrl":"https://media.example.test/tool.mp3"}]}');
+    const audioHtml = renderToStaticMarkup(<ItemView item={audio} />);
+    expect(audioHtml).not.toContain("<audio");
+    expect(audioHtml).toContain('href="https://media.example.test/tool.mp3"');
+    expect(audioHtml).toContain('target="_blank"');
+    const inline = JSON.parse('{"type":"dynamicToolCall","id":"inline-tool","tool":"image","status":"completed","contentItems":[{"type":"inputImage","imageUrl":"data:image/png;base64,iVBORw0KGgo="}]}');
+    expect(renderToStaticMarkup(<ItemView item={inline} />)).toContain("<img");
+    const inlineAudio = JSON.parse('{"type":"dynamicToolCall","id":"inline-audio","tool":"audio","status":"completed","contentItems":[{"type":"inputAudio","audioUrl":"data:audio/mpeg;base64,SUQz"}]}');
+    expect(renderToStaticMarkup(<ItemView item={inlineAudio} />)).toContain("<audio");
+  });
+
+  it("never auto-loads a remote attachment preview supplied by history", () => {
+    const item = {
+      type: "userMessage", id: "remote-attachment", clientId: null, content: [],
+      harnessAttachments: [{ kind: "image", name: "tracking.png", path: "/uploads/tracking.png", previewUrl: "https://media.example.test/tracking.png" }],
+    } as any;
+    const html = renderToStaticMarkup(<ItemView item={item} />);
+    expect(html).not.toContain("media.example.test");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("tracking.png");
+  });
+
+  it("does not let malformed historical attachment fields crash the timeline", () => {
+    const item = {
+      type: "userMessage", id: "bad-attachment", clientId: null, content: [],
+      harnessAttachments: [{ kind: "image", name: { unexpected: true }, path: "/uploads/bad.png" }],
+    } as any;
+    expect(() => renderToStaticMarkup(<ItemView item={item} />)).not.toThrow();
+    expect(renderToStaticMarkup(<ItemView item={item} />)).toContain("附件格式无效");
+  });
+
+  it("truncates a server-supplied attachment path before requesting it", async () => {
+    const longPath = `/${"p".repeat(5_000)}TAIL-PATH`;
+    view.readAttachment.mockRejectedValue(new Error("expected read stop"));
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<ItemView item={{ type: "userMessage", id: "long-path", clientId: null, content: [{ type: "localImage", path: longPath }] } as any} />);
+      for (let index = 0; index < 5; index++) await Promise.resolve();
+    });
+    expect(view.readAttachment).toHaveBeenCalledWith(longPath.slice(0, 4_096), expect.any(AbortSignal));
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("TAIL-PATH");
+    act(() => renderer.unmount());
+  });
+
+  it("surfaces a failed historical image read and provides an explicit retry", async () => {
+    view.readAttachment.mockRejectedValue(new Error("read failed"));
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<ItemView item={{ type: "userMessage", id: "u", clientId: null, content: [{ type: "localImage", path: "/history/image.png" }] }} />);
+      for (let index = 0; index < 5; index++) await Promise.resolve();
+    });
+    const retry = renderer.root.findByProps({ className: "attach-image-retry" });
+    expect(retry.props.title).toContain("read failed");
+    await act(async () => {
+      retry.props.onClick();
+      for (let index = 0; index < 5; index++) await Promise.resolve();
+    });
+    expect(view.readAttachment).toHaveBeenCalledTimes(2);
+    renderer.unmount();
+  });
+
+  it("aborts an unmounted historical image read and ignores its late bytes", async () => {
+    let resolve!: (value: { base64: string; mime: string }) => void;
+    const response = new Promise<{ base64: string; mime: string }>((done) => { resolve = done; });
+    let signal: AbortSignal | undefined;
+    view.readAttachment.mockImplementation((_path, candidate?: AbortSignal) => {
+      signal = candidate;
+      return response;
+    });
+    const createUrl = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:late");
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<ItemView item={{ type: "userMessage", id: "u", clientId: null, content: [{ type: "localImage", path: "/history/late.png" }] }} />);
+      await Promise.resolve();
+    });
+
+    act(() => renderer.unmount());
+    expect(signal?.aborted).toBe(true);
+    await act(async () => { resolve({ base64: "YQ==", mime: "image/png" }); await Promise.resolve(); });
+    expect(createUrl).not.toHaveBeenCalled();
   });
 });

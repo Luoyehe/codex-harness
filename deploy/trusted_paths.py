@@ -10,6 +10,10 @@ import re
 import stat
 
 
+MAX_TREE_ENTRIES = 250_000
+MAX_TREE_DEPTH = 64
+
+
 def trusted_path(value, *, missing=False, directory=False, lstat_fn=None, readlink_fn=None):
     lstat_fn = lstat_fn or os.lstat
     readlink_fn = readlink_fn or os.readlink
@@ -64,22 +68,30 @@ def trusted_path(value, *, missing=False, directory=False, lstat_fn=None, readli
         current = entry
 
 
-def trusted_tree(value):
+def trusted_tree(value, *, max_entries=MAX_TREE_ENTRIES, max_depth=MAX_TREE_DEPTH):
+    if max_entries <= 0 or max_depth < 0:
+        raise ValueError("invalid deployment tree resource budget")
     root = trusted_path(value, directory=True)
-    pending, visited = [root], set()
+    pending, visited = [(root, 0)], set()
+    seen_entries = 0
     while pending:
-        directory = pending.pop()
+        directory, depth = pending.pop()
+        if depth > max_depth:
+            raise ValueError("deployment tree exceeds its depth limit")
         if directory in visited:
             continue
         visited.add(directory)
         with os.scandir(directory) as entries:
             for entry in entries:
+                seen_entries += 1
+                if seen_entries > max_entries:
+                    raise ValueError("deployment tree exceeds its entry limit")
                 is_directory = entry.is_dir()
                 resolved = trusted_path(entry.path, directory=is_directory)
                 # pnpm workspace links can form cycles. Visit their canonical
                 # directories once, but still validate every link entrance.
                 if is_directory:
-                    pending.append(resolved)
+                    pending.append((resolved, depth + 1))
     return root
 
 

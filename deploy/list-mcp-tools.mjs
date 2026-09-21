@@ -1,33 +1,41 @@
-// List MCP servers and their registered tool names via the gateway WS API.
-import WebSocket from "ws";
-import { wsUrl, wsOptions } from "./ws-token.mjs";
-const WS = wsUrl(process.env.GATEWAY_WS ?? "ws://127.0.0.1:8080/ws");
-const ws = new WebSocket(WS, wsOptions());
-let nextId = 1;
-const pending = new Map();
-const rpc = (m, p) =>
-  new Promise((res, rej) => {
-    const id = nextId++;
-    pending.set(id, { res, rej });
-    ws.send(JSON.stringify({ kind: "rpc", id, method: m, params: p ?? {} }));
-  });
-ws.onmessage = (ev) => {
-  const msg = JSON.parse(String(ev.data));
-  if (msg.kind === "rpcResult") {
-    const e = pending.get(msg.id);
-    if (e) {
-      pending.delete(msg.id);
-      msg.error ? e.rej(new Error(msg.error)) : e.res(msg.result);
+// Read-only MCP inventory. Listing does not prove a tool can execute.
+import { VerificationClient, verificationTimeout } from "./verification-client.mjs";
+
+let client;
+try {
+  const timeout = verificationTimeout();
+  client = new VerificationClient(undefined, undefined, { openTimeoutMs: timeout });
+  const cursors = new Set();
+  let cursor, count = 0;
+  const name = value => {
+    if (typeof value !== "string" || !value || value.length > 256 || /[\u0000-\u001f\u007f]/.test(value)) throw new Error("Invalid inventory name");
+    return value;
+  };
+  let toolCount = 0, outputCharacters = 0;
+  for (let page = 0; ; page++) {
+    if (page >= 20) throw new Error("Too many MCP pages");
+    const result = await client.rpc("mcpServerStatus/list", cursor ? { cursor } : {}, timeout);
+    const servers = Array.isArray(result) ? result : result?.data ?? result?.servers ?? result?.statuses;
+    if (!Array.isArray(servers)) throw new Error("Invalid MCP inventory");
+    for (const server of servers) {
+      if (++count > 4096) throw new Error("Too many MCP servers");
+      const tools = server?.tools ?? {};
+      if (!tools || typeof tools !== "object") throw new Error("Invalid tool inventory");
+      const names = Array.isArray(tools) ? tools.map(tool => name(tool?.name)) : Object.keys(tools).map(name);
+      toolCount += names.length;
+      if (names.length > 4096 || toolCount > 16384) throw new Error("Too many MCP tools");
+      const line = `${name(server?.name)} :: ${names.join(", ")}`;
+      outputCharacters += line.length + 1;
+      if (outputCharacters > 2 * 1024 * 1024) throw new Error("MCP inventory output too large");
+      console.log(line);
     }
+    cursor = result?.nextCursor;
+    if (cursor == null) break;
+    if (typeof cursor !== "string" || !cursor || cursor.length > 4096 || cursors.has(cursor)) throw new Error("Invalid MCP pagination");
+    cursors.add(cursor);
   }
-};
-ws.onopen = async () => {
-  const s = await rpc("mcpServerStatus/list");
-  const servers = Array.isArray(s) ? s : (s.servers ?? s.statuses ?? s.data ?? []);
-  for (const sv of servers) {
-    const t = sv.tools ?? [];
-    const names = Array.isArray(t) ? t.map((x) => x.name) : typeof t === "object" ? Object.keys(t) : [String(t)];
-    console.log(sv.name, "::", names.join(", "));
-  }
-  process.exit(0);
-};
+  console.log(`MCP-STATUS-PASS (${count} servers; listing only, no tool/model invocation)`);
+} catch {
+  console.error("MCP-STATUS-FAIL: authentication, connection, timeout or invalid inventory; no tool/model invocation.");
+  process.exitCode = 1;
+} finally { client?.close(); }

@@ -12,6 +12,9 @@ import sys
 import uuid
 
 
+MAX_ENVIRONMENT_BYTES = 1024 * 1024
+
+
 class ServiceIdentityError(ValueError):
     """Fixed, operator-facing identity errors contain no configuration data."""
 
@@ -61,11 +64,25 @@ def read_regular(directory, name, missing=False):
         if missing:
             return None
         raise
-    with os.fdopen(fd, "r", encoding="utf-8") as stream:
+    with os.fdopen(fd, "rb") as stream:
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.geteuid():
             raise ValueError("environment must be a singly linked regular file owned by the service account")
-        return stream.read()
+        if info.st_size > MAX_ENVIRONMENT_BYTES:
+            raise ValueError("environment exceeds the byte limit")
+        # The inode may grow after fstat. A bounded second check prevents a
+        # concurrent writer from turning maintenance into an unbounded read.
+        data = stream.read(MAX_ENVIRONMENT_BYTES + 1)
+        if len(data) > MAX_ENVIRONMENT_BYTES:
+            raise ValueError("environment exceeds the byte limit")
+        after = os.fstat(stream.fileno())
+        identity = lambda value: (
+            value.st_dev, value.st_ino, value.st_mode, value.st_uid, value.st_gid,
+            value.st_nlink, value.st_size, value.st_mtime_ns, value.st_ctime_ns,
+        )
+        if len(data) != info.st_size or identity(info) != identity(after):
+            raise ValueError("environment changed while it was read")
+        return data.decode("utf-8")
 
 
 def write_regular(directory, name, text):

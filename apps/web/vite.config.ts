@@ -1,9 +1,7 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
-import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
-import { prepareDevGatewayProxy, readDevGatewayToken, trustedDevGatewayRequest } from "./dev-gateway-proxy";
+import { prepareDevGatewayProxy, readDevGatewayToken, readPinnedDevGatewayToken, trustedDevGatewayRequest } from "./dev-gateway-proxy";
 
 /**
  * Dev proxy for the gateway WebSocket. The gateway authenticates every WS
@@ -21,7 +19,7 @@ import { prepareDevGatewayProxy, readDevGatewayToken, trustedDevGatewayRequest }
  * separate-UID Agent/control-plane isolation and must not be exposed remotely.
  */
 function devGatewayToken(): string {
-  return readDevGatewayToken(process.env, homedir(), (directory) => readFileSync(join(directory, "gateway-token"), "utf8"));
+  return readDevGatewayToken(process.env, homedir(), readPinnedDevGatewayToken);
 }
 
 export default defineConfig({

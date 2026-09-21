@@ -15,6 +15,7 @@ if sys.platform == "win32":
     # Constants only for mocked algorithm tests; kernel fixtures stay Linux-only.
     sys.modules["pwd"] = types.ModuleType("pwd")
     os.WNOHANG = 1
+    os.O_NONBLOCK = 0
     signal.SIGKILL = 9
 import worker_launcher as launcher
 ${source}`], {
@@ -56,6 +57,60 @@ with patch.object(launcher.os, "waitpid", side_effect=[(123, 0), (456, 0), (0, 0
     assert wait.call_count == 3
 with patch.object(launcher.os, "waitpid", side_effect=[(123, 0), ChildProcessError()]):
     assert launcher.reap_available() is True
+`);
+});
+
+test("worker control and environment files are descriptor-pinned and bounded", linuxOptions, () => {
+  runPython(`
+import os,tempfile,types
+from pathlib import Path
+from unittest.mock import patch
+with tempfile.TemporaryDirectory() as directory:
+    base=Path(directory); config_file=base/'worker.conf'; environment=base/'worker.env'
+    values={
+        'SERVICE_NAME':'fixture', 'RUN_USER':'fixture', 'RUN_HOME':str(base/'home'),
+        'INSTALL_DIR':str(base/'app'), 'CODEX_HOME':str(base/'data'),
+        'CODEX_WORKSPACE':str(base/'workspace'), 'ENV_FILE':str(environment),
+        'CODEX_BIN':str(base/'codex'), 'NODE_BIN':str(base/'node'),
+        'SERVICE_PATH':'/usr/bin:/bin',
+    }
+    config_file.write_text(''.join(f'{key}={value}\\n' for key,value in values.items()),encoding='utf-8'); config_file.chmod(0o600)
+    environment.write_text('FIXTURE=value\\n',encoding='utf-8')
+    account=types.SimpleNamespace(pw_uid=1200,pw_dir=str(base/'home'))
+    with patch.object(launcher,'trusted',side_effect=lambda value,directory=False:str(value)), patch.object(launcher.pwd,'getpwnam',return_value=account,create=True):
+        loaded,_=launcher.configuration(config_file)
+        assert loaded['SERVICE_NAME']=='fixture'
+        config_file.write_bytes(b'x'*(launcher.MAX_WORKER_CONFIGURATION_BYTES+1)); config_file.chmod(0o600)
+        try: launcher.configuration(config_file)
+        except ValueError as error: assert 'limit' in str(error)
+        else: raise AssertionError('oversized worker configuration accepted')
+    assert launcher.worker_environment(values)['FIXTURE']=='value'
+    environment.write_bytes(b'x'*(launcher.MAX_WORKER_ENVIRONMENT_BYTES+1))
+    try: launcher.worker_environment(values)
+    except ValueError as error: assert 'limit' in str(error)
+    else: raise AssertionError('oversized worker environment accepted')
+    if os.name!='nt':
+        fifo=base/'worker-fifo'; os.mkfifo(fifo); values['ENV_FILE']=str(fifo)
+        try: launcher.worker_environment(values)
+        except ValueError: pass
+        else: raise AssertionError('special environment file accepted')
+`);
+});
+
+test("process child inventory fails closed when a proc entry exceeds its cap", pythonOptions, () => {
+  runPython(`
+from pathlib import Path
+from unittest.mock import patch
+task=Path('/synthetic/task'); reads=[]
+def opened(path, flags):
+    assert path==task/'children'; return 17
+def read(fd, count):
+    reads.append(count)
+    return b'1'*(launcher.MAX_PROC_CHILDREN_BYTES+1) if len(reads)==1 else b''
+with patch.object(launcher.Path,'iterdir',return_value=iter([task])), patch.object(launcher.os,'open',side_effect=opened), patch.object(launcher.os,'read',side_effect=read), patch.object(launcher.os,'close'):
+    try: launcher.direct_children()
+    except OSError as error: assert 'limit' in str(error)
+    else: raise AssertionError('oversized proc child inventory accepted')
 `);
 });
 

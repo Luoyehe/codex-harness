@@ -3,7 +3,7 @@ import { PassThrough, Writable } from "node:stream";
 import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { AppServerConnection, AppServerRequestError, RPC_LIMITS, appServerEnvironment, initialize, type AppServerHandlers } from "../src/codex/rpc.js";
+import { AppServerConnection, AppServerRequestError, RPC_LIMITS, appServerEnvironment, initialize, isDefiniteAppServerRejection, parseProcessStat, type AppServerHandlers } from "../src/codex/rpc.js";
 
 /**
  * attach() lets tests drive the JSONL transport with fake streams instead of
@@ -33,6 +33,69 @@ function makeFake(overrides: Partial<AppServerHandlers> = {}) {
 }
 
 describe("AppServerConnection", () => {
+  it("parses only complete proc identities and treats malformed cleanup metadata as failure", () => {
+    const fields = ["t", "1", "123", ...Array.from({ length: 16 }, () => "0"), "456"];
+    expect(parseProcessStat(42, `42 (fixture ) name) ${fields.join(" ")}`)).toEqual({
+      identity: { pid: 42, start: "456" }, parent: 1, group: 123, live: true,
+    });
+    for (const value of ["", "42 fixture", "42 (fixture) S 1 nope", `42 (fixture) ${["S", "1", "2", ...Array.from({ length: 16 }, () => "0"), "bad"].join(" ")}`]) {
+      expect(() => parseProcessStat(42, value)).toThrow("proc stat");
+    }
+  });
+  it("distinguishes local pre-send and explicit rejection from uncertain delivery", () => {
+    expect(isDefiniteAppServerRejection(new AppServerRequestError("local queue limit"))).toBe(true);
+    expect(isDefiniteAppServerRejection(new AppServerRequestError("upstream rejected", { code: -32000 }))).toBe(true);
+    expect(isDefiniteAppServerRejection(new AppServerRequestError("worker unknown", { code: -32000, data: { delivery: "unknown" } }))).toBe(false);
+    expect(isDefiniteAppServerRejection(Object.assign(new Error("transport lost"), { delivery: "unknown" }))).toBe(false);
+  });
+  it("caps oversized drain bytes even without a newline", async () => {
+    const fake = makeFake();
+    const request = fake.conn.request("thread/read").catch((error) => error);
+    fake.writeRaw('{"id":1,"result":"');
+    const chunk = "x".repeat(65536);
+    for (let bytes = 0; bytes <= RPC_LIMITS.discardBytes; bytes += chunk.length) fake.writeRaw(chunk);
+    expect(await request).toBeInstanceOf(Error);
+    expect(fake.handlers.onExit).toHaveBeenCalledOnce();
+    await fake.conn.kill();
+  });
+  it("caps drain time and does not accept an oversized notification as a response", async () => {
+    vi.useFakeTimers();
+    const fake = makeFake();
+    const request = fake.conn.request("thread/read").catch((error) => error);
+    try {
+      fake.writeRaw('{"id":1,"result":"' + "x".repeat(RPC_LIMITS.frameBytes));
+      expect(fake.handlers.onExit).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(RPC_LIMITS.discardMs);
+      expect(await request).toMatchObject({ message: expect.stringContaining("drain timed out") });
+      expect(fake.handlers.onExit).toHaveBeenCalledOnce();
+    } finally { await fake.conn.kill(); vi.useRealTimers(); }
+    const notification = makeFake();
+    notification.writeRaw('{"method":"event","params":"' + "x".repeat(RPC_LIMITS.frameBytes) + '"}\n');
+    expect(notification.handlers.onExit).toHaveBeenCalledOnce();
+    expect(notification.handlers.onNotification).not.toHaveBeenCalled();
+    await notification.conn.kill();
+  });
+  it.each([false, true])("discards only an oversized response and continues the same transport (id last: %s)", async (idLast) => {
+    const fake = makeFake({ onTransportLost: vi.fn() });
+    const history = fake.conn.request("thread/read").catch((error) => error);
+    const other = fake.conn.request("model/list").catch((error) => error);
+    const payload = '"' + "x".repeat(37 * 1024 * 1024) + '"';
+    const line = idLast ? `{"result":{"id":2,"text":${payload}},"id":1}\r\n` : `{"id":1,"result":{"text":${payload}}}\n`;
+    for (let offset = 0; offset < line.length; offset += 65536) fake.writeRaw(line.slice(offset, offset + 65536));
+    expect(await history).toMatchObject({ errorCode: "RESPONSE_TOO_LARGE", delivery: "unknown" });
+    expect(fake.handlers.onTransportLost).not.toHaveBeenCalled();
+    expect(fake.handlers.onExit).not.toHaveBeenCalled();
+    fake.reply({ id: 2, result: { data: [] } });
+    await expect(other).resolves.toEqual({ data: [] });
+    await fake.conn.kill();
+  });
+  it("preserves fixed reverse-admission rejection metadata on the real RPC wire", async () => {
+    const fake = makeFake({ onServerRequest: async () => { throw Object.assign(new Error("busy"), { delivery: "rejected" }); } });
+    fake.reply({ id: "auto-compact-1", method: "gateway/autoCompact", params: { threadId: "t1" } });
+    await vi.waitFor(() => expect(fake.frames).toHaveLength(1));
+    expect(fake.frames[0]).toMatchObject({ id: "auto-compact-1", error: { data: { delivery: "rejected" } } });
+    await fake.conn.kill();
+  });
   it("reports unexpected transport loss once, before cleanup, but not for deliberate stop", async () => {
     const lost = vi.fn();
     const failed = makeFake({ onTransportLost: lost });
@@ -99,7 +162,9 @@ describe("AppServerConnection", () => {
     const handlers = { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} };
     const conn = new AppServerConnection("fake", [], {}, handlers, { requestTimeoutMs: 10 });
     conn.attach(new PassThrough(), new PassThrough());
-    const timed = expect(conn.request("model/list")).rejects.toThrow("timed out after 0.01s");
+    const timed = expect(conn.request("model/list")).rejects.toMatchObject({
+      message: expect.stringContaining("timed out after 0.01s"), delivery: "unknown",
+    });
     let commandSettled = false;
     const command = conn.request("command/exec").catch(() => { commandSettled = true; });
     try {
@@ -130,6 +195,28 @@ describe("AppServerConnection", () => {
     await expect(request).rejects.toMatchObject({ rpcError: { code: -32000, data: { delivery: "unknown" } } });
   });
 
+  it("preserves the private worker's bounded-history error code through the outer RPC", async () => {
+    const { conn, reply } = makeFake();
+    const request = conn.request("gateway/dispatch");
+    reply({ id: 1, error: { code: -32000, message: "response too large", data: { errorCode: "RESPONSE_TOO_LARGE", delivery: "unknown" } } });
+    await expect(request).rejects.toMatchObject({ errorCode: "RESPONSE_TOO_LARGE", rpcError: { data: { delivery: "unknown" } } });
+    await conn.kill();
+  });
+
+  it("keeps UTF-8 decoder state and handles a following legal frame after oversized drain", async () => {
+    const fake = makeFake();
+    const oversized = fake.conn.request("thread/read").catch((error) => error);
+    fake.writeRaw('{"id":1,"result":"' + "x".repeat(RPC_LIMITS.frameBytes));
+    const suffix = Buffer.from('中文 😀 \\" nested id:2 \\""}\r\n');
+    for (const byte of suffix) fake.stdout.write(Buffer.from([byte]));
+    expect(await oversized).toMatchObject({ errorCode: "RESPONSE_TOO_LARGE" });
+    const next = fake.conn.request("model/list");
+    fake.reply({ id: 2, result: { text: "中文 😀" } });
+    await expect(next).resolves.toEqual({ text: "中文 😀" });
+    expect(fake.handlers.onExit).not.toHaveBeenCalled();
+    await fake.conn.kill();
+  });
+
   it("bounds pending requests while reserving control admission", async () => {
     const { conn, frames } = makeFake();
     const requests = Array.from({ length: RPC_LIMITS.pending }, () => conn.request("command/exec").catch((error) => error));
@@ -138,6 +225,46 @@ describe("AppServerConnection", () => {
     expect(frames).toHaveLength(RPC_LIMITS.pending + 1);
     await conn.kill();
     await Promise.all([...requests, control]);
+  });
+
+  it.each([
+    ["nested interrupt", "gateway/dispatch", { method: "turn/interrupt", params: { threadId: "thread-1", turnId: "turn-1" }, clientId: "browser-1" }],
+    ["nested terminal terminate", "gateway/dispatch", { method: "terminal/terminate", params: { processId: "terminal-1" }, clientId: "browser-1" }],
+    ["nested terminal resize", "gateway/dispatch", { method: "terminal/resize", params: { processId: "terminal-1", rows: 24, cols: 80 }, clientId: "browser-1" }],
+    ["worker disconnect", "gateway/disconnect", { clientId: "browser-1" }],
+    ["worker answer", "gateway/answer", { requestId: "approval-1", payload: { decision: "decline" } }],
+    ["worker reconnect", "gateway/connect", { clientId: "browser-1" }],
+  ])("reserves private-worker pending capacity for %s", async (_label, method, params) => {
+    const { conn, frames } = makeFake();
+    const requests = Array.from({ length: RPC_LIMITS.pending }, (_, index) => conn.request("gateway/dispatch", {
+      method: "command/exec",
+      params: { processId: `bulk-${index}` },
+      clientId: "browser-1",
+    }).catch((error) => error));
+    await expect(conn.request("gateway/dispatch", { method: "model/list", params: {}, clientId: "browser-1" })).rejects.toBeInstanceOf(AppServerRequestError);
+    const control = conn.request(method, params).catch((error) => error);
+    expect(frames).toHaveLength(RPC_LIMITS.pending + 1);
+    await conn.kill();
+    await Promise.all([...requests, control]);
+  });
+
+  it("keeps a wrapped long-lived terminal request timeout-exempt", async () => {
+    vi.useFakeTimers();
+    const handlers = { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} };
+    const conn = new AppServerConnection("fake", [], {}, handlers, { requestTimeoutMs: 10 });
+    conn.attach(new PassThrough(), new PassThrough());
+    let settled = false;
+    const terminal = conn.request("gateway/dispatch", {
+      method: "command/exec", params: { processId: "terminal-1" }, clientId: "browser-1",
+    }).catch(() => { settled = true; });
+    try {
+      await vi.advanceTimersByTimeAsync(10);
+      expect(settled).toBe(false);
+    } finally {
+      await conn.kill();
+      await terminal;
+      vi.useRealTimers();
+    }
   });
 
   it("backpressures stdin, prioritizes control, and expires unsent queued requests without executing them", async () => {
@@ -149,9 +276,10 @@ describe("AppServerConnection", () => {
     const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
     conn.attach(stdin, stdout);
     try {
-      const first = conn.request("command/exec").catch((error) => error);
+      const processId = "term-00000000-0000-4000-8000-000000000000";
+      const first = conn.request("command/exec", { processId }).catch((error) => error);
       const expired = conn.request("model/list").catch((error) => error);
-      const control = conn.request("command/exec/terminate").catch((error) => error);
+      const control = conn.request("command/exec/terminate", { processId }).catch((error) => error);
       expect(written.map((frame) => frame.method)).toEqual(["command/exec"]);
       callbacks.shift()!();
       await vi.advanceTimersByTimeAsync(0);
@@ -164,6 +292,126 @@ describe("AppServerConnection", () => {
       await conn.kill();
       await Promise.all([first, control]);
     } finally { await conn.kill(); vi.useRealTimers(); }
+  });
+
+  it.each([
+    {
+      createMethod: "command/exec",
+      createParams: { processId: "term-11111111-1111-4111-8111-111111111111" },
+      controlMethod: "command/exec/terminate",
+      controlParams: { processId: "term-11111111-1111-4111-8111-111111111111" },
+    },
+    {
+      createMethod: "turn/start",
+      createParams: { threadId: "thread-1", input: [] },
+      controlMethod: "turn/interrupt",
+      controlParams: { threadId: "thread-1", turnId: "turn-1" },
+    },
+  ])("does not prioritize $controlMethod ahead of an earlier same-resource $createMethod", async ({ createMethod, createParams, controlMethod, controlParams }) => {
+    const written: any[] = [];
+    const callbacks: Array<(error?: Error) => void> = [];
+    const stdin = new Writable({ highWaterMark: 1, write(chunk, _encoding, callback) { written.push(JSON.parse(String(chunk))); callbacks.push(callback); } });
+    const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
+    conn.attach(stdin, new PassThrough());
+    const blocker = conn.request("model/list").catch((error) => error);
+    const create = conn.request(createMethod, createParams).catch((error) => error);
+    const control = conn.request(controlMethod, controlParams).catch((error) => error);
+    try {
+      expect(written.map((frame) => frame.method)).toEqual(["model/list"]);
+      callbacks.shift()!();
+      await vi.waitFor(() => expect(written).toHaveLength(2));
+      expect(written.map((frame) => frame.method)).toEqual(["model/list", createMethod]);
+      callbacks.shift()!();
+      await vi.waitFor(() => expect(written).toHaveLength(3));
+      expect(written.map((frame) => frame.method)).toEqual(["model/list", createMethod, controlMethod]);
+    } finally {
+      await conn.kill();
+      await Promise.all([blocker, create, control]);
+    }
+  });
+
+  it("prioritizes wrapped controls without overtaking earlier work for the same nested resource", async () => {
+    const written: any[] = [];
+    const callbacks: Array<(error?: Error) => void> = [];
+    const stdin = new Writable({ highWaterMark: 1, write(chunk, _encoding, callback) { written.push(JSON.parse(String(chunk))); callbacks.push(callback); } });
+    const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
+    conn.attach(stdin, new PassThrough());
+    const blocker = conn.request("gateway/dispatch", { method: "model/list", params: {}, clientId: "browser-1" }).catch((error) => error);
+    const create = conn.request("gateway/dispatch", { method: "turn/start", params: { threadId: "thread-1", input: [] }, clientId: "browser-1" }).catch((error) => error);
+    const other = conn.request("gateway/dispatch", { method: "thread/read", params: { threadId: "thread-2" }, clientId: "browser-1" }).catch((error) => error);
+    const interrupt = conn.request("gateway/dispatch", { method: "turn/interrupt", params: { threadId: "thread-1", turnId: "turn-1" }, clientId: "browser-1" }).catch((error) => error);
+    try {
+      expect(written.map((frame) => frame.params?.method)).toEqual(["model/list"]);
+      callbacks.shift()!();
+      await vi.waitFor(() => expect(written).toHaveLength(2));
+      // The interrupt bypasses unrelated thread/read, but turn/start for the
+      // same thread is a strict predecessor and therefore goes first.
+      expect(written.map((frame) => frame.params?.method)).toEqual(["model/list", "turn/start"]);
+      callbacks.shift()!();
+      await vi.waitFor(() => expect(written).toHaveLength(3));
+      expect(written.map((frame) => frame.params?.method)).toEqual(["model/list", "turn/start", "turn/interrupt"]);
+    } finally {
+      await conn.kill();
+      await Promise.all([blocker, other, create, interrupt]);
+    }
+  });
+
+  it("prioritizes the wrapped terminal alias only after its same-process creator", async () => {
+    const written: any[] = [];
+    const callbacks: Array<(error?: Error) => void> = [];
+    const stdin = new Writable({ highWaterMark: 1, write(chunk, _encoding, callback) { written.push(JSON.parse(String(chunk))); callbacks.push(callback); } });
+    const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
+    conn.attach(stdin, new PassThrough());
+    const processId = "terminal-22222222-2222-4222-8222-222222222222";
+    const blocker = conn.request("gateway/dispatch", { method: "model/list", params: {}, clientId: "browser-1" }).catch((error) => error);
+    const create = conn.request("gateway/dispatch", { method: "terminal/exec", params: { processId }, clientId: "browser-1" }).catch((error) => error);
+    const other = conn.request("gateway/dispatch", { method: "thread/read", params: { threadId: "thread-2" }, clientId: "browser-1" }).catch((error) => error);
+    const terminate = conn.request("gateway/dispatch", { method: "terminal/terminate", params: { processId }, clientId: "browser-1" }).catch((error) => error);
+    try {
+      callbacks.shift()!();
+      await vi.waitFor(() => expect(written).toHaveLength(2));
+      expect(written.map((frame) => frame.params?.method)).toEqual(["model/list", "terminal/exec"]);
+      callbacks.shift()!();
+      await vi.waitFor(() => expect(written).toHaveLength(3));
+      expect(written.map((frame) => frame.params?.method)).toEqual(["model/list", "terminal/exec", "terminal/terminate"]);
+    } finally {
+      await conn.kill();
+      await Promise.all([blocker, create, other, terminate]);
+    }
+  });
+
+  it("does not retain oversized resource identifiers in private-worker queue metadata", async () => {
+    const stdin = new Writable({ highWaterMark: 1, write() { /* deliberately stalled */ } });
+    const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
+    conn.attach(stdin, new PassThrough());
+    const blocker = conn.request("gateway/dispatch", { method: "model/list", params: {}, clientId: "browser-1" }).catch((error) => error);
+    const invalid = conn.request("gateway/dispatch", {
+      method: "terminal/terminate", params: { processId: "x".repeat(4096) }, clientId: "browser-1",
+    }).catch((error) => error);
+    try {
+      expect((conn as any).writeQueue).toHaveLength(1);
+      expect((conn as any).writeQueue[0].resources).toEqual([]);
+    } finally {
+      await conn.kill();
+      await Promise.all([blocker, invalid]);
+      stdin.destroy();
+    }
+  });
+
+  it("keeps byte capacity for a wrapped emergency control under bulk backpressure", async () => {
+    const stdin = new Writable({ highWaterMark: 1, write() { /* deliberately stalled */ } });
+    const conn = new AppServerConnection("fake", [], {}, { onNotification() {}, onServerRequest: async () => ({}), onExit() {}, onStderr() {} });
+    conn.attach(stdin, new PassThrough());
+    const first = conn.request("gateway/dispatch", { method: "thread/read", params: { text: "x".repeat(35 * 1024 * 1024) }, clientId: "browser-1" }).catch((error) => error);
+    const second = conn.request("gateway/dispatch", { method: "thread/read", params: { text: "x".repeat(12.5 * 1024 * 1024) }, clientId: "browser-1" }).catch((error) => error);
+    const padding = "x".repeat(768 * 1024);
+    await expect(conn.request("gateway/dispatch", { method: "thread/read", params: { text: padding }, clientId: "browser-1" })).rejects.toBeInstanceOf(AppServerRequestError);
+    const control = conn.request("gateway/dispatch", {
+      method: "turn/interrupt", params: { threadId: "thread-1", turnId: "turn-1", padding }, clientId: "browser-1",
+    }).catch((error) => error);
+    await conn.kill();
+    await Promise.all([first, second, control]);
+    stdin.destroy();
   });
 
   it("rejects oversized outbound frames before writing and bounds unterminated input", async () => {
@@ -197,6 +445,52 @@ describe("AppServerConnection", () => {
     expect(handlers.onServerRequest).toHaveBeenCalledTimes(RPC_LIMITS.serverRequests);
     expect(frames.at(-1)).toMatchObject({ id: RPC_LIMITS.serverRequests + 1, error: { message: expect.stringContaining("concurrency") } });
     release();
+    await conn.kill();
+  });
+
+  it("fails a transport that reuses an active server-request id without invoking the handler twice", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const onServerRequest = vi.fn(async () => { await held; return { ok: true }; });
+    const { conn, handlers, reply } = makeFake({ onServerRequest });
+    reply({ id: "same", method: "dynamic/tool", params: { sequence: 1 } });
+    reply({ id: "same", method: "dynamic/tool", params: { sequence: 2 } });
+    expect(onServerRequest).toHaveBeenCalledOnce();
+    expect(handlers.onExit).toHaveBeenCalledOnce();
+    release();
+    await conn.kill();
+  });
+
+  it("reserves queue bytes for a large server-request reply ahead of unrelated bulk", async () => {
+    const written: any[] = [];
+    const callbacks: Array<(error?: Error) => void> = [];
+    const stdin = new Writable({ highWaterMark: 1, write(chunk, _encoding, callback) { written.push(JSON.parse(String(chunk))); callbacks.push(callback); } });
+    const stdout = new PassThrough();
+    const conn = new AppServerConnection("fake", [], {}, {
+      onNotification() {}, onServerRequest: async () => ({ content: "r".repeat(10 * 1024 * 1024) }), onExit() {}, onStderr() {},
+    });
+    conn.attach(stdin, stdout);
+    const first = conn.request("thread/read", { text: "x".repeat(35 * 1024 * 1024) }).catch((error) => error);
+    const second = conn.request("thread/read", { text: "y".repeat(12 * 1024 * 1024) }).catch((error) => error);
+    stdout.write(JSON.stringify({ id: "server-large", method: "dynamic/tool", params: {} }) + "\n");
+    try {
+      await vi.waitFor(() => expect((conn as any).writeQueue.length).toBe(2));
+      callbacks.shift()!();
+      await vi.waitFor(() => expect(written).toHaveLength(2), { timeout: 3000 });
+      expect(written[1]).toMatchObject({ id: "server-large", result: { content: expect.any(String) } });
+    } finally {
+      await conn.kill();
+      await Promise.all([first, second]);
+    }
+  }, 10_000);
+
+  it("falls back to a small correlated error when a server-request result cannot be framed", async () => {
+    const { conn, frames, reply } = makeFake({ onServerRequest: vi.fn(async () => ({ content: "x".repeat(RPC_LIMITS.frameBytes) })) });
+    reply({ id: "server-oversized", method: "dynamic/tool", params: {} });
+    await vi.waitFor(() => expect(frames.some((frame) => frame.id === "server-oversized")).toBe(true));
+    expect(frames.find((frame) => frame.id === "server-oversized")).toMatchObject({
+      error: { message: expect.stringContaining("could not encode or queue") },
+    });
     await conn.kill();
   });
 
@@ -298,6 +592,24 @@ describe("AppServerConnection", () => {
     await expect(promise).rejects.toThrow("nope");
   });
 
+  it.each([null, [], "failure", {}, { code: -32000 }, { message: "private malformed failure" }, { code: {}, message: "private malformed failure" }].map((error) => ({ error })))(
+    "a malformed error envelope does not prove a turn was rejected ($error)", async ({ error }) => {
+      const { conn, reply, handlers } = makeFake();
+      const promise = conn.request("turn/start", {}).catch((failure) => failure);
+      reply({ id: 1, error });
+      const failure = await promise;
+      expect(failure).toBeInstanceOf(Error);
+      expect(failure).not.toBeInstanceOf(AppServerRequestError);
+      expect(failure.delivery).toBe("unknown");
+      expect(failure.message).not.toContain("private malformed failure");
+      const next = conn.request("account/read");
+      reply({ id: 2, result: { account: null } });
+      await expect(next).resolves.toEqual({ account: null });
+      expect(handlers.onExit).not.toHaveBeenCalled();
+      await conn.kill();
+    },
+  );
+
   it("routes notifications to the handler", () => {
     const { handlers, reply } = makeFake();
     reply({ method: "item/started", params: { item: { id: "a" } } });
@@ -382,7 +694,9 @@ describe("AppServerConnection", () => {
     const { conn, handlers, stdout } = makeFake();
     const pending = conn.request("command/exec", {});
     stdout.end();
-    await expect(pending).rejects.toThrow(/stdout (ended|closed)/);
+    await expect(pending).rejects.toMatchObject({
+      message: expect.stringMatching(/stdout (ended|closed)/), delivery: "unknown",
+    });
     expect(handlers.onExit).toHaveBeenCalledTimes(1);
   });
 

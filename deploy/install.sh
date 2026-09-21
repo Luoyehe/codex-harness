@@ -48,6 +48,18 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# --- input contract ----------------------------------------------------------
+# Reject explicit typos before creating accounts, building or rewriting units.
+# Empty/unset values retain the interactive/non-interactive default selection.
+case "${PROVIDER:-}" in
+  ''|openai|zhipu|custom|skip) ;;
+  *) echo "[install] invalid PROVIDER (use openai, zhipu, custom or skip)" >&2; exit 1 ;;
+esac
+case "${EDGE:-}" in
+  ''|none|caddy-authelia) ;;
+  *) echo "[install] invalid EDGE (use none or caddy-authelia)" >&2; exit 1 ;;
+esac
+
 INSTALL_DIR="${INSTALL_DIR:-$REPO_ROOT}"
 SERVICE_NAME="${SERVICE_NAME:-codex-harness}"
 case "$SERVICE_NAME" in
@@ -57,15 +69,29 @@ case "$SERVICE_NAME" in
     ;;
 esac
 [ "${#SERVICE_NAME}" -le 128 ] || { echo "[install] SERVICE_NAME is too long" >&2; exit 1; }
-EXISTING_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
-LEGACY_ADMIN_FOR_THIS=0
-if grep -qxF 'Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin' "$EXISTING_UNIT" 2>/dev/null; then
-  LEGACY_ADMIN_FOR_THIS=1
+SUDO=""
+[ "$(id -u)" -ne 0 ] && SUDO="sudo"
+
+# Read the old unit exactly once through a bounded, no-follow descriptor before
+# using any of its values as installer defaults.  A link, hard link, special
+# file, oversized unit or concurrent replacement fails closed.
+if ! python3 -I -c 'import sys,tomllib; assert sys.version_info >= (3,11)' >/dev/null 2>&1; then
+  $SUDO apt-get update
+  $SUDO apt-get install -y python3
+  python3 -I -c 'import sys,tomllib; assert sys.version_info >= (3,11)' \
+    || { echo "[install] Python 3.11+ required (Ubuntu 24.04+ or Debian 12+)" >&2; exit 1; }
 fi
+UNIT_INSPECTION="$($SUDO python3 -I "$SCRIPT_DIR/service_registration.py" inspect-unit "$SERVICE_NAME")"
+unit_field() {
+  python3 -I -c 'import json,sys; value=json.loads(sys.argv[1])["fields"].get(sys.argv[2], ""); assert isinstance(value,str); print(value,end="")' \
+    "$UNIT_INSPECTION" "$1"
+}
+UNIT_EXISTS="$(python3 -I -c 'import json,sys; print("1" if json.loads(sys.argv[1])["exists"] else "0")' "$UNIT_INSPECTION")"
+UNIT_WORKING_DIRECTORY="$(unit_field WorkingDirectory)"
 if [ -z "${RUN_USER:-}" ]; then
-  if [ -f "$EXISTING_UNIT" ]; then
-    RUN_USER="$(sed -n 's/^Environment=RUN_USER=//p' "$EXISTING_UNIT" | head -1)"
-    [ -n "$RUN_USER" ] || RUN_USER="$(sed -n 's/^User=//p' "$EXISTING_UNIT" | head -1)"
+  if [ "$UNIT_EXISTS" = 1 ]; then
+    RUN_USER="$(unit_field RUN_USER)"
+    [ -n "$RUN_USER" ] || RUN_USER="$(unit_field User)"
     RUN_USER="${RUN_USER:-root}"
   elif [ "$(id -u)" -eq 0 ]; then
     RUN_USER="codex-harness"
@@ -77,8 +103,8 @@ if [ -z "${RUN_USER:-}" ]; then
   fi
 fi
 for control_name in GATEWAY_USER GATEWAY_CONTROL_HOME; do
-  if [ -z "${!control_name:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-    control_value="$(sed -n "s/^Environment=${control_name}=//p" "$EXISTING_UNIT" | head -1)"
+  if [ -z "${!control_name:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+    control_value="$(unit_field "$control_name")"
     [ -z "$control_value" ] || export "$control_name=$control_value"
   fi
 done
@@ -96,16 +122,16 @@ RUN_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
 [ -n "$RUN_HOME" ] || { echo "[install] cannot determine home for $RUN_USER" >&2; exit 1; }
 INSTANCE_HOME="$RUN_HOME"
 [ "$SERVICE_NAME" = codex-harness ] || INSTANCE_HOME="$RUN_HOME/instances/$SERVICE_NAME"
-if [ -z "${CODEX_HOME:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-  CODEX_HOME="$(sed -n 's/^Environment=CODEX_HOME=//p' "$EXISTING_UNIT" | head -1)"
+if [ -z "${CODEX_HOME:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+  CODEX_HOME="$(unit_field CODEX_HOME)"
 fi
 CODEX_HOME="${CODEX_HOME:-$INSTANCE_HOME/.codex}"
-if [ -z "${CODEX_WORKSPACE:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-  CODEX_WORKSPACE="$(sed -n 's/^Environment=CODEX_WORKSPACE=//p' "$EXISTING_UNIT" | head -1)"
+if [ -z "${CODEX_WORKSPACE:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+  CODEX_WORKSPACE="$(unit_field CODEX_WORKSPACE)"
 fi
 CODEX_WORKSPACE="${CODEX_WORKSPACE:-}"
-if [ -z "${PORT:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-  PORT="$(sed -n 's/^Environment=PORT=//p' "$EXISTING_UNIT" | head -1)"
+if [ -z "${PORT:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+  PORT="$(unit_field PORT)"
 fi
 PORT="${PORT:-}"
 
@@ -131,8 +157,8 @@ case "$PORT" in ''|*[!0-9]*) echo "[install] PORT must be an integer" >&2; exit 
 # a custom CODEX_HOME/PORT deployment falls back to the defaults in children.
 export CODEX_HOME PORT
 NPM_REGISTRY="${NPM_REGISTRY:-}"
-if [ -z "${ENV_FILE:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-  ENV_FILE="$(sed -n 's/^Environment=ENV_FILE=//p' "$EXISTING_UNIT" | head -1)"
+if [ -z "${ENV_FILE:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+  ENV_FILE="$(unit_field ENV_FILE)"
 fi
 ENV_FILE="${ENV_FILE:-$CODEX_HOME/secrets.env}"
 
@@ -154,24 +180,13 @@ validate_unit_path CODEX_HOME "$CODEX_HOME"
 validate_unit_path CODEX_WORKSPACE "$CODEX_WORKSPACE"
 validate_unit_path ENV_FILE "$ENV_FILE"
 
-SUDO=""
-[ "$(id -u)" -ne 0 ] && SUDO="sudo"
-
 # Fail before package installs, builds or secret-file changes if this name belongs
-# to another checkout. Python 3.11 is also needed by the provider configuration.
-if ! python3 -c 'import sys,tomllib; assert sys.version_info >= (3,11)' >/dev/null 2>&1; then
-  $SUDO apt-get update
-  $SUDO apt-get install -y python3
-  python3 -c 'import sys,tomllib; assert sys.version_info >= (3,11)' \
-    || { echo "[install] Python 3.11+ required (Ubuntu 24.04+ or Debian 12+)" >&2; exit 1; }
-fi
-
-# Fail before executing configured runtimes or building candidate application
+# to another checkout. Fail before executing configured runtimes or building candidate application
 # code. Registration later persists this same canonical, root-controlled path.
 INSTALL_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" tree "$INSTALL_DIR")"
 SCRIPT_DIR="$INSTALL_DIR/deploy"
 REPO_ROOT="$INSTALL_DIR"
-if [ -f "$EXISTING_UNIT" ] && ! grep -qxF "WorkingDirectory=${INSTALL_DIR}/apps/gateway" "$EXISTING_UNIT"; then
+if [ "$UNIT_EXISTS" = 1 ] && [ "$UNIT_WORKING_DIRECTORY" != "${INSTALL_DIR}/apps/gateway" ]; then
   echo "[install] service belongs to another checkout; choose a different SERVICE_NAME" >&2
   exit 1
 fi
@@ -189,11 +204,11 @@ run_as_service() {
 }
 
 # --- 1. Node.js >= 22 -------------------------------------------------------
-if [ -z "${NODE_BIN:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-  NODE_BIN="$(sed -n 's/^Environment=NODE_BIN=//p' "$EXISTING_UNIT" | head -1)"
+if [ -z "${NODE_BIN:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+  NODE_BIN="$(unit_field NODE_BIN)"
 fi
-if [ -z "${NODE_BIN_DIR:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-  NODE_BIN_DIR="$(sed -n 's/^Environment=NODE_BIN_DIR=//p' "$EXISTING_UNIT" | head -1)"
+if [ -z "${NODE_BIN_DIR:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+  NODE_BIN_DIR="$(unit_field NODE_BIN_DIR)"
 fi
 if [ -n "${NODE_BIN:-}" ]; then
   validate_unit_path NODE_BIN "$NODE_BIN"
@@ -225,22 +240,34 @@ install_node() {
 if command -v node >/dev/null 2>&1; then
   NODE_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v node)")"
 fi
+NODE_INSTALLED=0
 if [ -z "${NODE_BIN:-}" ]; then
   install_node
+  NODE_INSTALLED=1
 elif [ "$("$NODE_BIN" -p 'process.versions.node.split(".")[0]')" -lt 22 ]; then
   log "Node $("$NODE_BIN" --version) found, need >= 22"
   install_node
+  NODE_INSTALLED=1
 fi
-NODE_BIN_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" directory "$(dirname "$(command -v node)")")"
+if [ "$NODE_INSTALLED" = 1 ]; then
+  # NodeSource installs here. An older custom runtime earlier on the caller's
+  # PATH must not shadow the package we just installed (including npm scripts).
+  NODE_BIN_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" directory "/usr/bin")"
+else
+  NODE_BIN_DIR="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" directory "$(dirname "$(command -v node)")")"
+fi
 NODE_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$NODE_BIN_DIR/node")"
+[ "$("$NODE_BIN" -p 'process.versions.node.split(".")[0]')" -ge 22 ] \
+  || { log "ERROR: selected Node runtime is still below 22; check NODE_BIN and PATH"; exit 1; }
+export PATH="$NODE_BIN_DIR:$PATH"
 log "Node.js: $("$NODE_BIN" --version)"
-if [ -z "${TOOLS_BIN_DIR:-}" ] && [ -f "$EXISTING_UNIT" ]; then
-  TOOLS_BIN_DIR="$(sed -n 's/^Environment=TOOLS_BIN_DIR=//p' "$EXISTING_UNIT" | head -1)"
+if [ -z "${TOOLS_BIN_DIR:-}" ] && [ "$UNIT_EXISTS" = 1 ]; then
+  TOOLS_BIN_DIR="$(unit_field TOOLS_BIN_DIR)"
 fi
 NPM_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v npm)")"
 export NODE_BIN NODE_BIN_DIR NPM_BIN
 export PATH="$NODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-TOOLS_BIN_DIR="$(python3 "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}" --allow-missing)"
+TOOLS_BIN_DIR="$(python3 -I "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}" --allow-missing)"
 TOOLS_PREFIX="${TOOLS_BIN_DIR%/bin}"
 export TOOLS_BIN_DIR
 # Only persist these known directories, not an installer's ambient PATH.
@@ -280,7 +307,7 @@ else
     $SUDO env PATH="$PATH" "$NPM_BIN" --prefix "$TOOLS_PREFIX" install -g "@z_ai/mcp-server@$ZAI_MCP_VERSION"
   fi
 fi
-TOOLS_BIN_DIR="$(python3 "$SCRIPT_DIR/runtime_paths.py" "$TOOLS_BIN_DIR")"
+TOOLS_BIN_DIR="$(python3 -I "$SCRIPT_DIR/runtime_paths.py" "$TOOLS_BIN_DIR")"
 
 # --- 3. build ----------------------------------------------------------------
 log "building gateway + web ($INSTALL_DIR)..."
@@ -323,17 +350,12 @@ if [ ! -f "$ENV_FILE" ] && [ "$ENV_FILE" != "/etc/codex-harness.env" ] && [ -f /
 fi
 # Service data is writable by the service account and is never a root trust
 # anchor. Create/validate it with the same identity that later maintains it.
-run_as_service python3 "$SCRIPT_DIR/service_env.py" "$CODEX_HOME" "$ENV_FILE"
+run_as_service python3 -I "$SCRIPT_DIR/service_env.py" "$CODEX_HOME" "$ENV_FILE"
 
 # --- 5. systemd unit ---------------------------------------------------------
 # Guard 1: refuse to clobber an existing deployment that lives elsewhere.
-UNIT_FILE="$EXISTING_UNIT"
-if [ -f "$UNIT_FILE" ] && ! grep -qxF "WorkingDirectory=${INSTALL_DIR}/apps/gateway" "$UNIT_FILE" 2>/dev/null; then
-  log "ERROR: $UNIT_FILE already serves a different install directory."
-  log "Set SERVICE_NAME=<new-name> (and PORT) to deploy another instance,"
-  log "or point INSTALL_DIR at the existing checkout to upgrade in place."
-  exit 1
-fi
+# The initial pinned snapshot rejected another checkout; the registration
+# transaction repeats that ownership check under its global publication lock.
 # Guard 2: the port must be free — a collision would crash-loop the gateway.
 # The one allowed holder is THIS service's own old instance (in-place upgrade).
 if [ "${FORCE:-0}" != "1" ] && command -v ss >/dev/null 2>&1; then
@@ -350,27 +372,16 @@ if [ "${FORCE:-0}" != "1" ] && command -v ss >/dev/null 2>&1; then
 fi
 log "registering system files for $SERVICE_NAME..."
 if ! command -v visudo >/dev/null 2>&1; then $SUDO apt-get install -y sudo; fi
+GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-/var/lib/codex-harness-control/$SERVICE_NAME}"
+GATEWAY_CONTROL_HOME="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" control "$GATEWAY_CONTROL_HOME")"
 COMMAND_PATH="$($SUDO env SERVICE_NAME="$SERVICE_NAME" RUN_USER="$RUN_USER" INSTALL_DIR="$INSTALL_DIR" \
   GATEWAY_USER="${GATEWAY_USER:-}" GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-}" \
   CODEX_HOME="$CODEX_HOME" CODEX_WORKSPACE="$CODEX_WORKSPACE" ENV_FILE="$ENV_FILE" \
   CODEX_BIN="$CODEX_BIN" NODE_BIN="$NODE_BIN" NODE_BIN_DIR="$NODE_BIN_DIR" TOOLS_BIN_DIR="$TOOLS_BIN_DIR" PATH="$PATH" \
-  PORT="$PORT" BIN_DIR="${BIN_DIR:-/usr/local/bin}" \
+  PORT="$PORT" BIN_DIR="${BIN_DIR:-/usr/local/bin}" REGISTER_ACTIVATE=1 \
   bash "$INSTALL_DIR/deploy/register-service.sh")"
-GATEWAY_CONTROL_HOME="$(sed -n 's/^Environment=GATEWAY_CONTROL_HOME=//p' "$UNIT_FILE" | head -1)"
 GATEWAY_ENV_FILE="$GATEWAY_CONTROL_HOME/gateway.env"
 export GATEWAY_CONTROL_HOME GATEWAY_ENV_FILE
-$SUDO systemctl daemon-reload
-$SUDO systemctl enable --now "$SERVICE_NAME"
-if [ "$LEGACY_ADMIN_FOR_THIS" -eq 1 ]; then
-  # Complete the one-time transition so the old shared sudo grant does not
-  # remain usable after this instance has moved to its namespaced helper.
-  if ! grep -lxF 'Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin' \
-      /etc/systemd/system/*.service >/dev/null 2>&1; then
-    $SUDO rm -f /usr/local/libexec/codex-harness-admin /etc/codex-harness/admin.conf /etc/sudoers.d/codex-harness
-  else
-    log "legacy admin helper is still referenced by another unit; leaving its files in place"
-  fi
-fi
 
 # --- 6. model provider -------------------------------------------------------
 # Unattended: PROVIDER=openai|zhipu|custom|skip. Interactive TTY: ask. A pipe without
@@ -413,22 +424,35 @@ configure_provider() {
       if [ -n "$key" ]; then
         # Pass secrets in the child environment, not as visible `env KEY=...`
         # argv entries. The provider still receives the same variables.
-        ZHIPU_KEY="$key" ENV_FILE="$ENV_FILE" \
-          run_as_service bash "$INSTALL_DIR/deploy/providers/zhipu-coding-plan/setup.sh"
+        if ! ZHIPU_KEY="$key" ENV_FILE="$ENV_FILE" \
+          run_as_service bash "$INSTALL_DIR/deploy/providers/zhipu-coding-plan/setup.sh"; then
+          log "智谱供应商配置失败；安装未完成"
+          return 1
+        fi
       elif [ -n "$stored_key" ]; then
-        ENV_FILE="$ENV_FILE" run_as_service bash "$INSTALL_DIR/deploy/providers/zhipu-coding-plan/setup.sh"
+        if ! ENV_FILE="$ENV_FILE" run_as_service bash "$INSTALL_DIR/deploy/providers/zhipu-coding-plan/setup.sh"; then
+          log "智谱供应商配置失败；安装未完成"
+          return 1
+        fi
       else
-        log "未提供 Key —— 请稍后把 Z_AI_API_KEY 填入 $ENV_FILE 并运行 deploy/providers/zhipu-coding-plan/setup.sh"
+        log "已选择智谱供应商但未提供 Key；如需稍后配置，请改用 PROVIDER=skip"
+        return 1
       fi
       ;;
     openai)
       log "OpenAI/ChatGPT 原生模式：发布空的受管理配置；保留其它模式配置及私有恢复代"
-      ENV_FILE="$ENV_FILE" run_as_service bash "$INSTALL_DIR/deploy/providers/openai/setup.sh"
+      if ! ENV_FILE="$ENV_FILE" run_as_service bash "$INSTALL_DIR/deploy/providers/openai/setup.sh"; then
+        log "OpenAI 供应商配置失败；安装未完成"
+        return 1
+      fi
       if [ -t 0 ]; then
         local login_now
         read -r -p "现在进行设备码登录 codex login --device-auth？[y/N] " login_now || true
         if [[ "$login_now" == y* || "$login_now" == Y* ]]; then
-          $SUDO systemctl stop "$SERVICE_NAME" || true
+          if ! $SUDO systemctl stop "$SERVICE_NAME"; then
+            log "无法确认服务已停止，未启动设备码登录；请检查 systemctl 状态后重试"
+            return 1
+          fi
           if ! run_as_service "$CODEX_BIN" login --device-auth; then
             log "设备码登录未完成；恢复服务后可通过 WebUI 重试"
           fi
@@ -447,15 +471,17 @@ configure_provider() {
       if ! CUSTOM_BASE_URL="$cu_base" CUSTOM_MODEL="$cu_model" \
            CUSTOM_API_KEY="${CUSTOM_API_KEY:-}" CUSTOM_CTX="${CUSTOM_CTX:-}" ENV_FILE="$ENV_FILE" \
            run_as_service bash "$INSTALL_DIR/deploy/providers/custom-openai/setup.sh"; then
-        log "custom 供应商配置未完成（非交互环境需 CUSTOM_BASE_URL + CUSTOM_MODEL）"
-        log "稍后补齐：bash $INSTALL_DIR/deploy/providers/custom-openai/setup.sh"
+        log "custom 供应商配置失败（非交互环境需 CUSTOM_BASE_URL + CUSTOM_MODEL）；安装未完成"
+        log "如需稍后配置，请改用 PROVIDER=skip"
+        return 1
       fi
       ;;
-    skip|""|none)
+    skip)
       log "跳过模型源配置。后续参见 deploy/README.md 第二节。"
       ;;
     *)
-      log "未知 PROVIDER=$provider（可选 openai/zhipu/custom/skip），跳过"
+      log "未知 PROVIDER=$provider（可选 openai/zhipu/custom/skip）"
+      return 1
       ;;
   esac
 }
@@ -466,9 +492,22 @@ configure_provider
 
 # --- 7. restart + health check ------------------------------------------------
 $SUDO systemctl restart "$SERVICE_NAME"
-sleep 2
+wait_gateway_ready() {
+  local attempt=0
+  while [ "$attempt" -lt 20 ]; do
+    attempt=$((attempt + 1))
+    # HTTP 200 only proves the control listener is alive. In particular a
+    # blocked/starting worker must not be disguised by the isolated smoke test.
+    if curl -fsS --max-time 2 "http://127.0.0.1:${PORT}/healthz" 2>/dev/null \
+      | node -e 'try { const v = JSON.parse(require("node:fs").readFileSync(0, "utf8")); process.exit(v.ok === true && v.codexState === "ready" ? 0 : 1); } catch { process.exit(1); }'; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
 
-if curl -sf "http://127.0.0.1:${PORT}/healthz" >/dev/null; then
+if wait_gateway_ready; then
   log "OK — gateway is healthy on http://127.0.0.1:${PORT}"
 else
   log "gateway not healthy yet; check: journalctl -u ${SERVICE_NAME} -e"
@@ -483,9 +522,11 @@ run_as_service env CODEX_BIN="$CODEX_BIN" node "$INSTALL_DIR/scripts/gateway-smo
 if [ "${SKIP_EDGE_SETUP:-0}" = "1" ]; then
   log "保留现有远程访问配置（修复重装不改 Caddy/Authelia）"
 else
-  GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
-    bash "$INSTALL_DIR/deploy/setup-edge.sh" \
-    || log "(远程访问配置未完成，可稍后运行: bash $INSTALL_DIR/deploy/setup-edge.sh)"
+  if ! GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
+    bash "$INSTALL_DIR/deploy/setup-edge.sh"; then
+    log "远程访问配置失败；安装未完成。修复参数后重试，或显式设置 EDGE=none"
+    exit 1
+  fi
 fi
 
 cat <<EOF

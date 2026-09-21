@@ -1,5 +1,8 @@
 import fastify from "fastify";
 import { afterEach, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { AuthToken, setBootstrapCookie } from "../src/auth-token.js";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -7,7 +10,8 @@ afterEach(() => vi.unstubAllEnvs());
 it("requires credentials before issuing a cookie in strict HTTP bootstrap", async () => {
   vi.stubEnv("GATEWAY_TOKEN", "test-only-bootstrap-secret-12345678");
   vi.stubEnv("GATEWAY_BOOTSTRAP_AUTH", "required");
-  const token = new AuthToken("unused-no-files-created", 8410);
+  const controlHome = mkdtempSync(path.join(tmpdir(), "http-auth-control-"));
+  const token = new AuthToken(controlHome, 8410);
   const app = fastify();
   app.addHook("onRequest", async (req, reply) => setBootstrapCookie(token, req, reply, false));
   app.get("/", async () => "test page");
@@ -23,5 +27,8 @@ it("requires credentials before issuing a cookie in strict HTTP bootstrap", asyn
     expect(authorized.headers["set-cookie"]).toContain(`${token.cookieName}=${token.token}; Path=/; HttpOnly; SameSite=Strict`);
     const untrusted = await app.inject({ url: "/", headers: { host: "attacker.example", authorization: `Bearer ${token.token}` } });
     expect(untrusted.headers["set-cookie"]).toBeUndefined();
-  } finally { await app.close(); }
+  } finally {
+    await app.close();
+    rmSync(controlHome, { recursive: true, force: true });
+  }
 });

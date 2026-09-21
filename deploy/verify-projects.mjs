@@ -1,44 +1,19 @@
-// Bare-metal check: any host path is a valid project location.
-import WebSocket from "ws";
-import { wsUrl, wsOptions } from "./ws-token.mjs";
-const WS = wsUrl(process.env.GATEWAY_WS ?? "ws://127.0.0.1:8080/ws");
-const ws = new WebSocket(WS, wsOptions());
-let nextId = 1;
-const pending = new Map();
-const rpc = (m, p) =>
-  new Promise((res, rej) => {
-    const id = nextId++;
-    pending.set(id, { res, rej });
-    ws.send(JSON.stringify({ kind: "rpc", id, method: m, params: p ?? {} }));
-  });
-ws.onmessage = (ev) => {
-  const msg = JSON.parse(String(ev.data));
-  if (msg.kind === "rpcResult") {
-    const e = pending.get(msg.id);
-    if (e) {
-      pending.delete(msg.id);
-      msg.error ? e.rej(new Error(msg.error)) : e.res(msg.result);
-    }
-  }
-};
+// Read-only project inventory/directory check. Never register, create or
+// remove a project: an existing user's registration is not a test fixture.
+import { VerificationClient, verificationTimeout } from "./verification-client.mjs";
 
-(async () => {
-  await new Promise((r) => (ws.onopen = r));
-
-  // A path OUTSIDE the old container mounts — must be allowed on bare metal.
-  const created = await rpc("projects/add", { path: "/root/bare-selftest-project", create: true })
-    .then(() => "CREATED")
-    .catch((e) => `REJECTED: ${e.message.slice(0, 80)}`);
-  console.log("bare-metal arbitrary path ->", created);
-
-  const dirs = await rpc("fs/readDirectory", { path: "/root" });
-  const sees = (dirs.entries ?? []).some((x) => x.isDirectory && x.fileName === "bare-selftest-project");
-  console.log("visible in directory browser ->", sees);
-
-  await rpc("projects/remove", { path: "/root/bare-selftest-project" });
-  console.log("cleanup OK");
-  process.exit(created === "CREATED" && sees ? 0 : 1);
-})().catch((e) => {
-  console.error("FAIL", e.message);
-  process.exit(1);
-});
+let client;
+try {
+  const timeout = verificationTimeout();
+  client = new VerificationClient(undefined, undefined, { openTimeoutMs: timeout });
+  const status = await client.rpc("app/status", {}, timeout);
+  if (status?.codexState !== "ready" || typeof status.workspaceRoot !== "string" || !status.workspaceRoot) throw new Error("Workspace unavailable");
+  const result = await client.rpc("projects/list", {}, timeout);
+  if (!Array.isArray(result?.projects) || result.projects.some(project => typeof project?.path !== "string" || !project.path)) throw new Error("Invalid project inventory");
+  const listing = await client.rpc("fs/readDirectory", { path: status.workspaceRoot }, timeout);
+  if (!Array.isArray(listing?.entries)) throw new Error("Invalid directory inventory");
+  console.log(`PROJECTS-READONLY-PASS (${result.projects.length} registrations; no project creation/removal)`);
+} catch {
+  console.error("PROJECTS-READONLY-FAIL: authentication, connection, timeout or unavailable workspace; no project changes.");
+  process.exitCode = 1;
+} finally { client?.close(); }

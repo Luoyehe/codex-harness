@@ -9,10 +9,12 @@ import type { ThreadListParams } from "../../../../protocol/v2/ThreadListParams"
 import type { ThreadListResponse } from "../../../../protocol/v2/ThreadListResponse";
 import type { TurnStartParams } from "../../../../protocol/v2/TurnStartParams";
 import type { TurnStartResponse } from "../../../../protocol/v2/TurnStartResponse";
+import type { TurnStatus } from "../../../../protocol/v2/TurnStatus";
 import type { GetAccountResponse } from "../../../../protocol/v2/GetAccountResponse";
 import type { ModelListResponse } from "../../../../protocol/v2/ModelListResponse";
 import type { ListMcpServerStatusResponse } from "../../../../protocol/v2/ListMcpServerStatusResponse";
 import type { LoginAccountResponse } from "../../../../protocol/v2/LoginAccountResponse";
+import type { CancelLoginAccountResponse } from "../../../../protocol/v2/CancelLoginAccountResponse";
 import type { ManagementSnapshot } from "../utils/management";
 
 /** The gateway passes upstream notifications through, except approval IDs, and
@@ -42,9 +44,23 @@ export interface Attachment {
   previewUrl?: string;
 }
 
+export type DeviceLoginStatusResponse =
+  | { state: "idle" }
+  | { state: "starting" | "unknown" }
+  | {
+      state: "active";
+      login: { type: "chatgptDeviceCode"; loginId: string; userCode: string; verificationUrl: string };
+    };
+
+export type ThreadStartOperationStatus =
+  | { state: "not_received" }
+  | { state: "unknown" | "rejected"; cwd: string; error?: string }
+  | { state: "accepted"; cwd: string; threadId: string };
+
 export type TimelineItem = (ThreadItem |
   { type: "localUserMessage"; id: string; text: string; attachments: Attachment[] } |
   { type: "errorItem"; id: string; message: string; willRetry: boolean; historyLoadError?: boolean } |
+  { type: "turnStatus"; id: string; status: Extract<TurnStatus, "failed" | "interrupted">; message: string } |
   { type: "compactionProgress"; id: string; message: string; status: "inProgress" | "completed" | "failed" }
 ) & { threadId?: string; turnId?: string; streaming?: boolean; completed?: boolean; harnessAttachments?: Attachment[]; clientOperationId?: string };
 
@@ -52,17 +68,23 @@ export type TimelineItem = (ThreadItem |
 export interface ProtocolRpc {
   "thread/read": { params: { threadId: string; includeTurns?: boolean }; result: ThreadReadResponse };
   "thread/resume": { params: { threadId: string }; result: ThreadResumeResponse };
-  "thread/start": { params: Pick<ThreadStartParams, "cwd" | "model" | "approvalPolicy">; result: ThreadStartResponse };
+  "thread/start": { params: Pick<ThreadStartParams, "cwd" | "model" | "approvalPolicy"> & { clientOperationId: string }; result: ThreadStartResponse & { clientOperationId: string; replayed?: boolean } };
+  "thread/start/operation": { params: { clientOperationId: string }; result: ThreadStartOperationStatus };
   "thread/list": { params: ThreadListParams; result: ThreadListResponse };
   "turn/start": { params: Pick<TurnStartParams, "threadId" | "model" | "approvalPolicy" | "effort"> & {
     text: string; attachments?: Attachment[]; sandbox?: "network" | "full" | null; clientOperationId: string;
   }; result: TurnStartResponse };
   "account/read": { params: undefined; result: GetAccountResponse };
   "account/login/start": { params: { type: "chatgptDeviceCode" }; result: LoginAccountResponse };
+  "account/login/cancel": { params: { loginId: string }; result: CancelLoginAccountResponse };
+  "account/login/status": { params: undefined; result: DeviceLoginStatusResponse };
   "model/list": { params: { limit?: number; cursor?: string }; result: ModelListResponse };
   "mcpServerStatus/list": { params: undefined; result: ListMcpServerStatusResponse };
 }
 
 export function unreachable(value: never): never {
-  throw new Error(`Unhandled protocol variant: ${JSON.stringify(value)}`);
+  const kind = value && typeof value === "object" && !Array.isArray(value) && typeof (value as { type?: unknown }).type === "string"
+    ? String((value as { type: string }).type).slice(0, 128)
+    : typeof value;
+  throw new Error(`Unhandled protocol variant: ${kind}`);
 }

@@ -11,15 +11,63 @@ import { validateResponse } from "../../../shared/input-forms.mjs";
 const INPUT_METHODS = new Set(["item/tool/requestUserInput", "mcpServer/elicitation/request"]);
 const MAX_PENDING_ANSWERS = 32;
 const MAX_PROMPT_BYTES = 512 * 1024;
+const MAX_BROWSER_ERROR_CHARS = 4096;
 
 export type ClientMessage =
   | { kind: "rpc"; id: number; method: string; params?: unknown }
   | { kind: "serverRequestResponse"; requestId: number | string; payload: unknown; error?: string };
 
+export type RpcDelivery = "not_sent" | "unknown" | "rejected";
+
 export type ServerMessage =
-  | { kind: "rpcResult"; id: number; result?: unknown; error?: string; errorCode?: string }
+  | { kind: "rpcResult"; id: number; result?: unknown; error?: string; errorCode?: string; delivery?: RpcDelivery; operationState?: "unknown" }
   | { kind: "notification"; method: string; params?: unknown }
   | { kind: "serverRequest"; requestId: number | string; method: string; params?: unknown };
+
+function objectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value != null && typeof value === "object" ? value as Record<string, unknown> : undefined;
+}
+
+function validDelivery(value: unknown): value is RpcDelivery {
+  return value === "not_sent" || value === "unknown" || value === "rejected";
+}
+
+/** Build the only browser-facing failure shape. Never forward arbitrary error
+ * data, but retain the small delivery receipt needed to decide whether retrying
+ * a mutating operation is safe. */
+export function rpcFailureMessage(
+  id: number,
+  error: unknown,
+  fallback: { errorCode?: string; delivery?: RpcDelivery } = {},
+): Extract<ServerMessage, { kind: "rpcResult" }> {
+  const record = objectRecord(error);
+  const rpcError = objectRecord(record?.rpcError);
+  const rpcData = objectRecord(rpcError?.data);
+  const data = objectRecord(record?.data);
+  const deliveryCandidates = [fallback.delivery, record?.delivery, rpcData?.delivery, data?.delivery];
+  let delivery = deliveryCandidates.find(validDelivery);
+  const rawMessage = typeof record?.message === "string" && record.message ? record.message : "gateway request failed";
+  const message = rawMessage.slice(0, MAX_BROWSER_ERROR_CHARS);
+  const validErrorCode = (value: unknown): value is string =>
+    typeof value === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(value);
+  const directCode = validErrorCode(record?.errorCode) ? record.errorCode : undefined;
+  const nestedCode = validErrorCode(rpcData?.errorCode) ? rpcData.errorCode : undefined;
+  const errorCode = validErrorCode(fallback.errorCode) ? fallback.errorCode : directCode ?? nestedCode;
+  const operationUnknown = record?.operationState === "unknown" || rpcData?.operationState === "unknown" || data?.operationState === "unknown";
+  if (operationUnknown) delivery = "unknown";
+  // BUSY is a returned refusal, while an unclassified error may have crossed
+  // a mutation boundary. Make the latter conservative even if a future
+  // producer forgets to attach its receipt.
+  if (!delivery) delivery = errorCode === "BUSY" || errorCode === "OPERATION_REJECTED" ? "rejected" : "unknown";
+  return {
+    kind: "rpcResult",
+    id,
+    error: message,
+    ...(errorCode ? { errorCode } : {}),
+    delivery,
+    ...(delivery === "unknown" ? { operationState: "unknown" as const } : {}),
+  };
+}
 
 export interface BrowserClient {
   send(msg: ServerMessage): void;

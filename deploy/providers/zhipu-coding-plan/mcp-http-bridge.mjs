@@ -10,13 +10,14 @@
  * The token may alternatively come from Z_AI_API_KEY. Positional tokens are
  * intentionally unsupported because process arguments are visible in /proc.
  */
-import { lstatSync, readFileSync } from "node:fs";
+import { constants, closeSync, fstatSync, lstatSync, openSync, readSync } from "node:fs";
 import { postMcp, isResponseFor, isSupportedProtocolVersion, RemoteHttpError, ResponseTooLargeError } from "./mcp-http-transport.mjs";
 
 const DEFAULT_MAX_REQUEST_BYTES = 1024 * 1024;
 const DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
 const ABSOLUTE_MAX_BYTES = 50 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 110_000;
+const MAX_KEY_FILE_BYTES = 16 * 1024;
 
 function fail(message) {
   console.error(`[mcp-http-bridge] ${message}`);
@@ -31,6 +32,37 @@ function byteLimit(name, fallback) {
     fail(`${name} must be an integer between 1 and ${ABSOLUTE_MAX_BYTES}`);
   }
   return value;
+}
+
+function sameFile(one, two) {
+  return one.dev === two.dev && one.ino === two.ino && one.mode === two.mode &&
+    one.uid === two.uid && one.gid === two.gid && one.nlink === two.nlink &&
+    one.size === two.size && one.mtimeNs === two.mtimeNs && one.ctimeNs === two.ctimeNs;
+}
+
+function readKeyFile(file) {
+  const before = lstatSync(file, { bigint: true });
+  if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1n ||
+      before.size > BigInt(MAX_KEY_FILE_BYTES)) throw new Error("unsafe key file identity");
+  if (process.platform !== "win32" && (before.mode & 0o077n) !== 0n) throw new Error("unsafe key file mode");
+  if (typeof process.geteuid === "function" && before.uid !== BigInt(process.geteuid())) throw new Error("unsafe key file owner");
+  const descriptor = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  try {
+    const opened = fstatSync(descriptor, { bigint: true });
+    if (!opened.isFile() || !sameFile(before, opened)) throw new Error("key file changed while opening");
+    const buffer = Buffer.allocUnsafe(MAX_KEY_FILE_BYTES + 1);
+    let total = 0;
+    while (total < buffer.length) {
+      const count = readSync(descriptor, buffer, total, buffer.length - total, null);
+      if (count === 0) break;
+      total += count;
+    }
+    const after = fstatSync(descriptor, { bigint: true });
+    const current = lstatSync(file, { bigint: true });
+    if (total !== Number(before.size) || total > MAX_KEY_FILE_BYTES ||
+        !sameFile(opened, after) || !sameFile(after, current)) throw new Error("key file changed while reading");
+    return buffer.subarray(0, total).toString("utf8").trim();
+  } finally { closeSync(descriptor); }
 }
 
 const maxRequestBytes = byteLimit("MCP_BRIDGE_MAX_REQUEST_BYTES", DEFAULT_MAX_REQUEST_BYTES);
@@ -58,17 +90,10 @@ let token = (process.env.Z_AI_API_KEY ?? "").trim();
 if (argv.length === 3) {
   const keyFile = argv[2];
   try {
-    const stat = lstatSync(keyFile);
-    if (!stat.isFile() || stat.isSymbolicLink()) fail("key file must be a regular file, not a symlink");
-    if (process.platform !== "win32" && (stat.mode & 0o077) !== 0) fail("key file must not be accessible by group or others");
-    if (stat.size > 16 * 1024) fail("key file is unexpectedly large");
-    token = readFileSync(keyFile, "utf8").trim();
-  } catch (error) {
-    if (error?.code) fail("cannot read key file");
-    throw error;
-  }
+    token = readKeyFile(keyFile);
+  } catch { fail("cannot read key file"); }
 }
-if (!token || token.length > 16 * 1024 || /[\u0000-\u001f\u007f]/.test(token)) {
+if (!token || Buffer.byteLength(token) > MAX_KEY_FILE_BYTES || !/^[\x21-\x7e]+$/.test(token)) {
   fail("missing or invalid bearer token");
 }
 

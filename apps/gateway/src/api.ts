@@ -5,7 +5,7 @@ import type { CodexSupervisor } from "./codex/process.js";
 import type { ProjectRegistry } from "./projects.js";
 import type { DisplayPrefsStore } from "./display-prefs.js";
 import type { AttachmentStore } from "./attachments.js";
-import { AppServerRequestError } from "./codex/rpc.js";
+import { isDefiniteAppServerRejection } from "./codex/rpc.js";
 import type { RequestParams } from "./protocol.js";
 import type { ThreadSourceKind } from "../../../protocol/v2/ThreadSourceKind.js";
 import type { SandboxPolicy } from "../../../protocol/v2/SandboxPolicy.js";
@@ -31,6 +31,7 @@ function clampLimit(value: unknown, min: number, max: number, fallback: number):
 const MAX_PATH_CHARS = 4096;
 const MAX_ID_CHARS = 256;
 const MAX_MODEL_CHARS = 256;
+const MAX_CURSOR_CHARS = 4096;
 const MAX_TEXT_CHARS = 2 * 1024 * 1024;
 const MAX_ATTACHMENTS_PER_TURN = 32;
 const MAX_TERMINAL_WRITE_BYTES = 64 * 1024;
@@ -146,20 +147,20 @@ const handlers: Record<string, Handler> = {
 
   // ---- projects (gateway-managed working-directory registry) ----
 
-  "projects/list": async (_params, ctx) => ({ projects: ctx.projects.list() }),
+  "projects/list": async (_params, ctx) => ({ projects: await ctx.projects.list() }),
 
   "projects/add": async (params, ctx) => {
     const target = requireString(params?.path, "path", MAX_PATH_CHARS);
-    return { project: ctx.projects.add(target, params?.create === true) };
+    return { project: await ctx.projects.add(target, params?.create === true) };
   },
 
   "projects/remove": async (params, ctx) => {
-    ctx.projects.remove(requireString(params?.path, "path"));
+    await ctx.projects.remove(requireString(params?.path, "path"));
     return { ok: true };
   },
 
   "projects/touch": async (params, ctx) => {
-    ctx.projects.touch(requireString(params?.path, "path"));
+    await ctx.projects.touch(requireString(params?.path, "path"));
     return { ok: true };
   },
 
@@ -201,7 +202,7 @@ const handlers: Record<string, Handler> = {
 
   "model/list": async (params, ctx) =>
     ctx.supervisor.request("model/list", {
-      cursor: typeof params?.cursor === "string" && params.cursor ? params.cursor.slice(0, 512) : undefined,
+      cursor: optionalString(params?.cursor, "cursor", MAX_CURSOR_CHARS),
       // absent/invalid limit → undefined (server default = full set); a
       // present limit is clamped NaN/∞-safe.
       limit: typeof params?.limit === "number" && Number.isFinite(params.limit)
@@ -216,13 +217,20 @@ const handlers: Record<string, Handler> = {
       type: requireEnum(params?.type, "type", LOGIN_TYPES),
     }),
 
+  "account/login/cancel": async (params, ctx) =>
+    ctx.supervisor.request("account/login/cancel", {
+      loginId: requireString(params?.loginId, "loginId", MAX_ID_CHARS),
+    }),
+
   "thread/list": async (params, ctx) => {
     // The server defaults to "interactive" sources only, which hides threads
     // created through app-server (this WebUI). Ask for every user-facing kind.
-    const sourceKinds: ThreadSourceKind[] =
-      Array.isArray(params?.sourceKinds)
-        ? params.sourceKinds.filter((k: unknown): k is ThreadSourceKind => typeof k === "string" && SOURCE_KINDS.has(k as ThreadSourceKind))
-        : [];
+    if (Array.isArray(params?.sourceKinds) && params.sourceKinds.length > SOURCE_KINDS.size) {
+      throw new Error(`sourceKinds has too many entries (max ${SOURCE_KINDS.size})`);
+    }
+    const sourceKinds: ThreadSourceKind[] = Array.isArray(params?.sourceKinds)
+      ? params.sourceKinds.filter((k: unknown): k is ThreadSourceKind => typeof k === "string" && SOURCE_KINDS.has(k as ThreadSourceKind))
+      : [];
     const kinds: ThreadSourceKind[] = sourceKinds.length > 0 ? sourceKinds : ["cli", "vscode", "exec", "appServer"];
     // Server-side sort must match what the sidebar displays — the frontend
     // must NOT re-sort paginated results (cursor order is opaque).
@@ -232,10 +240,9 @@ const handlers: Record<string, Handler> = {
       limit: clampLimit(params?.limit, 1, 100, 50),
       sourceKinds: kinds,
     };
-    // Cursor: opaque string, length-capped, passed through unchanged.
-    if (typeof params?.cursor === "string" && params.cursor) {
-      body.cursor = params.cursor.slice(0, 512);
-    }
+    // Cursors are opaque. Never truncate one into a different token.
+    const cursor = optionalString(params?.cursor, "cursor", MAX_CURSOR_CHARS);
+    if (cursor) body.cursor = cursor;
     // Search: trim, empty → omitted, max 200 chars (server searches titles).
     if (typeof params?.searchTerm === "string" && params.searchTerm.trim()) {
       body.searchTerm = params.searchTerm.trim().slice(0, 200);
@@ -250,7 +257,7 @@ const handlers: Record<string, Handler> = {
   "thread/start": async (params, ctx) => {
     const body: RequestParams<"thread/start"> = {};
     const requestedCwd = optionalString(params?.cwd, "cwd", MAX_PATH_CHARS) ?? ctx.workspaceRoot;
-    const registeredCwd = ctx.projects.resolveRegistered(requestedCwd);
+    const registeredCwd = await ctx.projects.resolveRegistered(requestedCwd);
     if (!registeredCwd) throw new Error("cwd must be an existing registered project");
     body.cwd = registeredCwd;
     const model = optionalString(params?.model, "model", MAX_MODEL_CHARS);
@@ -300,7 +307,7 @@ const handlers: Record<string, Handler> = {
     let result;
     try { result = await ctx.supervisor.request("thread/delete", { threadId }); }
     catch (error) {
-      if (error instanceof AppServerRequestError) ctx.attachments.cancelThreadDeletion(threadId);
+      if (isDefiniteAppServerRejection(error)) ctx.attachments.cancelThreadDeletion(threadId);
       throw error;
     }
     ctx.attachments.cleanupForThread(threadId, threadData ?? {});
@@ -308,7 +315,16 @@ const handlers: Record<string, Handler> = {
     return result;
   },
 
-  "mcpServerStatus/list": async (_params, ctx) => ctx.supervisor.request("mcpServerStatus/list", {}),
+  "mcpServerStatus/list": async (params, ctx) => {
+    const body: RequestParams<"mcpServerStatus/list"> = {};
+    const cursor = optionalString(params.cursor, "cursor", 4096);
+    const threadId = optionalString(params.threadId, "threadId", MAX_ID_CHARS);
+    if (cursor) body.cursor = cursor;
+    if (threadId) body.threadId = threadId;
+    if (params.limit != null) body.limit = clampLimit(params.limit, 1, 200, 200);
+    if (params.detail != null) body.detail = requireEnum(params.detail, "detail", new Set(["full", "toolsAndAuthOnly"] as const));
+    return ctx.supervisor.request("mcpServerStatus/list", body);
+  },
 
   "thread/name/set": async (params, ctx) =>
     ctx.supervisor.request("thread/name/set", {
@@ -332,15 +348,23 @@ const handlers: Record<string, Handler> = {
     if (!text.trim() && !hasAttachments) throw new Error("missing required field: text");
     // UserInput.text requires the text_elements field on the wire.
     const input: UserInput[] = [];
+    const attachmentPaths: string[] = [];
     if (Array.isArray(params?.attachments)) {
       const fileNotes: string[] = [];
       for (const att of params.attachments) {
         if (!att || typeof att !== "object") throw new Error("attachment entry must be an object");
-        const attachmentPath = requireString(att.path, "attachment.path", MAX_PATH_CHARS);
-        if (!ctx.attachments.isOwned(attachmentPath)) throw new Error(`附件路径不在上传目录内: ${attachmentPath}`);
+        let attachmentPath = requireString(att.path, "attachment.path", MAX_PATH_CHARS);
         if (att.kind !== undefined && att.kind !== "image" && att.kind !== "file") {
           throw new Error("attachment.kind must be image or file");
         }
+        if (att.kind === "image") {
+          // Upload kind is not authoritative: reapply the stricter image cap
+          // and filesystem-identity checks at the point localImage is built.
+          attachmentPath = ctx.attachments.validateImageForSend(attachmentPath);
+        } else if (!ctx.attachments.isOwned(attachmentPath)) {
+          throw new Error(`附件路径不在上传目录内: ${attachmentPath}`);
+        }
+        attachmentPaths.push(attachmentPath);
         const name = optionalString(att.name, "attachment.name", 255) ?? path.basename(attachmentPath);
         if (att?.kind === "image") {
           // codex handles localImage natively (vision MCP for text-only models).
@@ -353,18 +377,12 @@ const handlers: Record<string, Handler> = {
       }
       if (fileNotes.length) text += `\n\n${fileNotes.join("\n")}`;
     }
+    if (text.length > MAX_TEXT_CHARS) throw new Error(`text with attachment notes is too long (max ${MAX_TEXT_CHARS} characters)`);
     input.unshift({ type: "text", text, text_elements: [] });
     const body: RequestParams<"turn/start"> = {
       threadId: requireString(params?.threadId, "threadId", MAX_ID_CHARS),
       input,
     };
-    // Collect validated uploads before taking a persisted send reservation.
-    let attachmentPaths: string[] = [];
-    if (Array.isArray(params?.attachments)) {
-      attachmentPaths = params.attachments
-        .map((att: any) => (typeof att?.path === "string" && ctx.attachments.isOwned(att.path) ? att.path : null))
-        .filter((p: string | null): p is string => !!p);
-    }
     // Browser null means project/provider default. The pinned app-server treats
     // null as no change, so resolve and send actual values instead.
     if (params?.model !== null) {
@@ -410,8 +428,9 @@ const handlers: Record<string, Handler> = {
     } catch (error) {
       // Only a JSON-RPC error proves rejection. After a lost response keep a
       // conservative reference to the real thread until its history is removed.
-      if (reservation) ctx.attachments.settleReservation(reservation, !(error instanceof AppServerRequestError), !(error instanceof AppServerRequestError));
-      if (!(error instanceof AppServerRequestError) && error instanceof Error) {
+      const definite = isDefiniteAppServerRejection(error);
+      if (reservation) ctx.attachments.settleReservation(reservation, !definite, !definite);
+      if (!definite && error instanceof Error) {
         Object.assign(error, { delivery: "unknown" });
       }
       throw error;
@@ -430,8 +449,14 @@ const handlers: Record<string, Handler> = {
     return ctx.supervisor.request("turn/interrupt", { threadId, turnId });
   },
 
-  "thread/compact/start": async (params, ctx) =>
-    ctx.supervisor.request("thread/compact/start", { threadId: requireString(params?.threadId, "threadId", MAX_ID_CHARS) }),
+  "thread/compact/start": async (params, ctx) => {
+    const threadId = requireString(params?.threadId, "threadId", MAX_ID_CHARS);
+    try { return await ctx.supervisor.request("thread/compact/start", { threadId }); }
+    catch (error) {
+      if (error instanceof Error && !isDefiniteAppServerRejection(error)) Object.assign(error, { delivery: "unknown" });
+      throw error;
+    }
+  },
 
   /**
    * Opens a PTY shell on the server. `processId` is client-supplied on this
@@ -447,7 +472,7 @@ const handlers: Record<string, Handler> = {
     const rows = boundedInteger(params?.rows, 2, 500, 24);
     const cols = boundedInteger(params?.cols, 2, 500, 80);
     const requestedCwd = optionalString(params?.cwd, "cwd", MAX_PATH_CHARS) ?? ctx.workspaceRoot;
-    const cwd = ctx.projects.resolveRegistered(requestedCwd);
+    const cwd = await ctx.projects.resolveRegistered(requestedCwd);
     if (!cwd) throw new Error("terminal cwd must be an existing registered project");
     const processId = ctx.terminals!.create(ctx.terminalOwner!, params.processId);
     ctx.notify("terminal/started", { processId });
@@ -472,13 +497,16 @@ const handlers: Record<string, Handler> = {
         if (epoch !== ctx.terminals!.epoch) return;
         ctx.terminals!.finish(processId, epoch);
         // Deferred final response: the PTY session has ended. Tell the browsers.
-        ctx.notify("terminal/exited", { processId, exitCode: res?.exitCode ?? null });
+        const exitCode = Number.isSafeInteger(res?.exitCode) && res.exitCode >= -2_147_483_648 && res.exitCode <= 2_147_483_647
+          ? res.exitCode : null;
+        ctx.notify("terminal/exited", { processId, exitCode });
       })
       .catch((err: Error) => {
         if (epoch !== ctx.terminals!.epoch) return;
         ctx.terminals!.finish(processId, epoch);
-        process.stderr.write(`[gateway] terminal ${processId} failed: ${err.message}\n`);
-        ctx.notify("terminal/exited", { processId, exitCode: null, error: err.message });
+        const message = (typeof err?.message === "string" ? err.message : "terminal command failed").slice(0, 2_000);
+        process.stderr.write(`[gateway] terminal ${processId} failed: ${message}\n`);
+        ctx.notify("terminal/exited", { processId, exitCode: null, error: message });
       });
     return { processId };
   },
@@ -486,26 +514,30 @@ const handlers: Record<string, Handler> = {
   "terminal/write": async (params, ctx) => {
     const processId = requireString(params?.processId, "processId", MAX_ID_CHARS);
     ctx.terminals!.require(ctx.terminalOwner!, processId);
-    return ctx.supervisor.request("command/exec/write", {
+    await ctx.supervisor.request("command/exec/write", {
       processId,
       deltaBase64: requireBase64(params?.base64, "base64", MAX_TERMINAL_WRITE_BYTES),
     });
+    return { ok: true };
   },
 
   "terminal/resize": async (params, ctx) => {
     const processId = requireString(params?.processId, "processId", MAX_ID_CHARS);
     ctx.terminals!.require(ctx.terminalOwner!, processId);
-    return ctx.supervisor.request("command/exec/resize", {
+    await ctx.supervisor.request("command/exec/resize", {
       processId,
       size: {
         rows: boundedInteger(params?.rows, 2, 500, 24),
         cols: boundedInteger(params?.cols, 2, 500, 80),
       },
     });
+    return { ok: true };
   },
 
-  "terminal/terminate": async (params, ctx) =>
-    ctx.terminals!.terminate(ctx.terminalOwner!, requireString(params?.processId, "processId", MAX_ID_CHARS)),
+  "terminal/terminate": async (params, ctx) => {
+    await ctx.terminals!.terminate(ctx.terminalOwner!, requireString(params?.processId, "processId", MAX_ID_CHARS));
+    return { ok: true };
+  },
 
   // ---- admin: WebUI access to the deploy scripts (settings panel) ----
   // Same authenticated-WS gate as every other method; script paths are fixed,

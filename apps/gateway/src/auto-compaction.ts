@@ -1,5 +1,6 @@
 import type { CodexSupervisor } from "./codex/process.js";
 import { observedNotification } from "./protocol.js";
+import { isDefiniteAppServerRejection } from "./codex/rpc.js";
 
 /**
  * Auto-compaction: when the conversation's context usage crosses the user's
@@ -15,14 +16,22 @@ export interface AutoCompactionDeps {
   notify(method: string, params: unknown): void;
   /** Test/operations override; completion notifications should arrive well before this. */
   watchdogMs?: number;
+  requestCompact?(threadId: string): Promise<unknown>;
 }
 
 interface ThreadState {
   lastTokens: number;
   window: number | null;
   turnActive: boolean;
+  statusActive: boolean;
+  /** An explicit idle status or a completed tracked turn proved a boundary. */
+  idleKnown: boolean;
   turnId: string | null;
   compacting: boolean;
+  uncertain: boolean;
+  conflicted: boolean;
+  acknowledged: boolean;
+  completed: boolean;
   /** Comfort-zone latch (resets after compaction finishes). */
   tripped: boolean;
   /**
@@ -39,6 +48,7 @@ const DEFAULT_USER_THRESHOLD = 0.9;
 const DEFAULT_WATCHDOG_MS = 180_000;
 
 export class AutoCompaction {
+  static readonly MAX_TRACKED_THREADS = 1024;
   private threads = new Map<string, ThreadState>();
   private getUserThreshold: () => number;
 
@@ -49,17 +59,46 @@ export class AutoCompaction {
 
   private deps: AutoCompactionDeps;
 
-  private get(threadId: string): ThreadState {
+  private get(threadId: string): ThreadState | null {
     let s = this.threads.get(threadId);
-    if (!s) {
+    if (s) {
+      // Map insertion order is our bounded LRU; current activity stays hot.
+      this.threads.delete(threadId);
+      this.threads.set(threadId, s);
+    } else {
+      // Disabled auto-compaction has no reason to retain notification-only
+      // thread state. When enabled, keep a hard generation-scoped ceiling so
+      // valid-but-unique notifications cannot grow the worker indefinitely.
+      if (this.userThreshold() <= 0) return null;
+      if (this.threads.size >= AutoCompaction.MAX_TRACKED_THREADS) {
+        let evictable: string | undefined;
+        for (const [candidate, state] of this.threads) {
+          // A post-compaction high-usage tombstone prevents replaying a stale
+          // reading. It remains protected until a below-threshold update
+          // explicitly re-arms it.
+          if (!state.turnActive && !state.statusActive && !state.compacting && !state.uncertain
+              && !state.conflicted && state.usageDroppedBelowThreshold) {
+            evictable = candidate;
+            break;
+          }
+        }
+        if (!evictable) return null;
+        this.threads.delete(evictable);
+      }
       // usageDropped… starts true: the FIRST compaction of a thread has no
       // "wait for usage to drop" precondition (nothing compacted yet).
       s = {
         lastTokens: 0,
         window: null,
         turnActive: false,
+        statusActive: false,
+        idleKnown: false,
         turnId: null,
         compacting: false,
+        uncertain: false,
+        conflicted: false,
+        acknowledged: true,
+        completed: false,
         tripped: false,
         usageDroppedBelowThreshold: true,
         watchdog: null,
@@ -84,9 +123,14 @@ export class AutoCompaction {
         const tid = params?.threadId;
         const u = params?.tokenUsage;
         if (!tid || !u) return;
+        const tokens = u.last?.totalTokens ?? u.total?.totalTokens;
+        const window = u.modelContextWindow;
+        if (!Number.isSafeInteger(tokens) || tokens < 0
+            || window !== null && (!Number.isSafeInteger(window) || window <= 0)) return;
         const s = this.get(tid);
-        s.lastTokens = u.last?.totalTokens ?? u.total?.totalTokens ?? 0;
-        s.window = u.modelContextWindow ?? null;
+        if (!s) return;
+        s.lastTokens = tokens;
+        s.window = window;
         // Track whether usage has dipped below the threshold since the last
         // compaction — the re-arm precondition (see ThreadState).
         const threshold = this.userThreshold();
@@ -99,7 +143,17 @@ export class AutoCompaction {
       case "turn/started": {
         const params = event.params;
         const s = this.get(params.threadId);
+        if (!s) return;
+        if (s.conflicted) return;
+        if (s.turnActive && s.turnId && s.turnId !== params.turn.id) {
+          // Never infer an idle boundary from conflicting turn identities.
+          // Disable automatic compaction for this thread until lifecycle reset.
+          s.conflicted = true;
+          s.turnId = null;
+          return;
+        }
         s.turnActive = true;
+        s.idleKnown = false;
         s.turnId = params.turn.id;
         return;
       }
@@ -107,9 +161,18 @@ export class AutoCompaction {
         const params = event.params;
         if (params?.threadId) {
           const s = this.get(params.threadId);
-          if (s.turnId && s.turnId !== params.turn.id) return;
+          if (!s) return;
+          // A completion first seen after attaching may belong to an older
+          // turn and does not prove that an unobserved current turn is idle.
+          // Only the exact turn we observed starting can establish this
+          // boundary; otherwise wait for an explicit non-active status.
+          if (!s.turnActive || !s.turnId || s.turnId !== params.turn.id) return;
           s.turnActive = false;
           s.turnId = null;
+          // If a status event still says active, wait for its matching idle
+          // transition. Builds without status notifications retain the
+          // protocol-proven completed-turn boundary.
+          s.idleKnown = !s.statusActive && !s.conflicted;
           // A completed turn is the safe moment to compact.
           this.maybeCompact(params.threadId, s);
         }
@@ -119,6 +182,7 @@ export class AutoCompaction {
         const params = event.params;
         if (params?.item?.type === "contextCompaction" && params?.threadId) {
           const s = this.get(params.threadId);
+          if (!s) return;
           this.finishAttempt(s);
           // Compaction finished: require a below-threshold usage reading
           // before the next trigger (stale high readings must not loop).
@@ -132,6 +196,7 @@ export class AutoCompaction {
         // notification without (or before) the contextCompaction item.
         if (params?.threadId) {
           const s = this.get(params.threadId);
+          if (!s) return;
           this.finishAttempt(s);
           s.usageDroppedBelowThreshold = false;
         }
@@ -141,14 +206,35 @@ export class AutoCompaction {
         const params = event.params;
         if (params?.threadId) {
           const s = this.get(params.threadId);
-          if (s.turnId && s.turnId !== params.turnId) return;
+          if (!s) return;
+          // An uncorrelated late turn error is not evidence that a separate
+          // compact/start attempt completed. Only end the exact active normal
+          // turn; compaction completion has its own protocol signals.
+          if (!s.turnActive || !s.turnId || s.turnId !== params.turnId) return;
           // A retryable turn error is not a safe between-turn boundary.
           if (params?.willRetry !== true) {
             s.turnActive = false;
             s.turnId = null;
-            this.finishAttempt(s);
+            s.idleKnown = !s.statusActive && !s.conflicted;
+            this.maybeCompact(params.threadId, s);
           }
         }
+        return;
+      }
+      case "thread/status/changed": {
+        const s = this.get(event.params.threadId);
+        if (!s) return;
+        if (event.params.status.type === "active") {
+          s.statusActive = true;
+          s.idleKnown = false;
+          return;
+        }
+        // idle/notLoaded/systemError all prove that the app-server does not
+        // currently own an active task for this thread. A separately tracked
+        // turn still wins until its exact completion arrives.
+        s.statusActive = false;
+        s.idleKnown = !s.turnActive && !s.conflicted;
+        this.maybeCompact(event.params.threadId, s);
         return;
       }
       case "thread/archived": case "thread/deleted": case "thread/closed":
@@ -159,7 +245,8 @@ export class AutoCompaction {
 
   private maybeCompact(threadId: string, s: ThreadState): void {
     if (!s.window || s.window <= 0) return;
-    if (s.compacting || s.turnActive || s.tripped) return;
+    if (!s.idleKnown || s.compacting || s.turnActive || s.statusActive
+        || s.tripped || s.uncertain || s.conflicted) return;
 
     const threshold = this.userThreshold();
     if (threshold <= 0) return;
@@ -174,14 +261,17 @@ export class AutoCompaction {
     // Trip the latch first so concurrent notifications don't double-fire.
     s.tripped = true;
     s.compacting = true;
+    s.acknowledged = false;
+    s.completed = false;
     const attempt = ++s.attempt;
     const watchdogMs = this.deps.watchdogMs ?? DEFAULT_WATCHDOG_MS;
     s.watchdog = setTimeout(() => {
       if (!s.compacting || s.attempt !== attempt) return;
-      this.finishAttempt(s);
+      s.watchdog = null;
+      s.uncertain = true;
       const error = `compaction completion was not observed within ${Math.ceil(watchdogMs / 1000)}s`;
       process.stderr.write(`[auto-compact] ${threadId.slice(0, 8)} failed: ${error}\n`);
-      this.deps.notify("thread/autoCompactFailed", { threadId, error });
+      this.deps.notify("thread/autoCompactFailed", { threadId, error, outcome: "unknown" });
     }, watchdogMs);
     s.watchdog.unref?.();
 
@@ -196,22 +286,33 @@ export class AutoCompaction {
       `[auto-compact] ${threadId.slice(0, 8)} ${Math.round(ratio * 100)}% used, compacting\n`,
     );
 
-    this.deps.supervisor
-      .request("thread/compact/start", { threadId })
+    (this.deps.requestCompact ? this.deps.requestCompact(threadId) : this.deps.supervisor.request("thread/compact/start", { threadId }))
       .then(() => {
-        // Success — the contextCompaction item will clear the latches.
+        if (s.attempt !== attempt) return;
+        s.acknowledged = true;
+        if (s.completed) this.finishAttempt(s);
       })
-      .catch((err: Error) => {
+      .catch((caught: unknown) => {
         if (!s.compacting || s.attempt !== attempt) return;
+        // Promise rejection values are runtime input. Do not let a string/null
+        // rejection throw again while reading `.message`, and do not echo an
+        // arbitrary value that could contain provider response data.
+        const err = caught instanceof Error
+          ? caught
+          : new Error("compaction request rejected without an Error");
         process.stderr.write(`[auto-compact] ${threadId.slice(0, 8)} failed: ${err.message}\n`);
-        this.finishAttempt(s); // allow retry on next trigger
-        this.deps.notify("thread/autoCompactFailed", { threadId, error: err.message });
+        const definite = (err as any)?.delivery === "rejected" || isDefiniteAppServerRejection(err);
+        if (definite) { s.acknowledged = true; this.finishAttempt(s); } // only an explicit rejection permits a fresh trigger
+        else { s.uncertain = true; if (s.watchdog) clearTimeout(s.watchdog); s.watchdog = null; }
+        this.deps.notify("thread/autoCompactFailed", { threadId, error: err.message, outcome: definite ? "rejected" : "unknown" });
       });
   }
 
   private finishAttempt(s: ThreadState): void {
     if (s.watchdog) clearTimeout(s.watchdog);
     s.watchdog = null;
+    if (s.uncertain) return; // late completion cannot authorize an automatic retry
+    if (s.compacting && !s.acknowledged) { s.completed = true; return; }
     s.compacting = false;
     s.tripped = false;
   }

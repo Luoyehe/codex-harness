@@ -24,6 +24,46 @@ KEYS = {"SERVICE_NAME", "RUN_USER", "RUN_HOME", "INSTALL_DIR", "CODEX_HOME",
 # Linux __WALL also includes children created with non-SIGCHLD clone flags.
 # Python does not expose this Linux-only wait option as a named constant.
 WAIT_ALL = 0x40000000
+MAX_WORKER_CONFIGURATION_BYTES = 64 * 1024
+MAX_WORKER_ENVIRONMENT_BYTES = 1024 * 1024
+MAX_PROC_CHILDREN_BYTES = 1024 * 1024
+MAX_TRACKED_CHILDREN = 65536
+
+
+def read_text_bounded(path, limit, *, missing_ok=False, nofollow=True):
+    """Self-contained because this launcher is installed alone in libexec."""
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
+    if nofollow:
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except FileNotFoundError:
+        if missing_ok:
+            return ""
+        raise
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
+            raise ValueError("worker control file is not a bounded regular file or exceeds its limit")
+        chunks = []
+        remaining = limit + 1
+        while remaining:
+            chunk = os.read(descriptor, min(65536, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        payload = b"".join(chunks)
+        after = os.fstat(descriptor)
+        identity = lambda info: (
+            info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns,
+        )
+        if len(payload) > limit or len(payload) != before.st_size or identity(before) != identity(after):
+            raise ValueError("worker control file changed or exceeds its limit")
+        return payload.decode("utf-8")
+    finally:
+        os.close(descriptor)
 
 
 def trusted(path, directory=False):
@@ -44,12 +84,9 @@ def configuration(path):
     if not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) not in (0o400, 0o600):
         raise ValueError("unsafe worker configuration")
     values = {}
-    with open(filename, encoding="utf-8") as stream:
-        lines = stream.readlines(65537)
-    if sum(len(line) for line in lines) > 65536:
-        raise ValueError("worker configuration too large")
+    lines = read_text_bounded(filename, MAX_WORKER_CONFIGURATION_BYTES).splitlines()
     for line in lines:
-        key, separator, value = line.rstrip("\n").partition("=")
+        key, separator, value = line.partition("=")
         if not separator or key not in KEYS or key in values or not value or any(ord(c) < 32 for c in value):
             raise ValueError("invalid worker configuration")
         values[key] = value
@@ -71,13 +108,12 @@ def worker_environment(config):
     # Called only in the permanently unprivileged child. The service-owned
     # EnvironmentFile is data, never shell/Python source or root configuration.
     result = {"HOME": config["RUN_HOME"], "PATH": config["SERVICE_PATH"], "LANG": "C.UTF-8"}
-    try:
-        with open(config["ENV_FILE"], encoding="utf-8") as stream:
-            raw = stream.read(1024 * 1024 + 1)
-    except FileNotFoundError:
-        raw = ""
-    if len(raw) > 1024 * 1024:
-        raise ValueError("worker environment exceeds size limit")
+    # Provider transactions intentionally expose this file through a managed
+    # generation symlink.  Pin and bound the target after dropping privileges.
+    raw = read_text_bounded(
+        config["ENV_FILE"], MAX_WORKER_ENVIRONMENT_BYTES,
+        missing_ok=True, nofollow=False,
+    )
     for line in raw.splitlines():
         if not line.strip() or line.lstrip().startswith("#"):
             continue
@@ -108,10 +144,28 @@ def direct_children():
     found = set()
     for task in Path(f"/proc/{os.getpid()}/task").iterdir():
         try:
-            children = (task / "children").read_text().split()
+            descriptor = os.open(
+                task / "children",
+                os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0),
+            )
         except FileNotFoundError:
             continue
-        found.update(int(value) for value in children)
+        try:
+            payload = os.read(descriptor, MAX_PROC_CHILDREN_BYTES + 1)
+            if len(payload) > MAX_PROC_CHILDREN_BYTES or os.read(descriptor, 1):
+                raise OSError("process child inventory exceeds supervision limit")
+        finally:
+            os.close(descriptor)
+        try:
+            children = payload.decode("ascii").split()
+            if len(children) > MAX_TRACKED_CHILDREN:
+                raise ValueError("too many supervised children")
+            found.update(int(value) for value in children)
+        except (UnicodeError, ValueError) as error:
+            raise OSError("invalid process child inventory") from error
+        if len(found) > MAX_TRACKED_CHILDREN:
+            raise OSError("too many supervised children")
     return found
 
 

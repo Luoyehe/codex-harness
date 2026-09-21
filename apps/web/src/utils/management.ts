@@ -21,13 +21,13 @@ const bounded = (value: unknown, limit: number) => typeof value === "string" ? v
 
 /** Only a small status record crosses into UI state, never script payloads. */
 export function normalizeManagement(value: unknown): ManagementSnapshot {
-  if (!value || typeof value !== "object") return { state: "unknown", error: "尚未获得服务器管理状态，请核对状态后继续。" };
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { state: "unknown", error: "尚未获得服务器管理状态，请核对状态后继续。" };
   const source = value as Record<string, unknown>;
-  if (!["idle", "running", "restart_pending", "unknown"].includes(String(source.state))) return { state: "unknown", error: "服务器返回了无法识别的管理状态，请核对状态。" };
+  if (typeof source.state !== "string" || !["idle", "running", "restart_pending", "unknown"].includes(source.state)) return { state: "unknown", error: "服务器返回了无法识别的管理状态，请核对状态。" };
   let lastOperation: ManagementOperation | undefined;
   const last = source.lastOperation as Record<string, unknown> | undefined;
   if (last && typeof last === "object" && typeof last.operationId === "string" && typeof last.operation === "string" &&
-    ["running", "restart_pending", "succeeded", "failed", "unknown", "recovered"].includes(String(last.outcome))) {
+    typeof last.outcome === "string" && ["running", "restart_pending", "succeeded", "failed", "unknown", "recovered"].includes(last.outcome)) {
     lastOperation = {
       operationId: last.operationId.slice(0, 128), operation: last.operation.slice(0, 128), outcome: last.outcome as ManagementOperation["outcome"],
       startedAt: typeof last.startedAt === "number" && Number.isFinite(last.startedAt) ? last.startedAt : 0,

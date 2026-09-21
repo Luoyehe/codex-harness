@@ -6,6 +6,7 @@ const text = (v, max = 4000) => typeof v === "string" ? v.slice(0, max) : "";
 const keysOnly = (v, allowed) => Object.keys(v).every((key) => allowed.includes(key));
 const fail = (message) => { throw new Error(message); };
 const MAX_TEXT = 20_000;
+const MAX_REQUEST_BYTES = 256 * 1024;
 function choices(schema, allowed) {
   if (!object(schema) || allowed && !keysOnly(schema, allowed)) fail("枚举包含未支持的约束");
   const forms = ["enum", "oneOf", "anyOf"].filter((key) => own(schema, key));
@@ -27,6 +28,8 @@ function choices(schema, allowed) {
 }
 export function inputForm(request) {
   try {
+    const serialized = JSON.stringify(request);
+    if (typeof serialized !== "string" || new TextEncoder().encode(serialized).length > MAX_REQUEST_BYTES) fail("交互请求超过大小限制");
     if (!object(request) || !object(request.params)) fail("请求结构无效");
     if (request.method === "item/tool/requestUserInput") {
       const questions = request.params.questions;
@@ -58,7 +61,7 @@ export function inputForm(request) {
     const common = ["type", "title", "description", "default", "writeOnly"];
     const allowed = { string: ["enum", "enumNames", "oneOf", "minLength", "maxLength", "format"], number: ["minimum", "maximum"], integer: ["minimum", "maximum"], boolean: [], array: ["items", "minItems", "maxItems"] };
     const fields = Object.entries(schema.properties).map(([id, raw]) => {
-      if (!id || id.length > 256 || !object(raw) || !own(allowed, raw.type)) fail("不支持嵌套对象或此字段类型");
+      if (!id || id.length > 256 || !object(raw) || typeof raw.type !== "string" || !own(allowed, raw.type)) fail("不支持嵌套对象或此字段类型");
       if (!keysOnly(raw, [...common, ...allowed[raw.type]])) fail("字段包含未支持的约束");
       if (raw.writeOnly !== undefined && typeof raw.writeOnly !== "boolean") fail("敏感字段标记无效");
       if (raw.format !== undefined && !["email", "uri", "date", "date-time", "password"].includes(raw.format)) fail("未支持的字符串格式");

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Hub } from "../src/hub.js";
+import { Hub, rpcFailureMessage } from "../src/hub.js";
 
 function makeClient() {
   const sent: any[] = [];
@@ -10,6 +10,26 @@ describe("Hub", () => {
   afterEach(() => vi.useRealTimers());
 
   const questions = { questions: [{ id: "q", header: "Choice", question: "Choose", isOther: false, isSecret: false, options: [{ label: "yes", description: "" }, { label: "no", description: "" }] }] };
+
+  it("preserves definite and unknown operation delivery receipts", () => {
+    expect(rpcFailureMessage(1, Object.assign(new Error("invalid"), { errorCode: "OPERATION_REJECTED" }))).toMatchObject({
+      errorCode: "OPERATION_REJECTED", delivery: "rejected",
+    });
+    expect(rpcFailureMessage(2, Object.assign(new Error("uncertain"), { errorCode: "OPERATION_UNKNOWN" }))).toMatchObject({
+      errorCode: "OPERATION_UNKNOWN", delivery: "unknown", operationState: "unknown",
+    });
+  });
+
+  it("bounds browser-facing error text and rejects untrusted error codes", () => {
+    const failure = rpcFailureMessage(3, Object.assign(new Error("x".repeat(20_000)), {
+      errorCode: "INVALID-" + "Y".repeat(10_000),
+    }));
+    expect(failure.error).toHaveLength(4096);
+    expect(failure).not.toHaveProperty("errorCode");
+    expect(rpcFailureMessage(4, new Error("large"), { errorCode: "RESPONSE_TOO_LARGE" })).toMatchObject({
+      errorCode: "RESPONSE_TOO_LARGE",
+    });
+  });
 
   it("rejects invalid input without consuming the waiter and accepts a corrected second answer", async () => {
     const hub = new Hub();

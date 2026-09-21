@@ -50,17 +50,17 @@ export class Terminals {
     }
   }
 
-  private stopDisconnected(id: string, entry: TerminalEntry): void {
+  private stopDisconnected(id: string, entry: TerminalEntry, attempt = 0): void {
     entry.ending = true;
-    void this.stopProcess(id).catch(() => {
+    void this.stopProcess(id).catch(() => undefined).then(() => {
       if (this.entries.get(id) !== entry) return;
-      // Bounded retry handles registration/transport races. Retain capacity
-      // until the matching exec settles, even if cleanup could not be confirmed.
+      // Keep a bounded one-timer-per-terminal cleanup loop. RPC admission can
+      // remain saturated longer than one second; stopping permanently after a
+      // second refusal would orphan a shell. The exec settlement or generation
+      // reset removes the entry and naturally terminates this retry chain.
       const timer = setTimeout(() => {
-        if (this.entries.get(id) === entry) void this.stopProcess(id).catch(() => {
-          process.stderr.write("[gateway] disconnected terminal cleanup failed; session remains counted until app-server exit\n");
-        });
-      }, 1000);
+        if (this.entries.get(id) === entry) this.stopDisconnected(id, entry, attempt + 1);
+      }, Math.min(1000 * 2 ** Math.min(attempt, 5), 30_000));
       timer.unref();
     });
   }

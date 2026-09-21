@@ -45,6 +45,55 @@ it("bounds requests per socket/global/bulk while preserving interrupt capacity",
   budget.acquire("two", "attachment/upload")();
 });
 
+it("reserves emergency-control capacity fairly across browser owners", () => {
+  const budget = new RpcBudget();
+  const first = Array.from({ length: FLOW_LIMITS.controlsPerClient }, () => budget.acquire("one", "turn/interrupt"));
+  expect(() => budget.acquire("one", "turn/interrupt")).toThrow("队列");
+  const second = Array.from({ length: FLOW_LIMITS.controlsPerClient }, () => budget.acquire("two", "terminal/terminate"));
+  expect(() => budget.acquire("three", "account/login/cancel")).toThrow("队列");
+  first[0]();
+  expect(() => budget.acquire("three", "account/login/cancel")()).not.toThrow();
+  for (const release of [...first.slice(1), ...second]) release();
+});
+
+it("bounds retained request bytes across clients and releases the accounting", () => {
+  const budget = new RpcBudget();
+  const first = budget.acquire("one", "model/list", 30 * 1024 * 1024);
+  expect(() => budget.acquire("one", "projects/list", 11 * 1024 * 1024)).toThrow("队列");
+  expect(() => budget.acquire("two", "projects/list", 19 * 1024 * 1024)).toThrow("队列");
+  expect(() => budget.acquire("one", "model/list", FLOW_LIMITS.frameBytes + 1)).toThrow("大小无效");
+  first();
+  expect(() => budget.acquire("two", "projects/list", 19 * 1024 * 1024)()).not.toThrow();
+});
+
+it("keeps an independent emergency byte reserve under ordinary-byte saturation", () => {
+  const budget = new RpcBudget();
+  const ordinaryOne = budget.acquire("one", "model/list", 36 * 1024 * 1024);
+  const ordinaryTwo = budget.acquire("two", "projects/list", 4 * 1024 * 1024);
+  expect(() => budget.acquire("three", "model/list", 1)).toThrow("队列");
+
+  const controlOne = budget.acquire("one", "turn/interrupt", 4 * 1024 * 1024);
+  const controlTwo = budget.acquire("two", "serverRequestResponse", 4 * 1024 * 1024);
+  // Ordinary work plus the dedicated reserve reaches, but never exceeds, the
+  // total 48 MiB hard ceiling.
+  expect(() => budget.acquire("three", "account/login/cancel", 1)).toThrow("队列");
+  expect(() => budget.acquire("one", "terminal/terminate", 1)).toThrow("队列");
+
+  for (const release of [controlOne, controlTwo, ordinaryOne, ordinaryTwo]) release();
+  expect(() => budget.acquire("three", "model/list", 1)()).not.toThrow();
+});
+
+it.each(["turn/start", "attachment/delete", "thread/delete", "fs/readDirectory"])(
+  "serializes resource-heavy %s with other bulk work",
+  (method) => {
+    const budget = new RpcBudget();
+    const release = budget.acquire("one", method);
+    expect(() => budget.acquire("two", "thread/read")).toThrow("队列");
+    release();
+    expect(() => budget.acquire("two", "thread/read")()).not.toThrow();
+  },
+);
+
 it("counts response budgets in UTF8 bytes without silently clipping history", () => {
   expect(() => encodeBounded({ text: "中".repeat(10) }, 25)).toThrow("安全大小");
   expect(JSON.parse(encodeBounded({ text: "small" }, 100))).toEqual({ text: "small" });

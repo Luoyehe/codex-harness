@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from service_env import drop_service_privileges, service_account
 
 FLAGS = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+WORKER_TIMEOUT_SECONDS = 30
 
 
 def components(value):
@@ -96,7 +97,11 @@ def main():
     command = [sys.executable, "-I", os.path.abspath(__file__), args.user, args.path, "--worker"]
     if args.private:
         command.append("--private")
-    return subprocess.run(command, env={"HOME": account.pw_dir, "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"}, check=False).returncode
+    try:
+        return subprocess.run(command, env={"HOME": account.pw_dir, "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
+                              check=False, timeout=WORKER_TIMEOUT_SECONDS).returncode
+    except subprocess.TimeoutExpired:
+        raise ValueError("service directory worker timed out") from None
 
 
 if __name__ == "__main__":

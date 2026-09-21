@@ -44,17 +44,36 @@ const OBSERVED = new Set<ObservedMethod>([
 ]);
 const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
+const activityId = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0 && value.length <= 256 && !value.includes("\0");
+const validThreadStatus = (value: unknown): boolean => {
+  if (!record(value) || typeof value.type !== "string") return false;
+  if (value.type === "active") {
+    if (Object.keys(value).some((key) => key !== "type" && key !== "activeFlags")
+        || !Array.isArray(value.activeFlags) || value.activeFlags.length > 2) return false;
+    const flags = new Set<string>();
+    for (const flag of value.activeFlags) {
+      if (!["waitingOnApproval", "waitingOnUserInput"].includes(flag as string) || flags.has(flag as string)) return false;
+      flags.add(flag as string);
+    }
+    return true;
+  }
+  return ["notLoaded", "idle", "systemError"].includes(value.type)
+    && Object.keys(value).every((key) => key === "type");
+};
 
 /** Minimal shape checks at the untrusted JSON boundary. Beyond this function,
  * consumers use the generated discriminated union, never any-shaped params.
  * Unknown notifications are still forwarded to browsers but not interpreted. */
 export function observedNotification(method: string, params: unknown): ObservedNotification | null {
-  if (!OBSERVED.has(method as ObservedMethod) || !record(params) || typeof params.threadId !== "string") return null;
-  if ((method === "turn/started" || method === "turn/completed") && (!record(params.turn) || typeof params.turn.id !== "string")) return null;
-  if (method === "error" && (typeof params.turnId !== "string" || typeof params.willRetry !== "boolean")) return null;
-  if (method === "item/completed" && (!record(params.item) || typeof params.item.type !== "string")) return null;
+  if (!OBSERVED.has(method as ObservedMethod) || !record(params) || !activityId(params.threadId)) return null;
+  if ((method === "turn/started" || method === "turn/completed") && (!record(params.turn) || !activityId(params.turn.id))) return null;
+  if (method === "error" && (!activityId(params.turnId) || typeof params.willRetry !== "boolean")) return null;
+  if (method === "item/completed" && (!activityId(params.turnId) || !record(params.item)
+      || typeof params.item.type !== "string" || params.item.type.length === 0 || params.item.type.length > 128)) return null;
   if (method === "thread/tokenUsage/updated" && !record(params.tokenUsage)) return null;
-  if (method === "thread/status/changed" && (!record(params.status) || typeof params.status.type !== "string")) return null;
-  if (method === "serverRequest/resolved" && typeof params.requestId !== "string" && typeof params.requestId !== "number") return null;
+  if (method === "thread/status/changed" && !validThreadStatus(params.status)) return null;
+  if (method === "serverRequest/resolved" && !(activityId(params.requestId)
+      || typeof params.requestId === "number" && Number.isSafeInteger(params.requestId))) return null;
   return { method, params } as ObservedNotification;
 }

@@ -9,6 +9,12 @@ permissions:
   contents: read
   issues: write
 
+# A manual run can overlap the weekly schedule. Serialize them so two checks
+# cannot both observe "no issue" and create duplicate compatibility reports.
+concurrency:
+  group: codex-compat-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -75,10 +81,10 @@ jobs:
               '',
               'Do not upgrade automatically. Regenerate `protocol/`, review the protocol diff, run unit/e2e/provider tests, then update the pin in a reviewed pull request.',
             ].join('\n');
-            const { data } = await github.rest.issues.listForRepo({
+            const data = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
             });
-            const existing = data.find(issue => issue.title === title);
+            const existing = data.find(issue => !issue.pull_request && issue.title === title);
             if (existing) {
               await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
             } else {

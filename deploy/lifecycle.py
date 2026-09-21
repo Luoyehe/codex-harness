@@ -5,15 +5,44 @@ import os
 from pathlib import Path
 import re
 import stat
+import sys
 import tempfile
 import tomllib
 from urllib.parse import urlsplit
 
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bounded_read import read_bytes_bounded, read_text_bounded
+
+
+MAX_PROVIDER_CONFIG_BYTES = 1024 * 1024
+MAX_SYSTEM_UNIT_BYTES = 1024 * 1024
+MAX_EDGE_CONFIG_BYTES = 8 * 1024 * 1024
+MAX_EDGE_REPLACEMENT_BYTES = 1024 * 1024
+_CAPTURE_CURRENT = object()
+
+
+def file_identity(path):
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return None
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def require_identity(path, expected):
+    if file_identity(path) != expected:
+        raise RuntimeError(f"configuration changed before atomic publication: {path}")
+
 
 def provider_label(path):
     try:
-        with open(path, "rb") as stream:
-            config = tomllib.load(stream)
+        # Provider generations intentionally expose config.toml through one
+        # managed symlink.  The descriptor still pins and bounds its target.
+        config = tomllib.loads(read_bytes_bounded(
+            path, MAX_PROVIDER_CONFIG_BYTES, nofollow=False
+        ).decode("utf-8"))
     except FileNotFoundError:
         config = {}
     provider = config.get("model_provider", "openai")
@@ -41,20 +70,12 @@ def registered_projects(home):
     """Do not claim project preservation when the registry cannot be read."""
     registry = Path(home) / "webui-projects.json"
     try:
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
-        descriptor = os.open(registry, flags)
-        with os.fdopen(descriptor, "rb") as stream:
-            info = os.fstat(stream.fileno())
-            if not stat.S_ISREG(info.st_mode) or info.st_size > 1024 * 1024:
-                raise ValueError(f"project registry is not a bounded regular file: {registry}")
-            raw = stream.read(1024 * 1024 + 1)
+        raw = read_bytes_bounded(registry, 1024 * 1024)
     except FileNotFoundError:
         # A missing/dangling registry cannot prove there were no registrations
         # before a failed startup or partial data loss. Require an explicit
         # valid inventory instead of making an unsafe preservation promise.
         raise ValueError(f"project registry is missing or unreadable: {registry}") from None
-    if len(raw) > 1024 * 1024:
-        raise ValueError(f"project registry exceeds inventory limit: {registry}")
     registry_data = json.loads(raw)
     # ProjectRegistry persists an object, not the projects/list RPC's array.
     # Unknown/missing shapes must still fail closed: never interpret an invalid
@@ -86,7 +107,9 @@ def guard_uninstall(tree, home, env, workspace, instance, unit_directory="/etc/s
         if not entry.name.endswith(".service") or entry.name == instance + ".service":
             continue
         try:
-            text = entry.read_text(encoding="utf-8")
+            # Unit aliases can legitimately be root-owned symlinks.  Pin the
+            # resolved regular inode, but never materialize an unbounded unit.
+            text = read_text_bounded(entry, MAX_SYSTEM_UNIT_BYTES, nofollow=False)
         except FileNotFoundError:
             if entry.is_symlink():
                 raise ValueError(f"cannot inspect service alias: {entry}") from None
@@ -114,9 +137,16 @@ def guard_uninstall(tree, home, env, workspace, instance, unit_directory="/etc/s
     return guard_delete(tree, preserved)
 
 
-def atomic_text(path, content):
-    path = Path(path).resolve()
-    previous = path.stat() if path.exists() else None
+def atomic_text(path, content, expected=_CAPTURE_CURRENT):
+    path = Path(path)
+    if not path.is_absolute() or ".." in path.parts:
+        raise ValueError("atomic configuration path must be absolute without traversal")
+    if expected is _CAPTURE_CURRENT:
+        expected = file_identity(path)
+    require_identity(path, expected)
+    previous = os.lstat(path) if expected is not None else None
+    if previous is not None and not stat.S_ISREG(previous.st_mode):
+        raise ValueError("atomic configuration target must be a regular file")
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}-", dir=path.parent)
     try:
@@ -128,7 +158,21 @@ def atomic_text(path, content):
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        require_identity(path, expected)
+        if expected is None:
+            # A hard-link commit is the portable no-overwrite primitive for a
+            # new file in the same directory.  A concurrently created target
+            # fails rather than being silently replaced.
+            os.link(temporary, path, follow_symlinks=False)
+            os.unlink(temporary)
+        else:
+            os.replace(temporary, path)
+        if os.name != "nt":
+            directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -303,7 +347,8 @@ def main():
         print(guard_uninstall(*args))
         return
     path = Path(args[0])
-    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    expected = file_identity(path)
+    text = read_text_bounded(path, MAX_EDGE_CONFIG_BYTES, missing_ok=True)
     if action == "cookies":
         owned, *hosts = args[1:]
         canonical = os.environ.get("AUTHELIA_VERIFIED_CANONICAL_URL", "")
@@ -325,13 +370,14 @@ def main():
             updated = edit_edge(text, instance, port)
         else:
             host, replacement_path = args[3:]
-            updated = edit_edge(text, instance, port, host, Path(replacement_path).read_text(encoding="utf-8"))
+            replacement = read_text_bounded(replacement_path, MAX_EDGE_REPLACEMENT_BYTES)
+            updated = edit_edge(text, instance, port, host, replacement)
     if updated != text:
-        atomic_text(path, updated)
+        atomic_text(path, updated, expected)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (ValueError, OSError) as error:
+    except (ValueError, OSError, RuntimeError) as error:
         raise SystemExit(str(error)) from error

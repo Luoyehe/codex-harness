@@ -56,6 +56,24 @@ with patch("trusted_paths.os.lstat", side_effect=metadata), patch("trusted_paths
 `);
 });
 
+test("trusted tree traversal has explicit entry and depth budgets", py, () => {
+  run(`import os, tempfile
+from unittest.mock import patch
+import trusted_paths
+with tempfile.TemporaryDirectory() as root:
+    os.mkdir(os.path.join(root, "a"))
+    os.mkdir(os.path.join(root, "a", "b"))
+    for name in ("one", "two", "three"):
+        open(os.path.join(root, name), "w").close()
+    with patch.object(trusted_paths, "trusted_path", side_effect=lambda value, **kwargs: value):
+        assert trusted_paths.trusted_tree(root, max_entries=8, max_depth=3) == root
+        for entries, depth in ((2, 3), (8, 1)):
+            try: trusted_paths.trusted_tree(root, max_entries=entries, max_depth=depth)
+            except ValueError: pass
+            else: raise AssertionError("tree resource budget was not enforced")
+`);
+});
+
 test("root directory bootstrap never changes existing inodes or writes below an untrusted ancestor", py, () => {
   run(`import service_directory as m
 from pathlib import PurePosixPath
@@ -90,6 +108,7 @@ assert check({"/":info(0), "/var":info(0)}, "/var/new/home") == [
 try: check({**base,"/var/lib/worker/alias":"link"}, "/var/lib/worker/alias")
 except OSError: pass
 else: raise AssertionError("symbolic directory accepted")
+assert 0 < m.WORKER_TIMEOUT_SECONDS <= 60
 `);
 });
 
@@ -116,6 +135,8 @@ test("installer and registration wire trusted canonical paths before root execut
   const register = readFileSync(path.join(deploy, "register-service.sh"), "utf8");
   assert.ok(install.indexOf('trusted_paths.py" tree') < install.indexOf('"$NODE_BIN" -p'));
   assert.ok(install.indexOf('trusted_paths.py" tree') < install.indexOf('"$PNPM_BIN" install --frozen-lockfile'));
+  assert.doesNotMatch(install, /python3 -c 'import sys,tomllib/);
+  assert.match(install, /python3 -I -c 'import sys,tomllib/);
   assert.ok(install.includes('python3 -I "$SCRIPT_DIR/service_directory.py" "$RUN_USER" "$path"'));
   assert.ok(!install.includes('$SUDO chmod 700 "$CODEX_HOME"'));
   assert.ok(!install.includes('install -d -o "$RUN_USER"'));

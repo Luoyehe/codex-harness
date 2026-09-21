@@ -44,7 +44,13 @@ async function loseResponse() {
 }
 function operation(threadId = "A") { return store.getState().sendOperations[threadId]; }
 function setOperation(state: SendOperation["state"], threadId = "A") {
-  act(() => store.setState(current => ({ sendOperations: { ...current.sendOperations, [threadId]: { ...current.sendOperations[threadId], state } } })));
+  act(() => store.setState(current => {
+    const updated = { ...current.sendOperations[threadId], state };
+    return {
+      sendOperationRecords: { ...current.sendOperationRecords, [updated.clientOperationId]: updated },
+      sendOperations: { ...current.sendOperations, [threadId]: updated },
+    };
+  }));
 }
 function assertNoReplay() { expect(turnCalls()).toHaveLength(1); }
 function acknowledgeElsewhere(threadId = "A") {
@@ -62,9 +68,9 @@ beforeEach(async () => {
   storageHandlers.clear();
   delivery = deferred<unknown>();
   wire.rpc.mockReset();
-  wire.rpc.mockImplementation(async (method: string, params?: { threadId?: string; name?: string }) => {
+  wire.rpc.mockImplementation(async (method: string, params?: { threadId?: string; name?: string; clientOperationId?: string }) => {
     if (method === "turn/start") return delivery.promise;
-    if (method === "thread/start") return { thread: thread("created") };
+    if (method === "thread/start") return { thread: thread("created"), clientOperationId: params?.clientOperationId };
     if (method === "thread/read" || method === "thread/resume") return { thread: thread(params?.threadId ?? "A") };
     if (method === "thread/list") return { data: [], nextCursor: null };
     if (method === "attachment/upload") return { path: `/uploads/${params?.name}`, size: 9 };
@@ -91,7 +97,10 @@ beforeEach(async () => {
   vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
   store = (await import("../src/store")).useStore;
   store.getState().bootstrap();
-  store.setState({ activeThreadId: "A", currentProject: "P", connection: "open", historyLoaded: { A: true, B: true }, management: { state: "idle" } });
+  store.setState({
+    activeThreadId: "A", currentProject: "P", connection: "open", historyLoaded: { A: true, B: true }, management: { state: "idle" },
+    projects: [{ path: "P", addedAt: 1, lastUsedAt: 1, available: true }], projectsLoad: { state: "loaded", error: null },
+  });
   const { Composer } = await import("../src/components/Composer");
   act(() => { view = create(createElement(Composer)); });
 });
@@ -99,6 +108,16 @@ beforeEach(async () => {
 afterEach(() => { act(() => view?.unmount()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Composer send ownership through the real store", () => {
+  it("surfaces a model catalog failure and retries it explicitly without blocking the composer", async () => {
+    act(() => store.setState({ modelLoad: { state: "error", error: "catalog unavailable" } }));
+    const retry = button("模型加载失败，重试");
+    expect(retry.props.title).toBe("catalog unavailable");
+    wire.rpc.mockResolvedValueOnce({ data: [{ id: "recovered-model" }], nextCursor: null });
+    await act(async () => { retry.props.onClick(); await settle(); });
+    expect(wire.rpc).toHaveBeenCalledWith("model/list", { limit: 100 });
+    expect(store.getState().modelLoad.state).toBe("loaded");
+  });
+
   it.each([false, true])("clears exactly the admitted draft after lost response and accepted lookup (switch=%s)", async switched => {
     edit("execute exactly once"); await upload("original.png"); submit();
     const identity = operation();
@@ -107,13 +126,17 @@ describe("Composer send ownership through the real store", () => {
     await loseResponse();
     expect(text()).toBe("execute exactly once");
     expect(notice()).toContain("发送结果待确认");
-    expect(sendButton().props.disabled).toBe(true);
+    if (switched) expect(sendButton().props.disabled).toBe(true);
+    else expect(button("停止")).toBeDefined();
     // Even an invoked key handler cannot bypass the background draft's lock.
     act(() => view.root.findByType("textarea").props.onKeyDown({ key: "Enter", shiftKey: false, nativeEvent: { isComposing: false }, preventDefault() {} }));
     assertNoReplay();
     wire.rpc.mockResolvedValueOnce({ state: "accepted" });
     await act(async () => { button("核对发送状态").props.onClick(); await settle(); });
-    expect(wire.rpc).toHaveBeenLastCalledWith("turn/operation", { clientOperationId: identity.clientOperationId });
+    expect(wire.rpc.mock.calls).toEqual(expect.arrayContaining([
+      ["turn/operation", { clientOperationId: identity.clientOperationId }],
+      ["thread/read", { threadId: "A", includeTurns: false }],
+    ]));
     if (switched) navigate("A");
     expect(text()).toBe(""); expect(attachmentNames()).toEqual([]);
     expect(notice()).toContain("已被服务器受理"); expect(notice()).not.toContain("发送失败");
@@ -138,7 +161,11 @@ describe("Composer send ownership through the real store", () => {
     wire.rpc.mockImplementationOnce(() => creation.promise);
     act(() => store.setState({ activeThreadId: null }));
     edit("not yet submitted"); submit(); navigate("B");
-    await act(async () => { creation.resolve({ thread: thread("created") }); await settle(); });
+    const createCall = wire.rpc.mock.calls.find(([method]) => method === "thread/start")!;
+    await act(async () => {
+      creation.resolve({ thread: thread("created"), clientOperationId: createCall[1].clientOperationId });
+      await settle();
+    });
     expect(text()).toBe("not yet submitted"); expect(turnCalls()).toHaveLength(0);
     expect(notice()).toContain("消息未发送"); expect(sendButton().props.disabled).toBe(false);
   });
@@ -151,14 +178,24 @@ describe("Composer send ownership through the real store", () => {
     expect(text()).toBe("later edit"); expect(attachmentNames()).toEqual(["later.png"]);
     expect(sendButton().props.disabled).toBe(false); assertNoReplay();
     expect(wire.rpc.mock.calls.some(([method]) => method === "attachment/delete")).toBe(false);
-    if (state === "acknowledged_unknown") expect(URL.revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:original.png");
-    else expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    // The ambiguous failure already removed the optimistic echo. Once either
+    // outcome releases the retained Composer draft, no owner remains.
+    expect(URL.revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:original.png");
   });
 
   it("does not clear a later edit even when its text equals the captured original", async () => {
     edit("original"); submit(); navigate("B"); await loseResponse();
     edit("changed"); edit("original"); setOperation("accepted");
     expect(text()).toBe("original"); expect(notice()).toContain("已被服务器受理"); assertNoReplay();
+  });
+
+  it("surfaces an attachment cleanup failure after removing it from the draft", async () => {
+    await upload("orphan.png");
+    wire.rpc.mockRejectedValueOnce(new Error("cleanup unavailable"));
+    await act(async () => { button("×").props.onClick(); await settle(); });
+    expect(attachmentNames()).toEqual([]);
+    expect(notice()).toContain("服务器清理未确认");
+    expect(notice()).toContain("cleanup unavailable");
   });
 
   it.each([
@@ -205,7 +242,10 @@ describe("Composer send ownership through the real store", () => {
     edit("old"); submit(); navigate("B"); await loseResponse();
     const original = operation();
     const replacement = { ...original, clientOperationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" };
-    act(() => store.setState({ sendOperations: { A: replacement } }));
+    act(() => store.setState(current => ({
+      sendOperationRecords: { ...current.sendOperationRecords, [replacement.clientOperationId]: replacement },
+      sendOperations: { A: replacement },
+    })));
     expect(sendButton().props.disabled).toBe(true);
     wire.rpc.mockResolvedValueOnce({ state: "accepted" });
     await act(async () => { button("核对发送状态").props.onClick(); await settle(); });
@@ -215,11 +255,54 @@ describe("Composer send ownership through the real store", () => {
 
   it("does not discard unrelated local edits when acknowledging a recovered operation with no captured draft", async () => {
     const recovered: SendOperation = { threadId: "A", clientOperationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", state: "unknown" };
-    act(() => store.setState({ sendOperations: { A: recovered } }));
+    act(() => store.setState({ sendOperationRecords: { [recovered.clientOperationId]: recovered }, sendOperations: { A: recovered } }));
     edit("unrelated new draft"); await upload("later.png");
     act(() => button("已核对历史，放弃这次草稿").props.onClick());
     expect(text()).toBe("unrelated new draft"); expect(attachmentNames()).toEqual(["later.png"]);
     expect(URL.revokeObjectURL).not.toHaveBeenCalled(); expect(turnCalls()).toHaveLength(0);
+  });
+
+  it("shows and independently controls every same-thread operation recovered from concurrent tabs", async () => {
+    const first: SendOperation = { threadId: "A", clientOperationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", state: "unknown" };
+    const second: SendOperation = { threadId: "A", clientOperationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", state: "unknown" };
+    act(() => store.setState({
+      sendOperationRecords: { [first.clientOperationId]: first, [second.clientOperationId]: second },
+      sendOperations: { A: first },
+    }));
+    const rendered = view.root.findAllByType("code").map(node => node.props.children);
+    expect(rendered).toEqual(expect.arrayContaining([first.clientOperationId, second.clientOperationId]));
+    expect(view.root.findAllByType("button").filter(node => node.props.children === "核对发送状态")).toHaveLength(2);
+
+    wire.rpc.mockResolvedValueOnce({ state: "not_received" });
+    const secondCard = view.root.findAllByProps({ className: "error-text send-operation-alert" })
+      .find(node => node.findAllByType("code").some(code => code.props.children === second.clientOperationId))!;
+    await act(async () => {
+      secondCard.findAllByType("button").find(node => node.props.children === "核对发送状态")!.props.onClick();
+      await settle();
+    });
+    expect(wire.rpc).toHaveBeenLastCalledWith("turn/operation", { clientOperationId: second.clientOperationId });
+    expect(store.getState().sendOperationRecords[first.clientOperationId].state).toBe("unknown");
+    expect(store.getState().sendOperationRecords[second.clientOperationId].state).toBe("not_received");
+    expect(turnCalls()).toHaveLength(0);
+  });
+
+  it("singleflights a manual unknown-status check and exposes busy and still-unknown feedback", async () => {
+    const unresolved: SendOperation = { threadId: "A", clientOperationId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", state: "unknown" };
+    act(() => store.setState({ sendOperationRecords: { [unresolved.clientOperationId]: unresolved }, sendOperations: { A: unresolved } }));
+    const lookup = deferred<unknown>();
+    wire.rpc.mockReturnValueOnce(lookup.promise);
+    const check = button("核对发送状态");
+    act(() => {
+      check.props.onClick();
+      check.props.onClick();
+    });
+    expect(wire.rpc.mock.calls.filter(([method]) => method === "turn/operation")).toHaveLength(1);
+    expect(button("核对中…").props.disabled).toBe(true);
+    expect(button("已核对历史，放弃这次草稿").props.disabled).toBe(true);
+    await act(async () => { lookup.resolve({ state: "unknown" }); await settle(); });
+    expect(JSON.stringify(view.toJSON())).toContain("服务器仍报告结果未知");
+    expect(button("核对发送状态").props.disabled).toBe(false);
+    expect(turnCalls()).toHaveLength(0);
   });
 
   it("preserves a definitively rejected draft and permits an explicit new submission", async () => {

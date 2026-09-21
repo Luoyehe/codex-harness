@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { ManagementGate } from "../src/management.js";
@@ -11,7 +11,10 @@ function fixture() {
   const notify = vi.fn();
   return { home, notify, gate: new ManagementGate(() => false, notify, home), file: path.join(home, "management-operation.json") };
 }
-afterEach(() => { for (const home of fixtures.splice(0)) rmSync(home, { recursive: true, force: true }); });
+afterEach(() => {
+  vi.restoreAllMocks();
+  for (const home of fixtures.splice(0)) rmSync(home, { recursive: true, force: true });
+});
 
 it("persists bounded intent before execution and keeps only safe result fields", async () => {
   const { gate, file, home } = fixture();
@@ -133,4 +136,47 @@ it("corrupt or oversized journals fail closed, and persistence failure prevents 
   await expect(gate.run("admin/catalog/sync", work, vi.fn())).rejects.toMatchObject({ errorCode: "MANAGEMENT_UNKNOWN" });
   expect(work).not.toHaveBeenCalled();
   await expect(gate.admit(async () => 1)).rejects.toMatchObject({ errorCode: "BUSY" });
+});
+
+it("rejects inconsistent, nonsensical, or multiply-linked management journals", async () => {
+  const { home, file } = fixture();
+  const base = {
+    version: 1,
+    state: "idle",
+    lastOperation: {
+      operationId: "11111111-1111-4111-8111-111111111111",
+      operation: "admin/catalog/sync",
+      outcome: "succeeded",
+      startedAt: 10,
+      updatedAt: 11,
+    },
+  };
+  for (const value of [
+    { ...base, state: "idle", lastOperation: { ...base.lastOperation, outcome: "running" } },
+    { ...base, state: "running", lastOperation: { ...base.lastOperation, outcome: "succeeded" } },
+    { ...base, lastOperation: { ...base.lastOperation, startedAt: -1 } },
+    { ...base, lastOperation: { ...base.lastOperation, updatedAt: 9 } },
+    { ...base, lastOperation: { ...base.lastOperation, updatedAt: 10.5 } },
+  ]) {
+    writeFileSync(file, JSON.stringify(value));
+    expect(() => new ManagementGate(() => false, vi.fn(), home)).toThrow("无法可靠读取");
+  }
+  writeFileSync(file, JSON.stringify(base));
+  linkSync(file, path.join(home, "journal-alias.json"));
+  expect(() => new ManagementGate(() => false, vi.fn(), home)).toThrow("无法可靠读取");
+});
+
+it("keeps journal timestamps monotonic when the wall clock moves backwards", async () => {
+  const { gate, home, file } = fixture();
+  const now = vi.spyOn(Date, "now").mockReturnValue(10_000);
+  let finish!: () => void;
+  const work = new Promise<void>((resolve) => { finish = resolve; });
+  const running = gate.run("admin/catalog/sync", async () => { await work; return { ok: true }; }, vi.fn());
+  await vi.waitFor(() => expect(JSON.parse(readFileSync(file, "utf8")).state).toBe("running"));
+  now.mockReturnValue(1_000);
+  finish();
+  await running;
+  const record = JSON.parse(readFileSync(file, "utf8")).lastOperation;
+  expect(record.updatedAt).toBeGreaterThanOrEqual(record.startedAt);
+  expect(new ManagementGate(() => false, vi.fn(), home).snapshot().lastOperation?.outcome).toBe("succeeded");
 });

@@ -19,9 +19,13 @@ set -euo pipefail
 umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="$SCRIPT_DIR/..${PYTHONPATH:+:$PYTHONPATH}"
+CATALOG_LIMITS="$SCRIPT_DIR/../catalog_limits.py"
+# Inline Python handles credentials. Never let the caller's working directory,
+# user site, PYTHONHOME, or inherited module path inject code into it.
+unset PYTHONHOME
+export PYTHONPATH="$SCRIPT_DIR/.." PYTHONSAFEPATH=1 PYTHONNOUSERSITE=1
 if [ "${HARNESS_PROVIDER_TRANSACTION:-0}" != "1" ]; then
-  exec python3 "$SCRIPT_DIR/../provider_transaction.py" custom "$0" "$@"
+  exec python3 -I "$SCRIPT_DIR/../provider_transaction.py" custom "$0" "$@"
 fi
 CH="${CODEX_HOME:-$HOME/.codex}"
 SET_DIR="$CH/providers/custom"
@@ -161,17 +165,11 @@ custom_curl() {
 
 # GET <base_url>/models — the endpoint's live model list.
 fetch_models() {
-  custom_curl -sf --max-time 20 "$BASE_URL/models" 2>/dev/null | python3 -c '
-import json, sys
-try:
-    d = json.load(sys.stdin)
-    ids = [m["id"] for m in d.get("data", []) if isinstance(m, dict) and isinstance(m.get("id"), str)]
-    if not ids or any(not 0 < len(v) <= 256 or any(ord(c)<32 or ord(c)==127 for c in v) for v in ids):
-        raise ValueError("invalid model list")
-    print("\n".join(ids))
-except Exception:
-    raise SystemExit(1)
-'
+  # Bound both the transport and the parser. The aggregate identifier cap also
+  # keeps command substitution and CUSTOM_MODEL_IDS below Linux's per-string
+  # exec limit when the synchronized list is passed to the writer process.
+  custom_curl -sf --max-time 20 --max-filesize 1048576 "$BASE_URL/models" 2>/dev/null \
+    | python3 "$CATALOG_LIMITS" custom-ids
 }
 
 if [ -t 0 ]; then
@@ -275,7 +273,7 @@ if [ -n "$EFFORTS_DETECTED" ]; then
       *) DEFAULT_SUGGEST="$(printf '%s' "$EFFORTS_DETECTED" | awk '{print $1}')" ;;
     esac
     read -r -p "默认思考档位（$EFFORTS_DETECTED） [$DEFAULT_SUGGEST]: " ef || true
-    [ -n "$ef" ] && EFFORT="$ef"
+    EFFORT="${ef:-$DEFAULT_SUGGEST}"
     case " $EFFORTS_DETECTED " in
       *" $EFFORT "*) ;;
       *) die "所选档位 $EFFORT 不在端点支持列表里（支持: $EFFORTS_DETECTED）" ;;
@@ -296,15 +294,18 @@ fi
 if [ "$API_KEY" = "EMPTY" ]; then persist_key ""; else persist_key "$API_KEY"; fi
 
 python3 - "$CONFIG" "$BASE_URL" "$MODEL" "$CTX" "$VISION" "$EFFORT" "$EFFORTS_DETECTED" "$([ "$API_KEY" != "EMPTY" ] && echo 1 || echo 0)" <<'PY'
-import json, os, sys
+import os, sys
 from atomic_write import atomic_write
+from catalog_limits import (dump_json_limited, load_json_path,
+                            validate_model_ids, validate_models_catalog)
 
 config, base_url, model, ctx, vision, effort, detected, has_key = sys.argv[1:9]
 from toml_config import load_config, save_config, table
 catalog_path = os.path.join(os.path.dirname(os.path.abspath(config)), "models.json")
 data = load_config(config)
 try:
-    previous_catalog = json.load(open(catalog_path, encoding="utf-8"))
+    previous_catalog = validate_models_catalog(
+        load_json_path(catalog_path), allow_empty=True, include_unconfigured=True)
 except FileNotFoundError:
     previous_catalog = {"models": []}
 previous_provider = data.get("model_providers", {}).get("custom", {})
@@ -374,7 +375,7 @@ models = {
     ]
 }
 if os.environ.get("CUSTOM_SYNC_CATALOG") == "1":
-    ids = os.environ.get("CUSTOM_MODEL_IDS", "").splitlines()
+    ids = validate_model_ids(os.environ.get("CUSTOM_MODEL_IDS", "").splitlines())
     if not ids or model not in ids:
         raise SystemExit("同步目录未包含当前模型；保持当前配置，请先选择端点中存在的模型")
     entries = []
@@ -403,7 +404,8 @@ elif same_endpoint:
     models["unconfigured_models"] = [entry for entry in discoveries
         if isinstance(entry, dict) and isinstance(entry.get("id"), str)
         and entry["id"] != model and entry["id"] not in previous_entries]
-atomic_write(catalog_path, json.dumps(models, indent=2, ensure_ascii=False) + "\n")
+validate_models_catalog(models, include_unconfigured=True)
+atomic_write(catalog_path, dump_json_limited(models, indent=2))
 effort_list = " ".join(l["effort"] for l in levels) if levels else "(仅默认 %s)" % effort
 print("[custom-setup] models.json 目录已生成（窗口 %s tokens，effort 档位: %s）" % (ctx, effort_list))
 PY

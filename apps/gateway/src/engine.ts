@@ -8,7 +8,7 @@ import { ProviderInfoReader } from "./provider-info.js";
 import { AutoCompaction } from "./auto-compaction.js";
 import { Hub, type BrowserClient, type ServerMessage } from "./hub.js";
 import { makeDispatcher } from "./api.js";
-import { isProxyableToolCall, handleDynamicToolCall } from "./mcp-proxy.js";
+import { DYNAMIC_TOOL_LIMITS, isProxyableToolCall, handleDynamicToolCall } from "./mcp-proxy.js";
 import { shouldAutoApproveMcpElicitation } from "./mcp-approval.js";
 import { ActiveTurns } from "./active-turns.js";
 import { TurnDefaults } from "./turn-defaults.js";
@@ -20,7 +20,7 @@ import type { PermissionsRequestApprovalResponse } from "../../../protocol/v2/Pe
 import type { DynamicToolCallParams } from "../../../protocol/v2/DynamicToolCallParams.js";
 import type { ServerRequest } from "../../../protocol/ServerRequest.js";
 
-const GATEWAY_VERSION = "1.1.0";
+const GATEWAY_VERSION = "1.2.0";
 const CODEX_BIN = process.env.CODEX_BIN ?? "codex";
 const CODEX_HOME = process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex");
 const WORKSPACE_ROOT = process.env.CODEX_WORKSPACE ?? process.cwd();
@@ -35,6 +35,13 @@ const BROWSER_HANDLED: ReadonlySet<string> = new Set([
   "item/commandExecution/requestApproval", "item/fileChange/requestApproval", "item/permissions/requestApproval",
   "item/tool/requestUserInput", "mcpServer/elicitation/request",
 ] satisfies ServerRequest["method"][]);
+const isGatewayReservedNotification = (method: string): boolean =>
+  method === "appServer/stateChanged"
+  || method.startsWith("terminal/")
+  || method.startsWith("harness/")
+  || method.startsWith("gateway/")
+  || method.startsWith("management/")
+  || method.startsWith("thread/autoCompact");
 
 /**
  * Protocol-correct "decline" payloads per approval method. Each request type
@@ -52,7 +59,7 @@ const DECLINE_PAYLOADS = {
   "item/permissions/requestApproval": PermissionsRequestApprovalResponse;
 };
 
-export function createEngine(send: (clientId: string, message: ServerMessage) => void, options: { onFatalConnectionLoss?: (error: Error) => void } = {}) {
+export function createEngine(send: (clientId: string, message: ServerMessage) => void, options: { onFatalConnectionLoss?: (error: Error) => void; requestAutoCompaction?: (threadId: string) => Promise<unknown> } = {}) {
 const hub = new Hub({ serverRequestTimeoutMs: 600_000 });
 const notify = (method: string, params: unknown) => {
   // Control observes lifecycle even while every browser is disconnected.
@@ -76,10 +83,19 @@ const activeTurns = new ActiveTurns();
 let autoCompaction: Pick<AutoCompaction, "observe" | "forget" | "reset"> | null = null;
 let turnDefaults: TurnDefaults | null = null;
 let terminals: Terminals | null = null;
+const providerInfoReader = new ProviderInfoReader(CODEX_HOME);
 
 const supervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }, {
   onFatalConnectionLoss: options.onFatalConnectionLoss,
   onNotification: (method, params) => {
+    // These lifecycle messages are synthesized by fixed gateway code. An
+    // app-server frame with the same name must never reach the outer control
+    // state machine as though it came from that trusted source.
+    if (isGatewayReservedNotification(method)) {
+      process.stderr.write(`[gateway] ignored upstream collision with reserved notification ${method.slice(0, 128)}\n`);
+      return;
+    }
+    if (method === "account/updated") turnDefaults?.invalidateCache();
     if (turnDefaults?.hideNotification(method, params)) return;
     const event = observedNotification(method, params);
     if (event?.method === "serverRequest/resolved") {
@@ -89,31 +105,41 @@ const supervisor = new CodexSupervisor(CODEX_BIN, ["app-server"], { CODEX_HOME }
       // Hub translates upstream IDs to generation-safe browser IDs.
       return;
     }
-    // Tap into token usage / turn lifecycle for auto-compaction, then
-    // broadcast the notification to browsers as usual.
-    if (autoCompaction) {
-      try { autoCompaction.observe(method, params); } catch { /* never block broadcast */ }
-    }
     // Track the active turn per thread so turn/interrupt can fall back to it
     // when a browser lost the id (page refresh mid-turn).
     if (event) activeTurns.observe(event);
     notify(method, params);
+    // Publish the completed normal turn BEFORE asking control to admit an
+    // automatic compaction, so both messages preserve their causal order.
+    if (autoCompaction) {
+      try { autoCompaction.observe(method, params); } catch { /* never block broadcast */ }
+    }
   },
   onServerRequest: async (id, method, params) => {
     // The mcp_2026_07_28 client gates every MCP tool call behind an
     // elicitation "form" with _meta.codex_approval_kind = "mcp_tool_call".
     // These are our own configured MCP servers, so auto-accept the gate;
     // genuine elicitation forms still fall through to the browser.
-    if (method === "mcpServer/elicitation/request" && shouldAutoApproveMcpElicitation(params)) {
+    if (method === "mcpServer/elicitation/request" && shouldAutoApproveMcpElicitation(
+      params,
+      (serverName) => providerInfoReader.isManagedZhipuMcpServer(serverName),
+    )) {
       return { action: "accept", content: {}, _meta: null };
     }
     // The mcp_2026_07_28 client delegates MCP tool EXECUTION to us via
     // dynamic tool calls — answer those here instead of asking browsers.
     if (method === "item/tool/call") {
       const toolParams = params as DynamicToolCallParams | null;
-      if (toolParams && typeof toolParams.tool === "string" && isProxyableToolCall(toolParams.namespace)) {
+      const namespace = toolParams?.namespace;
+      if (toolParams && typeof toolParams.tool === "string" && typeof namespace === "string" && isProxyableToolCall(namespace)) {
+        if (!providerInfoReader.isManagedZhipuMcpServer(namespace)) {
+          throw new Error("dynamic MCP execution requires the active managed Zhipu server configuration");
+        }
+        if (toolRequests.has(id)) throw new Error("duplicate active dynamic MCP request id");
+        if (toolRequests.size >= DYNAMIC_TOOL_LIMITS.concurrent) {
+          throw new Error("dynamic MCP tool concurrency limit reached");
+        }
         const controller = new AbortController();
-        toolRequests.get(id)?.abort();
         toolRequests.set(id, controller);
         try {
           return await handleDynamicToolCall(toolParams, { signal: controller.signal });
@@ -178,7 +204,7 @@ const displayPrefs = new DisplayPrefsStore(CODEX_HOME);
 // the conversation approaches the model's context window. Threshold is
 // user-configurable via displayPrefs (settings → 通用), default 90%.
 autoCompaction = new AutoCompaction(
-  { supervisor, notify },
+  { supervisor, notify, requestCompact: options.requestAutoCompaction },
   () => displayPrefs.get().autoCompactThreshold,
 );
 
@@ -198,7 +224,6 @@ const recoveryTimer = setInterval(() => {
   if (supervisor.state === "ready") void attachments.recoverCleanup().catch(() => { /* retry bounded pass later */ });
 }, 300_000);
 recoveryTimer.unref();
-const providerInfoReader = new ProviderInfoReader(CODEX_HOME);
 turnDefaults = new TurnDefaults(supervisor);
 terminals = new Terminals((processId) => supervisor.request("command/exec/terminate", { processId }));
 

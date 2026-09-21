@@ -4,7 +4,7 @@
 // check is a direct gateway RPC, not evidence of a model-driven tool call.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { VerificationClient, exactReplyTurn, completedCompaction, terminalMarkerPredicate, cleanupThread, cleanupTerminal, requirePaidVerification } from "./verification-client.mjs";
+import { VerificationClient, VerificationRpcError, exactReplyTurn, completedCompaction, terminalMarkerPredicate, cleanupThread, cleanupTerminal, requirePaidVerification } from "./verification-client.mjs";
 requirePaidVerification();
 const client = new VerificationClient();
 let threadId;
@@ -27,11 +27,15 @@ try {
   await client.rpc("terminal/resize", { processId, rows: 24, cols: 100 });
   await client.waitFor(terminalMarkerPredicate(processId, marker), 15000);
   await client.rpc("terminal/terminate", { processId });
+  // Terminate acknowledgement is not process exit. The control gate retains
+  // this terminal until its lifecycle notification; do not race compaction
+  // against it or claim successful terminal cleanup on a mere acknowledgement.
+  await client.waitFor(note => note.method === "terminal/exited" && note.params?.processId === processId, 15000);
   processId = undefined;
   await completedCompaction(client, threadId);
   await client.rpc("thread/archive", { threadId });
   await client.rpc("thread/unarchive", { threadId });
-  await assert.rejects(client.rpc("process/spawn", { command: ["id"] }));
+  await assert.rejects(client.rpc("process/spawn", { command: ["id"] }), VerificationRpcError);
   passed = true;
 } catch (error) { console.error(error.message); process.exitCode = 1; }
 finally {

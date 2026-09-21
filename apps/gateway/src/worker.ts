@@ -4,6 +4,8 @@ import { StringDecoder } from "node:string_decoder";
 import process from "node:process";
 import { createEngine } from "./engine.js";
 import { redactSecrets } from "./admin.js";
+import { ControlRequests } from "./control-requests.js";
+import { encodeBounded, FLOW_LIMITS } from "./flow-control.js";
 
 const FRAME_CAP = 36 * 1024 * 1024;
 const QUEUE_CAP = 48 * 1024 * 1024;
@@ -12,10 +14,12 @@ let pending = "";
 let pendingBytes = 0;
 const decoder = new StringDecoder("utf8");
 let inFlight = 0;
+const controlRequests = new ControlRequests(send);
 // Only the installed Linux launcher supplies this marker after dropping UID.
 // UNSAFE Linux and Windows/macOS development have no equivalent cleanup owner.
 const managed = process.platform === "linux" && process.env.CODEX_HARNESS_MANAGED_WORKER === "1";
 const engine = createEngine((clientId, message) => send({ method: "gateway/clientMessage", params: { clientId, message } }), {
+  requestAutoCompaction: (threadId) => controlRequests.compact(threadId),
   ...(managed ? { onFatalConnectionLoss: () => {
     stopping = true;
     process.stdin.pause();
@@ -37,6 +41,7 @@ function send(value: unknown): void {
   process.stdout.write(line);
 }
 async function handle(message: any): Promise<void> {
+  if (controlRequests.receive(message)) return;
   if (typeof message?.method !== "string") return;
   const p = message.params ?? {};
   const id = message.id;
@@ -56,14 +61,26 @@ async function handle(message: any): Promise<void> {
       case "gateway/dispatch": result = await engine.dispatch(p.method, p.params, p.clientId); break;
       default: throw new Error("unknown private worker method");
     }
-    if (id !== undefined) send({ id, result });
+    if (id !== undefined) {
+      // Validate history before serializing a private IPC response. The outer
+      // HTTP limit is too late: an oversized worker frame would stop the tree.
+      if (message.method === "gateway/dispatch" && ["thread/read", "thread/resume"].includes(p.method)) {
+        try { encodeBounded(result, FLOW_LIMITS.historyBytes); }
+        catch (error) { throw Object.assign(error as Error, { delivery: "unknown" }); }
+      }
+      send({ id, result });
+    }
   } catch (error: any) {
-    if (id !== undefined) send({ id, error: { code: -32000, message: redactSecrets(error?.message ?? String(error)), data: { delivery: error?.delivery === "unknown" ? "unknown" : "rejected" } } });
+    if (id !== undefined) send({ id, error: { code: -32000, message: redactSecrets(error?.message ?? String(error)), data: {
+      delivery: error?.delivery === "unknown" ? "unknown" : "rejected",
+      ...(error?.errorCode === "RESPONSE_TOO_LARGE" ? { errorCode: "RESPONSE_TOO_LARGE" } : {}),
+    } } });
   } finally { inFlight--; }
 }
 async function stop(code = 0): Promise<void> {
   if (stopping) return;
   stopping = true;
+  controlRequests.close();
   process.stdin.pause();
   await engine.stop();
   process.exit(code);

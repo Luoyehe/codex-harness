@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { after, before, test } from "node:test";
-import { providerVerificationConfig, runProviderVerification } from "../deploy/verify-provider.mjs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { providerVerificationConfig, runProviderVerification, syntheticExpected } from "../deploy/verify-provider.mjs";
 
 // The script imports the real bounded helper lazily. A synthetic token prevents
 // its authentication module from consulting any real Codex home during tests.
 const oldToken = process.env.GATEWAY_TOKEN, oldPaid = process.env.HARNESS_ALLOW_PAID_TESTS;
-before(() => { process.env.GATEWAY_TOKEN = "synthetic-verifier-test-token"; process.env.HARNESS_ALLOW_PAID_TESTS = "1"; });
+before(() => { process.env.GATEWAY_TOKEN = "synthetic-verifier-test-token-000000"; process.env.HARNESS_ALLOW_PAID_TESTS = "1"; });
 after(() => {
   if (oldToken === undefined) delete process.env.GATEWAY_TOKEN; else process.env.GATEWAY_TOKEN = oldToken;
   if (oldPaid === undefined) delete process.env.HARNESS_ALLOW_PAID_TESTS; else process.env.HARNESS_ALLOW_PAID_TESTS = oldPaid;
@@ -17,6 +20,26 @@ const env = {
   HARNESS_VERIFY_AUTH_MODE: "chatgpt", HARNESS_VERIFY_CWD: "/isolated/verification-case",
   HARNESS_VERIFY_FIXTURE: "/isolated/verification-case/fixture.txt", HARNESS_VERIFY_EXPECTED_FILE: "/private-verifier/expected.txt",
 };
+
+test("synthetic expectation reads are descriptor-pinned, singly linked and bounded", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "provider-expectation-"));
+  try {
+    const file = path.join(directory, "expected");
+    writeFileSync(file, expected + "\n");
+    assert.equal(syntheticExpected(file), expected);
+    const oversized = path.join(directory, "oversized");
+    writeFileSync(oversized, "x".repeat(129));
+    assert.throws(() => syntheticExpected(oversized), /invalid_synthetic_expectation/);
+    if (process.platform !== "win32") {
+      const alias = path.join(directory, "alias");
+      const linked = path.join(directory, "linked");
+      symlinkSync(file, alias);
+      linkSync(file, linked);
+      assert.throws(() => syntheticExpected(alias), /invalid_synthetic_expectation/);
+      assert.throws(() => syntheticExpected(linked), /invalid_synthetic_expectation/);
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 function setup(failure = "none", configEnv = env) {
   const calls = [], clients = [], output = [], reads = [];
@@ -89,6 +112,8 @@ function setup(failure = "none", configEnv = env) {
           }
         }
         if (failure === "unexpected-tool" && n === 1) note("item/completed", { item: { type: "webSearch", id: "unexpected-tool" } });
+        const extra = /^extra-(1|3)-(.+)$/.exec(failure);
+        if (extra && n === Number(extra[1])) note("item/completed", { item: { type: extra[2], id: "extra-activity" } });
         note("item/completed", { item: { id: `answer-${n}`, type: "agentMessage", phase: failure === "commentary" ? "commentary" : "final_answer", text: reply } });
         if (failure === "reroute") note("model/rerouted", { fromModel: configEnv.HARNESS_VERIFY_MODEL, toModel: "other-model", reason: "highRiskCyberActivity" });
         if (failure !== "no-usage") note("thread/tokenUsage/updated", {
@@ -141,6 +166,17 @@ test("successful business verification starts exactly three turns across two cli
   }
   assert.deepEqual(JSON.parse(f.output[0]), result);
 });
+
+for (const type of ["imageView", "collabToolCall", "subAgentActivity", "sleep"]) {
+  for (const turn of [1, 3]) test(`business verification rejects extra ${type} during turn ${turn}`, async () => {
+    const f = setup(`extra-${turn}-${type}`);
+    const result = await f.run();
+    assert.equal(result.ok, false);
+    assert.equal(result.budget.attemptedTurnStarts, turn);
+    assert.equal(result.turns.at(-1).tools.started, turn === 1 ? 1 : 2);
+    assert.deepEqual(result.cleanup, { attempted: true, ok: true });
+  });
+}
 
 test("paid opt-in fails before expected-file reads or client construction", async () => {
   process.env.HARNESS_ALLOW_PAID_TESTS = "0";

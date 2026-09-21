@@ -89,7 +89,7 @@ if [ -n "${NODE_BIN:-}" ]; then
   export PATH="$NODE_BIN_DIR:$PATH"
 fi
 if [ -n "${TOOLS_BIN_DIR:-}" ] || { [ "$HAD_INSTALLED_UNIT" = 1 ] && command -v npm >/dev/null 2>&1; }; then
-  TOOLS_BIN_DIR="$(python3 "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}")"
+  TOOLS_BIN_DIR="$(python3 -I "$SCRIPT_DIR/runtime_paths.py" "${TOOLS_BIN_DIR:-}")"
   export TOOLS_BIN_DIR
   export PATH="${NODE_BIN_DIR:+$NODE_BIN_DIR:}$TOOLS_BIN_DIR:$PATH"
 fi
@@ -123,7 +123,7 @@ installed() { systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; }
 
 active_provider() {
   local cfg="${CODEX_HOME:-$HOME/.codex}/config.toml"
-  python3 "$SCRIPT_DIR/lifecycle.py" provider "$cfg" || { echo "配置无法解析"; return 1; }
+  python3 -I "$SCRIPT_DIR/lifecycle.py" provider "$cfg" || { echo "配置无法解析"; return 1; }
 }
 
 show_status() {
@@ -180,6 +180,21 @@ do_provider() {
       die "用法: manage.sh provider zhipu|openai|custom"
     fi
   fi
+  case "$target" in zhipu|openai|custom) ;; *) die "未知供应商: $target（可选 zhipu|openai|custom）" ;; esac
+  local transaction="$SCRIPT_DIR/providers/provider_transaction.py"
+  local previous_generation="" expected_generation="" generation_status=0
+  if previous_generation="$(run_as_service python3 -I "$transaction" active-name)"; then
+    expected_generation="$previous_generation"
+  else
+    generation_status=$?
+    if [ "$generation_status" -eq 3 ]; then
+      # The transaction will first preserve the legacy layout as a private
+      # generation and record that predecessor in the newly published tree.
+      expected_generation=none
+    else
+      die "无法安全读取当前供应商代际；未开始切换"
+    fi
+  fi
   case "$target" in
     zhipu)
       local key="${ZHIPU_KEY:-}"
@@ -192,28 +207,65 @@ do_provider() {
         read -r -s -p "粘贴你的智谱 Coding Plan API Key: " key; echo
       fi
       if [ -n "$key" ]; then
-        ZHIPU_KEY="$key" ENV_FILE="$ENV_FILE" \
+        ZHIPU_KEY="$key" ENV_FILE="$ENV_FILE" PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
           run_as_service bash "$SCRIPT_DIR/providers/zhipu-coding-plan/setup.sh"
       elif [ -n "$stored_key" ]; then
-        ENV_FILE="$ENV_FILE" run_as_service bash "$SCRIPT_DIR/providers/zhipu-coding-plan/setup.sh"
+        ENV_FILE="$ENV_FILE" PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
+          run_as_service bash "$SCRIPT_DIR/providers/zhipu-coding-plan/setup.sh"
       else
         die "缺少 Key：设置 ZHIPU_KEY 或在 $ENV_FILE 填 Z_AI_API_KEY"
       fi
       ;;
     openai)
-      ENV_FILE="$ENV_FILE" run_as_service bash "$SCRIPT_DIR/providers/openai/setup.sh"
+      ENV_FILE="$ENV_FILE" PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
+        run_as_service bash "$SCRIPT_DIR/providers/openai/setup.sh"
       log "请通过 WebUI 右上角完成该服务账号的登录"
       ;;
     custom)
       CUSTOM_BASE_URL="${CUSTOM_BASE_URL:-}" CUSTOM_MODEL="${CUSTOM_MODEL:-}" \
         CUSTOM_API_KEY="${CUSTOM_API_KEY:-}" CUSTOM_CTX="${CUSTOM_CTX:-}" ENV_FILE="$ENV_FILE" \
+        PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
         run_as_service bash "$SCRIPT_DIR/providers/custom-openai/setup.sh"
       ;;
-    *) die "未知供应商: $target（可选 zhipu|openai|custom）" ;;
   esac
-  run_as_service test -r "${CODEX_HOME:-$SERVICE_HOME/.codex}" \
-    || die "provider setup left CODEX_HOME unreadable by $SERVICE_USER"
-  systemctl restart "$SERVICE_NAME" && log "已重启 $SERVICE_NAME，当前模型源: $(active_provider)"
+  local failure_status=0 rollback_failed=0
+  if run_as_service test -r "${CODEX_HOME:-$SERVICE_HOME/.codex}"; then
+    if systemctl restart "$SERVICE_NAME"; then
+      if health_after_update; then
+        log "已重启并验证 $SERVICE_NAME，当前模型源: $(active_provider)"
+        return 0
+      else
+        failure_status=$?
+        log "供应商切换后的服务未达到 ready，开始恢复上一代际"
+      fi
+    else
+      failure_status=$?
+      log "供应商切换后的服务重启失败，开始恢复上一代际"
+    fi
+  else
+    failure_status=$?
+    log "供应商切换后服务账号无法读取 CODEX_HOME，开始恢复上一代际"
+  fi
+  [ "$failure_status" -ge 1 ] && [ "$failure_status" -le 125 ] || failure_status=1
+  if [ -z "$previous_generation" ]; then
+    if ! previous_generation="$(run_as_service python3 -I "$transaction" predecessor-name)"; then
+      log "自动恢复未完成：无法验证首次迁移保存的旧代际；请检查 CODEX_HOME/providers/.versions"
+      return "$failure_status"
+    fi
+  fi
+  if ! run_as_service python3 -I "$transaction" restore-active "$previous_generation"; then
+    rollback_failed=1
+  elif ! systemctl restart "$SERVICE_NAME"; then
+    rollback_failed=1
+  elif ! health_after_update; then
+    rollback_failed=1
+  fi
+  if [ "$rollback_failed" -eq 1 ]; then
+    log "自动恢复未完成；恢复代际仍保留在 ${CODEX_HOME:-$SERVICE_HOME/.codex}/providers/.versions/$previous_generation，请人工恢复并检查服务"
+  else
+    log "新供应商未通过就绪检查；已恢复并验证上一代际 $previous_generation"
+  fi
+  return "$failure_status"
 }
 
 do_edge() {
@@ -291,28 +343,32 @@ do_reinstall() {
       codex_tree="${CODEX_HOME:-$SERVICE_HOME/.codex}"
       # Record the exact directory identities before confirmation. Do not
       # resolve a service-writable symlink into a privileged deletion target.
-      codex_identity="$(run_as_service python3 "$SCRIPT_DIR/safe_delete.py" prepare "$codex_tree" data)" \
+      codex_identity="$(run_as_service python3 -I "$SCRIPT_DIR/safe_delete.py" prepare "$codex_tree" data)" \
         || die "数据目录不是可安全清理的普通目录；未执行重置"
       read -r -p "输入 yes 确认: " confirm1 || true
       [ "$confirm1" = "yes" ] || die "已取消"
       read -r -p "再次输入 yes 确认清空一切: " confirm2 || true
       [ "$confirm2" = "yes" ] || die "已取消"
-      if ! EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
+      systemctl disable --now "$SERVICE_NAME" \
+        || die "无法确认服务已停止，拒绝删除数据或服务文件；请先检查 systemctl 状态"
+      # No public configuration changes until shutdown is confirmed. The edge
+      # transaction must not restart this deliberately stopped gateway, even
+      # when rolling back; a failure leaves service/data available for repair.
+      if ! EDGE_ACTION=disable EDGE_GATEWAY_STOPPED=1 GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
         bash "$SCRIPT_DIR/setup-edge.sh"; then
-        log "警告：远程站点清理失败；继续重置前请检查 Caddy/Authelia 配置"
+        die "远程站点清理失败；服务保持停止，数据与服务文件未删除，请检查恢复副本后重试"
       fi
-      systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
       # All writable data is removed with its owner identity. The helper pins
       # descriptors, verifies the pre-confirmation identities and never follows
       # symlinks. Root only removes its own system integration files.
-      run_as_service python3 "$SCRIPT_DIR/safe_delete.py" delete "$codex_tree" data "$codex_identity" \
+      run_as_service python3 -I "$SCRIPT_DIR/safe_delete.py" delete "$codex_tree" data "$codex_identity" \
         || die "安全清理失败，服务已停止；目标替换或权限问题需要人工检查"
       if [ -e "$ENV_FILE" ] || [ -L "$ENV_FILE" ]; then
-        run_as_service python3 "$SCRIPT_DIR/safe_delete.py" unlink-file "$ENV_FILE" \
+        run_as_service python3 -I "$SCRIPT_DIR/safe_delete.py" unlink-file "$ENV_FILE" \
           || die "密钥文件清理失败；请检查其所有权（不会以 root 删除服务数据）"
       fi
       rm -f "$UNIT_FILE"
-      systemctl daemon-reload || true
+      systemctl daemon-reload || die "服务文件已移除，但 systemd 重新加载失败；请人工处理后再重装"
       log "已请求移除本项目的远程站点块；共享的 Caddy/Authelia 安装与其它站点不受影响"
       log "已清空，开始重新安装"
       do_install
@@ -329,9 +385,9 @@ do_uninstall() {
   [ "$SERVICE_NAME" != codex-harness ] || command_name=codex-harness
   local command_path="${BIN_DIR:-/usr/local/bin}/$command_name"
   local repo_tree="$REPO_ROOT" repo_identity
-  repo_identity="$(python3 "$SCRIPT_DIR/safe_delete.py" prepare "$repo_tree" code)" \
+  repo_identity="$(python3 -I "$SCRIPT_DIR/safe_delete.py" prepare "$repo_tree" code)" \
     || die "程序目录及其祖先必须由 root 持有且不可被非 root 修改；请人工处理此非受管目录"
-  python3 "$SCRIPT_DIR/lifecycle.py" guard-uninstall "$repo_tree" \
+  python3 -I "$SCRIPT_DIR/lifecycle.py" guard-uninstall "$repo_tree" \
     "${CODEX_HOME:-$SERVICE_HOME/.codex}" "$ENV_FILE" "${CODEX_WORKSPACE:-$SERVICE_HOME/codex-workspace}" "$SERVICE_NAME" \
     /etc/systemd/system "${GATEWAY_CONTROL_HOME:-}" >/dev/null \
     || die "无法确认全部注册项目/其他实例数据均位于删除目录之外；请先迁移或修复清单"
@@ -342,26 +398,27 @@ do_uninstall() {
   · 系统管理命令：${command_path}
 卸载将【保留】：
   · 运行环境：Node / pnpm / 版本化 codex CLI / 智谱 MCP 组件（可能由其他实例共享，不自动删除）
-  · codex 用户数据：${CODEX_HOME:-$HOME/.codex}（全部会话、各模型源配置集、API 密钥、网关 token）
-  · 服务环境文件：${ENV_FILE}（含 API Key——保留它，以后重装无需重新填写）
-  · 独立管理目录：${GATEWAY_CONTROL_HOME:-未配置}（管理令牌、发送受理账本与网关设置）
+  · codex 用户数据：${CODEX_HOME:-$HOME/.codex}（全部会话与各模型源配置集）
+  · 服务环境文件：${ENV_FILE}（供应商 API Key——保留它，以后重装无需重新填写）
+  · 独立管理目录：${GATEWAY_CONTROL_HOME:-未配置}（网关管理令牌、发送受理账本与网关设置）
   · 工作区与项目目录：${CODEX_WORKSPACE:-$HOME/codex-workspace}
   · Caddy / Authelia 软件及其它站点（仅移除本项目 marker 包围的站点块）
 EOF
   local confirm
   read -r -p "输入 yes 确认卸载: " confirm || true
   [ "$confirm" = "yes" ] || die "已取消"
-  if ! EDGE_ACTION=disable GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
-    bash "$SCRIPT_DIR/setup-edge.sh"; then
-    log "警告：未能自动清理远程站点，请人工检查 Caddy/Authelia 配置"
-  fi
   local legacy_helper=0
   grep -qxF 'Environment=CODEX_HARNESS_ADMIN_HELPER=/usr/local/libexec/codex-harness-admin' "$UNIT_FILE" 2>/dev/null \
     && legacy_helper=1
-  systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
+  systemctl disable --now "$SERVICE_NAME" \
+    || die "无法确认服务已停止，拒绝删除程序或服务文件；请先检查 systemctl 状态"
+  if ! EDGE_ACTION=disable EDGE_GATEWAY_STOPPED=1 GATEWAY_PORT="$PORT" GATEWAY_UNIT="$SERVICE_NAME" ENV_FILE="$GATEWAY_ENV_FILE" \
+    bash "$SCRIPT_DIR/setup-edge.sh"; then
+    die "远程站点清理失败；服务保持停止，程序与服务文件未删除，请检查恢复副本后重试"
+  fi
   # Re-read after the service is stopped, closing the confirmation window for
   # changes made by this instance. Other registered instances are included.
-  python3 "$SCRIPT_DIR/lifecycle.py" guard-uninstall "$repo_tree" \
+  python3 -I "$SCRIPT_DIR/lifecycle.py" guard-uninstall "$repo_tree" \
     "${CODEX_HOME:-$SERVICE_HOME/.codex}" "$ENV_FILE" "${CODEX_WORKSPACE:-$SERVICE_HOME/codex-workspace}" "$SERVICE_NAME" \
     /etc/systemd/system "${GATEWAY_CONTROL_HOME:-}" >/dev/null \
     || die "停止服务后的保留检查失败；代码与数据均未删除"
@@ -385,10 +442,10 @@ EOF
     fi
   fi
   rmdir /etc/codex-harness 2>/dev/null || true
-  systemctl daemon-reload || true
+  systemctl daemon-reload || die "服务文件已移除，但 systemd 重新加载失败；程序目录仍保留，请人工处理"
   cd /
-  python3 "$SCRIPT_DIR/safe_delete.py" delete "$repo_tree" code "$repo_identity"
-  echo "[manage] 卸载完成。浏览器将无法再访问本服务；所有会话与密钥仍保留在 ${CODEX_HOME:-$HOME/.codex}。"
+  python3 -I "$SCRIPT_DIR/safe_delete.py" delete "$repo_tree" code "$repo_identity"
+  echo "[manage] 卸载完成。浏览器将无法再访问本服务；会话、供应商密钥和网关管理令牌分别保留在 ${CODEX_HOME:-$HOME/.codex}、${ENV_FILE}、${GATEWAY_CONTROL_HOME:-未配置}。"
   echo "[manage] 以后重新部署：git clone https://github.com/Luoyehe/codex-harness && ./deploy/install.sh"
   exit 0
 }
@@ -412,24 +469,25 @@ do_update() {
   if [ ! -d "$REPO_ROOT/.git" ]; then
     log "当前部署不是 git 检出（文件拷贝方式安装），无法自动检查更新。"
     log "获取新版本后运行: bash $SCRIPT_DIR/manage.sh reinstall repair"
-    return 0
+    return 1
   fi
   exec 8>"$REPO_ROOT/.git/codex-harness-update.lock"
   flock -n 8 || die "另一个更新事务正在运行"
   log "检查远程更新（git fetch origin）…"
   if ! git -C "$REPO_ROOT" fetch --quiet origin; then
     log "无法访问远程仓库（网络或凭据问题）——稍后重试或手动 git fetch"
-    return 0
+    return 1
   fi
   local local_ref remote_ref
-  local_ref="$(git -C "$REPO_ROOT" rev-parse HEAD)"
-  remote_ref="$(git -C "$REPO_ROOT" rev-parse '@{u}' 2>/dev/null || true)"
+  local_ref="$(git -C "$REPO_ROOT" rev-parse --verify 'HEAD^{commit}')" \
+    || die "无法解析当前提交；请检查本地 Git 仓库完整性"
+  remote_ref="$(git -C "$REPO_ROOT" rev-parse --verify '@{u}^{commit}' 2>/dev/null || true)"
   if [ -z "$remote_ref" ]; then
-    remote_ref="$(git -C "$REPO_ROOT" rev-parse origin/HEAD 2>/dev/null || true)"
+    remote_ref="$(git -C "$REPO_ROOT" rev-parse --verify 'origin/HEAD^{commit}' 2>/dev/null || true)"
   fi
   if [ -z "$remote_ref" ]; then
     log "无法确定远程跟踪分支（origin/HEAD）——请检查 git remote 配置"
-    return 0
+    return 1
   fi
   if [ "$local_ref" = "$remote_ref" ]; then
     log "已是最新版本（$(git -C "$REPO_ROOT" log -1 --format='%h %cd' --date=short)）"
@@ -450,11 +508,18 @@ do_update() {
       [ -z "$(git -C "$REPO_ROOT" status --porcelain)" ] || die "工作树有本地改动；为避免覆盖，拒绝自动更新"
       git -C "$REPO_ROOT" merge-base --is-ancestor "$local_ref" "$remote_ref" \
         || die "远端不是当前版本的快进后继；拒绝自动改写历史"
-      local stage_root stage
-      stage_root="$(mktemp -d)"
+      local stage_root stage update_staging_root
+      update_staging_root="${UPDATE_STAGING_ROOT:-/var/lib/codex-harness-updates}"
+      update_staging_root="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" missing-directory "$update_staging_root")"
+      install -d -o root -g root -m 700 "$update_staging_root"
+      update_staging_root="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" tree "$update_staging_root")"
+      stage_root="$(mktemp -d "$update_staging_root/transaction.XXXXXXXX")"
       stage="$stage_root/worktree"
       local snapshot="$stage_root/previous"
-      local applying=0 was_active=0
+      local validated="$stage_root/validated"
+      local trusted_apply="$stage_root/trusted-apply"
+      local applying=0 was_active=0 runtime_created=0
+      local candidate_version='' candidate_cli='' runtime_base='' runtime_fingerprint=''
       local command_name="codex-harness-$SERVICE_NAME"
       [ "$SERVICE_NAME" != codex-harness ] || command_name=codex-harness
       local -a system_files=(
@@ -503,6 +568,16 @@ do_update() {
           else
             systemctl stop "$SERVICE_NAME" || rollback_failed=1
           fi
+          if [ "$runtime_created" -eq 1 ]; then
+            python3 -I "$trusted_apply/update_candidate.py" remove-runtime \
+              "$runtime_base" "$candidate_version" "$runtime_fingerprint"
+            local runtime_cleanup=$?
+            if [ "$runtime_cleanup" -eq 3 ]; then
+              log "新 CLI 运行时已被另一实例引用，安全保留: $runtime_base/$candidate_version"
+            elif [ "$runtime_cleanup" -ne 0 ]; then
+              rollback_failed=1
+            fi
+          fi
         fi
         if [ "$rollback_failed" = 1 ]; then
           log "自动恢复未完成；旧产物和系统文件保留在 $snapshot，请先人工恢复再清理"
@@ -514,27 +589,54 @@ do_update() {
       }
       trap cleanup_update_stage EXIT
       git -C "$REPO_ROOT" worktree add --detach "$stage" "$remote_ref" >/dev/null
-      local pnpm_bin
-      pnpm_bin="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v pnpm)")"
-      log "在隔离工作树中安装、测试、审计并构建候选版本…"
-      (
-        cd "$stage"
-        "$pnpm_bin" install --frozen-lockfile
-        "$pnpm_bin" typecheck
-        "$pnpm_bin" build
-        node scripts/release-audit.mjs .
-      )
-      local candidate_version candidate_cli
-      candidate_version="$(sed -n 's/^CODEX_VERSION="\([^"]*\)".*/\1/p' "$stage/deploy/install.sh")"
-      [[ "$candidate_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "候选版本缺少有效 CLI 版本"
-      candidate_cli="$(bash "$stage/deploy/install-runtime.sh" "$candidate_version")"
-      # Tests keep their real non-root assertions. A transient isolated identity
-      # validates a disposable copy; neither its source nor its build outputs
-      # can be copied back into this root-private publication/snapshot tree.
-      bash "$SCRIPT_DIR/test-candidate.sh" "$stage" "$candidate_cli"
+      candidate_version="$(python3 -I "$SCRIPT_DIR/update_candidate.py" version "$stage")" \
+        || die "候选版本缺少唯一、严格的 CLI 版本声明"
+      runtime_base="${CODEX_RUNTIME_ROOT:-/usr/local/lib/codex-harness/codex}"
+      local runtime_seed runtime_seed_info runtime_seed_cli runtime_seed_fingerprint
+      runtime_seed="$runtime_base/$candidate_version"
+      if [ -n "${CODEX_CANDIDATE_RUNTIME_SEED:-}" ]; then
+        runtime_seed="$CODEX_CANDIDATE_RUNTIME_SEED"
+      fi
+      runtime_seed_info="$(python3 -I "$SCRIPT_DIR/update_candidate.py" runtime-info \
+        "$runtime_seed" "$candidate_version")" \
+        || die "缺少候选 CLI 的受信离线运行时；请先准备 root 所有、只读的 CODEX_CANDIDATE_RUNTIME_SEED"
+      IFS=$'\t' read -r runtime_seed_cli runtime_seed_fingerprint <<<"$runtime_seed_info"
+      [ -n "$runtime_seed_cli" ] && [ -n "$runtime_seed_fingerprint" ] \
+        || die "候选 CLI 运行时元数据不完整"
+      log "在无密钥、断网、有限资源的 DynamicUser 沙箱中安装依赖、构建、审计、测试并 smoke…"
+      bash "$SCRIPT_DIR/test-candidate.sh" \
+        "$stage" "$candidate_version" "$validated" "$REPO_ROOT" "$runtime_seed"
+      local validated_runtime_info
+      validated_runtime_info="$(python3 -I "$SCRIPT_DIR/update_candidate.py" runtime-info \
+        "$validated/runtime" "$candidate_version")"
+      IFS=$'\t' read -r candidate_cli runtime_fingerprint <<<"$validated_runtime_info"
+      [ "$runtime_fingerprint" = "$runtime_seed_fingerprint" ] \
+        || die "候选 CLI 在隔离验证输出中发生变化"
       [ "$(git -C "$REPO_ROOT" rev-parse HEAD)" = "$local_ref" ] \
         && [ -z "$(git -C "$REPO_ROOT" status --porcelain)" ] \
         || die "验证期间工作树发生变化；未应用更新"
+      # After merge, SCRIPT_DIR names candidate files. Pin the current trusted
+      # registration implementation before that transition; candidate scripts
+      # are never sourced or executed by root during this transaction.
+      install -d -o root -g root -m 700 "$trusted_apply"
+      install -o root -g root -m 700 "$SCRIPT_DIR/register-service.sh" "$trusted_apply/register-service.sh"
+      install -o root -g root -m 600 "$SCRIPT_DIR/trusted_paths.py" "$trusted_apply/trusted_paths.py"
+      install -o root -g root -m 600 "$SCRIPT_DIR/runtime_paths.py" "$trusted_apply/runtime_paths.py"
+      install -o root -g root -m 600 "$SCRIPT_DIR/update_candidate.py" "$trusted_apply/update_candidate.py"
+      local runtime_lock
+      runtime_lock="$(CODEX_RUNTIME_ROOT="$runtime_base" bash "$SCRIPT_DIR/install-runtime.sh" lock-path)"
+      exec 9>"$runtime_lock"
+      flock 9
+      # Recheck the seed under the global publication lock. A concurrent
+      # publisher may have won during the long isolated build.
+      if [ "$runtime_seed" = "$runtime_base/$candidate_version" ]; then
+        local locked_runtime_info locked_runtime_fingerprint
+        locked_runtime_info="$(python3 -I "$trusted_apply/update_candidate.py" runtime-info \
+          "$runtime_seed" "$candidate_version")"
+        locked_runtime_fingerprint="${locked_runtime_info#*$'\t'}"
+        [ "$locked_runtime_fingerprint" = "$runtime_seed_fingerprint" ] \
+          || die "候选 CLI 运行时在验证期间发生变化"
+      fi
       mkdir -p "$snapshot/system" "$snapshot/artifacts"
       local item
       for item in "${system_files[@]}"; do
@@ -553,19 +655,37 @@ do_update() {
       applying=1
       systemctl stop "$SERVICE_NAME"
       git -C "$REPO_ROOT" merge --ff-only "$remote_ref" >/dev/null
-      # Publish the original root-built dependency/build trees whose read-only
-      # copy was tested. Never publish the test identity's writable copy.
+      # Publish only the fd-validated output copied from the unprivileged unit.
       # Rollback needs neither npm access nor another successful build.
       for item in "${artifacts[@]}"; do
         rm -rf -- "${REPO_ROOT:?}/${item:?}"
-        if [ -e "$stage/$item" ]; then cp -a "$stage/$item" "$REPO_ROOT/$item"; fi
+        cp -a "$validated/artifacts/$item" "$REPO_ROOT/$item"
       done
+      local publication publication_state publication_remainder
+      if [ -e "$runtime_base/$candidate_version" ] || [ -L "$runtime_base/$candidate_version" ]; then
+        runtime_created=0
+      else
+        # Arm cleanup before publication so even a post-rename output failure
+        # cannot strand an unreferenced global runtime.
+        runtime_created=1
+      fi
+      publication="$(python3 -I "$trusted_apply/update_candidate.py" publish-runtime \
+        "$validated/runtime" "$runtime_base" "$candidate_version" "$runtime_fingerprint")"
+      publication_state="${publication%%$'\t'*}"
+      publication_remainder="${publication#*$'\t'}"
+      candidate_cli="${publication_remainder%%$'\t'*}"
+      case "$publication_state" in
+        created) runtime_created=1 ;;
+        reused) runtime_created=0 ;;
+        *) die "候选 CLI 发布返回未知状态" ;;
+      esac
       SERVICE_NAME="$SERVICE_NAME" RUN_USER="$SERVICE_USER" INSTALL_DIR="$REPO_ROOT" \
+        REGISTER_ASSET_DIR="$validated/service" \
         GATEWAY_USER="${GATEWAY_USER:-}" GATEWAY_CONTROL_HOME="${GATEWAY_CONTROL_HOME:-}" \
         CODEX_HOME="${CODEX_HOME:-$SERVICE_HOME/.codex}" CODEX_WORKSPACE="${CODEX_WORKSPACE:-$SERVICE_HOME/codex-workspace}" \
         ENV_FILE="$ENV_FILE" CODEX_BIN="$candidate_cli" PORT="$PORT" \
         NODE_BIN="${NODE_BIN:-$(command -v node)}" NODE_BIN_DIR="${NODE_BIN_DIR:-}" TOOLS_BIN_DIR="${TOOLS_BIN_DIR:-}" \
-        bash "$SCRIPT_DIR/register-service.sh"
+        bash "$trusted_apply/register-service.sh"
       systemctl daemon-reload
       systemctl restart "$SERVICE_NAME"
       health_after_update

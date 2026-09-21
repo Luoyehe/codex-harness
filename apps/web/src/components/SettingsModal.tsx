@@ -3,6 +3,7 @@ import { gateway } from "../api/ws";
 import { useStore } from "../store";
 import { validatedApiBaseUrl } from "../utils/validation";
 import { managementOperationLabel, managementOutcomeText, type ManagementOperation } from "../utils/management";
+import { boundedRedact } from "../utils/bounded-runtime";
 
 /**
  * Settings modal — organized by scope, matching the user's mental model:
@@ -133,6 +134,7 @@ function ConversationTab() {
             </span>
             <input
               type="checkbox"
+              disabled={connection !== "open"}
               checked={display[r.key]}
               onChange={(e) => updateDisplay({ [r.key]: e.target.checked })}
             />
@@ -148,6 +150,7 @@ function ConversationTab() {
             <button
               key={t}
               className={`seg ${display.autoCompactThreshold === t ? "active" : ""}`}
+              disabled={connection !== "open"}
               onClick={() => updateDisplay({ autoCompactThreshold: t })}
             >
               {t === 0 ? "关闭" : `${Math.round(t * 100)}%`}
@@ -168,31 +171,87 @@ function ConversationTab() {
  *  infrastructure configured by the active provider preset. */
 function McpSection() {
   const mcpServers = useStore((s) => s.mcpServers);
+  const mcpLoad = useStore((s) => s.mcpLoad);
+  const refreshMcp = useStore((s) => s.refreshMcp);
   const connection = useStore((s) => s.connection);
 
   return (
     <section>
       <div className="settings-label">MCP 服务器</div>
       {connection !== "open" && <div className="dim">网关未连接，状态可能过期</div>}
+      {mcpLoad.state === "loading" && mcpServers.length === 0 && <div className="dim" role="status">正在读取 MCP 状态…</div>}
+      {mcpLoad.state === "loading" && mcpServers.length > 0 && <div className="dim" role="status">正在刷新 MCP 状态；下方显示上次成功读取的结果。</div>}
+      {mcpLoad.state === "error" && (
+        <div className="error-text" role="alert">
+          {mcpLoad.error ?? "MCP 状态读取失败；不能判断是否已配置。"}{" "}
+          <button className="btn" disabled={connection !== "open"} onClick={() => void refreshMcp()}>重试</button>
+        </div>
+      )}
       {mcpServers.map((m) => {
-        const tools = (Object.values(m.tools ?? {}) as Array<{ name?: string; description?: string }>)
-          .slice(0, 500)
+        const runtime = m as unknown as { tools?: unknown; toolCount?: unknown; toolsTruncated?: unknown; initialized?: unknown; serverInfo?: unknown };
+        const toolRecords: Array<{ name?: unknown; description?: unknown }> = [];
+        let observedToolCount = 0;
+        let collectionTruncated = false;
+        if (Array.isArray(runtime.tools)) {
+          observedToolCount = Math.min(runtime.tools.length, 501);
+          collectionTruncated = runtime.tools.length > 500;
+          for (let index = 0; index < Math.min(runtime.tools.length, 500); index++) {
+            const value = runtime.tools[index];
+            toolRecords.push(value && typeof value === "object" && !Array.isArray(value) ? value : {});
+          }
+        } else if (runtime.tools && typeof runtime.tools === "object") {
+          const source = runtime.tools as Record<string, unknown>;
+          for (const key in source) {
+            if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+            observedToolCount += 1;
+            if (observedToolCount > 500) {
+              collectionTruncated = true;
+              break;
+            }
+            const value = source[key];
+            toolRecords.push(value && typeof value === "object" && !Array.isArray(value) ? value : {});
+          }
+        }
+        const tools = toolRecords
           .map((tool) => ({
             name: typeof tool?.name === "string" ? tool.name.slice(0, 256) : undefined,
             description: typeof tool?.description === "string" ? tool.description.slice(0, 2_000) : undefined,
           }));
-        const healthy = tools.length > 0;
+        // An initialized MCP server is healthy even when it intentionally
+        // advertises no tools. Conversely, an absent serverInfo plus an empty
+        // tool list means the server has not finished loading.
+        const healthy = typeof runtime.initialized === "boolean"
+          ? runtime.initialized
+          : (runtime.serverInfo !== null && typeof runtime.serverInfo === "object") || toolRecords.length > 0;
+        const toolCount = typeof runtime.toolCount === "number" && Number.isSafeInteger(runtime.toolCount) && runtime.toolCount >= tools.length
+          ? runtime.toolCount : observedToolCount;
+        const truncated = runtime.toolsTruncated === true || collectionTruncated || toolCount > tools.length;
+        const shownCount = Math.max(toolCount, truncated ? tools.length + 1 : tools.length);
+        const toolSummary = truncated
+          ? `至少 ${shownCount} 个工具（仅显示前 ${tools.length} 个）`
+          : `${shownCount} 个工具`;
+        let toolTitle = "";
+        for (const tool of tools) {
+          const name = tool.name ?? "";
+          if (!name) continue;
+          const separator = toolTitle ? ", " : "";
+          if (toolTitle.length + separator.length + name.length > 2_000) {
+            toolTitle += "…";
+            break;
+          }
+          toolTitle += separator + name;
+        }
         return (
           <div key={m.name} className={`mcp-card ${healthy ? "" : "mcp-card-stale"}`}>
             <div className="mcp-card-head">
               <span className={`mcp-dot ${healthy ? "on" : ""}`} />
               <span className="mcp-card-name">{m.name}</span>
               <span className="dim">
-                {healthy ? `${tools.length} 个工具` : "未加载（尚未连接或启动失败）"}
+                {healthy ? `已连接 · ${toolSummary}` : "未加载（尚未连接或启动失败）"}
               </span>
             </div>
             {tools.length > 0 && (
-              <div className="mcp-tools" title={tools.map((t) => t.name).join(", ")}>
+              <div className="mcp-tools" title={toolTitle}>
                 {tools.map((t, i) => (
                   <span key={i} className="mcp-tool-chip" title={t.description ?? t.name}>
                     {t.name ?? i}
@@ -203,7 +262,7 @@ function McpSection() {
           </div>
         );
       })}
-      {mcpServers.length === 0 && (
+      {mcpLoad.state === "loaded" && mcpServers.length === 0 && (
         <div className="dim">
           未配置 MCP 服务器。智谱 Coding Plan 模式会自动配置官方四件套（切换上方模型源即可）。
         </div>
@@ -224,6 +283,36 @@ interface AdminResult {
   uncertain?: boolean;
 }
 
+interface AdminStatus {
+  currentModel?: string;
+  unit?: string;
+  active?: string;
+}
+
+const ADMIN_OUTPUT_LIMIT = 200_000;
+
+function boundedResponseString(value: unknown, limit: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return value.length <= limit ? value : `${value.slice(0, limit)}\n…（输出过长，仅显示前 ${limit.toLocaleString()} 个字符）`;
+}
+
+function normalizeAdminStatus(value: unknown): AdminStatus {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const record = value as Record<string, unknown>;
+  return {
+    currentModel: boundedResponseString(record.currentModel, 256),
+    unit: boundedResponseString(record.unit, 256),
+    active: boundedResponseString(record.active, 64),
+  };
+}
+
+function normalizeLogsResponse(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "日志响应格式无效";
+  const logs = (value as Record<string, unknown>).logs;
+  if (logs == null || logs === "") return "(无日志)";
+  return boundedResponseString(logs, ADMIN_OUTPUT_LIMIT) ?? "日志响应格式无效";
+}
+
 export function AdminResultFeedback({ result, record }: { result: AdminResult; record?: ManagementOperation }) {
   const matching = result.operationId && record?.operationId === result.operationId ? record : undefined;
   const pending = result.uncertain || result.restarting || result.restartRequired;
@@ -241,11 +330,40 @@ export function AdminResultFeedback({ result, record }: { result: AdminResult; r
 }
 
 function redactKnownSecrets(output: unknown, secrets: string[]): string {
-  let text = typeof output === "string" ? output : output == null ? "" : String(output);
-  for (const secret of secrets) {
-    if (secret) text = text.split(secret).join("[REDACTED]");
+  return boundedRedact(output, secrets, ADMIN_OUTPUT_LIMIT);
+}
+
+function normalizeAdminResult(value: unknown, secrets: string[]): AdminResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ok: false, restarting: false, uncertain: true, output: "服务器返回的管理响应格式无效；操作结果待确认。" };
   }
-  return text;
+  const record = value as Record<string, unknown>;
+  const malformed = typeof record.ok !== "boolean" || typeof record.restarting !== "boolean" ||
+    record.changed !== undefined && typeof record.changed !== "boolean" ||
+    record.restartRequired !== undefined && typeof record.restartRequired !== "boolean" ||
+    record.uncertain !== undefined && typeof record.uncertain !== "boolean" ||
+    record.mode !== undefined && typeof record.mode !== "string" ||
+    record.operationId !== undefined && typeof record.operationId !== "string" ||
+    record.output !== undefined && typeof record.output !== "string";
+  const safeOutput = typeof record.output === "string" ? redactKnownSecrets(record.output, secrets) : "";
+  if (malformed) {
+    return {
+      ok: false,
+      restarting: false,
+      uncertain: true,
+      output: `服务器返回的管理响应格式无效；操作结果待确认。${safeOutput ? `\n${safeOutput}` : ""}`,
+    };
+  }
+  return {
+    ok: record.ok === true,
+    restarting: record.restarting === true,
+    ...(typeof record.changed === "boolean" ? { changed: record.changed } : {}),
+    ...(typeof record.restartRequired === "boolean" ? { restartRequired: record.restartRequired } : {}),
+    ...(typeof record.mode === "string" ? { mode: record.mode.slice(0, 256) } : {}),
+    ...(typeof record.operationId === "string" ? { operationId: record.operationId.slice(0, 128) } : {}),
+    ...(record.uncertain === true ? { uncertain: true } : {}),
+    output: safeOutput,
+  };
 }
 
 export function ServerTab() {
@@ -254,7 +372,8 @@ export function ServerTab() {
   const management = useStore((s) => s.management);
   const managementError = useStore((s) => s.managementError);
   const refreshManagement = useStore((s) => s.refreshManagement);
-  const [status, setStatus] = useState<{ currentModel?: string; unit?: string; active?: string } | null>(null);
+  const [status, setStatus] = useState<AdminStatus | null>(null);
+  const [statusLoad, setStatusLoad] = useState<{ state: "loading" | "loaded" | "error"; error: string | null }>({ state: "loading", error: null });
   const [localBusy, setBusy] = useState<string | null>(null);
   const busy = localBusy ?? (management.state === "idle" ? null : management.operation ?? "management");
   const [result, setResult] = useState<AdminResult | null>(null);
@@ -267,9 +386,11 @@ export function ServerTab() {
   const logsRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
   const logsRequestSeq = useRef(0);
+  const statusRequestSeq = useRef(0);
+  const statusMounted = useRef(true);
 
   const scrollTo = (ref: RefObject<HTMLDivElement | null>) => {
-    window.setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    globalThis.setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
 
   // provider switch forms
@@ -281,27 +402,42 @@ export function ServerTab() {
   const [customVision, setCustomVision] = useState(false);
   const validCustomUrl = validatedApiBaseUrl(customUrl);
 
-  useEffect(() => {
-    let cancelled = false;
+  async function refreshStatus() {
+    if (!statusMounted.current) return;
+    const request = ++statusRequestSeq.current;
     const generation = gateway.generation;
+    if (statusMounted.current) setStatusLoad({ state: "loading", error: null });
+    try {
+      const next = await gateway.rpc<unknown>("admin/status");
+      if (!statusMounted.current || request !== statusRequestSeq.current || generation !== gateway.generation) return;
+      setStatus(normalizeAdminStatus(next));
+      setStatusLoad({ state: "loaded", error: null });
+    } catch (error) {
+      if (!statusMounted.current || request !== statusRequestSeq.current || generation !== gateway.generation) return;
+      const detail = error instanceof Error ? error.message.slice(0, 1_000) : "未知错误";
+      setStatusLoad({ state: "error", error: `服务器状态读取失败：${detail}` });
+    }
+  }
+
+  useEffect(() => {
+    statusMounted.current = true;
     void refreshManagement();
-    void gateway.rpc<any>("admin/status").then((next) => {
-      if (!cancelled && generation === gateway.generation) setStatus(next);
-    }).catch(() => {});
+    void refreshStatus();
     return () => {
-      cancelled = true;
+      statusMounted.current = false;
+      statusRequestSeq.current += 1;
       logsRequestSeq.current += 1;
     };
   }, []);
 
-  async function run(label: string, fn: () => Promise<AdminResult>, secrets: string[] = []) {
+  async function run(label: string, fn: () => Promise<unknown>, secrets: string[] = []) {
     if (busyRef.current || management.state !== "idle" || connection !== "open") return;
     busyRef.current = true;
     setBusy(label);
     setResult(null);
     try {
       const next = await fn();
-      setResult({ ...next, output: redactKnownSecrets(next.output, secrets) });
+      setResult(normalizeAdminResult(next, secrets));
     } catch (err: any) {
       setResult({
         ok: false,
@@ -314,10 +450,7 @@ export function ServerTab() {
       setBusy(null);
       scrollTo(resultRef);
       void refreshManagement();
-      const generation = gateway.generation;
-      void gateway.rpc<any>("admin/status").then((next) => {
-        if (generation === gateway.generation) setStatus(next);
-      }).catch(() => {});
+      void refreshStatus();
     }
   }
 
@@ -399,6 +532,13 @@ export function ServerTab() {
           {status?.currentModel ? ` · 模型：${status.currentModel}` : ""}
           {status?.unit ? ` · 服务：${status.unit}（${status.active ?? "?"}）` : ""}
         </div>
+        {statusLoad.state === "loading" && <div className="dim settings-hint" role="status">
+          {status ? "正在刷新服务器状态；上方显示上次成功结果。" : "正在读取服务器状态…"}
+        </div>}
+        {statusLoad.state === "error" && <div className="error-text" role="alert">
+          {statusLoad.error ?? "服务器状态读取失败。"}{status ? " 上方显示上次成功结果。" : ""}{" "}
+          <button className="btn" disabled={connection !== "open"} onClick={() => void refreshStatus()}>重试服务器状态</button>
+        </div>}
         <div className="admin-actions">
           <button
             className="btn"
@@ -431,7 +571,7 @@ export function ServerTab() {
               void gateway.rpc<any>("admin/logs", { lines: 80 })
                 .then((r) => {
                   if (request !== logsRequestSeq.current || generation !== gateway.generation) return;
-                  setLogs(r?.logs ?? "(无日志)");
+                  setLogs(normalizeLogsResponse(r));
                   scrollTo(logsRef);
                 })
                 .catch((e) => {

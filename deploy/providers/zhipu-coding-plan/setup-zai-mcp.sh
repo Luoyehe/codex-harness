@@ -5,7 +5,8 @@
 set -eu
 umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="$SCRIPT_DIR/..${PYTHONPATH:+:$PYTHONPATH}"
+unset PYTHONHOME
+export PYTHONPATH="$SCRIPT_DIR/.." PYTHONSAFEPATH=1 PYTHONNOUSERSITE=1
 # CONFIG may be redirected to a provider config-set file (zhipu setup.sh);
 # default remains the live ~/.codex/config.toml.
 CONFIG="${CONFIG:-${CODEX_HOME:-$HOME/.codex}/config.toml}"

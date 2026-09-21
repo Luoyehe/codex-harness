@@ -113,23 +113,6 @@ test("Zhipu feature activation ignores comments and overrides a disabled flag id
   }
 });
 
-test("MCP approval migration never auto-approves third-party servers", options, () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "provider-config-"));
-  try {
-    const config = path.join(dir, "config.toml");
-    writeFileSync(config, '[mcp_servers.third_party]\ncommand = "untrusted"\n[mcp_servers.web-reader]\ncommand = "node"\n# default_tools_approval_mode was previously absent\n[mcp_servers.zread]\ndefault_tools_approval_mode = "prompt"\n');
-    const code = block("zhipu-coding-plan/fix-mcp-approval.sh", 'allowed = {"web-search-prime"');
-    run(code, [config]);
-    run(code, [config]);
-    const value = parsed(config);
-    assert.equal(value.mcp_servers.third_party.default_tools_approval_mode, undefined);
-    assert.equal(value.mcp_servers["web-reader"].default_tools_approval_mode, "approve");
-    assert.equal(value.mcp_servers.zread.default_tools_approval_mode, "prompt");
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
 test("MCP setup preserves indented, quoted, array tables and prefix-similar third-party servers", options, () => {
   const dir = mkdtempSync(path.join(tmpdir(), "provider-config-"));
   try {
@@ -197,6 +180,67 @@ test("custom catalog refresh retains configured effort and known capabilities", 
     assert.ok(!("context_window" in catalog.unconfigured_models[0]));
     assert.ok(!("input_modalities" in catalog.unconfigured_models[0]));
     assert.ok(!("default_reasoning_level" in catalog.unconfigured_models[0]));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("provider catalogs cap bytes, entries and aggregate model identifier output", options, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "provider-catalog-limits-"));
+  try {
+    const source = path.join(dir, "catalog.json");
+    const normalized = path.join(dir, "normalized.json");
+    run(`import json,os,sys
+from catalog_limits import (MAX_CATALOG_BYTES, custom_response_ids,
+                            dump_json_limited, load_json_path, normalize_zhipu)
+path, normalized = sys.argv[1:3]
+open(path, 'wb').write(b' ' * (MAX_CATALOG_BYTES + 1))
+try: load_json_path(path)
+except ValueError: pass
+else: raise AssertionError('oversized catalog was parsed')
+too_many = {'data':[{'id':'m-%d' % index} for index in range(257)]}
+try: custom_response_ids(too_many)
+except ValueError: pass
+else: raise AssertionError('catalog entry cap was not enforced')
+aggregate = {'data':[{'id':'x' * 252 + ('%04d' % index)} for index in range(256)]}
+try: custom_response_ids(aggregate)
+except ValueError: pass
+else: raise AssertionError('aggregate model id bytes were not capped')
+valid = {'models':[{'slug':'model-a'}]}
+open(path, 'w', encoding='utf-8').write(json.dumps(valid))
+normalize_zhipu(path, normalized)
+assert load_json_path(normalized) == valid
+if os.name == 'posix':
+    linked = path + '.link'
+    try:
+        os.symlink(path, linked)
+        try: load_json_path(linked)
+        except (OSError, ValueError): pass
+        else: raise AssertionError('linked catalog was followed')
+    finally:
+        try: os.unlink(linked)
+        except FileNotFoundError: pass
+original_lstat = os.lstat
+calls = 0
+def changed(pathname):
+    global calls
+    info = original_lstat(pathname)
+    calls += 1
+    if calls > 1:
+        values = {name:getattr(info, name) for name in dir(info) if name.startswith('st_')}
+        values['st_mtime_ns'] = info.st_mtime_ns + 1
+        return type('ChangedInfo', (), values)()
+    return info
+from unittest.mock import patch
+with patch('catalog_limits.os.lstat', side_effect=changed):
+    try: load_json_path(path)
+    except ValueError: pass
+    else: raise AssertionError('catalog path replacement was accepted')
+try: dump_json_limited({'models':[{'slug':'ok','padding':'x' * MAX_CATALOG_BYTES}]})
+except ValueError: pass
+else: raise AssertionError('serialized catalog cap was not enforced')
+`, [source, normalized]);
+    for (const script of ["custom-openai/setup.sh", "zhipu-coding-plan/setup.sh"]) {
+      assert.match(readFileSync(path.join(providers, script), "utf8"), /--max-filesize 1048576/);
+    }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

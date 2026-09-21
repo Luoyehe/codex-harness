@@ -10,6 +10,17 @@ export function requirePaidVerification() {
 }
 
 const declineReason = "Unattended verification declines interactive requests";
+const MAX_INCOMING_FRAME_BYTES = 8 * 1024 * 1024;
+const MAX_OUTGOING_RPC_BYTES = 4 * 1024 * 1024;
+const MAX_RETAINED_NOTIFICATION_BYTES = 16 * 1024 * 1024;
+const MAX_RETAINED_NOTIFICATIONS = 4096;
+const MAX_PENDING_RPCS = 64;
+
+/** Only a correlated, explicit gateway error proves RPC rejection. Socket
+ * loss, malformed data and local timeouts must not satisfy negative probes. */
+export class VerificationRpcError extends Error {
+  constructor(method) { super(`RPC ${method} rejected`); this.method = method; }
+}
 
 function declineRequest(message) {
   let payload;
@@ -33,18 +44,28 @@ function validTimeout(timeoutMs) {
   return timeoutMs;
 }
 
+export function verificationTimeout(env = process.env) {
+  const value = Number(env.HARNESS_VERIFY_TIMEOUT_MS ?? 15000);
+  if (!Number.isSafeInteger(value) || value < 1 || value > 120000) throw new Error("Invalid verification timeout (1..120000 ms)");
+  return value;
+}
+
 export class VerificationClient {
   notes = [];
   pending = new Map();
   nextId = 1;
   closed = false;
+  notesBytes = 0;
+  noteSizes = new WeakMap();
 
   constructor(url = process.env.GATEWAY_WS ?? "ws://127.0.0.1:8080/ws", options = wsOptions(), { openTimeoutMs = 10000 } = {}) {
     validTimeout(openTimeoutMs);
     this.url = url;
-    this.options = options;
+    const requestedMax = Number(options?.maxPayload);
+    this.options = { ...options, maxPayload: Number.isSafeInteger(requestedMax) && requestedMax > 0
+      ? Math.min(requestedMax, MAX_INCOMING_FRAME_BYTES) : MAX_INCOMING_FRAME_BYTES };
     this.openTimeoutMs = openTimeoutMs;
-    try { this.ws = new WebSocket(url, options); }
+    try { this.ws = new WebSocket(url, this.options); }
     catch { throw new Error("Invalid verification WebSocket connection options"); }
     this.opened = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -64,7 +85,14 @@ export class VerificationClient {
     this.ws.on("error", () => this.rejectPending(new Error("WebSocket failed")));
     this.ws.on("message", data => {
       let message;
-      try { message = JSON.parse(data.toString()); }
+      const raw = data.toString();
+      const rawBytes = Buffer.byteLength(raw);
+      if (rawBytes > MAX_INCOMING_FRAME_BYTES) {
+        this.rejectPending(new Error("Gateway frame exceeded verification limit"));
+        this.ws.terminate();
+        return;
+      }
+      try { message = JSON.parse(raw); }
       catch { this.rejectPending(new Error("Invalid gateway JSON")); this.ws.terminate(); return; }
       if (!message || typeof message !== "object" || Array.isArray(message)) {
         this.rejectPending(new Error("Invalid gateway envelope"));
@@ -76,19 +104,37 @@ export class VerificationClient {
         if (waiter) {
           clearTimeout(waiter.timer);
           this.pending.delete(message.id);
-          message.error ? waiter.reject(new Error(`RPC ${waiter.method} rejected`)) : waiter.resolve(message.result);
+          if (message.error != null) {
+            waiter.reject(typeof message.error === "string" && message.error.length
+              ? new VerificationRpcError(waiter.method) : new Error("Invalid gateway RPC error"));
+          } else waiter.resolve(message.result);
         }
       } else if (message.kind === "notification") {
+        if (this.notes.length === 0) this.notesBytes = 0;
         this.notes.push(message);
-        if (this.notes.length > 10000) this.notes.splice(0, 1000);
+        this.noteSizes.set(message, rawBytes);
+        this.notesBytes += rawBytes;
+        while (this.notes.length > MAX_RETAINED_NOTIFICATIONS || this.notesBytes > MAX_RETAINED_NOTIFICATION_BYTES) {
+          const removed = this.notes.shift();
+          this.notesBytes -= removed ? this.noteSizes.get(removed) ?? 0 : 0;
+        }
       } else if (message.kind === "serverRequest") {
         // Use the pinned protocol's negative response, not an RPC transport
         // error, so an ordinary refusal does not turn into a protocol failure.
+        if (!((typeof message.requestId === "string" && message.requestId.length > 0 && message.requestId.length <= 256)
+            || Number.isSafeInteger(message.requestId))) {
+          this.rejectPending(new Error("Invalid gateway server request ID"));
+          this.ws.terminate();
+          return;
+        }
         try {
           this.ws.send(JSON.stringify(declineRequest(message)), error => {
             if (error) { this.rejectPending(new Error("Interactive refusal send failed")); this.ws.terminate(); }
           });
         } catch { this.rejectPending(new Error("Interactive refusal send failed")); this.ws.terminate(); }
+      } else {
+        this.rejectPending(new Error("Invalid gateway message kind"));
+        this.ws.terminate();
       }
     });
   }
@@ -103,10 +149,16 @@ export class VerificationClient {
     validTimeout(timeoutMs);
     await this.opened;
     if (this.closed || this.ws.readyState !== WebSocket.OPEN) throw new Error("Verification connection is closed");
+    if (typeof method !== "string" || !/^[A-Za-z][A-Za-z0-9/._-]{0,127}$/.test(method)) {
+      throw new Error("Invalid verification RPC method");
+    }
+    if (this.pending.size >= MAX_PENDING_RPCS) throw new Error("Too many pending verification RPCs");
+    if (!Number.isSafeInteger(this.nextId) || this.nextId > Number.MAX_SAFE_INTEGER) throw new Error("Verification RPC ID space exhausted");
     const id = this.nextId++;
     let wire;
     try { wire = JSON.stringify({ kind: "rpc", id, method, params }); }
     catch { throw new Error(`RPC ${method} parameters are not serializable`); }
+    if (Buffer.byteLength(wire) > MAX_OUTGOING_RPC_BYTES) throw new Error(`RPC ${method} exceeds verification request limit`);
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`RPC ${method} timed out`)); }, timeoutMs);
       this.pending.set(id, { method, resolve, reject, timer });
@@ -198,24 +250,37 @@ export async function completedCompaction(client, threadId) {
 export async function cleanupThread(client, threadId) {
   if (!threadId) return;
   let cleanupClient = client;
-  const reconnect = () => new VerificationClient(client.url, client.options, { openTimeoutMs: client.openTimeoutMs });
+  const temporaryClients = [];
+  const reconnect = () => {
+    const next = new VerificationClient(client.url, client.options, { openTimeoutMs: client.openTimeoutMs });
+    temporaryClients.push(next);
+    return next;
+  };
   try {
     if (client.closed || client.ws.readyState !== WebSocket.OPEN) cleanupClient = reconnect();
     try { await cleanupClient.rpc("turn/interrupt", { threadId }, 3000); } catch { /* may already be idle */ }
     // A disconnect during interruption must not silently abandon the thread.
-    // Retry on a fresh connection once, then report any deletion failure.
-    if (cleanupClient === client && (client.closed || client.ws.readyState !== WebSocket.OPEN)) cleanupClient = reconnect();
+    // Whether this was the original socket or an initial cleanup reconnect,
+    // use one fresh connection for the authoritative deletion attempt.
+    if (cleanupClient.closed || cleanupClient.ws.readyState !== WebSocket.OPEN) cleanupClient = reconnect();
     await cleanupClient.rpc("thread/delete", { threadId });
   } finally {
-    if (cleanupClient !== client) cleanupClient.close();
+    for (const temporary of temporaryClients) temporary.close();
   }
 }
 
-export async function cleanupTerminal(client, processId) {
+export async function cleanupTerminal(client, processId, timeoutMs = verificationTimeout()) {
   if (!processId) return;
   const cleanupClient = client.closed || client.ws.readyState !== WebSocket.OPEN
     ? new VerificationClient(client.url, client.options, { openTimeoutMs: client.openTimeoutMs })
     : client;
-  try { await cleanupClient.rpc("terminal/terminate", { processId }); }
+  try {
+    await cleanupClient.rpc("terminal/terminate", { processId });
+    // The terminate RPC only acknowledges the signal request. Keep the
+    // verifier alive until the command promise settles and the gateway emits
+    // the matching lifecycle event; otherwise a failed cleanup could be
+    // reported as successful while its shell is still running.
+    await cleanupClient.waitFor(note => note.method === "terminal/exited" && note.params?.processId === processId, timeoutMs);
+  }
   finally { if (cleanupClient !== client) cleanupClient.close(); }
 }

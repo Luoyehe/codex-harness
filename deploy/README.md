@@ -65,6 +65,8 @@ root 一行安装的实际状态目录是 `/var/lib/codex-harness/.codex`，默�
 
 管理网关与 Agent 使用不同 Unix 身份。网关只通过私有 stdio 启动固定的 worker 后端；后端没有 HTTP/WS 监听入口，配置、会话与附件仍由原 worker 账号维护，不需要把已有私有数据改成组可读。root 所有的实例 helper 仅向网关账号授权固定的后端启动、本实例重启与最近 300 行日志；worker 没有这些 sudo 权限，也不加入全局日志权限组。网关令牌不会传入 worker 环境。
 
+服务注册本身也是一项事务：unit、实例 admin/worker 启动器、sudoers、管理命令和网关控制配置会先完整写入 root 私有 staging，逐项快照后才原子发布；`daemon-reload`、开机启用或启动失败都会尝试恢复原文件及原 enabled/active 状态。若自动回滚也失败，安装器会明确打印 `/var/lib/codex-harness-registration/recovery.*` 恢复目录并保留只供 root 读取的快照。此时不要反复重跑安装或手工删除该目录；先按报错停止仍在运行的候选服务、完成恢复并确认 systemd 状态，再清理恢复材料。
+
 首次打开页面（包括本机和 SSH 隧道）需要浏览器 Basic 登录：用户名任意，密码由管理员用 `sudo` 读取 `<GATEWAY_CONTROL_HOME>/gateway-token`。不要把令牌粘贴给 Agent 或提交到仓库。旧单账号部署升级时会生成新的管理令牌；仅迁移旧环境中的合法 `TRUSTED_HOSTS` / `GATEWAY_HTTPS`，不复用 worker 曾经能读取的旧令牌。供应商密钥仍位于 `ENV_FILE`；网关/反代设置改放 `GATEWAY_CONTROL_HOME/gateway.env`。
 
 需要 Python 3.11+；推荐 Ubuntu 24.04+ 或 Debian 12+。安装器使用 `/usr/local/lib/codex-harness/codex/<版本>/` 下的独立 CLI，不替换其它应用的全局 Codex。多实例默认共享 worker 账号，因此各实例的 Agent 数据不构成 OS 隔离；需要该隔离时显式使用不同 `RUN_USER`。卸载会检查默认路径、全部 `webui-projects.json` 注册项目及其它已注册实例的程序/数据引用；重叠、失效或无法读取的清单均拒绝自动删除。程序目录祖先不受 root 控制时也拒绝自动删除，须由管理员单独处理。
@@ -200,7 +202,7 @@ sudo codex-harness update
 1. 结束所有任务和网页终端，确认实例名、原安装目录、worker 账号、Node/工具路径、`CODEX_HOME`、`ENV_FILE`、工作区及现有 edge 配置。自定义实例全程使用相同 `SERVICE_NAME`。
 2. 停止该实例，并备份旧源码/构建、systemd unit、管理入口、数据与实际配置链接目标、项目，以及已有的控制目录和 edge 配置。备份含凭证，应保存在私有位置；不要只复制 `secrets.env` 软链。修复重装不删除这些数据，但不能替代备份。
 3. 确认原安装目录、Node 与工具路径及其祖先均为 root 所有且不可被普通用户修改。旧 root 服务、普通用户持有的运行时，或 root 所有的旧数据/环境文件，须先按“一、安装”中的账号与路径要求明确迁移；不要批量 `chown` 整棵项目或共享运行时。
-4. 在**原实例的安装目录**取得 v1.1.0，然后直接使用新版 `deploy/manage.sh` 修复重装。下面仅适用于默认实例、默认路径、已满足权限要求且无本地修改的 Git 部署，各步失败后应停止检查，不要继续执行下一步：
+4. 在**原实例的安装目录**取得当前 v1.2.0，然后直接使用新版 `deploy/manage.sh` 修复重装。旧版可以直接迁移；已使用 v1.1.0 的实例也用这一步应用新版候选验证器、服务注册和启动器。下面仅适用于默认实例、默认路径、已满足权限要求且无本地修改的 Git 部署，各步失败后应停止检查，不要继续执行下一步：
 
    ```bash
    sudo -i
@@ -208,7 +210,7 @@ sudo codex-harness update
    git status --short                 # 必须无输出；有修改时先保存并处理
    systemctl stop codex-harness       # 应已完成上面的停机备份
    git fetch origin --tags
-   git merge --ff-only v1.1.0
+   git merge --ff-only v1.2.0
    SERVICE_NAME=codex-harness bash deploy/manage.sh reinstall repair
    ```
 
@@ -219,13 +221,13 @@ sudo codex-harness update
 
 ### 验证脚本的边界
 
-默认 `verify` 和 smoke 不做商业模型调用。目录、工具列表或初始化成功，也不等于工具任务成功；`list-mcp-tools.mjs` 当前还缺少完整的超时/错误退出保证，不能仅凭其退出码验收。失败或状态未知时不要自动重跑真实任务。低优先级 UI 与运维限制见 [CHANGELOG](../CHANGELOG.md#已知限制与验证边界)。
+默认 `verify` 和 smoke 不做商业模型调用。`list-mcp-tools.mjs` 已对连接、RPC、总执行时间、分页和游标设置界限，并在检查失败时非零退出；但目录、工具列表或初始化成功仍不等于真实工具任务成功，不能仅凭列表退出码完成业务验收。失败或状态未知时不要自动重跑真实任务。其余外部验收边界见 [CHANGELOG](../CHANGELOG.md#v120-验证边界)。
 
 ## 裸跑注意事项
 
 - **服务用户**：root 安装时默认创建专用 `codex-harness` 非登录用户（home 为 `/var/lib/codex-harness`）；需要复用现有账号时可显式设置 `RUN_USER`。安装/修复及供应商配置维护要求非 root 服务账号，不再支持 root 绕过。若发行版限制非特权 userns，请按系统安全策略为 Codex 沙箱启用所需能力，不要把整个网关改回 root。
 - **项目路径与权限**：注册项目只是在应用中记录目录并选择工作目录，不会授予权限，也不是 OS 沙箱。目录各级父路径必须允许服务用户穿越，项目本身还需按任务授予读写权限；安装器不会递归改动现有项目树的属主。
-- **网页终端**：终端通过固定版本 app-server 的 `command/exec` 运行，未显式指定的沙箱策略取决于 Codex 配置；它不继承 Composer 当前回合的权限选择。进程始终属于 worker 账号。选中项目只决定初始 `cwd`，注册项目本身不是隔离机制；不要把“已选项目”理解为只能访问该目录。
+- **网页终端**：终端通过固定版本 app-server 的 `command/exec` 运行，并明确使用 `dangerFullAccess`；它不继承 Composer 当前回合的权限选择。进程始终属于 worker 账号。选中项目只决定初始 `cwd`，注册项目本身不是隔离机制；不要把“已选项目”理解为只能访问该目录。
 - **同机访问认证**：默认要求管理令牌，包括 loopback。网关与 worker 的独立身份、私有管理目录及固定 stdio 后端共同构成权限边界；仅设置 `required` 不足以保护同一 Unix 账号运行的手工部署。Bearer 与已有 cookie 同样可用。各实例 cookie 名独立，但不同端口本身不是浏览器 cookie 的安全隔离边界；远程仍需 TLS 和登录反代。
 - **MCP 密钥**：`<CODEX_HOME>/secrets.env` 是当前代密钥的稳定入口；私有旧代保留恢复副本。`config.toml` 只含环境变量名，密钥不会进入 TOML、命令参数或诊断输出
 - **mcpServerStatus 显示的工具数是懒握手/缓存**：真实健康以 verify-mcp-tools 的实际调用为准

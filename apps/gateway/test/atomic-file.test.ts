@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { atomicWriteFileSync } from "../src/atomic-file.js";
+import { atomicWriteFile, atomicWriteFileSync } from "../src/atomic-file.js";
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
@@ -49,6 +49,18 @@ it("replaces an existing file with one same-directory rename after flushing the 
   expect(destination).toBe(target);
   expect(vi.mocked(fsyncSync).mock.invocationCallOrder[0])
     .toBeLessThan(vi.mocked(renameSync).mock.invocationCallOrder[0]);
+  if (process.platform !== "win32") {
+    // One flush commits file contents before publish; the second persists the
+    // same-directory rename itself.
+    expect(fsyncSync).toHaveBeenCalledTimes(2);
+  }
+});
+
+it("asynchronously replaces an existing file without leaving a temporary entry", async () => {
+  const { home, target } = fixture();
+  await atomicWriteFile(target, '{"state":"accepted-async"}');
+  expect(readFileSync(target, "utf8")).toBe('{"state":"accepted-async"}');
+  expect(readdirSync(home)).toEqual(["operation.json"]);
 });
 
 it.each(["EPERM", "EACCES", "EEXIST"])(
@@ -68,3 +80,13 @@ it.each(["EPERM", "EACCES", "EEXIST"])(
       .toBeLessThan(vi.mocked(renameSync).mock.invocationCallOrder[0]);
   },
 );
+
+it.runIf(process.platform !== "win32")("propagates a directory fsync I/O failure after publish", () => {
+  const { target } = fixture();
+  const failure = Object.assign(new Error("directory durability failed"), { code: "EIO" });
+  vi.mocked(fsyncSync).mockImplementationOnce(() => undefined).mockImplementationOnce(() => { throw failure; });
+  expect(() => atomicWriteFileSync(target, '{"state":"accepted"}')).toThrow(failure);
+  // Rename was atomic and visible, but the caller is correctly told that
+  // crash durability was not confirmed.
+  expect(readFileSync(target, "utf8")).toBe('{"state":"accepted"}');
+});
