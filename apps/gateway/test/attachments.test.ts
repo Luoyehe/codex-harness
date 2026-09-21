@@ -349,20 +349,28 @@ describe("AttachmentStore containment and cleanup", () => {
   });
 
   it("persists a moving recovery cursor so 128 retained entries cannot starve later orphans", async () => {
+    const startedAt = 1_800_000_000_000;
+    const clock = vi.spyOn(Date, "now").mockReturnValue(startedAt);
     const root = home();
     const store = new AttachmentStore(root);
     const files = Array.from({ length: 129 }, () => store.save("data.csv", "eA==", "file").path).sort();
-    for (const file of files) store.reservePaths("old-thread", [file]);
+    // One reservation persists the same owners without 129 unrelated index
+    // rewrites during setup. Keep real files and both restarted stores below.
+    store.reservePaths("old-thread", files);
     const first = new AttachmentStore(root);
     (first as any).findReferencedByOtherRollout = async (needles: string[]) => ({ referenced: new Set(needles.filter((file) => file !== files[128])), complete: true });
     await first.recoverCleanup();
     expect(existsSync(files[128])).toBe(true);
+    // Make the retained entries eligible again: reaching the orphan must
+    // depend on the persisted cursor, not on the earlier entries' backoff.
+    clock.mockReturnValue(startedAt + AttachmentStore.ROLLOUT_RECHECK_MS + 1);
     const next = new AttachmentStore(root);
     (next as any).findReferencedByOtherRollout = (first as any).findReferencedByOtherRollout;
     await next.recoverCleanup();
     expect(existsSync(files[128])).toBe(false);
     expect(existsSync(files[0])).toBe(true);
-  });
+    // Durable creation of 129 files can exceed the default 5s on Windows CI.
+  }, 15_000);
   it.each(["missing", "corrupt", "array", "invalid-owners", "unreadable"])("recovers conservatively from a %s reference index", async (problem) => {
     const root = home();
     const first = new AttachmentStore(root);
