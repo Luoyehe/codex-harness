@@ -71,22 +71,50 @@ jobs:
           script: |
             const pinned = '${{ steps.versions.outputs.pinned }}';
             const latest = '${{ steps.versions.outputs.latest }}';
-            const title = `Codex compatibility review: ${pinned} → ${latest}`;
+            const candidate = '${{ steps.candidate.outcome }}';
+            const runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+            const title = 'Codex compatibility review';
             const body = [
               'A newer Codex release was detected by the scheduled compatibility watch.',
               '',
               `- Repository pin: \`${pinned}\``,
               `- Published version: \`${latest}\``,
-              `- Candidate protocol/check step: \`${{ steps.candidate.outcome }}\``,
+              `- Candidate protocol/check step: \`${candidate}\``,
+              `- Check run: ${runUrl}`,
               '',
               'Do not upgrade automatically. Regenerate `protocol/`, review the protocol diff, run unit/e2e/provider tests, then update the pin in a reviewed pull request.',
             ].join('\n');
             const data = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
             });
-            const existing = data.find(issue => !issue.pull_request && issue.title === title);
+            const legacyTitle = /^Codex compatibility review: \d+\.\d+\.\d+ → \d+\.\d+\.\d+$/;
+            const reports = data.filter(issue => !issue.pull_request &&
+              issue.user?.login === 'github-actions[bot]' &&
+              (issue.title === title || legacyTitle.test(issue.title)))
+              .sort((a, b) => b.number - a.number);
+            const existing = reports.find(issue => issue.title === title) ?? reports[0];
+            let issue;
             if (existing) {
-              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+              ({ data: issue } = await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body,
+              }));
             } else {
-              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
+              ({ data: issue } = await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo, title, body,
+              }));
             }
+            for (const stale of reports.filter(report => report.number !== issue.number)) {
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: stale.number,
+                state: 'closed', state_reason: 'not_planned',
+              });
+            }
+            if (candidate !== 'success') {
+              core.warning(`Codex candidate protocol/check: ${candidate}. Review ${issue.html_url}`);
+            }
+            await core.summary
+              .addHeading('Codex compatibility watch')
+              .addRaw(`Repository pin: \`${pinned}\` · Published: \`${latest}\` · Candidate protocol/check: **${candidate}**`)
+              .addBreak()
+              .addLink(`Rolling issue #${issue.number}`, issue.html_url)
+              .write();
