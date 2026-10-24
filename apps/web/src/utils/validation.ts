@@ -10,18 +10,19 @@ export function validatedHttpUrl(value: unknown): string | null {
   try {
     const parsed = new URL(input);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-    if (!parsed.hostname || parsed.username || parsed.password || parsed.hash) return null;
+    if (!parsed.hostname || parsed.username || parsed.password) return null;
     return input;
   } catch {
     return null;
   }
 }
 
-/** Provider base URLs may contain a path such as /v1, but query parameters
+/** Provider base URLs may contain a path such as /v1, but queries and fragments
  * are not part of the stable endpoint identity and the gateway rejects them.
  * Keep this stricter than ordinary clickable HTTP links. */
 export function validatedApiBaseUrl(value: unknown): string | null {
   const input = validatedHttpUrl(value);
   if (!input) return null;
-  return new URL(input).search ? null : input;
+  const parsed = new URL(input);
+  return parsed.search || parsed.hash ? null : input;
 }

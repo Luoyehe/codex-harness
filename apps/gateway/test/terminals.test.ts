@@ -5,6 +5,36 @@ import { makeDispatcher } from "../src/api.js";
 afterEach(() => vi.useRealTimers());
 
 describe("connection-owned terminals", () => {
+  it.each(["restarting", "ready"])("rejects an old terminal open when directory lookup crosses a generation (%s)", async (state) => {
+    let resolveCwd!: (value: string) => void;
+    const cwd = new Promise<string>((resolve) => { resolveCwd = resolve; });
+    const sessions = new Terminals(async () => ({}));
+    sessions.connect("browser");
+    const request = vi.fn(async () => ({}));
+    const supervisor = { state: "ready", request };
+    const notify = vi.fn();
+    const dispatch = makeDispatcher({ supervisor, projects: { resolveRegistered: () => cwd },
+      workspaceRoot: "/project", terminals: sessions, notify } as any);
+    const opening = dispatch("terminal/exec", { cwd: "/project" }, "browser");
+    supervisor.state = state;
+    sessions.reset();
+    resolveCwd("/project");
+    await expect(opening).rejects.toThrow("changed while checking");
+    expect(request).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("allows two independent directory lookups to open terminals in the same generation", async () => {
+    const sessions = new Terminals(async () => ({}));
+    sessions.connect("browser");
+    const request = vi.fn(() => new Promise(() => {}));
+    const dispatch = makeDispatcher({ supervisor: { state: "ready", request }, projects: { resolveRegistered: async () => "/project" },
+      workspaceRoot: "/project", terminals: sessions, notify: vi.fn() } as any);
+    const [first, second] = await Promise.all([dispatch("terminal/exec", {}, "browser"), dispatch("terminal/exec", {}, "browser")]);
+    expect(first).not.toEqual(second);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
   it("rejects duplicate ids and cross-client controls, enforces both quotas", () => {
     const sessions = new Terminals(async () => ({}), 1, 2);
     for (const owner of ["a", "b", "c"]) sessions.connect(owner);

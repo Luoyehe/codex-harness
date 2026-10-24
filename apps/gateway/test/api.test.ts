@@ -41,6 +41,12 @@ function fakeCtx(overrides: Partial<ApiContext> = {}) {
 }
 
 describe("thread/list param validation", () => {
+  it.each(["a".repeat(199) + "🙂", "🙂".repeat(201), "a".repeat(200) + "🙂"])("truncates title search by complete Unicode code points", async (searchTerm) => {
+    const { dispatch, calls } = fakeCtx();
+    await dispatch("thread/list", { searchTerm: `  ${searchTerm}  ` });
+    expect(calls[0].params.searchTerm).toBe([...searchTerm].slice(0, 200).join(""));
+    expect(/[\uD800-\uDFFF]/u.test(calls[0].params.searchTerm)).toBe(false);
+  });
   it("non-finite limits fall back to the default instead of NaN", async () => {
     for (const bad of [NaN, Infinity, -Infinity]) {
       const { dispatch, calls } = fakeCtx();

@@ -20,6 +20,25 @@ test("compatibility watch serializes issue reconciliation", () => {
   assert.match(workflow, /concurrency:\r?\n\s+group: codex-compat-\$\{\{ github\.repository \}\}\r?\n\s+cancel-in-progress: false/);
 });
 
+test("ordinary CI and upstream watch never fall back to full tests", () => {
+  assert.match(ci, /workflow_dispatch:[\s\S]*audit_closeout:[\s\S]*three consecutive complete audits/);
+  const fullCommands = [...ci.matchAll(/- name: Full tests[^\n]*\r?\n\s+if: ([^\n]+)\r?\n\s+run: pnpm test/g)];
+  assert.equal(fullCommands.length, 2);
+  for (const match of fullCommands) assert.equal(match[1].trim(), "github.event_name == 'workflow_dispatch' && inputs.audit_closeout == true");
+  assert.equal([...ci.matchAll(/run: pnpm test(?:\r?\n|$)/g)].length, fullCommands.length);
+  assert.equal([...ci.matchAll(/node scripts\/targeted-tests\.mjs --reviewed-tests .* --base/g)].length, 2);
+  assert.match(ci, /reviewed_test_files:/);
+  assert.match(ci, /plan\.requiredNativeChecks\.some/);
+  assert.match(ci, /HARNESS_ALLOW_SYSTEMD_FIXTURE: "1"/);
+  assert.match(ci, /export CODEX_BIN=.*codex-targeted-runtime/);
+  assert.match(workflow, /node scripts\/targeted-tests\.mjs --files protocol\/v2\/TurnStartParams\.ts/);
+  assert.match(workflow, /npm install .*--ignore-scripts.*@openai\/codex@/);
+  assert.match(workflow, /export HARNESS_EXPECTED_CODEX_VERSION='\$\{\{ steps\.versions\.outputs\.latest \}\}'/);
+  assert.match(workflow, /"\$CODEX_BIN" app-server generate-ts --out protocol/);
+  assert.match(workflow, /pnpm typecheck\r?\n\s+pnpm build\r?\n\s+node scripts\/targeted-tests/);
+  assert.doesNotMatch(workflow, /^\s+pnpm test\s*$/m);
+});
+
 for (const scenario of ["later-page", "same-title-pull-request"]) {
   test(`compatibility watch updates the existing issue (${scenario})`, async () => {
     const title = "Codex compatibility review: 1.0.0 → 1.1.0";

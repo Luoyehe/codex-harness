@@ -1,6 +1,6 @@
 // Fixed app-server contract regression. Only loopback canned Responses, no
 // credentials, inference, MCP servers, tool commands or existing CODEX_HOME.
-// Build gateway first. CODEX_BIN must point to the supported 0.149.0 executable.
+// Build gateway first. CODEX_BIN must point to the supported 0.164.0 executable.
 import assert from "node:assert/strict";
 import http from "node:http";
 import { spawnSync } from "node:child_process";
@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnOfflineChild, stopOfflineChild } from "./offline-process.mjs";
+import { assertCodexVersion, expectedCodexVersion } from "./codex-version.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const defaultsModule = pathToFileURL(process.argv[2] ?? path.join(root, "apps/gateway/dist/turn-defaults.js"));
@@ -18,9 +19,10 @@ const { TurnDefaults } = await import(defaultsModule.href);
 const { makeDispatcher } = await import(new URL("./api.js", defaultsModule).href);
 const bin = process.env.CODEX_BIN;
 assert.ok(bin && path.isAbsolute(bin), "CODEX_BIN must be an absolute pinned binary path");
+const expectedVersion = expectedCodexVersion();
 const version = spawnSync(bin, ["--version"], { encoding: "utf8", windowsHide: true, timeout: 10000 });
 assert.equal(version.status, 0);
-assert.match(version.stdout, /\b0\.149\.0\b/);
+assertCodexVersion(version.stdout, expectedVersion);
 const scratch = mkdtempSync(path.join(tmpdir(), "harness-default-reset-"));
 const home = path.join(scratch, "home"), cwd = path.join(scratch, "workspace");
 mkdirSync(home, { mode: 0o700 }); mkdirSync(cwd, { mode: 0o700 });
@@ -106,6 +108,7 @@ try {
   await rpc("initialize", { clientInfo: { name: "harness-default-reset-regression", version: "1" } });
   child.stdin.write(JSON.stringify({ method: "initialized", params: {} }) + "\n");
   const initial = await rpc("thread/start", { cwd });
+  assert.equal(initial.thread.historyMode, "paginated");
   const threadId = initial.thread.id;
   // First send must also work before a new thread has materialized a rollout.
   const beforeFirstTurn = await resolver.resolve(threadId);
@@ -119,6 +122,27 @@ try {
   assert.deepEqual(servedModels, ["fixture-b", "fixture-a"]);
   assert.equal(servedRequests[0].reasoning?.effort, "high");
   assert.equal(servedRequests[1].reasoning?.effort, defaults.reasoningEffort);
+
+  // 0.164 defaults to paginated history. Use the production browser boundary
+  // and prove metadata-only resume plus bounded turn/item pages preserve both
+  // messages without relying on deprecated full-history hydration.
+  const metadataOnly = await dispatch("thread/resume", { threadId, excludeTurns: true });
+  assert.deepEqual(metadataOnly.thread.turns, []);
+  const newest = await dispatch("thread/turns/list", { threadId, limit: 1, itemsView: "full" });
+  assert.equal(newest.data.length, 1);
+  assert.equal(newest.data[0].itemsView, "full");
+  assert.equal(typeof newest.nextCursor, "string");
+  const older = await dispatch("thread/turns/list", { threadId, limit: 1, itemsView: "full", cursor: newest.nextCursor });
+  assert.equal(older.data.length, 1);
+  assert.notEqual(older.data[0].id, newest.data[0].id);
+  assert.equal(older.nextCursor, null);
+  const newestItems = await dispatch("thread/items/list", { threadId, turnId: newest.data[0].id, limit: 1 });
+  assert.equal(newestItems.data.length, 1);
+  assert.equal(newestItems.data[0].turnId, newest.data[0].id);
+  assert.equal(typeof newestItems.nextCursor, "string");
+  const olderItems = await dispatch("thread/items/list", { threadId, turnId: newest.data[0].id, limit: 1, cursor: newestItems.nextCursor });
+  assert.equal(olderItems.data.length, 1);
+  assert.notEqual(olderItems.data[0].item.id, newestItems.data[0].item.id);
 
   const emptyCapabilityResults = [];
   for (const model of ["fixture-unprobed", "fixture-no-summaries"]) {
@@ -139,7 +163,7 @@ try {
     const restored = await rpc("thread/resume", { threadId: id });
     assert.equal(restored.reasoningEffort, baseline.reasoningEffort);
     const restoredRequest = servedRequests.at(-1);
-    // In pinned 0.149.0, supports_reasoning_summaries:false does not suppress
+    // In the pinned CLI, supports_reasoning_summaries:false does not suppress
     // a configured effort on the wire. Preserve that native default behavior;
     // neither this flag nor an empty override list means "omit reasoning".
     assert.equal(firstDefaultRequest.reasoning?.effort, baseline.reasoningEffort);
@@ -153,7 +177,7 @@ try {
       reasoningOnWire: restoredRequest.reasoning ?? null, explicitOverridesRejected: true });
   }
   assert.equal(notes.filter(note => note.method === "thread/started" && note.params?.thread?.ephemeral).length, 0);
-  report = { binary: "0.149.0", externalRequests: 0, fixtureResponses: servedModels.length,
+  report = { binary: expectedVersion, externalRequests: 0, fixtureResponses: servedModels.length, paginatedHistory: true,
     servedModels, initial: pick(initial), overridden: pick(overridden), afterReset: pick(afterReset), emptyCapabilityResults, passed: true };
 } finally {
   for (const item of pending.values()) clearTimeout(item.timer);

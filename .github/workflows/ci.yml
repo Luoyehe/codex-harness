@@ -11,6 +11,20 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      audit_closeout:
+        description: "Confirm this commit has passed three consecutive complete audits without new findings before running full tests"
+        type: boolean
+        default: false
+      base_commit:
+        description: "Base commit SHA for targeted checks (required unless audit_closeout is confirmed)"
+        type: string
+        required: false
+      reviewed_test_files:
+        description: "Reviewed comma-separated test paths for dependency/config changes without an automatic mapping"
+        type: string
+        required: false
 
 jobs:
   check:
@@ -64,22 +78,45 @@ jobs:
           for root in ("deploy", "scripts")
           for path in pathlib.Path(root).rglob("*.py")]'
 
-      - name: Unit tests
-        run: pnpm test
-
       - name: Build
         run: pnpm build
 
+      - name: Targeted tests (ordinary edits)
+        if: github.event_name != 'workflow_dispatch' || inputs.audit_closeout != true
+        env:
+          TEST_BASE: ${{ github.event.pull_request.base.sha || github.event.before || inputs.base_commit }}
+          TEST_REVIEWED_FILES: ${{ inputs.reviewed_test_files }}
+          HARNESS_ALLOW_SYSTEMD_FIXTURE: "1"
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="$RUNNER_TEMP/targeted-test-plan.json"
+          node scripts/targeted-tests.mjs --plan --reviewed-tests "$TEST_REVIEWED_FILES" --base "$TEST_BASE" > "$plan"
+          cat "$plan"
+          if node --input-type=module -e 'import fs from "node:fs"; const plan=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.exit(plan.requiredNativeChecks.some(value => value.startsWith("cli-")) ? 0 : 1)' "$plan"; then
+            pinned="$(sed -n 's/^CODEX_VERSION="\([^"]*\)".*/\1/p' deploy/install.sh)"
+            [[ "$pinned" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+            npm install --prefix "$RUNNER_TEMP/codex-targeted-runtime" --ignore-scripts --no-audit --no-fund "@openai/codex@$pinned"
+            export CODEX_BIN="$RUNNER_TEMP/codex-targeted-runtime/node_modules/.bin/codex"
+          fi
+          node scripts/targeted-tests.mjs --reviewed-tests "$TEST_REVIEWED_FILES" --base "$TEST_BASE"
+
+      - name: Full tests (three clean audit rounds confirmed)
+        if: github.event_name == 'workflow_dispatch' && inputs.audit_closeout == true
+        run: pnpm test
+
       - name: Built gateway terminal lifecycle (synthetic app-server)
+        if: github.event_name == 'workflow_dispatch' && inputs.audit_closeout == true
         run: pnpm --filter @codex-harness/gateway exec vitest run test/terminal-ws.test.ts
 
       - name: Isolated app-server smoke (no model requests)
+        if: github.event_name == 'workflow_dispatch' && inputs.audit_closeout == true
         shell: bash
         run: |
           set -euo pipefail
           pinned="$(sed -n 's/^CODEX_VERSION="\([^"]*\)".*/\1/p' deploy/install.sh)"
           [[ "$pinned" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          npm install --prefix "$RUNNER_TEMP/codex-smoke-runtime" --no-audit --no-fund "@openai/codex@$pinned"
+          npm install --prefix "$RUNNER_TEMP/codex-smoke-runtime" --ignore-scripts --no-audit --no-fund "@openai/codex@$pinned"
           CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:smoke
           CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:defaults
           CODEX_BIN="$RUNNER_TEMP/codex-smoke-runtime/node_modules/.bin/codex" pnpm test:mcp-context
@@ -116,6 +153,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -129,7 +167,14 @@ jobs:
         run: pnpm typecheck
       # Real Windows process/.cmd paths run here; Bash, Linux ownership/mount
       # fixtures remain explicitly platform-skipped and run in the Linux job.
-      - name: Unit tests (no real Codex or provider calls)
+      - name: Targeted tests (ordinary edits)
+        if: github.event_name != 'workflow_dispatch' || inputs.audit_closeout != true
+        env:
+          TEST_BASE: ${{ github.event.pull_request.base.sha || github.event.before || inputs.base_commit }}
+          TEST_REVIEWED_FILES: ${{ inputs.reviewed_test_files }}
+        run: node scripts/targeted-tests.mjs --reviewed-tests "$env:TEST_REVIEWED_FILES" --base "$env:TEST_BASE"
+      - name: Full tests (three clean audit rounds confirmed, no provider calls)
+        if: github.event_name == 'workflow_dispatch' && inputs.audit_closeout == true
         run: pnpm test
 
   codeql:

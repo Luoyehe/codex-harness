@@ -285,7 +285,7 @@ export class AppServerConnection {
   private activeServerRequestIds = new Map<string, object>();
   private writeBlocked = false;
   private queuedBytes = 0;
-  private writeQueue: Array<{ encoded: string; bytes: number; control: boolean; resources: string[]; id?: number; onError?: (err: Error) => void }> = [];
+  private writeQueue: Array<{ encoded: string; bytes: number; control: boolean; resources: string[]; id?: number; onError?: (err: Error) => void; beforeSend?: () => void }> = [];
   private terminationTimer: ReturnType<typeof setTimeout> | null = null;
   private discardTimer: ReturnType<typeof setTimeout> | null = null;
   private terminating = false;
@@ -557,7 +557,7 @@ export class AppServerConnection {
     });
   }
 
-  private writeFrame(frame: any, onError?: (err: Error) => void): void {
+  private writeFrame(frame: any, onError?: (err: Error) => void, beforeSend?: () => void): void {
     const stream = this.stdinStream;
     if (this.transportError) {
       onError?.(new AppServerRequestError("app-server transport is unavailable; request was not sent"));
@@ -574,9 +574,22 @@ export class AppServerConnection {
     }
     let encoded: string;
     try {
-      encoded = JSON.stringify(frame) + "\n";
+      encoded = JSON.stringify(frame, (key, value: unknown) => {
+        const projected = value instanceof String ? String(value) : value;
+        // JSON.stringify escapes unpaired UTF-16 surrogates, but native JSON
+        // parsers reject them without a correlated response. Validate after
+        // toJSON, covering every emitted key/value at both IPC boundaries.
+        if (/[\uD800-\uDFFF]/u.test(key) || typeof projected === "string" && /[\uD800-\uDFFF]/u.test(projected)) {
+          throw new Error("invalid Unicode in app-server frame");
+        }
+        return projected;
+      }) + "\n";
     } catch (err: any) {
-      onError?.(new AppServerRequestError(`failed to serialize app-server frame: ${err?.message ?? String(err)}`));
+      const failure = new AppServerRequestError(`failed to serialize app-server frame: ${err?.message ?? String(err)}`, {
+        code: -32602, data: { delivery: "not_sent" },
+      });
+      if (onError) onError(failure);
+      else this.failTransport(failure);
       return;
     }
     const bytes = Buffer.byteLength(encoded);
@@ -598,6 +611,7 @@ export class AppServerConnection {
       resources: frameResourceKeys(frame),
       id: frame.method ? frame.id : undefined,
       onError,
+      beforeSend,
     });
     this.queuedBytes += bytes;
     this.flushWrites();
@@ -612,6 +626,15 @@ export class AppServerConnection {
         .some((earlier) => entry.resources.some((resource) => earlier.resources.includes(resource))));
       const entry = this.writeQueue.splice(controlIndex < 0 ? 0 : controlIndex, 1)[0];
       this.queuedBytes -= entry.bytes;
+      // Backpressure can outlive the caller's admission. Refuse only this
+      // still-unsent frame, leaving written requests and the transport intact.
+      try { entry.beforeSend?.(); }
+      catch (error) {
+        const failure = error instanceof Error ? error : new Error("app-server pre-send check failed");
+        if (entry.onError) entry.onError(failure);
+        else this.failTransport(failure);
+        continue;
+      }
       try {
         const ready = stream.write(entry.encoded, (err?: Error | null) => {
           if (!err) return;
@@ -786,7 +809,7 @@ export class AppServerConnection {
     this.pending.clear();
   }
 
-  request<T = unknown>(method: string, params?: unknown): Promise<T> {
+  request<T = unknown>(method: string, params?: unknown, beforeSend?: () => void): Promise<T> {
     if (typeof method !== "string" || method.length === 0 || method.length > 512) {
       return Promise.reject(new Error("invalid app-server request method"));
     }
@@ -817,7 +840,7 @@ export class AppServerConnection {
         this.pending.delete(id);
         if (entry.timer) clearTimeout(entry.timer);
         reject(err);
-      });
+      }, beforeSend);
     });
   }
 

@@ -5,7 +5,7 @@ export const networkProtocols: NetworkApprovalProtocol[] = ["http", "https", "so
 
 export function networkOnlyParams(command?: null, protocol: NetworkApprovalProtocol = "https"): CommandExecutionRequestApprovalParams {
   return {
-    threadId: "T", turnId: "turn", itemId: "network", startedAtMs: 0, environmentId: null,
+    kind: "command", threadId: "T", turnId: "turn", itemId: "network", startedAtMs: 0, environmentId: null,
     ...(command === undefined ? {} : { command }),
     cwd: "/network-project", reason: "Fetch the requested resource",
     networkApprovalContext: { protocol, host: "api.example.test:8443" },

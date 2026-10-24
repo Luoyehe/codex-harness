@@ -5,7 +5,7 @@ import process from "node:process";
 import { createEngine } from "./engine.js";
 import { redactSecrets } from "./admin.js";
 import { ControlRequests } from "./control-requests.js";
-import { encodeBounded, FLOW_LIMITS } from "./flow-control.js";
+import { encodeBounded, FLOW_LIMITS, HISTORY_READ_METHODS, WorkerRequestBudget } from "./flow-control.js";
 
 const FRAME_CAP = 36 * 1024 * 1024;
 const QUEUE_CAP = 48 * 1024 * 1024;
@@ -13,7 +13,7 @@ let stopping = false;
 let pending = "";
 let pendingBytes = 0;
 const decoder = new StringDecoder("utf8");
-let inFlight = 0;
+const incoming = new WorkerRequestBudget();
 const controlRequests = new ControlRequests(send);
 // Only the installed Linux launcher supplies this marker after dropping UID.
 // UNSAFE Linux and Windows/macOS development have no equivalent cleanup owner.
@@ -40,16 +40,17 @@ function send(value: unknown): void {
   }
   process.stdout.write(line);
 }
-async function handle(message: any): Promise<void> {
+async function handle(message: any, frameBytes: number): Promise<void> {
   if (controlRequests.receive(message)) return;
   if (typeof message?.method !== "string") return;
   const p = message.params ?? {};
   const id = message.id;
-  if (inFlight >= 72) {
-    if (id !== undefined) send({ id, error: { code: -32000, message: "worker request limit reached", data: { delivery: "rejected" } } });
+  let release: () => void;
+  try { release = incoming.acquire(message.method, p.method, frameBytes); }
+  catch {
+    if (id !== undefined) send({ id, error: { code: -32000, message: "worker request count/byte limit reached", data: { delivery: "rejected" } } });
     return;
   }
-  inFlight++;
   try {
     let result: unknown;
     switch (message.method) {
@@ -64,7 +65,7 @@ async function handle(message: any): Promise<void> {
     if (id !== undefined) {
       // Validate history before serializing a private IPC response. The outer
       // HTTP limit is too late: an oversized worker frame would stop the tree.
-      if (message.method === "gateway/dispatch" && ["thread/read", "thread/resume"].includes(p.method)) {
+      if (message.method === "gateway/dispatch" && HISTORY_READ_METHODS.has(p.method)) {
         try { encodeBounded(result, FLOW_LIMITS.historyBytes); }
         catch (error) { throw Object.assign(error as Error, { delivery: "unknown" }); }
       }
@@ -75,7 +76,7 @@ async function handle(message: any): Promise<void> {
       delivery: error?.delivery === "unknown" ? "unknown" : "rejected",
       ...(error?.errorCode === "RESPONSE_TOO_LARGE" ? { errorCode: "RESPONSE_TOO_LARGE" } : {}),
     } } });
-  } finally { inFlight--; }
+  } finally { release(); }
 }
 async function stop(code = 0): Promise<void> {
   if (stopping) return;
@@ -97,8 +98,9 @@ process.stdin.on("data", (chunk: Buffer) => {
     pending += part;
     if (end < 0) break;
     const line = pending;
+    const frameBytes = pendingBytes;
     pending = ""; pendingBytes = 0;
-    try { void handle(JSON.parse(line)); } catch { void stop(1); return; }
+    try { void handle(JSON.parse(line), frameBytes); } catch { void stop(1); return; }
     offset = end + 1;
   }
 });

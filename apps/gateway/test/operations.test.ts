@@ -32,6 +32,27 @@ it("deduplicates concurrent requests and accepted retries after gateway restart"
   expect(result.thread.turns[0].items[0]).toMatchObject({ clientOperationId: id, harnessAttachments: params.attachments });
 });
 
+it("decorates both pagination shapes without changing cursors, order, timing or source items", async () => {
+  const ledger = new OperationLedger(fixture());
+  await ledger.run(id, params, async () => ({ turn: { id: "turn-one" } }), () => false);
+  const user = { id: "user", type: "userMessage", content: [] };
+  const assistant = { id: "assistant", type: "agentMessage", text: "answer" };
+  const turns = { data: [{ id: "turn-one", items: [user, assistant] }], nextCursor: "older", backwardsCursor: "newer" };
+  const decoratedTurns = ledger.decorateHistoryPage("thread-one", turns, "turns");
+  expect(decoratedTurns).toMatchObject({ nextCursor: "older", backwardsCursor: "newer" });
+  expect(decoratedTurns.data[0].items[0]).toMatchObject({ clientOperationId: id, harnessAttachments: params.attachments });
+  expect(decoratedTurns.data[0].items[1]).toBe(assistant);
+  const items = { data: [{ turnId: "turn-one", item: user, startedAtMs: 1, completedAtMs: 2 }], nextCursor: "older", backwardsCursor: "newer" };
+  const decoratedItems = ledger.decorateHistoryPage("thread-one", items, "items");
+  expect(decoratedItems).toMatchObject({ nextCursor: "older", backwardsCursor: "newer", data: [{ startedAtMs: 1, completedAtMs: 2, item: { clientOperationId: id, harnessAttachments: params.attachments } }] });
+  expect(user).not.toHaveProperty("clientOperationId");
+  expect(turns.data[0].items[0]).toBe(user);
+  expect(items.data[0].item).toBe(user);
+  expect(ledger.decorateHistoryPage("different-thread", items, "items").data[0].item).toBe(user);
+  const oversized = { ...items, data: Array.from({ length: 201 }, () => items.data[0]) };
+  expect(ledger.decorateHistoryPage("thread-one", oversized, "items")).toBe(oversized);
+});
+
 it("never repeats unknown delivery, including a crash before dispatch", async () => {
   const home = fixture();
   const ledger = new OperationLedger(home);
@@ -198,6 +219,15 @@ it("bounds synchronous metadata reads while decorating a large history", () => {
   const decorated = ledger.decorateThreadResult({ thread: { id: "thread-one", turns } });
   expect(decorated.thread.turns[0].items[0]).not.toHaveProperty("harnessAttachments");
   expect(decorated.thread.turns.slice(1).every((turn: any) => turn.items[0].harnessAttachments)).toBe(true);
+
+  const ascending = { data: turns.map(turn => ({ turnId: turn.id, item: turn.items[0] })), nextCursor: null, backwardsCursor: "anchor" };
+  const ascPage = ledger.decorateHistoryPage("thread-one", ascending, "items", true);
+  expect(ascPage.data[0].item).not.toHaveProperty("harnessAttachments");
+  expect(ascPage.data.slice(1).every((entry: any) => entry.item.harnessAttachments)).toBe(true);
+  const descending = { ...ascending, data: [...ascending.data].reverse() };
+  const descPage = ledger.decorateHistoryPage("thread-one", descending, "items");
+  expect(descPage.data.at(-1).item).not.toHaveProperty("harnessAttachments");
+  expect(descPage.data.slice(0, -1).every((entry: any) => entry.item.harnessAttachments)).toBe(true);
 });
 
 it("decorates one notification with a shared metadata read and skips implausibly large item arrays", async () => {

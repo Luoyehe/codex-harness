@@ -15,7 +15,7 @@ sudo codex-harness provider openai
 **推荐直接在 WebUI 登录，不需要停止服务或手工复制凭据：**
 
 1. 先在 ChatGPT 的「设置 → 安全」中启用 Codex 设备代码授权；受管理工作空间可能需要管理员在工作空间权限中开启。见 [OpenAI 官方设备码登录说明](https://learn.chatgpt.com/docs/auth#preferred-device-code-authentication-beta)。
-2. 在 Harness 右上角点击「登录」，获取登录链接与一次性代码。
+2. 在 Harness 左侧导航底部点击「ChatGPT 未登录」，再选择「使用 ChatGPT 设备码登录」，获取登录链接与一次性代码；手机上先打开导航。
 3. 在自己的浏览器中打开链接，登录 ChatGPT 并输入代码，等待 Harness 显示登录成功。
 
 如果先前因未开启授权而失败，开启设置后重新发起登录，使用新生成的代码。不要把一次性代码或 `auth.json` 发给别人。
@@ -25,7 +25,7 @@ sudo codex-harness provider openai
 ```bash
 sudo systemctl stop codex-harness   # 网关持有 codex 子进程时先停
 # 使用 unit 中固定的版本化 CLI 路径；以下为当前默认版本：
-CODEX_CLI=/usr/local/lib/codex-harness/codex/0.149.0/node_modules/.bin/codex
+CODEX_CLI=/usr/local/lib/codex-harness/codex/0.164.0/node_modules/.bin/codex
 sudo -u codex-harness env HOME=/var/lib/codex-harness \
   CODEX_HOME=/var/lib/codex-harness/.codex "$CODEX_CLI" login --device-auth
 sudo systemctl start codex-harness

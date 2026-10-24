@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useStore } from "../store";
 import { validatedHttpUrl } from "../utils/validation";
+import { Dialog } from "./Dialog";
 
 export function LoginModal() {
   const [open, setOpen] = useState(false);
@@ -57,9 +58,8 @@ export function LoginModal() {
         {modeLabel}
       </button>
       {open && (
-        <div className="modal-backdrop" onClick={() => setOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>模型源</h3>
+        <Dialog label="模型源" onClose={() => setOpen(false)}>
+            <div className="dialog-heading"><h3>模型源</h3><button className="icon-btn" aria-label="关闭模型源" onClick={() => setOpen(false)}>×</button></div>
             {appStatusLoad.state === "loading" ? (
               <p className="dim">正在读取当前模型源状态…</p>
             ) : appStatusLoad.state === "error" ? (
@@ -145,8 +145,7 @@ export function LoginModal() {
                 使用 ChatGPT 设备码登录
               </button>
             )}
-          </div>
-        </div>
+        </Dialog>
       )}
     </>
   );

@@ -7,6 +7,9 @@ const keysOnly = (v, allowed) => Object.keys(v).every((key) => allowed.includes(
 const fail = (message) => { throw new Error(message); };
 const MAX_TEXT = 20_000;
 const MAX_REQUEST_BYTES = 256 * 1024;
+// Unicode mode matches unpaired surrogate code points, not valid emoji pairs.
+// JSON.stringify otherwise escapes these into JSON that Rust cannot decode.
+const invalidUnicode = (value) => /[\uD800-\uDFFF]/u.test(value);
 function choices(schema, allowed) {
   if (!object(schema) || allowed && !keysOnly(schema, allowed)) fail("枚举包含未支持的约束");
   const forms = ["enum", "oneOf", "anyOf"].filter((key) => own(schema, key));
@@ -87,10 +90,12 @@ function validDate(v) { return /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(
 export function validateInput(form, values, options = {}) {
   if (form.error) return { error: form.error };
   if (!object(values) || Object.keys(values).some((key) => !form.fields.some((f) => f.id === key))) return { error: "回答包含未知字段" };
+  if (Object.keys(values).some(invalidUnicode)) return { error: "回答字段包含无效 Unicode 字符" };
   const content = Object.create(null);
   for (const field of form.fields) {
     let value = own(values, field.id) ? values[field.id] : undefined;
     if (value === undefined) { if (field.required) return { error: `${field.label}：请填写此字段` }; continue; }
+    if (typeof value === "string" && invalidUnicode(value) || Array.isArray(value) && value.some((v) => typeof v === "string" && invalidUnicode(v))) return { error: "回答包含无效 Unicode 字符" };
     if (field.type === "number" || field.type === "integer") {
       if (options.coerceNumbers !== false && typeof value === "string" && /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(value)) value = Number(value);
       if (typeof value !== "number" || !Number.isFinite(value) || field.type === "integer" && !Number.isInteger(value)) return { error: `${field.label}：请输入有效数字` };
@@ -115,7 +120,13 @@ export function validateInput(form, values, options = {}) {
 /** Empty tool answers mean explicit user cancellation, not fabricated input. */
 export function validateResponse(request, payload) {
   if (!object(payload)) return { error: "回答结构无效" };
-  try { if (new TextEncoder().encode(JSON.stringify(payload)).length > 128 * 1024) return { error: "回答超过大小限制" }; } catch { return { error: "回答无法序列化" }; }
+  try {
+    const serialized = JSON.stringify(payload, (key, value) => {
+      if (invalidUnicode(key) || typeof value === "string" && invalidUnicode(value)) fail("invalid Unicode");
+      return value;
+    });
+    if (new TextEncoder().encode(serialized).length > 128 * 1024) return { error: "回答超过大小限制" };
+  } catch { return { error: "回答无法序列化或包含无效 Unicode 字符" }; }
   if (request.method === "item/tool/requestUserInput") {
     if (!keysOnly(payload, ["answers"]) || !object(payload.answers)) return { error: "回答结构无效" };
     if (!Object.keys(payload.answers).length) return {};

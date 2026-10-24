@@ -10,12 +10,14 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
 import { spawnOfflineChild, stopOfflineChild } from "./offline-process.mjs";
+import { assertCodexVersion, expectedCodexVersion } from "./codex-version.mjs";
 import { handleDynamicToolCall } from "../apps/gateway/dist/mcp-proxy.js";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 assert.ok(process.env.CODEX_BIN && path.isAbsolute(process.env.CODEX_BIN), "CODEX_BIN must be an absolute pinned path");
+const expectedVersion = expectedCodexVersion();
 const version = spawnSync(process.env.CODEX_BIN, ["--version"], { encoding: "utf8", windowsHide: true, timeout: 10000 });
-assert.equal(version.status, 0); assert.match(version.stdout, /\b0\.149\.0\b/);
+assert.equal(version.status, 0); assertCodexVersion(version.stdout, expectedVersion);
 const scratch = mkdtempSync(path.join(tmpdir(), "mcp-context-regression-"));
 const home = path.join(scratch, "home"), cwd = path.join(scratch, "workspace");
 mkdirSync(home); mkdirSync(cwd); mkdirSync(path.join(cwd, ".git")); mkdirSync(path.join(cwd, ".codex"));
@@ -145,7 +147,7 @@ try {
   const cold = await rpc("mcpServer/tool/call", { threadId: id, server: "web-reader", tool: "fixture_marker", arguments: {} });
   assert.deepEqual(cold.content, [{ type: "text", text: "native-marker:cold-override" }]);
   assert.equal(notes.filter(note => note.id != null).length, approvals);
-  report = { passed: true, projectOverrideObserved: true, nativeRpcCalls: 3, modelToolCalls: 1, adapterCallsDuringApproval: adapterCalls, approvals, recursiveRequests: 0, initialMarker: marker, warmMarker, coldMarker, servedResponses, externalRequests: 0 };
+  report = { binary: expectedVersion, passed: true, projectOverrideObserved: true, nativeRpcCalls: 3, modelToolCalls: 1, adapterCallsDuringApproval: adapterCalls, approvals, recursiveRequests: 0, initialMarker: marker, warmMarker, coldMarker, servedResponses, externalRequests: 0 };
 } finally {
   for (const slot of pending.values()) clearTimeout(slot.timer);
   if (child) await stopOfflineChild(child);

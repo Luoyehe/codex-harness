@@ -24,7 +24,9 @@ describe("effective turn defaults", () => {
   it("resolves actual policies, disables lookup MCP startup and unsubscribes without a turn", async () => {
     const { defaults, request } = fixture();
     expect(await defaults.resolve("thread")).toEqual({ model: "base", approvalPolicy: "on-request", sandbox: { type: "readOnly", networkAccess: false }, reasoningEffort: "low" });
-    expect(request).toHaveBeenCalledWith("thread/start", { cwd: "/fixture", ephemeral: true, config: { mcp_servers: { synthetic: { command: "fixture", enabled: false } } } });
+    expect(request).toHaveBeenCalledWith("thread/start", { cwd: "/fixture", ephemeral: true, config: {
+      mcp_servers: { synthetic: { command: "fixture", enabled: false } }, thread_unload_delay_secs: 0,
+    } });
     expect(request).toHaveBeenCalledWith("thread/unsubscribe", { threadId: "lookup-1" });
     expect(request.mock.calls.some(([method]) => method === "turn/start")).toBe(false);
   });
@@ -38,6 +40,47 @@ describe("effective turn defaults", () => {
     defaults.reset();
     await defaults.resolve("a");
     expect(request.mock.calls.filter(([method]) => method === "thread/start")).toHaveLength(3);
+  });
+
+  it("shares equivalent nested config maps but invalidates changed values and array order", async () => {
+    const { defaults, request } = fixture();
+    const original = request.getMockImplementation()!;
+    let config = JSON.parse('{"model":"base","metadata":{"__proto__":{"safe":true},"ordered":[{"a":1,"b":2},"tail"]},"mcp_servers":{"synthetic":{"command":"fixture","enabled":true}}}');
+    request.mockImplementation(async (method, params) => method === "config/read" ? { config } : original(method, params));
+    const first = await defaults.resolve("a");
+    config = JSON.parse('{"mcp_servers":{"synthetic":{"enabled":true,"command":"fixture"}},"metadata":{"ordered":[{"b":2,"a":1},"tail"],"__proto__":{"safe":true}},"model":"base"}');
+    const before = JSON.stringify(config);
+    expect(await defaults.resolve("b")).toEqual(first);
+    expect(request.mock.calls.filter(([method]) => method === "thread/start")).toHaveLength(1);
+    expect(JSON.stringify(config)).toBe(before);
+    expect(Object.getPrototypeOf(config.metadata)).toBe(Object.prototype);
+    expect(Object.hasOwn(config.metadata, "__proto__")).toBe(true);
+
+    config.metadata.ordered.reverse();
+    await defaults.resolve("a");
+    expect(request.mock.calls.filter(([method]) => method === "thread/start")).toHaveLength(2);
+    config.metadata.__proto__.safe = false;
+    await defaults.resolve("a");
+    expect(request.mock.calls.filter(([method]) => method === "thread/start")).toHaveLength(3);
+  });
+
+  it("retains config depth, node and JSON validation limits before stable encoding", async () => {
+    const { defaults, request } = fixture();
+    const original = request.getMockImplementation()!;
+    let config: any = null;
+    for (let index = 0; index < 64; index++) config = { nested: config };
+    request.mockImplementation(async (method, params) => method === "config/read" ? { config } : original(method, params));
+    expect((await defaults.resolve("a")).model).toBe("base");
+    defaults.reset();
+    config = { nested: config };
+    await expect(defaults.resolve("a")).rejects.toThrow(/过于复杂/);
+    config = { wide: Array.from({ length: 100_000 }, () => null) };
+    await expect(defaults.resolve("a")).rejects.toThrow(/过于复杂/);
+    config = { cycle: null }; config.cycle = config;
+    await expect(defaults.resolve("a")).rejects.toThrow(/循环引用/);
+    config = { invalid: Number.POSITIVE_INFINITY };
+    await expect(defaults.resolve("a")).rejects.toThrow(/无效数值/);
+    expect(request.mock.calls.filter(([method]) => method === "thread/start")).toHaveLength(1);
   });
 
   it("invalidates account-scoped cache without skipping in-flight unsubscribe", async () => {
@@ -54,6 +97,39 @@ describe("effective turn defaults", () => {
       sandbox: { type: "readOnly", networkAccess: false }, reasoningEffort: "low" });
     await expect(stale).rejects.toThrow(/环境已变化/);
     expect(request).toHaveBeenCalledWith("thread/unsubscribe", { threadId: "lookup-account-old" });
+  });
+
+  it("does not unsubscribe an old generation's probe on the replacement connection", async () => {
+    const { defaults, request } = fixture();
+    const original = request.getMockImplementation()!;
+    let finish!: (value: unknown) => void;
+    request.mockImplementation(async (method, params) => method === "thread/start"
+      ? new Promise((resolve) => { finish = resolve; })
+      : original(method, params));
+    const stale = defaults.resolve("thread");
+    await vi.waitFor(() => expect(request.mock.calls.some(([method]) => method === "thread/start")).toBe(true));
+    defaults.reset();
+    request.mockImplementation(original);
+    finish({ thread: { id: "lookup-old-runtime" }, model: "base", approvalPolicy: "on-request",
+      sandbox: { type: "readOnly", networkAccess: false }, reasoningEffort: "low" });
+    await expect(stale).rejects.toThrow(/环境已变化/);
+    expect(request.mock.calls.some(([method]) => method === "thread/unsubscribe")).toBe(false);
+    expect((await defaults.resolve("thread")).model).toBe("base");
+    expect(request).toHaveBeenCalledWith("thread/unsubscribe", { threadId: "lookup-1" });
+  });
+
+  it("fails closed on unsubscribe failure and retries instead of caching the failed probe", async () => {
+    const { defaults, request } = fixture();
+    const original = request.getMockImplementation()!;
+    request.mockImplementation(async (method, params) => {
+      if (method === "thread/unsubscribe") throw new Error("fixture unsubscribe failure");
+      return original(method, params);
+    });
+    await expect(defaults.resolve("thread")).rejects.toThrow("fixture unsubscribe failure");
+    request.mockImplementation(original);
+    expect((await defaults.resolve("thread")).model).toBe("base");
+    expect(request.mock.calls.filter(([method]) => method === "thread/start")).toHaveLength(2);
+    expect(request).toHaveBeenCalledWith("thread/unsubscribe", { threadId: "lookup-2" });
   });
 
   it.runIf(process.platform !== "win32")("rejects paths that are absolute only on another operating-system family", async () => {

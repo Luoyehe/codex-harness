@@ -169,7 +169,9 @@ if PICK_OUT="$(pick_model)"; then
   MODEL_EFFORT="$(echo "$PICK_OUT" | sed -n 1p)"
   MODEL_LEVELS="$(echo "$PICK_OUT" | sed -n 2p)"
   MODEL="$(echo "$PICK_OUT" | sed -n 3p)"
-  if [ "${ZHIPU_SYNC_CATALOG:-0}" = "1" ]; then
+  # The native default is valid independently of the advertised overrides,
+  # including models whose override list is empty. Preserve either kind.
+  if [ "${ZHIPU_SYNC_CATALOG:-0}" = "1" ] && [ "${ZHIPU_EFFORT:-}" != "$MODEL_EFFORT" ]; then
     case " $MODEL_LEVELS " in
       *" ${ZHIPU_EFFORT:-} "*) MODEL_EFFORT="$ZHIPU_EFFORT" ;;
       *) log "当前思考档位不在刷新目录中，未提交任何更改"; exit 1 ;;

@@ -1,5 +1,4 @@
 import css from "../src/styles.css?raw";
-import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
@@ -14,6 +13,7 @@ const view = vi.hoisted(() => ({
   drawerTab: null as "diff" | "terminal" | null,
   setDrawerTab(tab: "diff" | "terminal" | null) { view.drawerTab = tab; },
   activeThreadId: null as string | null,
+  historyLoading: {} as Record<string, boolean>,
   currentProject: "P", connection: "open", turnDiff: {}, items: {}, plan: {}, display: {},
   approvals: [] as unknown[], sessions: [],
   approvalSubmissions: {} as Record<string, boolean>, approvalErrors: {} as Record<string, string>,
@@ -24,20 +24,21 @@ vi.mock("../src/store", () => ({ useStore: (select: (state: typeof view) => unkn
 vi.mock("@xterm/xterm", () => ({ Terminal: class {} }));
 vi.mock("@xterm/addon-fit", () => ({ FitAddon: class {} }));
 
-type ButtonProps = { children?: ReactNode; onClick?: () => void };
-function buttons(node: ReactNode): ReactElement<ButtonProps>[] {
-  if (Array.isArray(node)) return node.flatMap(buttons);
-  if (!isValidElement<ButtonProps>(node)) return [];
-  return [...(node.type === "button" ? [node] : []), ...buttons(node.props.children)];
-}
 
 beforeEach(() => {
   view.drawerTab = null; view.activeThreadId = null; view.approvals = []; view.items = {};
+  view.historyLoading = {};
   view.approvalSubmissions = {}; view.approvalErrors = {};
   view.decideApproval.mockReset(); view.openThread.mockReset(); view.readAttachment.mockReset();
 });
 
 describe("Markdown structural budgets and per-message recovery", () => {
+  it("preserves document-section and source-line links from model output", () => {
+    const html = renderToStaticMarkup(<Markdown text={"[Installation](https://example.test/docs#installation) [Source line](https://github.com/org/repo/blob/main/file.ts#L42)"} />);
+    expect(html).toContain('href="https://example.test/docs#installation"');
+    expect(html).toContain('href="https://github.com/org/repo/blob/main/file.ts#L42"');
+    expect(html.match(/rel="noopener noreferrer"/g)).toHaveLength(2);
+  });
   it.each([
     ["quotes", "> ".repeat(10_000) + "nested model response"],
     ["lists", Array.from({ length: 150 }, (_, n) => "  ".repeat(n) + "- item").join("\n")],
@@ -110,19 +111,64 @@ describe("Markdown structural budgets and per-message recovery", () => {
   });
 });
 
+describe("visible history loading status", () => {
+  it("announces initial history loading and removes the message after completion", () => {
+    view.activeThreadId = "T";
+    view.historyLoading = { T: true };
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<Timeline />); });
+    expect(renderer.root.findByProps({ role: "status" }).children.join("")).toContain("正在加载会话历史");
+    view.historyLoading = { T: false };
+    act(() => renderer.update(<Timeline />));
+    expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(0);
+    act(() => renderer.unmount());
+  });
+
+  it("labels retained history as refreshing and preserves its content", () => {
+    view.activeThreadId = "T";
+    view.historyLoading = { T: true };
+    view.items = { T: [{ type: "agentMessage", id: "saved", text: "Previously visible answer" }] };
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain('role="status"');
+    expect(html).toContain("正在刷新会话历史，已有内容暂时保留");
+    expect(html).toContain("Previously visible answer");
+  });
+
+  it("does not mistake an inactive load or a failed load for active loading", () => {
+    view.activeThreadId = "T";
+    view.historyLoading = { Q: true };
+    expect(renderToStaticMarkup(<Timeline />)).not.toContain("正在加载会话历史");
+    view.items = { T: [{ type: "errorItem", id: "failed", message: "History read failed", willRetry: false, historyLoadError: true }] };
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("History read failed");
+    expect(html).not.toContain('role="status"');
+  });
+});
+
 describe("reachable drawer controls", () => {
   it("keeps initial controls visible and opens/closes each panel through the rendered buttons", () => {
     expect(css.match(/\.drawer\s*\{([^}]+)\}/)?.[1]).toMatch(/display:\s*flex/);
-    expect(renderToStaticMarkup(<Drawer />)).toContain("改动 Diff");
-    buttons(Drawer())[0].props.onClick?.();
+    let drawer!: ReactTestRenderer;
+    act(() => { drawer = create(<Drawer />); });
+    const clickTab = (label: string) => act(() => {
+      drawer.root.findAllByType("button").find((node) => node.props.children === label)!.props.onClick();
+      drawer.update(<Drawer />);
+    });
+    expect(JSON.stringify(drawer.toJSON())).toContain("改动 Diff");
+    clickTab("改动 Diff");
     expect(view.drawerTab).toBe("diff");
-    expect(renderToStaticMarkup(<Drawer />)).toContain("当前会话还没有文件改动");
-    buttons(Drawer())[1].props.onClick?.();
+    expect(JSON.stringify(drawer.toJSON())).toContain("当前会话还没有文件改动");
+    clickTab("终端");
     expect(view.drawerTab).toBe("terminal");
-    expect(renderToStaticMarkup(<Drawer />)).toContain("新终端");
-    buttons(Drawer())[1].props.onClick?.();
+    expect(JSON.stringify(drawer.toJSON())).toContain("新终端");
+    clickTab("改动 Diff");
+    expect(drawer.root.findByProps({ className: "terminal-pane" }).props.hidden).toBe(true);
+    clickTab("终端");
+    expect(drawer.root.findByProps({ className: "terminal-pane" }).props.hidden).toBe(false);
+    act(() => { drawer.root.findByProps({ "aria-label": "关闭面板并结束全部终端" }).props.onClick(); drawer.update(<Drawer />); });
     expect(view.drawerTab).toBeNull();
-    expect(renderToStaticMarkup(<Drawer />)).toContain("改动 Diff");
+    expect(drawer.root.findAllByProps({ className: "terminal-pane" })).toHaveLength(0);
+    act(() => drawer.unmount());
   });
 });
 
@@ -173,6 +219,35 @@ describe("permission and output rendering", () => {
     expect(describePermissions(profile)).toEqual({ valid: true, rows: ["未请求额外文件系统/网络权限"] });
   });
 
+  it.each([undefined, null, 1, 1024, 0, -1, 1.5, 1025])(
+    "aligns permission depth %s summaries and both approval buttons", (depth) => {
+      // JSON input also covers Rust's nullable Option, which the generated
+      // optional TypeScript number alone does not express.
+      const profile: RequestPermissionProfile = JSON.parse(JSON.stringify({
+        network: null, fileSystem: { read: ["/project"], write: null, globScanMaxDepth: depth },
+      }));
+      const valid = depth == null || depth === 1 || depth === 1024;
+      const summary = describePermissions(profile);
+      expect(summary.valid).toBe(valid);
+      if (valid) expect(summary.rows).toEqual([
+        "额外读取: /project", ...(depth == null ? [] : [`路径匹配最大扫描深度: ${depth}`]),
+      ]);
+      view.activeThreadId = "T";
+      view.approvals = [{ requestId: "depth", method: "item/permissions/requestApproval", params: { threadId: "T", permissions: profile } }];
+      const html = renderToStaticMarkup(<Timeline />);
+      if (valid) {
+        expect(html).not.toContain("已禁用批准");
+        expect(html).toMatch(/<button class="btn-primary">批准<\/button>/);
+        expect(html).toMatch(/<button class="btn">本次会话内一律批准<\/button>/);
+        if (depth == null) expect(html).not.toContain("路径匹配最大扫描深度");
+      } else {
+        expect(html).toContain("已禁用批准");
+        expect(html.match(/<button[^>]*disabled=""[^>]*>/g)).toHaveLength(2);
+      }
+      expect(html).toMatch(/<button class="btn-danger">拒绝<\/button>/);
+    },
+  );
+
   it("does not truncate the set of paths shown for approval", () => {
     const profile: RequestPermissionProfile = { network: null, fileSystem: { read: null, write: Array.from({ length: 8 }, (_, i) => `/path-${i}`) } };
     expect(renderToStaticMarkup(<PermissionsSummary profile={profile} />)).toContain("/path-7");
@@ -191,6 +266,17 @@ describe("permission and output rendering", () => {
     expect(renderToStaticMarkup(<Timeline />)).toContain("等待审批");
   });
 
+  it("shows pure newline stdin as escaped input, and rejects unknown approval kinds", () => {
+    view.activeThreadId = "T";
+    view.approvals = [{ requestId: "stdin", method: "item/commandExecution/requestApproval", params: { threadId: "T", kind: "writeStdin", command: "\n" } }];
+    const html = renderToStaticMarkup(<Timeline />);
+    expect(html).toContain("请求向运行中的终端写入内容");
+    expect(html).toContain("\\n");
+    expect(html).not.toContain("已禁用批准");
+    view.approvals = [{ requestId: "unknown", method: "item/commandExecution/requestApproval", params: { threadId: "T", kind: "futureOperation", command: "pwd" } }];
+    expect(renderToStaticMarkup(<Timeline />)).toContain("已禁用批准");
+  });
+
   it("keeps approval controls and background counts outside a long conversation's scroll container", () => {
     view.activeThreadId = "T";
     view.items = { T: Array.from({ length: 200 }, (_, i) => ({ type: "localUserMessage", id: `message-${i}`, text: `message-${i}`, attachments: [] })) };
@@ -205,7 +291,8 @@ describe("permission and output rendering", () => {
     expect(html.indexOf("请求执行命令")).toBeLessThan(html.indexOf("后台会话「"));
     expect(html.indexOf("批准")).toBeLessThan(html.indexOf('<div class="timeline"'));
     expect(html.indexOf("</section>")).toBeLessThan(html.indexOf('<div class="timeline"'));
-    expect(css.match(/\.approval-dock\s*\{([^}]+)\}/)?.[1]).toMatch(/max-height:/);
+    // The shared request dock bounds approvals and questions together.
+    expect(css.match(/\.request-docks\s*\{([^}]+)\}/)?.[1]).toMatch(/max-height:/);
     expect(css.match(/\.approval-dock-count\s*\{([^}]+)\}/)?.[1]).toMatch(/position:\s*sticky/);
   });
 

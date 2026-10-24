@@ -878,6 +878,18 @@ export class AttachmentStore {
     let entriesLeft = AttachmentStore.MAX_SCAN_ENTRIES;
     let bytesLeft = AttachmentStore.MAX_SCAN_BYTES;
     let complete = true;
+    // A per-file check only covers that read. A rollout can be unarchived into
+    // a directory already traversed, or gain a reference after its scan, while
+    // another directory is still being read. Recheck the bounded traversal
+    // snapshot before treating absence as evidence for cleanup. These checks
+    // detect observed concurrent mutations; they are not an atomic snapshot
+    // against external CLI writers after the last check.
+    const snapshots = new Map<string, import("node:fs").Stats | null>();
+    const sameSnapshot = (before: import("node:fs").Stats, after: import("node:fs").Stats) =>
+      before.dev === after.dev && before.ino === after.ino && before.size === after.size
+      && before.mtimeMs === after.mtimeMs && before.ctimeMs === after.ctimeMs
+      && before.isDirectory() === after.isDirectory() && before.isFile() === after.isFile()
+      && !after.isSymbolicLink();
     const scanFile = async (full: string): Promise<void> => {
       let handle: Awaited<ReturnType<typeof open>> | undefined;
       try {
@@ -893,6 +905,7 @@ export class AttachmentStore {
           complete = false;
           return;
         }
+        snapshots.set(full, opened);
         bytesLeft -= opened.size;
 
         // Read only the bounded JSONL header first. We must identify the
@@ -979,12 +992,14 @@ export class AttachmentStore {
         const current = directories.pop()!;
         let handle: Awaited<ReturnType<typeof opendir>> | undefined;
         try {
+          const before = await io(() => lstat(current.dir));
+          if (!before.isDirectory() || before.isSymbolicLink()) { complete = false; continue; }
           handle = await io(() => opendir(current.dir));
-        } catch (err: any) {
-          if (!(current.root && err?.code === "ENOENT")) complete = false;
-          continue;
-        }
-        try {
+          // Dir has no fstat API. Bound opening with path identity checks so a
+          // handle for a replaced directory cannot borrow the new path's stat.
+          const opened = await io(() => lstat(current.dir));
+          if (!sameSnapshot(before, opened)) { complete = false; continue; }
+          snapshots.set(current.dir, before);
           for (let entry = await io(() => handle!.read()); entry; entry = await io(() => handle!.read())) {
             entriesLeft -= 1;
             if (entriesLeft < 0 || performance.now() > deadline) { complete = false; break; }
@@ -1019,10 +1034,11 @@ export class AttachmentStore {
             } else if (entryKind === "other") complete = false;
             if (pending.size === 0) break;
           }
-        } catch {
-          complete = false;
+        } catch (error: any) {
+          if (!handle && current.root && error?.code === "ENOENT") snapshots.set(current.dir, null);
+          else complete = false;
         } finally {
-          try { await handle.close(); }
+          try { await handle?.close(); }
           catch (error: any) {
             if (error?.code !== "ERR_DIR_CLOSED") {
               complete = false;
@@ -1034,6 +1050,24 @@ export class AttachmentStore {
         if (pending.size > 0 && (bytesLeft <= 0 || filesLeft <= 0)) {
           complete = false;
           break;
+        }
+      }
+    }
+    if (complete && pending.size > 0) {
+      // Check files before directories, with parents last, so new or moved
+      // entries during the file rechecks are still visible in directory stats.
+      const ordered = [...snapshots].filter(([, stat]) => stat?.isFile()).concat(
+        [...snapshots].filter(([, stat]) => !stat?.isFile()).reverse(),
+      );
+      for (const [full, before] of ordered) {
+        try {
+          const after = await io(() => lstat(full));
+          if (!before || !sameSnapshot(before, after) || after.isFile() && after.nlink !== 1) {
+            complete = false;
+            break;
+          }
+        } catch (error: any) {
+          if (before !== null || error?.code !== "ENOENT") { complete = false; break; }
         }
       }
     }

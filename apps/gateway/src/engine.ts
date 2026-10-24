@@ -13,13 +13,13 @@ import { ActiveTurns } from "./active-turns.js";
 import { TurnDefaults } from "./turn-defaults.js";
 import { Terminals } from "./terminals.js";
 import { observedNotification } from "./protocol.js";
+import { GATEWAY_VERSION } from "./version.js";
 import type { CommandExecutionRequestApprovalResponse } from "../../../protocol/v2/CommandExecutionRequestApprovalResponse.js";
 import type { FileChangeRequestApprovalResponse } from "../../../protocol/v2/FileChangeRequestApprovalResponse.js";
 import type { PermissionsRequestApprovalResponse } from "../../../protocol/v2/PermissionsRequestApprovalResponse.js";
 import type { DynamicToolCallParams } from "../../../protocol/v2/DynamicToolCallParams.js";
 import type { ServerRequest } from "../../../protocol/ServerRequest.js";
 
-const GATEWAY_VERSION = "1.2.0";
 const CODEX_BIN = process.env.CODEX_BIN ?? "codex";
 const CODEX_HOME = process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex");
 const WORKSPACE_ROOT = process.env.CODEX_WORKSPACE ?? process.cwd();

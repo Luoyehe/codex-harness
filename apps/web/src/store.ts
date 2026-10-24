@@ -8,17 +8,22 @@ import type { ThreadStartParams } from "../../../protocol/v2/ThreadStartParams";
 import type { GetAccountResponse } from "../../../protocol/v2/GetAccountResponse";
 import type { PermissionsRequestApprovalResponse } from "../../../protocol/v2/PermissionsRequestApprovalResponse";
 import type { CommandExecutionRequestApprovalResponse } from "../../../protocol/v2/CommandExecutionRequestApprovalResponse";
+import type { McpServerConnectionStatus } from "../../../protocol/v2/McpServerConnectionStatus";
+import type { McpAuthStatus } from "../../../protocol/v2/McpAuthStatus";
 import { approvalCanAccept } from "./utils/permissions";
 import { operationId } from "./utils/operation-id";
 import { validateResponse, type InputRequest } from "./utils/input-forms";
 import { budgetTimeline, deriveTimelineListBudget } from "./utils/timeline-budget";
 import { normalizeManagement, type ManagementSnapshot } from "./utils/management";
 import { releasePreviewUrl, retainTimelineAttachment } from "./utils/preview-urls";
+import { hydrateThreadHistory } from "./utils/thread-history";
+import { readThreadCreateOperations, saveThreadCreateOperation, finishThreadCreateOperation, isThreadCreateStorageKey, threadCreateStorageEvidence, type ThreadCreateOperation } from "./utils/thread-create-operations";
+export type { ThreadCreateOperation } from "./utils/thread-create-operations";
 export type { TimelineItem } from "./api/protocol";
 
 /**
  * Times are normalized app-server payloads (see protocol/ generated types,
- * codex 0.149.0): items by thread, pending approvals, aggregated turn diff,
+ * codex 0.164.0): items by thread, pending approvals, aggregated turn diff,
  * the per-project session list, and browser-local settings.
  */
 
@@ -117,6 +122,7 @@ const APPROVAL_POLICIES = new Set<ApprovalPolicy>(["", "untrusted", "on-request"
 const SANDBOX_PRESETS = new Set<SandboxPreset>(["", "network", "full"]);
 const EFFORT_IDENTIFIER = /^[a-z][a-z0-9-]{0,31}$/;
 const MAX_MODEL_ID_LENGTH = 256;
+const MAX_SESSION_CURSOR_CHARS = 4_096;
 /** 25MiB file cap encoded as base64. Keep the exact transport bound here as
  * a second line of defense for non-Composer callers. */
 const MAX_ATTACHMENT_BASE64_CHARS = 4 * Math.ceil((25 * 1024 * 1024) / 3);
@@ -129,6 +135,17 @@ const ACCOUNT_PLAN_TYPES = new Set([
 
 function boundedString(value: unknown, max: number): string {
   return typeof value === "string" ? value.slice(0, max) : "";
+}
+
+function sessionPageCursor(value: unknown): string | null {
+  if (value === null) return null;
+  // The gateway accepts nonempty opaque strings, including whitespace. Never
+  // trim or truncate them; only an explicit null proves pagination has ended.
+  if (typeof value !== "string" || value.length === 0 ||
+      value.length > MAX_SESSION_CURSOR_CHARS || value.includes("\0")) {
+    throw new Error("服务器返回的会话分页游标格式无效");
+  }
+  return value;
 }
 
 function loadFailure(label: string, error: unknown): LoadStatus {
@@ -246,10 +263,70 @@ export interface ModelInfo {
  * from the gateway but the settings screen consumes only these fields. */
 export interface McpServerView {
   name: string;
+  /** Missing values in an older cached view have the same meaning as unknown. */
+  runtimeStatus?: McpServerConnectionStatus | "unknown";
+  authStatus?: McpAuthStatus;
+  toolsError?: string | null;
   initialized: boolean;
   toolCount: number;
   toolsTruncated?: boolean;
   tools: Array<{ name: string; description?: string }>;
+}
+
+const MCP_RUNTIME_STATES = new Set<McpServerConnectionStatus>([
+  "notStarted", "starting", "connected", "authenticationRequired", "failed", "cancelled", "disabled",
+]);
+const MCP_AUTH_STATES = new Set<McpAuthStatus>(["unknown", "unsupported", "notLoggedIn", "bearerToken", "oAuth"]);
+const MAX_MCP_PAGES = 16;
+const MAX_MCP_SERVERS = 256;
+const MAX_MCP_TOOLS = 4_000;
+const MAX_MCP_TEXT_CHARS = 4 * 1024 * 1024;
+const MAX_MCP_ELAPSED_MS = 30_000;
+
+function projectMcpServer(value: unknown, budget: { tools: number; chars: number }): McpServerView {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("MCP 服务器记录格式无效");
+  const entry = value as Record<string, unknown>;
+  if (typeof entry.name !== "string" || !entry.name.trim() || entry.name.length > 256) throw new Error("MCP 服务器名称无效");
+  function text(value: unknown, max: number): string {
+    const result = boundedString(value, max);
+    budget.chars += result.length;
+    if (budget.chars > MAX_MCP_TEXT_CHARS) throw new Error("MCP 状态文本超过浏览器读取预算");
+    return result;
+  }
+  const name = text(entry.name, 256);
+  const runtimeStatus = MCP_RUNTIME_STATES.has(entry.runtimeStatus as McpServerConnectionStatus)
+    ? entry.runtimeStatus as McpServerConnectionStatus : "unknown";
+  const authStatus = MCP_AUTH_STATES.has(entry.authStatus as McpAuthStatus) ? entry.authStatus as McpAuthStatus : "unknown";
+  const toolsError = entry.toolsError == null ? null
+    : typeof entry.toolsError === "string" ? text(entry.toolsError, 2_000) || "工具发现失败（未提供详情）"
+      : "服务器返回的工具发现错误格式无效";
+  const toolSource = entry.tools && typeof entry.tools === "object" && !Array.isArray(entry.tools)
+    ? entry.tools as Record<string, unknown> : null;
+  if (!toolSource) throw new Error("MCP 工具目录格式无效");
+  const tools: McpServerView["tools"] = [];
+  let toolCount = 0;
+  let toolsTruncated = false;
+  // Inspect at most one extra key, without reading its value, to prove the
+  // visible tool catalog is truncated. Never retain schemas or resources.
+  for (const key in toolSource) {
+    if (!Object.prototype.hasOwnProperty.call(toolSource, key)) continue;
+    toolCount += 1;
+    if (toolCount > 500) { toolsTruncated = true; break; }
+    if (++budget.tools > MAX_MCP_TOOLS) throw new Error("MCP 工具目录超过浏览器读取预算");
+    const tool = toolSource[key];
+    const record = tool && typeof tool === "object" && !Array.isArray(tool) ? tool as Record<string, unknown> : {};
+    tools.push({
+      name: text(typeof record.name === "string" && record.name ? record.name : key, 256) || "（未命名工具）",
+      ...(typeof record.description === "string" ? { description: text(record.description, 2_000) } : {}),
+    });
+  }
+  return {
+    name, runtimeStatus, authStatus, toolsError,
+    // Cached catalogs and serverInfo are not evidence that this connection
+    // works now. Preserve them as inventory only; explicit failures win.
+    initialized: runtimeStatus === "connected" && toolsError === null && authStatus !== "notLoggedIn",
+    toolCount, ...(toolsTruncated ? { toolsTruncated: true } : {}), tools,
+  };
 }
 
 export function selectedModelEfforts(models: ModelInfo[], selected: string): Exclude<ReasoningEffort, "">[] {
@@ -264,15 +341,9 @@ export interface SendOperation {
   error?: string;
 }
 export type SendIdentity = Pick<SendOperation, "threadId" | "clientOperationId">;
-export interface ThreadCreateOperation {
-  clientOperationId: string;
-  cwd: string;
-  state: "unknown" | "accepted" | "not_received" | "rejected" | "acknowledged_unknown";
-  threadId?: string;
-  error?: string;
-}
+
 const OPERATIONS_KEY = "codex-harness-pending-operation-v1:";
-const THREAD_CREATE_OPERATION_KEY = "codex-harness-thread-create-operation-v1";
+
 interface LoadedSendOperations {
   byThread: Record<string, SendOperation>;
   byId: Record<string, SendOperation>;
@@ -379,41 +450,6 @@ function saveSendOperation(operation: SendOperation): void {
   else localStorage.removeItem(key);
 }
 
-function loadThreadCreateOperation(): ThreadCreateOperation | null {
-  try {
-    const raw = localStorage.getItem(THREAD_CREATE_OPERATION_KEY);
-    if (!raw) return null;
-    if (raw.length > 8_192) {
-      return { clientOperationId: "00000000-0000-4000-8000-000000000000", cwd: "", state: "unknown", error: "本地新会话回执超过安全预算；未自动重试，请明确放弃后再新建。" };
-    }
-    const entry = JSON.parse(raw);
-    if (!entry || typeof entry !== "object" ||
-        typeof entry.clientOperationId !== "string" || !/^[a-z0-9-]{36}$/i.test(entry.clientOperationId) ||
-        typeof entry.cwd !== "string" || entry.cwd.length > 4096 || entry.cwd.includes("\0") ||
-        !["unknown", "accepted", "acknowledged_unknown"].includes(entry.state) ||
-        (entry.state === "accepted" && (typeof entry.threadId !== "string" || !entry.threadId || entry.threadId.length > 256))) return null;
-    return {
-      clientOperationId: entry.clientOperationId,
-      cwd: entry.cwd,
-      state: entry.state,
-      ...(entry.state === "accepted" ? { threadId: entry.threadId } : {}),
-    };
-  } catch { return null; }
-}
-
-function saveThreadCreateOperation(operation: ThreadCreateOperation | null): void {
-  if (!operation || !["unknown", "accepted", "acknowledged_unknown"].includes(operation.state)) {
-    localStorage.removeItem(THREAD_CREATE_OPERATION_KEY);
-    return;
-  }
-  localStorage.setItem(THREAD_CREATE_OPERATION_KEY, JSON.stringify({
-    clientOperationId: operation.clientOperationId,
-    cwd: operation.cwd,
-    state: operation.state,
-    ...(operation.state === "accepted" ? { threadId: operation.threadId } : {}),
-  }));
-}
-
 function normalizeDisplay(value: unknown, base: Display = DEFAULT_DISPLAY): Display {
   const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const next = { ...base };
@@ -465,6 +501,8 @@ function applyTheme(theme: Settings["theme"]): void {
 let sessionRequestSeq = 0;
 /** #4: on FIRST load with no ?threadId, land in the most recent session. */
 let initialThreadSelected = false;
+/** User navigation survives catalog refreshes, including initial project fallback. */
+let navigationIntentSeq = 0;
 /** Provider the current models[] was fetched under — a fetch failure under a
  * NEW provider must drop the stale list instead of keeping the old one. */
 let modelsLoadedFor: string | null = null;
@@ -516,7 +554,10 @@ interface AppStore {
   sendOperations: Record<string, SendOperation>;
   /** More durable unknown receipts exist than the bounded browser view holds. */
   sendOperationOverflow: boolean;
-  threadCreateOperation: ThreadCreateOperation | null;
+  threadCreateOperationRecords: Record<string, ThreadCreateOperation>;
+  threadCreateOperationOverflow: boolean;
+  threadCreateStorageError: string | null;
+  threadCreateInFlight: string | null;
   sessions: SessionInfo[];
   /** Pagination cursor from the last thread/list response (null = no more). */
   sessionCursor: string | null;
@@ -572,12 +613,14 @@ interface AppStore {
   dismissGlobalWarning(id: string): void;
   checkSendOperation(threadId: string, clientOperationId?: string): Promise<SendOperation | undefined>;
   acknowledgeUnknownSend(threadId: string, clientOperationId: string): boolean;
-  checkThreadCreateOperation(): Promise<ThreadCreateOperation | null>;
+  refreshThreadCreateOperations(retryStorage?: boolean): boolean;
+  checkThreadCreateOperation(clientOperationId: string): Promise<ThreadCreateOperation | null>;
+  openCreatedThread(clientOperationId: string): Promise<boolean>;
   acknowledgeUnknownThreadCreate(clientOperationId: string): boolean;
   uploadAttachment(name: string, base64: string, kind?: "image" | "file"): Promise<{ path: string; size: number }>;
   readAttachment(path: string, signal?: AbortSignal): Promise<{ base64: string; mime: string }>;
   deleteAttachment(path: string): Promise<void>;
-  openThread(threadId: string): Promise<void>;
+  openThread(threadId: string, source?: "initial-url"): Promise<void>;
   newThread(): Promise<string | null>;
   sendMessage(text: string, attachments?: Array<{ kind: "image" | "file"; name: string; path: string; previewUrl?: string }>, onOperation?: (identity: SendIdentity) => void): Promise<void>;
   sendTurn(text: string, attachments?: Array<{ kind: "image" | "file"; name: string; path: string; previewUrl?: string }>, onOperation?: (identity: SendIdentity) => void): Promise<void>;
@@ -612,23 +655,21 @@ function patchItem(items: TimelineItem[], itemId: string, patch: (item: Timeline
 
 /** ThreadItems come back nested per-turn (Thread.turns[].items[]). */
 function makeTurnStatusItem(turn: Pick<Turn, "id" | "status" | "error">): Extract<TimelineItem, { type: "turnStatus" }> | null {
-  if (turn.status === "failed") {
+  if (turn.status === "failed" || turn.status === "interrupted") {
     // Bound each untrusted field before joining; joining first could allocate a
     // second attacker-sized string while recovering a failed history turn.
-    const details = [turn.error?.message, turn.error?.additionalDetails]
+    const details = [turn.error?.message, turn.error?.misalignment?.detailedExplanation, turn.error?.additionalDetails]
       .map((value) => boundedString(value, 10_000).trim())
       .filter((value) => value.length > 0);
     return {
       id: `turn-status:${turn.id}`,
       type: "turnStatus",
       turnId: turn.id,
-      status: "failed",
-      message: boundedString(details.join("\n"), 20_000) || "回合失败（服务器未提供错误详情）",
+      status: turn.status,
+      message: boundedString(details.join("\n"), 20_000) || (turn.status === "failed" ? "回合失败（服务器未提供错误详情）" : "回合已中断"),
     };
   }
-  return turn.status === "interrupted"
-    ? { id: `turn-status:${turn.id}`, type: "turnStatus", turnId: turn.id, status: "interrupted", message: "回合已中断" }
-    : null;
+  return null;
 }
 
 const MAX_HISTORY_RAW_TURNS = 4_096;
@@ -786,7 +827,15 @@ function projectThreadReadResponse(value: unknown, expectedThreadId: string): Hi
       if (typeof message !== "string" || additionalDetails !== null && typeof additionalDetails !== "string") {
         throw new Error("thread/read 返回了无效回合错误");
       }
-      error = { message, additionalDetails, codexErrorInfo: null };
+      const rawMisalignment = Object.hasOwn(errorRecord, "misalignment")
+        ? ownRuntimeValue(errorRecord, "misalignment", "thread/read 回合错误") : null;
+      const explanation = rawMisalignment && typeof rawMisalignment === "object" && !Array.isArray(rawMisalignment)
+        ? boundedString(ownRuntimeValue(plainRuntimeRecord(rawMisalignment, "thread/read 错误说明"), "detailedExplanation", "thread/read 错误说明"), 10_000)
+        : "";
+      error = { message, additionalDetails, codexErrorInfo: null,
+        // Show the explanation, but never turn an opaque continuation hint
+        // into a new user instruction or silently resubmit the blocked turn.
+        misalignment: explanation ? { errorType: null, detailedExplanation: explanation, steer: null } : null };
     }
     const statusItem = makeTurnStatusItem({ id: turnId, status: turnStatus, error });
     if (statusItem) {
@@ -928,7 +977,9 @@ export const useStore = create<AppStore>((rawSet, get) => {
   const overflowThreads = new Set<string>();
   const initialSendOperations = loadSendOperations() ?? { byThread: {}, byId: {}, overflow: false };
   let newThreadFlight: Promise<string | null> | null = null;
-  let threadCreateCheckFlight: Promise<ThreadCreateOperation | null> | null = null;
+  let pendingProjectSelection: number | null = null;
+  const initialThreadCreates = readThreadCreateOperations();
+  const threadCreateCheckFlights = new Map<string, Promise<ThreadCreateOperation | null>>();
   const sendOperationCheckFlights = new Map<string, Promise<SendOperation | undefined>>();
   const automaticallyCheckedSendOperations = new Set<string>();
   let automaticSendChecksStarted = 0;
@@ -939,6 +990,10 @@ export const useStore = create<AppStore>((rawSet, get) => {
   let displayWriteTail: Promise<void> = Promise.resolve();
   let globalWarningSeq = 0;
   let historyNavigationTarget: string | null | undefined;
+  // This is an unverified navigation request, not authority to use the
+  // remembered project's history or send there. Keep it through initial
+  // registry fallback until its own read verifies the actual thread/cwd.
+  let initialUrlIntent: { threadId: string } | null = null;
   const set = (partial: Partial<AppStore> | ((state: AppStore) => Partial<AppStore>)) => rawSet((state) => {
     const patch = { ...(typeof partial === "function" ? partial(state) : partial) };
     const active = patch.activeThreadId === undefined ? state.activeThreadId : patch.activeThreadId;
@@ -1021,6 +1076,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
    * its fresh cursor. Rows learned earlier remain visible as an unverified tail
    * until explicit pagination either revalidates or exhausts them. */
   let sessionFreshPrefixIds = new Set<string>();
+  let sessionSeenCursors = new Set<string>();
 
   const rememberBoundedSet = (target: Set<string>, value: string, limit: number) => {
     target.delete(value);
@@ -1053,6 +1109,23 @@ export const useStore = create<AppStore>((rawSet, get) => {
   function resetSessionWindow(): void {
     sessionWindowContext = "";
     sessionFreshPrefixIds.clear();
+    sessionSeenCursors.clear();
+  }
+
+  function cancelInitialUrlIntent(clearView = true): void {
+    const pending = initialUrlIntent;
+    if (!pending) return;
+    initialUrlIntent = null;
+    navigationIntentSeq += 1;
+    if (!clearView || get().activeThreadId !== pending.threadId) return;
+    openThreadRequestSeq += 1;
+    const owner = historyLoadOwners.get(pending.threadId);
+    if (owner) releaseHistoryLoad(pending.threadId, owner);
+    set((state) => ({
+      activeThreadId: null,
+      historyLoading: { ...state.historyLoading, [pending.threadId]: false },
+    }));
+    syncUrl(null);
   }
 
   async function activateCreatedThread(threadId: string, cwd: string, freshlyCreated = false): Promise<boolean> {
@@ -1081,9 +1154,38 @@ export const useStore = create<AppStore>((rawSet, get) => {
       sessionCursor: null,
       sidebarOpen: false,
     }));
-    await get().openThread(threadId);
+    const opening = get().openThread(threadId);
+    const navigation = openThreadRequestSeq;
+    await opening;
     void get().refreshSessions().catch(() => {});
-    return get().activeThreadId === threadId && get().currentProject === cwd && !!get().historyLoaded[threadId];
+    return navigation === openThreadRequestSeq && get().activeThreadId === threadId && get().currentProject === cwd && !!get().historyLoaded[threadId];
+  }
+
+  function updateThreadCreate(operation: ThreadCreateOperation): void {
+    set((state) => ({ threadCreateOperationRecords: { ...state.threadCreateOperationRecords, [operation.clientOperationId]: operation } }));
+  }
+
+  function persistThreadCreate(operation: ThreadCreateOperation): boolean {
+    try { saveThreadCreateOperation(operation); return true; }
+    catch {
+      set({ threadCreateStorageError: "无法保存会话创建状态；已暂停新建。请恢复本站存储后重试，原创建标识仍需核对。" });
+      return false;
+    }
+  }
+
+  function finishThreadCreate(operation: ThreadCreateOperation): boolean {
+    try { finishThreadCreateOperation(operation); }
+    catch {
+      set({ threadCreateStorageError: "无法清理这条会话创建记录；已暂停新建。请恢复本站存储后重试，其他记录未删除。" });
+      return false;
+    }
+    set((state) => {
+      const records = { ...state.threadCreateOperationRecords };
+      delete records[operation.clientOperationId];
+      return { threadCreateOperationRecords: records };
+    });
+    get().refreshThreadCreateOperations();
+    return true;
   }
 
   type AttachmentReadResult = { base64: string; mime: string };
@@ -1357,6 +1459,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
     set({
       items: {}, historyLoaded: {}, historyLoading: {}, turnActive: {}, activeTurnId: {}, interruptPending: {},
       models: [], modelLoad: loadingStatus(),
+      mcpLoad: { state: "error", error: "连接或服务状态已变化，MCP 状态需要重新读取；已有结果可能过期。" },
       compacting: {}, plan: {}, turnDiff: {}, tokenUsage: {}, approvals: [], approvalSubmissions: {}, approvalErrors: {}, inputRequests: [], inputRequestErrors: {}, deviceLogin: preservedLogin,
     });
   }
@@ -1547,6 +1650,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
   }
 
   function invalidateAsyncWork(): void {
+    pendingProjectSelection = null;
     cancelAttachmentReads();
     refreshRequestSeq += 1;
     sessionRequestSeq += 1;
@@ -2196,7 +2300,10 @@ export const useStore = create<AppStore>((rawSet, get) => {
     sendOperationRecords: initialSendOperations.byId,
     sendOperations: initialSendOperations.byThread,
     sendOperationOverflow: initialSendOperations.overflow,
-    threadCreateOperation: loadThreadCreateOperation(),
+    threadCreateOperationRecords: initialThreadCreates.records,
+    threadCreateOperationOverflow: initialThreadCreates.overflow,
+    threadCreateStorageError: initialThreadCreates.error,
+    threadCreateInFlight: null,
     sessions: [],
     sessionCursor: null,
     sessionLoading: false,
@@ -2233,6 +2340,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
       bootstrapped = true;
       const initial = boundedString(new URLSearchParams(location.search).get("threadId"), 256);
       if (initial) {
+        initialUrlIntent = { threadId: initial };
         set({ activeThreadId: initial });
         initialThreadSelected = true;
       }
@@ -2269,18 +2377,26 @@ export const useStore = create<AppStore>((rawSet, get) => {
         void get().refreshManagement();
         void get().refresh();
         scheduleAutomaticSendChecks();
-        if (get().threadCreateOperation?.state === "unknown") void get().checkThreadCreateOperation();
+        get().refreshThreadCreateOperations();
+        for (const operation of Object.values(get().threadCreateOperationRecords).filter((entry) => entry.state === "unknown").slice(0, 8)) {
+          void get().checkThreadCreateOperation(operation.clientOperationId);
+        }
       });
       gateway.onNotification(applyNotification);
       window.addEventListener?.("storage", (event) => {
         if (event.key === null || event.key.startsWith(OPERATIONS_KEY)) reconcileStoredSendOperations();
-        if (event.key === THREAD_CREATE_OPERATION_KEY && event.newValue) {
-          const stored = loadThreadCreateOperation();
-          if (stored) set({ threadCreateOperation: stored });
+        if (isThreadCreateStorageKey(event.key)) {
+          const evidence = threadCreateStorageEvidence(event.key, event.newValue);
+          const current = evidence && get().threadCreateOperationRecords[evidence.clientOperationId];
+          // A settled write may already be removed when its event arrives.
+          // It can settle only its own ID, never a locally in-flight request.
+          if (evidence && current?.state === "unknown" && get().threadCreateInFlight !== evidence.clientOperationId) updateThreadCreate({ ...current, ...evidence });
+          get().refreshThreadCreateOperations();
         }
       });
       window.addEventListener?.("popstate", () => {
         const target = boundedString(new URLSearchParams(location.search).get("threadId"), 256) || null;
+        cancelInitialUrlIntent(false);
         initialThreadSelected = true;
         if (target) {
           historyNavigationTarget = target;
@@ -2288,6 +2404,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
           return;
         }
         historyNavigationTarget = undefined;
+        navigationIntentSeq += 1;
         projectSelectionSeq += 1;
         newThreadRequestSeq += 1;
         const previous = get().activeThreadId;
@@ -2314,6 +2431,8 @@ export const useStore = create<AppStore>((rawSet, get) => {
     async refresh() {
       const seq = ++refreshRequestSeq;
       const generation = gateway.generation;
+      const navigation = navigationIntentSeq;
+      const navigationPending = pendingProjectSelection !== null || newThreadFlight !== null || threadCreateCheckFlights.size > 0;
       const managementVersion = managementNotificationVersion;
       set({ appStatusLoad: loadingStatus() });
       try {
@@ -2356,11 +2475,11 @@ export const useStore = create<AppStore>((rawSet, get) => {
           ...(providerChanged ? { settings } : {}),
           display: normalizeDisplay({ autoCompactThreshold: status?.autoCompactThreshold }, get().display),
         });
-        // A provider may expose a large or slow paginated model catalog. It is
-        // useful metadata, not a prerequisite for restoring projects/sessions.
-        // Run it independently so an existing conversation becomes usable as
-        // soon as its authoritative list/history is available.
+        // Model and MCP catalogs can be slow independently of the conversation
+        // APIs. Refresh their own status in the background so restoring a
+        // session does not wait for external metadata discovery.
         void get().refreshModels();
+        void get().refreshMcp();
         await Promise.all([
           refreshDeviceLoginStatus(),
           get().refreshAccount(),
@@ -2381,7 +2500,6 @@ export const useStore = create<AppStore>((rawSet, get) => {
             });
           })(),
           get().refreshProjects(),
-          get().refreshMcp(),
         ]);
         if (seq !== refreshRequestSeq || generation !== gateway.generation) return;
         await get().refreshSessions();
@@ -2390,12 +2508,17 @@ export const useStore = create<AppStore>((rawSet, get) => {
         // initial-selection latch open so an explicit retry can still land on
         // the newest real conversation.
         if (get().sessionLoad.state !== "loaded") return;
-        // Re-opening the active thread after a reconnect is handled by the
-        // connection watcher in bootstrap() (it re-resumes server-side too).
-        // #4: entering the WebUI lands in the most recent session, not a
-        // blank new-conversation screen (only on the first successful load).
-        if (get().activeThreadId) {
-          await get().openThread(get().activeThreadId!);
+        // Catalogs may still refresh during navigation, but automatic history
+        // restoration must not invalidate a user's pending project/create
+        // request or a newer thread choice. Project initialization itself is
+        // not a navigation intent, so first-load selection remains available.
+        if (navigation !== navigationIntentSeq || navigationPending ||
+            pendingProjectSelection !== null || newThreadFlight !== null || threadCreateCheckFlights.size > 0) return;
+        const active = get().activeThreadId;
+        if (active) {
+          if (!get().historyLoaded[active] && !get().historyLoading[active]) {
+            await get().openThread(active, initialUrlIntent?.threadId === active ? "initial-url" : undefined);
+          }
         } else if (!initialThreadSelected) {
           const first = get().sessions[0];
           if (first) void get().openThread(first.threadId).catch(() => {});
@@ -2460,6 +2583,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
         const res: ThreadListResponse = await gateway.request("thread/list", params);
         if (seq !== sessionRequestSeq || generation !== gateway.generation) return;
         if (!Array.isArray(res?.data)) throw new Error("服务器返回的会话列表格式无效");
+        const firstCursor = sessionPageCursor(res.nextCursor);
         const firstPage: SessionInfo[] = res.data.slice(0, 100)
           .map((t) => ({
             threadId: boundedString(t?.id, 256),
@@ -2469,9 +2593,6 @@ export const useStore = create<AppStore>((rawSet, get) => {
           .filter((s) => s.threadId && !deletedThreads.has(s.threadId));
         const firstById = new Map(firstPage.map((session) => [session.threadId, session]));
         for (const session of firstPage) localSessions.delete(session.threadId);
-        const firstCursor = typeof res?.nextCursor === "string" && res.nextCursor
-          ? res.nextCursor.slice(0, 512)
-          : null;
         // Keep every previously known row absent from the new first page while
         // the fresh response still has a tail. This includes the old first-page
         // boundary: new inserts can push those rows onto page two. Crucially we
@@ -2501,6 +2622,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
         // we preserve cursor order — no client-side re-sort on paginated data.
         sessionWindowContext = context;
         sessionFreshPrefixIds = new Set(firstPage.map((session) => session.threadId));
+        sessionSeenCursors = new Set(firstCursor === null ? [] : [firstCursor]);
         set({
           sessions,
           sessionCursor: firstCursor,
@@ -2536,6 +2658,10 @@ export const useStore = create<AppStore>((rawSet, get) => {
         const res = await gateway.request("thread/list", params);
         if (seq !== sessionRequestSeq || generation !== gateway.generation) return;
         if (!Array.isArray(res?.data)) throw new Error("Malformed thread list response");
+        const nextCursor = sessionPageCursor(res.nextCursor);
+        if (nextCursor !== null && (nextCursor === cursor || sessionSeenCursors.has(nextCursor))) {
+          throw new Error("服务器返回了重复的会话分页游标");
+        }
         const newThreads: SessionInfo[] = res.data.slice(0, 100)
           .map((t) => ({
             threadId: boundedString(t?.id, 256),
@@ -2543,9 +2669,6 @@ export const useStore = create<AppStore>((rawSet, get) => {
             updatedAt: typeof t?.updatedAt === "number" && Number.isFinite(t.updatedAt) ? t.updatedAt : 0,
           }))
           .filter((s: SessionInfo) => s.threadId && !deletedThreads.has(s.threadId));
-        const nextCursor = typeof res?.nextCursor === "string" && res.nextCursor && res.nextCursor !== cursor
-          ? res.nextCursor.slice(0, 512)
-          : null;
         // The visible list may contain a retained, not-yet-revalidated tail
         // from a lifecycle refresh. Insert this authoritative page immediately
         // after the verified prefix. If traversal is now exhausted, discard any
@@ -2571,6 +2694,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
           !pageById.has(session.threadId) && !deletedThreads.has(session.threadId));
         sessionFreshPrefixIds = verifiedIds;
         sessionWindowContext = context;
+        if (nextCursor !== null) sessionSeenCursors.add(nextCursor);
         set({
           sessions: [...localVisible, ...verified, ...retainedTail],
           sessionCursor: nextCursor,
@@ -2614,7 +2738,14 @@ export const useStore = create<AppStore>((rawSet, get) => {
       } catch (error) {
         throw new Error(loadFailure("恢复失败", error).error ?? "恢复失败");
       }
-      set((s) => ({ sessions: s.sessions.filter((x) => x.threadId !== threadId) }));
+      if (get().sessionArchived) {
+        set((s) => ({ sessions: s.sessions.filter((x) => x.threadId !== threadId) }));
+      } else {
+        // The user may have switched to the active list while the RPC was in
+        // flight. A restored thread belongs there; do not erase a row already
+        // learned from the unarchived notification or an authoritative read.
+        scheduleSessionsRefresh();
+      }
     },
 
     async refreshProjects() {
@@ -2658,16 +2789,18 @@ export const useStore = create<AppStore>((rawSet, get) => {
           newThreadRequestSeq += 1;
           clearAllHistoryAuxiliary();
           resetSessionWindow();
-          const preserveInitialUrlThread = !noAvailableProject && previous === "" && !!get().activeThreadId && current !== "";
+          const preserveInitialUrlThread = !noAvailableProject && current !== "" &&
+            initialUrlIntent !== null && initialUrlIntent.threadId === get().activeThreadId;
+          if (!preserveInitialUrlThread) initialUrlIntent = null;
           set({
             projects,
             projectsLoad: projectLoad,
             currentProject: current,
-            ...(preserveInitialUrlThread ? {} : {
-              activeThreadId: null,
-              items: {},
-              historyLoaded: {}, historyLoading: {},
-            }),
+            ...(preserveInitialUrlThread ? {} : { activeThreadId: null }),
+            // Even a retained URL target has no verified history authority.
+            // A fallback also supersedes an in-flight read of that target.
+            items: {},
+            historyLoaded: {}, historyLoading: {},
             sessions: [],
             sessionCursor: null,
             sessionLoading: false,
@@ -2718,10 +2851,12 @@ export const useStore = create<AppStore>((rawSet, get) => {
             }),
           ]).finally(() => { if (timer !== null) clearTimeout(timer); });
           if (generation !== modelRequestSeq || connectionGeneration !== gateway.generation || provider !== get().providerMode) return;
-          if (!Array.isArray(res?.data)) throw new Error("Malformed model list response");
-          for (const m of res.data.slice(0, 100)) {
-            const id = boundedString(m?.id, MAX_MODEL_ID_LENGTH);
-            if (!id || seen.has(id)) continue;
+          if (!Array.isArray(res?.data) || res.data.length > 100) throw new Error("模型目录分页格式无效或超过请求上限");
+          for (const m of res.data) {
+            const id = m?.id;
+            if (typeof id !== "string" || !id.trim() || id.length > MAX_MODEL_ID_LENGTH || seen.has(id)) {
+              throw new Error("模型目录包含无效或重复的模型身份；未更新目录或重置模型选择");
+            }
             seen.add(id);
             all.push({ id, displayName: boundedString(m?.displayName, 256) || id,
               reasoningEfforts: normalizeReasoningEfforts(Array.isArray(m?.supportedReasoningEfforts)
@@ -2730,10 +2865,15 @@ export const useStore = create<AppStore>((rawSet, get) => {
               defaultReasoningEffort: normalizeReasoningEfforts([m?.defaultReasoningEffort])[0], isDefault: m?.isDefault === true });
             if (all.length >= MAX_MODELS) break;
           }
-          const nextCursor = boundedString(res?.nextCursor, 512) || null;
-          if (!nextCursor || seenCursors.has(nextCursor)) {
+          const nextCursor: unknown = res.nextCursor;
+          if (nextCursor == null) {
             cursor = null;
             break;
+          }
+          // Cursors are opaque. Truncation changes their identity, and a
+          // cycle/invalid value cannot prove that absent models were removed.
+          if (typeof nextCursor !== "string" || !nextCursor || nextCursor.length > 4_096 || seenCursors.has(nextCursor)) {
+            throw new Error("模型目录分页游标无效或重复；未更新目录或重置模型选择");
           }
           seenCursors.add(nextCursor);
           cursor = nextCursor;
@@ -2743,18 +2883,17 @@ export const useStore = create<AppStore>((rawSet, get) => {
           }
         }
         if (generation === modelRequestSeq && connectionGeneration === gateway.generation && provider === get().providerMode) {
+          if (truncated) throw new Error(`模型目录超过有界加载预算（最多 ${MAX_PAGES} 页 / ${MAX_MODELS} 项 / ${MAX_ELAPSED_MS / 1_000} 秒）；未替换上次完整目录或模型选择，可重试。`);
           set({
             models: all,
-            modelLoad: truncated
-              ? { state: "error", error: `模型目录超过有界加载预算（最多 ${MAX_PAGES} 页 / ${MAX_MODELS} 项 / ${MAX_ELAPSED_MS / 1_000} 秒）；已保留当前有效结果，可重试。` }
-              : loadedStatus(),
+            modelLoad: loadedStatus(),
           });
           modelsLoadedFor = provider;
           const settings = get().settings;
-          // A partial catalog cannot prove a previously selected model is gone.
-          const selectedModel = !truncated && settings.selectedModel && !seen.has(settings.selectedModel) ? "" : settings.selectedModel;
+          // Only a complete catalog can prove a prior selection is gone.
+          const selectedModel = settings.selectedModel && !seen.has(settings.selectedModel) ? "" : settings.selectedModel;
           const availableEfforts = selectedModelEfforts(all, selectedModel);
-          const selectedEffort = !truncated && settings.selectedEffort && !availableEfforts.includes(settings.selectedEffort) ? "" : settings.selectedEffort;
+          const selectedEffort = settings.selectedEffort && !availableEfforts.includes(settings.selectedEffort) ? "" : settings.selectedEffort;
           if (selectedModel !== settings.selectedModel || selectedEffort !== settings.selectedEffort) {
             const next = normalizeSettings({ ...settings, selectedModel, selectedEffort });
             saveSettings(next);
@@ -2764,8 +2903,8 @@ export const useStore = create<AppStore>((rawSet, get) => {
       } catch (error) {
         if (generation === modelRequestSeq && connectionGeneration === gateway.generation && provider === get().providerMode) {
           // Transient failure under the SAME provider: keep the list. Under a
-          // DIFFERENT provider it would be stale (wrong endpoint's models)
-          // — drop it so selectors fall back to 默认模型 until a reload works.
+          // DIFFERENT provider it would be stale (wrong endpoint's models).
+          // Drop its authority while retaining an explicit selection for review.
           if (modelsLoadedFor !== null && modelsLoadedFor !== get().providerMode) {
             console.warn("[webui] model list failed for the new provider — dropping stale list");
             set({ models: [] });
@@ -2779,50 +2918,61 @@ export const useStore = create<AppStore>((rawSet, get) => {
     async refreshMcp() {
       const seq = ++mcpRequestSeq;
       const generation = gateway.generation;
+      const runtime = runtimeVersion;
+      const threadId = get().activeThreadId;
+      const isCurrent = () => seq === mcpRequestSeq && generation === gateway.generation && runtime === runtimeVersion;
       set({ mcpLoad: loadingStatus() });
       try {
-        const res = await gateway.request("mcpServerStatus/list", undefined);
-        if (seq !== mcpRequestSeq || generation !== gateway.generation) return;
-        if (!Array.isArray(res?.data)) throw new Error("Malformed MCP status response");
         const names = new Set<string>();
+        const cursors = new Set<string>();
         const mcpServers: McpServerView[] = [];
-        for (const entry of res.data.slice(0, 200)) {
-          const name = boundedString(entry?.name, 256);
-          if (!name || names.has(name)) continue;
-          names.add(name);
-          const toolSource = entry?.tools && typeof entry.tools === "object" && !Array.isArray(entry.tools)
-            ? entry.tools as Record<string, unknown> : null;
-          const tools: McpServerView["tools"] = [];
-          let toolCount = 0;
-          let toolsTruncated = false;
-          // Avoid Object.entries/Object.values here: they materialize every
-          // property before a later slice can apply the browser budget.
-          if (toolSource) for (const key in toolSource) {
-            if (!Object.prototype.hasOwnProperty.call(toolSource, key)) continue;
-            toolCount += 1;
-            if (toolCount > 500) {
-              toolsTruncated = true;
-              break;
-            }
-            const tool = toolSource[key];
-            const record = tool && typeof tool === "object" && !Array.isArray(tool) ? tool as Record<string, unknown> : {};
-            tools.push({
-              name: boundedString(record.name, 256) || boundedString(key, 256) || "（未命名工具）",
-              ...(typeof record.description === "string" ? { description: record.description.slice(0, 2_000) } : {}),
-            });
+        const budget = { tools: 0, chars: 0 };
+        const startedAt = Date.now();
+        let cursor: string | undefined;
+        for (let page = 0; page < MAX_MCP_PAGES; page++) {
+          if (!isCurrent()) return;
+          if (threadId !== get().activeThreadId) throw new Error("会话已切换，请重新读取当前会话的 MCP 状态");
+          const remainingMs = MAX_MCP_ELAPSED_MS - (Date.now() - startedAt);
+          if (remainingMs <= 0) throw new Error("MCP 状态读取超过 30 秒预算");
+          let timer: number | null = null;
+          const res = await Promise.race([
+            gateway.request("mcpServerStatus/list", {
+              limit: 50, detail: "toolsAndAuthOnly", ...(cursor === undefined ? {} : { cursor }),
+              ...(threadId === null ? {} : { threadId }),
+            }),
+            new Promise<never>((_resolve, reject) => {
+              timer = window.setTimeout(() => reject(new Error("MCP 状态读取超过 30 秒预算")), remainingMs);
+            }),
+          ]).finally(() => { if (timer !== null) clearTimeout(timer); });
+          if (!isCurrent()) return;
+          if (threadId !== get().activeThreadId) throw new Error("会话已切换，请重新读取当前会话的 MCP 状态");
+          if (!Array.isArray(res?.data)) throw new Error("MCP 状态响应格式无效");
+          if (res.data.length > MAX_MCP_SERVERS - mcpServers.length) throw new Error("MCP 服务器数量超过浏览器读取预算");
+          for (const entry of res.data) {
+            const server = projectMcpServer(entry, budget);
+            if (names.has(server.name)) throw new Error("MCP 分页返回了重复服务器，结果可能已变化，请重试");
+            names.add(server.name);
+            mcpServers.push(server);
           }
-          mcpServers.push({
-            name,
-            initialized: !!entry?.serverInfo && typeof entry.serverInfo === "object" && !Array.isArray(entry.serverInfo) || toolCount > 0,
-            toolCount,
-            ...(toolsTruncated ? { toolsTruncated: true } : {}),
-            tools,
-          });
+          // Omitted cursors remain compatible with older non-paginated
+          // responses. An empty or repeated opaque cursor is never EOF.
+          const next: unknown = res.nextCursor;
+          if (next == null) {
+            set({ mcpServers, mcpLoad: loadedStatus() });
+            return;
+          }
+          if (typeof next !== "string" || next.length === 0 || next.length > 4_096 || cursors.has(next)) {
+            throw new Error("MCP 分页游标无效或重复");
+          }
+          cursors.add(next);
+          cursor = next;
         }
-        set({ mcpServers, mcpLoad: loadedStatus() });
+        throw new Error("MCP 分页超过浏览器读取预算");
       } catch (error) {
-        if (seq === mcpRequestSeq && generation === gateway.generation) {
-          set({ mcpLoad: loadFailure("MCP 状态读取失败", error) });
+        if (isCurrent()) {
+          // Do not replace a complete prior snapshot with a partial catalog,
+          // nor let page one masquerade as every configured server.
+          set({ mcpLoad: loadFailure("MCP 状态读取未完成（未更新列表，已有结果可能过期）", error) });
         }
       }
     },
@@ -2830,6 +2980,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
     async addProject(path, create) {
       const target = path.trim().slice(0, 4096);
       if (!target) throw new Error("项目路径不能为空");
+      cancelInitialUrlIntent();
       const result = await gateway.rpc<{ project?: { path?: unknown } }>("projects/add", { path: target, create: create === true });
       const registeredPath = result?.project?.path;
       if (typeof registeredPath !== "string" || registeredPath.length > 4_096 || !registeredPath.trim() || registeredPath.includes("\0")) {
@@ -2842,6 +2993,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
     },
 
     async removeProject(path) {
+      cancelInitialUrlIntent();
       await gateway.rpc("projects/remove", { path });
       await get().refreshProjects();
       if (get().currentProject) await get().refreshSessions();
@@ -2850,56 +3002,69 @@ export const useStore = create<AppStore>((rawSet, get) => {
     async selectProject(path) {
       path = path.trim().slice(0, 4096);
       if (!path) throw new Error("项目路径不能为空");
+      cancelInitialUrlIntent();
+      navigationIntentSeq += 1;
+      initialThreadSelected = true;
       const selection = ++projectSelectionSeq;
+      pendingProjectSelection = selection;
       const generation = gateway.generation;
-      let target = get().projects.find((project) => project.path === path);
-      if (!target) {
-        await get().refreshProjects();
+      try {
+        let target = get().projects.find((project) => project.path === path);
+        if (!target) {
+          await get().refreshProjects();
+          if (selection !== projectSelectionSeq || generation !== gateway.generation) return;
+          target = get().projects.find((project) => project.path === path);
+        }
+        if (!target || target.available === false) throw new Error("该项目当前不可用，未切换会话上下文");
+        // Adding the very first project makes refreshProjects select it before
+        // ProjectPicker reaches this call. The project is already current, but
+        // its session list has never been loaded.
+        if (path === get().currentProject) {
+          await get().refreshSessions();
+          return;
+        }
+        // Touch is part of selection. Do not publish a cwd that the gateway has
+        // already rejected or forgotten.
+        await gateway.rpc("projects/touch", { path });
         if (selection !== projectSelectionSeq || generation !== gateway.generation) return;
         target = get().projects.find((project) => project.path === path);
-      }
-      if (!target || target.available === false) throw new Error("该项目当前不可用，未切换会话上下文");
-      // Adding the very first project makes refreshProjects select it before
-      // ProjectPicker reaches this call. The project is already current, but
-      // its session list has never been loaded.
-      if (path === get().currentProject) {
+        if (!target || target.available === false) throw new Error("项目在切换期间变为不可用，仍保留当前项目");
+        sessionRequestSeq += 1;
+        openThreadRequestSeq += 1;
+        newThreadRequestSeq += 1;
+        clearAllHistoryAuxiliary();
+        resetSessionWindow();
+        try {
+          localStorage.setItem(PROJECT_KEY, path);
+        } catch {
+          /* ignore */
+        }
+        set({
+          currentProject: path,
+          activeThreadId: null,
+          items: {},
+          historyLoaded: {}, historyLoading: {},
+          sessions: [],
+          sessionCursor: null,
+          sessionLoading: false,
+          sessionLoadingMore: false,
+          sessionLoad: loadingStatus(),
+        });
+        syncUrl(null);
         await get().refreshSessions();
-        return;
+      } finally {
+        if (pendingProjectSelection === selection) pendingProjectSelection = null;
       }
-      // Touch is part of selection. Do not publish a cwd that the gateway has
-      // already rejected or forgotten.
-      await gateway.rpc("projects/touch", { path });
-      if (selection !== projectSelectionSeq || generation !== gateway.generation) return;
-      target = get().projects.find((project) => project.path === path);
-      if (!target || target.available === false) throw new Error("项目在切换期间变为不可用，仍保留当前项目");
-      sessionRequestSeq += 1;
-      openThreadRequestSeq += 1;
-      newThreadRequestSeq += 1;
-      clearAllHistoryAuxiliary();
-      resetSessionWindow();
-      try {
-        localStorage.setItem(PROJECT_KEY, path);
-      } catch {
-        /* ignore */
-      }
-      set({
-        currentProject: path,
-        activeThreadId: null,
-        items: {},
-        historyLoaded: {}, historyLoading: {},
-        sessions: [],
-        sessionCursor: null,
-        sessionLoading: false,
-        sessionLoadingMore: false,
-        sessionLoad: loadingStatus(),
-      });
-      syncUrl(null);
-      await get().refreshSessions();
     },
 
     updateSettings(patch) {
       const settings = normalizeSettings({ ...get().settings, ...patch });
-      if (patch.selectedModel !== undefined && !selectedModelEfforts(get().models, settings.selectedModel).includes(settings.selectedEffort as Exclude<ReasoningEffort, "">)) settings.selectedEffort = "";
+      const targetModel = settings.selectedModel
+        ? get().models.find((model) => model.id === settings.selectedModel)
+        : get().models.find((model) => model.isDefault);
+      // An absent catalog cannot prove that a persisted effort is unsupported.
+      // Retain it for explicit review until a complete catalog can validate it.
+      if (patch.selectedModel !== undefined && targetModel && !selectedModelEfforts(get().models, settings.selectedModel).includes(settings.selectedEffort as Exclude<ReasoningEffort, "">)) settings.selectedEffort = "";
       saveSettings(settings);
       set({ settings });
       applyTheme(settings.theme);
@@ -2966,6 +3131,10 @@ export const useStore = create<AppStore>((rawSet, get) => {
       try {
         const result = await gateway.rpc<{ state: SendOperation["state"]; error?: string }>("turn/operation", { clientOperationId: operation.clientOperationId });
         if (!["accepted", "not_received", "rejected", "unknown"].includes(result?.state)) return;
+        if (result.state === "not_received") {
+          result.state = "unknown";
+          result.error = "此次核对时网关尚未收到；原请求仍可能随后送达，不能确认未执行。不会自动重发。";
+        }
         const latestState = get();
         const selected = latestState.sendOperations[threadId];
         const latest = latestState.sendOperationRecords[operation.clientOperationId] ??
@@ -2973,7 +3142,11 @@ export const useStore = create<AppStore>((rawSet, get) => {
         if (latest && latest.state !== "unknown") return latest;
         const checked = { ...operation, state: result.state, error: boundedString(result.error, 1_000) || undefined };
         if (latest?.clientOperationId === operation.clientOperationId) {
-          try { saveSendOperation(checked); } catch { /* Keep the checked result in memory; stale durable unknown remains safe. */ }
+          // An observational unknown must not overwrite another tab's explicit
+          // acknowledgement while its storage event is still queued.
+          if (checked.state !== "unknown") {
+            try { saveSendOperation(checked); } catch { /* A stale durable unknown remains conservative. */ }
+          }
           set((currentState) => {
             const currentSelected = currentState.sendOperations[threadId];
             const currentExact = currentState.sendOperationRecords[operation.clientOperationId] ??
@@ -3029,7 +3202,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
               // reconcile it without risking an overlapping turn.
             }
           } else if (
-            (result.state === "not_received" || result.state === "rejected") &&
+            result.state === "rejected" &&
             lookupActivityVersion === (activityVersions.get(threadId) ?? 0)
           ) {
             set((currentState) => {
@@ -3080,90 +3253,105 @@ export const useStore = create<AppStore>((rawSet, get) => {
       return true;
     },
 
-    async checkThreadCreateOperation() {
-      if (threadCreateCheckFlight) return threadCreateCheckFlight;
-      let settleCheck!: (value: ThreadCreateOperation | null) => void;
-      threadCreateCheckFlight = new Promise((resolve) => { settleCheck = resolve; });
-      try {
-        const operation = get().threadCreateOperation;
-        if (!operation || operation.state !== "unknown") return operation;
+    refreshThreadCreateOperations(retryStorage = false) {
+      const snapshot = readThreadCreateOperations();
+      let storageError = snapshot.error ?? get().threadCreateStorageError;
+      if (retryStorage && !snapshot.error) {
+        try {
+          // A fixed disposable probe contains no operation data. Concurrent
+          // probes cannot erase or overwrite a receipt.
+          const probe = "codex-harness-thread-create-storage-probe";
+          localStorage.setItem(probe, "1");
+          localStorage.removeItem(probe);
+          storageError = null;
+        } catch { storageError = "本站存储仍不可写或无法清理；已暂停新建，请恢复存储后重试。"; }
+      }
+      const records = { ...snapshot.records };
+      const resolved = new Set(snapshot.resolvedIds);
+      for (const [id, local] of Object.entries(get().threadCreateOperationRecords)) {
+        if (get().threadCreateInFlight === id) { records[id] = local; continue; }
+        if (resolved.has(id)) continue;
+        const stored = records[id];
+        // Missing storage alone is not proof that an unknown creation failed.
+        if (!stored && local.state === "unknown") records[id] = local;
+        else if (stored && (stored.state === local.state || stored.state === "unknown" && local.state !== "unknown")) {
+          records[id] = local.legacy || !stored.legacy ? local : { ...local, legacy: true };
+        }
+      }
+      set({ threadCreateOperationRecords: records, threadCreateOperationOverflow: snapshot.overflow, threadCreateStorageError: storageError });
+      return !storageError && !snapshot.overflow;
+    },
+
+    checkThreadCreateOperation(clientOperationId) {
+      const existing = threadCreateCheckFlights.get(clientOperationId);
+      if (existing) return existing;
+      const task = (async (): Promise<ThreadCreateOperation | null> => {
+        const operation = get().threadCreateOperationRecords[clientOperationId];
+        if (!operation || operation.state !== "unknown" || get().threadCreateInFlight === clientOperationId) return operation ?? null;
         const runtime = runtimeVersion;
         const generation = gateway.generation;
-        const navigation = openThreadRequestSeq;
-        const projectSelection = projectSelectionSeq;
-        // Object identity also detects a same-ID acknowledgement or cross-tab
-        // state replacement while this immutable receipt lookup is in flight.
-        const isCurrent = () => get().threadCreateOperation === operation &&
-          runtime === runtimeVersion && generation === gateway.generation;
+        const isCurrent = () => get().threadCreateOperationRecords[clientOperationId] === operation && runtime === runtimeVersion && generation === gateway.generation;
         try {
-        const result = await gateway.request("thread/start/operation", {
-          clientOperationId: operation.clientOperationId,
-        });
-        if (!isCurrent()) {
-          return get().threadCreateOperation;
-        }
-        if (!result || typeof result !== "object" ||
-            !["not_received", "unknown", "rejected", "accepted"].includes(result.state)) {
-          throw new Error("网关返回了无效的会话创建收据");
-        }
-        if (result.state === "accepted") {
-          const threadId = boundedString(result.threadId, 256);
-          const cwd = boundedString(result.cwd, 4096);
-          if (!threadId || cwd !== operation.cwd) throw new Error("会话创建收据身份或项目不匹配");
-          const accepted: ThreadCreateOperation = { ...operation, state: "accepted", threadId };
-          try { saveThreadCreateOperation(accepted); }
-          catch { /* the accepted state remains visible for this browser lifetime */ }
-          set({ threadCreateOperation: accepted });
-          const activated = navigation === openThreadRequestSeq && projectSelection === projectSelectionSeq &&
-            cwd === get().currentProject && await activateCreatedThread(threadId, cwd);
-          // Loading recovered history can itself overlap a newer creation or
-          // navigation. Never clear that newer operation's durable receipt.
-          if (activated && get().threadCreateOperation === accepted && runtime === runtimeVersion && generation === gateway.generation) {
-            try { saveThreadCreateOperation(null); } catch { /* stale acceptance can be recovered after reload */ }
+          const result = await gateway.request("thread/start/operation", { clientOperationId });
+          if (!isCurrent()) return get().threadCreateOperationRecords[clientOperationId] ?? null;
+          if (!result || typeof result !== "object" || !["not_received", "unknown", "rejected", "accepted"].includes(result.state)) throw new Error("网关返回了无效的会话创建收据");
+          if (result.state === "accepted") {
+            const threadId = boundedString(result.threadId, 256);
+            const cwd = boundedString(result.cwd, 4096);
+            if (!threadId || cwd !== operation.cwd) throw new Error("会话创建收据身份或项目不匹配");
+            const accepted: ThreadCreateOperation = { ...operation, state: "accepted", threadId, error: undefined };
+            // A read-only lookup must not recreate a key another tab has
+            // explicitly consumed. Keep its proof locally until opened; the
+            // original durable ID still permits recovery after a reload.
+            updateThreadCreate(accepted);
+            get().refreshThreadCreateOperations();
+            return get().threadCreateOperationRecords[clientOperationId] ?? null;
           }
-          return accepted;
-        }
-        if (result.state === "not_received" || result.state === "rejected") {
-          const next: ThreadCreateOperation = {
-            ...operation,
-            state: result.state,
-            error: result.state === "not_received"
-              ? "网关确认未收到该创建操作，可以安全重试。"
-              : boundedString(result.error, 1_000) || "网关拒绝了该创建操作，可以修正后重试。",
-          };
-          try { saveThreadCreateOperation(null); } catch { /* stale local evidence remains conservative after reload */ }
-          set({ threadCreateOperation: next });
-          return next;
-        }
-        const next: ThreadCreateOperation = {
-          ...operation,
-          error: boundedString(result.error, 1_000) || "会话创建结果仍未知；不会自动重试。",
-        };
-        set({ threadCreateOperation: next });
-        return next;
+          if (result.state === "rejected") {
+            const settled: ThreadCreateOperation = { ...operation, state: result.state,
+              error: boundedString(result.error, 1_000) || "网关拒绝了该创建操作，可以修正后重试。" };
+            updateThreadCreate(settled);
+            get().refreshThreadCreateOperations();
+            return settled;
+          }
+          const unknown = { ...operation, error: result.state === "not_received"
+            ? "此次核对时网关尚未收到；原请求仍可能随后送达，不能确认未执行。请继续核对，不会自动重试。"
+            : boundedString(result.error, 1_000) || "会话创建结果仍未知；不会自动重试。" };
+          updateThreadCreate(unknown);
+          return unknown;
         } catch (error) {
-          if (!isCurrent()) return get().threadCreateOperation;
-          const next: ThreadCreateOperation = {
-            ...operation,
-            error: loadFailure("会话创建状态核对失败", error).error ?? "会话创建状态核对失败",
-          };
-          set({ threadCreateOperation: next });
-          return next;
+          if (!isCurrent()) return get().threadCreateOperationRecords[clientOperationId] ?? null;
+          const unknown = { ...operation, error: loadFailure("会话创建状态核对失败", error).error ?? "会话创建状态核对失败" };
+          updateThreadCreate(unknown);
+          return unknown;
         }
-      } finally {
-        const result = get().threadCreateOperation;
-        threadCreateCheckFlight = null;
-        settleCheck(result);
-      }
+      })();
+      const flight = task.finally(() => { if (threadCreateCheckFlights.get(clientOperationId) === flight) threadCreateCheckFlights.delete(clientOperationId); });
+      threadCreateCheckFlights.set(clientOperationId, flight);
+      return flight;
+    },
+
+    async openCreatedThread(clientOperationId) {
+      const operation = get().threadCreateOperationRecords[clientOperationId];
+      if (operation?.state !== "accepted" || !operation.threadId || get().threadCreateInFlight === clientOperationId) return false;
+      const runtime = runtimeVersion;
+      const generation = gateway.generation;
+      const opening = get().openThread(operation.threadId);
+      const navigation = openThreadRequestSeq;
+      await opening;
+      if (navigation !== openThreadRequestSeq || runtime !== runtimeVersion || generation !== gateway.generation || get().activeThreadId !== operation.threadId ||
+          !get().historyLoaded[operation.threadId] || get().historyCwd[operation.threadId] !== operation.cwd || get().currentProject !== operation.cwd) return false;
+      return finishThreadCreate(operation);
     },
 
     acknowledgeUnknownThreadCreate(clientOperationId) {
-      const operation = get().threadCreateOperation;
-      if (!operation || operation.clientOperationId !== clientOperationId || operation.state !== "unknown") return false;
+      const operation = get().threadCreateOperationRecords[clientOperationId];
+      if (!operation || operation.state === "accepted" || get().threadCreateInFlight === clientOperationId) return false;
+      if (operation.state !== "unknown") return finishThreadCreate(operation);
       const acknowledged: ThreadCreateOperation = { ...operation, state: "acknowledged_unknown" };
-      try { saveThreadCreateOperation(acknowledged); } catch { return false; }
-      set({ threadCreateOperation: acknowledged });
-      return true;
+      if (!persistThreadCreate(acknowledged)) return false;
+      updateThreadCreate(acknowledged);
+      return finishThreadCreate(acknowledged);
     },
 
     uploadAttachment(name, base64, kind) {
@@ -3185,9 +3373,14 @@ export const useStore = create<AppStore>((rawSet, get) => {
       return gateway.rpc("attachment/delete", { path }).then(() => undefined);
     },
 
-    async openThread(threadId) {
+    async openThread(threadId, source) {
       threadId = boundedString(threadId, 256);
       if (!threadId || deletedThreads.has(threadId)) return;
+      const initialIntent = source === "initial-url" && initialUrlIntent?.threadId === threadId ? initialUrlIntent : null;
+      if (!initialIntent) cancelInitialUrlIntent(false);
+      const finishInitialIntent = () => { if (initialIntent && initialUrlIntent === initialIntent) initialUrlIntent = null; };
+      navigationIntentSeq += 1;
+      initialThreadSelected = true;
       const fromHistory = historyNavigationTarget === threadId;
       if (fromHistory) historyNavigationTarget = undefined;
       overflowThreads.delete(threadId);
@@ -3212,6 +3405,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
       if (!fromHistory) syncUrl(threadId, "push");
       const cachedCwd = get().historyCwd[threadId];
       if (get().historyLoaded[threadId] && get().items[threadId] && cachedCwd) {
+        finishInitialIntent();
         if (!get().projects.some((project) => project.path === cachedCwd && project.available !== false)) {
           set((state) => ({
             activeThreadId: null,
@@ -3256,18 +3450,40 @@ export const useStore = create<AppStore>((rawSet, get) => {
             // Activate first so output is subscribed before reading the full
             // snapshot. Do not enable sending until activation completes.
             let activationError: unknown;
-            try { await gateway.request("thread/resume", { threadId }); }
+            let resumeHistoryMode: unknown;
+            try {
+              const resumed = await gateway.request("thread/resume", { threadId, excludeTurns: true });
+              resumeHistoryMode = resumed?.thread?.historyMode;
+            }
             catch (error) { activationError = error; }
             if (requestSeq !== openThreadRequestSeq || generation !== gateway.generation) return;
             const activityVersion = activityVersions.get(threadId) ?? 0;
             const terminalEpochBefore = historyTerminalEpochs.get(threadId) ?? 0;
-            const response: unknown = await gateway.request("thread/read", { threadId, includeTurns: true });
+            const hydrated = await hydrateThreadHistory(threadId, (method, params) => gateway.rpc(method, params),
+              () => requestSeq === openThreadRequestSeq && generation === gateway.generation, resumeHistoryMode);
             if (requestSeq !== openThreadRequestSeq || generation !== gateway.generation) return;
-            const projection = projectThreadReadResponse(response, threadId);
+            const projection = projectThreadReadResponse(hydrated.response, threadId);
+            if (hydrated.warning || hydrated.truncated && !projection.truncated) {
+              projection.items.unshift({ ...makeErrorItem(hydrated.warning ?? "会话历史达到分页读取预算；仅显示最新部分。历史未完整核对，发送已暂停；请重试或通过 Codex CLI 查看。"), threadId, historyLoadError: true });
+            }
+            projection.truncated ||= hydrated.truncated;
+            const priorItems = get().items[threadId];
+            if (projection.truncated && priorItems?.length) {
+              // A bounded read must not replace an already visible snapshot
+              // with an incomplete prefix. Preserve it explicitly as stale;
+              // no new sends are allowed until a complete read succeeds.
+              projection.items = [
+                ...priorItems.filter((item) => item.type !== "errorItem" || !item.historyLoadError),
+                { ...makeErrorItem(hydrated.warning
+                  ? `${hydrated.warning} 已保留上次可见内容，这不是完整的最新历史。`
+                  : "新历史超过浏览器读取预算，已保留上次可见内容；这不是完整的最新历史，发送已暂停。请重试或通过 Codex CLI 核对。"), threadId, historyLoadError: true },
+              ];
+            }
             flushDeltas();
             if (get().activeThreadId === threadId) {
               const projectChanged = projection.cwd !== get().currentProject;
               const projectedProject = get().projects.find((project) => project.path === projection.cwd && project.available !== false);
+              finishInitialIntent();
               if (projectChanged && !projectedProject) {
                 // Never retain a thread from cwd Q while the selected/usable
                 // project is P. The project registry is authoritative for new
@@ -3322,7 +3538,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
               }
               set((s) => ({
                 items: { ...s.items, [threadId]: mergeHistory(items, (s.items[threadId] ?? []).filter((item) => item.type !== "errorItem" || !item.historyLoadError), historyStarts.get(threadId) ?? new Set()) },
-                historyLoaded: { ...s.historyLoaded, [threadId]: !activationError && !terminalRaceUnresolved },
+                historyLoaded: { ...s.historyLoaded, [threadId]: !activationError && !terminalRaceUnresolved && !projection.truncated },
                 historyCwd: { ...s.historyCwd, [threadId]: projection.cwd },
                 historyLoading: { ...s.historyLoading, [threadId]: false },
                 ...(unchanged ? {
@@ -3346,6 +3562,7 @@ export const useStore = create<AppStore>((rawSet, get) => {
           } catch (err: unknown) {
             if (requestSeq !== openThreadRequestSeq || generation !== gateway.generation) return;
             if (attempt === 2) {
+              finishInitialIntent();
               // Never swallow a failed history load silently — that showed up
               // as "refresh loses all messages". Surface it and retry on click.
               const message = err instanceof Error ? err.message : String(err);
@@ -3369,83 +3586,60 @@ export const useStore = create<AppStore>((rawSet, get) => {
     newThread() {
       if (newThreadFlight) return newThreadFlight;
       const task = (async (): Promise<string | null> => {
-        const { currentProject, settings, projects, threadCreateOperation } = get();
-        if (!currentProject || !projects.some((project) => project.path === currentProject && project.available !== false)) {
-          throw new Error("当前没有可用项目，会话未创建");
-        }
-        if (threadCreateOperation?.state === "unknown") {
-          throw new Error("上一次会话创建结果未知；请先核对状态，不能重复创建");
-        }
+        const { currentProject, settings, projects } = get();
+        if (!currentProject || !projects.some((project) => project.path === currentProject && project.available !== false)) throw new Error("当前没有可用项目，会话未创建");
+        if (!get().refreshThreadCreateOperations()) throw new Error("会话创建记录未完整读取；请先处理存储错误或记录容量，会话未创建");
+        if (Object.values(get().threadCreateOperationRecords).some((operation) => operation.state === "unknown")) throw new Error("仍有会话创建结果未知；请逐项核对状态，不能重复创建");
+        if (settings.selectedModel && !get().models.some((model) => model.id === settings.selectedModel)) throw new Error("尚未确认所选模型的当前目录，未创建会话；请重试读取模型，或明确选择默认模型。");
+        if (settings.selectedEffort && !selectedModelEfforts(get().models, settings.selectedModel).includes(settings.selectedEffort)) throw new Error("尚未确认所选思考程度的模型能力，未创建会话；请重试读取模型，或明确选择默认思考。");
         const requestSeq = ++newThreadRequestSeq;
         const generation = gateway.generation;
         const clientOperationId = operationId();
         const operation: ThreadCreateOperation = { clientOperationId, cwd: currentProject, state: "unknown" };
-        try { saveThreadCreateOperation(operation); }
-        catch { throw new Error("浏览器无法保存会话创建标识，会话未创建；请允许本站本地存储后重试"); }
+        if (!persistThreadCreate(operation)) throw new Error("浏览器无法保存会话创建标识，会话未创建；请允许本站本地存储后重试");
+        cancelInitialUrlIntent();
+        navigationIntentSeq += 1;
+        initialThreadSelected = true;
         const projectSelection = ++projectSelectionSeq;
         openThreadRequestSeq += 1;
-        set({ threadCreateOperation: operation });
-        const params: Pick<ThreadStartParams, "cwd" | "model" | "approvalPolicy"> & { clientOperationId: string } = {
-          cwd: currentProject,
-          clientOperationId,
-        };
-        // A selection is sent only when it belongs to the current provider's
-        // validated cache. Catalog failure falls back to server defaults.
-        const models = get().models;
-        if (settings.selectedModel && models.some((model) => model.id === settings.selectedModel)) {
-          params.model = settings.selectedModel;
-        }
+        updateThreadCreate(operation);
+        set({ threadCreateInFlight: clientOperationId });
+        const params: Pick<ThreadStartParams, "cwd" | "model" | "approvalPolicy"> & { clientOperationId: string } = { cwd: currentProject, clientOperationId };
+        if (settings.selectedModel) params.model = settings.selectedModel;
         if (settings.selectedApprovalPolicy) params.approvalPolicy = settings.selectedApprovalPolicy;
-        let res;
         try {
-          res = await gateway.request("thread/start", params);
-        } catch (error: any) {
-          if (get().threadCreateOperation !== operation) throw error;
-          const definitive = error?.delivery === "not_sent" || error?.delivery === "rejected";
-          const failed: ThreadCreateOperation = {
-            ...operation,
-            state: definitive ? "rejected" : "unknown",
-            error: definitive
+          let res;
+          try { res = await gateway.request("thread/start", params); }
+          catch (error: any) {
+            const definitive = error?.delivery === "not_sent" || error?.delivery === "rejected";
+            const failed: ThreadCreateOperation = { ...operation, state: definitive ? "rejected" : "unknown", error: definitive
               ? boundedString(error?.message, 1_000) || "会话创建未派发，可以重试。"
-              : `${boundedString(error?.message, 1_000) || "连接中断"}。创建结果未知；不会自动重试。`,
-          };
-          if (definitive) {
-            try { saveThreadCreateOperation(null); } catch { /* a reload will reconcile the stale identifier */ }
+              : (boundedString(error?.message, 1_000) || "连接中断") + "。创建结果未知；不会自动重试。" };
+            updateThreadCreate(failed);
+            if (definitive && persistThreadCreate(failed)) { set({ threadCreateInFlight: null }); finishThreadCreate(failed); }
+            throw new Error(failed.error);
           }
-          set({ threadCreateOperation: failed });
-          throw new Error(failed.error);
+          const threadId = boundedString(res?.thread?.id, 256);
+          if (!threadId || res?.clientOperationId !== clientOperationId) {
+            const unknown = { ...operation, error: "thread/start 返回的会话或操作身份无效；创建结果未知，不会自动重试。" };
+            updateThreadCreate(unknown);
+            throw new Error(unknown.error);
+          }
+          const accepted: ThreadCreateOperation = { ...operation, state: "accepted", threadId };
+          persistThreadCreate(accepted);
+          updateThreadCreate(accepted);
+          if (requestSeq !== newThreadRequestSeq || generation !== gateway.generation || projectSelection !== projectSelectionSeq || currentProject !== get().currentProject) {
+            if (currentProject === get().currentProject) void get().refreshSessions().catch(() => {});
+            return null;
+          }
+          void gateway.rpc("projects/touch", { path: currentProject }).catch(() => {});
+          if (!await activateCreatedThread(threadId, currentProject, true)) return null;
+          set({ threadCreateInFlight: null });
+          finishThreadCreate(accepted);
+          return threadId;
+        } finally {
+          if (get().threadCreateInFlight === clientOperationId) set({ threadCreateInFlight: null });
         }
-        if (get().threadCreateOperation !== operation) return null;
-        const threadId = boundedString(res?.thread?.id, 256);
-        if (!threadId || res?.clientOperationId !== clientOperationId) {
-          const unknown: ThreadCreateOperation = {
-            ...operation,
-            error: "thread/start 返回的会话或操作身份无效；创建结果未知，不会自动重试。",
-          };
-          set({ threadCreateOperation: unknown });
-          throw new Error(unknown.error);
-        }
-        const accepted: ThreadCreateOperation = { ...operation, state: "accepted", threadId };
-        set({ threadCreateOperation: accepted });
-        if (
-          requestSeq !== newThreadRequestSeq || generation !== gateway.generation ||
-          projectSelection !== projectSelectionSeq ||
-          currentProject !== get().currentProject
-        ) {
-          // Acceptance is known, but navigation moved. Never redirect or send
-          // a draft across project/generation boundaries.
-          try { saveThreadCreateOperation(accepted); } catch { /* in-memory confirmation remains visible */ }
-          if (currentProject === get().currentProject) void get().refreshSessions().catch(() => {});
-          return null;
-        }
-        let storageCleared = true;
-        try { saveThreadCreateOperation(null); } catch { storageCleared = false; }
-        void gateway.rpc("projects/touch", { path: currentProject }).catch(() => {});
-        await activateCreatedThread(threadId, currentProject, true);
-        if (storageCleared && get().threadCreateOperation?.clientOperationId === clientOperationId) {
-          set({ threadCreateOperation: null });
-        }
-        return threadId;
       })();
       const flight = task.finally(() => { if (newThreadFlight === flight) newThreadFlight = null; });
       newThreadFlight = flight;
@@ -3473,6 +3667,13 @@ export const useStore = create<AppStore>((rawSet, get) => {
       const runtime = runtimeVersion;
       const threadId = get().activeThreadId;
       if (!threadId) return;
+      if (get().settings.selectedModel && !get().models.some((model) => model.id === get().settings.selectedModel)) {
+        throw new Error("尚未确认所选模型的当前目录，消息未发送；请重试读取模型，或明确选择默认模型。");
+      }
+      const { selectedModel: modelSelection, selectedEffort: effortSelection } = get().settings;
+      if (effortSelection && !selectedModelEfforts(get().models, modelSelection).includes(effortSelection)) {
+        throw new Error("尚未确认所选思考程度的模型能力，消息未发送；请重试读取模型，或明确选择默认思考。");
+      }
       if (get().management.state !== "idle") throw new Error("管理操作正在进行，请完成后再发送消息");
       if (!get().historyLoaded[threadId]) throw new Error("会话历史尚未完成加载，请稍后重试");
       if (get().turnActive[threadId]) throw new Error("会话正在运行，请等待完成或先停止");
@@ -3585,7 +3786,11 @@ export const useStore = create<AppStore>((rawSet, get) => {
         if (exact.state === "accepted") return;
         const definitive = err?.delivery === "not_sent" || err?.delivery === "rejected" && err?.code !== "OPERATION_UNKNOWN";
         const failed: SendOperation = { ...exact, state: definitive ? "rejected" : "unknown", error: String(err?.message ?? err).slice(0, 1000) };
-        try { saveSendOperation(failed); } catch { /* Do not lose the in-memory lock. */ }
+        // Unknown was already persisted before dispatch. Rewriting it here
+        // could undo an explicit acknowledgement in another document.
+        if (definitive) {
+          try { saveSendOperation(failed); } catch { /* Do not lose the in-memory lock. */ }
+        }
         set((currentState) => {
           const currentSelected = currentState.sendOperations[threadId];
           const currentExact = currentState.sendOperationRecords[clientOperationId] ??

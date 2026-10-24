@@ -4,6 +4,7 @@ import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { AppServerConnection, AppServerRequestError, RPC_LIMITS, appServerEnvironment, initialize, isDefiniteAppServerRejection, parseProcessStat, type AppServerHandlers } from "../src/codex/rpc.js";
+import { rpcFailureMessage } from "../src/hub.js";
 
 /**
  * attach() lets tests drive the JSONL transport with fake streams instead of
@@ -724,6 +725,61 @@ describe("AppServerConnection", () => {
     conn.kill();
     stdout.end();
     await vi.waitFor(() => expect(handlers.onExit).toHaveBeenCalledTimes(1));
+  });
+
+  it("rejects invalid Unicode keys and values before writing, releases timers/capacity, and preserves valid Unicode", async () => {
+    vi.useFakeTimers();
+    const { conn, reply, frames } = makeFake();
+    try {
+      const invalid = [
+        { nested: [{ value: "\ud800" }] }, { value: "\udfff" }, { ["private-key-\ud800"]: 1 },
+        { value: new String("\ud800") }, { value: { toJSON: () => "\udfff" } },
+      ];
+      for (let i = 0; i < RPC_LIMITS.pending + 1; i++) {
+        const failure = await conn.request("turn/start", invalid[i % invalid.length]).catch(error => error);
+        expect(isDefiniteAppServerRejection(failure)).toBe(true);
+        expect(rpcFailureMessage(1, failure)).toMatchObject({ delivery: "not_sent" });
+        expect(failure.message).toBe("failed to serialize app-server frame: invalid Unicode in app-server frame");
+      }
+      expect(frames).toHaveLength(0);
+      expect((conn as any).pending.size).toBe(0);
+      expect((conn as any).writeQueue).toHaveLength(0);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(() => conn.notify("notification", { text: "\ud800" })).toThrow(/invalid Unicode/);
+      await expect(conn.request("method-\ud800", {})).rejects.toThrow(/invalid Unicode/);
+      expect(frames).toHaveLength(0);
+      const healthy = conn.request("account/read", { "🙂": ["中文🙂", "\\ud800", new String("🙂")] });
+      expect(frames).toHaveLength(1);
+      expect(frames[0].params).toEqual({ "🙂": ["中文🙂", "\\ud800", "🙂"] });
+      reply({ id: frames[0].id, result: { ok: true } });
+      await expect(healthy).resolves.toEqual({ ok: true });
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { await conn.kill(); vi.useRealTimers(); }
+  });
+
+  it.each(["result", "error"])("sends a correlated fallback for invalid Unicode in a server-request %s", async (kind) => {
+    const { conn, handlers, frames, reply } = makeFake({ onServerRequest: async () => {
+      if (kind === "error") throw new Error("x".repeat(1999) + "🙂");
+      return { nested: { "private-key-\ud800": "secret-result" } };
+    } });
+    try {
+      reply({ id: "server-one", method: "dynamic/tool", params: {} });
+      await vi.waitFor(() => expect(frames).toHaveLength(1));
+      expect(frames[0]).toEqual({ id: "server-one", error: { code: -32000, message: "gateway could not encode or queue server-request result" } });
+      expect(handlers.onExit).not.toHaveBeenCalled();
+      expect(JSON.stringify((handlers.onStderr as any).mock.calls)).not.toMatch(/secret-result|private-key/);
+      const healthy = conn.request("account/read");
+      reply({ id: frames[1].id, result: {} });
+      await expect(healthy).resolves.toEqual({});
+    } finally { await conn.kill(); }
+  });
+
+  it("fails transport if an invalid Unicode server request id also prevents the fallback reply", async () => {
+    const { conn, handlers, frames, reply } = makeFake();
+    reply({ id: "bad-id-\ud800", method: "dynamic/tool" });
+    await vi.waitFor(() => expect(handlers.onExit).toHaveBeenCalledOnce());
+    expect(frames).toHaveLength(0);
+    await conn.kill();
   });
 
   it("does not allow a closed connection object to be reattached", () => {

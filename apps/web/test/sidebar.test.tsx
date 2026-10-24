@@ -12,14 +12,16 @@ const model = vi.hoisted(() => ({
   loadMoreSessions: vi.fn(), setSessionSearch: vi.fn(), setSessionArchived: vi.fn(), addProject: vi.fn(),
   refresh: vi.fn(), refreshProjects: vi.fn(), refreshSessions: vi.fn(),
   renameThread: vi.fn(), archiveThread: vi.fn(), deleteThread: vi.fn(), unarchiveThread: vi.fn(),
-  threadCreateOperation: null as null | { clientOperationId: string; cwd: string; state: string; error?: string; threadId?: string },
+  threadCreateOperationRecords: {} as Record<string, { clientOperationId: string; cwd: string; state: string; error?: string; threadId?: string }>,
+  threadCreateOperationOverflow: false, threadCreateStorageError: null as string | null, threadCreateInFlight: null as string | null,
+  refreshThreadCreateOperations: vi.fn(), openCreatedThread: vi.fn(),
   checkThreadCreateOperation: vi.fn(), acknowledgeUnknownThreadCreate: vi.fn(),
 }));
 const wire = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("../src/store", () => ({ useStore: (selector: (state: typeof model) => unknown) => selector(model) }));
 vi.mock("../src/api/ws", () => ({ gateway: { rpc: (...args: unknown[]) => wire.rpc(...args) } }));
 
-import { Sidebar, parentOf } from "../src/components/Sidebar";
+import { Sidebar, parentOf, joinDir } from "../src/components/Sidebar";
 
 const settle = async () => { for (let index = 0; index < 20; index++) await Promise.resolve(); };
 
@@ -50,7 +52,7 @@ describe("project picker async ownership", () => {
       await settle();
     });
     act(() => view.root.findByProps({ className: "dir-entry" }).props.onClick());
-    act(() => view.root.findAllByType("button").find(node => node.props.children === "↑ 上级")!.props.onClick());
+    act(() => view.root.findByProps({ "aria-label": "浏览上级目录" }).props.onClick());
     await act(async () => {
       parent.resolve({ entries: [{ fileName: "fresh", isDirectory: true }] });
       await settle();
@@ -59,7 +61,7 @@ describe("project picker async ownership", () => {
     });
 
     expect(view.root.findByProps({ className: "dir-browser-path" }).props.children).toBe("/");
-    expect(view.root.findAllByProps({ className: "dir-entry" }).map(node => node.props.children.join(""))).toEqual(["📁 fresh"]);
+    expect(view.root.findAllByProps({ className: "dir-entry" }).map(node => node.props["aria-label"])).toEqual(["浏览目录：fresh"]);
   });
 
   it("admits a rapid double-click only once while project selection is pending", async () => {
@@ -105,11 +107,32 @@ describe("project picker async ownership", () => {
       view.root.findAllByType("button").find(node => node.props.children === "浏览目录")!.props.onClick();
       await settle();
     });
-    expect(view.root.findAllByProps({ className: "dir-entry" }).map(node => node.props.children.join(""))).toEqual(["📁 safe"]);
+    expect(view.root.findAllByProps({ className: "dir-entry" }).map(node => node.props["aria-label"])).toEqual(["浏览目录：safe"]);
+    expect(JSON.stringify(view.toJSON())).toContain("目录条目过多，仅显示部分结果");
+  });
+
+  it("browses the entered remote path and announces an in-progress directory read", async () => {
+    const response = deferred<unknown>();
+    wire.rpc.mockReturnValue(response.promise);
+    act(() => view.root.findByProps({ "aria-label": "服务器项目绝对路径" }).props.onChange({ target: { value: "/srv/workspace" } }));
+    act(() => view.root.findAllByType("button").find(node => node.props.children === "浏览目录")!.props.onClick());
+    expect(wire.rpc).toHaveBeenCalledExactlyOnceWith("fs/readDirectory", { path: "/srv/workspace" });
+    expect(JSON.stringify(view.toJSON())).toContain("正在读取服务器目录");
+    expect(JSON.stringify(view.toJSON())).not.toContain("此目录没有可显示的子目录");
+    await act(async () => { response.resolve({ entries: [] }); await settle(); });
+    expect(view.root.findByProps({ className: "dir-browser-path" }).props.children).toBe("/srv/workspace");
+    expect(JSON.stringify(view.toJSON())).toContain("可直接添加当前路径");
   });
 });
 
 describe("project picker path navigation", () => {
+  it("preserves literal POSIX backslashes when browsing up and down", () => {
+    expect(parentOf("/tmp/a\\b")).toBe("/tmp");
+    expect(parentOf("/tmp/name\\/child")).toBe("/tmp/name\\");
+    expect(joinDir("/tmp/name\\", "child")).toBe("/tmp/name\\/child");
+    expect(joinDir("/tmp", "a\\b")).toBe("/tmp/a\\b");
+    expect(joinDir("/", "child")).toBe("/child");
+  });
   it("keeps Unix and Windows drive roots stable when navigating upward", () => {
     expect(parentOf("/")).toBe("/");
     expect(parentOf("C:\\")).toBe("C:\\");
@@ -118,6 +141,53 @@ describe("project picker path navigation", () => {
 });
 
 describe("sidebar write admission", () => {
+  it("uses keyboard-accessible selection buttons without nesting mutation controls", async () => {
+    model.projects = [{ path: "/root/project", addedAt: 1, lastUsedAt: 1, available: true }, { path: "/missing", addedAt: 1, lastUsedAt: 1, available: false }] as never[];
+    model.sessions = [{ threadId: "T", title: "Original", updatedAt: 1 }] as never[];
+    model.selectProject.mockReset().mockResolvedValue(undefined);
+    model.openThread.mockReset().mockResolvedValue(undefined);
+    let view!: ReactTestRenderer;
+    act(() => { view = create(<Sidebar />); });
+    expect(view.root.findAllByType("button")[0].props.className).toBe("sb-new");
+    const project = view.root.findByProps({ "aria-label": "切换项目：/root/project" });
+    const session = view.root.findByProps({ "aria-label": "打开会话：Original" });
+    expect(project.type).toBe("button");
+    expect(project.props["aria-current"]).toBe("true");
+    expect(session.type).toBe("button");
+    expect(view.root.findByProps({ "aria-label": "切换项目：/missing（不可用）" }).props.disabled).toBe(true);
+    expect(view.root.findAllByType("button").every(button => button.findAllByType("button").length === 1)).toBe(true);
+    await act(async () => { project.props.onClick(); session.props.onClick(); await settle(); });
+    expect(model.selectProject).toHaveBeenCalledExactlyOnceWith("/root/project");
+    expect(model.openThread).toHaveBeenCalledExactlyOnceWith("T");
+    act(() => view.unmount());
+    model.projects = []; model.sessions = [];
+  });
+
+  it("shows failed navigation on the session row and unlocks selection for retry", async () => {
+    model.sessions = [{ threadId: "T", title: "Original", updatedAt: 1 }] as never[];
+    model.openThread.mockReset().mockRejectedValueOnce(new Error("navigation unavailable"));
+    let view!: ReactTestRenderer;
+    act(() => { view = create(<Sidebar />); });
+    const open = view.root.findByProps({ "aria-label": "打开会话：Original" });
+    await act(async () => { open.props.onClick(); open.props.onClick(); await settle(); });
+    expect(model.openThread).toHaveBeenCalledExactlyOnceWith("T");
+    expect(view.root.findByProps({ role: "alert" }).props.children).toContain("navigation unavailable");
+    expect(view.root.findByProps({ "aria-label": "打开会话：Original" }).props.disabled).toBe(false);
+    act(() => view.unmount());
+    model.sessions = [];
+  });
+
+  it("distinguishes an empty archived search from an empty archive", () => {
+    model.sessionArchived = true; model.sessionSearch = "find me";
+    let view!: ReactTestRenderer;
+    act(() => { view = create(<Sidebar />); });
+    expect(JSON.stringify(view.toJSON())).toContain("没有匹配「find me」的归档会话");
+    const scope = view.root.findByProps({ "aria-label": "会话范围" });
+    expect(scope.findAllByType("button").map(button => button.props["aria-pressed"])).toEqual([false, true]);
+    act(() => view.unmount());
+    model.sessionArchived = false; model.sessionSearch = "";
+  });
+
   it("does not present failed project and session reads as confirmed empty lists and exposes retries", () => {
     model.projectsLoad = { state: "error", error: "项目读取失败" };
     model.sessionLoad = { state: "error", error: "会话读取失败" };
@@ -213,25 +283,86 @@ describe("sidebar write admission", () => {
     act(() => view.unmount());
   });
 
-  it("shows an unknown create receipt, blocks duplicates, and exposes bounded reconciliation controls", () => {
-    model.threadCreateOperation = {
-      clientOperationId: "11111111-1111-4111-8111-111111111111",
-      cwd: "/root/project",
-      state: "unknown",
-      error: "创建响应丢失；结果未知",
+  it("addresses each recovery row by ID and leaves all other unresolved rows visible", async () => {
+    const first = "11111111-1111-4111-8111-111111111111", second = "22222222-2222-4222-8222-222222222222", accepted = "33333333-3333-4333-8333-333333333333";
+    model.threadCreateOperationRecords = {
+      [first]: { clientOperationId: first, cwd: "/root/project", state: "unknown", error: "创建响应丢失；结果未知" },
+      [second]: { clientOperationId: second, cwd: "/other/project", state: "unknown" },
+      [accepted]: { clientOperationId: accepted, cwd: "/other/project", state: "accepted", threadId: "created" },
     };
-    model.checkThreadCreateOperation.mockReset();
-    model.acknowledgeUnknownThreadCreate.mockReset();
+    model.checkThreadCreateOperation.mockReset(); model.acknowledgeUnknownThreadCreate.mockReset(); model.openCreatedThread.mockReset();
+    model.acknowledgeUnknownThreadCreate.mockImplementation((id) => { delete model.threadCreateOperationRecords[id]; return true; });
+    vi.stubGlobal("confirm", vi.fn(() => true));
     let view!: ReactTestRenderer;
     act(() => { view = create(<Sidebar />); });
-    expect(JSON.stringify(view.toJSON())).toContain("创建响应丢失；结果未知");
+    const row = (id: string) => view.root.findByProps({ "aria-label": "创建记录：" + id });
     expect(view.root.findByProps({ className: "sb-new" }).props.disabled).toBe(true);
-    act(() => view.root.findAllByType("button").find((button) => button.props.children === "核对创建状态")!.props.onClick());
-    act(() => view.root.findAllByType("button").find((button) => button.props.children === "已核对列表，允许重试")!.props.onClick());
-    expect(model.checkThreadCreateOperation).toHaveBeenCalledOnce();
-    expect(model.acknowledgeUnknownThreadCreate).toHaveBeenCalledExactlyOnceWith("11111111-1111-4111-8111-111111111111");
-    act(() => view.unmount());
-    model.threadCreateOperation = null;
+    await act(async () => { row(second).findAllByType("button")[0].props.onClick(); await settle(); });
+    expect(model.checkThreadCreateOperation).toHaveBeenCalledExactlyOnceWith(second);
+    await act(async () => { row(first).findAllByType("button")[1].props.onClick(); await settle(); view.update(<Sidebar />); });
+    expect(model.acknowledgeUnknownThreadCreate).toHaveBeenCalledExactlyOnceWith(first);
+    expect(row(second)).toBeDefined(); expect(row(accepted)).toBeDefined();
+    expect(view.root.findByProps({ className: "sb-new" }).props.disabled).toBe(true);
+    await act(async () => { row(accepted).findByType("button").props.onClick(); await settle(); });
+    expect(model.openCreatedThread).toHaveBeenCalledExactlyOnceWith(accepted);
+    act(() => view.unmount()); model.threadCreateOperationRecords = {}; vi.unstubAllGlobals();
+  });
+
+  it("keeps local in-flight creation out of recovery controls and exposes storage failures", () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    model.threadCreateOperationRecords = { [id]: { clientOperationId: id, cwd: "P", state: "unknown" } };
+    model.threadCreateInFlight = id; model.threadCreateStorageError = "存储不可写";
+    let view!: ReactTestRenderer; act(() => { view = create(<Sidebar />); });
+    expect(JSON.stringify(view.toJSON())).toContain("本页正在创建");
+    expect(JSON.stringify(view.toJSON())).toContain("存储不可写");
+    expect(view.root.findByProps({ "aria-label": "创建记录：" + id }).findAllByType("button")).toHaveLength(0);
+    expect(view.root.findByProps({ className: "sb-new" }).props.disabled).toBe(true);
+    act(() => view.unmount()); model.threadCreateOperationRecords = {}; model.threadCreateInFlight = null; model.threadCreateStorageError = null;
+  });
+
+  it.each([
+    { isComposing: true, keyCode: 13 },
+    { isComposing: false, keyCode: 229 },
+  ])("leaves IME rename confirmation and cancellation to the input method: %j", async (nativeEvent) => {
+    model.sessions = [{ threadId: "T", title: "Original", updatedAt: 1 }] as never[];
+    model.renameThread.mockReset();
+    let view!: ReactTestRenderer;
+    act(() => { view = create(<Sidebar />); });
+    try {
+      act(() => view.root.findByProps({ title: "重命名" }).props.onClick());
+      act(() => view.root.findByProps({ className: "sb-rename" }).props.onChange({ target: { value: "中文候选" } }));
+      for (const key of ["Enter", "Escape"]) {
+        act(() => view.root.findByProps({ className: "sb-rename" }).props.onKeyDown({ key, nativeEvent }));
+        expect(model.renameThread).not.toHaveBeenCalled();
+        expect(view.root.findByProps({ className: "sb-rename" }).props.value).toBe("中文候选");
+      }
+      act(() => view.root.findByProps({ className: "sb-rename" }).props.onChange({ target: { value: "中文名称" } }));
+      await act(async () => {
+        const input = view.root.findByProps({ className: "sb-rename" });
+        input.props.onKeyDown({ key: "Enter", nativeEvent: { isComposing: false, keyCode: 13 } });
+        input.props.onBlur();
+        await settle();
+      });
+      expect(model.renameThread).toHaveBeenCalledExactlyOnceWith("T", "中文名称");
+      expect(view.root.findAllByProps({ className: "sb-rename" })).toHaveLength(0);
+    } finally {
+      act(() => view.unmount()); model.sessions = [];
+    }
+  });
+
+  it("commits the completed rename on blur", async () => {
+    model.sessions = [{ threadId: "T", title: "Original", updatedAt: 1 }] as never[];
+    model.renameThread.mockReset();
+    let view!: ReactTestRenderer;
+    act(() => { view = create(<Sidebar />); });
+    try {
+      act(() => view.root.findByProps({ title: "重命名" }).props.onClick());
+      act(() => view.root.findByProps({ className: "sb-rename" }).props.onChange({ target: { value: "中文名称" } }));
+      await act(async () => { view.root.findByProps({ className: "sb-rename" }).props.onBlur(); await settle(); });
+      expect(model.renameThread).toHaveBeenCalledExactlyOnceWith("T", "中文名称");
+    } finally {
+      act(() => view.unmount()); model.sessions = [];
+    }
   });
 
   it("does not commit an escaped rename or submit the same row action twice", async () => {

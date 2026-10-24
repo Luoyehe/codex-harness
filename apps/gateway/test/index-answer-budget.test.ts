@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { FLOW_LIMITS, RpcBudget } from "../src/flow-control.js";
+import { Hub } from "../src/hub.js";
 
 const harness = vi.hoisted(() => ({
   route: undefined as undefined | ((socket: any, request: any) => void),
@@ -243,4 +244,31 @@ it("preserves bounded rejection notifications and releases answer capacity after
   await settle();
   expect(harness.answer).toHaveBeenCalledTimes(5);
   expect(socket.results()).toHaveLength(4);
+});
+
+it.each([
+  ["item/commandExecution/requestApproval", { decision: "garbage" }, { decision: "decline" }],
+  ["item/fileChange/requestApproval", { decision: [] }, { decision: "cancel" }],
+  ["item/permissions/requestApproval", { permissions: {}, scope: "forever" }, { permissions: {}, scope: "turn" }],
+])("routes malformed %s answers through rejection without closing either reviewing socket", async (method, invalid, valid) => {
+  const hub = new Hub();
+  harness.connect.mockImplementation(async (_id, client) => hub.addClient(client));
+  harness.answer.mockImplementation(async (id, payload, error) => hub.resolveBrowserAnswer(id, payload, error));
+  const first = connect(), second = connect();
+  const pending = hub.waitForBrowserAnswer(7, method as string, {});
+  const requestId = first.results().find(message => message.kind === "serverRequest").requestId;
+  first.receive({ kind: "serverRequestResponse", requestId, payload: invalid });
+  await settle();
+  for (const socket of [first, second]) {
+    expect(socket.results().at(-1)).toMatchObject({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: requestId } });
+    expect(socket.results().some(message => message.method === "serverRequest/resolved")).toBe(false);
+    expect(socket.close).not.toHaveBeenCalled();
+  }
+  second.receive({ kind: "serverRequestResponse", requestId, payload: valid });
+  await settle();
+  await expect(pending).resolves.toEqual({ answered: true, payload: valid });
+  for (const socket of [first, second]) {
+    expect(socket.results().filter(message => message.method === "serverRequest/resolved")).toHaveLength(1);
+    expect(socket.close).not.toHaveBeenCalled();
+  }
 });

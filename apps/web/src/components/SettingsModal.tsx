@@ -4,6 +4,7 @@ import { useStore } from "../store";
 import { validatedApiBaseUrl } from "../utils/validation";
 import { managementOperationLabel, managementOutcomeText, type ManagementOperation } from "../utils/management";
 import { boundedRedact } from "../utils/bounded-runtime";
+import { Dialog } from "./Dialog";
 
 /**
  * Settings modal — organized by scope, matching the user's mental model:
@@ -17,23 +18,23 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="drawer-tabs">
-          <button className={tab === "general" ? "active" : ""} onClick={() => setTab("general")}>
+    <Dialog label="设置" className="settings-modal" onClose={onClose}>
+        <div className="settings-title">
+          <div><h2>设置</h2><p className="dim">界面偏好、对话行为与服务器管理</p></div>
+          <button className="icon-btn" title="关闭" aria-label="关闭设置" onClick={onClose}>×</button>
+        </div>
+        <div className="settings-layout">
+        <nav className="settings-nav" aria-label="设置类别">
+          <button className={tab === "general" ? "active" : ""} aria-pressed={tab === "general"} onClick={() => setTab("general")}>
             通用
           </button>
-          <button className={tab === "conversation" ? "active" : ""} onClick={() => setTab("conversation")}>
+          <button className={tab === "conversation" ? "active" : ""} aria-pressed={tab === "conversation"} onClick={() => setTab("conversation")}>
             对话
           </button>
-          <button className={tab === "server" ? "active" : ""} onClick={() => setTab("server")}>
+          <button className={tab === "server" ? "active" : ""} aria-pressed={tab === "server"} onClick={() => setTab("server")}>
             服务器管理
           </button>
-          <span className="spacer" />
-          <button className="icon-btn" title="关闭" onClick={onClose}>
-            ×
-          </button>
-        </div>
+        </nav>
         {tab === "general" ? (
           <GeneralTab />
         ) : tab === "conversation" ? (
@@ -41,8 +42,8 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
         ) : (
           <ServerTab />
         )}
-      </div>
-    </div>
+        </div>
+    </Dialog>
   );
 }
 
@@ -67,6 +68,7 @@ function GeneralTab() {
             <button
               key={t.value}
               className={`seg ${settings.theme === t.value ? "active" : ""}`}
+              aria-pressed={settings.theme === t.value}
               onClick={() => updateSettings({ theme: t.value })}
             >
               {t.label}
@@ -80,12 +82,14 @@ function GeneralTab() {
         <div className="seg-group">
           <button
             className={`seg ${settings.enterBehavior === "send" ? "active" : ""}`}
+            aria-pressed={settings.enterBehavior === "send"}
             onClick={() => updateSettings({ enterBehavior: "send" })}
           >
             Enter 发送
           </button>
           <button
             className={`seg ${settings.enterBehavior === "newline" ? "active" : ""}`}
+            aria-pressed={settings.enterBehavior === "newline"}
             onClick={() => updateSettings({ enterBehavior: "newline" })}
           >
             Enter 换行
@@ -150,6 +154,7 @@ function ConversationTab() {
             <button
               key={t}
               className={`seg ${display.autoCompactThreshold === t ? "active" : ""}`}
+              aria-pressed={display.autoCompactThreshold === t}
               disabled={connection !== "open"}
               onClick={() => updateDisplay({ autoCompactThreshold: t })}
             >
@@ -174,6 +179,8 @@ function McpSection() {
   const mcpLoad = useStore((s) => s.mcpLoad);
   const refreshMcp = useStore((s) => s.refreshMcp);
   const connection = useStore((s) => s.connection);
+  const activeThreadId = useStore((s) => s.activeThreadId);
+  useEffect(() => { if (connection === "open") void refreshMcp(); }, [connection, activeThreadId, refreshMcp]);
 
   return (
     <section>
@@ -188,7 +195,7 @@ function McpSection() {
         </div>
       )}
       {mcpServers.map((m) => {
-        const runtime = m as unknown as { tools?: unknown; toolCount?: unknown; toolsTruncated?: unknown; initialized?: unknown; serverInfo?: unknown };
+        const runtime = m as unknown as { tools?: unknown; toolCount?: unknown; toolsTruncated?: unknown; runtimeStatus?: unknown; toolsError?: unknown; authStatus?: unknown };
         const toolRecords: Array<{ name?: unknown; description?: unknown }> = [];
         let observedToolCount = 0;
         let collectionTruncated = false;
@@ -217,12 +224,11 @@ function McpSection() {
             name: typeof tool?.name === "string" ? tool.name.slice(0, 256) : undefined,
             description: typeof tool?.description === "string" ? tool.description.slice(0, 2_000) : undefined,
           }));
-        // An initialized MCP server is healthy even when it intentionally
-        // advertises no tools. Conversely, an absent serverInfo plus an empty
-        // tool list means the server has not finished loading.
-        const healthy = typeof runtime.initialized === "boolean"
-          ? runtime.initialized
-          : (runtime.serverInfo !== null && typeof runtime.serverInfo === "object") || toolRecords.length > 0;
+        const toolsError = typeof runtime.toolsError === "string" ? boundedRedact(runtime.toolsError, [], 2_000) : null;
+        const healthy = runtime.runtimeStatus === "connected" && !toolsError && runtime.authStatus !== "notLoggedIn";
+        const statusLabels: Record<string, string> = { notStarted: "尚未启动", starting: "连接中", connected: "已连接", authenticationRequired: "需要鉴权", failed: "连接失败", cancelled: "已取消", disabled: "已禁用" };
+        const statusLabel = runtime.authStatus === "notLoggedIn" && runtime.runtimeStatus === "connected" ? "需要鉴权"
+          : typeof runtime.runtimeStatus === "string" ? statusLabels[runtime.runtimeStatus] ?? "运行状态未知" : "运行状态未知";
         const toolCount = typeof runtime.toolCount === "number" && Number.isSafeInteger(runtime.toolCount) && runtime.toolCount >= tools.length
           ? runtime.toolCount : observedToolCount;
         const truncated = runtime.toolsTruncated === true || collectionTruncated || toolCount > tools.length;
@@ -247,9 +253,10 @@ function McpSection() {
               <span className={`mcp-dot ${healthy ? "on" : ""}`} />
               <span className="mcp-card-name">{m.name}</span>
               <span className="dim">
-                {healthy ? `已连接 · ${toolSummary}` : "未加载（尚未连接或启动失败）"}
+                {statusLabel} · {toolSummary}{mcpLoad.state !== "loaded" ? "（上次读取结果）" : ""}
               </span>
             </div>
+            {toolsError && <div className="error-text">工具发现失败：{toolsError}</div>}
             {tools.length > 0 && (
               <div className="mcp-tools" title={toolTitle}>
                 {tools.map((t, i) => (
@@ -289,6 +296,12 @@ interface AdminStatus {
   active?: string;
 }
 
+interface AdminLogs {
+  state: "loading" | "loaded" | "error" | "stale";
+  text: string;
+}
+
+const STALE_LOGS: AdminLogs = { state: "stale", text: "连接已变化，旧日志已失效；请重新读取服务日志。" };
 const ADMIN_OUTPUT_LIMIT = 200_000;
 
 function boundedResponseString(value: unknown, limit: number): string | undefined {
@@ -372,13 +385,14 @@ export function ServerTab() {
   const management = useStore((s) => s.management);
   const managementError = useStore((s) => s.managementError);
   const refreshManagement = useStore((s) => s.refreshManagement);
-  const [status, setStatus] = useState<AdminStatus | null>(null);
-  const [statusLoad, setStatusLoad] = useState<{ state: "loading" | "loaded" | "error"; error: string | null }>({ state: "loading", error: null });
+  const [statusLoad, setStatusLoad] = useState<{
+    state: "loading" | "loaded" | "error" | "stale"; data: AdminStatus | null; error: string | null;
+  }>({ state: "stale", data: null, error: null });
+  const status = statusLoad.data;
   const [localBusy, setBusy] = useState<string | null>(null);
   const busy = localBusy ?? (management.state === "idle" ? null : management.operation ?? "management");
   const [result, setResult] = useState<AdminResult | null>(null);
-  const [logs, setLogs] = useState<string | null>(null);
-  const [logsLoading, setLogsLoading] = useState(false);
+  const [logs, setLogs] = useState<AdminLogs | null>(null);
   const [checkingManagement, setCheckingManagement] = useState(false);
   // Results render at the BOTTOM of this long panel — without scrolling to
   // them, a click looks like "nothing happened".
@@ -388,6 +402,9 @@ export function ServerTab() {
   const logsRequestSeq = useRef(0);
   const statusRequestSeq = useRef(0);
   const statusMounted = useRef(true);
+  const connectionRef = useRef(connection);
+  connectionRef.current = connection;
+  const connectionGeneration = gateway.generation;
 
   const scrollTo = (ref: RefObject<HTMLDivElement | null>) => {
     globalThis.setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
@@ -403,32 +420,72 @@ export function ServerTab() {
   const validCustomUrl = validatedApiBaseUrl(customUrl);
 
   async function refreshStatus() {
-    if (!statusMounted.current) return;
+    if (!statusMounted.current || connectionRef.current !== "open") return;
     const request = ++statusRequestSeq.current;
     const generation = gateway.generation;
-    if (statusMounted.current) setStatusLoad({ state: "loading", error: null });
+    setStatusLoad((current) => ({ ...current, state: "loading", error: null }));
+    const canCommit = () => {
+      if (!statusMounted.current || request !== statusRequestSeq.current) return false;
+      if (connectionRef.current !== "open" || generation !== gateway.generation) {
+        setStatusLoad({ state: "stale", data: null, error: null });
+        return false;
+      }
+      return true;
+    };
     try {
       const next = await gateway.rpc<unknown>("admin/status");
-      if (!statusMounted.current || request !== statusRequestSeq.current || generation !== gateway.generation) return;
-      setStatus(normalizeAdminStatus(next));
-      setStatusLoad({ state: "loaded", error: null });
+      if (!canCommit()) return;
+      setStatusLoad({ state: "loaded", data: normalizeAdminStatus(next), error: null });
     } catch (error) {
-      if (!statusMounted.current || request !== statusRequestSeq.current || generation !== gateway.generation) return;
+      if (!canCommit()) return;
       const detail = error instanceof Error ? error.message.slice(0, 1_000) : "未知错误";
-      setStatusLoad({ state: "error", error: `服务器状态读取失败：${detail}` });
+      setStatusLoad((current) => ({ ...current, state: "error", error: `服务器状态读取失败：${detail}` }));
     }
+  }
+
+  async function refreshLogs() {
+    if (!statusMounted.current || connectionRef.current !== "open") return;
+    const request = ++logsRequestSeq.current;
+    const generation = gateway.generation;
+    setLogs({ state: "loading", text: "日志加载中…" });
+    const canCommit = () => {
+      if (!statusMounted.current || request !== logsRequestSeq.current) return false;
+      if (connectionRef.current !== "open" || generation !== gateway.generation) {
+        setLogs(STALE_LOGS);
+        return false;
+      }
+      return true;
+    };
+    try {
+      const next = await gateway.rpc<unknown>("admin/logs", { lines: 80 });
+      if (!canCommit()) return;
+      setLogs({ state: "loaded", text: normalizeLogsResponse(next) });
+    } catch (error) {
+      if (!canCommit()) return;
+      const detail = error instanceof Error ? error.message.slice(0, 1_000) : "未知错误";
+      setLogs({ state: "error", text: `日志加载失败：${detail}` });
+    }
+    scrollTo(logsRef);
   }
 
   useEffect(() => {
     statusMounted.current = true;
     void refreshManagement();
-    void refreshStatus();
     return () => {
       statusMounted.current = false;
       statusRequestSeq.current += 1;
       logsRequestSeq.current += 1;
     };
   }, []);
+
+  useEffect(() => {
+    // Reconnect observes current state; it never replays a configuration action.
+    statusRequestSeq.current += 1;
+    logsRequestSeq.current += 1;
+    setStatusLoad({ state: "stale", data: null, error: null });
+    setLogs((current) => current === null ? null : STALE_LOGS);
+    if (connection === "open") void refreshStatus();
+  }, [connection, connectionGeneration]);
 
   async function run(label: string, fn: () => Promise<unknown>, secrets: string[] = []) {
     if (busyRef.current || management.state !== "idle" || connection !== "open") return;
@@ -536,10 +593,15 @@ export function ServerTab() {
           {status ? "正在刷新服务器状态；上方显示上次成功结果。" : "正在读取服务器状态…"}
         </div>}
         {statusLoad.state === "error" && <div className="error-text" role="alert">
-          {statusLoad.error ?? "服务器状态读取失败。"}{status ? " 上方显示上次成功结果。" : ""}{" "}
-          <button className="btn" disabled={connection !== "open"} onClick={() => void refreshStatus()}>重试服务器状态</button>
+          {statusLoad.error ?? "服务器状态读取失败。"}{status ? " 上方显示上次成功结果。" : ""}
+        </div>}
+        {statusLoad.state === "stale" && <div className="dim settings-hint" role="status">
+          服务器状态待核对；连接恢复后会重新读取。
         </div>}
         <div className="admin-actions">
+          <button className="btn" disabled={connection !== "open" || statusLoad.state === "loading"} onClick={() => void refreshStatus()}>
+            {statusLoad.state === "error" ? "重试服务器状态" : "刷新服务器状态"}
+          </button>
           <button
             className="btn"
             disabled={!!busy || connection !== "open"}
@@ -556,35 +618,18 @@ export function ServerTab() {
           </button>
           <button
             className="btn"
-            disabled={!!busy || logsLoading || connection !== "open"}
+            disabled={logs === null && connection !== "open"}
             onClick={() => {
-              // Toggle: a second click collapses the (long) log block.
-              if (logs !== null && !logsLoading) {
+              // Collapsing also cancels ownership of a pending read.
+              if (logs !== null) {
                 logsRequestSeq.current += 1;
                 setLogs(null);
                 return;
               }
-              const request = ++logsRequestSeq.current;
-              const generation = gateway.generation;
-              setLogsLoading(true);
-              setLogs("日志加载中…");
-              void gateway.rpc<any>("admin/logs", { lines: 80 })
-                .then((r) => {
-                  if (request !== logsRequestSeq.current || generation !== gateway.generation) return;
-                  setLogs(normalizeLogsResponse(r));
-                  scrollTo(logsRef);
-                })
-                .catch((e) => {
-                  if (request !== logsRequestSeq.current || generation !== gateway.generation) return;
-                  setLogs(`日志加载失败: ${e?.message ?? e}`);
-                  scrollTo(logsRef);
-                })
-                .finally(() => {
-                  if (request === logsRequestSeq.current) setLogsLoading(false);
-                });
+              void refreshLogs();
             }}
           >
-            {logsLoading ? "日志加载中…" : logs !== null ? "收起日志" : "查看服务日志"}
+            {logs !== null ? "收起日志" : "查看服务日志"}
           </button>
         </div>
         <div className="dim settings-hint">
@@ -601,7 +646,7 @@ export function ServerTab() {
 
         <div className="admin-card">
           <div className="admin-card-title">1 · OpenAI / ChatGPT 原生</div>
-          <div className="dim">启用空的受管理配置，使用 Codex 原生默认值；其它模式的配置与密钥保留。切换后可用页面右上角设备码登录。</div>
+          <div className="dim">启用空的受管理配置，使用 Codex 原生默认值；其它模式的配置与密钥保留。切换后可从侧栏底部的模型源按钮开始设备码登录。</div>
           <button
             className="btn-primary"
             disabled={!!busy || connection !== "open" || providerMode === "openai"}
@@ -703,7 +748,10 @@ export function ServerTab() {
       {logs !== null && (
         <section ref={logsRef}>
           <div className="settings-label">服务日志（最近 80 行）</div>
-          <pre className="admin-output">{logs}</pre>
+          <pre className="admin-output" role={logs.state === "error" ? "alert" : logs.state === "loaded" ? undefined : "status"}>{logs.text}</pre>
+          <button className="btn" disabled={connection !== "open" || logs.state === "loading"} onClick={() => void refreshLogs()}>
+            {logs.state === "error" ? "重试服务日志" : "重新读取服务日志"}
+          </button>
         </section>
       )}
     </div>

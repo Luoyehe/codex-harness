@@ -13,6 +13,22 @@ const formRequest = (schema: unknown): InputRequest => ({ method: "mcpServer/eli
   requestedSchema: schema as any,
 } });
 
+function chooseOption(renderer: ReactTestRenderer, label: string) {
+  const picker = renderer.root.findByType("select");
+  const option = picker.findAllByType("option").find((entry) => entry.props.children === label)!;
+  act(() => picker.props.onChange({ target: { value: option.props.value } }));
+}
+
+function clickButton(renderer: ReactTestRenderer, label: string) {
+  const button = renderer.root.findAllByType("button").find((entry) => entry.props.children === label)!;
+  expect(button.props.disabled).toBeFalsy();
+  act(() => button.props.onClick());
+}
+
+function submit(renderer: ReactTestRenderer) {
+  act(() => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+}
+
 describe("interactive input form contracts", () => {
   it("renders secret tool input as password and never renders the value in the timeline", () => {
     const request: InputRequest = { method: "item/tool/requestUserInput", requestId: "r", params: { threadId: "T", turnId: "t", itemId: "i", isBlocking: true, autoResolutionMs: null,
@@ -33,8 +49,8 @@ describe("interactive input form contracts", () => {
     let renderer!: ReactTestRenderer;
     act(() => { renderer = create(<InputRequestCard request={request} />); });
     const picker = renderer.root.findByProps({ className: "secret-value-picker" });
-    expect(picker.findAllByType("option").map((option) => option.props.value)).toContain("test-token-a");
-    act(() => picker.props.onChange({ target: { value: "test-token-a" } }));
+    expect(picker.findAllByType("option").map((option) => option.props.children)).toContain("test-token-a — Test credential A");
+    chooseOption(renderer, "test-token-a — Test credential A");
     expect(renderer.root.findByProps({ className: "secret-value-status" }).findByType("span").props.children).toContain("已选择");
     act(() => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
     expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("secret-choice", {
@@ -89,15 +105,167 @@ describe("interactive input form contracts", () => {
     act(() => { renderer = create(<InputRequestCard request={request} />); });
     expect(renderer.root.findByProps({ className: "secret-array-status" }).findByType("span").props.children.join(""))
       .toContain("已选择 0 项");
-    const chooser = renderer.root.findByProps({ className: "secret-array-picker" });
-    act(() => chooser.props.onChange({ target: { value: "alpha" } }));
-    act(() => renderer.root.findByProps({ className: "secret-array-picker" }).props.onChange({ target: { value: "beta" } }));
+    chooseOption(renderer, "alpha");
+    chooseOption(renderer, "beta");
     expect(renderer.root.findByProps({ className: "secret-array-status" }).findByType("span").props.children.join(""))
       .toContain("已选择 2 项");
     act(() => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
     expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", {
       action: "accept", content: { secrets: ["alpha", "beta"] }, _meta: null,
     });
+    renderer.unmount();
+  });
+
+  it.each(["请选择", "不提交此字段"])("omits a defaulted optional enum using %s", (action) => {
+    const request = formRequest({ type: "object", properties: { color: { type: "string", enum: ["red", "blue"], default: "red" } } });
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    if (action === "请选择") chooseOption(renderer, action);
+    else clickButton(renderer, action);
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: {}, _meta: null });
+    renderer.unmount();
+  });
+
+  it.each([[false, "Empty value", ""], [true, "Empty value", ""], [false, "Zero", "0"], [true, "Zero", "0"]] as const)("decodes enum choices independently of DOM ids (secret=%s, label=%s)", (secret, label, answer) => {
+    const request = formRequest({ type: "object", properties: {
+      choice: { type: "string", oneOf: [{ const: "", title: "Empty value" }, { const: "0", title: "Zero" }], writeOnly: secret },
+    }, required: ["choice"] });
+    expect(validateInput(inputForm(request), { choice: "" }).error).toBeUndefined();
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    const picker = renderer.root.findByType("select");
+    const ids = picker.findAllByType("option").map((option) => option.props.value);
+    expect(new Set(ids).size).toBe(ids.length);
+    chooseOption(renderer, label);
+    if (secret) {
+      expect(picker.props.value).toBe("");
+      expect(renderer.root.findByProps({ className: "secret-value-status" }).findByType("span").props.children).toContain("已选择 1 项");
+    }
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: { choice: answer }, _meta: null });
+    expect(renderer.root.findAllByType("select")).toHaveLength(0);
+    renderer.unmount();
+  });
+
+  it("accepts a legitimate empty-string item in a secret array without displaying the selection", () => {
+    const request = formRequest({ type: "object", properties: {
+      choices: { type: "array", items: { anyOf: [{ const: "", title: "Empty value" }] }, writeOnly: true, minItems: 1 },
+    }, required: ["choices"] });
+    expect(validateInput(inputForm(request), { choices: [""] }).error).toBeUndefined();
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    chooseOption(renderer, "Empty value");
+    expect(renderer.root.findByType("select").props.value).toBe("");
+    expect(renderer.root.findByProps({ className: "secret-array-status" }).findByType("span").props.children.join("")).toContain("已选择 1 项");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: { choices: [""] }, _meta: null });
+    renderer.unmount();
+  });
+
+  it("allows an optional constrained array to be omitted without treating an empty selection as omission", () => {
+    const request = formRequest({ type: "object", properties: {
+      choices: { type: "array", items: { type: "string", enum: ["red", "blue"] }, minItems: 1, default: ["red"] },
+    } });
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    act(() => renderer.root.findByType("select").props.onChange({ target: { selectedOptions: [] } }));
+    submit(renderer);
+    expect(ui.respondInputRequest).not.toHaveBeenCalled();
+    expect(JSON.stringify(renderer.toJSON())).toContain("不符合允许的范围");
+    clickButton(renderer, "不提交此字段");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: {}, _meta: null });
+    renderer.unmount();
+  });
+
+  it.each([false, true])("submits an explicit empty array after clearing the final choice (secret=%s)", (secret) => {
+    const request = formRequest({ type: "object", properties: {
+      choices: { type: "array", items: { type: "string", enum: ["red"] }, writeOnly: secret, minItems: 0 },
+    }, required: ["choices"] });
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    if (secret) chooseOption(renderer, "red");
+    else {
+      const picker = renderer.root.findByType("select");
+      act(() => picker.props.onChange({ target: { selectedOptions: [{ value: picker.findByType("option").props.value }] } }));
+    }
+    clickButton(renderer, secret ? "清空" : "清空选择");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: { choices: [] }, _meta: null });
+    renderer.unmount();
+  });
+
+  it.each([false, true])("allows an optional array to explicitly submit no items (secret=%s)", (secret) => {
+    const request = formRequest({ type: "object", properties: {
+      choices: { type: "array", items: { type: "string", enum: ["red"] }, writeOnly: secret },
+    } });
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    clickButton(renderer, secret ? "清空" : "清空选择");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: { choices: [] }, _meta: null });
+    renderer.unmount();
+  });
+
+  it("validates required array minimums before accepting an empty selection", () => {
+    const request = formRequest({ type: "object", properties: {
+      choices: { type: "array", items: { type: "string", enum: ["red"] }, writeOnly: true, minItems: 1 },
+    }, required: ["choices"] });
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    submit(renderer);
+    expect(ui.respondInputRequest).not.toHaveBeenCalled();
+    expect(JSON.stringify(renderer.toJSON())).toContain("不符合允许的范围");
+    chooseOption(renderer, "red");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledWith("r", { action: "accept", content: { choices: ["red"] }, _meta: null });
+    renderer.unmount();
+  });
+
+  it.each([false, true])("accepts required empty text when the schema permits it (secret=%s)", (secret) => {
+    const request = formRequest({ type: "object", properties: { answer: { type: "string", writeOnly: secret } }, required: ["answer"] });
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    expect(renderer.root.findByType("input").props.type).toBe(secret ? "password" : "text");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: { answer: "" }, _meta: null });
+    renderer.unmount();
+  });
+
+  it.each([false, true])("distinguishes explicit empty optional text from omission (omit=%s)", (omit) => {
+    const request = formRequest({ type: "object", properties: { answer: { type: "string", writeOnly: true } } });
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    act(() => renderer.root.findByType("input").props.onChange({ target: { value: "secret" } }));
+    act(() => renderer.root.findByType("input").props.onChange({ target: { value: "" } }));
+    if (omit) clickButton(renderer, "不提交此字段");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("r", { action: "accept", content: omit ? {} : { answer: "" }, _meta: null });
+    renderer.unmount();
+  });
+
+  it.each([[false, false], [false, true], [true, true]])("sends tool option labels rather than their DOM ids (secret=%s, other=%s)", (secret, other) => {
+    const request: InputRequest = { method: "item/tool/requestUserInput", requestId: "tool-choice", params: {
+      threadId: "T", turnId: "t", itemId: "i", isBlocking: true, autoResolutionMs: null,
+      questions: [{ id: "choice", header: "Choice", question: "Choose", isSecret: secret, isOther: other,
+        options: [{ label: "Alpha", description: "First option" }, { label: "Beta", description: "Second option" }] }],
+    } };
+    ui.respondInputRequest.mockClear();
+    let renderer!: ReactTestRenderer;
+    act(() => { renderer = create(<InputRequestCard request={request} />); });
+    chooseOption(renderer, "Beta — Second option");
+    submit(renderer);
+    expect(ui.respondInputRequest).toHaveBeenCalledExactlyOnceWith("tool-choice", { answers: { choice: { answers: ["Beta"] } } });
     renderer.unmount();
   });
 

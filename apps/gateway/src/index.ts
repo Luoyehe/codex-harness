@@ -24,9 +24,14 @@ const controller = new GatewayController(controlHome);
 const budget = new RpcBudget();
 const MAX_WS_PAYLOAD_BYTES = FLOW_LIMITS.frameBytes;
 const MAX_SERVER_RESPONSE_BYTES = 1024 * 1024;
+const WS_HEARTBEAT_MS = 30_000;
+const socketCleanup = new Set<() => void>();
 
 const app = fastify({ logger: false, bodyLimit: 1024 * 1024 });
 await app.register(fastifyWebsocket, { options: { maxPayload: MAX_WS_PAYLOAD_BYTES } });
+app.addHook("preClose", async () => {
+  for (const cleanup of [...socketCleanup]) cleanup();
+});
 
 app.addHook("onSend", async (req, reply, payload) => {
   reply.header("x-content-type-options", "nosniff");
@@ -109,13 +114,45 @@ app.get("/ws", { websocket: true }, (socket, req) => {
     return;
   }
   const clientId = randomUUID();
+  let disconnected = false;
+  let awaitingPong = false;
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let closingTimer: ReturnType<typeof setTimeout> | undefined;
+  const pong = () => { awaitingPong = false; };
+  const disconnect = () => {
+    if (disconnected) return;
+    disconnected = true;
+    clearInterval(heartbeat);
+    clearTimeout(closingTimer);
+    socket.off("pong", pong);
+    socketCleanup.delete(terminate);
+    void controller.disconnect(clientId).catch(() => {});
+  };
+  const terminate = () => {
+    disconnect();
+    // Do not wait for the peer's close handshake: a silent network failure
+    // cannot provide one. The common disconnect path releases its PTY owner.
+    if (socket.readyState !== 3) socket.terminate();
+  };
+  socket.on("close", disconnect);
+  socket.on("error", terminate);
+  socket.on("pong", pong);
+  socketCleanup.add(terminate);
+  // Browsers answer protocol pings independently of page JavaScript, so an
+  // idle/background tab is not expired merely because its timers are frozen.
+  heartbeat = setInterval(() => {
+    if (socket.readyState !== 1 || awaitingPong) { terminate(); return; }
+    awaitingPong = true;
+    try { socket.ping(); } catch { terminate(); }
+  }, WS_HEARTBEAT_MS);
+  heartbeat.unref();
   const client = {
     send: (msg: ServerMessage) => {
       const encoded = encodeBounded(msg);
       if (socket.readyState !== 1) return;
       if (socket.bufferedAmount + Buffer.byteLength(encoded) > FLOW_LIMITS.outgoingBytes) {
         socket.close(1013, "slow client; reconnect and reload history");
-        const timer = setTimeout(() => socket.terminate(), 1000); timer.unref();
+        if (!disconnected) { closingTimer = setTimeout(terminate, 1000); closingTimer.unref(); }
         return;
       }
       socket.send(encoded);
@@ -127,6 +164,7 @@ app.get("/ws", { websocket: true }, (socket, req) => {
   const ids = new Set<number>();
 
   socket.on("message", (raw: Buffer) => {
+    if (disconnected) return;
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw.toString());
@@ -222,10 +260,6 @@ app.get("/ws", { websocket: true }, (socket, req) => {
       }).finally(release);
     }
   });
-
-  const disconnect = () => { void controller.disconnect(clientId).catch(() => {}); };
-  socket.on("close", disconnect);
-  socket.on("error", disconnect);
 });
 
 app.listen({ host: HOST, port: PORT }, (err) => {

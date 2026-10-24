@@ -75,7 +75,7 @@ test("update executes candidate work only in the isolated runner and publishes o
   assert.doesNotMatch(update, /\(\s*cd "\$stage"[\s\S]*pnpm/);
   assert.doesNotMatch(update, /node "?\$stage|node scripts\/release-audit/);
   assert.match(update, /update_candidate\.py" version "\$stage"/);
-  assert.match(update, /test-candidate\.sh" \\\n\s*"\$stage" "\$candidate_version" "\$validated" "\$REPO_ROOT" "\$runtime_seed"/);
+  assert.match(update, /test-candidate\.sh" \\\n\s*"\$stage" "\$candidate_version" "\$validated" "\$dependency_seed" "\$runtime_seed"/);
   assert.doesNotMatch(update, /install -d[^\n]*\$exchange|update_candidate\.py" materialize\s/);
   assert.match(update, /cp -a "\$validated\/artifacts\/\$item"/);
   assert.match(update, /publish-runtime \\\n\s*"\$validated\/runtime"/);

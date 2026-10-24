@@ -122,13 +122,12 @@ for line in lines:
         if len(values) == 1: print(values[0])
 PY
 )"
-[ -n "$API_KEY" ] || API_KEY="EMPTY"
 if [ -n "${CUSTOM_API_KEY:-}" ]; then API_KEY="${CUSTOM_API_KEY}"; fi
 # A blank key on a new/reconfigured endpoint means no authentication. Reuse
 # of the stored key is reserved for catalog sync of the existing endpoint;
 # otherwise changing the URL could silently send the old provider's secret.
 if [ -z "${CUSTOM_API_KEY:-}" ] && [ "${CUSTOM_REUSE_API_KEY:-0}" != "1" ]; then
-  API_KEY="EMPTY"
+  API_KEY=""
 fi
 
 normalize_url() {
@@ -156,7 +155,7 @@ PY
 custom_curl() {
   API_KEY="$API_KEY" python3 -c 'import os; v=os.environ["API_KEY"]; raise SystemExit(0 if len(v) <= 16384 and not any(ord(c)<32 or ord(c)==127 for c in v) else 1)' \
     || die "API Key 过长或含控制字符"
-  if [ "$API_KEY" != "EMPTY" ]; then
+  if [ -n "$API_KEY" ]; then
     printf 'Authorization: Bearer %s\n' "$API_KEY" | curl -H @- "$@"
   else
     curl "$@"
@@ -291,9 +290,9 @@ fi
 # Persist the selected authentication state, including an explicit blank.
 # Leaving an old key in the canonical store after an unauthenticated URL
 # switch would let a later catalog sync silently restore it on the new URL.
-if [ "$API_KEY" = "EMPTY" ]; then persist_key ""; else persist_key "$API_KEY"; fi
+persist_key "$API_KEY"
 
-python3 - "$CONFIG" "$BASE_URL" "$MODEL" "$CTX" "$VISION" "$EFFORT" "$EFFORTS_DETECTED" "$([ "$API_KEY" != "EMPTY" ] && echo 1 || echo 0)" <<'PY'
+python3 - "$CONFIG" "$BASE_URL" "$MODEL" "$CTX" "$VISION" "$EFFORT" "$EFFORTS_DETECTED" "$([ -n "$API_KEY" ] && echo 1 || echo 0)" <<'PY'
 import os, sys
 from atomic_write import atomic_write
 from catalog_limits import (dump_json_limited, load_json_path,

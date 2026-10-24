@@ -10,6 +10,8 @@ import type { ThreadListResponse } from "../../../protocol/v2/ThreadListResponse
 import type { ThreadStartResponse } from "../../../protocol/v2/ThreadStartResponse.js";
 import type { ThreadResumeResponse } from "../../../protocol/v2/ThreadResumeResponse.js";
 import type { ThreadReadResponse } from "../../../protocol/v2/ThreadReadResponse.js";
+import type { ThreadTurnsListResponse } from "../../../protocol/v2/ThreadTurnsListResponse.js";
+import type { ThreadItemsListResponse } from "../../../protocol/v2/ThreadItemsListResponse.js";
 import type { TurnStartResponse } from "../../../protocol/v2/TurnStartResponse.js";
 import type { CommandExecResponse } from "../../../protocol/v2/CommandExecResponse.js";
 import type { FsReadDirectoryResponse } from "../../../protocol/v2/FsReadDirectoryResponse.js";
@@ -25,6 +27,8 @@ interface Responses {
   "thread/start": ThreadStartResponse;
   "thread/resume": ThreadResumeResponse;
   "thread/read": ThreadReadResponse;
+  "thread/turns/list": ThreadTurnsListResponse;
+  "thread/items/list": ThreadItemsListResponse;
   "turn/start": TurnStartResponse;
   "command/exec": CommandExecResponse;
   "fs/readDirectory": FsReadDirectoryResponse;

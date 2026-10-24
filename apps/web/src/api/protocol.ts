@@ -7,12 +7,17 @@ import type { ThreadStartResponse } from "../../../../protocol/v2/ThreadStartRes
 import type { ThreadStartParams } from "../../../../protocol/v2/ThreadStartParams";
 import type { ThreadListParams } from "../../../../protocol/v2/ThreadListParams";
 import type { ThreadListResponse } from "../../../../protocol/v2/ThreadListResponse";
+import type { ThreadTurnsListParams } from "../../../../protocol/v2/ThreadTurnsListParams";
+import type { ThreadTurnsListResponse } from "../../../../protocol/v2/ThreadTurnsListResponse";
+import type { ThreadItemsListParams } from "../../../../protocol/v2/ThreadItemsListParams";
+import type { ThreadItemsListResponse } from "../../../../protocol/v2/ThreadItemsListResponse";
 import type { TurnStartParams } from "../../../../protocol/v2/TurnStartParams";
 import type { TurnStartResponse } from "../../../../protocol/v2/TurnStartResponse";
 import type { TurnStatus } from "../../../../protocol/v2/TurnStatus";
 import type { GetAccountResponse } from "../../../../protocol/v2/GetAccountResponse";
 import type { ModelListResponse } from "../../../../protocol/v2/ModelListResponse";
 import type { ListMcpServerStatusResponse } from "../../../../protocol/v2/ListMcpServerStatusResponse";
+import type { ListMcpServerStatusParams } from "../../../../protocol/v2/ListMcpServerStatusParams";
 import type { LoginAccountResponse } from "../../../../protocol/v2/LoginAccountResponse";
 import type { CancelLoginAccountResponse } from "../../../../protocol/v2/CancelLoginAccountResponse";
 import type { ManagementSnapshot } from "../utils/management";
@@ -67,7 +72,9 @@ export type TimelineItem = (ThreadItem |
 /** Gateway-owned request shapes intentionally differ from raw app-server input. */
 export interface ProtocolRpc {
   "thread/read": { params: { threadId: string; includeTurns?: boolean }; result: ThreadReadResponse };
-  "thread/resume": { params: { threadId: string }; result: ThreadResumeResponse };
+  "thread/resume": { params: { threadId: string; excludeTurns?: boolean }; result: ThreadResumeResponse };
+  "thread/turns/list": { params: ThreadTurnsListParams; result: ThreadTurnsListResponse };
+  "thread/items/list": { params: ThreadItemsListParams; result: ThreadItemsListResponse };
   "thread/start": { params: Pick<ThreadStartParams, "cwd" | "model" | "approvalPolicy"> & { clientOperationId: string }; result: ThreadStartResponse & { clientOperationId: string; replayed?: boolean } };
   "thread/start/operation": { params: { clientOperationId: string }; result: ThreadStartOperationStatus };
   "thread/list": { params: ThreadListParams; result: ThreadListResponse };
@@ -79,7 +86,7 @@ export interface ProtocolRpc {
   "account/login/cancel": { params: { loginId: string }; result: CancelLoginAccountResponse };
   "account/login/status": { params: undefined; result: DeviceLoginStatusResponse };
   "model/list": { params: { limit?: number; cursor?: string }; result: ModelListResponse };
-  "mcpServerStatus/list": { params: undefined; result: ListMcpServerStatusResponse };
+  "mcpServerStatus/list": { params: Pick<ListMcpServerStatusParams, "cursor" | "limit" | "detail" | "threadId">; result: ListMcpServerStatusResponse };
 }
 
 export function unreachable(value: never): never {

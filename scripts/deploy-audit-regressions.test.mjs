@@ -275,7 +275,11 @@ test("edge rollback only changes authentication runtime actually touched by this
       const result = spawnSync("bash", ["-c", script], { encoding: "utf8", timeout: 10000, env });
       assert.equal(result.status, 23, result.stderr);
       if (!touched) assert.ok(!result.stdout.includes("external-auth"), result.stdout);
-      else if (created) assert.match(result.stdout, /disable --now external-auth/);
+      else if (created) {
+        assert.match(result.stdout, /stop external-auth/);
+        assert.match(result.stdout, /disable external-auth/);
+        assert.ok(result.stdout.indexOf("stop external-auth") < result.stdout.indexOf("disable external-auth"));
+      }
       else { assert.match(result.stdout, /enable external-auth/); assert.match(result.stdout, /restart external-auth/); assert.ok(!result.stdout.includes("disable --now")); }
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }

@@ -227,7 +227,7 @@ do_provider() {
       ENV_FILE="$ENV_FILE" PROVIDER_EXPECTED_ACTIVE="$expected_generation" \
         PROVIDER_NEW_GENERATION="$published_generation" \
         run_as_service bash "$SCRIPT_DIR/providers/openai/setup.sh" || return $?
-      log "请通过 WebUI 右上角完成该服务账号的登录"
+      log "请通过 WebUI 左侧导航底部的模型源入口完成该服务账号的登录（手机先展开导航）"
       ;;
     custom)
       CUSTOM_BASE_URL="${CUSTOM_BASE_URL:-}" CUSTOM_MODEL="${CUSTOM_MODEL:-}" \
@@ -559,6 +559,11 @@ do_update() {
         local status=$?
         local rollback_failed=0
         trap - EXIT
+        if [ -e "$stage_root/isolation-unconfirmed" ]; then
+          log "隔离进程停止尚未确认；现服务未被本阶段替换，恢复材料保留在 $stage_root，请人工核对后再清理"
+          [ "$status" -ne 0 ] || status=1
+          exit "$status"
+        fi
         if [ "$applying" -eq 1 ]; then
           # An incomplete publication must never be reported as success, even
           # if a future early-exit path accidentally uses status zero.
@@ -636,9 +641,13 @@ do_update() {
       IFS=$'\t' read -r runtime_seed_cli runtime_seed_fingerprint <<<"$runtime_seed_info"
       [ -n "$runtime_seed_cli" ] && [ -n "$runtime_seed_fingerprint" ] \
         || die "候选 CLI 运行时元数据不完整"
+      local dependency_seed="$stage_root/dependency-seed"
+      log "先在无密钥的独立 DynamicUser 中准备锁定的 npm 依赖；不执行候选 hooks，也不停服…"
+      bash "$SCRIPT_DIR/prepare-candidate-deps.sh" \
+        "$stage" "$candidate_version" "$dependency_seed" "$runtime_seed"
       log "在无密钥、断网、有限资源的 DynamicUser 沙箱中安装依赖、构建、审计、测试并 smoke…"
       bash "$SCRIPT_DIR/test-candidate.sh" \
-        "$stage" "$candidate_version" "$validated" "$REPO_ROOT" "$runtime_seed"
+        "$stage" "$candidate_version" "$validated" "$dependency_seed" "$runtime_seed"
       local validated_runtime_info
       validated_runtime_info="$(python3 -I "$SCRIPT_DIR/update_candidate.py" runtime-info \
         "$validated/runtime" "$candidate_version")"

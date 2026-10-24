@@ -20,13 +20,14 @@
     "dev": "concurrently -n gateway,web -c blue,magenta \"pnpm --filter @codex-harness/gateway dev\" \"pnpm --filter @codex-harness/web dev\"",
     "build": "pnpm --filter @codex-harness/web build && pnpm --filter @codex-harness/gateway build",
     "test:smoke": "node scripts/gateway-smoke.mjs",
-    "test:defaults": "node scripts/defaults-integration.mjs",
+    "test:defaults": "node scripts/defaults-integration.mjs && node scripts/defaults-idle-integration.mjs",
     "test:mcp-context": "node scripts/mcp-config-integration.mjs",
     "test": "pnpm --filter @codex-harness/gateway test && pnpm --filter @codex-harness/web test && node --test scripts/*.test.mjs",
     "typecheck": "pnpm -r typecheck && pnpm --filter @codex-harness/gateway exec tsc -p ../../protocol/tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "ws": "8.21.3"
+    "concurrently": "^9.2.5",
+    "ws": "8.21.3",
+    "yaml": "2.9.1"
   }
 }

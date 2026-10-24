@@ -4,11 +4,12 @@ import remarkGfm from "remark-gfm";
 import { validatedHttpUrl } from "../utils/validation";
 import { useStore, type Display, type TimelineItem } from "../store";
 import type { RequestPermissionProfile } from "../../../../protocol/v2/RequestPermissionProfile";
-import { approvalCanAccept, describePermissions, fileChangeApprovalContext, normalizeNetworkApprovalContext } from "../utils/permissions";
+import { approvalCanAccept, describePermissions, fileChangeApprovalContext, normalizeNetworkApprovalContext, normalizeCommandApprovalKind } from "../utils/permissions";
 import { InputRequests } from "./InputRequests";
 import { boundedRuntimeJson } from "../utils/bounded-runtime";
 import { historicalImageUrls, type HistoricalImageLease } from "../utils/historical-image-urls";
 import { markdownWithinBudget, remarkBoundedTree } from "../utils/markdown-budget";
+import { Welcome } from "./Welcome";
 
 // Stable reference: zustand v5 compares snapshots with Object.is, so an
 // inline `?? []` would mint a fresh array every render and loop forever
@@ -73,8 +74,9 @@ function printable(value: unknown): string {
   return boundedRuntimeJson(value, 1024 * 1024, 4_096, 16);
 }
 
-export function Timeline() {
+export function Timeline({ onSuggestion }: { onSuggestion?: (text: string) => void } = {}) {
   const activeThreadId = useStore((s) => s.activeThreadId);
+  const historyLoading = useStore((s) => s.activeThreadId ? !!s.historyLoading[s.activeThreadId] : false);
   const items = useStore((s) => (s.activeThreadId ? s.items[s.activeThreadId] : undefined)) ?? EMPTY_ITEMS;
   const display = useStore((s) => s.display);
   const plan = useStore((s) => (s.activeThreadId ? s.plan[s.activeThreadId] : null));
@@ -137,7 +139,7 @@ export function Timeline() {
       <>
         <RequestDock />
         <div className="timeline empty">
-          <div className="empty-hint">在下方输入消息即可开始新对话</div>
+          <Welcome onSuggestion={onSuggestion} />
         </div>
       </>
     );
@@ -146,6 +148,9 @@ export function Timeline() {
   return (
     <>
       <RequestDock />
+      {historyLoading && <div className="run-indicator dim" role="status">
+        {items.length > 0 ? "正在刷新会话历史，已有内容暂时保留。" : "正在加载会话历史。"}完成前暂时不能发送消息。
+      </div>}
       <div className="timeline" ref={scrollRef}>
         {plan && <PlanCard plan={plan} />}
         {hiddenCount > 0 && (
@@ -234,7 +239,8 @@ function ApprovalBanner() {
         };
         const commandParams = isCommand && paramsValid ? a.params : null;
         const fileParams = a.method === "item/fileChange/requestApproval" && paramsValid ? a.params : null;
-        const command = typeof commandParams?.command === "string" && commandParams.command.length <= 200_000 && commandParams.command.trim()
+        const stdin = isCommand && normalizeCommandApprovalKind(commandParams?.kind) === "writeStdin";
+        const command = typeof commandParams?.command === "string" && commandParams.command.length <= 200_000 && (stdin ? commandParams.command.length > 0 : commandParams.command.trim())
           ? commandParams.command : null;
         const cwd = optionalContextText(params.cwd, 4_096);
         const rawNetwork = commandParams?.networkApprovalContext as unknown;
@@ -272,7 +278,7 @@ function ApprovalBanner() {
         const approvalError = approvalErrors[requestKey];
         contextValid = contextValid && approvalCanAccept(a, items);
         const canApprove = connected && !submitting && contextValid;
-        const title = isCommand ? networkOnly ? "请求访问网络" : "请求执行命令" : isPermissions ? "请求提升权限" : "请求修改文件";
+        const title = isCommand ? stdin ? "请求向运行中的终端写入内容" : networkOnly ? "请求访问网络" : "请求执行命令" : isPermissions ? "请求提升权限" : "请求修改文件";
         return (
           <div key={String(a.requestId)} className="approval-card">
             <div className="approval-title">
@@ -296,7 +302,7 @@ function ApprovalBanner() {
               </div>
             )}
             {isCommand ? (
-              !networkOnly && <pre className="approval-command">{command ?? "（命令结构无效或过长，已禁用批准）"}</pre>
+              !networkOnly && <pre className="approval-command">{stdin && command != null ? JSON.stringify(command) : command ?? "（命令结构无效或过长，已禁用批准）"}</pre>
             ) : isPermissions ? (
               <PermissionsSummary profile={permissionProfile} />
             ) : changes.length > 0 ? (
@@ -305,6 +311,7 @@ function ApprovalBanner() {
                   <div key={i} className="file-line">
                     <StatusBadge kind={c.kind} />
                     <FileChangePaths path={c.path} kind={c.kind} />
+                    {contextValid && typeof c.diff === "string" && <ApprovalDiffDownload text={c.diff} path={c.path} />}
                   </div>
                 ))}
                 {normalizedChanges.total > changes.length && <div className="output-truncation">仅显示前 {changes.length} / {normalizedChanges.total} 项（已达到浏览器预算）</div>}
@@ -329,7 +336,7 @@ function ApprovalBanner() {
       {background.map((a) => {
         const tid = approvalThreadId(a)!;
         const title = sessions.find((s) => s.threadId === tid)?.title ?? tid.slice(0, 8);
-        const action = a.method === "item/commandExecution/requestApproval" ? "执行命令"
+        const action = a.method === "item/commandExecution/requestApproval" ? normalizeCommandApprovalKind(a.params?.kind) === "writeStdin" ? "向终端写入内容" : "执行命令"
           : a.method === "item/permissions/requestApproval" ? "提升权限" : "修改文件";
         return (
           <div key={String(a.requestId)} className="approval-card approval-bg">
@@ -344,6 +351,44 @@ function ApprovalBanner() {
       })}
     </section>
   );
+}
+
+/** Only mounted for a complete, validated approval: its aggregate raw diffs
+ * already fit the approval budget. History previews must not gain an
+ * unbounded export path. Allocate lazily and reuse one URL per current text. */
+function ApprovalDiffDownload({ text, path }: { text: string; path: string }) {
+  const download = useMemo(() => ({ url: null as string | null }), [text]);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+    return () => {
+      if (download.url !== null) URL.revokeObjectURL(download.url);
+      download.url = null;
+    };
+  }, [download]);
+
+  const save = () => {
+    let link: HTMLAnchorElement | null = null;
+    try {
+      download.url ??= URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+      link = document.createElement("a");
+      link.href = download.url;
+      // Never derive a local filename or executable extension from server paths.
+      link.download = "codex-harness-approval-diff.txt";
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    } finally {
+      link?.remove();
+    }
+  };
+  return <>
+    <button className="btn" onClick={save} aria-label={`下载 ${path} 的完整 Diff 文本`}>下载完整 Diff 文本</button>
+    {failed && <span className="error-text" role="alert">完整 Diff 文本下载失败，请重试。</span>}
+  </>;
 }
 
 function StatusBadge({ kind }: { kind?: { type?: string } | string }) {
@@ -736,14 +781,62 @@ export const ItemView = memo(function ItemView({ item }: { item: TimelineItem })
           协作代理：{runtimeText(item.tool, "?")} {runtimeText(item.status)}
         </div>
       );
+    case "functionCallOutput": {
+      const output = item.output;
+      const entries: unknown[] = Array.isArray(output) ? output.slice(0, MAX_TOOL_CONTENT_ITEMS) : [];
+      let remainingChars = 1024 * 1024;
+      let truncatedContent = false;
+      return <details className="item item-mcp">
+        <summary>工具结果：<code>{runtimeText(item.namespace) && `${runtimeText(item.namespace)}.`}{runtimeText(item.name, "未知工具")}</code></summary>
+        {typeof output === "string" && <ProgressiveOutput text={output.slice(0, 1024 * 1024)} />}
+        {entries.map((entry, index) => {
+          if (!entry || typeof entry !== "object" || Array.isArray(entry)) return <div key={index}>无法显示的工具结果</div>;
+          const value = entry as Record<string, unknown>;
+          const raw = value.type === "input_text" ? value.text : value.type === "input_image" ? value.image_url ?? value.file_id : value.type === "input_audio" ? value.audio_url : null;
+          if (typeof raw === "string") {
+            if (value.type === "input_text") {
+              const text = raw.slice(0, Math.min(remainingChars, 200_000));
+              remainingChars -= text.length;
+              if (text.length < raw.length) truncatedContent = true;
+              return text ? <ProgressiveOutput key={index} text={text} /> : null;
+            }
+            if (raw.length > remainingChars) { truncatedContent = true; return null; }
+            remainingChars -= raw.length;
+          }
+          if (value.type === "input_text") return <div key={index}>文本结果格式无效</div>;
+          if (value.type === "input_image") {
+            const image = typeof value.image_url === "string" ? value.image_url : "";
+            const src = imageSource(image);
+            const href = !src ? validatedHttpUrl(image) : null;
+            return src ? <img key={index} src={src} alt="工具返回的图片" className="generated-image" />
+              : href ? <a key={index} href={href} target="_blank" rel="noopener noreferrer">打开工具返回的外部图片</a>
+                : <div key={index}>图片文件：<code>{runtimeText(value.file_id, "无法显示")}</code></div>;
+          }
+          if (value.type === "input_audio") {
+            const url = typeof value.audio_url === "string" ? value.audio_url : "";
+            const local = /^data:audio\/(wav|mpeg|mp3|ogg|webm);base64,[A-Za-z0-9+/=\r\n]+$/.test(url);
+            const href = !local ? validatedHttpUrl(url) : null;
+            return local ? <audio key={index} controls preload="none" src={url} />
+              : href ? <a key={index} href={href} target="_blank" rel="noopener noreferrer">打开工具返回的外部音频</a>
+                : <div key={index}>音频地址无法播放</div>;
+          }
+          return <div key={index}>{value.type === "encrypted_content" ? "加密工具结果（不可直接预览）" : "未支持的工具结果类型"}</div>;
+        })}
+        {truncatedContent && <div className="output-truncation">工具结果超过浏览器总预览预算，部分内容未显示。</div>}
+        {typeof output !== "string" && !Array.isArray(output) && <div>工具结果格式无效，无法预览。</div>}
+        {Array.isArray(output) && output.length > entries.length && <div className="output-truncation">仅显示前 {entries.length} / {output.length} 项（已达到浏览器预算）</div>}
+        {typeof output === "string" && output.length > 1024 * 1024 && <div className="output-truncation">工具结果超过浏览器预算，已截断。</div>}
+      </details>;
+    }
     case "imageGeneration": {
-      const result = typeof item.result === "string" ? item.result : "";
+      const result = "result" in item && typeof item.result === "string" ? item.result : "";
       const src = imageSource(result);
       const href = !src ? validatedHttpUrl(result) : null;
       return (
         <div className="item item-dim">
           🖼 图像生成 · {runtimeText(item.status, "（状态格式无效）")}
           {typeof item.savedPath === "string" && item.savedPath && <div>输出文件：<code>{item.savedPath}</code></div>}
+          {"fileId" in item && typeof item.fileId === "string" && <div>图片文件标识：<code>{runtimeText(item.fileId)}</code>（当前客户端不自动下载远程文件）</div>}
           {item.failure && <div className="error-text">图像生成失败：{printable(item.failure)}</div>}
           {src
             ? <img src={src} alt="生成的图片" className="generated-image" />

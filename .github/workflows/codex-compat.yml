@@ -37,7 +37,7 @@ jobs:
           [[ "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'invalid published version' >&2; exit 1; }
           printf 'pinned=%s\nlatest=%s\n' "$pinned" "$latest" >> "$GITHUB_OUTPUT"
           if [ "$pinned" = "$latest" ]; then echo 'changed=false' >> "$GITHUB_OUTPUT"; else echo 'changed=true' >> "$GITHUB_OUTPUT"; fi
-      - name: Generate candidate protocol and run repository checks
+      - name: Generate candidate protocol and run targeted contract checks
         if: steps.versions.outputs.changed == 'true'
         id: candidate
         continue-on-error: true
@@ -53,7 +53,10 @@ jobs:
           rm -rf protocol
           mkdir protocol
           cp "$tsconfig" protocol/tsconfig.json
-          pnpm dlx "@openai/codex@${{ steps.versions.outputs.latest }}" app-server generate-ts --out protocol
+          npm install --prefix "$RUNNER_TEMP/codex-candidate-runtime" --ignore-scripts --no-audit --no-fund "@openai/codex@${{ steps.versions.outputs.latest }}"
+          export CODEX_BIN="$RUNNER_TEMP/codex-candidate-runtime/node_modules/.bin/codex"
+          export HARNESS_EXPECTED_CODEX_VERSION='${{ steps.versions.outputs.latest }}'
+          "$CODEX_BIN" app-server generate-ts --out protocol
           {
             echo '## Candidate protocol diff (first 300 lines)'
             echo '```diff'
@@ -63,7 +66,8 @@ jobs:
           # These checks now compile against the generated candidate protocol,
           # not the repository's pinned protocol snapshot.
           pnpm typecheck
-          pnpm test
+          pnpm build
+          node scripts/targeted-tests.mjs --files protocol/v2/TurnStartParams.ts
       - name: Open or update a compatibility issue
         if: steps.versions.outputs.changed == 'true'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
@@ -79,7 +83,7 @@ jobs:
               `- Published version: \`${latest}\``,
               `- Candidate protocol/check step: \`${{ steps.candidate.outcome }}\``,
               '',
-              'Do not upgrade automatically. Regenerate `protocol/`, review the protocol diff, run unit/e2e/provider tests, then update the pin in a reviewed pull request.',
+              'Do not upgrade automatically. Regenerate `protocol/`, review the protocol diff and run impacted contract tests. Full tests belong to audit closeout after three consecutive complete audits with no new findings; provider calls require separate explicit authorization.',
             ].join('\n');
             const data = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,

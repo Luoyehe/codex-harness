@@ -139,6 +139,49 @@ raise RuntimeError("caller json.py must not run")
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 });
 
+test("custom setup preserves every nonempty key value and keeps blank configuration unauthenticated", options, () => {
+  const fixture = mkdtempSync(path.join(tmpdir(), "provider-auth-value-"));
+  try {
+    const home = path.join(fixture, "home"), bin = path.join(fixture, "bin"), capture = path.join(fixture, "auth-modes");
+    const key = String.fromCharCode(69, 77, 80, 84, 89);
+    mkdirSync(bin);
+    // Only record the authentication decision, never the credential itself.
+    writeFileSync(path.join(bin, "curl"), `#!/usr/bin/env bash
+set -eu
+if [ "\${1:-}" = -H ]; then
+  received="$(cat)"
+  [ "$received" = "Authorization: Bearer $EXPECTED_TEST_KEY" ] || exit 7
+  printf 'authenticated\\n' >> "$HARNESS_CAPTURE"
+else
+  printf 'anonymous\\n' >> "$HARNESS_CAPTURE"
+fi
+printf '{"data":[{"id":"fixture-model"}]}'
+`, { mode: 0o700 });
+    const env = { ...process.env, PATH: bin + path.delimiter + process.env.PATH, CODEX_HOME: home,
+      ENV_FILE: path.join(fixture, "secrets.env"), HARNESS_CAPTURE: capture, EXPECTED_TEST_KEY: key,
+      HARNESS_PROVIDER_TRANSACTION: "0", CUSTOM_SYNC_CATALOG: "0", CUSTOM_REUSE_API_KEY: "0",
+      CUSTOM_BASE_URL: "http://127.0.0.1:9/v1", CUSTOM_MODEL: "fixture-model", CUSTOM_CTX: "65536",
+      CUSTOM_VISION: "0", CUSTOM_EFFORT: "medium", PROBE_REASONING: "0", PYTHONDONTWRITEBYTECODE: "1" };
+    const invoke = overrides => {
+      const result = spawnSync("bash", [path.join(providers, "custom-openai/setup.sh")], {
+        env: { ...env, ...overrides }, encoding: "utf8", timeout: 20000,
+      });
+      assert.equal(result.status, 0, "isolated provider configuration failed");
+      assert.ok(!(result.stdout + result.stderr).includes(key), "provider diagnostics exposed a synthetic credential");
+    };
+    for (const authenticated of [true, false]) {
+      invoke({ CUSTOM_API_KEY: authenticated ? key : "" });
+      const config = readFileSync(path.join(home, "config.toml"), "utf8");
+      assert.equal(config.includes('"env_key" = "CUSTOM_OPENAI_API_KEY"'), authenticated);
+      const stored = readFileSync(env.ENV_FILE, "utf8");
+      assert.ok(stored.includes(authenticated ? `CUSTOM_OPENAI_API_KEY="${key}"` : 'CUSTOM_OPENAI_API_KEY=""'),
+        "stored authentication state does not match the explicit selection");
+      invoke({ CUSTOM_SYNC_CATALOG: "1", CUSTOM_API_KEY: "" });
+    }
+    assert.equal(readFileSync(capture, "utf8"), "authenticated\nanonymous\n");
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
+
 test("an invalid provider command is rejected before creating a candidate generation", options, () => {
   const fixture = mkdtempSync(path.join(tmpdir(), "provider-command-"));
   const home = path.join(fixture, "home");

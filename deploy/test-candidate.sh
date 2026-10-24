@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
-# Build and validate an update in a secret-free, offline DynamicUser sandbox.
-# Candidate output remains only in the resource-accounted transient runtime;
-# the current trusted updater copies it by descriptor before acknowledging exit.
+# Coordinate the fixed dependency/validation stages and trusted output handoff.
+# Candidate code runs only in the selected DynamicUser stage. Root validates
+# inputs, owns sandbox lifetime, and accepts only the bridge's verified copy.
 set -euo pipefail
 umask 077
 [ "$(id -u)" = 0 ] || { echo '[candidate-test] root is required to start the isolated unit' >&2; exit 1; }
+phase=validation
+if [ "${1:-}" = --prepare-dependencies ]; then phase=dependencies; shift; fi
 [ "$#" = 5 ] || {
-  echo 'usage: test-candidate.sh CANDIDATE_ROOT VERSION VALIDATED_DESTINATION ARTIFACT_SEED RUNTIME_SEED' >&2
+  echo 'usage: test-candidate.sh [--prepare-dependencies] INPUT_ROOT VERSION DESTINATION CACHE_SEED_OR_DIGEST RUNTIME_SEED' >&2
   exit 1
 }
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+INSTALLED_ROOT="$(dirname -- "$SCRIPT_DIR")"
 version="$2"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo '[candidate-test] invalid candidate version' >&2; exit 1; }
+# Full regressions are only for the explicitly confirmed audit closeout. A
+# routine update keeps the isolated build, security and lifecycle gates below.
+audit_closeout="${CANDIDATE_AUDIT_CLOSEOUT:-0}"
+case "$audit_closeout" in 0|1) ;; *) echo '[candidate-test] CANDIDATE_AUDIT_CLOSEOUT must be 0 or 1' >&2; exit 1 ;; esac
 
 candidate_root="$(python3 -I - "$1" <<'CHECK_CANDIDATE'
 import os,re,stat,sys
@@ -36,15 +43,60 @@ print(candidate)
 CHECK_CANDIDATE
 )"
 
-validated_destination="$3"
+validated_destination="$(python3 -I - "$3" <<'CHECK_DESTINATION'
+import os,re,stat,sys
+from pathlib import Path
+value=sys.argv[1]
+if not re.fullmatch(r'/[A-Za-z0-9_./@+-]+',value) or '..' in Path(value).parts:
+    raise SystemExit('destination must be an absolute path without unsafe characters or traversal')
+destination=Path(value)
+if destination.parent==destination or destination.parent==Path('/'):
+    raise SystemExit('destination requires a separate private parent')
+for entry in reversed((destination.parent,*destination.parent.parents)):
+    info=entry.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid!=0:
+        raise SystemExit('destination ancestors must be real root-owned directories')
+    if info.st_mode & 0o022 and not (entry!=destination.parent and info.st_mode & stat.S_ISVTX):
+        raise SystemExit('destination ancestors must not be replaceable by other users')
+if destination.parent.stat().st_mode & 0o077:
+    raise SystemExit('destination parent must remain root-private (0700)')
+if os.path.lexists(destination):
+    raise SystemExit('destination must not already exist')
+print(destination)
+CHECK_DESTINATION
+)"
 
 trust() { python3 -I "$SCRIPT_DIR/trusted_paths.py" "$1" "$2"; }
-artifact_seed="$(trust directory "$4")"
+SCRIPT_DIR="$(trust directory "$SCRIPT_DIR")"
+bridge="$(trust file "$SCRIPT_DIR/update_candidate.py")"
 runtime_seed="$(trust tree "$5")"
-for relative in node_modules apps/gateway/node_modules apps/web/node_modules; do
-  [ -d "$artifact_seed/$relative" ] || { echo "[candidate-test] missing artifact seed: $relative" >&2; exit 1; }
-  trust tree "$artifact_seed/$relative" >/dev/null
-done
+artifact_seed=''; dependency_inputs=''
+if [ "$phase" = dependencies ]; then
+  dependency_inputs="$4"
+  [[ "$dependency_inputs" =~ ^[a-f0-9]{64}$ ]] || { echo '[candidate-test] invalid dependency identity' >&2; exit 1; }
+else
+  artifact_seed="$(trust tree "$4")"
+  for relative in store cache; do
+    [ -d "$artifact_seed/$relative" ] || { echo "[candidate-test] missing dependency cache: $relative" >&2; exit 1; }
+  done
+fi
+
+# Capture the complete trusted runtime before any candidate process starts.
+# runtime-info checks the CLI version, executable/link semantics and every file.
+runtime_fingerprint() {
+  local tree="$1" info fingerprint
+  info="$(python3 -I "$bridge" runtime-info "$tree" "$version")" || return 1
+  fingerprint="${info#*$'\t'}"
+  [ "${info%%$'\t'*}" = "$tree/node_modules/.bin/codex" ] \
+    && [[ "$fingerprint" =~ ^[a-f0-9]{64}$ ]] || {
+      echo '[candidate-test] invalid trusted runtime identity' >&2; return 1;
+    }
+  printf '%s\n' "$fingerprint"
+}
+seed_fingerprint=''
+if [ "$phase" = validation ]; then
+  seed_fingerprint="$(runtime_fingerprint "$runtime_seed")"
+fi
 
 node_bin="$(trust file "${NODE_BIN:-$(command -v node)}")"
 node_entry="${NODE_BIN_DIR:-$(dirname -- "${NODE_BIN:-$(command -v node)}")}/node"
@@ -77,11 +129,41 @@ else: raise SystemExit('pnpm must be an installed trusted pnpm or Corepack packa
 CHECK_LAUNCHER
 )"
 probe_home=''; unit=''; scratch_root=''; scratch_tmp=''; scratch_var_tmp=''; scratch_mounts=0
+stop_isolated_unit() {
+  local state status details line states=0 bit=0
+  "$systemctl" stop "$unit.service" >/dev/null 2>&1 || true
+  state="$("$systemctl" is-active "$unit.service" 2>/dev/null)" && status=0 || status=$?
+  case "$state:$status" in
+    inactive:3|failed:3) return 0 ;;
+    inactive:4|unknown:4)
+      # A stopped transient unit can be garbage-collected before is-active.
+      # Corroborate not-found/inactive/dead; a bus/permission failure is not
+      # evidence of shutdown even if a version reports the same exit code.
+      if details="$("$systemctl" show "$unit.service" --property=LoadState \
+          --property=ActiveState --property=SubState 2>/dev/null)"; then
+        while IFS= read -r line; do
+          case "$line" in
+            LoadState=not-found) bit=1 ;;
+            ActiveState=inactive) bit=2 ;;
+            SubState=dead) bit=4 ;;
+            *) states=-1; break ;;
+          esac
+          if [ "$((states & bit))" != 0 ]; then states=-1; break; fi
+          states=$((states | bit))
+        done <<<"$details"
+        [ "$states" = 7 ] && return 0
+      fi
+      ;;
+  esac
+  echo "[candidate-test] isolated unit shutdown unconfirmed; retain $runtime and $scratch_root for recovery" >&2
+  : > "${candidate_root%/*}/isolation-unconfirmed"
+  return 1
+}
 cleanup() {
   local original_status=$? cleanup_status=0
   trap - EXIT
   if [ -n "$unit" ]; then
-    "$systemctl" stop "$unit.service" >/dev/null 2>&1 || true
+    if ! stop_isolated_unit; then exit 1; fi
     "$systemctl" reset-failed "$unit.service" >/dev/null 2>&1 || true
   fi
   if [ "$scratch_mounts" -ge 2 ]; then
@@ -108,7 +190,7 @@ if [ "$launcher_kind" = corepack ]; then
   corepack_cache="$(python3 -I -c 'import os,pwd; print(os.environ.get("COREPACK_HOME") or os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.join(pwd.getpwuid(0).pw_dir,".cache"),"node","corepack"))')"
   corepack_cache="$(trust tree "$corepack_cache")"
   probe_home="$(mktemp -d "${candidate_root%/*}/candidate-probe.XXXXXXXX")"
-  python3 -I - "$candidate_root/package.json" "$probe_home/package.json" "$node_bin" <<'PREPARE_PROBE'
+  python3 -I - "$INSTALLED_ROOT/package.json" "$probe_home/package.json" "$node_bin" <<'PREPARE_PROBE'
 import json,re,sys
 from pathlib import Path
 manager=json.loads(Path(sys.argv[1]).read_text()).get('packageManager')
@@ -125,16 +207,20 @@ PREPARE_PROBE
     "$node_bin" "$pnpm_launcher" --config.verify-deps-before-run=false --silent run harness-pnpm-entry)"
 fi
 pnpm_entry="$(trust file "$pnpm_entry")"
-mapfile -t pnpm_package < <(python3 -I - "$SCRIPT_DIR" "$pnpm_entry" <<'CHECK_PNPM'
+mapfile -t pnpm_package < <(python3 -I - "$SCRIPT_DIR" "$pnpm_entry" "$INSTALLED_ROOT/package.json" <<'CHECK_PNPM'
 import json,sys
 from pathlib import Path
 sys.dont_write_bytecode=True; sys.path.insert(0,sys.argv[1])
 from trusted_paths import trusted_path,trusted_tree
 pnpm=Path(trusted_path(sys.argv[2]))
+expected=json.loads(Path(trusted_path(sys.argv[3])).read_text()).get('packageManager')
 for package in pnpm.parents:
     manifest=package/'package.json'
     if manifest.is_file() and json.loads(manifest.read_text()).get('name')=='pnpm':
-        root=Path(trusted_tree(str(package))); print(root); print(pnpm.relative_to(root)); break
+        root=Path(trusted_tree(str(package)))
+        if expected!='pnpm@'+str(json.loads(manifest.read_text()).get('version')):
+            raise SystemExit('installed pnpm differs from the trusted updater pin')
+        print(root); print(pnpm.relative_to(root)); break
 else: raise SystemExit('cannot locate the installed pnpm package')
 CHECK_PNPM
 )
@@ -142,6 +228,37 @@ CHECK_PNPM
 
 unit="codex-harness-candidate-$(python3 -I -c 'import secrets; print(secrets.token_hex(12))')"
 runtime="/run/$unit"
+# A closed policy table selects the installed runner, input mounts and network.
+# Neither candidate metadata nor inherited environment supplies commands/options.
+configure_phase() {
+  case "$phase" in
+    dependencies)
+      runner_name=candidate-dependencies.sh
+      private_network=no
+      offline=false
+      seed_mounts=()
+      runner_args=("$runtime" "${pnpm_package[1]}")
+      ;;
+    validation)
+      runner_name=candidate-validation.sh
+      private_network=yes
+      offline=true
+      seed_mounts=(
+        "--property=BindReadOnlyPaths=$artifact_seed/store:$runtime/seed-store"
+        "--property=BindReadOnlyPaths=$artifact_seed/cache:$runtime/seed-cache"
+        "--property=BindReadOnlyPaths=$runtime_seed:$runtime/codex-runtime"
+      )
+      runner_args=("$runtime" "${pnpm_package[1]}" "$version" "$audit_closeout")
+      ;;
+    *) echo '[candidate-test] unsupported phase' >&2; return 1 ;;
+  esac
+  stage_runner="$(trust file "$SCRIPT_DIR/$runner_name")"
+  [ "$stage_runner" = "$SCRIPT_DIR/$runner_name" ] || {
+    echo '[candidate-test] stage runner must be a canonical installed file' >&2; return 1;
+  }
+}
+configure_phase
+
 # DynamicUser unconditionally implies PrivateTmp, whose host-backed bind mounts
 # hide TemporaryFileSystem=/tmp. Create fixed-size scratch filesystems below a
 # root-private /run parent and bind those over the private views instead.
@@ -156,55 +273,6 @@ scratch_mounts=1
 "$mount_bin" -t tmpfs -o nodev,nosuid,noexec,size=512M,mode=1777 \
   codex-harness-candidate-var-tmp "$scratch_var_tmp"
 scratch_mounts=2
-read -r -d '' runner <<'CANDIDATE_RUNNER' || true
-set -euo pipefail
-umask 077
-[ "$EUID" != 0 ] || { echo '[candidate-test] refusing to run candidate work as root' >&2; exit 1; }
-runtime=$1; pnpm_relative=$2; version=$3
-workspace="$runtime/executable"; worktree="$workspace/worktree"
-mkdir -p "$worktree/apps/gateway" "$worktree/apps/web" "$HOME" "$CODEX_HOME" "$XDG_CACHE_HOME" "$TMPDIR" "$workspace/bin"
-ln -s "$runtime/node" "$workspace/bin/node"
-printf '#!/bin/sh\nexport pnpm_config_verify_deps_before_run=\nexec "%s" "%s" --config.verify-deps-before-run=false "$@"\n' \
-  "$runtime/node" "$runtime/pnpm/$pnpm_relative" > "$workspace/bin/pnpm"
-chmod 700 "$workspace/bin/pnpm"
-ln -s "$runtime/codex-runtime/node_modules/.bin/codex" "$workspace/bin/codex"
-cp -a --no-preserve=ownership -- "$runtime/source/." "$worktree/"
-find -P "$worktree" -type d -exec chmod u+rwx -- {} +
-find -P "$worktree" -type f -exec chmod u+rw -- {} +
-rm -rf -- "$worktree/node_modules" "$worktree/apps/gateway/node_modules" "$worktree/apps/web/node_modules"
-cp -a --no-preserve=ownership -- "$runtime/seed-root" "$worktree/node_modules"
-cp -a --no-preserve=ownership -- "$runtime/seed-gateway" "$worktree/apps/gateway/node_modules"
-cp -a --no-preserve=ownership -- "$runtime/seed-web" "$worktree/apps/web/node_modules"
-cd -- "$worktree"
-pnpm install --offline --frozen-lockfile
-pnpm typecheck
-pnpm build
-node scripts/release-audit.mjs .
-pnpm test
-# Tests are candidate-controlled too. Re-audit their final source state before
-# smoke and export so a test-side mutation cannot bypass the release gate.
-node scripts/release-audit.mjs .
-node scripts/gateway-smoke.mjs
-export_root="$runtime/export"
-payload="$export_root/payload"
-mkdir "$export_root"
-mkdir "$payload"
-mkdir -p "$payload/artifacts/apps/gateway" "$payload/artifacts/apps/web" "$payload/runtime" "$payload/service"
-# Recursive copies intentionally do not preserve hardlink topology; the
-# trusted bridge rejects multiply-linked files in every published tree.
-cp -R --no-preserve=ownership -- node_modules "$payload/artifacts/node_modules"
-cp -R --no-preserve=ownership -- apps/gateway/node_modules "$payload/artifacts/apps/gateway/node_modules"
-cp -R --no-preserve=ownership -- apps/web/node_modules "$payload/artifacts/apps/web/node_modules"
-cp -R --no-preserve=ownership -- apps/gateway/dist "$payload/artifacts/apps/gateway/dist"
-cp -R --no-preserve=ownership -- apps/web/dist "$payload/artifacts/apps/web/dist"
-cp -R --no-preserve=ownership -- "$runtime/codex-runtime/node_modules" "$payload/runtime/node_modules"
-cp --no-preserve=ownership -- deploy/privileged-helper.sh "$payload/service/privileged-helper.sh"
-cp --no-preserve=ownership -- deploy/worker_launcher.py "$payload/service/worker_launcher.py"
-printf '{"format":1,"version":"%s"}\n' "$version" > "$payload/manifest.json"
-: > "$export_root/ready"
-while [ ! -e "$runtime/accepted" ]; do sleep 0.1; done
-[ -f "$runtime/accepted" ] && [ ! -L "$runtime/accepted" ]
-CANDIDATE_RUNNER
 
 "$systemd_run" --quiet --unit="$unit" \
   --property=DynamicUser=yes \
@@ -226,7 +294,7 @@ CANDIDATE_RUNNER
   --property=StandardError=null \
   --property=ProtectSystem=strict \
   --property=ProtectHome=yes \
-  --property=PrivateNetwork=yes \
+  --property="PrivateNetwork=$private_network" \
   --property=PrivateDevices=yes \
   --property=ProtectKernelTunables=yes \
   --property=ProtectKernelModules=yes \
@@ -246,17 +314,15 @@ CANDIDATE_RUNNER
   --property="BindReadOnlyPaths=$candidate_root:$runtime/source" \
   --property="BindReadOnlyPaths=$node_bin:$runtime/node" \
   --property="BindReadOnlyPaths=${pnpm_package[0]}:$runtime/pnpm" \
-  --property="BindReadOnlyPaths=$artifact_seed/node_modules:$runtime/seed-root" \
-  --property="BindReadOnlyPaths=$artifact_seed/apps/gateway/node_modules:$runtime/seed-gateway" \
-  --property="BindReadOnlyPaths=$artifact_seed/apps/web/node_modules:$runtime/seed-web" \
-  --property="BindReadOnlyPaths=$runtime_seed:$runtime/codex-runtime" \
+  "--property=BindReadOnlyPaths=$stage_runner:$runtime/runner.sh" \
+  "${seed_mounts[@]}" \
   "$env_bin" -i \
   "HOME=$runtime/executable/home" "USERPROFILE=$runtime/executable/home" "CODEX_HOME=$runtime/executable/codex-home" \
   "XDG_CACHE_HOME=$runtime/executable/cache" "TMPDIR=$runtime/executable/tmp" \
   "PATH=$runtime/executable/bin:/usr/bin:/bin" "CODEX_BIN=$runtime/executable/bin/codex" \
-  COREPACK_ENABLE_NETWORK=0 PNPM_CONFIG_OFFLINE=true NPM_CONFIG_USERCONFIG=/dev/null \
+  COREPACK_ENABLE_NETWORK=0 "PNPM_CONFIG_OFFLINE=$offline" NPM_CONFIG_USERCONFIG=/dev/null \
   "NPM_CONFIG_GLOBALCONFIG=$runtime/executable/home/global.npmrc" LANG=C.UTF-8 \
-  "$bash_bin" --noprofile --norc -c "$runner" -- "$runtime" "${pnpm_package[1]}" "$version"
+  "$bash_bin" --noprofile --norc "$runtime/runner.sh" "${runner_args[@]}"
 
 unit_property() {
   "$systemctl" show "$unit.service" --property="$1" --value 2>/dev/null || true
@@ -281,12 +347,30 @@ while [ ! -f "$ready" ]; do
   sleep 0.2
 done
 
-# The helper belongs to the currently installed updater, not to the candidate.
-# It pins /run and the DynamicUser-owned runtime by descriptor, validates the
-# fixed bounded topology, and copies into the root-private transaction tree.
-python3 -I "$SCRIPT_DIR/update_candidate.py" materialize-live \
-  "$runtime/export" "$validated_destination" "$version" >/dev/null
-python3 -I "$SCRIPT_DIR/update_candidate.py" accept-live "$runtime/export"
+# This is the only commit boundary. Ready merely requests descriptor copying;
+# the bridge revalidates its root-owned copy. Runtime equality is checked on
+# that copy before the root-exclusive acknowledgement lets the runner exit.
+commit_output() {
+  local copied_fingerprint
+  case "$phase" in
+    dependencies)
+      python3 -I "$bridge" materialize-dependencies-live \
+        "$runtime/export" "$validated_destination" "$dependency_inputs" >/dev/null || return 1
+      ;;
+    validation)
+      python3 -I "$bridge" materialize-live \
+        "$runtime/export" "$validated_destination" "$version" >/dev/null || return 1
+      copied_fingerprint="$(runtime_fingerprint "$validated_destination/runtime")" || return 1
+      [ "$copied_fingerprint" = "$seed_fingerprint" ] || {
+        echo '[candidate-test] copied runtime differs from the trusted seed; refusing acknowledgement' >&2
+        return 1
+      }
+      ;;
+    *) return 1 ;;
+  esac
+  python3 -I "$bridge" accept-live "$runtime/export"
+}
+commit_output
 
 while :; do
   state="$(unit_property ActiveState)"
@@ -303,4 +387,9 @@ result="$(unit_property Result)"
   echo "[candidate-test] isolated validation failed after output handoff (result=${result:-unknown}, status=${status:-unknown})" >&2
   fail_with_status "$status"
 }
-echo 'CANDIDATE-VALIDATION-PASS (offline disposable DynamicUser build)'
+stop_isolated_unit
+if [ "$phase" = dependencies ]; then
+  echo 'DEPENDENCY-PREPARATION-PASS (registry data only, no candidate hooks)'
+else
+  echo 'CANDIDATE-VALIDATION-PASS (offline disposable DynamicUser build)'
+fi

@@ -49,7 +49,7 @@ function fixture() {
   return { store, saved, sessions, root };
 }
 
-type Stage = "opendir" | "dir.read" | "unknown.lstat" | "lstat" | "open"
+type Stage = "opendir" | "dir.lstat" | "dir.read" | "unknown.lstat" | "lstat" | "open"
   | "file.stat" | "file.header" | "file.body" | "file.after" | "file.close" | "dir.close";
 
 function stall(stage: Stage, options: { reject?: boolean; unknownEntry?: boolean } = {}) {
@@ -89,6 +89,7 @@ function stall(stage: Stage, options: { reject?: boolean; unknownEntry?: boolean
   })) as typeof fs.opendir);
   let metadataCalls = 0;
   vi.spyOn(fs, "lstat").mockImplementation(((...args: Parameters<typeof fs.lstat>) => {
+    if (!String(args[0]).endsWith(".jsonl")) return call("dir.lstat", () => native.lstat(...args));
     metadataCalls += 1;
     return call(options.unknownEntry && metadataCalls === 1 ? "unknown.lstat" : "lstat", () => native.lstat(...args));
   }) as typeof fs.lstat);
@@ -123,7 +124,7 @@ afterEach(async () => {
 });
 
 describe("attachment history I/O deadlines", () => {
-  it.each<Stage>(["opendir", "dir.read", "unknown.lstat", "lstat", "open", "file.stat", "file.header", "file.body", "file.after", "file.close", "dir.close"])(
+  it.each<Stage>(["opendir", "dir.lstat", "dir.read", "unknown.lstat", "lstat", "open", "file.stat", "file.header", "file.body", "file.after", "file.close", "dir.close"])(
     "bounds stalled %s, retains the upload, closes late handles and recovers",
     async (stage) => {
       const { store, saved } = fixture();
@@ -154,7 +155,8 @@ describe("attachment history I/O deadlines", () => {
       // handles; it must not restart traversal or change the earlier result.
       expect(fault.events.slice(callsAtTimeout).filter((event) => event.endsWith(":start"))
         .every((event) => event === "file.close:start" || event === "dir.close:start")).toBe(true);
-      expect(fault.events.filter((event) => event === "dir.close:done")).toHaveLength(1);
+      const openedDirectory = fault.events.includes("opendir:done");
+      expect(fault.events.filter((event) => event === "dir.close:done")).toHaveLength(openedDirectory ? 1 : 0);
       const openedFile = fault.events.includes("open:done");
       expect(fault.events.filter((event) => event === "file.close:done")).toHaveLength(openedFile ? 1 : 0);
       expect(existsSync(saved.path)).toBe(true);
@@ -175,14 +177,19 @@ describe("attachment history I/O deadlines", () => {
     const results = await bounded(Promise.all(scans));
     expect(results.every((result) => !result.complete)).toBe(true);
     expect((store as any).queuedScans).toBe(0);
-    expect(fault.events).toEqual(["opendir:start"]);
+    expect(fault.events).toEqual(["dir.lstat:start", "dir.lstat:done", "opendir:start"]);
     fault.release();
     await bounded(Promise.allSettled(physicalScans));
-    expect(fault.events).toEqual(["opendir:start", "opendir:done", "dir.close:start", "dir.close:done"]);
+    expect(fault.events).toEqual(["dir.lstat:start", "dir.lstat:done", "opendir:start", "opendir:done", "dir.close:start", "dir.close:done"]);
   });
 
   it("uses one deadline across successive operations instead of renewing it", async () => {
-    const { store, saved } = fixture();
+    const { store, saved, sessions } = fixture();
+    // Directory identity is read before and after opendir. Keep those metadata
+    // steps deterministic while the two deliberately stalled calls consume the
+    // one shared deadline below.
+    const directoryInfo = await native.lstat(sessions);
+    vi.spyOn(fs, "lstat").mockResolvedValue(directoryInfo);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     let now = 0;
     vi.spyOn(performance, "now").mockImplementation(() => now);

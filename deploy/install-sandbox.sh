@@ -105,7 +105,7 @@ log "Running read-only sandbox /usr/bin/true as $RUN_USER in $CODEX_WORKSPACE (n
 # SSH/runuser may inherit /root. Change directory before dropping privileges,
 # then check accessibility again as the target user. Start with an empty child
 # environment: installation-time provider credentials are not needed here.
-# The pinned 0.149 CLI uses `sandbox --`, not a `sandbox linux` subcommand.
+# The pinned 0.164 CLI uses `sandbox --`, not a `sandbox linux` subcommand.
 if ! (
   cd -- "$CODEX_WORKSPACE" || exit 1
   runuser -u "$RUN_USER" -- env -i HOME="$SERVICE_HOME" CODEX_HOME="$CODEX_HOME" PATH="$PATH" \

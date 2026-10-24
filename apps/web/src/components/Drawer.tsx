@@ -16,20 +16,33 @@ import { TerminalSession } from "../utils/terminal-session";
 export function Drawer() {
   const drawerTab = useStore((s) => s.drawerTab);
   const setDrawerTab = useStore((s) => s.setDrawerTab);
+  const [terminalVisited, setTerminalVisited] = useState(false);
+  const diffButton = useRef<HTMLButtonElement>(null);
+  const terminalButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (drawerTab === "terminal") setTerminalVisited(true);
+    if (drawerTab === null) setTerminalVisited(false);
+  }, [drawerTab]);
 
   return (
     <div className={`drawer ${drawerTab ? "open" : ""}`}>
       <div className="drawer-tabs">
-        <button className={drawerTab === "diff" ? "active" : ""} onClick={() => setDrawerTab(drawerTab === "diff" ? null : "diff")}>
+        <button ref={diffButton} aria-pressed={drawerTab === "diff"} className={drawerTab === "diff" ? "active" : ""} onClick={() => setDrawerTab("diff")}>
           改动 Diff
         </button>
-        <button className={drawerTab === "terminal" ? "active" : ""} onClick={() => setDrawerTab(drawerTab === "terminal" ? null : "terminal")}>
+        <button ref={terminalButton} aria-pressed={drawerTab === "terminal"} className={drawerTab === "terminal" ? "active" : ""} onClick={() => setDrawerTab("terminal")}>
           终端
         </button>
         <span className="spacer" />
+        {drawerTab && <button className="icon-btn" aria-label="关闭面板并结束全部终端" title="关闭面板会结束全部终端" onClick={() => {
+          (drawerTab === "terminal" ? terminalButton : diffButton).current?.focus();
+          setDrawerTab(null);
+        }}>×</button>}
       </div>
       {drawerTab === "diff" && <DiffTab />}
-      {drawerTab === "terminal" && <TerminalTab />}
+      {drawerTab !== null && (terminalVisited || drawerTab === "terminal") && <div className="terminal-pane" hidden={drawerTab !== "terminal"}>
+        <TerminalTab visible={drawerTab === "terminal"} />
+      </div>}
     </div>
   );
 }
@@ -53,7 +66,7 @@ interface TermState {
 let termCounter = 0;
 const MAX_TERMINALS = 8;
 
-function TerminalTab() {
+function TerminalTab({ visible }: { visible: boolean }) {
   const currentProject = useStore((s) => s.currentProject);
   const connection = useStore((s) => s.connection);
   const [terms, setTerms] = useState<TermState[]>([]);
@@ -100,11 +113,11 @@ function TerminalTab() {
       container.style.display = pid === activePid ? "" : "none";
     }
     const entry = activePid ? terminals.current.get(activePid) : null;
-    if (entry) {
+    if (entry && visible) {
       entry.fitVisible();
       entry.term.focus();
     }
-  }, [activePid]);
+  }, [activePid, visible]);
 
   async function newTerminal() {
     const host = hostRef.current;
@@ -202,7 +215,7 @@ function TerminalTab() {
       </div>
       <div ref={hostRef} className="term-host" />
       {terms.length === 0 && (
-        <div className="dim term-hint">点击「＋ 新终端」在服务器上打开一个 shell（关闭底部面板会结束所有终端）</div>
+        <div className="dim term-hint">点击「＋ 新终端」打开服务器 shell。切换到改动面板不会结束终端；关闭面板或断开连接会结束终端。</div>
       )}
       {terminalError && <div className="error-text term-hint">{terminalError}</div>}
     </div>

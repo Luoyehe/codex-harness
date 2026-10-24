@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { selectedModelEfforts, useStore, type ApprovalPolicy, type ReasoningEffort, type SandboxPreset, type SendOperation } from "../store";
 import { releasePreviewUrl, retainPreviewUrl } from "../utils/preview-urls";
+import { isComposingKey } from "../utils/keyboard";
 
 const MIB = 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * MIB;
@@ -36,19 +37,28 @@ interface DraftAttempt {
  * "ready to start" state: typing and sending creates a new session in the
  * current project first.
  */
-export function Composer() {
+export function Composer({ suggestion }: { suggestion?: { text: string; sequence: number } } = {}) {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(0);
   const [sending, setSending] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const appliedSuggestion = useRef<number>();
   const uploadBatchActive = useRef(false);
   const sendActive = useRef(false);
   const mounted = useRef(true);
   const attachmentOwners = useRef<PendingAttachment[]>([]);
   const uploadPreviewOwners = useRef(new Set<object>());
   const textRevision = useRef(0);
+  useEffect(() => {
+    if (!suggestion || appliedSuggestion.current === suggestion.sequence) return;
+    appliedSuggestion.current = suggestion.sequence;
+    ++textRevision.current;
+    setText((current) => (current ? current + "\n\n" + suggestion.text : suggestion.text).slice(0, 1_000_000));
+    inputRef.current?.focus();
+  }, [suggestion]);
   const draftAttempt = useRef<DraftAttempt | null>(null);
   const [draftOperation, setDraftOperation] = useState<SendOperation | null>(null);
   const [operationCheckState, setOperationCheckState] = useState<Record<string, { busy: boolean; error: string | null }>>({});
@@ -253,7 +263,7 @@ export function Composer() {
       if (attempt && checked) settleAttempt(attempt, checked);
       if (!mounted.current) return;
       if (checked?.state === "unknown") {
-        setOperationCheckState((state) => ({ ...state, [id]: { busy: false, error: "服务器仍报告结果未知；未自动重发，请稍后再核对。" } }));
+        setOperationCheckState((state) => ({ ...state, [id]: { busy: false, error: checked.error || "服务器仍报告结果未知；未自动重发，请稍后再核对。" } }));
       } else if (!checked && latest?.state === "unknown") {
         setOperationCheckState((state) => ({ ...state, [id]: { busy: false, error: "未能核对发送状态；连接可能不稳定，未自动重发。" } }));
       } else {
@@ -273,8 +283,9 @@ export function Composer() {
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>, behavior: "send" | "newline") {
-    const plain = !e.shiftKey && !e.nativeEvent.isComposing;
-    const shifted = e.shiftKey && !e.nativeEvent.isComposing;
+    if (isComposingKey(e)) return;
+    const plain = !e.shiftKey;
+    const shifted = e.shiftKey;
     if (e.key === "Enter" && ((behavior === "send" && plain) || (behavior === "newline" && shifted))) {
       e.preventDefault();
       send();
@@ -396,18 +407,21 @@ export function Composer() {
       </div>}
       {sendOperation?.state === "acknowledged_unknown" && <div className="dim" role="status">你已确认放弃未知结果请求的草稿；服务器执行结果仍未确定。新消息会使用新的发送标识，重复输入原指令可能重复执行。</div>}
       <textarea
+        ref={inputRef}
+        aria-label="消息内容"
+        id="message-input"
         value={text}
         placeholder={
           activeThreadId
-            ? "给 Codex 发消息…（Enter 发送，Shift+Enter 换行）"
+            ? `给 Codex 发消息…（${enterBehavior === "send" ? "Enter 发送，Shift+Enter 换行" : "Enter 换行，Shift+Enter 发送"}）`
             : "输入消息开始新对话（使用当前项目与所选设置）…"
         }
         onChange={(e) => { ++textRevision.current; setText(e.target.value); }}
         onKeyDown={(e) => onKeyDown(e, enterBehavior)}
         maxLength={1_000_000}
-        rows={3}
+        rows={2}
       />
-      {(attachments.length > 0 || uploadError) && (
+      {(attachments.length > 0 || uploading > 0 || uploadError) && (
         <div className="attach-chips">
           {attachments.map((a) => (
             <span key={a.path} className={`attach-chip ${a.kind === "image" ? "attach-chip-img" : ""}`}>
@@ -423,7 +437,7 @@ export function Composer() {
               </button>
             </span>
           ))}
-          {uploading > 0 && <span className="attach-chip attach-uploading">上传中… ({uploading})</span>}
+          {uploading > 0 && <span className="attach-chip attach-uploading" role="status">上传中… ({uploading})</span>}
           {uploadError && <span className="attach-chip attach-error">{uploadError}</span>}
         </div>
       )}
@@ -452,6 +466,7 @@ export function Composer() {
           onChange={(e) => updateSettings({ selectedModel: e.target.value })}
         >
           <option value="">{modelLoad.state === "loading" && models.length === 0 ? "模型加载中…" : "默认模型"}</option>
+          {selectedModel && !models.some((model) => model.id === selectedModel) && <option value={selectedModel}>{selectedModel}（待核对）</option>}
           {models.map((m) => (
             <option key={m.id} value={m.id}>
               {m.displayName || m.id}
@@ -515,14 +530,15 @@ export function Composer() {
             {compacting ? "压缩中…" : "压缩"}
           </button>
         )}
-        {reasoningEfforts.length > 0 && (
+        {(reasoningEfforts.length > 0 || selectedEffort) && (
           <select
             className="composer-select"
             title="思考程度来自所选模型的能力声明；未确认的模型不提供推测档位。默认=当前模型默认档"
-            value={reasoningEfforts.includes(selectedEffort as Exclude<ReasoningEffort, "">) ? selectedEffort : ""}
+            value={selectedEffort}
             onChange={(e) => updateSettings({ selectedEffort: e.target.value as ReasoningEffort })}
           >
             <option value="">默认思考</option>
+            {selectedEffort && !reasoningEfforts.includes(selectedEffort) && <option value={selectedEffort}>思考·{selectedEffort}（待核对）</option>}
             {reasoningEfforts.map((e) => (
               <option key={e} value={e}>
                 思考·{e}
@@ -545,6 +561,7 @@ export function Composer() {
         )}
         </div>
       </div>
+      <div className="composer-footnote">{enterBehavior === "send" ? "Enter 发送 · Shift + Enter 换行" : "Enter 换行 · Shift + Enter 发送"}<span>请核对关键操作与执行结果</span></div>
     </div>
   );
 }

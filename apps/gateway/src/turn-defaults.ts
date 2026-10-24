@@ -115,7 +115,11 @@ function validatedConfig(value: unknown): { encoded: string; mcp: Record<string,
     if (nodes + children.length > LIMITS.configNodes) throw new Error("默认配置过于复杂，未恢复默认设置");
     for (const child of children) stack.push({ value: child, depth: current.depth + 1 });
   }
-  const encoded = JSON.stringify(value);
+  // Native config responses contain maps whose key order changes between reads.
+  // Canonicalize objects only, retaining array order and own "__proto__" keys.
+  const encoded = JSON.stringify(value, (_key, item) => plain(item)
+    ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]]))
+    : item);
   if (Buffer.byteLength(encoded) > LIMITS.configBytes) throw new Error("默认配置超过 1MiB，未恢复默认设置");
   const rawMcp = value.mcp_servers;
   if (rawMcp !== undefined && rawMcp !== null && !plain(rawMcp)) throw new Error("MCP 默认配置无效，未恢复默认设置");
@@ -197,7 +201,10 @@ export class TurnDefaults {
     let id: string | undefined;
     try {
       const rawBaseline = await this.supervisor.request("thread/start", {
-        cwd, ...(model ? { model } : {}), ephemeral: true, config: { mcp_servers: mcp },
+        cwd, ...(model ? { model } : {}), ephemeral: true,
+        // Unsubscribe only detaches the client; the native idle timeout otherwise
+        // retains each lookup for 30 minutes, independently of our bounded cache.
+        config: { mcp_servers: mcp, thread_unload_delay_secs: 0 },
       });
       if (!plain(rawBaseline) || !plain(rawBaseline.thread)) throw new Error("app-server 未返回完整默认配置，已停止发送");
       id = boundedString(rawBaseline.thread.id, "临时会话标识", LIMITS.idChars);

@@ -447,7 +447,7 @@ it("admits automatic compaction through the same control gate before starting na
   notify(backend, "appServer/stateChanged", { state: "ready" });
   backend.request = vi.fn(async (_method, params) => params.method === "admin/catalog/sync" ? managementSuccess() : {});
   await expect(backend.events.onServerRequest("auto-1", "gateway/autoCompact", { threadId: "t1" })).resolves.toEqual({});
-  expect(backend.request).toHaveBeenCalledWith("gateway/dispatch", { method: "thread/compact/start", params: { threadId: "t1" }, clientId: "auto-compaction" });
+  expect(backend.request).toHaveBeenCalledWith("gateway/dispatch", { method: "thread/compact/start", params: { threadId: "t1" }, clientId: "auto-compaction" }, expect.any(Function));
   // The original normal turn can complete before native compaction announces a turn.
   notify(backend, "turn/completed", { threadId: "t1", turn: { id: "previous" } });
   await expect(instance.dispatch("admin/catalog/sync", {}, "browser")).rejects.toMatchObject({ errorCode: "BUSY" });

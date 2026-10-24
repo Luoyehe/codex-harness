@@ -6,6 +6,7 @@ import {
   type SupervisorEvents,
 } from "../src/codex/process.js";
 import type { AppServerHandlers } from "../src/codex/rpc.js";
+import { readFileSync } from "node:fs";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -83,6 +84,17 @@ describe("CodexSupervisor connection generations", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  it("identifies the installed package version without enabling experimental APIs", () => {
+    const { supervisor, connections } = makeSupervisor();
+    supervisor.start();
+    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    expect(connections[0].requests[0]).toEqual({
+      method: "initialize",
+      params: { clientInfo: { name: "codex-harness-webui", title: "Codex Harness WebUI", version: manifest.version }, capabilities: null },
+    });
+    void supervisor.stop();
   });
 
   it.each([false, true])("hands managed loss off without publishing cleanup or admitting more work (callback throws=%s)", async (throws) => {

@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { ManagementGate } from "../src/management.js";
-import { RpcBudget, FLOW_LIMITS, encodeBounded } from "../src/flow-control.js";
+import { RpcBudget, FLOW_LIMITS, WORKER_LIMITS, WorkerRequestBudget, encodeBounded } from "../src/flow-control.js";
 import { scriptChangeResult } from "../src/admin.js";
 
 it("holds management lock across script and delayed restart and reserves job admission", async () => {
@@ -83,7 +83,7 @@ it("keeps an independent emergency byte reserve under ordinary-byte saturation",
   expect(() => budget.acquire("three", "model/list", 1)()).not.toThrow();
 });
 
-it.each(["turn/start", "attachment/delete", "thread/delete", "fs/readDirectory"])(
+it.each(["turn/start", "attachment/delete", "thread/delete", "fs/readDirectory", "thread/turns/list", "thread/items/list"])(
   "serializes resource-heavy %s with other bulk work",
   (method) => {
     const budget = new RpcBudget();
@@ -97,4 +97,20 @@ it.each(["turn/start", "attachment/delete", "thread/delete", "fs/readDirectory"]
 it("counts response budgets in UTF8 bytes without silently clipping history", () => {
   expect(() => encodeBounded({ text: "中".repeat(10) }, 25)).toThrow("安全大小");
   expect(JSON.parse(encodeBounded({ text: "small" }, 100))).toEqual({ text: "small" });
+});
+
+it("reserves worker control counts and answer envelope bytes until physical work settles", () => {
+  const budget = new WorkerRequestBudget();
+  const ordinary = Array.from({ length: WORKER_LIMITS.requests }, (_, index) =>
+    budget.acquire("gateway/dispatch", "projects/list", index < 2 ? 20 * 1024 * 1024 : 0));
+  expect(() => budget.acquire("gateway/dispatch", "projects/list", 0)).toThrow("limit");
+  const controls = Array.from({ length: WORKER_LIMITS.controls }, () =>
+    budget.acquire("gateway/answer", undefined, 1024 * 1024 + 256));
+  expect(() => budget.acquire("gateway/disconnect", undefined, 100)).toThrow("limit");
+  controls[0](); controls[0]();
+  const stop = budget.acquire("gateway/dispatch", "terminal/terminate", 100);
+  expect(() => budget.acquire("gateway/dispatch", "turn/interrupt", 100)).toThrow("limit");
+  stop();
+  for (const release of [...ordinary, ...controls]) release();
+  expect(() => budget.acquire("gateway/dispatch", "projects/list", FLOW_LIMITS.frameBytes)()).not.toThrow();
 });

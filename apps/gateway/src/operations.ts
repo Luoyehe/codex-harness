@@ -287,4 +287,29 @@ export class OperationLedger {
     }
     return { ...result, thread: { ...result.thread, turns } };
   }
+
+  /** Paginated history must carry the same receipt and attachment metadata as
+   * full-history reads. Keep page order/cursors intact and share a bounded
+   * metadata-read cache across the entire page, including repeated user items. */
+  decorateHistoryPage(threadId: unknown, result: any, kind: "turns" | "items", ascending = false): any {
+    if (!validText(threadId, MAX_THREAD_ID) || this.metadataFiles.size === 0
+        || !Array.isArray(result?.data) || result.data.length > (kind === "turns" ? 100 : 200)) return result;
+    const cache = new Map<string, OperationRecord | null>();
+    const budget = { remaining: MAX_METADATA_READS_PER_HISTORY };
+    const data = [...result.data];
+    const order = ascending ? [...data.keys()].reverse() : [...data.keys()];
+    let remainingItems = MAX_DECORATED_NOTIFICATION_ITEMS;
+    for (const index of order) {
+      const entry = data[index];
+      if (kind === "items") {
+        if (!validText(entry?.turnId, MAX_THREAD_ID)) continue;
+        data[index] = { ...entry, item: this.decorateItemBounded(threadId as string, entry.turnId, entry.item, cache, budget) };
+      } else {
+        if (!validText(entry?.id, MAX_THREAD_ID) || !Array.isArray(entry.items) || entry.items.length > remainingItems) continue;
+        remainingItems -= entry.items.length;
+        data[index] = { ...entry, items: entry.items.map((item: unknown) => this.decorateItemBounded(threadId as string, entry.id, item, cache, budget)) };
+      }
+    }
+    return { ...result, data };
+  }
 }

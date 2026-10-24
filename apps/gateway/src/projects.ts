@@ -390,7 +390,8 @@ export class ProjectRegistry {
 
   /** Validated absolute path in the current host grammar; no `..` traversal. */
   static validPath(input: string): boolean {
-    if (!input || input.length > MAX_PROJECT_PATH || input.includes("\0") || input.split(/[\\/]/).includes("..")) return false;
+    const separators = process.platform === "win32" ? /[\\/]/ : /\//;
+    if (!input || input.length > MAX_PROJECT_PATH || input.includes("\0") || input.split(separators).includes("..")) return false;
     return path.isAbsolute(input);
   }
 

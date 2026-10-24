@@ -89,6 +89,21 @@ function boundedInteger(value: unknown, min: number, max: number, fallback: numb
   return Math.min(max, Math.max(min, Math.floor(value)));
 }
 
+/** History pages are explicit bounded reads. Never silently turn a malformed
+ * cursor into a first-page request or an invalid limit into an unbounded read. */
+function historyLimit(value: unknown, max: number, fallback: number): number {
+  if (value == null) return fallback;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1 || value > max) {
+    throw new Error(`limit must be an integer between 1 and ${max}`);
+  }
+  return value;
+}
+function historyCursor(value: unknown): string | undefined {
+  return value == null ? undefined : requireString(value, "cursor", MAX_CURSOR_CHARS);
+}
+const HISTORY_DIRECTIONS = new Set(["asc", "desc"] as const);
+const HISTORY_ITEM_VIEWS = new Set(["notLoaded", "summary", "full"] as const);
+
 function requireBase64(value: unknown, field: string, maxBytes: number): string {
   const text = requireString(value, field, Math.ceil(maxBytes / 3) * 4);
   if (
@@ -243,9 +258,17 @@ const handlers: Record<string, Handler> = {
     // Cursors are opaque. Never truncate one into a different token.
     const cursor = optionalString(params?.cursor, "cursor", MAX_CURSOR_CHARS);
     if (cursor) body.cursor = cursor;
-    // Search: trim, empty → omitted, max 200 chars (server searches titles).
+    // Search: trim, empty → omitted, max 200 Unicode code points. Stop the
+    // iterator at the bound without splitting a surrogate pair or copying an
+    // unbounded input into a code-point array.
     if (typeof params?.searchTerm === "string" && params.searchTerm.trim()) {
-      body.searchTerm = params.searchTerm.trim().slice(0, 200);
+      let searchTerm = "";
+      let length = 0;
+      for (const codePoint of params.searchTerm.trim()) {
+        searchTerm += codePoint;
+        if (++length === 200) break;
+      }
+      body.searchTerm = searchTerm;
     }
     // Archived: boolean toggle (default = current/unarchived).
     if (typeof params?.archived === "boolean") body.archived = params.archived;
@@ -271,16 +294,48 @@ const handlers: Record<string, Handler> = {
     return ctx.supervisor.request("thread/start", body);
   },
 
-  "thread/resume": async (params, ctx) =>
-    ctx.supervisor.request("thread/resume", { threadId: requireString(params?.threadId, "threadId", MAX_ID_CHARS) }),
+  "thread/resume": async (params, ctx) => {
+    if (params.excludeTurns != null && typeof params.excludeTurns !== "boolean") throw new Error("excludeTurns must be boolean");
+    return ctx.supervisor.request("thread/resume", {
+      threadId: requireString(params?.threadId, "threadId", MAX_ID_CHARS),
+      ...(typeof params.excludeTurns === "boolean" ? { excludeTurns: params.excludeTurns } : {}),
+    });
+  },
 
   "thread/read": async (params, ctx) =>
     ctx.supervisor.request("thread/read", {
       threadId: requireString(params?.threadId, "threadId", MAX_ID_CHARS),
-      // includeTurns gives the FULL rollout history — thread/resume's initial
-      // page is summary-viewed and page-capped, which truncated old messages.
+      // Legacy compatibility only. New clients use metadata plus bounded
+      // thread/turns/list and thread/items/list for paginated histories.
       ...(params?.includeTurns === true ? { includeTurns: true } : {}),
     }),
+
+  "thread/turns/list": async (params, ctx) =>
+    ctx.supervisor.request("thread/turns/list", {
+      threadId: requireString(params.threadId, "threadId", MAX_ID_CHARS),
+      cursor: historyCursor(params.cursor),
+      limit: historyLimit(params.limit, 100, 20),
+      sortDirection: params.sortDirection == null ? "desc" : requireEnum(params.sortDirection, "sortDirection", HISTORY_DIRECTIONS),
+      itemsView: params.itemsView == null ? "full" : requireEnum(params.itemsView, "itemsView", HISTORY_ITEM_VIEWS),
+    }),
+
+  "thread/items/list": async (params, ctx) => {
+    const threadId = requireString(params.threadId, "threadId", MAX_ID_CHARS);
+    const turnId = params.turnId == null ? undefined : requireString(params.turnId, "turnId", MAX_ID_CHARS);
+    let cursor: RequestParams<"thread/items/list">["cursor"];
+    if (params.cursor && typeof params.cursor === "object" && !Array.isArray(params.cursor)) {
+      const anchor = params.cursor as Record<string, unknown>;
+      if (!turnId || anchor.type !== "item" || Object.keys(anchor).some(key => key !== "type" && key !== "itemId")) {
+        throw new Error("item cursor must be an item anchor scoped to a turnId");
+      }
+      cursor = { type: "item", itemId: requireString(anchor.itemId, "cursor.itemId", MAX_ID_CHARS) };
+    } else cursor = historyCursor(params.cursor);
+    return ctx.supervisor.request("thread/items/list", {
+      threadId, turnId, cursor,
+      limit: historyLimit(params.limit, 200, 100),
+      sortDirection: params.sortDirection == null ? "desc" : requireEnum(params.sortDirection, "sortDirection", HISTORY_DIRECTIONS),
+    });
+  },
 
   "thread/archive": async (params, ctx) => {
     const threadId = requireString(params?.threadId, "threadId", MAX_ID_CHARS);
@@ -469,14 +524,19 @@ const handlers: Record<string, Handler> = {
     // Never enqueue an untracked shell across an app-server restart. Unlike a
     // normal request, a terminal is leased to this exact live connection epoch.
     if (ctx.supervisor.state !== "ready") throw new Error("app-server is not ready; retry opening the terminal after restart");
+    const epoch = ctx.terminals!.epoch;
     const rows = boundedInteger(params?.rows, 2, 500, 24);
     const cols = boundedInteger(params?.cols, 2, 500, 80);
     const requestedCwd = optionalString(params?.cwd, "cwd", MAX_PATH_CHARS) ?? ctx.workspaceRoot;
     const cwd = await ctx.projects.resolveRegistered(requestedCwd);
     if (!cwd) throw new Error("terminal cwd must be an existing registered project");
+    // Filesystem lookup can outlive a connection. Even if a replacement is
+    // already ready, this older open intent must not create a shell there.
+    if (ctx.supervisor.state !== "ready" || epoch !== ctx.terminals!.epoch) {
+      throw new Error("app-server changed while checking the terminal directory; retry opening the terminal");
+    }
     const processId = ctx.terminals!.create(ctx.terminalOwner!, params.processId);
     ctx.notify("terminal/started", { processId });
-    const epoch = ctx.terminals!.epoch;
     // The terminal intentionally provides a shell with the service account's
     // OS permissions, independent of turn sandbox settings. Fix its argv/env
     // and limit the initial cwd to registered projects; this is not an OS jail.

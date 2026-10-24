@@ -1,5 +1,6 @@
-import { AppServerConnection, initialize } from "./rpc.js";
+import { AppServerConnection, AppServerRequestError, initialize } from "./rpc.js";
 import { redactSecrets } from "../admin.js";
+import { GATEWAY_VERSION } from "../version.js";
 import type { RequestMethod, RequestParams, ResponseFor } from "../protocol.js";
 
 export type CodexState = "starting" | "ready" | "restarting" | "stopped" | "blocked";
@@ -15,7 +16,7 @@ export interface SupervisorEvents {
 
 export interface SupervisorConnection {
   spawn(): void;
-  request<T = unknown>(method: string, params?: unknown): Promise<T>;
+  request<T = unknown>(method: string, params?: unknown, beforeSend?: () => void): Promise<T>;
   notify(method: string, params?: unknown): void;
   /** Managed cleanup resolves only after the launcher confirms its subtree.
    * Unmanaged development transports retain platform-specific cleanup. */
@@ -27,7 +28,7 @@ export type SupervisorConnectionFactory = (handlers: import("./rpc.js").AppServe
 const CLIENT_INFO = {
   name: "codex-harness-webui",
   title: "Codex Harness WebUI",
-  version: "1.2.0",
+  version: GATEWAY_VERSION,
 };
 
 const RESTART_BACKOFF_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 30_000];
@@ -272,12 +273,23 @@ export class CodexSupervisor {
     });
   }
 
-  async request<M extends RequestMethod>(method: M, params: RequestParams<M>): Promise<ResponseFor<M>> {
-    if (this.state !== "ready" || this.stopping) await this.waitReady();
-    // Readiness can resolve just before an owner-loss callback invalidates the
-    // generation, while this continuation is still queued as a microtask.
-    if (this.stopping || this.state !== "ready" || !this.conn) throw new Error("app-server connection unavailable");
-    return this.conn.request<ResponseFor<M>>(method, params);
+  async request<M extends RequestMethod>(method: M, params: RequestParams<M>, beforeSend?: () => void): Promise<ResponseFor<M>> {
+    try {
+      if (this.state !== "ready" || this.stopping) await this.waitReady();
+      // Readiness can resolve just before an owner-loss callback invalidates
+      // the generation, while this continuation is still queued as a microtask.
+      if (this.stopping || this.state !== "ready" || !this.conn) throw new Error("app-server connection unavailable");
+    } catch (error) {
+      // This request has not reached the transport. Keep readiness failures
+      // distinct from a lost reply, so durable admission remains retryable.
+      throw new AppServerRequestError(error instanceof Error ? error.message : "app-server readiness failed", {
+        code: -32000, data: { delivery: "not_sent" },
+      });
+    }
+    // Admission can expire while readiness is pending. A caller's synchronous
+    // guard may refuse only this unsent request, never an already-written one.
+    beforeSend?.();
+    return this.conn.request<ResponseFor<M>>(method, params, beforeSend);
   }
 
   stop(): Promise<void> {

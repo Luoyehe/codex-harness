@@ -7,7 +7,7 @@ import type { ServerMessage } from "./hub.js";
 import { OperationLedger } from "./operations.js";
 import { ThreadStartLedger } from "./thread-start-operations.js";
 import { ManagementGate } from "./management.js";
-import { FLOW_LIMITS, encodeBounded } from "./flow-control.js";
+import { FLOW_LIMITS, encodeBounded, HISTORY_READ_METHODS } from "./flow-control.js";
 import { recentLogs, scheduleServiceRestart, serviceStatus } from "./admin.js";
 import { observedNotification } from "./protocol.js";
 
@@ -20,7 +20,7 @@ const COMPACTION_CONFLICTS = new Set(["thread/start", "thread/resume", "turn/sta
 const SAFE_CONCURRENT = new Set([
   "turn/operation", "thread/start/operation", "management/status", "admin/logs", "app/status", "admin/status",
   "projects/list", "displayPrefs/get", "attachment/read", "fs/readDirectory",
-  "model/list", "account/read", "thread/list", "thread/read", "mcpServerStatus/list",
+  "model/list", "account/read", "thread/list", "thread/read", "thread/turns/list", "thread/items/list", "mcpServerStatus/list",
   "admin/edge/config", "turn/interrupt", "terminal/terminate",
 ]);
 const MANAGEMENT = new Set(["admin/catalog/sync", "admin/provider/switch"]);
@@ -208,7 +208,19 @@ export class GatewayController {
     await this.backend.stop();
   }
   private request(method: string, params: unknown): Promise<any> { return this.backend.request(method as any, params as any); }
-  private worker(method: string, params: unknown, clientId: string): Promise<any> { return this.request("gateway/dispatch", { method, params, clientId }); }
+  private worker(method: string, params: unknown, clientId: string): Promise<any> {
+    if (SAFE_CONCURRENT.has(method) || method === "account/login/cancel") return this.request("gateway/dispatch", { method, params, clientId });
+    return this.backend.request("gateway/dispatch" as any, { method, params, clientId } as any,
+      // Readiness may have suspended this request after dispatch admission.
+      // Check again immediately before its frame reaches the connection.
+      () => this.assertActivityKnown());
+  }
+  private assertActivityKnown(): void {
+    if (!this.activityUnknown && !this.uncertainTurnStart) return;
+    throw Object.assign(new AppServerRequestError("后台活动或任务启动结果未知；本次新操作未派发。请先核对历史，并通过服务器终端重启完整受管服务。", {
+      code: -32000, data: { delivery: "rejected" },
+    }), { errorCode: "BUSY", delivery: "rejected" });
+  }
   private hasJobs(): boolean {
     return this.activeTurns.size > 0 || this.activeStatusThreads.size > 0
       || this.activeTerminals.size > 0 || this.compactions.size > 0
@@ -575,9 +587,11 @@ export class GatewayController {
     if (method === "admin/logs") return { logs: await recentLogs(Number(params.lines) || 80) };
     params = canonicalControlParams(method, params);
     if (this.codexState === "blocked") throw Object.assign(new Error("worker cleanup is unconfirmed; restart the complete managed systemd service"), { errorCode: "BACKEND_CLEANUP_UNCONFIRMED" });
-    // Existing turn receipts must keep their original accepted/unknown meaning.
-    // Fresh turn dispatch is checked inside the ledger callback below instead.
-    if (this.uncertainTurnStart && method !== "turn/start" && !SAFE_CONCURRENT.has(method)) throw Object.assign(new Error("任务启动结果未知；请核对历史，并通过服务器终端重启完整受管服务后再进行新操作。"), { errorCode: "BUSY", delivery: "rejected" });
+    // Existing receipts must keep their original accepted/unknown meaning.
+    // Fresh ledger work is checked after attachment, inside its callback.
+    // Login cancellation remains a convergence control, but still goes through
+    // its existing management admission below.
+    if (method !== "turn/start" && method !== "thread/start" && method !== "account/login/cancel" && !SAFE_CONCURRENT.has(method)) this.assertActivityKnown();
     if (method === "thread/compact/start") return this.startCompaction(params, clientId);
     if (this.compactions.size && COMPACTION_CONFLICTS.has(method)) throw Object.assign(new Error("compaction is running or its outcome is unknown"), { errorCode: "BUSY" });
     if (method === "admin/status") {
@@ -597,6 +611,7 @@ export class GatewayController {
         const operation = this.threadStarts.run(params.clientOperationId, params, async (request) => {
           try { await attached; }
           catch { throw new AppServerRequestError("worker attachment failed before creating thread", { code: -32000, data: { delivery: "rejected" } }); }
+          this.assertActivityKnown();
           return this.worker(method, request, clientId);
         }, isDefiniteAppServerRejection);
         params = null;
@@ -610,7 +625,16 @@ export class GatewayController {
           // attachment proves this callback never dispatched a turn.
           try { await attached; }
           catch { throw new AppServerRequestError("worker attachment failed before sending turn", { code: -32000, data: { delivery: "rejected" } }); }
-          if (this.uncertainTurnStart) throw new AppServerRequestError("任务启动结果未知；本次新发送未派发。请先核对历史，并通过服务器终端重启完整受管服务。", { code: -32000, data: { delivery: "rejected" } });
+          this.assertActivityKnown();
+          // Native turn/start steers an already-active turn and returns the
+          // same turn id. This API admits one message per turn, so reject a
+          // fresh operation before it can overwrite that turn's metadata.
+          // Keep this inside the ledger callback: retries of the same pending
+          // or accepted operation must still return its original receipt.
+          if (this.activeTurns.has(request.threadId as string) || this.activeStatusThreads.has(request.threadId as string)
+              || [...this.pendingTurnStarts].some((start) => start.threadId === request.threadId)) {
+            throw new AppServerRequestError("会话仍有正在运行或等待启动的回合，本次新发送未派发；请等待完成或先停止。", { code: -32000, data: { delivery: "rejected" } });
+          }
           const start = { threadId: request.threadId as string, ended: new Set<string>(), invalidated: false };
           const epoch = this.backendEpoch;
           this.pendingTurnStarts.add(start);
@@ -706,8 +730,13 @@ export class GatewayController {
         return result;
       }
       let result = await this.worker(method, params, clientId);
-      if (method === "thread/read" || method === "thread/resume") {
-        result = this.ledger.decorateThreadResult(result);
+      if (HISTORY_READ_METHODS.has(method)) {
+        // Check before cosmetic metadata hydration too: worker output is not
+        // trusted even if the installed worker already applied its IPC limit.
+        encodeBounded(result, FLOW_LIMITS.historyBytes);
+        result = method === "thread/turns/list" || method === "thread/items/list"
+          ? this.ledger.decorateHistoryPage(params.threadId, result, method === "thread/turns/list" ? "turns" : "items", params.sortDirection === "asc")
+          : this.ledger.decorateThreadResult(result);
         encodeBounded(result, FLOW_LIMITS.historyBytes);
       }
       return result;

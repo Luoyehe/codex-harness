@@ -31,7 +31,7 @@ Environment=CODEX_WORKER_LAUNCHER=/usr/local/libexec/codex-harness-admin-codex-h
 EnvironmentFile=-/var/lib/codex-harness-control/codex-harness/gateway.env
 # install-runtime.sh provides the immutable CLI for this protocol version.
 UnsetEnvironment=CODEX_BIN
-ExecStart=/usr/bin/env CODEX_BIN=/usr/local/lib/codex-harness/codex/0.149.0/node_modules/.bin/codex /usr/bin/node /opt/codex-harness/apps/gateway/dist/index.js
+ExecStart=/usr/bin/env CODEX_BIN=/usr/local/lib/codex-harness/codex/0.164.0/node_modules/.bin/codex /usr/bin/node /opt/codex-harness/apps/gateway/dist/index.js
 # Basic username
 # is arbitrary; password is gateway-token. Bearer/cookie authentication also works.
 Restart=always

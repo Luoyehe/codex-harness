@@ -1,6 +1,6 @@
 # 部署指南
 
-**Linux 裸跑（systemd）是唯一支持的服务器部署方式**，Codex 任务可使用原生沙箱（Landlock/bwrap）。旧版（包括 v1.1.0 / v1.2.0）须先按[迁移与工具链更新步骤](#首次迁移到-v110)，使用 v1.2.1 脚本完成修复重装；之后再使用事务式 `sudo codex-harness update`。不要在服务运行时直接 `git pull`；网页终端的权限边界另见“裸跑注意事项”。
+**Linux 裸跑（systemd）是唯一支持的服务器部署方式**，Codex 任务可使用原生沙箱（Landlock/bwrap）。旧发布版（包括 v1.2.1）首次进入本开发版须按[迁移与工具链更新步骤](#首次迁移到-v110)，使用已审阅的本开发版完整可信源码修复重装；旧更新器无法自动获得新的依赖准备能力。完成后再使用事务式 `sudo codex-harness update`。不要在服务运行时直接 `git pull`；网页终端的权限边界另见“裸跑注意事项”。
 
 ## 〇、统一管理入口（推荐）
 
@@ -36,7 +36,7 @@ cd /opt/codex-harness
 ./deploy/install.sh
 ```
 
-安装器自动完成：Node 22 → pnpm 11.22.0 → codex CLI 0.149.0 → 构建 → systemd 服务，然后**交互式引导选择模型源**（也可无人值守：`PROVIDER=zhipu ZHIPU_KEY=xxx ./deploy/install.sh`，可选 `openai` / `custom` / `skip`）。装完自动跑不启动 turn 的隔离 smoke 验证，并打印访问方式。
+安装器自动完成：Node 22 → pnpm 11.22.0 → codex CLI 0.164.0 → 构建 → systemd 服务，然后**交互式引导选择模型源**（也可无人值守：`PROVIDER=zhipu ZHIPU_KEY=xxx ./deploy/install.sh`，可选 `openai` / `custom` / `skip`）。装完自动跑不启动 turn 的隔离 smoke 验证，并打印访问方式。CLI 与仓库内生成协议成对固定；不要单独全局升级 CLI 代替应用升级。
 
 常用覆盖变量（均可省略）：
 
@@ -138,6 +138,8 @@ sudo codex-harness provider zhipu   # 交互式隐藏输入 Key，并原子写�
 
    已有 Caddy/Authelia 的服务器会被自动探测并复用。站点 marker 包含实例名；参数记录在 `/etc/codex-harness/<SERVICE_NAME>.edge.json`，后续禁用使用同一组路径。项目拥有的 Authelia 会补齐新域名的 `session.cookies` 并恢复自启；自定义认证 unit 的状态目录是 `/var/lib/<AUTHELIA_UNIT>`。受管理配置先校验，再重启认证服务并检查本机健康，失败时尝试恢复旧配置及服务状态。**回滚也可能失败**，必须检查报错与实际服务状态，不能只凭脚本结束认定入口已恢复。
 
+   首次启动过 Authelia 后若后续步骤失败，脚本会先确认认证服务停止，保留新身份配置、密钥、用户库及数据库，并禁用其自启；修复报错后使用相同认证目录和 unit 重试。不要删除数据库或重新生成密钥来恢复。若停止未获确认，脚本保留当前配置、unit 和私有恢复副本，明确报告恢复未完成；先人工核对并停止残留认证进程，再根据保留材料恢复，不要直接清理或覆盖这些文件。
+
    外部自行维护的 Authelia 必须预先配置 cookie 域、规范登录 URL 和访问策略。脚本只检查部分配置关系，**不能完整验证外部访问策略或认证服务健康**；管理员需在实际入口分别验证未登录被拦截、登录成功及 WebSocket 连接。不要将配置校验通过当成公网或认证验收完成。
 
    无人值守且未设置密码时，随机初始密码只保存在认证目录的 `initial-password`（root 600），不会打印。哈希通过受控终端输入，不使用密码命令行参数；自定义密码支持普通 Unicode，但必须是无 C0/DEL 控制字符的单行，UTF-8 不超过 4096 字节。手工 Caddyfile 参考（同域 `/authelia` 门户模式）：
@@ -185,7 +187,7 @@ HARNESS_ALLOW_PAID_TESTS=1 bash deploy/verify-server.sh
 HARNESS_ALLOW_PAID_TESTS=1 GATEWAY_WS=ws://127.0.0.1:8080/ws node deploy/verify-full.mjs
 HARNESS_ALLOW_PAID_TESTS=1 node deploy/verify-mcp-tools.mjs    # 四组 MCP 工具真实任务（智谱预设）
 
-# 已用 v1.2.1 脚本修复重装后的事务式升级（旧版先按下方步骤迁移）
+# 已用本开发版可信源码修复重装后的事务式升级（旧发布版先按下方步骤迁移）
 sudo codex-harness update
 ```
 
@@ -193,16 +195,37 @@ sudo codex-harness update
 
 事务式更新仅适用于 Git 检出（包括一行安装命令自动克隆的目录）：它拒绝脏工作树和非快进历史；候选应用及其固定 CLI 通过检查和隔离 smoke 后，保存旧产物与系统文件，短暂停止目标服务并发布已验证产物、CLI 路径、unit、helper、sudoers 和实例入口。root 更新时，测试通过 systemd DynamicUser 在独立的可执行临时副本内运行，不以 root 跑业务测试，也不将测试副本写回候选源码。失败时尝试恢复旧提交、已保存产物与系统文件，不依赖再次联网或成功重建；恢复失败会保留恢复材料并报告，需要人工处理。旧版 CLI 为其它实例及恢复需要保留，不自动清理共享运行时。文件拷贝部署没有 `.git` 元数据，需先取得新版，再运行对应实例的 `reinstall repair`。
 
+依赖新增或升级由 `update` 自动准备：当前可信工具读取三个固定 workspace 的 manifest、lock 和受支持 workspace 设置，生成不含脚本的配置副本。独立 DynamicUser 仅从 npm 官方 registry 下载锁定包，禁用生命周期脚本、pnpmfile 和包管理器自动切换，不读取现实例凭证、工作区或 npm 配置。只将新缓存和 registry 元数据交给随后断网的验证进程，由它从空 `node_modules` 安装并执行允许的构建。准备或验证失败时服务尚未停止，可以修复网络或依赖问题后重试；若隔离进程停止未获确认，事务目录会保留供检查。
+
+自动准备目前支持本仓库固定 workspace、相同的 pnpm 版本，以及带 SHA-512 完整性信息的 npm 官方源依赖；Git、本地路径、任意 tarball、JSR 和额外 workspace 配置会明确拒绝。准备阶段需要访问 npm 官方源，不沿用安装时的镜像或私有 registry 凭证。更换 pnpm 或采用这些额外配置时，需要审查新工具链并修复重装。
+
 完全重置只清除明确显示的 worker 配置、会话及附件，并重新安装；管理账号、独立管理令牌与发送受理账本保留，避免把先前结果未知的发送误当作可以安全重试。数据删除始终以 worker 身份进行，确认前记录路径身份，确认后使用不跟随软链的目录描述符清理；目标或祖先被替换时拒绝继续，不会将软链解析成 root 的删除目标。
+
+**测试节奏：** 普通代码修改和 CI 只执行受影响的定向回归；生成协议的增加、修改与删除一并验证。依赖、配置或未映射路径需补充明确的人工测试方案（`--reviewed-tests`，CI 手动输入 `reviewed_test_files`），不自动退回全量；隔离 CLI/systemd 必要检查也不会因此被省略。完整审计采用“审计 → 修复 → 定向测试”循环，连续三轮完整审计无新增问题后，才执行全量收尾。GitHub CI 的 `workflow_dispatch` 需显式确认 `audit_closeout`，否则必须给出基准提交。部署候选默认仍强制类型检查、构建、发布扫描、部署/认证/进程生命周期定向回归和真实 CLI 隔离 smoke；这些检查失败仍拒绝发布，不等于已通过全仓库测试。仅在候选提交已满足三轮清零条件时，管理员可显式设置 `CANDIDATE_AUDIT_CLOSEOUT=1` 启用候选全量回归；不能用这个开关代替审计。
+
+### 升级前准备配套 CLI
+
+当目标版本更换固定 CLI 时，更新器要求新版本运行时已准备好；它不会自动联网安装缺少的 CLI。当前开发版要求 **0.164.0**。已完成上述管理工具链迁移的默认安装，可在更新前执行：
+
+```bash
+# 使用当前已安装、root 所有且普通用户不可写的工具；无需先拉取候选代码
+sudo bash /opt/codex-harness/deploy/install-runtime.sh 0.164.0
+sudo codex-harness update
+sudo env HARNESS_ALLOW_PAID_TESTS=0 codex-harness verify
+```
+
+第一步仅下载并检查版本化运行时，禁用 npm 安装脚本，不会启动模型、改全局 CLI、停止服务或改变现有实例的 CLI 路径。同一共享运行时只需准备一次；已存在且检查通过时直接复用。后续 `update` 在隔离验证成功后才切换应用与 CLI，最后 `verify` 检查运行状态而不启动模型回合。
+
+自定义安装目录请替换第一步的可信路径，自定义实例改用其专属管理命令。使用非默认运行时目录时，准备和更新两步都用 `sudo env CODEX_RUNTIME_ROOT=/绝对可信路径 ...` 显式指定同一路径。离线管理员也可用 `CODEX_CANDIDATE_RUNTIME_SEED` 指定完整的、root 所有且不可被普通用户修改的 npm 运行时目录；更新器仍会核验包版本、平台文件与路径权限。不要把 worker 工作区、候选临时检出或可写下载目录中的脚本交给 root 执行。
 
 ### 首次迁移到 v1.1.0
 
-这是旧版单账号部署的**停机迁移**，也适用于 v1.1.0 / v1.2.0 升级到 v1.2.1 时的管理工具链修复，不是普通在线更新。请预留维护时间，不要让旧版更新器执行新版候选测试，也不要只替换前后端构建文件。
+这是旧版单账号部署的**停机迁移**，也适用于 v1.1.0 / v1.2.0 的管理工具链修复，以及已发布 v1.2.1 首次进入本开发版。v1.2.1 的更新器没有新的依赖准备能力，预装新 CLI 也不能补齐。请预留维护时间，不要让旧版更新器执行新版候选测试，也不要只替换前后端构建文件。
 
 1. 结束所有任务和网页终端，确认实例名、原安装目录、worker 账号、Node/工具路径、`CODEX_HOME`、`ENV_FILE`、工作区及现有 edge 配置。自定义实例全程使用相同 `SERVICE_NAME`。
 2. 停止该实例，并备份旧源码/构建、systemd unit、管理入口、数据与实际配置链接目标、项目，以及已有的控制目录和 edge 配置。备份含凭证，应保存在私有位置；不要只复制 `secrets.env` 软链。修复重装不删除这些数据，但不能替代备份。
 3. 确认原安装目录、Node 与工具路径及其祖先均为 root 所有且不可被普通用户修改。旧 root 服务、普通用户持有的运行时，或 root 所有的旧数据/环境文件，须先按“一、安装”中的账号与路径要求明确迁移；不要批量 `chown` 整棵项目或共享运行时。
-4. 在**原实例的安装目录**取得当前 v1.2.1，然后直接使用新版 `deploy/manage.sh` 修复重装。旧版可以直接迁移；v1.1.0 / v1.2.0 实例也用这一步更新管理入口、候选验证器、服务注册和启动器，不要用旧升级器引导本次升级。下面仅适用于默认实例、默认路径、已满足权限要求且无本地修改的 Git 部署，各步失败后应停止检查，不要继续执行下一步：
+4. 在**原实例的安装目录**取得已审阅的目标完整源码，然后直接使用其中的 `deploy/manage.sh` 修复重装。首次进入本开发版时，目标必须是含新依赖准备器的开发版提交；不要用旧升级器引导。下面仅适用于默认实例、默认路径、已满足权限要求且无本地修改的 Git 部署；先将占位值替换为已审阅的完整提交 ID，各步失败后应停止检查：
 
    ```bash
    sudo -i
@@ -210,7 +233,8 @@ sudo codex-harness update
    git status --short                 # 必须无输出；有修改时先保存并处理
    systemctl stop codex-harness       # 应已完成上面的停机备份
    git fetch origin --tags
-   git merge --ff-only v1.2.1
+   TARGET_REV='REVIEWED_COMMIT_SHA'
+   git merge --ff-only "$TARGET_REV"
    SERVICE_NAME=codex-harness bash deploy/manage.sh reinstall repair
    ```
 

@@ -45,6 +45,74 @@ describe("Hub", () => {
     await expect(wait).resolves.toMatchObject({ answered: true, payload: { answers: { q: { answers: ["yes"] } } } });
   });
 
+  it.each([
+    ["item/tool/requestUserInput",
+      { questions: [{ id: "q", header: "Q", question: "Q", isOther: true, isSecret: false, options: [{ label: "yes", description: "" }] }] },
+      { answers: { q: { answers: ["\uD800"] } } }, { answers: { q: { answers: ["📁\\ud800"] } } }],
+    ["mcpServer/elicitation/request",
+      { mode: "form", requestedSchema: { type: "object", properties: { q: { type: "string" } }, required: ["q"] } },
+      { action: "accept", content: { q: "\uDC00" } }, { action: "accept", content: { q: "📁\\ud800" } }],
+  ])("keeps %s pending after invalid Unicode so another tab can correct it", async (method, params, invalid, valid) => {
+    const hub = new Hub();
+    const first = makeClient(), second = makeClient();
+    hub.addClient(first.client); hub.addClient(second.client);
+    const wait = hub.waitForBrowserAnswer(1, method as string, params);
+    const id = first.sent[0].requestId;
+    expect(hub.resolveBrowserAnswer(id, invalid)).toBe(false);
+    for (const browser of [first, second]) {
+      expect(browser.sent.at(-1)).toMatchObject({ method: "serverRequest/answerRejected", params: { serverRequestId: id } });
+      expect(browser.sent.some(message => message.method === "serverRequest/resolved")).toBe(false);
+    }
+    expect(hub.resolveBrowserAnswer(id, valid)).toBe(true);
+    await expect(wait).resolves.toEqual({ answered: true, payload: valid });
+    for (const browser of [first, second]) {
+      expect(browser.sent.filter(message => message.method === "serverRequest/resolved")).toHaveLength(1);
+    }
+  });
+
+  it.each([
+    ["item/commandExecution/requestApproval", { decision: "garbage" }, { decision: "decline" }],
+    ["item/fileChange/requestApproval", { decision: {} }, { decision: "cancel" }],
+    ["item/permissions/requestApproval", { permissions: [], scope: "forever" }, { permissions: {}, scope: "turn" }],
+  ])("keeps invalid %s answers pending across tabs until a valid correction", async (method, invalid, valid) => {
+    const hub = new Hub();
+    const first = makeClient(), second = makeClient();
+    hub.addClient(first.client); hub.addClient(second.client);
+    const wait = hub.waitForBrowserAnswer(1, method as string, {});
+    const id = first.sent[0].requestId;
+    expect(hub.resolveBrowserAnswer(id, invalid)).toBe(false);
+    for (const browser of [first, second]) {
+      expect(browser.sent.at(-1)).toMatchObject({ method: "serverRequest/answerRejected", params: { serverRequestId: id } });
+      expect(browser.sent.some(message => message.method === "serverRequest/resolved")).toBe(false);
+    }
+    const replacement = makeClient();
+    hub.addClient(replacement.client);
+    expect(replacement.sent[0]).toMatchObject({ kind: "serverRequest", requestId: id });
+    expect(hub.resolveBrowserAnswer(id, valid)).toBe(true);
+    await expect(wait).resolves.toEqual({ answered: true, payload: valid });
+    for (const browser of [first, second, replacement]) {
+      expect(browser.sent.filter(message => message.method === "serverRequest/resolved")).toHaveLength(1);
+    }
+    expect(hub.resolveBrowserAnswer(id, valid)).toBe(false);
+  });
+
+  it("validates browser errors before consuming approval and treats an empty error as a payload answer", async () => {
+    const hub = new Hub();
+    const browser = makeClient(); hub.addClient(browser.client);
+    const wait = hub.waitForBrowserAnswer(1, "item/fileChange/requestApproval", {});
+    const id = browser.sent[0].requestId;
+    for (const error of [null, 2, "x".repeat(2001), "\uD800", "\uDC00"]) {
+      expect(hub.resolveBrowserAnswer(id, { decision: "accept" }, error as string)).toBe(false);
+    }
+    expect(hub.resolveBrowserAnswer(id, {}, "")).toBe(false);
+    expect(hub.resolveBrowserAnswer(id, { decision: "decline" }, "")).toBe(true);
+    await expect(wait).resolves.toEqual({ answered: true, payload: { decision: "decline" } });
+    const errored = hub.waitForBrowserAnswer(2, "item/fileChange/requestApproval", {});
+    const next = browser.sent.findLast(message => message.kind === "serverRequest").requestId;
+    expect(hub.resolveBrowserAnswer(next, undefined, "📁".repeat(1000))).toBe(true);
+    await expect(errored).resolves.toEqual({ answered: true, error: "📁".repeat(1000) });
+  });
+
   it("replays input prompts after reconnect while declining approvals immediately", async () => {
     vi.useFakeTimers();
     const hub = new Hub({ inputDisconnectGraceMs: 1000 });

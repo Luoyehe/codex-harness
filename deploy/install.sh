@@ -285,7 +285,7 @@ PNPM_BIN="$(python3 -I "$SCRIPT_DIR/trusted_paths.py" file "$(command -v pnpm)")
 log "pnpm: $("$PNPM_BIN" --version)"
 
 [ -z "$NPM_REGISTRY" ] || export npm_config_registry="$NPM_REGISTRY"
-CODEX_VERSION="0.149.0"   # protocol/ generated from this version; bump both.
+CODEX_VERSION="0.164.0"   # protocol/ generated from this version; bump both.
 ZAI_MCP_VERSION="0.1.4"   # pinned — floating latest may break tool names/protocol.
                            # (verified against npm's published 0.1.x line; the
                            # vision MCP tests in deploy/ pass on this version)
@@ -459,7 +459,7 @@ configure_provider() {
           $SUDO systemctl start "$SERVICE_NAME"
         fi
       else
-        log "打开 WebUI 点右上角登录（凭据保存在该服务用户的 CODEX_HOME）"
+        log "打开 WebUI，在左侧导航底部点击「ChatGPT 未登录」，再选择「使用 ChatGPT 设备码登录」；手机上先打开导航（凭据保存在该服务用户的 CODEX_HOME）"
       fi
       ;;
     custom)

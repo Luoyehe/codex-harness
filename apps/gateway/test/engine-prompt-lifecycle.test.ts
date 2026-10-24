@@ -138,6 +138,30 @@ it("publishes one resolution for all browsers and preserves first-answer-wins an
   await expect(control.dispatch("admin/catalog/sync", {}, "second-browser")).resolves.toMatchObject({ ok: true });
 });
 
+it.each([
+  ["item/commandExecution/requestApproval", { decision: "garbage" }, { decision: "decline" }],
+  ["item/fileChange/requestApproval", { decision: null }, { decision: "acceptForSession" }],
+  ["item/permissions/requestApproval", { permissions: [], scope: "forever" }, { permissions: {}, strictAutoReview: null }],
+])("keeps the control reservation after malformed %s and accepts another tab's correction", async (method, invalid, valid) => {
+  const { control, connect, request, resolved } = await connectedEngine();
+  const first = await connect("first-browser");
+  const second = await connect("second-browser");
+  const pending = request(9, method as string);
+  const id = requestId(first);
+  await expect(control.answer(id, invalid)).resolves.toBe(false);
+  expect(resolved()).toHaveLength(0);
+  for (const messages of [first, second]) {
+    expect(messages.at(-1)).toMatchObject({ kind: "notification", method: "serverRequest/answerRejected", params: { serverRequestId: id } });
+  }
+  await expect(control.dispatch("admin/catalog/sync", {}, "second-browser")).rejects.toMatchObject({ errorCode: "BUSY" });
+  const replacement = await connect("replacement-browser");
+  expect(requestId(replacement)).toBe(id);
+  await expect(control.answer(id, valid)).resolves.toBe(true);
+  await expect(pending).resolves.toEqual(valid);
+  expect(resolved()).toHaveLength(1);
+  await expect(control.dispatch("admin/catalog/sync", {}, "replacement-browser")).resolves.toMatchObject({ ok: true });
+});
+
 it("publishes timeout, replacement, and reset resolutions once without letting stale ids answer a new generation", async () => {
   vi.useFakeTimers();
   const { control, inner, connect, request, resolved } = await connectedEngine();

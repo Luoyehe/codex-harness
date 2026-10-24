@@ -33,13 +33,15 @@ EXPECTED_PAYLOAD = {
             "web": {"node_modules": None, "dist": None},
         },
     },
-    "runtime": {"node_modules": None},
+    # install-runtime.sh owns this complete tree, including npm root metadata.
+    "runtime": None,
     "service": {
         "privileged-helper.sh": "file",
         "worker_launcher.py": "file",
     },
     "manifest.json": "file",
 }
+DEPENDENCY_PAYLOAD = {"store": None, "cache": None, "manifest.json": "file"}
 
 
 def _identity(info):
@@ -196,6 +198,74 @@ def _confined_link(relative, target):
     return True
 
 
+def _resolve_entry_at(root_fd, relative, *, allow_missing=False):
+    """Resolve links with a pinned root, refusing every attempt to walk above it.
+
+    Lexical confinement alone misses links such as a -> .; b -> a/../outside.
+    Missing targets may remain dangling, but every existing link prefix is checked.
+    """
+    directories = [root_fd]
+    pending = list(relative)
+    followed = 0
+    try:
+        while pending:
+            name = pending.pop(0)
+            if name in ("", "."):
+                continue
+            if name == "..":
+                if len(directories) == 1:
+                    raise ValueError("candidate output link resolves outside its publication domain")
+                os.close(directories.pop())
+                continue
+            try:
+                info = os.stat(name, dir_fd=directories[-1], follow_symlinks=False)
+            except FileNotFoundError:
+                if allow_missing:
+                    return None
+                raise
+            if stat.S_ISLNK(info.st_mode):
+                followed += 1
+                if followed > 40:
+                    raise ValueError("candidate output contains a cyclic or excessive link chain")
+                target = os.readlink(name, dir_fd=directories[-1])
+                current = os.stat(name, dir_fd=directories[-1], follow_symlinks=False)
+                if _stable(info) != _stable(current):
+                    raise RuntimeError("candidate output link changed while resolving")
+                if not target or target.startswith("/") or "\x00" in target:
+                    raise ValueError("candidate output contains an absolute or invalid link")
+                pending = target.split("/") + pending
+            elif pending:
+                if not stat.S_ISDIR(info.st_mode):
+                    raise ValueError("candidate output link traverses a non-directory")
+                descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                     dir_fd=directories[-1])
+                directories.append(descriptor)
+                if _stable(info) != _stable(os.fstat(descriptor)):
+                    raise RuntimeError("candidate output directory changed while resolving")
+            else:
+                return info
+        return os.fstat(directories[-1])
+    finally:
+        for descriptor in reversed(directories[1:]):
+            os.close(descriptor)
+
+
+def _validate_tree_links(root_fd, directory_fd=None, relative=()):
+    directory_fd = root_fd if directory_fd is None else directory_fd
+    for name in _names(directory_fd):
+        info = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        here = (*relative, name)
+        if stat.S_ISDIR(info.st_mode):
+            descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                 dir_fd=directory_fd)
+            try:
+                _validate_tree_links(root_fd, descriptor, here)
+            finally:
+                os.close(descriptor)
+        elif stat.S_ISLNK(info.st_mode):
+            _resolve_entry_at(root_fd, here, allow_missing=True)
+
+
 def _budget_entry(budget, info, depth):
     budget["entries"] += 1
     if stat.S_ISREG(info.st_mode):
@@ -245,7 +315,8 @@ def _copy_file(source_fd, name, target_fd, info, budget_hash):
         raise RuntimeError("candidate output file changed while copying")
 
 
-def _copy_tree(source_fd, target_fd, owner, budget, digest, relative=(), depth=0):
+def _copy_tree(source_fd, target_fd, owner, budget, digest, relative=(), depth=0,
+               link_roots=None):
     source_root = os.fstat(source_fd)
     if not stat.S_ISDIR(source_root.st_mode) or source_root.st_uid != owner or source_root.st_mode & 0o022:
         raise ValueError("candidate output directory has an unsafe owner or mode")
@@ -277,7 +348,7 @@ def _copy_tree(source_fd, target_fd, owner, budget, digest, relative=(), depth=0
                 try:
                     os.fchmod(target_child, 0o755)
                     _copy_tree(source_child, target_child, owner, budget, digest,
-                               here, depth + 1)
+                               here, depth + 1, link_roots)
                     os.fsync(target_child)
                 finally:
                     os.close(target_child)
@@ -292,8 +363,13 @@ def _copy_tree(source_fd, target_fd, owner, budget, digest, relative=(), depth=0
             if before.st_nlink != 1:
                 raise ValueError("candidate output contains a hardlinked symlink")
             target_text = os.readlink(name, dir_fd=source_fd)
-            if not _confined_link(here, target_text):
-                raise ValueError("candidate output symlink leaves the output tree")
+            confined_relative = here
+            if link_roots is not None:
+                if here[0] not in link_roots:
+                    raise ValueError("candidate output symlink is outside a publication domain")
+                confined_relative = here[1:]
+            if not _confined_link(confined_relative, target_text):
+                raise ValueError("candidate output symlink leaves its publication domain")
             current = os.stat(name, dir_fd=source_fd, follow_symlinks=False)
             if _stable(before) != _stable(current):
                 raise RuntimeError("candidate output symlink changed while reading")
@@ -304,6 +380,8 @@ def _copy_tree(source_fd, target_fd, owner, budget, digest, relative=(), depth=0
         current = os.stat(name, dir_fd=source_fd, follow_symlinks=False)
         if _stable(before) != _stable(current):
             raise RuntimeError("candidate output entry changed while copying")
+    if _stable(source_root) != _stable(os.fstat(source_fd)):
+        raise RuntimeError("candidate output directory changed while copying")
     os.fsync(target_fd)
 
 
@@ -336,52 +414,104 @@ def _remove_tree(directory_fd, budget=None, depth=0):
             os.unlink(name, dir_fd=directory_fd)
 
 
-def _copy_opened(source_fd, destination_parent_fd, destination_name, owner):
+def _copy_opened(source_fd, destination_parent_fd, destination_name, owner,
+                 *, validate=None, link_roots=None):
+    # mkdir is deliberately outside the cleanup scope: collisions are never ours.
     os.mkdir(destination_name, 0o700, dir_fd=destination_parent_fd)
     destination_fd = None
+    created = os.stat(destination_name, dir_fd=destination_parent_fd,
+                      follow_symlinks=False)
     try:
         destination_fd = os.open(
             destination_name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
             dir_fd=destination_parent_fd)
+        if _identity(created) != _identity(os.fstat(destination_fd)):
+            raise RuntimeError("created output directory was replaced")
         digest = hashlib.sha256()
         _copy_tree(source_fd, destination_fd, owner,
-                   {"entries": 0, "bytes": 0}, digest)
+                   {"entries": 0, "bytes": 0}, digest, link_roots=link_roots)
+        if validate is not None:
+            validate(destination_fd)
         os.fchmod(destination_fd, 0o755)
         os.fsync(destination_fd)
-        os.close(destination_fd)
-        destination_fd = None
         os.fsync(destination_parent_fd)
         return digest.hexdigest()
     except BaseException:
-        if destination_fd is not None:
-            try:
-                _remove_tree(destination_fd)
-            finally:
-                os.close(destination_fd)
         try:
-            os.rmdir(destination_name, dir_fd=destination_parent_fd)
-            os.fsync(destination_parent_fd)
-        except OSError:
+            current = os.stat(destination_name, dir_fd=destination_parent_fd,
+                              follow_symlinks=False)
+            if (destination_fd is not None
+                    and _identity(created) == _identity(os.fstat(destination_fd))
+                    and _identity(created) == _identity(current)):
+                _remove_tree(destination_fd)
+                current = os.stat(destination_name, dir_fd=destination_parent_fd,
+                                  follow_symlinks=False)
+                if _identity(created) == _identity(current):
+                    os.rmdir(destination_name, dir_fd=destination_parent_fd)
+                    os.fsync(destination_parent_fd)
+            elif destination_fd is None and _identity(created) == _identity(current):
+                # Opening failed; rmdir can only remove our still-empty directory.
+                os.rmdir(destination_name, dir_fd=destination_parent_fd)
+                os.fsync(destination_parent_fd)
+        except (OSError, RuntimeError, ValueError):
             pass
         raise
+    finally:
+        if destination_fd is not None:
+            os.close(destination_fd)
 
 
-def _materialize_payload(output_fd, destination, version, owner):
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("candidate output manifest contains duplicate keys")
+        result[key] = value
+    return result
+
+
+def _validate_payload(directory_fd, version, owner, dependency_inputs, *, copied=False):
+    dependency = dependency_inputs is not None
+    _validate_topology(directory_fd, DEPENDENCY_PAYLOAD if dependency else EXPECTED_PAYLOAD)
+    manifest = json.loads(_read_regular_at(
+        directory_fd, "manifest.json", MAX_METADATA_BYTES, owner=owner, private=True),
+        object_pairs_hook=_unique_object)
+    expected = ({"format": 1, "dependencyInputs": dependency_inputs}
+                if dependency else {"format": 1, "version": version})
+    if (not isinstance(manifest, dict) or manifest != expected
+            or type(manifest.get("format")) is not int):
+        raise ValueError("candidate output manifest does not match the trusted metadata")
+    if copied:
+        for name in (("store", "cache") if dependency else ("artifacts", "runtime")):
+            descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                 dir_fd=directory_fd)
+            try:
+                if name == "runtime":
+                    _runtime_info_at(descriptor, version)
+                else:
+                    _validate_tree_links(descriptor)
+            finally:
+                os.close(descriptor)
+
+
+def _materialize_payload(output_fd, destination, version, owner, *, dependency_inputs=None):
     payload_fd = os.open("payload", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
                          dir_fd=output_fd)
     try:
         payload_info = os.fstat(payload_fd)
         if payload_info.st_uid != owner or payload_info.st_mode & 0o022:
             raise ValueError("candidate payload has an unsafe owner or mode")
-        _validate_topology(payload_fd, EXPECTED_PAYLOAD)
-        manifest = json.loads(_read_regular_at(
-            payload_fd, "manifest.json", MAX_METADATA_BYTES,
-            owner=owner, private=True))
-        if manifest != {"format": 1, "version": version}:
-            raise ValueError("candidate output manifest does not match the trusted metadata")
+        _validate_payload(payload_fd, version, owner, dependency_inputs)
         with _open_path(destination.parent) as destination_parent_fd:
+            parent = os.fstat(destination_parent_fd)
+            if parent.st_uid != 0 or parent.st_mode & 0o077:
+                raise ValueError("validated output requires a root-private parent")
             return _copy_opened(
-                payload_fd, destination_parent_fd, destination.name, owner)
+                payload_fd, destination_parent_fd, destination.name, owner,
+                validate=lambda copied_fd: _validate_payload(
+                    copied_fd, version, 0, dependency_inputs, copied=True),
+                link_roots={"store", "cache"} if dependency_inputs is not None
+                else {"artifacts", "runtime"})
     finally:
         os.close(payload_fd)
 
@@ -460,6 +590,17 @@ def materialize_live(output_root, destination, version):
         return _materialize_payload(output_fd, destination, version, owner)
 
 
+def materialize_dependencies_live(output_root, destination, inputs):
+    if not re.fullmatch(r"[a-f0-9]{64}", inputs):
+        raise ValueError("dependency input digest is invalid")
+    destination = _trusted_root_path(destination, allow_missing_leaf=True)
+    if destination.exists() or destination.is_symlink():
+        raise ValueError("dependency seed destination already exists")
+    with _live_output(output_root) as (_, output_fd, owner):
+        return _materialize_payload(output_fd, destination, None, owner,
+                                    dependency_inputs=inputs)
+
+
 def accept_live(output_root):
     with _live_output(output_root) as (unit_fd, _, _):
         descriptor = os.open(
@@ -499,7 +640,8 @@ def _hash_file(source_fd, name, info, digest):
         raise RuntimeError("runtime file changed while hashing")
 
 
-def _hash_tree(source_fd, owner, budget, digest, relative=(), depth=0):
+def _hash_tree(source_fd, owner, budget, digest, relative=(), depth=0, root_fd=None):
+    root_fd = source_fd if root_fd is None else root_fd
     root = os.fstat(source_fd)
     if (not stat.S_ISDIR(root.st_mode) or root.st_uid != owner
             or root.st_mode & 0o022):
@@ -526,7 +668,7 @@ def _hash_tree(source_fd, owner, budget, digest, relative=(), depth=0):
             try:
                 if _stable(before) != _stable(os.fstat(child)):
                     raise RuntimeError("runtime directory changed while opening")
-                _hash_tree(child, owner, budget, digest, here, depth + 1)
+                _hash_tree(child, owner, budget, digest, here, depth + 1, root_fd)
             finally:
                 os.close(child)
         elif stat.S_ISREG(before.st_mode):
@@ -540,12 +682,15 @@ def _hash_tree(source_fd, owner, budget, digest, relative=(), depth=0):
             target = os.readlink(name, dir_fd=source_fd)
             if not _confined_link(here, target):
                 raise ValueError("runtime symlink leaves its tree")
+            _resolve_entry_at(root_fd, here, allow_missing=True)
             digest.update(b"L\0" + encoded + b"\0" + os.fsencode(target) + b"\0")
         else:
             raise ValueError("runtime contains a special file")
         current = os.stat(name, dir_fd=source_fd, follow_symlinks=False)
         if _stable(before) != _stable(current):
             raise RuntimeError("runtime entry changed while hashing")
+    if _stable(root) != _stable(os.fstat(source_fd)):
+        raise RuntimeError("runtime directory changed while hashing")
 
 
 def _fingerprint_tree(path):
@@ -557,36 +702,42 @@ def _fingerprint_tree(path):
         return digest.hexdigest()
 
 
-def _runtime_package_version(tree):
-    with _open_path(tree) as root_fd:
-        descriptors = [root_fd]
-        try:
-            current = root_fd
-            for name in ("node_modules", "@openai", "codex"):
-                current = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
-                                  dir_fd=current)
-                descriptors.append(current)
-            data = _read_regular_at(current, "package.json", MAX_METADATA_BYTES,
-                                    owner=os.fstat(root_fd).st_uid, private=True)
-        finally:
-            for descriptor in reversed(descriptors[1:]):
-                os.close(descriptor)
-    value = json.loads(data).get("version")
+def _runtime_package_version_at(root_fd):
+    descriptors = []
+    try:
+        current = root_fd
+        for name in ("node_modules", "@openai", "codex"):
+            current = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                              dir_fd=current)
+            descriptors.append(current)
+        data = _read_regular_at(current, "package.json", MAX_METADATA_BYTES,
+                                owner=os.fstat(root_fd).st_uid, private=True)
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+    package = json.loads(data, object_pairs_hook=_unique_object)
+    value = package.get("version") if isinstance(package, dict) else None
     if not isinstance(value, str) or not VERSION.fullmatch(value):
         raise ValueError("Codex runtime package has no strict version")
     return value
 
 
+def _runtime_info_at(root_fd, version):
+    if _runtime_package_version_at(root_fd) != version:
+        raise ValueError("Codex runtime version does not match")
+    digest = hashlib.sha256()
+    _hash_tree(root_fd, os.fstat(root_fd).st_uid, {"entries": 0, "bytes": 0}, digest)
+    cli = _resolve_entry_at(root_fd, ("node_modules", ".bin", "codex"))
+    if not stat.S_ISREG(cli.st_mode) or not cli.st_mode & 0o111:
+        raise ValueError("Codex runtime CLI is missing or leaves its tree")
+    return digest.hexdigest()
+
+
 def runtime_info(tree, version):
     tree = _trusted_root_path(tree)
-    if _runtime_package_version(tree) != version:
-        raise ValueError("Codex runtime version does not match")
-    fingerprint = _fingerprint_tree(tree)
-    cli = tree / "node_modules" / ".bin" / "codex"
-    resolved = cli.resolve(strict=True)
-    if not resolved.is_relative_to(tree) or not resolved.is_file() or not os.access(resolved, os.X_OK):
-        raise ValueError("Codex runtime CLI is missing or leaves its tree")
-    return cli, fingerprint
+    with _open_path(tree) as root_fd:
+        fingerprint = _runtime_info_at(root_fd, version)
+    return tree / "node_modules" / ".bin" / "codex", fingerprint
 
 
 def runtime_lock(base):
@@ -749,6 +900,10 @@ def main(argv=None):
     live_parser.add_argument("output")
     live_parser.add_argument("destination")
     live_parser.add_argument("version")
+    dependencies_parser = subparsers.add_parser("materialize-dependencies-live")
+    dependencies_parser.add_argument("output")
+    dependencies_parser.add_argument("destination")
+    dependencies_parser.add_argument("inputs")
     accept_parser = subparsers.add_parser("accept-live")
     accept_parser.add_argument("output")
     runtime_parser = subparsers.add_parser("runtime-info")
@@ -772,6 +927,8 @@ def main(argv=None):
         print(materialize(args.output, args.destination, args.version))
     elif args.action == "materialize-live":
         print(materialize_live(args.output, args.destination, args.version))
+    elif args.action == "materialize-dependencies-live":
+        print(materialize_dependencies_live(args.output, args.destination, args.inputs))
     elif args.action == "accept-live":
         accept_live(args.output)
     elif args.action == "runtime-info":

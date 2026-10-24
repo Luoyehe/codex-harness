@@ -8,9 +8,14 @@ export const FLOW_LIMITS = {
   controlIncomingBytes: 8 * 1024 * 1024, controlIncomingPerClientBytes: 4 * 1024 * 1024,
   historyBytes: 8 * 1024 * 1024,
 } as const;
+// One source of truth for history RPCs: admission, private IPC and browser
+// output must all apply the same budgets when a new history method is added.
+export const HISTORY_READ_METHODS: ReadonlySet<string> = new Set([
+  "thread/read", "thread/resume", "thread/turns/list", "thread/items/list",
+]);
 const HEAVY = new Set([
   "attachment/upload", "attachment/read", "attachment/delete",
-  "turn/start", "thread/start", "thread/read", "thread/resume", "thread/delete",
+  "turn/start", "thread/start", "thread/delete", ...HISTORY_READ_METHODS,
   "fs/readDirectory",
 ]);
 const CONTROL = new Set([
@@ -18,6 +23,49 @@ const CONTROL = new Set([
   "turn/operation", "thread/start/operation", "management/status", "account/login/status",
   "serverRequestResponse",
 ]);
+
+export const WORKER_LIMITS = {
+  requests: 64, controls: 8,
+  // Private IPC adds its own method/id envelope to browser answers. Allow a
+  // bounded envelope margin so eight exact 1 MiB answers retain their reserve.
+  incomingBytes: FLOW_LIMITS.incomingQueuedBytes + 64 * 1024,
+  controlIncomingBytes: FLOW_LIMITS.controlIncomingBytes + 64 * 1024,
+} as const;
+
+/** The caller's RPC timeout cannot cancel physical worker work. Hold this
+ * independent reservation until its handler actually settles, even after the
+ * control connection stopped waiting for the response. */
+export class WorkerRequestBudget {
+  private ordinary = 0;
+  private controls = 0;
+  private bytes = 0;
+  private controlBytes = 0;
+
+  acquire(method: string, nestedMethod: unknown, bytes: number): () => void {
+    const control = ["gateway/connect", "gateway/disconnect", "gateway/answer"].includes(method)
+      || method === "gateway/dispatch" && typeof nestedMethod === "string"
+        && (CONTROL.has(nestedMethod) || nestedMethod === "terminal/resize");
+    if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > FLOW_LIMITS.frameBytes
+        || this.bytes + bytes > WORKER_LIMITS.incomingBytes
+        || (control
+          ? this.controls >= WORKER_LIMITS.controls || this.controlBytes + bytes > WORKER_LIMITS.controlIncomingBytes
+          : this.ordinary >= WORKER_LIMITS.requests
+            || this.bytes + bytes > WORKER_LIMITS.incomingBytes - WORKER_LIMITS.controlIncomingBytes)) {
+      throw new Error("worker request count/byte limit reached; request was not dispatched");
+    }
+    this.bytes += bytes;
+    if (control) { this.controls++; this.controlBytes += bytes; }
+    else this.ordinary++;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.bytes -= bytes;
+      if (control) { this.controls--; this.controlBytes -= bytes; }
+      else this.ordinary--;
+    };
+  }
+}
 
 /** Reject before dispatch, with a separate reserve for stop/reconciliation. */
 export class RpcBudget {

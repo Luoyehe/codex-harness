@@ -545,6 +545,8 @@ test("update failure unwinds its real Bash transaction scope and restores artifa
   const isolatedUpdate = realUpdate.replace(/local -a system_files=\([\s\S]*?\n      \)/, 'local -a system_files=("$FIXTURE_SYSTEM/existing" "$FIXTURE_SYSTEM/introduced")');
   assert.notEqual(isolatedUpdate, realUpdate, "system-file boundary substitution must match before executing");
   for (const scenario of [
+    { failure: "prepare", code: 56, active: "1", rollbackFails: false },
+    { failure: "prepare-stop", code: 57, active: "1", rollbackFails: false, isolationUnknown: true },
     { failure: "register", code: 75, active: "1", rollbackFails: false },
     { failure: "register", code: 76, active: "0", rollbackFails: false },
     { failure: "health", code: 54, active: "1", rollbackFails: false },
@@ -592,8 +594,24 @@ printf '%s\n' "$CODEX_RUNTIME_ROOT/.publish.lock"
       // Substitute only the transient-service boundary. The real helper has
       // separate isolated-identity and descriptor-copy tests; this stub
       // preserves command order and presents the same validated tree.
+      writeFileSync(path.join(repo, "deploy", "prepare-candidate-deps.sh"), String.raw`set -eu
+[ "$2" = 0.149.0 ]
+[ "$4" = "$FIXTURE_RUNTIME_SEED" ]
+printf 'prepare dependencies\n' >> "$FIXTURE_LOG"
+if [ "$FIXTURE_FAIL_STAGE" = prepare-stop ]; then
+  : > "$(dirname "$1")/isolation-unconfirmed"
+  exit "$FIXTURE_FAIL_CODE"
+fi
+if [ "$FIXTURE_FAIL_STAGE" = prepare ]; then exit "$FIXTURE_FAIL_CODE"; fi
+mkdir -p "$3/store" "$3/cache"
+printf 'prepared-package\n' > "$3/store/package"
+printf 'prepared-metadata\n' > "$3/cache/metadata"
+printf 'prepare complete\n' >> "$FIXTURE_LOG"
+`);
       writeFileSync(path.join(repo, "deploy", "test-candidate.sh"), String.raw`set -eu
 [ "$2" = 0.149.0 ]
+[ "$(cat "$4/store/package")" = prepared-package ]
+[ "$(cat "$4/cache/metadata")" = prepared-metadata ]
 for stage in install typecheck build release-audit test smoke; do
   printf 'sandbox %s\n' "$stage" >> "$FIXTURE_LOG"
   if [ "$stage" = "$FIXTURE_FAIL_STAGE" ]; then exit "$FIXTURE_FAIL_CODE"; fi
@@ -706,6 +724,12 @@ health_after_update() {
       assert.ok(!result.stderr.includes("unbound variable"), context);
       assert.equal(result.stdout.includes("UPDATE_RETURNED"), scenario.failure === "none", context);
       const calls = readFileSync(f.env.FIXTURE_LOG, "utf8");
+      assert.match(calls, /prepare dependencies\n/, context);
+      if (scenario.failure.startsWith("prepare")) {
+        assert.doesNotMatch(calls, /prepare complete|sandbox |systemctl (stop|restart)|git merge |register\n/, context);
+      } else {
+        assert.ok(calls.indexOf("prepare complete\n") < calls.indexOf("sandbox install\n"), context);
+      }
       const publishing = ["register", "health"].includes(scenario.failure);
       const expectedArtifact = scenario.failure === "none" ? "new" : "old";
       for (const item of artifactPaths) assert.equal(readFileSync(path.join(repo, item, "marker"), "utf8"), `${expectedArtifact}:${item}\n`, context);
@@ -737,6 +761,11 @@ health_after_update() {
         const snapshot = path.join(stages, remainingStages[0], "previous");
         assert.equal(readFileSync(path.join(snapshot, "artifacts", "apps/gateway/dist/marker"), "utf8"), "old:apps/gateway/dist\n", context);
         assert.equal(readFileSync(`${snapshot}/system${system}/existing`, "utf8"), "old-system\n", context);
+      } else if (scenario.isolationUnknown) {
+        assert.equal(remainingStages.length, 1, context);
+        assert.match(result.stdout, /隔离进程停止尚未确认/, context);
+        assert.equal(existsSync(path.join(stages, remainingStages[0], "isolation-unconfirmed")), true, context);
+        assert.equal(existsSync(path.join(stages, remainingStages[0], "previous")), false, context);
       } else {
         assert.deepEqual(remainingStages, [], context);
       }

@@ -170,8 +170,9 @@ export function describePermissions(profile: RequestPermissionProfile): { rows: 
         if (!label || (entry.path.type === "special" && entry.path.value.kind === "unknown")) throw new Error();
         add(`${entry.access === "read" ? "读取" : entry.access === "write" ? "写入" : "禁止访问"}: ${label}`);
       }
-      if (fs.globScanMaxDepth !== undefined) {
-        if (!Number.isInteger(fs.globScanMaxDepth) || fs.globScanMaxDepth < 0 || fs.globScanMaxDepth > 1_024) throw new Error();
+      // Rust accepts Option<NonZeroUsize>; null and omission both mean unset.
+      if (fs.globScanMaxDepth != null) {
+        if (!Number.isInteger(fs.globScanMaxDepth) || fs.globScanMaxDepth < 1 || fs.globScanMaxDepth > 1_024) throw new Error();
         add(`路径匹配最大扫描深度: ${fs.globScanMaxDepth}`);
       }
     }
@@ -198,6 +199,11 @@ export function normalizeNetworkApprovalContext(value: unknown): NetworkApproval
   return { protocol, host: context.host };
 }
 
+/** Absent kind is the documented older-server command default, never stdin. */
+export function normalizeCommandApprovalKind(value: unknown): "command" | "writeStdin" | null {
+  return value === undefined || value === "command" ? "command" : value === "writeStdin" ? "writeStdin" : null;
+}
+
 /** Approval responses are writes. Enforce the same runtime contract in the
  * store as in the UI so a stale callback or direct caller cannot bypass a
  * disabled button and approve context the browser could not show faithfully. */
@@ -216,12 +222,15 @@ export function approvalCanAccept(
   if (approval.method === "item/fileChange/requestApproval") {
     return optionalApprovalText(params, "grantRoot", 4_096) && fileChangeApprovalContext(approval, items).valid;
   }
+  const kind = normalizeCommandApprovalKind(params.kind);
+  if (!kind) return false;
   const network = normalizeNetworkApprovalContext(params.networkApprovalContext);
   if (params.networkApprovalContext != null && !network) return false;
   // A protocol-valid managed-network callback can omit command entirely.
   // A supplied malformed command must never be rescued by its network target.
-  if (params.command == null ? !network :
-      typeof params.command !== "string" || params.command.length > 200_000 || !params.command.trim()) return false;
+  if (params.command == null ? kind === "writeStdin" || !network :
+      typeof params.command !== "string" || params.command.length > 200_000 ||
+      (kind === "writeStdin" ? params.command.length === 0 : !params.command.trim())) return false;
   const networkRules = params.proposedNetworkPolicyAmendments;
   if (networkRules != null && (!Array.isArray(networkRules) || networkRules.length > 500 || networkRules.some((rule) => {
     if (!rule || typeof rule !== "object" || Array.isArray(rule) || !hasOnlyDataKeys(rule, ["action", "host"])) return true;

@@ -109,6 +109,75 @@ beforeEach(async () => {
 afterEach(() => { act(() => view?.unmount()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Composer send ownership through the real store", () => {
+  it.each(["send", "newline"] as const)("preserves IME Enter and then sends with the normal %s shortcut", async (enterBehavior) => {
+    act(() => store.setState(state => ({ settings: { ...state.settings, enterBehavior } })));
+    edit("中文消息");
+    const preventDefault = vi.fn();
+    for (const nativeEvent of [{ isComposing: true, keyCode: 13 }, { isComposing: false, keyCode: 229 }]) {
+      for (const shiftKey of [false, true]) {
+        act(() => view.root.findByType("textarea").props.onKeyDown({ key: "Enter", shiftKey, nativeEvent, preventDefault }));
+      }
+    }
+    expect(turnCalls()).toHaveLength(0);
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(text()).toBe("中文消息");
+    await act(async () => {
+      view.root.findByType("textarea").props.onKeyDown({ key: "Enter", shiftKey: enterBehavior === "newline",
+        nativeEvent: { isComposing: false, keyCode: 13 }, preventDefault });
+      await settle();
+    });
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(turnCalls()).toHaveLength(1);
+  });
+
+  it.each(["success", "failure"] as const)("announces the first pending attachment upload and settles %s without sending the draft", async (outcome) => {
+    const pendingUpload = deferred<{ path: string; size: number }>();
+    const defaults = wire.rpc.getMockImplementation()!;
+    wire.rpc.mockImplementation((method, params) => method === "attachment/upload" ? pendingUpload.promise : defaults(method, params));
+    edit("keep this draft until I send it");
+    expect(attachmentNames()).toEqual([]);
+    expect(notice()).toBe("");
+
+    await upload("first.png");
+
+    const progress = view.root.findByProps({ className: "attach-chip attach-uploading" });
+    expect(progress.props.role).toBe("status");
+    expect(progress.children.join("")).toContain("上传中");
+    expect(view.root.findByProps({ className: "icon-btn icon-btn-plus" }).props.disabled).toBe(true);
+    expect(sendButton().props.disabled).toBe(true);
+    act(() => view.root.findByType("textarea").props.onKeyDown({ key: "Enter", shiftKey: false, nativeEvent: { isComposing: false }, preventDefault() {} }));
+    expect(turnCalls()).toHaveLength(0);
+
+    await act(async () => {
+      if (outcome === "success") pendingUpload.resolve({ path: "/uploads/first.png", size: 9 });
+      else pendingUpload.reject(new Error("synthetic upload unavailable"));
+      await settle();
+    });
+
+    expect(view.root.findAllByProps({ className: "attach-chip attach-uploading" })).toHaveLength(0);
+    expect(view.root.findByProps({ className: "icon-btn icon-btn-plus" }).props.disabled).toBe(false);
+    expect(sendButton().props.disabled).toBe(false);
+    expect(text()).toBe("keep this draft until I send it");
+    expect(turnCalls()).toHaveLength(0);
+    if (outcome === "success") {
+      expect(attachmentNames()).toEqual(["first.png"]);
+      expect(notice()).toBe("");
+    } else {
+      expect(attachmentNames()).toEqual([]);
+      expect(notice()).toContain("first.png 上传失败: synthetic upload unavailable");
+    }
+  });
+
+  it("appends starter suggestions to the draft only once and never sends automatically", async () => {
+    const { Composer } = await import("../src/components/Composer");
+    edit("keep my draft");
+    const suggestion = { text: "inspect the project", sequence: 1 };
+    act(() => view.update(<Composer suggestion={suggestion} />));
+    expect(text()).toBe("keep my draft\n\ninspect the project");
+    act(() => view.update(<Composer suggestion={{ ...suggestion }} />));
+    expect(text()).toBe("keep my draft\n\ninspect the project");
+    expect(turnCalls()).toHaveLength(0);
+  });
   it("keeps Stop and the draft locked until terminal evidence, including a failed stop request", async () => {
     const interruption = deferred<unknown>();
     const defaults = wire.rpc.getMockImplementation()!;
@@ -145,6 +214,47 @@ describe("Composer send ownership through the real store", () => {
     await act(async () => { retry.props.onClick(); await settle(); });
     expect(wire.rpc).toHaveBeenCalledWith("model/list", { limit: 100 });
     expect(store.getState().modelLoad.state).toBe("loaded");
+  });
+
+  it("shows an unverified explicit model and preserves the draft until the user chooses a verified option", async () => {
+    act(() => store.setState(current => ({
+      models: [], modelLoad: { state: "error", error: "catalog unavailable" },
+      settings: { ...current.settings, selectedModel: "missing-model", selectedEffort: "high" },
+    })));
+    const selector = view.root.findByProps({ title: "模型（对下一条消息生效，新对话同样适用）" });
+    expect(selector.props.value).toBe("missing-model");
+    expect(selector.findAllByType("option").find(option => option.props.value === "missing-model")?.props.children.join("")).toBe("missing-model（待核对）");
+    edit("preserve this model-specific draft");
+    await act(async () => { submit(); await settle(); });
+    expect(turnCalls()).toHaveLength(0);
+    expect(text()).toBe("preserve this model-specific draft");
+    expect(notice()).toContain("尚未确认所选模型");
+    act(() => selector.props.onChange({ target: { value: "" } }));
+    const effortSelector = view.root.findByProps({ title: "思考程度来自所选模型的能力声明；未确认的模型不提供推测档位。默认=当前模型默认档" });
+    act(() => effortSelector.props.onChange({ target: { value: "" } }));
+    await act(async () => { submit(); await settle(); });
+    expect(turnCalls()).toHaveLength(1);
+    expect(turnCalls()[0][1]).toMatchObject({ model: null, effort: null });
+  });
+
+  it.each(["", "selected"])("keeps explicit unverified effort visible for model=%s and requires an explicit default choice", async (selectedModel) => {
+    act(() => store.setState(current => ({
+      models: selectedModel ? [{ id: selectedModel, reasoningEfforts: ["low"] }] : [],
+      modelLoad: { state: "error", error: "catalog unavailable" },
+      settings: { ...current.settings, selectedModel, selectedEffort: "high" },
+    })));
+    const selector = view.root.findByProps({ title: "思考程度来自所选模型的能力声明；未确认的模型不提供推测档位。默认=当前模型默认档" });
+    expect(selector.props.value).toBe("high");
+    expect(selector.findAllByType("option").find(option => option.props.value === "high")?.props.children.join("")).toBe("思考·high（待核对）");
+    edit("keep this effort-specific draft");
+    await act(async () => { submit(); await settle(); });
+    expect(turnCalls()).toHaveLength(0);
+    expect(text()).toBe("keep this effort-specific draft");
+    expect(notice()).toContain("所选思考程度");
+    act(() => selector.props.onChange({ target: { value: "" } }));
+    await act(async () => { submit(); await settle(); });
+    expect(turnCalls()).toHaveLength(1);
+    expect(turnCalls()[0][1]).toMatchObject({ model: selectedModel || null, effort: null });
   });
 
   it.each([false, true])("clears exactly the admitted draft after lost response and accepted lookup (switch=%s)", async switched => {
@@ -311,7 +421,8 @@ describe("Composer send ownership through the real store", () => {
     });
     expect(wire.rpc).toHaveBeenLastCalledWith("turn/operation", { clientOperationId: second.clientOperationId });
     expect(store.getState().sendOperationRecords[first.clientOperationId].state).toBe("unknown");
-    expect(store.getState().sendOperationRecords[second.clientOperationId].state).toBe("not_received");
+    expect(store.getState().sendOperationRecords[second.clientOperationId].state).toBe("unknown");
+    expect(JSON.stringify(view.toJSON())).toContain("原请求仍可能随后送达");
     expect(turnCalls()).toHaveLength(0);
   });
 

@@ -7,6 +7,7 @@
  * else observes `serverRequest/resolved`.
  */
 import { validateResponse } from "../../../shared/input-forms.mjs";
+import { validateApprovalResponse } from "./approval-responses.js";
 
 const INPUT_METHODS = new Set(["item/tool/requestUserInput", "mcpServer/elicitation/request"]);
 const MAX_PENDING_ANSWERS = 32;
@@ -224,8 +225,9 @@ export class Hub {
     const entry = this.browserAnswers.get(requestId);
     if (!entry) return false;
     let invalid: string | undefined;
-    if (error !== undefined && (typeof error !== "string" || error.length > 2000)) invalid = "回答错误字段无效";
+    if (error !== undefined && (typeof error !== "string" || error.length > 2000 || /[\uD800-\uDFFF]/u.test(error))) invalid = "回答错误字段无效";
     else if (!error && INPUT_METHODS.has(entry.message.method)) invalid = validateResponse({ method: entry.message.method as "item/tool/requestUserInput" | "mcpServer/elicitation/request", params: entry.message.params }, payload).error;
+    else if (!error) invalid = validateApprovalResponse(entry.message.method, payload);
     if (invalid) {
       // Do not consume the waiter. A corrected second answer must still be
       // possible and other tabs must not interpret rejection as resolution.

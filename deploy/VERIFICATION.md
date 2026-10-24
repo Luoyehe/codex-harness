@@ -41,6 +41,30 @@ live acceptance result.
 
 ## Failure and migration behavior
 
+- The current updater first prepares locked registry dependencies in a separate
+  DynamicUser with a fresh home, store and metadata cache. Its only project input
+  is an inspected projection of the three manifests, lockfile and supported
+  workspace settings. Lifecycle scripts and pnpmfile are disabled; candidate
+  code, npmrc files, existing package caches and service credentials are not
+  mounted. A bounded descriptor bridge transfers only the new store/cache.
+  A second DynamicUser has `PrivateNetwork=yes` and installs from scratch with
+  `--offline --frozen-lockfile` before the existing build and targeted checks.
+  A dependency preparation failure occurs before stopping the service. An
+  unconfirmed isolated-unit shutdown retains the transaction for inspection.
+- The installed coordinator selects one of two fixed, read-only runner scripts.
+  Candidate files cannot select or replace that entry point. Runtime identity
+  includes the complete directory published by `install-runtime.sh`, including
+  npm root metadata and the hidden module lock. The bridge checks the copied
+  root-owned output's topology and manifest, and the coordinator compares its
+  complete runtime fingerprint with the seed before acknowledging it. Links
+  must remain inside the independently published artifacts/runtime or mounted
+  store/cache directory. A root-exclusive acknowledgement, successful exit and
+  confirmed unit shutdown are all required before validation reports success.
+- This requires the new updater to be installed first. The published v1.2.1
+  updater cannot bootstrap this dependency preparation step; use a reviewed
+  complete source checkout and the documented stopped repair installation for
+  the first migration to this development version. CLI preparation is separate.
+
 - Full reset and uninstall first confirm service shutdown. Failure makes no
   edge change and deletes no data or service file. The following edge cleanup
   receives `EDGE_GATEWAY_STOPPED=1`; its success and rollback paths must not
@@ -61,6 +85,47 @@ live acceptance result.
   a permissions failure requires deliberate migration, not a root fallback.
 
 ## Offline regression commands (Linux, ordinary isolated checkout)
+
+For ordinary edits, select the actual changed paths and review the printed plan.
+An unknown/deleted file or dependency-wide change fails closed: add a reviewed
+mapping, or supply existing test paths with `--reviewed-tests path,path` after
+reviewing the actual dependency/configuration impact. This explicit list covers
+the unmapped paths printed in the plan; it is a human coverage assertion, not
+an automatically proven dependency map. It does not remove mandatory native
+checks. Generated protocol deletions use the same contracts as additions and
+edits. Browser visual, keyboard and mobile checks are still required for UI changes.
+
+`pnpm test:defaults` includes native default resolution and a no-turn lifecycle
+regression: equivalent JSON key ordering must reuse the cache, cache eviction
+must re-resolve, and all probe threads must unload promptly without changing
+the user's idle policy. These checks use a fresh isolated CLI home and no model
+inference. Changes to the resolver or generated protocol select them explicitly.
+
+```sh
+node scripts/targeted-tests.mjs --plan --files deploy/install-sandbox.sh
+node scripts/targeted-tests.mjs --files deploy/install-sandbox.sh
+```
+
+`requiredNativeChecks` in the printed plan identifies additional checks. Linux
+runs the selected offline CLI scripts with `CODEX_BIN` pointing to a separate
+runtime of the pinned version; run `pnpm build` first. These scripts create their
+own test homes and use loopback protocol fixtures. The systemd candidate fixture
+requires a separate Linux/systemd environment, root or passwordless `sudo`, and
+explicit `HARNESS_ALLOW_SYSTEMD_FIXTURE=1`; it uses a temporary unit and directories.
+Missing prerequisites fail before test execution. Windows/macOS print these
+checks as **NOT RUN** and still require the separate Linux result. CI prepares
+the isolated CLI when selected and requires both the Windows and Linux jobs.
+
+For a dependency/configuration edit, manual targeted CI accepts a base commit
+and `reviewed_test_files` (comma-separated existing test paths). With no reviewed
+coverage, an unmapped change fails; a successful unrelated test is not evidence
+that a dependency update was reviewed. Do not select `audit_closeout` to bypass
+this review.
+
+The complete suite below is only for audit closeout, after three consecutive
+complete audits of the final code find no new issues. Each earlier fix gets
+targeted tests only. The CI `audit_closeout` input is an explicit confirmation
+of this condition, not an automated proof that the audits took place.
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 PYTHONIOENCODING=utf-8 node --test scripts/*.test.mjs

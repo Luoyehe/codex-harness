@@ -425,7 +425,7 @@ if [ -z "$EDGE" ]; then
   if [ -t 0 ] && [ -t 1 ]; then
     echo
     echo "远程访问方式："
-    echo "  1) 仅本机 / SSH 隧道 —— 不对外开端口，不需要身份认证"
+    echo "  1) 仅本机 / SSH 隧道 —— 不对外开端口，仍须管理令牌登录"
     echo "     用法: ssh -L ${GATEWAY_PORT}:127.0.0.1:${GATEWAY_PORT} <服务器>"
     echo "  2) Caddy + Authelia —— HTTPS 对外 + 登录鉴权"
     local_choice=""
@@ -656,7 +656,7 @@ TMPD="" # Never clean up an inherited caller-supplied directory.
 trap 'rm -rf -- "$RB_DIR"' EXIT
 RB_NEW_CADDY=0; RB_NEW_AUTH_CONF=0; RB_NEW_AUTH_USERS=0; RB_NEW_AUTH_UNIT=0; RB_NEW_AUTH_DROPIN=0
 RB_NEW_AUTH_INITIAL=0; RB_NEW_EDGE_STATE=0; AUTH_UNIT_CREATED=0
-AUTH_RUNTIME_TOUCHED=0; GATEWAY_RUNTIME_TOUCHED=0; RB_AUTH_WAS_ACTIVE=0; RB_AUTH_WAS_ENABLED=0
+AUTH_RUNTIME_TOUCHED=0; AUTH_START_ATTEMPTED=0; GATEWAY_RUNTIME_TOUCHED=0; RB_AUTH_WAS_ACTIVE=0; RB_AUTH_WAS_ENABLED=0
 RB_TLS_EXISTED=0; RB_TLS_PRESENT=0; TLS_STATE_TOUCHED=0
 AUTH_DROPIN="/etc/systemd/system/${AUTHELIA_UNIT}.service.d/codex-harness-hardening.conf"
 AUTH_INITIAL="${AUTHELIA_DIR}/initial-password"
@@ -686,43 +686,78 @@ if [ "$SERVICE_MGR" = "systemd" ] && systemctl is-enabled --quiet "$AUTHELIA_UNI
 
 rollback() {
   local status="${1:-1}"
-  local rollback_failed=0
+  local rollback_failed=0 auth_restore_safe=1 auth_files_failed=0 retain_auth_identity=0 probe probe_status auth_file
   [ "$status" -ne 0 ] || status=1
   trap - EXIT
   set +e
   log "配置失败——回滚所有已修改的文件与服务状态"
+  # Never remove or replace a running authentication process's identity. A
+  # failed restart may still have initialized its database or left a process
+  # running, so record the attempt rather than only successful health checks.
+  if [ "$AUTH_RUNTIME_TOUCHED" = "1" ]; then
+    if ! systemctl_do stop "$AUTHELIA_UNIT"; then
+      probe="$(systemctl is-active "$AUTHELIA_UNIT" 2>/dev/null)" && probe_status=0 || probe_status=$?
+      case "$probe:$probe_status" in
+        inactive:3|failed:3|unknown:4) ;;
+        *)
+          auth_restore_safe=0
+          rollback_failed=1
+          log "Authelia 停止未获确认；保留当前配置、用户库与 unit，不覆盖仍可能使用的身份材料"
+          ;;
+      esac
+    fi
+  fi
+  # Authelia binds encryption_key to SQLite on its first startup, before a
+  # user logs in. Keep this new identity paired with that state for a retry;
+  # deleting or overwriting the database is never a rollback strategy.
+  if [ "$RB_NEW_AUTH_CONF" = "1" ] && [ "${AUTH_START_ATTEMPTED:-0}" = "1" ]; then
+    retain_auth_identity=1
+    if mkdir -m 700 "$RB_DIR/started-auth"; then
+      for auth_file in "$AUTHELIA_DIR/configuration.yml" "$AUTHELIA_DIR/users_database.yml" \
+          "/etc/systemd/system/${AUTHELIA_UNIT}.service" "$AUTH_DROPIN" "$AUTH_INITIAL"; do
+        [ ! -f "$auth_file" ] || cp --preserve=mode,ownership,timestamps "$auth_file" "$RB_DIR/started-auth/" || rollback_failed=1
+      done
+    else
+      rollback_failed=1
+    fi
+    if [ "$auth_restore_safe" = "1" ]; then systemctl_do disable "$AUTHELIA_UNIT" || rollback_failed=1; fi
+  fi
   if [ "$RB_NEW_CADDY" = "1" ]; then
     rm -f "$CADDY_FILE" || rollback_failed=1
   else
     cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/Caddyfile" "$CADDY_FILE" || rollback_failed=1
   fi
-  if [ "$RB_NEW_AUTH_CONF" = "1" ]; then
-    rm -f "$AUTHELIA_DIR/configuration.yml" || rollback_failed=1
-  else
-    cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/configuration.yml" "$AUTHELIA_DIR/configuration.yml" || rollback_failed=1
-  fi
-  if [ "$RB_NEW_AUTH_USERS" = "1" ]; then
-    rm -f "$AUTHELIA_DIR/users_database.yml" || rollback_failed=1
-  else
-    cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/users_database.yml" "$AUTHELIA_DIR/users_database.yml" || rollback_failed=1
-  fi
-  if [ "$AUTH_UNIT_CREATED" = "1" ] && [ "$RB_NEW_AUTH_UNIT" = "1" ]; then
-    if [ "$AUTH_RUNTIME_TOUCHED" = "1" ]; then systemctl_do disable --now "$AUTHELIA_UNIT" || rollback_failed=1; fi
-    rm -f "/etc/systemd/system/${AUTHELIA_UNIT}.service" || rollback_failed=1
-  elif [ -f "$RB_DIR/authelia.service" ]; then
-    cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/authelia.service" "/etc/systemd/system/${AUTHELIA_UNIT}.service" || rollback_failed=1
-  fi
-  if [ "$RB_NEW_AUTH_DROPIN" = "1" ]; then
-    rm -f "$AUTH_DROPIN" || rollback_failed=1
-    rmdir "${AUTH_DROPIN%/*}" 2>/dev/null || true
-  elif [ -f "$RB_DIR/authelia-hardening.conf" ]; then
-    install -d -m 755 "${AUTH_DROPIN%/*}" || rollback_failed=1
-    cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/authelia-hardening.conf" "$AUTH_DROPIN" || rollback_failed=1
-  fi
-  if [ "$RB_NEW_AUTH_INITIAL" = "1" ]; then
-    rm -f "$AUTH_INITIAL" || rollback_failed=1
-  else
-    cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/initial-password" "$AUTH_INITIAL" || rollback_failed=1
+  if [ "$auth_restore_safe" = "1" ] && [ "$retain_auth_identity" = "0" ]; then
+    if [ "$RB_NEW_AUTH_CONF" = "1" ]; then
+      rm -f "$AUTHELIA_DIR/configuration.yml" || auth_files_failed=1
+    else
+      cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/configuration.yml" "$AUTHELIA_DIR/configuration.yml" || auth_files_failed=1
+    fi
+    if [ "$RB_NEW_AUTH_USERS" = "1" ]; then
+      rm -f "$AUTHELIA_DIR/users_database.yml" || auth_files_failed=1
+    else
+      cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/users_database.yml" "$AUTHELIA_DIR/users_database.yml" || auth_files_failed=1
+    fi
+    if [ "$AUTH_UNIT_CREATED" = "1" ] && [ "$RB_NEW_AUTH_UNIT" = "1" ]; then
+      if [ "$AUTH_RUNTIME_TOUCHED" = "1" ]; then systemctl_do disable "$AUTHELIA_UNIT" || auth_files_failed=1; fi
+      rm -f "/etc/systemd/system/${AUTHELIA_UNIT}.service" || auth_files_failed=1
+    elif [ -f "$RB_DIR/authelia.service" ]; then
+      cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/authelia.service" "/etc/systemd/system/${AUTHELIA_UNIT}.service" || auth_files_failed=1
+    fi
+    if [ "$RB_NEW_AUTH_DROPIN" = "1" ]; then
+      rm -f "$AUTH_DROPIN" || auth_files_failed=1
+      rmdir "${AUTH_DROPIN%/*}" 2>/dev/null || true
+    elif [ -f "$RB_DIR/authelia-hardening.conf" ]; then
+      install -d -m 755 "${AUTH_DROPIN%/*}" || auth_files_failed=1
+      cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/authelia-hardening.conf" "$AUTH_DROPIN" || auth_files_failed=1
+    fi
+    if [ "$RB_NEW_AUTH_INITIAL" = "1" ]; then
+      rm -f "$AUTH_INITIAL" || auth_files_failed=1
+    else
+      cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/initial-password" "$AUTH_INITIAL" || auth_files_failed=1
+    fi
+    # A partially restored identity must stay stopped for deliberate repair.
+    if [ "$auth_files_failed" = "1" ]; then rollback_failed=1; auth_restore_safe=0; fi
   fi
   python3 -I "$SCRIPT_DIR/edge_env.py" "$CODEX_HOME" "$ENV_FILE" restore "$RB_DIR/edge-env.json" || rollback_failed=1
   if [ "$RB_NEW_EDGE_STATE" = "1" ]; then rm -f "$EDGE_STATE" || rollback_failed=1; else cp --remove-destination --preserve=mode,ownership,timestamps "$RB_DIR/edge-state.json" "$EDGE_STATE" || rollback_failed=1; fi
@@ -733,8 +768,9 @@ rollback() {
       python3 -I "$SCRIPT_DIR/edge_tls.py" remove "$GATEWAY_UNIT" "$CADDY_USER" || rollback_failed=1
     fi
   fi
-  systemctl_do daemon-reload || rollback_failed=1
-  if [ "$AUTH_RUNTIME_TOUCHED" = "1" ] && [ "$AUTH_UNIT_CREATED" != "1" ]; then
+  systemctl_do daemon-reload || { rollback_failed=1; auth_restore_safe=0; }
+  if [ "$auth_restore_safe" = "1" ] && [ "$retain_auth_identity" = "0" ] \
+     && [ "$AUTH_RUNTIME_TOUCHED" = "1" ] && [ "$AUTH_UNIT_CREATED" != "1" ]; then
     if [ "$RB_AUTH_WAS_ENABLED" = "1" ]; then systemctl_do enable "$AUTHELIA_UNIT" || rollback_failed=1; else systemctl_do disable "$AUTHELIA_UNIT" || rollback_failed=1; fi
     if [ "$RB_AUTH_WAS_ACTIVE" = "1" ]; then
       systemctl_do reset-failed "$AUTHELIA_UNIT" || rollback_failed=1
@@ -750,6 +786,9 @@ rollback() {
   fi
   if [ "$rollback_failed" = 1 ]; then
     log "自动恢复未完成；私有恢复副本保留在 $RB_DIR，请人工恢复后再清理"
+  elif [ "$retain_auth_identity" = "1" ]; then
+    log "入口已回滚；首次启动的 Authelia 已停止并禁用，身份材料保留在 $AUTHELIA_DIR（含 initial-password，如有）"
+    log "私有恢复副本保留在 $RB_DIR；修复故障后使用相同 AUTHELIA_DIR 与 AUTHELIA_UNIT 重试，保留现有数据库"
   else
     rm -rf -- "$RB_DIR"
   fi
@@ -1081,6 +1120,7 @@ if [ "$COOKIE_OWNER" = owned ]; then
   AUTH_RUNTIME_TOUCHED=1
   systemctl_do enable "$AUTHELIA_UNIT"
   systemctl_do reset-failed "$AUTHELIA_UNIT"
+  if [ "$SERVICE_MGR" = "systemd" ]; then AUTH_START_ATTEMPTED=1; fi
   systemctl_do restart "$AUTHELIA_UNIT"
   wait_authelia || { log "Authelia 未通过启动健康检查"; rollback; }
 else
@@ -1177,10 +1217,17 @@ cat <<EOF
 远程访问配置完成。
   ▸ 地址: https://${DOMAIN}:${LISTEN_PORT}
 EOF
-if [ "${GENERATED_PASS:-0}" = "1" ]; then
-  echo "  ▸ 首个用户: ${AUTH_USER}；初始密码仅保存在 ${AUTHELIA_DIR}/initial-password（root 600），不会打印到终端"
+if [ "$FRESH_AUTHELIA" = "1" ]; then
+  if [ "${GENERATED_PASS:-0}" = "1" ]; then
+    echo "  ▸ 首个用户: ${AUTH_USER}；初始密码仅保存在 ${AUTHELIA_DIR}/initial-password（root 600），不会打印到终端"
+  else
+    echo "  ▸ 用户: ${AUTH_USER}"
+  fi
 else
-  echo "  ▸ 用户: ${AUTH_USER}"
+  echo "  ▸ 登录: 使用现有 Authelia 账号；本次未新增或重置用户"
+  if [ -f "$AUTH_INITIAL" ]; then
+    echo "  ▸ 保留的初始密码文件: ${AUTH_INITIAL}（root 600）"
+  fi
 fi
 [ "$TLS_MODE" = "selfsigned" ] && echo "  ▸ 自签证书：浏览器首次访问会告警，可信任 Caddy 根证书（journalctl -u caddy 可找到路径）"
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then

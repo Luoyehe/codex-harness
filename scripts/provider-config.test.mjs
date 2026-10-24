@@ -71,7 +71,7 @@ test("custom unauthenticated endpoint selection clears the stored credential for
     run(block("custom-openai/setup.sh", "config, base_url, model, ctx"), [config, "http://127.0.0.1:8000/v1", "local", "65536", "0", "medium", "", "0"]);
     assert.equal(parsed(config).model_providers.custom.env_key, undefined);
     const source = readFileSync(path.join(providers, "custom-openai/setup.sh"), "utf8");
-    assert.ok(source.includes('if [ "$API_KEY" = "EMPTY" ]; then persist_key ""; else persist_key "$API_KEY"; fi'));
+    assert.ok(source.includes('persist_key "$API_KEY"'));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -32,6 +32,8 @@ describe("ProjectRegistry filesystem identities", () => {
     expect(ProjectRegistry.validPath(path.resolve("fixture"))).toBe(true);
     expect(ProjectRegistry.validPath("relative/project")).toBe(false);
     expect(ProjectRegistry.validPath("C:relative\\project")).toBe(false);
+    expect(ProjectRegistry.validPath(`${path.parse(path.resolve("fixture")).root}literal/../name`)).toBe(false);
+    expect(ProjectRegistry.validPath(`${path.parse(path.resolve("fixture")).root}literal\\..\\name`)).toBe(process.platform !== "win32");
     if (process.platform !== "win32") expect(ProjectRegistry.validPath("C:\\deceptive-relative-on-linux")).toBe(false);
   });
 
@@ -300,6 +302,19 @@ describe("ProjectRegistry filesystem identities", () => {
     expect(await registry.resolveRegistered(literal)).toBe(literal);
     await registry.remove(`${literal}/`);
     expect(await registry.resolveRegistered(literal)).toBeNull();
+    expect(existsSync(literal)).toBe(true);
+  });
+
+  it.runIf(process.platform !== "win32")("accepts POSIX backslash-dot names without confusing them with traversal", async () => {
+    const { registry, home, workspace, extra } = fixture(false);
+    const literal = path.join(extra, "literal\\..\\name");
+    expect((await registry.add(literal, true)).path).toBe(literal);
+    expect(existsSync(literal)).toBe(true);
+    const reloaded = new ProjectRegistry(home, workspace);
+    expect(await reloaded.resolveRegistered(literal)).toBe(literal);
+    expect((await reloaded.list()).find((entry) => entry.path === literal)?.available).toBe(true);
+    await reloaded.remove(literal);
+    expect(await reloaded.resolveRegistered(literal)).toBeNull();
     expect(existsSync(literal)).toBe(true);
   });
 

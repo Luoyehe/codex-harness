@@ -3,19 +3,19 @@ import type { ThreadItem } from "../../../protocol/v2/ThreadItem";
 import type { Turn } from "../../../protocol/v2/Turn";
 
 export function agent(id: string, text: string): Extract<ThreadItem, { type: "agentMessage" }> {
-  return { type: "agentMessage", id, text, phase: null, memoryCitation: null, delivery: null };
+  return { type: "agentMessage", id, text, phase: null, memoryCitation: null, delivery: null, questions: null };
 }
 
 export function turn(id: string, items: ThreadItem[], status: Turn["status"] = "completed"): Turn {
-  return { id, items, itemsView: "full", status, error: null, startedAt: null, completedAt: null, durationMs: null };
+  return { id, rootTurnId: null, items, itemsView: "full", status, error: null, startedAt: null, completedAt: null, durationMs: null };
 }
 
 export function thread(id: string, turns: Turn[] = [], patch: Partial<Thread> = {}): Thread {
   return {
     id, sessionId: id, forkedFromId: null, parentThreadId: null, preview: id, ephemeral: false,
-    section: null, sectionEnteredAt: null, projectId: null, modelProvider: "openai", createdAt: 1,
+    section: null, sectionEnteredAt: null, projectId: null, historyMode: "legacy", modelProvider: "openai", model: null, reasoningEffort: null, createdAt: 1,
     updatedAt: 1, recencyAt: null, status: { type: "idle" }, path: null, cwd: "P", cliVersion: "test",
-    source: "appServer", threadSource: null, agentNickname: null, agentRole: null, gitInfo: null,
+    source: "appServer", originator: null, threadSource: null, agentNickname: null, agentRole: null, gitInfo: null,
     name: id, turns, ...patch,
   };
 }
