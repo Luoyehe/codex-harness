@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round1-fixes",
+  "reviewerId": "control-web",
+  "status": "ready",
+  "completedAt": "2026-10-24T19:05:38.943Z",
+  "baseAuditDigest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485",
+  "sourceSnapshotAtCompletion": {
+    "files": 1519,
+    "digest": "92dd33675384035e939379751984d0d0fb38b6dfe014ccd946f4cd8a8a709d41"
+  },
+  "sourceIsFrozen": false,
+  "modifiedFiles": [
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "78707a34941042f8d7198b4b129973400ee6034532abdaed04e006f4b06a2747"
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "640e6a3a40e335b51ac6dc88eefec8a0cd9566d545b280d6c39f23195d5c543e"
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "5e33d397afba09ad42d45f69b9eaac2f56eec0b9f35aaff77199407191ddb4d7"
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "e91761cfbbb0348b1e93d549918dc7866956bac029e8fe5f66ed5bb1e78aa79a"
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "a4a0ff58f95c00d1545c64b016171744c33b74491d9c6eadb727416765cb35ba"
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "4ad69c1071e83dbdb5606bd65fb548d1508a83b2b4626ccb4f80226d5e1ac1c6"
+    },
+    {
+      "path": "web/App.tsx",
+      "sha256": "64cb4a39e49b6135512af46526f08432675d64b63684c8a54aa830209ede2922"
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "sha256": "8d60cb56935807498cbd862d06ecbd17e1251a9eb5ab90fa4e6c0797cd242371"
+    },
+    {
+      "path": "web/components/ArchiveActions.tsx",
+      "sha256": "c19f4e2725486da699eca2729c7e46aaaea3f866e2d21ffe5c5841754e601145"
+    },
+    {
+      "path": "web/components/TerminalPanel.tsx",
+      "sha256": "8381bd0b040fedba3db13ebb867ada88a5f37d8cf2aca3b717c3afdbe0cfcb00"
+    },
+    {
+      "path": "web/hooks/useEvents.ts",
+      "sha256": "f994d0155b894a4fe6400cce0633bbb8b3fd9cfe6d588bd12798fe5c3812bd99"
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "sha256": "0206164f7441646b1c6e725d5d93f26c9d37d3b9e577b271e89174ffb16ae774"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "65d113645d299f222d5077ccc314093f7d18b53b2aa4acd02b7c76cc8b30aa82"
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "d2b325b6a5909ec3182229629fba5b783d0fe51a9b5d5ae87fb71a25773c8327"
+    },
+    {
+      "path": "web/tests/session.test.ts",
+      "sha256": "d527cf336db744fa191645146d386c9ee4da4deca28e26f5dc5c0b87a120af8e"
+    },
+    {
+      "path": "web/tests/events.test.tsx",
+      "sha256": "8d763a58aacab03ffff83df7f8c40ad98d7f1869c88c75a16963ac49b74b1675"
+    },
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "sha256": "b5b70bd93dc8c56a9b31f373f25348dfdde97e1bece70be4dcb6c192a317eaf9"
+    }
+  ],
+  "fixedFindings": [
+    {
+      "id": "R1-CW-001",
+      "change": "Dispatcher publishes a final state after maintenance is released in finally, for successful and rejected manager mutations.",
+      "verification": "Gateway dispatch success/failure tests require the last published status to equal dispatcher.status() with maintenance=false."
+    },
+    {
+      "id": "R1-CW-002",
+      "change": "useEvents advances a read-resource generation once on runtime reconnection, including same-epoch recovery, and does not advance it for repeated healthy snapshots. Operation recovery waits for runtime readiness and only performs operation/read. Upstream channel loss also closes browser WebSockets so each reconnect obtains a new worker owner registration.",
+      "verification": "Hook and App integration fixtures check all seven active read resources refresh, stable snapshots do not refresh again, and no turn/start/conversation/start replay occurs."
+    },
+    {
+      "id": "R1-CW-003",
+      "change": "API 401 responses and a confirmed unauthenticated session check notify SessionApp to show Login. The hidden workspace keeps saved and unsaved in-memory drafts; its event connection is stopped until login succeeds. Old request/session-check results cannot invalidate a newer CSRF generation. A 401 logout completes the local transition.",
+      "verification": "API tests cover late 401 and stale GET after renewed login. App fixtures renew authentication with an unresolved operation plus a saved draft and separately with a storage-denied in-memory draft; no mutation is replayed."
+    },
+    {
+      "id": "R1-CW-004",
+      "change": "Selected-thread archive facts have their own thread and resource-generation identity. Successful list results carry snapshotKey so a new sidebar filter cannot mislabel retained old items. Archive notifications update the selected fact. Unknown states display an explicit explanation and separate target-state actions. A late archive result cannot navigate away from a newer navigation.",
+      "verification": "App fixtures toggle sidebar filters while the selected thread stays open, exercise an archived deep link without list evidence, and invalidate selection evidence across a same-epoch reconnect."
+    }
+  ],
+  "additionalLifecycleRepairs": [
+    {
+      "issue": "A browser could disconnect before a delayed terminal/open was admitted under the still-live gateway-worker channel.",
+      "change": "Coordinated with the runtime reviewer: GatewayServer registers a fresh UUID worker owner via /connect before completing every browser WebSocket handshake; worker-bound RPC requires that live owner. The worker validates active owner/channel membership at admission, after reading the body and immediately before native write. Disconnect revokes the owner; channel loss clears all of that channel's owners. Internal channel IDs and owner IDs are stripped before browser events; routed terminal events use owned:true.",
+      "scope": "This report owns GatewayServer, WorkerClient, terminal browser consumer and corresponding gateway/web tests. Runtime endpoint/lease registry changes and tests are recorded by the runtime reviewer."
+    },
+    {
+      "issue": "An unknown /connect response could otherwise leave a late active registration after best-effort cleanup.",
+      "change": "WorkerClient captures the exact event channel for connect/disconnect, fences that channel on failed confirmation, never replays registration, and ignores cleanup for a retired channel. Request headers carry the captured event-channel ID; queued HTTP writes recheck the same live channel immediately before beforeWrite.",
+      "verification": "worker-client tests simulate lost registration confirmation, verify channel termination, then confirm old-owner cleanup cannot close the replacement channel. A delayed HTTP socket connect after channel replacement is rejected before ledger beforeWrite."
+    },
+    {
+      "issue": "A rejected duplicate browser handshake could release another handshake's pending-slot guard.",
+      "change": "Final reread found and fixed #connecting reservation ownership: only a request that acquired the slot may delete it in finally.",
+      "verification": "HTTP fixture pauses owner registration and submits two duplicate browser upgrades; both must reject and only one worker owner can be registered."
+    }
+  ],
+  "verification": {
+    "uniqueSelectedTestFiles": [
+      "tests/gateway/dispatch.test.ts",
+      "tests/gateway/http.test.ts",
+      "tests/gateway/worker-client.test.ts",
+      "web/tests/app-lifecycle.test.tsx",
+      "web/tests/session.test.ts",
+      "web/tests/events.test.tsx",
+      "web/tests/defaults.test.tsx",
+      "web/tests/operations.test.ts",
+      "web/tests/drafts.test.tsx",
+      "web/tests/recovery.test.tsx",
+      "web/tests/provider.test.tsx",
+      "web/tests/resources.test.tsx",
+      "web/tests/resume.test.tsx",
+      "web/tests/terminal.test.tsx"
+    ],
+    "uniquePassingTests": 67,
+    "runs": [
+      {
+        "command": "node scripts/run-tests.mjs --targeted tests/gateway/dispatch.test.ts tests/gateway/http.test.ts tests/gateway/worker-client.test.ts web/tests/app-lifecycle.test.tsx web/tests/session.test.ts web/tests/events.test.tsx web/tests/defaults.test.tsx web/tests/operations.test.ts web/tests/drafts.test.tsx web/tests/recovery.test.tsx web/tests/provider.test.tsx web/tests/resources.test.tsx web/tests/resume.test.tsx web/tests/terminal.test.tsx",
+        "result": "passed",
+        "testFiles": 14,
+        "passed": 67,
+        "skipped": 0,
+        "report": ".work/test-results/run-4C8mCc/vitest.json"
+      },
+      {
+        "command": "node scripts/run-tests.mjs --targeted tests/gateway/http.test.ts tests/gateway/worker-client.test.ts",
+        "result": "passed after the final handshake-slot ownership fix",
+        "testFiles": 2,
+        "passed": 11,
+        "skipped": 0,
+        "report": ".work/test-results/run-q8irY2/vitest.json"
+      }
+    ],
+    "checks": [
+      {
+        "command": "pnpm exec tsc -p tsconfig.server.json --noEmit",
+        "result": "passed, repeated after final server change"
+      },
+      {
+        "command": "pnpm exec tsc -p web/tsconfig.json --noEmit",
+        "result": "passed"
+      },
+      {
+        "command": "pnpm run build:server",
+        "result": "passed, repeated after final server change"
+      },
+      {
+        "command": "pnpm run build:web",
+        "result": "passed"
+      }
+    ],
+    "authoringFailures": "The first new hook test run had two fixture failures because it constructed a different Api object on every hook render; stabilizing the fixture Api reference resolved them. A new Storage mock initially lacked a TypeScript this annotation; the annotation was added and checks passed. These are recorded as test-authoring failures, not omitted runs.",
+    "counting": "The final 11-test rerun overlaps the 67-test selection and is not added to the unique total."
+  },
+  "postFixReread": {
+    "complete": true,
+    "scope": [
+      "maintenance settlement and failure finally ordering",
+      "browser handshake slot ownership, pending registration, attachment and disconnect sequencing",
+      "channel/client registration uncertainty, old-channel cleanup and final HTTP write fence",
+      "private terminal ownership routing and frontend admission marker",
+      "session generation races, hidden draft retention, read-only reconnection recovery",
+      "archive list snapshot provenance, selected-resource identity and unknown-state action wording"
+    ],
+    "result": "No further actionable defect identified in this affected-scope reread after correcting the duplicate-handshake guard. This is implementer self-review, not an independent clean audit."
+  },
+  "limitations": [
+    "No full test suite was run; this report does not satisfy any independent clean-audit gate.",
+    "Gateway/WebSocket tests use bounded local protocol substitutes. Browser interactions use jsdom fixtures; no new real-browser visual/IME/accessibility run was performed.",
+    "The runtime reviewer separately reported passing real isolated gateway-native integration after the owner-registration contract landed; that execution is not counted in this reviewer's 67 tests.",
+    "No personal credentials, paid models, external MCP or remote 120/110 access was used by this reviewer.",
+    "Other reviewers were modifying their assigned source concurrently; the completion digest is a point-in-time snapshot, while the listed per-file hashes bind this repair scope. The root task must freeze the combined next audit snapshot."
+  ]
+}

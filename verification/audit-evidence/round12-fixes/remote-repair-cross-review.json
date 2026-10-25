@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "bounded-repair-cross-review",
+  "reviewerId": "r12-runtime",
+  "complete": true,
+  "isIndependentFullRound": false,
+  "reviewedAt": "2026-10-25T16:51:37Z",
+  "conclusion": "No additional confirmed defect was found in the final RemoteSettings pairing-status repair or its 20 new regression cases. This is a read-only cross-review of the two specified files, not a new complete audit round or an independently rerun test result.",
+  "files": [
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "sha256": "f7d3fd34772015b40e052c55eb32429495bff5b2710091c10da9b11c80cd87f6",
+      "beforePath": ".work/round12-fixes/web__components__RemoteSettings.tsx.before",
+      "beforeSha256": "86fe970670af04773be320f511c3ae01b8957068d9e4c2150966d270f673726d",
+      "review": "Read the complete final component and its complete no-index diff against the supplied current-round before bytes. Changes are limited to the pairing status owner/request lifecycle and its click handler; remote-control mutation call sites remain unchanged."
+    },
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "sha256": "504b4277fbe0276faca13c69c9bc279ad27eda1e8e330b87d126eaa9a2ac8a77",
+      "beforePath": ".work/round12-fixes/web__tests__process-remote.test.tsx.before",
+      "beforeSha256": "9671339dd426af495a7f05d06973cbb02dc07ac2903e22ee1266292f8ef3d561",
+      "review": "Read the complete final test file and complete no-index diff. Reviewed all 20 expanded new cases, the signal-aware synthetic fetch adapter and fake-timer cleanup. The existing 24 tests remain intact apart from the shared adapter accepting an optional signal and cleanup restoring real timers."
+    }
+  ],
+  "method": "Waited for the root and repair author to confirm stop-writing and verified the sealed current-round report existed. Read both final files fully, reviewed git diff --no-index against the two supplied .work before snapshots without Git history, verified before/current/report hashes, and inspected the existing targeted log and JSON totals. Used the current Api/useResource/useWorkflow/ExtensionControls behavior already read in this task, and read web/main.tsx plus vitest.config.ts to assess StrictMode coverage. Did not inspect other repair implementations or old audit/project reports, modify source/tests, or execute tests.",
+  "reviewNotes": [
+    {
+      "topic": "Owner generation and ABA",
+      "references": ["web/components/RemoteSettings.tsx:46", "web/components/RemoteSettings.tsx:58", "web/components/RemoteSettings.tsx:94"],
+      "assessment": "The memoized object changes on each rendered epoch/connected/pairingId/environment transition. Returning to a previous string value after an intervening transition does not restore the previous owner object. Expiry clears pairingId before the UI permits a new pairing. The outer epoch/connectionId key also remounts the subtree when the connection owner changes. The repeated-ID and environment A-B-A regression cases exercise this distinction."
+    },
+    {
+      "topic": "Request identity, Abort and unmount",
+      "references": ["web/components/RemoteSettings.tsx:51", "web/components/RemoteSettings.tsx:67", "web/components/RemoteSettings.tsx:71"],
+      "assessment": "Cleanup clears only a request whose owner matches that effect, then aborts it. Late callbacks require both the exact request object and current owner object, plus an unaborted controller. Clearing the ref before abort prevents synchronous abort reactions from being treated as current; old cleanup cannot clear a newer owner's request. Unmount has the same ref-clear guard, so it does not rely only on a mounted boolean. The synthetic tests deliberately ignore cancellation and therefore test stale callback rejection independently of real fetch abort."
+    },
+    {
+      "topic": "Busy state and duplicate dispatch",
+      "references": ["web/components/RemoteSettings.tsx:48", "web/components/RemoteSettings.tsx:67", "web/components/RemoteSettings.tsx:70", "web/components/RemoteSettings.tsx:78"],
+      "assessment": "The visible busy flag is derived from pendingCheck.owner matching the current owner, so stale pending state cannot disable a new pairing. checkRequest is set synchronously before the await and blocks a second click before React renders. Old finally callbacks cannot clear a new request: current() checks both identities and the setPendingCheck updater additionally compares the exact request. The new tests cover duplicate clicks in one batch and stale success/failure while the new query remains pending."
+    },
+    {
+      "topic": "Claimed, expiry and retry behavior",
+      "references": ["web/components/RemoteSettings.tsx:58", "web/components/RemoteSettings.tsx:67", "web/components/RemoteSettings.tsx:73", "web/tests/process-remote.test.tsx:266"],
+      "assessment": "The click handler rejects disconnected, missing, expired and already-claimed pairings. Only the current request may set claimed/error. Current failure releases its busy state; a retry clears its error; claimed=false preserves the code and permits another read; claimed=true hides the code and triggers the pre-existing status refresh. Expiry changes the owner by clearing pairingId. No new timer or automatic pairing creation is introduced."
+    },
+    {
+      "topic": "StrictMode",
+      "references": ["web/main.tsx:7", "web/components/RemoteSettings.tsx:46", "web/components/RemoteSettings.tsx:51", "web/tests/process-remote.test.tsx:171", "vitest.config.ts:1"],
+      "assessment": "The owner factory only allocates an object and performs no dispatch. In the normal initial StrictMode effect setup/cleanup replay, no user-triggered status request exists yet. Later owner cleanup clears the matching ref before abort, and a remount creates new refs. No concrete StrictMode defect was established by this static review. The target regressions do not explicitly wrap RemoteSettings in StrictMode, and the inspected test config does not enable a StrictMode wrapper; this path was not separately executed by the cross-reviewer."
+    },
+    {
+      "topic": "No mutation replay",
+      "references": ["web/components/RemoteSettings.tsx:73", "web/components/RemoteSettings.tsx:85", "web/tests/process-remote.test.tsx:158"],
+      "assessment": "The new handler performs only api.call('remoteControl/pairing/status'); it does not use mutate, operation recovery, a retry loop or a polling effect. Pairing creation, enable/disable and client revocation call sites are unchanged. Existing coverage still asserts a single pairing/start across status refresh. The new duplicate-click regression counts status reads rather than adding a write path."
+    }
+  ],
+  "newRegressionReview": [
+    {
+      "location": "web/tests/process-remote.test.tsx:222",
+      "expandedCases": 6,
+      "coverage": "Success/failure after expiry, completing before the new pairing, after it, or during its new status query. Reuses the same pairing ID; asserts new button usability, absent stale error/claimed output, abort signal, exactly two reads and current claimed=true behavior."
+    },
+    {
+      "location": "web/tests/process-remote.test.tsx:243",
+      "expandedCases": 12,
+      "coverage": "Success/failure across disconnect, environment change, environment return A-B-A, connection ID change, epoch change and unmount/remount. Asserts the new request stays busy when the old one finishes, old signal is aborted, old content is absent, and current claimed=false releases the new button."
+    },
+    {
+      "location": "web/tests/process-remote.test.tsx:266",
+      "expandedCases": 1,
+      "coverage": "Current failure and error visibility, retry error clearing, unclaimed success followed by another read, claimed success and exactly three reads."
+    },
+    {
+      "location": "web/tests/process-remote.test.tsx:281",
+      "expandedCases": 1,
+      "coverage": "Two clicks before the pending-state render produce one status read."
+    }
+  ],
+  "existingValidationEvidenceInspected": {
+    "performedBy": "repair author; not rerun by this cross-reviewer",
+    "sealedReport": "verification/audit-evidence/round12-fixes/interface.json",
+    "sealedReportSha256": "c98aeacde9977a24a67458a2e562e399e9e453b71bed633a3eeab0e8a5d5ea4d",
+    "targetedCommand": "node scripts/run-tests.mjs --targeted web/tests/process-remote.test.tsx",
+    "targetedLog": ".work/round12-fixes/interface-after-targeted.log",
+    "targetedJson": ".work/round12-fixes/interface-after.vitest.json",
+    "targetedJsonSha256": "78d9a5aec7468aa46e1eccd3733c02517760b6cdd98765e553dc3dce51e7f351",
+    "tests": 44,
+    "passed": 44,
+    "failed": 0,
+    "pending": 0,
+    "success": true,
+    "webTypecheck": "The sealed author report records pnpm exec tsc -p web/tsconfig.json --noEmit exit 0; its preserved log is empty. This reviewer did not rerun that command."
+  },
+  "findings": [],
+  "limitations": [
+    "No new tests, repeated targeted tests, build, browser, native service, SSH, live remote pairing or deployment checks were run for this cross-review.",
+    "StrictMode was considered from the current entry point and event/effect flow, but the reviewed target tests have no explicit StrictMode wrapper. No executed StrictMode result is claimed.",
+    "The 44-pass result belongs to the repair author's preserved evidence; this reviewer verified the report hash, totals and log rather than independently executing it.",
+    "The review is limited to RemoteSettings.tsx and process-remote.test.tsx plus directly relevant current helpers/entry/config. McpPanel and other concurrently edited files were not reviewed here.",
+    "No source or test modification was made. The accepted browser fixture and plan were left unchanged. This report does not replace or alter the original round12 audit and does not establish a new full-round clean count."
+  ]
+}

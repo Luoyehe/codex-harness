@@ -1,0 +1,488 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round6",
+  "reviewerId": "r6-interface",
+  "digest": "f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d",
+  "startedAt": "2026-10-25T08:41:18.161Z",
+  "completedAt": "2026-10-25T09:00:06.902Z",
+  "complete": true,
+  "scopes": [
+    "gateway-core",
+    "web-ux"
+  ],
+  "method": "Fresh independent source review of every one of the 197 files assigned by .work/round6/interface.json, including core and gateway implementations/tests, the complete web application, components/hooks/libraries/styles/configuration, all assigned web tests and web/VERIFICATION.md. File contents were read in full, and truncated file-read output was reread in bounded sections. Reviewed authentication/Host/Origin/session/CSRF, allowlists and permission scope, receipt identity and unknown outcomes, ownership/reconnect fences, resource bounds, scheduler recovery, complete navigation/draft/settings/task/terminal/media/approval workflows and current test coverage. The required web verification document was treated as claims, not proof; no previous audit artifacts, old checkout or history were consulted. Followed current async state transitions and performed only three narrow ignored .work local jsdom reproductions (10 tests) for concrete current draft ownership questions. Fetch was intercepted and no native/external service or personal credential was used. Full-suite/build/deployment testing was not run. Source snapshot was independently checked after review and remained at the assigned digest. No assigned file was skipped; completion means assigned review coverage, not a clean audit.",
+  "inspectedFiles": [
+    "AGENTS.md",
+    "package.json",
+    "scripts/run-tests.mjs",
+    "scripts/snapshot.mjs",
+    "src/core/automations.ts",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/extension-methods.ts",
+    "src/core/feature-methods.ts",
+    "src/core/ledger.ts",
+    "src/core/organization-methods.ts",
+    "src/core/process-methods.ts",
+    "src/core/realtime-methods.ts",
+    "src/core/remote-methods.ts",
+    "src/core/schedule.ts",
+    "src/core/validation.ts",
+    "src/core/worktrees.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/organization-receipt.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "vitest.config.ts",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "assignmentCount": 197,
+  "findings": [
+    {
+      "id": "r6-interface-01",
+      "priority": 2,
+      "title": "Realtime send acknowledgements erase a newer unsent message",
+      "locations": [
+        {
+          "file": "web/components/RealtimePanel.tsx",
+          "line": 114
+        }
+      ],
+      "summary": "The realtime text field stays editable while appendText is awaiting acknowledgement. Sending A, typing B before A succeeds, and then receiving A acknowledgement unconditionally calls setText(\"\") and deletes B. The response belongs to A and does not acknowledge B.",
+      "reproduction": [
+        "Start a local realtime session in text mode.",
+        "Enter A and send it; keep appendText unresolved.",
+        "The text field remains enabled; replace its contents with unsent B.",
+        "Resolve the valid acknowledgement for A. The field becomes empty."
+      ],
+      "suggestedFix": "Disable editing during submission or clear only the submitted draft revision; preserve newer input.",
+      "verification": [
+        {
+          "file": ".work/round6/realtime-draft.test.tsx",
+          "test": "reproduces loss of a newer realtime draft when an earlier send succeeds",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        }
+      ]
+    },
+    {
+      "id": "r6-interface-02",
+      "priority": 2,
+      "title": "Execution settings acknowledgement clears settings edited after submission",
+      "locations": [
+        {
+          "file": "web/components/ThreadExecutionSettings.tsx",
+          "line": 68
+        },
+        {
+          "file": "web/components/ThreadExecutionSettings.tsx",
+          "line": 71
+        }
+      ],
+      "summary": "ExecutionForm captures its settings for action.run, but its selectors remain editable while that request is pending. A successful response resets all changes with empty(), discarding selections made after submission. Both thread and turn forms use this implementation; the reproduction uses thread summary settings.",
+      "reproduction": [
+        "Select concise summary, confirm, and save session settings with the acknowledgement deferred.",
+        "Change the still-enabled summary selector to detailed before acknowledgement.",
+        "Resolve the concise request successfully. The detailed selection reverts to Keep unchanged and was never sent."
+      ],
+      "suggestedFix": "Freeze the submitted execution form or reconcile success against a captured changes revision instead of resetting current edits.",
+      "verification": [
+        {
+          "file": ".work/round6/async-drafts.test.tsx",
+          "test": "reproduces loss of a newly edited execution option while a prior save is pending",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        }
+      ]
+    },
+    {
+      "id": "r6-interface-03",
+      "priority": 2,
+      "title": "Queue and goal save completion discards newer editor contents",
+      "locations": [
+        {
+          "file": "web/components/TaskPanel.tsx",
+          "line": 17
+        },
+        {
+          "file": "web/components/TaskPanel.tsx",
+          "line": 35
+        }
+      ],
+      "summary": "QueueEntry and GoalPanel leave draft controls editable while their captured edit is being saved. Success unconditionally closes the editor. Opening it again seeds from the saved server value, replacing text entered while the prior save was pending. This also exposes the goal budget controls to the same unguarded close path.",
+      "reproduction": [
+        "Edit an existing queued message to A, submit, then type B while queue/update is pending.",
+        "Resolve A successfully and reopen the queue editor: only A remains.",
+        "Repeat in the goal editor: submit objective A, type B while goal/set is pending, acknowledge A and reopen. The objective is A and B is gone."
+      ],
+      "suggestedFix": "Keep newer editor state and remain in edit mode after an older save, or disable the entire submitted editor until acknowledgement.",
+      "verification": [
+        {
+          "file": ".work/round6/async-drafts.test.tsx",
+          "test": "reproduces loss of newer queue edit text when the previous queue save succeeds",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        },
+        {
+          "file": ".work/round6/async-drafts.test.tsx",
+          "test": "reproduces loss of a newer goal draft when an earlier goal edit succeeds",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        }
+      ]
+    },
+    {
+      "id": "r6-interface-04",
+      "priority": 2,
+      "title": "Branch creation hands off stale text and deletes the newer persisted draft",
+      "locations": [
+        {
+          "file": "web/components/HistoryTools.tsx",
+          "line": 23
+        },
+        {
+          "file": "web/components/HistoryTools.tsx",
+          "line": 30
+        }
+      ],
+      "summary": "BranchDialog edit mode persists every edit, but submit closes over the earlier finish/text. While thread/fork is pending, a user can change A to B and B is saved under the source branch draft key. Fork success invokes the earlier finish, hands A to the new branch, and discards the source key containing B. App retains an in-memory source branch copy for this browser session, so the claim is stale handoff and deletion of durable B, not that every possible recovery copy immediately disappears.",
+      "reproduction": [
+        "In Create branch and edit, enter A and begin fork creation with its response deferred.",
+        "Type B in the enabled textarea and verify B exists in readDraft(branchDraftKey(source,turn)).",
+        "Resolve fork creation. onFork receives A, the new thread draft contains A, and readDraft(source branch key) is empty."
+      ],
+      "suggestedFix": "Hand off the latest owned draft consistently or freeze edits while creating; delete only the exact successfully handed-off revision.",
+      "verification": [
+        {
+          "file": ".work/round6/modal-drafts.test.tsx",
+          "test": "branch handoff uses old text and deletes persisted newer branch draft",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        }
+      ]
+    },
+    {
+      "id": "r6-interface-05",
+      "priority": 2,
+      "title": "Successful mutations dismiss transient forms containing newer unsent edits",
+      "locations": [
+        {
+          "file": "web/components/RenameDialog.tsx",
+          "line": 7
+        },
+        {
+          "file": "web/components/ProjectDialog.tsx",
+          "line": 7
+        },
+        {
+          "file": "web/components/HistoryTools.tsx",
+          "line": 44
+        },
+        {
+          "file": "web/components/WorkspacePanel.tsx",
+          "line": 67
+        }
+      ],
+      "summary": "Rename, add-project, custom-review and workspace mkdir forms disable their submit action but keep their fields editable. After submitting A, typing B is allowed; acknowledgement of A then closes or removes the form without preserving B. Each listed workflow was reproduced through rendered controls with a deferred real Api response. Workspace copy shares the destination field and completion path, but the executed workspace reproduction was mkdir.",
+      "reproduction": [
+        "Rename: submit name A, type name B before acknowledgement, then accept A; modal unmounts and only A was sent.",
+        "Add project: submit name/path A, edit them to B before acknowledgement; successful A closes the modal.",
+        "Custom review: submit instructions A, type B while pending; successful A closes the modal and never submits B.",
+        "New directory: submit directory-a, type directory-b while pending; accepting a removes the form, and reopening shows an empty path."
+      ],
+      "suggestedFix": "Freeze all submitted form fields until completion, or retain changed drafts and avoid closing/resetting the form when its revision has advanced.",
+      "verification": [
+        {
+          "file": ".work/round6/modal-drafts.test.tsx",
+          "test": "rename completion dismisses a newer name that was never sent",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        },
+        {
+          "file": ".work/round6/modal-drafts.test.tsx",
+          "test": "project creation completion dismisses a newly edited name and path",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        },
+        {
+          "file": ".work/round6/modal-drafts.test.tsx",
+          "test": "review completion dismisses newly typed custom instructions",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        },
+        {
+          "file": ".work/round6/modal-drafts.test.tsx",
+          "test": "mkdir completion removes a newer path that was typed while pending",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        }
+      ]
+    },
+    {
+      "id": "r6-interface-06",
+      "priority": 2,
+      "title": "Pending prompt answers still accept edits that acknowledgement removes",
+      "locations": [
+        {
+          "file": "web/components/Prompts.tsx",
+          "line": 29
+        },
+        {
+          "file": "web/hooks/usePrompts.ts",
+          "line": 12
+        }
+      ],
+      "summary": "The requestUserInput fields remain editable after Submit answer has sent their snapshot. usePrompts.answer removes the prompt after acknowledgement, including any newer text entered while the request was pending. The reproduction uses the actual usePrompts hook and Prompts component; it does not simulate removal with a test-only callback.",
+      "reproduction": [
+        "Load a requestUserInput prompt, enter answer A and submit with prompt/answer deferred.",
+        "Type B into the still-enabled answer field.",
+        "Resolve A acknowledgement; the prompt disappears, and the recorded request contains only A."
+      ],
+      "suggestedFix": "Disable the prompt answer fields for the lifetime of the pending answer so the UI cannot accept changes that cannot be delivered; apply the same pending-state ownership rule to supported structured answer fields.",
+      "verification": [
+        {
+          "file": ".work/round6/modal-drafts.test.tsx",
+          "test": "answer acknowledgement removes newer text entered in a still editable prompt",
+          "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+          "result": "Passed by asserting the current defective behavior"
+        }
+      ]
+    }
+  ],
+  "skipped": [],
+  "verificationRuns": [
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config .work/round6/realtime-draft.config.ts",
+      "startedAt": "2026-10-25T08:48:50Z",
+      "durationSeconds": 2.33,
+      "files": 1,
+      "tests": 1,
+      "passed": 1,
+      "purpose": "Reproduce pending realtime acknowledgement clearing a newer text draft"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config .work/round6/async-drafts.config.ts",
+      "startedAt": "2026-10-25T08:52:22Z",
+      "durationSeconds": 1.89,
+      "files": 1,
+      "tests": 3,
+      "passed": 3,
+      "purpose": "Reproduce execution-setting, queue-edit and goal-edit draft loss"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config .work/round6/modal-drafts.config.ts",
+      "startedAt": "2026-10-25T08:57:23Z",
+      "durationSeconds": 3.73,
+      "files": 1,
+      "tests": 6,
+      "passed": 6,
+      "purpose": "Reproduce stale branch handoff, modal/form dismissal and prompt-answer draft loss"
+    }
+  ],
+  "rejectedCandidates": [
+    {
+      "file": "web/components/ThreadOrganization.tsx",
+      "reason": "The apparent post-await setText/setValue resets are protected by fieldset disabled={action.busy}; no pending-input-loss finding."
+    },
+    {
+      "file": "web/components/ProcessPanel.tsx",
+      "reason": "Input acknowledgement uses a functional current===submitted comparison to preserve newer text."
+    },
+    {
+      "file": "web/components/AutomationForm.tsx",
+      "reason": "The submitted form uses a disabled fieldset; no same-instance pending-edit loss was established."
+    },
+    {
+      "file": "web/components/FileEditor.tsx",
+      "reason": "Submitted draft revision ownership protects subsequent edits; no equivalent reset finding."
+    },
+    {
+      "file": "web/components/ProviderSettings.tsx",
+      "reason": "Draft revision checks protect the configuration save completion; no equivalent reset finding."
+    }
+  ],
+  "limitations": [
+    "This reviewer independently covers the assigned 197-file core/gateway/web domain, not the other reviewers' runtime/deployment domains.",
+    "Rendered behavior was checked in local jsdom for the ten stated transitions, not with a live native server or full browser/device media run.",
+    "No full suite was run; all ten passing reproduction assertions establish existing defects, not fixed behavior."
+  ]
+}

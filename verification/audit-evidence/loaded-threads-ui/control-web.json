@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T23:03:00.710Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "loaded-threads-ui",
+  "tests": 4,
+  "files": [
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Sidebar.tsx",
+    "web/App.tsx",
+    "web/tests/loaded-threads.test.tsx"
+  ],
+  "contracts": [
+    "Sidebar exposes bounded native loaded-thread pagination. Details are read only for an explicitly selected discovered identity. Opening never implicitly resumes paid work.",
+    "Idle unsubscribe requires explicit confirmation and reports native notLoaded/notSubscribed/unsubscribed semantics without claiming process cleanup or history deletion. Unknown results query the original receipt only."
+  ],
+  "sourceHashes": {
+    "web/components/LoadedThreadsPanel.tsx": "bd57c8e8bd103a79cbe2a5712b40dcc522c260d160c83c55ac9dc10c92105675",
+    "web/components/Sidebar.tsx": "81c0515429a255e4d3c90209cbf931acae4d3b5aa9003626d7018680bec1f1a4",
+    "web/App.tsx": "7f6244dfeb1518adf6d86da6559fe341276f3949934898ce76aae328503f643f",
+    "web/tests/loaded-threads.test.tsx": "be546708d9aa8384969a1963954fad05f3492ef6709906dda706a99b5bb96cc9"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/prediction.test.tsx web/tests/loaded-threads.test.tsx web/tests/terminal.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 4,
+    "tests": 42,
+    "result": "passed",
+    "startedAtLocal": "2026-10-25T07:02:17+08:00",
+    "typecheck": "web TypeScript noEmit passed",
+    "build": "Vite production build passed: 377 modules; JS 1213.96 kB, gzip 343.64 kB; existing chunk size warning retained"
+  },
+  "limits": [
+    "Affected frontend tests only; no full suite, formal source audit, paid prediction or real cloud account operation.",
+    "Backend CLI/native validation belongs to runtime agent. No actual remote 120 browser actions by this agent.",
+    "Visual fixture acceptance and deployed integration remain separate. Terminal remains statically loaded to avoid the observed external-authentication CSS lazy-load failure."
+  ]
+}

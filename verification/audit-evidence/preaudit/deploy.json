@@ -1,0 +1,212 @@
+{
+  "audit": "independent deployment preaudit",
+  "date": "2026-10-25",
+  "auditor": "/root/preaudit_deploy",
+  "status": "actionable findings; does not count toward the three unchanged-snapshot audit rounds",
+  "scope": "All deploy implementation and tests/deploy; related native-launch.ts, main.ts, native.ts; README and ARCHITECTURE. New repository only.",
+  "inspectedFiles": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "7f4c4193c704f93a731188905f1e1586f455cda541b7fd1a8d7b17c640c121a5"
+    },
+    {
+      "path": "deploy/__init__.py",
+      "sha256": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d"
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "55dbc7d7972e99d5fd76dd6d9284007232b05caa9568ab58b81f97b42449c058"
+    },
+    {
+      "path": "deploy/candidate_probe.py",
+      "sha256": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8"
+    },
+    {
+      "path": "deploy/catalog.py",
+      "sha256": "7cb1c1d833e28de8f21c5aa4d97e7994913affd4c3370327f30db3cbf0149240"
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "4d41acbd61122923d6a4d6b286ebe4729014ad33442ecbcf04397aeedd4d9346"
+    },
+    {
+      "path": "deploy/common.py",
+      "sha256": "af6e7544d57bcff633799415e8f58b9f2848b1e901a5bd0f373e7e059425abff"
+    },
+    {
+      "path": "deploy/https.py",
+      "sha256": "4d6e382b99303345a96815d81cc0e60c51272841f232efcde70fdd9e3213037e"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "3009668b3afb334c4364871643413fbd3914f17261743f19a6334e18ea2f52b6"
+    },
+    {
+      "path": "deploy/install.sh",
+      "sha256": "5360324dca9dc76ad4cef7ba25245a2dc32ece30ccde18be8ae5406325cde5ca"
+    },
+    {
+      "path": "deploy/journal.py",
+      "sha256": "29597f88abfd61098177602aec72137fe4acb3454daeb64aaeb433d17ff2c976"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "3d2afd486200d9f942ad8d7db0c468ca740963db27177ee85d0af8ac401a1d08"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "4b1b545628da453ebca49f383412e4725e096f55e2a7e92ed843cc0d185168da"
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "cf66734332175645c2bc472b4d8c6aeaa4ef95263330caf92c00a396bf7838d4"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "8958decf4a78db568ee5a513b9e44a2f1dbf20e0eefc8487a5df182748dafb8f"
+    },
+    {
+      "path": "deploy/safe_fs.py",
+      "sha256": "088598f69131c54cca7b86d0741aca3f84d67407aad7e3f64a0b28091a615a33"
+    },
+    {
+      "path": "deploy/system.py",
+      "sha256": "800254eb55da62156bc3b3bf1eb2f5dc8503180e24227c6a8c156091428dd367"
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "087cd4081e34f14190eb968850da8e68ba5bbb2b137b67e858bcef858087bdf1"
+    },
+    {
+      "path": "package.json",
+      "sha256": "17616032e4042a550f6ad3f20df3d37d67b2f1ac27c0901e9a2e4bb6fc1ba6f9"
+    },
+    {
+      "path": "PROBLEM-ACCEPTANCE.md",
+      "sha256": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e"
+    },
+    {
+      "path": "protocol/ts/ReasoningEffort.ts",
+      "sha256": "a29212fd92094fc023f5d8727412325c60b05dfb429a1e6291b60ceba1eb1743"
+    },
+    {
+      "path": "README.md",
+      "sha256": "755d8a39dee5fe1f9f01f415c9c65b03002e68ee48281dd4c0d141fd1a9fdbfb"
+    },
+    {
+      "path": "src/runtime/main.ts",
+      "sha256": "171720be74503b6d711f8e712be42766245d0ef80b75a95461192ad80659b0e4"
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "04fd81e374acef615c9adabf4a479e35c0df67a5a03e3affe0b1a9273c38b927"
+    },
+    {
+      "path": "src/runtime/native.ts",
+      "sha256": "7007d56ff79e9138200714eb1f52a08edfa53c3cf2e6e63a73e7ee3fee45a064"
+    },
+    {
+      "path": "tests/deploy/linux_isolation.py",
+      "sha256": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a"
+    },
+    {
+      "path": "tests/deploy/linux_native_boundary.py",
+      "sha256": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "23a999ff9013cc136ed6a0d3239acc0b229350d3a63f1e9a074805cc23e879b9"
+    }
+  ],
+  "findings": [
+    {
+      "id": "PRE-DEP-01",
+      "priority": "P2",
+      "title": "HTTPS failure recovery does not restore the complete prior service state",
+      "locations": [
+        {
+          "file": "deploy/https.py",
+          "startLine": 232,
+          "endLine": 253
+        },
+        {
+          "file": "deploy/https.py",
+          "startLine": 261,
+          "endLine": 271
+        }
+      ],
+      "trigger": "Repeat HTTPS setup on an active existing HTTPS instance. Inject a one-time daemon-reload error after stop, or a one-time startup error after all four services are stopped.",
+      "observed": "The daemon-reload error happens before the try block: gateway, worker, Authelia and Caddy all remain stopped while https.json still says phase=active. A startup error reaches recovery, but recovery starts only worker/gateway and leaves both existing edge services stopped.",
+      "impact": "A failed management operation takes the previously usable HTTPS endpoint offline; the ordinary repair command also only restarts gateway/worker. No durable pre-stop snapshot records the complete old edge/service state.",
+      "reproduction": ".work/preaudit-deploy-fixture.py: existingHttpsReloadFailure and existingHttpsStartupFailure; local temporary files and mocked system operations only",
+      "recommendation": "Persist the complete pre-stop configuration and intended prior service state, include every destructive step in the transaction, and restore/verify the previously active edge and identity services after confirmed stop. Retain recovery state if stop or restoration cannot be confirmed."
+    },
+    {
+      "id": "PRE-DEP-02",
+      "priority": "P2",
+      "title": "Existing provided-TLS setup silently ignores newly supplied certificate material",
+      "locations": [
+        {
+          "file": "deploy/https.py",
+          "startLine": 165,
+          "endLine": 169
+        },
+        {
+          "file": "deploy/https.py",
+          "startLine": 202,
+          "endLine": 212
+        }
+      ],
+      "trigger": "After installing provided TLS, invoke https again with the same hosts/options and a new --certificate/--private-key pair, as for certificate renewal.",
+      "observed": "The operation returns success without calling read_pem for either supplied path. The old certificate bytes and hashes remain selected.",
+      "impact": "A certificate renewal attempt appears successful but continues serving the old, potentially expired certificate.",
+      "reproduction": ".work/preaudit-deploy-fixture.py: providedCertificateRenewal reports success=true, pemReadCount=0 and retainedCertificate='old certificate'",
+      "recommendation": "Either perform an explicit validated certificate transaction or reject changed supplied material before stopping services; do not silently discard accepted CLI inputs."
+    },
+    {
+      "id": "PRE-DEP-03",
+      "priority": "P3",
+      "title": "Documented authentication-port option is not accepted by the CLI",
+      "locations": [
+        {
+          "file": "deploy/README.md",
+          "startLine": 68,
+          "endLine": 68
+        },
+        {
+          "file": "deploy/cli.py",
+          "startLine": 113,
+          "endLine": 113
+        }
+      ],
+      "trigger": "Use the deployment guide's --auth-port 19091 example.",
+      "observed": "argparse exits 2 with 'unrecognized arguments: --auth-port 19091'; the actual flag is --authelia-port.",
+      "impact": "The documented independent-port HTTPS command cannot be run as written.",
+      "reproduction": ".work/preaudit-deploy-fixture.py: documentedAuthPort",
+      "recommendation": "Use the actual --authelia-port option in the guide or deliberately add the documented alias."
+    }
+  ],
+  "checksPerformed": [
+    "Read all deployment sources and deployment tests, including downloader hashes, archive extraction/import, two-stage dependency preparation, root manager RPC allowlist, receipts, provider revisions, lifecycle cleanup, systemd units, native identities and uninstall behavior.",
+    "Read related runtime launcher, worker entrypoint and NativeRpc lifecycle integration.",
+    "Re-read the parent agent's current native stdin backpressure and setgid runtime-directory changes during the audit; did not report their superseded earlier defects.",
+    "Ran one independent local HTTPS fault-injection fixture and direct argparse reproduction. All system commands, identities and edge validation in that fixture were substituted; no deployment or remote operation occurred."
+  ],
+  "limitations": [
+    "This is a preaudit of a changing working tree, not a formal unchanged-snapshot clean round.",
+    "No full test suite, repository-wide test suite, deployment, remote host access, paid inference or external MCP calls were performed.",
+    "The Linux UID/capability/namespace/cgroup/loop-filesystem behavior was reviewed in code and tests but not executed by this auditor.",
+    "The HTTPS fixtures establish Python transaction/control-flow defects; they do not establish real Caddy, Authelia, browser login, TLS issuance or certificate validity.",
+    "Pinned external distribution hashes and third-party compatibility claims were not revalidated against the network in this preaudit.",
+    "No old repository source, old tests or old Git history was inspected."
+  ],
+  "fixture": ".work/preaudit-deploy-fixture.py",
+  "repairs": {
+    "report": "verification/audit-evidence/preaudit/deploy-repair.json",
+    "status": "Subsequent authorized targeted repair implemented and locally verified; baseline findings and snapshot are preserved."
+  }
+}

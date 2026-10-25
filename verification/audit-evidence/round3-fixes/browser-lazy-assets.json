@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-followup-repair",
+  "createdAt": "2026-10-24T20:19:06.529Z",
+  "author": "root",
+  "finding": "Expired outer authentication prevents first lazy terminal CSS fetch and replaces the workspace with a misleading storage failure.",
+  "evidence": "Actual 120 HTTPS browser reported Unable to preload CSS for TerminalPanel-BrP-ENHg.css after Authelia expiration.",
+  "changes": [
+    "Terminal JS and CSS load in the initial application bundle; terminal creation/process opening remain explicit.",
+    "Generic boundary errors no longer incorrectly diagnose session storage."
+  ],
+  "checks": [
+    {
+      "file": "web/tests/app-lifecycle.test.tsx",
+      "passed": 6,
+      "result": ".work/test-results/run-T898tc/vitest.json"
+    },
+    {
+      "command": "pnpm build:web and web tsc",
+      "status": "passed"
+    }
+  ],
+  "limits": [
+    "Single initial bundle is larger (about 232 KiB gzip at this point); Vite warning reported, not hidden.",
+    "jsdom reports unavailable canvas getContext; source lifecycle tests pass. Actual 120 still has the previous deployed snapshot until next authorized update.",
+    "Later dialog-inert finding and repair are documented separately by the web reviewer."
+  ],
+  "fullSuiteRun": false,
+  "remoteDeploymentVerified": false
+}

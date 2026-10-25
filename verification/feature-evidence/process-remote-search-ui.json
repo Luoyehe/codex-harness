@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T22:10:01.040Z",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "reports": [
+    {
+      "file": ".work/test-results/run-2tQK6s/vitest.json",
+      "sha256": "672347e8c7464dacc3b23b172e6be26945c9dda9776c23b0f1adfb94c114b55a",
+      "passed": 36
+    },
+    {
+      "file": ".work/test-results/run-oTqruN/vitest.json",
+      "sha256": "177734b28418de5fff933e9c25ee08b36979f2fe8db1e0ecac5a7d62591232b7",
+      "passed": 17
+    },
+    {
+      "file": ".work/test-results/run-DzdRNZ/vitest.json",
+      "sha256": "4219382505d6b901cf299efd80d5d05a00d27bb5e890c28da8ed2e3acc0f1cba",
+      "passed": 1
+    }
+  ],
+  "linuxSearch": {
+    "file": ".work/search-linux-result.json",
+    "sha256": "749b9204ce37cd444ada73a3e3d33f8f3e9edaa8ef5f89c0b25b14f42a97c440",
+    "sourceSha256": "bab2ad8cd96098fa6efcfea5b05165b24a70b2719e950d1d09b0165998b35785",
+    "resultPath": "/var/tmp/crtest-search-targeted-69zcbfsr/result.json",
+    "identity": "nobody",
+    "passed": 5
+  },
+  "verified": [
+    "Explicit argv launch and account-privilege disclosure; duplicate clicks do not launch twice; unknown start queries original receipt and owned list.",
+    "Authoritative UTF-8 output snapshots avoid snapshot/event duplication; disconnect clears owned output.",
+    "Remote executor registration clears form credentials without implicitly starting/selecting sessions; native pairing is ephemeral by default and exact client revocation requires confirmation.",
+    "Pairing codes use private owner read and are cleared on disconnect/expiry/claim rather than browser storage; refresh preserves the current binding.",
+    "Linux descriptor-scoped literal filename/text search skips metadata and links; explicit node/time/depth/byte/result caps and skipped entries are represented as incomplete.",
+    "Actual isolated CLI reads a local plugin skill selected by its fresh native catalog name; original fixture assumed an unnamespaced name and was corrected to follow returned identity."
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "web/components/ProcessPanel.tsx": "e6bacc1a400855618a1184116189fa8bba05c31fd1927409caaa3bfa5d6ae754",
+    "web/components/RemoteSettings.tsx": "86fe970670af04773be320f511c3ae01b8957068d9e4c2150966d270f673726d",
+    "web/components/WorkspaceSearch.tsx": "ed70fd959c8a73d2ec970e55e0e2ab728efffad62006d1b9d03b40070f45fdc6",
+    "deploy/workspace_search.py": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+    "src/runtime/extensions.ts": "8c353c087ca480ecf3fc97a7d7487ae17092b291fa9ae3a00c70f1ced1f89536"
+  },
+  "limitations": [
+    "UI unit tests and read-only browser fixtures do not establish actual paid model, external exec-server, account pairing, or microphone service acceptance.",
+    "Linux search uses nobody under a fresh /var/tmp fixture; online services were not modified.",
+    "Cross-identity full-service feature integration and final independent full-repository audit gate remain pending."
+  ]
+}

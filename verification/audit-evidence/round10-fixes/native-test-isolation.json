@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "r10-runtime-native-test-isolation",
+  "phase": "round10-repair",
+  "completedAt": "2026-10-25T15:48:59.066Z",
+  "finding": {
+    "id": "FINAL-WINDOWS-ENV-001",
+    "priority": 1,
+    "title": "Parent denial proxies were omitted from ten real-native test environments",
+    "sourceReview": ".work/round10-fixes/final-windows-review.json",
+    "sourceReviewSha256": "288d6d7a924632b50a9a23ee5241c133184d0342738ac27f078ec0939b52b407",
+    "evidence": "Ten native test constructors explicitly rebuilt env without HTTP_PROXY, HTTPS_PROXY, ALL_PROXY or NO_PROXY; RuntimeService passed this explicit env to the official CLI. The final Windows parent environment therefore did not constrain these native instances. This finding establishes missing isolation, not observed external traffic or paid inference.",
+    "affectedPointsBeforeRepair": [
+      {
+        "path": "tests/runtime/native-smoke.test.ts",
+        "lines": [
+          15,
+          16
+        ],
+        "launchLine": 19,
+        "provider": "default native configuration; no local model catalog override"
+      },
+      {
+        "path": "tests/runtime/mcp-native.test.ts",
+        "lines": [
+          9
+        ],
+        "launchLine": 12,
+        "provider": "default native configuration plus a local stdio MCP fixture; no external MCP is configured"
+      },
+      {
+        "path": "tests/runtime/process-native.test.ts",
+        "lines": [
+          9
+        ],
+        "launchLine": 10,
+        "provider": "default native configuration; local process workflows only"
+      },
+      {
+        "path": "tests/runtime/remote-native.test.ts",
+        "lines": [
+          13
+        ],
+        "launchLine": 20,
+        "provider": "default native configuration; owned loopback exec-server is the explicit remote target"
+      },
+      {
+        "path": "tests/runtime/approval-native.test.ts",
+        "lines": [
+          27,
+          28
+        ],
+        "launchLine": 51,
+        "provider": "loopback Responses and local model catalog"
+      },
+      {
+        "path": "tests/runtime/gateway-native.test.ts",
+        "lines": [
+          42,
+          43
+        ],
+        "launchLine": 65,
+        "provider": "loopback Responses and local model catalog"
+      },
+      {
+        "path": "tests/runtime/workflows-native.test.ts",
+        "lines": [
+          23
+        ],
+        "launchLine": 35,
+        "provider": "loopback Responses and local model catalog"
+      },
+      {
+        "path": "tests/runtime/organization-native.test.ts",
+        "lines": [
+          11
+        ],
+        "launchLine": 14,
+        "provider": "loopback Responses and local model catalog; same environment reused after restart"
+      },
+      {
+        "path": "tests/runtime/automation-native.test.ts",
+        "lines": [
+          18
+        ],
+        "launchLine": 21,
+        "provider": "loopback Responses and local model catalog"
+      },
+      {
+        "path": "tests/runtime/input-native.test.ts",
+        "lines": [
+          11
+        ],
+        "launchLine": 16,
+        "provider": "first test: loopback Responses and local model catalog"
+      }
+    ],
+    "status": "fixed-and-targeted-validated"
+  },
+  "implementation": {
+    "approach": "A shared test-only environment helper, adopted by exactly ten previously unguarded constructors; no preload or production behavior interception.",
+    "helper": "tests/fixtures/native-env.ts",
+    "isolation": [
+      "Require absolute normalized home, Codex home and temporary paths; require Codex home and temporary directory to be descendants of the caller-provided isolated root.",
+      "Create isolated Codex/temp/AppData directories and set HOME, USERPROFILE, CODEX_HOME, TEMP, TMP, TMPDIR, APPDATA and LOCALAPPDATA explicitly.",
+      "Inherit only PATH, PATHEXT, SystemRoot, WINDIR, COMSPEC and SystemDrive using case-insensitive source-key lookup; no arbitrary environment or credential spread.",
+      "Set HTTP_PROXY, HTTPS_PROXY and ALL_PROXY to the loopback denial endpoint http://127.0.0.1:9 and fix NO_PROXY to 127.0.0.1, localhost and IPv6 loopback forms.",
+      "Disable system/global Git configuration and accept only an explicitly supplied local fixture API key."
+    ],
+    "unchangedIndependentProxyPoints": [
+      {
+        "path": "tests/runtime/extensions-native.test.ts",
+        "line": 32,
+        "guard": "owned loopback denying HTTP/CONNECT proxy; NO_PROXY permits 127.0.0.1 and localhost; zero-model-call assertion"
+      },
+      {
+        "path": "tests/runtime/guardian-native.test.ts",
+        "line": 30,
+        "guard": "owned loopback fixture also denies nonfixture HTTP and CONNECT; NO_PROXY permits 127.0.0.1"
+      },
+      {
+        "path": "tests/runtime/gateway-oauth-native.test.ts",
+        "line": 16,
+        "guard": "owned loopback denying HTTP/CONNECT proxy; no proxy bypass list; explicitly checks startup targets are only catalog hosts"
+      },
+      {
+        "path": "tests/runtime/cli-diagnostics-native.test.ts",
+        "line": 9,
+        "guard": "all three proxy settings point to loopback port 9; no live provider"
+      },
+      {
+        "path": "tests/runtime/input-native.test.ts",
+        "line": 31,
+        "guard": "second test: all three proxy settings point to loopback port 9; NO_PROXY permits 127.0.0.1 and localhost for the local audio Responses fixture"
+      }
+    ],
+    "productionSourceModified": false,
+    "priorRound10ReportModified": false,
+    "priorRound10ReportSha256": "3e8f7b33ded2f07c61a0b4cafd4277e8592038952651c785eaa21a26a496f9e6",
+    "files": [
+      {
+        "path": "tests/fixtures/native-env.ts",
+        "change": "added",
+        "beforeSha256": null,
+        "afterSha256": "3f2e70c6a85bf7e780ff3013e1d0844cb9118273f79c31551c03c9ad9cbf3c31"
+      },
+      {
+        "path": "tests/runtime/approval-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "f39cb80858bd3cd6c02a9f644ad3d07571ba439de8a7ead9b764ae9351d8ea77",
+        "afterSha256": "a1856582e532e55d69a89d81d45aff4e022f8c5ecf0d6645cbfd3d8c21990337"
+      },
+      {
+        "path": "tests/runtime/automation-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "7998e04f58c21356e797a89ee458bc87c95491d0ecd755a5213221b25ad4b587",
+        "afterSha256": "a7137f4826eff2403ef09ba3cbf0c8227543f24bf0a4cc7d4a328025d19f09c8"
+      },
+      {
+        "path": "tests/runtime/gateway-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "ffbdaa04e3b95bfbaa8d57f8e16c79222e74181fd908ffde0291ac6136cb2f58",
+        "afterSha256": "d11c5c80ab6a11f94c76d427e270dc411829600628c7952401c98daee19f44e8"
+      },
+      {
+        "path": "tests/runtime/input-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "bd1f76ed0292bf8f8977a7843d23f87ce5cd94c97fe888f44b74edde37661448",
+        "afterSha256": "6f94f1ff654ad4a80082107a46d141ccf70737f9390120dfa7824f30aa378700"
+      },
+      {
+        "path": "tests/runtime/mcp-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "25e63193575cbe511921db7a328c33d21390bab529fab209d2f41444806b3b94",
+        "afterSha256": "5f20fbc808ff46d6a5294ef50d6b6ab509569209b5e8162cf0b3fa2efce9faf9"
+      },
+      {
+        "path": "tests/runtime/native-env.test.ts",
+        "change": "added",
+        "beforeSha256": null,
+        "afterSha256": "d9ac65de937c7e4afe9b223e849d9989d5f43a53ed46db89fb65f59c9a1249e7"
+      },
+      {
+        "path": "tests/runtime/native-smoke.test.ts",
+        "change": "modified",
+        "beforeSha256": "9773a5df375c3c45415c40f89a129e1a3dfe27a2efc562b412b9b2a345afe14f",
+        "afterSha256": "d0e9fce49ad46d71f9cb149cc735d7803a63a2ff7fffdc391da5ad5120b120c6"
+      },
+      {
+        "path": "tests/runtime/organization-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "a6379ec6e85375e7705e12139228d475a9149300414da189398197e0fe862d20",
+        "afterSha256": "cceec180d101172dba425b814e57e28bc87eaceed23690bbae92fa4175031057"
+      },
+      {
+        "path": "tests/runtime/process-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "f9b383d914a2f41261a3d1a640926e1bdbe16881df4c3767791ca47773565432",
+        "afterSha256": "a9f92e81d23140fe42927d2436ecba5cba703bc98b7d34ce50792720129b0599"
+      },
+      {
+        "path": "tests/runtime/remote-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "b57e9cbbfcd639bcffd5ce7a6b1430a999118850a26be14a1a3f6e06249620fb",
+        "afterSha256": "6d7253e77c65cc2ba11dc0f3720f4337fbc92360fb7a633cf35709f2f4153796"
+      },
+      {
+        "path": "tests/runtime/workflows-native.test.ts",
+        "change": "modified",
+        "beforeSha256": "70d129a6a0c28ce8db803ca9e9e530252d7c36cd02f72d558ba06896ed787954",
+        "afterSha256": "df419959eb09908ff9175287e07d14a6824a2373c1a0360aa8856b9baf7ae6b4"
+      }
+    ]
+  },
+  "validations": [
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/native-env.test.ts tests/runtime/native-smoke.test.ts tests/runtime/mcp-native.test.ts tests/runtime/process-native.test.ts tests/runtime/remote-native.test.ts tests/runtime/approval-native.test.ts tests/runtime/gateway-native.test.ts tests/runtime/workflows-native.test.ts tests/runtime/organization-native.test.ts tests/runtime/automation-native.test.ts tests/runtime/input-native.test.ts",
+      "startedAt": "2026-10-25T15:46:23.445Z",
+      "evidence": ".work/test-results/run-uTFWG7/vitest.json",
+      "evidenceSha256": "f519f06dedbea134e063a07f1662a049054823fdf191209373a1d9c98e5ea810",
+      "invocationCount": 1,
+      "sourceState": "This initial eleven-file validation preceded the final single-key TMPDIR addition. The subsequent helper-only validation below covers that addition; the ten native files were not needlessly rerun.",
+      "status": "passed",
+      "exitCode": 0,
+      "testFiles": 11,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "nativePrerequisite": {
+        "observedOfficialRunnerStatus": "ready",
+        "version": "0.164.0",
+        "binary": "reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+        "binarySha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+        "selection": "HARNESS_TEST_CODEX_BIN explicitly set to the absolute verified repository-owned Windows CLI path before invocation",
+        "verification": "Official scripts/run-tests.mjs nativePrerequisite verified ordinary independent runtime path, official package metadata and exact CLI version in an isolated home before running the tests."
+      },
+      "semanticCoverage": [
+        "Inherited credentials, arbitrary personal variables, Node/Python config loaders and mixed-case proxy overrides are discarded.",
+        "Homes and temporary paths derive from the caller-owned isolated root; outside/same-root/relative misconfigurations are rejected.",
+        "The loopback bypass list remains fixed and only explicit local fixture keys are retained.",
+        "All ten affected real-CLI test files pass with the new environment, including loopback inference fixtures, local MCP, local exec-server, process trees, PTY, history and native no-inference probes."
+      ]
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/native-env.test.ts",
+      "startedAt": "2026-10-25T15:48:36.257Z",
+      "evidence": ".work/test-results/run-KNinIu/vitest.json",
+      "evidenceSha256": "b2866233dd8738b493c3c4fba3c663e7456e4ff395360c41a5bd8596f0edcbc6",
+      "reason": "Final review added TMPDIR=options.temporary for Linux consumers and an explicit assertion that inherited TMPDIR is replaced. No other environment or native test logic changed after the eleven-file pass.",
+      "status": "passed",
+      "exitCode": 0,
+      "testFiles": 1,
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  ],
+  "failures": [],
+  "skipped": [],
+  "limitations": [
+    "Only the explicitly requested eleven test files ran; no full suite, SSH, deployment or live service acceptance was run.",
+    "Proxy settings are application-level restrictions, not a kernel network sandbox. The local provider, MCP and exec-server fixtures remain intentional loopback exceptions; no external traffic experiment was performed.",
+    "This repair changes tests and adds a test helper, so the source digest changes and the audit gate must restart. The sealed R10 review is historical and was not edited.",
+    "Validation ran on Windows. Linux platform execution remains deferred."
+  ]
+}

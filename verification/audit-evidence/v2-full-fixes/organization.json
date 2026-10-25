@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-full-test-failure-fix",
+  "reviewerId": "r21-runtime",
+  "status": "targeted-validation-passed-full-rerun-required",
+  "startedAt": "2026-10-25T20:08:44.594104Z",
+  "completedAt": "2026-10-25T20:21:30.641Z",
+  "sourceDigestBefore": "1ff6d029fe901ec89f9dc44e9ff244239b3f6dbd0d578884f43ed1216c826e71",
+  "sourceDigestAfter": null,
+  "snapshotNote": "The parent owns the new complete source freeze and authorization rebinding after all concurrent full-test fixes. This report does not claim a final source digest.",
+  "scope": [
+    "organization-native test synchronization",
+    "runtime turn activity admission and recovery"
+  ],
+  "method": "Read the current organization/history/activity implementation and pinned 0.164.0 contract; traced only native RPC method/status/error metadata while retaining the original native test assertions; established a separate deterministic local-fixture regression before changing runtime admission; ran only exact affected targeted files and server no-emit type checking. This is a bounded fix investigation, not an independent complete audit round.",
+  "trigger": {
+    "raw": ".work/test-results/run-JFx9QR/vitest.json",
+    "test": "official CLI persists projects, sections and thread attachment metadata separately from execution roots",
+    "error": "DeliveryError: list_turns is not supported yet",
+    "fullRunCases": 1032,
+    "passed": 1029,
+    "skipped": 2,
+    "failed": 1
+  },
+  "findings": [
+    {
+      "id": "organization-completion-synchronization",
+      "confirmed": true,
+      "files": [
+        "tests/runtime/organization-native.test.ts"
+      ],
+      "evidence": "The initial real CLI trace returned turn/start inProgress, then thread/read idle before a subsequent includeTurns read returned active. The old test treated the idle metadata read as completion. Four further executions retaining all old assertions had two passes and two thread_busy failures during organization import.",
+      "fix": "Collect runtime events before conversation creation, await turn/completed for the exact thread and initial turn, and require status completed. Preserve the original idle check, organization persistence, root separation, history, one local provider call and process cleanup assertions.",
+      "contract": "reference/PROTOCOL-CONTRACT.md states that turn completion is determined by turn/completed; thread and turn statuses are distinct."
+    },
+    {
+      "id": "known-turn-idle-admission",
+      "confirmed": true,
+      "files": [
+        "src/runtime/service.ts",
+        "tests/runtime/service.test.ts"
+      ],
+      "evidence": "With a complete history traversal and an accepted inProgress turn, either an idle metadata response or an idle status notification allowed a second turn/start to dispatch and resolve. Both deterministic regression cases failed against the original runtime in run-z10bCq; no native backend was involved in these two proofs.",
+      "fix": "Treat a known uncompleted turn ID as activity independently of thread status in status reporting, admission, organization import, configuration changes, workflow mode guards and fatal outcome tracking. Matching turn/completed retains its existing release behavior; unknown flags are not cleared.",
+      "regressionCoverage": [
+        "idle metadata cannot admit a second turn",
+        "idle notification cannot admit a second turn",
+        "organization import and memory configuration remain blocked",
+        "a completion for another turn does not release ownership",
+        "matching completion permits the next turn",
+        "an unknown outcome remains blocked after metadata and completion",
+        "a fresh runtime epoch requires history and then permits recovery"
+      ]
+    }
+  ],
+  "causalBoundary": "The original full-run error has only the common NativeRpc.receive stack, so its exact originating RPC was not recovered. In the instrumented original native tests, thread/turns/list returned -32601 list_turns is not supported yet and the existing legacy fallback handled it. The original uncaught list_turns symptom was not independently reproduced. The proven synchronization and admission defects are fixed; a new complete full run remains required. No broader native error fallback was added.",
+  "changes": [
+    {
+      "path": "src/runtime/history.ts",
+      "backup": ".work/organization-full-fix/before/src__runtime__history.ts",
+      "bytes": 8616,
+      "sha256": "a7f5c37f0e653ddde63e80015e2483a5aaadf52d2d0dcf069789042e4a17cbe9",
+      "after": {
+        "path": "src/runtime/history.ts",
+        "bytes": 8616,
+        "sha256": "a7f5c37f0e653ddde63e80015e2483a5aaadf52d2d0dcf069789042e4a17cbe9"
+      },
+      "changed": false
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "backup": ".work/organization-full-fix/before/src__runtime__service.ts",
+      "bytes": 73337,
+      "sha256": "fa2db38f8c583e900a5eda5da04e4d5eecc309925e5c34e443ccb13c08481a8d",
+      "after": {
+        "path": "src/runtime/service.ts",
+        "bytes": 73511,
+        "sha256": "079b205d2c324be2110f9f31e7a280f6e9b443616f2f64d5cd6bdb276bcc1ebe"
+      },
+      "changed": true
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "backup": ".work/organization-full-fix/before/tests__runtime__service.test.ts",
+      "bytes": 32582,
+      "sha256": "37a96d0e997742d3e144d3e9bedff3032ffe4709fb4cb912b0c72fca2e3b3a56",
+      "after": {
+        "path": "tests/runtime/service.test.ts",
+        "bytes": 36515,
+        "sha256": "2c13efe7662c73395f8769f2a9766768f486b9700d25556f07214bbedfcbacc0"
+      },
+      "changed": true
+    },
+    {
+      "path": "tests/runtime/organization-native.test.ts",
+      "backup": ".work/organization-full-fix/before/tests__runtime__organization-native.test.ts",
+      "bytes": 7482,
+      "sha256": "cceec180d101172dba425b814e57e28bc87eaceed23690bbae92fa4175031057",
+      "after": {
+        "path": "tests/runtime/organization-native.test.ts",
+        "bytes": 8082,
+        "sha256": "7f7381e9bc6814d5a26165146d2e8d784d513b54b3e4a917349c3048e554aaf1"
+      },
+      "changed": true
+    }
+  ],
+  "validations": [
+    {
+      "kind": "diagnostic-original-native",
+      "cases": 1,
+      "passed": 1,
+      "raw": ".work/organization-full-fix/trace-initial-vitest.json",
+      "note": "Original assertions with metadata-only tracing; this first trace passed but demonstrated idle before completion."
+    },
+    {
+      "kind": "diagnostic-original-native-repeat",
+      "cases": 4,
+      "passed": 2,
+      "failed": 2,
+      "raw": ".work/organization-full-fix/trace-vitest.json",
+      "note": "Expected diagnostic failures were thread_busy at organization import, not the original top-level list_turns failure."
+    },
+    {
+      "kind": "native-completion-fix-only",
+      "cases": 1,
+      "passed": 1,
+      "raw": ".work/test-results/run-itQ8XS/vitest.json"
+    },
+    {
+      "kind": "regression-authoring-initial",
+      "cases": 33,
+      "passed": 31,
+      "failed": 2,
+      "raw": ".work/test-results/run-0NOvAZ/vitest.json",
+      "note": "Initial new tests were blocked by missing history; corrected the fixture to complete history before attempting second-turn admission. This run is not evidence of dispatched work."
+    },
+    {
+      "kind": "regression-before-runtime-fix",
+      "cases": 33,
+      "passed": 31,
+      "failed": 2,
+      "raw": ".work/test-results/run-z10bCq/vitest.json",
+      "note": "Both new idle cases actually dispatched and resolved a second turn rather than rejecting. The saved test source still lacked the idempotency key in a later, unreached import assertion; the final test supplies the contract-required key."
+    },
+    {
+      "kind": "regression-authoring-after-runtime-fix",
+      "cases": 34,
+      "passed": 32,
+      "failed": 2,
+      "raw": ".work/test-results/run-ytH2Ht/vitest.json",
+      "note": "The second-turn barriers passed; a later new import assertion used an incomplete fixture parameter set. Added required idempotencyKey without weakening the assertion."
+    },
+    {
+      "kind": "final-targeted",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/service.test.ts tests/runtime/organization.test.ts tests/runtime/workflows.test.ts tests/runtime/organization-native.test.ts",
+      "exactFiles": [
+        "tests/runtime/service.test.ts",
+        "tests/runtime/organization.test.ts",
+        "tests/runtime/workflows.test.ts",
+        "tests/runtime/organization-native.test.ts"
+      ],
+      "cases": 62,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "raw": ".work/test-results/run-lb5GGR/vitest.json",
+      "execution": ".work/organization-full-fix/execution-WGeV6k/result.json",
+      "mode": "targeted",
+      "startedAt": "2026-10-25T20:19:08.242Z",
+      "completedAt": "2026-10-25T20:19:11.924Z",
+      "exitCode": 0,
+      "deniedRequests": 0,
+      "isolatedHome": true
+    },
+    {
+      "kind": "server-typecheck",
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "evidence": "Direct tool execution, chunk 5e144b, empty stdout."
+    }
+  ],
+  "nativeIsolation": {
+    "fixedVersion": "0.164.0",
+    "verifiedBinary": "reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+    "archive": "reference/runtime/codex-0.164.0/codex-0.164.0-win32-x64.tgz",
+    "archiveIntegritySha512Base64": "urWPhwh9YavuoAPIkmVYKBTtd5OtGVL4Ki0Fb28dhK/Mz6Pt4LSy+gbRrZFz5+RXrw9ubvXuXDCcd8beYcWhDg==",
+    "originalSha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+    "freshVerifiedSha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+    "archiveSha512": "bab58f87087d61abeea003c89265582814ed7793ad1952f82a2d056f6f1d84afcccfa3ede0b4b2fa06d1ad9173e7e457af0f6e6ef5ee5c309c77c6de61c5a10e",
+    "isolatedHome": true,
+    "isolatedCodexHome": true,
+    "fixtureEnvironment": "tests/fixtures/native-env.ts",
+    "provider": "tests/runtime/loopback-provider.ts",
+    "paidInference": false,
+    "realExternalMcp": false,
+    "inheritedPersonalCredentials": false,
+    "denialProxyRequestsInFinalRun": 0,
+    "cleanup": "Existing native test PID-death assertions retained and passed."
+  },
+  "contractFiles": [
+    "reference/PROTOCOL-CONTRACT.md",
+    "protocol/ts/v2/ThreadStatus.ts",
+    "protocol/ts/v2/ThreadHistoryMode.ts",
+    "protocol/ts/v2/ThreadReadParams.ts",
+    "protocol/ts/v2/TurnCompletedNotification.ts",
+    "protocol/ts/v2/ProjectImportParams.ts",
+    "protocol/json/v2/ProjectImportParams.json"
+  ],
+  "artifacts": [
+    {
+      "path": ".work/test-results/run-JFx9QR/vitest.json",
+      "bytes": 374000,
+      "sha256": "bdfeaad07dd77d18f2c250587c51c612959c34b917b5d64088e9cbe2a7f32c34"
+    },
+    {
+      "path": ".work/organization-full-fix/trace-initial.json",
+      "bytes": 16285,
+      "sha256": "70b79699ad4d249c8d16d530686299eac934ff2dbc3029447f87b51923318ac6"
+    },
+    {
+      "path": ".work/organization-full-fix/trace-initial-vitest.json",
+      "bytes": 1040,
+      "sha256": "07d93544ec22c6cf644e1b172db2d86f066955faae1e52c1efcd17bd42eda2a1"
+    },
+    {
+      "path": ".work/organization-full-fix/trace.json",
+      "bytes": 48112,
+      "sha256": "6b9b1c0e32ed1936e2557c305b655bf4bfa3c9c658e6e905a588f7d4eb6a1ee2"
+    },
+    {
+      "path": ".work/organization-full-fix/trace-vitest.json",
+      "bytes": 4462,
+      "sha256": "59de3506baf10665ab74d768ae088fc9aac48a056edd998b9cfc3d2f2a50caa4"
+    },
+    {
+      "path": ".work/test-results/run-itQ8XS/vitest.json",
+      "bytes": 1050,
+      "sha256": "96bcfdd62b00bf7c140679d6048e17d24070493f5b0cbe221d3873584d5f4070"
+    },
+    {
+      "path": ".work/test-results/run-0NOvAZ/vitest.json",
+      "bytes": 16037,
+      "sha256": "aa18cdcd93f4dfcd04da1fdf2396db681548f8bcb4822854db1442171634d66c"
+    },
+    {
+      "path": ".work/test-results/run-z10bCq/vitest.json",
+      "bytes": 15847,
+      "sha256": "6dfa047e773dd6dfc8a02fa850263300f2c5812e07e8a3e21b7b3e6e7c22fa7f"
+    },
+    {
+      "path": ".work/test-results/run-ytH2Ht/vitest.json",
+      "bytes": 16608,
+      "sha256": "57e3237d59773380b8f84f9c48f2b19f74329a19a1d28a4cc18fb4b587538623"
+    },
+    {
+      "path": ".work/test-results/run-lb5GGR/vitest.json",
+      "bytes": 24123,
+      "sha256": "59f101ae003b7ccfd0dbbedc33e7cba30a90cda45ee3e8e03fe33d2c2bc6db56"
+    },
+    {
+      "path": ".work/organization-full-fix/before.json",
+      "bytes": 979,
+      "sha256": "f3f73c4bc396f5e5c5e14c12356187df307f8bb2e10240f0785427fb902ef53e"
+    },
+    {
+      "path": ".work/organization-full-fix/binary-verification.json",
+      "bytes": 340,
+      "sha256": "e8173a2e060192b7a610ca0b66e2c6ecaa260eeeebb853017c9bc03ad5a03abb"
+    },
+    {
+      "path": ".work/organization-full-fix/execute.mjs",
+      "bytes": 2885,
+      "sha256": "4dfbba278e533b562c4cfc14b671d15d6a2d3b8901e94b8090839a3623a7a56a"
+    },
+    {
+      "path": ".work/organization-full-fix/prepare-trace.mjs",
+      "bytes": 1610,
+      "sha256": "bacfe8c14f25e4580a85ebfd9699b07d4e82b3e7450b4bb0a9a36ac902d25c11"
+    },
+    {
+      "path": ".work/organization-full-fix/trace.test.ts",
+      "bytes": 8528,
+      "sha256": "bd20178315e2e6dd64a1cc0d5cfd0d5eafb4c3d15478d3444328937be1e18ae9"
+    },
+    {
+      "path": ".work/organization-full-fix/trace.config.ts",
+      "bytes": 170,
+      "sha256": "7d47532734fca92b2e4ec335751a1bc3ae97bfe0d8909c9003b2b60312c4b144"
+    },
+    {
+      "path": ".work/organization-full-fix/regression-before-runtime-fix.test.ts",
+      "bytes": 36481,
+      "sha256": "3d186d7ab23bf91ea43fdf73e7d1ce26fc74f40e644dd1a1d28ab40105ba6a9c"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-9eRiUn/stdout.log",
+      "bytes": 500,
+      "sha256": "9cf877e3da996971f1513aeeaad9f85e1ebda015a40f4570093469a36513c777"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-9eRiUn/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-9eRiUn/result.json",
+      "bytes": 174,
+      "sha256": "84a133d1197eb99852dcec2444994d8202cce5c4c0df5478053e46e9eecee184"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-hlXVah/stdout.log",
+      "bytes": 910,
+      "sha256": "d67342049b024bb96ef2a753947b0b9cb78dfa75253245173af01cb3aaf96eb9"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-hlXVah/stderr.log",
+      "bytes": 1032,
+      "sha256": "263a526a316b01ac3e2a246360e23ac06b3d279d6833dd7ae5c3744b67e369c6"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-hlXVah/result.json",
+      "bytes": 174,
+      "sha256": "1e795ec207e08c6dd99aa5fded7064cbf76482fd794b2788769998d557d939d7"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-fxvE7O/stdout.log",
+      "bytes": 1003,
+      "sha256": "e1281a18de31efaa0676be576e9d1027ea2e241a03cce70121feb7af5ff69390"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-fxvE7O/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-fxvE7O/result.json",
+      "bytes": 177,
+      "sha256": "a87a468da6f1f58e7ef5f462941e54850088e39c918d0468ed78224ad9dc774a"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-3GraZQ/stdout.log",
+      "bytes": 4025,
+      "sha256": "915b8ddf214c465948a60fe800f9c50b1f549bb49e93dfe05352b64f615d5a46"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-3GraZQ/stderr.log",
+      "bytes": 1347,
+      "sha256": "6608676c293c62e39b9e80d40b495ebcdd7a204c5ee9a7ce546e7bbb2fc9494d"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-3GraZQ/result.json",
+      "bytes": 177,
+      "sha256": "cec02f9b9a823790766546471168c246cce62f96a83a0d0fd8917a103508b0b0"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-BjSHa1/stdout.log",
+      "bytes": 4025,
+      "sha256": "fce22d052cb9ef0fac8a6fabd4e850b663fc2a43871d0094f9db1ed131fb5002"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-BjSHa1/stderr.log",
+      "bytes": 1295,
+      "sha256": "3c590d51ac918d944998c4ab38586ebb61a73ceb97d9219e145fbbc32403aa13"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-BjSHa1/result.json",
+      "bytes": 177,
+      "sha256": "85edc882298d4c7d2c14b8c9b0b0d70f7756ca4dd1929be26c1fd4b29c75d625"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-vnGDzP/stdout.log",
+      "bytes": 4527,
+      "sha256": "2838bf7652ae460b36614a9ceae63ac3d27ecf0ba6dc2a228006b1caee5708f6"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-vnGDzP/stderr.log",
+      "bytes": 1387,
+      "sha256": "5eba2bd0acd229e39def630812e8189e59ada7027fca6976f29152a0289222be"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-vnGDzP/result.json",
+      "bytes": 177,
+      "sha256": "1c9738d28c6f6f8f34ab8f8bf8132719814faff408a63c1269690fd1b5aed639"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-WGeV6k/stdout.log",
+      "bytes": 1297,
+      "sha256": "efe8221178e5bf09c058841757a39811c2a92726511b40e73db1a4bf41056182"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-WGeV6k/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/organization-full-fix/execution-WGeV6k/result.json",
+      "bytes": 177,
+      "sha256": "bb21b071c628bbf797ba2aaa24b31026c76bc7599efd8c6f90c54c4818261cfb"
+    }
+  ],
+  "limitations": [
+    "No full suite, SSH, remote deployment, real commercial model, real external MCP or upstream permission investigation was run by this subagent.",
+    "No sealed Round 21 report, earlier supplemental report, authorization record, source manifest or historical audits record was modified.",
+    "The separate PowerShell ModuleAnalysisCache pollution investigation remains owned by the parent; this fix did not inspect, modify or remove that file.",
+    "This evidence does not establish additional clean audit rounds. The user-directed one-time exception remains explicit and parent-owned.",
+    "The original native test trace used only the matching pinned binary and loopback fixture. It does not prove all CLI backend error paths.",
+    "Raw artifacts are kept under ignored .work and may contain isolated workspace paths; this public report stores relative paths and hashes only."
+  ]
+}

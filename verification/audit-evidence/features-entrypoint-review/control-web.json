@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T23:04:55.356Z",
+  "method": "Read-only source-to-entrypoint mapping after assigned UI fixes. Not a full source audit or an assertion of external end-to-end acceptance.",
+  "formalCleanAudit": false,
+  "scope": "All 21 FEATURES workflow rows; native 178-method inventory mapping is separately owned by deploy reviewer.",
+  "rows": [
+    {
+      "scope": "会话与历史",
+      "entrypoint": "侧栏新会话、搜索、归档、已加载会话；会话操作→搜索与完整导出/会话组织",
+      "sources": [
+        "web/components/Sidebar.tsx",
+        "web/components/LoadedThreadsPanel.tsx",
+        "web/components/HistoryTools.tsx",
+        "web/components/ThreadOrganization.tsx"
+      ],
+      "rpcExamples": [
+        "conversation/start",
+        "thread/session",
+        "thread/resume",
+        "thread/search",
+        "thread/searchOccurrences",
+        "thread/history/window",
+        "thread/archive",
+        "thread/unarchive",
+        "thread/unsubscribe",
+        "thread/delete",
+        "thread/export"
+      ],
+      "qualification": "打开历史仅纯读；显式resume可能继续待执行工作。loaded列表停止订阅不声称已卸载进程。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "计划与设置",
+      "entrypoint": "输入框模式/模型设置；会话操作→会话与当前回合设置；设置→供应商",
+      "sources": [
+        "web/components/Composer.tsx",
+        "web/components/ThreadExecutionSettings.tsx",
+        "web/components/ProviderSettings.tsx",
+        "web/components/ModelCatalog.tsx"
+      ],
+      "rpcExamples": [
+        "collaborationMode/list",
+        "model/list",
+        "permissionProfile/list",
+        "modelProvider/capabilities/read",
+        "thread/settings/update",
+        "turn/settings/update"
+      ],
+      "qualification": "当前回合和后续设置分开；能力未知不猜测。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "运行中交互",
+      "entrypoint": "输入框追加/排队、停止；会话操作→任务队列",
+      "sources": [
+        "web/components/Composer.tsx",
+        "web/components/TaskPanel.tsx"
+      ],
+      "rpcExamples": [
+        "turn/steer",
+        "turn/interrupt",
+        "thread/queue/list",
+        "thread/queue/add",
+        "thread/queue/update",
+        "thread/queue/delete",
+        "thread/queue/reorder",
+        "thread/queue/start"
+      ],
+      "qualification": "idle queue add可直接启动；原回执未知不重放，附件与opaque引用保留。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "目标与多 Agent",
+      "entrypoint": "会话操作→任务队列、目标与 Agents",
+      "sources": [
+        "web/components/TaskPanel.tsx"
+      ],
+      "rpcExamples": [
+        "thread/goal/get",
+        "thread/goal/set",
+        "thread/goal/clear",
+        "thread/agents/list"
+      ],
+      "qualification": "预算null清除；暂停目标不等于中断当前回合。直接输入受原生canAcceptDirectInput约束。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "分支与修订",
+      "entrypoint": "历史回合菜单→分支/编辑重发/回退",
+      "sources": [
+        "web/components/Messages.tsx",
+        "web/components/HistoryTools.tsx"
+      ],
+      "rpcExamples": [
+        "thread/fork",
+        "thread/revert"
+      ],
+      "qualification": "分支身份受理后保留；编辑内容先成草稿，历史回退不恢复工作目录。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "代码审查",
+      "entrypoint": "会话操作→启动代码审查；Git引用→审查基准",
+      "sources": [
+        "web/components/HistoryTools.tsx",
+        "web/components/WorkspaceGit.tsx"
+      ],
+      "rpcExamples": [
+        "review/start",
+        "review/startNew"
+      ],
+      "qualification": "四类目标显式选择，受理不代表审查完成；实际模型审查未由本agent执行。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "文件与上下文",
+      "entrypoint": "顶部项目文件→文件树/搜索/编辑/引用/AGENTS",
+      "sources": [
+        "web/components/WorkspacePanel.tsx",
+        "web/components/WorkspaceSearch.tsx",
+        "web/components/FileEditor.tsx",
+        "web/components/WorkspaceDownload.tsx",
+        "web/components/WorkspaceRecovery.tsx"
+      ],
+      "rpcExamples": [
+        "workspace/list",
+        "workspace/search",
+        "workspace/read",
+        "workspace/write",
+        "workspace/mkdir",
+        "workspace/copy",
+        "workspace/remove",
+        "workspace/download",
+        "workspace/recovery/list",
+        "workspace/recovery/restore"
+      ],
+      "qualification": "固定项目范围、revision冲突确认；自动外部修改检查是有界轮询，不冒充native watcher。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "Git 与 worktree",
+      "entrypoint": "项目文件→Git/工作区管理/索引恢复",
+      "sources": [
+        "web/components/WorkspaceGit.tsx",
+        "web/components/WorkspaceIndex.tsx",
+        "web/components/WorkspaceCommit.tsx",
+        "web/components/WorkspaceIndexRecovery.tsx",
+        "web/components/WorkspaceWorktrees.tsx"
+      ],
+      "rpcExamples": [
+        "workspace/git/status",
+        "workspace/git/diff",
+        "workspace/git/refs",
+        "workspace/git/stage",
+        "workspace/git/unstage",
+        "workspace/git/commit",
+        "workspace/git/index/recovery/restore",
+        "workspace/worktree/create",
+        "workspace/worktree/attach",
+        "workspace/worktree/archive",
+        "workspace/worktree/restore"
+      ],
+      "qualification": "写前HEAD/index/revision；保留材料与positive receipt分开。浏览器fixture不替代Linux实际Git证明。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "项目与组织",
+      "entrypoint": "侧栏添加项目/会话组织；当前会话项目、分区、关联元数据",
+      "sources": [
+        "web/components/ProjectDialog.tsx",
+        "web/components/OrganizationPanel.tsx",
+        "web/components/NativeProjects.tsx",
+        "web/components/ThreadOrganization.tsx"
+      ],
+      "rpcExamples": [
+        "project/add",
+        "nativeProject/list",
+        "nativeProject/create",
+        "nativeProject/import",
+        "nativeProject/update",
+        "nativeProject/move",
+        "nativeProject/delete",
+        "threadSection/list",
+        "threadSection/create",
+        "threadSection/update",
+        "threadSection/delete",
+        "thread/project/set",
+        "thread/section/move",
+        "thread/attachment/list",
+        "thread/attachment/add",
+        "thread/attachment/remove"
+      ],
+      "qualification": "注册目录ID与原生组织ID区分；删除组织只解除关联。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "终端与进程",
+      "entrypoint": "顶部项目终端/独立命令/会话命令与后台终端/官方云任务",
+      "sources": [
+        "web/components/TerminalPanel.tsx",
+        "web/components/ProcessPanel.tsx",
+        "web/components/ThreadTerminals.tsx"
+      ],
+      "rpcExamples": [
+        "terminal/open",
+        "terminal/write",
+        "terminal/resize",
+        "terminal/close",
+        "process/spawn",
+        "process/read",
+        "process/kill",
+        "thread/backgroundTerminals/list",
+        "thread/backgroundTerminals/terminate",
+        "thread/backgroundTerminals/clean",
+        "thread/shellCommand"
+      ],
+      "qualification": "浏览器PTY/独立进程的树清理依赖后端OS proof；原生thread clean仅cleanupRequested，无额外OS proof，不冒称成功清空。云能力由真实账号/官方CLI判断。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "技能",
+      "entrypoint": "设置→扩展→技能；输入框引用选择",
+      "sources": [
+        "web/components/SkillSettings.tsx",
+        "web/components/SkillLibraryTools.tsx",
+        "web/components/InputContextPicker.tsx"
+      ],
+      "rpcExamples": [
+        "skills/list",
+        "skills/read",
+        "skills/config/write",
+        "skills/extraRoots/read",
+        "skills/extraRoots/set",
+        "workspace/mkdir",
+        "workspace/write"
+      ],
+      "qualification": "创建/导入SKILL.md逐步durable且不覆盖；写后forceReload核验，不按文本授予权限。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "插件与市场",
+      "entrypoint": "设置→扩展→插件与市场/插件共享",
+      "sources": [
+        "web/components/PluginSettings.tsx",
+        "web/components/PluginSharing.tsx"
+      ],
+      "rpcExamples": [
+        "plugin/list",
+        "plugin/search",
+        "plugin/read",
+        "plugin/install",
+        "plugin/uninstall",
+        "marketplace/add",
+        "marketplace/remove",
+        "marketplace/upgrade",
+        "plugin/share/list",
+        "plugin/share/preview",
+        "plugin/share/save"
+      ],
+      "qualification": "真实策略约束；写后重读，reconcile不称工具已就绪。外部市场/共享服务未实际写入验收。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "Apps 与 hooks",
+      "entrypoint": "设置→扩展→Apps/技能与Hooks；输入框App引用；历史Hook正文",
+      "sources": [
+        "web/components/RuntimeInsights.tsx",
+        "web/components/SkillSettings.tsx",
+        "web/components/HookEventsPanel.tsx",
+        "web/components/Messages.tsx",
+        "web/components/InputContextPicker.tsx"
+      ],
+      "rpcExamples": [
+        "app/list",
+        "app/installed",
+        "app/read",
+        "hooks/list",
+        "terminal/open"
+      ],
+      "qualification": "认证链接不代表成功。Hooks信任走固定官方CLI按内容哈希；运行结果仅当前连接有界通知；hookPrompt纯文本来源不作为授权。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "MCP",
+      "entrypoint": "设置→MCP工具、资源、事件与服务器配置",
+      "sources": [
+        "web/components/McpPanel.tsx",
+        "web/components/McpArguments.tsx",
+        "web/components/McpConfiguration.tsx",
+        "web/components/McpContent.tsx"
+      ],
+      "rpcExamples": [
+        "mcp/list",
+        "mcp/config/read",
+        "mcp/config/write",
+        "mcp/reload",
+        "mcp/tool/call",
+        "mcp/result/read",
+        "mcp/resource/read",
+        "mcp/stream/start",
+        "mcp/stream/stop"
+      ],
+      "qualification": "发现schema验证、owner结果、isError和unknown区分。无真实外部MCP调用验收。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "结构化输入输出",
+      "entrypoint": "输入框附件/引用/补充上下文/输出Schema；历史按需媒体",
+      "sources": [
+        "web/components/Composer.tsx",
+        "web/components/InputContextPicker.tsx",
+        "web/components/MessageMedia.tsx"
+      ],
+      "rpcExamples": [
+        "conversation/start",
+        "turn/start",
+        "turn/steer",
+        "thread/queue/add",
+        "thread/queue/update",
+        "attachment/history/read",
+        "workspace/download"
+      ],
+      "qualification": "媒体必须实际模型目录支持；steer无法证明独立当前模型时拒绝媒体。历史外部图片不自动取图。本轮无媒体模型付费调用。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "自动化",
+      "entrypoint": "侧栏→自动化→计划/预览/运行记录",
+      "sources": [
+        "web/components/AutomationsPanel.tsx",
+        "web/components/AutomationForm.tsx"
+      ],
+      "rpcExamples": [
+        "automation/list",
+        "automation/read",
+        "automation/preview",
+        "automation/create",
+        "automation/update",
+        "automation/pause",
+        "automation/resume",
+        "automation/run",
+        "automation/stop",
+        "automation/acknowledge"
+      ],
+      "qualification": "应用调度实现，默认暂停、五次预览、时区DST说明；unknown不重放。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "记忆与配置",
+      "entrypoint": "设置→扩展→记忆与诊断/配置与功能；会话组织→会话记忆",
+      "sources": [
+        "web/components/MemorySettings.tsx",
+        "web/components/RuntimeInsights.tsx",
+        "web/components/ConfigSettings.tsx",
+        "web/components/ProjectTrustSettings.tsx",
+        "web/components/ThreadOrganization.tsx",
+        "web/components/DiagnosticsPanel.tsx"
+      ],
+      "rpcExamples": [
+        "settings/read",
+        "settings/write",
+        "memory/status",
+        "memory/reset",
+        "thread/memoryMode/set",
+        "rollout/compress",
+        "project/trust/read",
+        "project/trust/write"
+      ],
+      "qualification": "生成/use只dotted leaf CAS；会话mode原生无读取字段，不能伪造跨刷新状态。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "账号与诊断",
+      "entrypoint": "设置→模型账户/供应商/记忆与诊断/服务管理",
+      "sources": [
+        "web/components/AccountSettings.tsx",
+        "web/components/AccountToolsPanel.tsx",
+        "web/components/CreditNudge.tsx",
+        "web/components/ProviderSettings.tsx",
+        "web/components/RuntimeInsights.tsx",
+        "web/components/DiagnosticsPanel.tsx",
+        "web/components/CliDiagnosticsPanel.tsx"
+      ],
+      "rpcExamples": [
+        "account/login",
+        "account/login/handoff",
+        "account/login/cancel",
+        "account/logout",
+        "account/rateLimits",
+        "account/usage/read",
+        "account/workspaceMessages/read",
+        "server/diagnostics",
+        "feedback/save",
+        "feedback/upload"
+      ],
+      "qualification": "设备码及OAuth只owner内存；额度重置/邮件/反馈上传显式动作。原始native ZIP有明确敏感内容说明，不冒称脱敏；本轮未消费额度或外部登录。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "执行环境与远程控制",
+      "entrypoint": "输入框环境选择；设置→执行环境与远程控制",
+      "sources": [
+        "web/components/EnvironmentPicker.tsx",
+        "web/components/RemoteSettings.tsx"
+      ],
+      "rpcExamples": [
+        "environment/list",
+        "environment/add",
+        "environment/info",
+        "environment/status",
+        "remoteControl/status/read",
+        "remoteControl/enable",
+        "remoteControl/disable",
+        "remoteControl/pairing/start",
+        "remoteControl/pairing/read",
+        "remoteControl/client/revoke"
+      ],
+      "qualification": "远端cwd不冒充本地目录；注册连接持久至服务重启，选择与注册分开；配对秘密不进receipt。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "实时语音",
+      "entrypoint": "会话操作→实时语音与文字；统一历史转写",
+      "sources": [
+        "web/components/RealtimePanel.tsx",
+        "web/components/Messages.tsx"
+      ],
+      "rpcExamples": [
+        "thread/realtime/listVoices",
+        "thread/realtime/start",
+        "thread/realtime/read",
+        "thread/realtime/appendText",
+        "thread/realtime/stop"
+      ],
+      "qualification": "用户开始才请求设备/供应商；WebRTC权限、owner断线停设备，历史双路完整性。没有真实付费语音联调。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    },
+    {
+      "scope": "导入与维护",
+      "entrypoint": "设置→扩展→导入；服务管理→原生CLI诊断",
+      "sources": [
+        "web/components/ImportPanel.tsx",
+        "web/components/CliDiagnosticsPanel.tsx"
+      ],
+      "rpcExamples": [
+        "import/preview",
+        "import/apply",
+        "import/history",
+        "diagnostics/cli/run",
+        "diagnostics/cli/result/read"
+      ],
+      "qualification": "fresh previewHash与选中项，执行风险独立确认，未知不重放；固定诊断种类，实际CLI运行证据归root/runtime。",
+      "state": "real_entrypoints_present_acceptance_scoped_to_evidence"
+    }
+  ],
+  "materialGapsFoundAndAddressed": [
+    "Native thread background terminals/shell entry was missing; added ThreadTerminals with native identity and outcome semantics.",
+    "Global memory generation/use controls were missing; added leaf-only CAS controls.",
+    "Device login could lose handoff/repeat unknown operations; moved secrets to owner readback and preserved identity recovery across settings lifecycle.",
+    "Hook execution results were absent; added current-connection bounded records and root added hookPrompt history text.",
+    "Loaded thread directory, next-step prediction and official cloud CLI entry were absent; added explicit scoped flows.",
+    "Model input modality gate/audio semantics and historical media preview were incomplete; frontend gate added, runtime audio adapter and root media preview independently implemented.",
+    "Independent CLI diagnostics were absent; root/runtime supplied fixed diagnostic backend and component."
+  ],
+  "remainingAcceptance": [
+    "No new missing webpage entrypoint identified in this narrow mapping; this is not proof that every flow is defect-free.",
+    "Formal freeze and three independent complete repository audits remain required before the full-suite gate.",
+    "Real prediction, authenticated cloud tasks, realtime voice, external MCP/apps/plugin/auth services and reset credit consumption were not exercised by this reviewer.",
+    "Native thread terminal cleanup reports native request/result only; OS proof is separately available for application-owned PTY/process helpers.",
+    "Readonly fixture visual acceptance must remain distinct from deployed 120 integration."
+  ],
+  "sourceHashes": {
+    "web/components/Sidebar.tsx": "81c0515429a255e4d3c90209cbf931acae4d3b5aa9003626d7018680bec1f1a4",
+    "web/components/LoadedThreadsPanel.tsx": "bd57c8e8bd103a79cbe2a5712b40dcc522c260d160c83c55ac9dc10c92105675",
+    "web/components/HistoryTools.tsx": "2da4727f41af7e6618c7aefdc7e926f58080a575dbce4adfac86c75bea33b178",
+    "web/components/ThreadOrganization.tsx": "1341aeb036f1c62f29f0be7a7cddacced45a4dffbf9abd5a0dde4fa91e331e94",
+    "web/components/Composer.tsx": "f2bed7c53e0f8d9a5a3faf60f7a4944613be277785d3df47a4108e49cd9bfb2f",
+    "web/components/ThreadExecutionSettings.tsx": "c184860172e08dd13214854d2c38d0d85685cffb3ceed5cd179bd0dd4d545d9b",
+    "web/components/ProviderSettings.tsx": "c1f765a8a1c6d5fb44d3003679c041fdb13bafcccf0c96c17c994a3c23d087ef",
+    "web/components/ModelCatalog.tsx": "18b08a409c2738342e4923ae89349f0a562fdadba91554dfcec591d83f85cf9d",
+    "web/components/TaskPanel.tsx": "bae846e2040c26ce4d251be623e3c7b88e7b549a1cfc6161bfbbd8b7c4d433c0",
+    "web/components/Messages.tsx": "bfa04524e0370cccede4319033f60c4476eb557bcccae7cc300875707e3c20f1",
+    "web/components/WorkspaceGit.tsx": "d826cab706d8facd9d748be71abd84c6fee30324bf380f1acd5ad81abfa47a30",
+    "web/components/WorkspacePanel.tsx": "6c8643a44ed83d4442a1e7d1064cc63ca9e4680f8f6d1a1c81814194e03e92bf",
+    "web/components/WorkspaceSearch.tsx": "ed70fd959c8a73d2ec970e55e0e2ab728efffad62006d1b9d03b40070f45fdc6",
+    "web/components/FileEditor.tsx": "b6b4d97fe165bed07b4c3fc0842ceb243470e9061687f3a69afab60c00f47464",
+    "web/components/WorkspaceDownload.tsx": "fd238b5b86f5fb918fbd245edf0ddc17733726bb7b342cd17f6ec30118af0e9b",
+    "web/components/WorkspaceRecovery.tsx": "18c39a7ae5ce043e5260f64e3add6e12a298836e70d153c989cd6cd3f50a6b1b",
+    "web/components/WorkspaceIndex.tsx": "85a9963762ba23bb220ae59559330e72ef081af844f09368b915203ba48074a8",
+    "web/components/WorkspaceCommit.tsx": "e73b0b69396331e2c04b65fe4fcb1a2eb8eabefd3b71edfa463ee370885f36c5",
+    "web/components/WorkspaceIndexRecovery.tsx": "9daf6155ffc4b405134b18c00969a539ea8bf87c9734c7a6c8851efce1d8e196",
+    "web/components/WorkspaceWorktrees.tsx": "a695d592af17de638dcf5afb035706c9f9cf63009aaaa2c64b95ef71e4626d1e",
+    "web/components/ProjectDialog.tsx": "668b460be928dd3b49d9c9bc6370fdbebd4895f7b1df02bb34244241050235fd",
+    "web/components/OrganizationPanel.tsx": "257744d770f3955e383208f9bd8a646e62a6b5dfbec12326dff78257594dda34",
+    "web/components/NativeProjects.tsx": "69d0b9cdcda4604cab100fb5bec8092311329bb2682f0e8674a2f537ad0c1dbd",
+    "web/components/TerminalPanel.tsx": "ef9e2e7b6b06f9df2901957c1a880d56662b5bb390fe995644f65ff280781376",
+    "web/components/ProcessPanel.tsx": "e6bacc1a400855618a1184116189fa8bba05c31fd1927409caaa3bfa5d6ae754",
+    "web/components/ThreadTerminals.tsx": "feed2cc07aca88ac398559e4f84a3563cd7c06fb884cde50d9d25d9a9fb0e253",
+    "web/components/SkillSettings.tsx": "2f25d99289a59cc151aa1143374def5fa4287ea56562231b6ca64603760b4493",
+    "web/components/SkillLibraryTools.tsx": "354c5889cd7a550a74d211185073a8596f5c83eaf1acb0fbaf7174e5822ddb81",
+    "web/components/InputContextPicker.tsx": "f4b4032b1bda8a4749a09da1eb32bd0c8d869cd29bedf918573c5da987a2348e",
+    "web/components/PluginSettings.tsx": "ce3f38657d0d5360868c0a5841f4416f71d8ccf0422e0068b9749e12af345d3c",
+    "web/components/PluginSharing.tsx": "b9a978148fa75665042c4f070208a01e7a910601e66fea29530869df3a885e98",
+    "web/components/RuntimeInsights.tsx": "6147750087abf1a3e5ca7183b3450d934a9fc4abade6b98a2c0f95f9a9dd252b",
+    "web/components/HookEventsPanel.tsx": "24a86a726bd405ac7ce1374885c886d9392895e9726be983d812e3fd480abfd1",
+    "web/components/McpPanel.tsx": "3f7e57d92b99fabfafdf6d6251c9c0e25f45c2b1babc571565cf1a1ba9d602e8",
+    "web/components/McpArguments.tsx": "21017e698728d9e39ab3dc4a61eda4ae8123151990c6dd255b40d04b60e52cf0",
+    "web/components/McpConfiguration.tsx": "b8176865b5d4578229d94cc988dd84efa95462d57991faee16d83b193973ae09",
+    "web/components/McpContent.tsx": "44a968523f96f7b9b5caa5730ac5d250fc550d7251d14b9c1513bb15c321b5b7",
+    "web/components/MessageMedia.tsx": "6f3881ef9d3f87a9bebb40493e062837e27d3389d065d5f1a22e28a8335b94ab",
+    "web/components/AutomationsPanel.tsx": "0d7b8f0ede6c6c8959cbedd81a5d9109ef004a40e9c1487589b698c0b949b69e",
+    "web/components/AutomationForm.tsx": "e8bb15463a3c91e7ac5ecdf8ffd3048b20405fa04062903047ca310aef024a34",
+    "web/components/MemorySettings.tsx": "7ef0fe21bb4373c75745637c0ea175fbbadc6024962d4a73224151073035233e",
+    "web/components/ConfigSettings.tsx": "08aa6505e9b1aa685c5f27f153011c78ac79becc19e00b6963ae220599cf97ff",
+    "web/components/ProjectTrustSettings.tsx": "44d9197ba0514cbaecbb90c5e744b0f386396910272e23f86f26b37e29a384bb",
+    "web/components/DiagnosticsPanel.tsx": "7b305cbbd194250bc5be5fc7aef16f5a787122589ba38575c45067d0cef93ed5",
+    "web/components/AccountSettings.tsx": "eb1ed2259bb4a64055af44f0445fb32a6ad0723c3f619f61e23fe0dfb85de4eb",
+    "web/components/AccountToolsPanel.tsx": "a210f360c7d9ed4f430a47af6449d3206022179ad64cc153750bfb2e7fcfa388",
+    "web/components/CreditNudge.tsx": "d9501973b22260730557b42816d10c09ad96220135b9c4b4d9e93c879ba0e5bb",
+    "web/components/CliDiagnosticsPanel.tsx": "b656d349cb1ed4df498b5f7cc415a2757ae8fa3fed2d2ff904d9bd557a54a472",
+    "web/components/EnvironmentPicker.tsx": "bc644d2f00d67091584b65f0cd8a07d17d3509bbe26e90abff15532a903c4e23",
+    "web/components/RemoteSettings.tsx": "86fe970670af04773be320f511c3ae01b8957068d9e4c2150966d270f673726d",
+    "web/components/RealtimePanel.tsx": "4a5e9bee62988fe96a4dffd1ccdc12e2c0997bd5afe4c9b4e9b5ef354483a497",
+    "web/components/ImportPanel.tsx": "3edb62c3ba0e92530b321fadaa7e254c875e6f3f7ecf8f472861d13186089071",
+    "FEATURES.md": "5e70901b9e57faf17f82366c7d136ceb91987ccde0bd6cbe5139e35dc6afb8e8",
+    "web/App.tsx": "58eb9a786ed5a2b111ae97a55dfe63b80fe763c794ebc33e589fe45e71af4d23"
+  },
+  "rpcMappingVerification": "Checked literal RPC strings against current web source; queue, staging, automation, index recovery and feedback methods use explicit fixed-prefix helpers. Environment details refresh through environment/list after explicit environment/info.",
+  "additionalFlows": [
+    {
+      "entrypoint": "会话操作→下一步建议",
+      "source": "web/components/PredictionPanel.tsx",
+      "rpcs": [
+        "thread/prediction/request",
+        "thread/prediction/read"
+      ],
+      "evidence": "verification/audit-evidence/prediction-ui/control-web.json"
+    },
+    {
+      "entrypoint": "顶部云图标→官方云任务 CLI",
+      "source": "web/components/TerminalPanel.tsx",
+      "rpcs": [
+        "terminal/open"
+      ],
+      "program": "codex-cloud",
+      "evidence": "verification/audit-evidence/cloud-terminal-ui/control-web.json"
+    }
+  ],
+  "followupEvidence": "verification/audit-evidence/tool-navigation-ui/control-web.json",
+  "finalReturnNavigationEvidence": "verification/audit-evidence/tool-return-ui/control-web.json"
+}

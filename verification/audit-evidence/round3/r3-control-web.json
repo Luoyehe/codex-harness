@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round3",
+  "reviewerId": "r3-control-web",
+  "digest": "eff71f0b8cd5921e0f227aa10208fc51666ab7156ece4ac88432b1c1d08bb765",
+  "scopes": [
+    "gateway-core",
+    "web-ux"
+  ],
+  "startedAt": "2026-10-24T19:46:07.233Z",
+  "completedAt": "2026-10-24T19:55:22.1245554Z",
+  "complete": true,
+  "method": "Read every assigned source, test, CSS, configuration and documentation file in full; reread all truncated portions. Independently traced authentication, CSRF/origin checks, connection leases, receipt persistence/replay, async ownership, history reconciliation, approval controls, terminal lifecycle and settings. Used two focused ignored local probes, including real loopback HTTP/WebSocket transport for slow-response retention. Tests were supporting evidence, not proof of correctness. Verified the frozen source digest before publication.",
+  "inspectedFiles": [
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/ledger.ts",
+    "src/core/validation.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "tests/core/ledger.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/components/AccountSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/Composer.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/Icon.tsx",
+    "web/components/Login.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/Welcome.tsx",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/operations.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/types.ts",
+    "web/main.tsx",
+    "web/styles-responsive.css",
+    "web/styles.css",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/preview-server.mjs",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings.test.tsx",
+    "web/tests/terminal.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "findings": [
+    {
+      "id": "R3-CW-01",
+      "priority": "P2",
+      "title": "Recover or close a terminal whose accepted HTTP result is lost",
+      "locations": [
+        {
+          "path": "web/components/TerminalPanel.tsx",
+          "startLine": 67,
+          "endLine": 73
+        },
+        {
+          "path": "web/lib/operations.ts",
+          "startLine": 76,
+          "endLine": 85
+        },
+        {
+          "path": "web/components/Recovery.tsx",
+          "startLine": 40,
+          "endLine": 40
+        }
+      ],
+      "description": "When terminal/open is durably accepted and its receipt is received over the still-live WebSocket, losing only its HTTP response leaves the TerminalPanel without terminalId. Receipt reconciliation retains accepted status but discards result.terminalId. The recovery row then offers only acknowledgement, while the panel offers another open with no recover or close action. Later output for the accepted terminal is ignored. The existing runtime keeps this shell running without a timeout until its authenticated owner disconnects; it occupies a terminal slot and prevents configuration changes while it exists. This concerns a positively accepted result, not the unavoidable uncertainty of a request without a receipt.",
+      "reproduction": "Open a terminal with a stable owner; deliver its accepted receipt containing terminalId before rejecting the fetch with a transport error. The isolated component probe observes one accepted operation, an enabled open button, no close button, no query-receipt button, and zero terminal/close requests. Owned output afterward still does not restore controls.",
+      "evidence": [
+        ".work/r3-control-web-terminal-recovery.test.tsx",
+        "src/runtime/service.ts:304-320"
+      ],
+      "recommendation": "Keep or reread the durable terminal result and bind an explicit recover/close action to its original live owner, or safely close the accepted orphan when recovery is possible; do not silently discard its resource identity."
+    },
+    {
+      "id": "R3-CW-02",
+      "priority": "P2",
+      "title": "Retain a bounded HTTP output reservation until the response drains or closes",
+      "locations": [
+        {
+          "path": "src/gateway/server.ts",
+          "startLine": 26,
+          "endLine": 30
+        },
+        {
+          "path": "src/gateway/server.ts",
+          "startLine": 178,
+          "endLine": 196
+        }
+      ],
+      "description": "GatewayServer releases the only request reservation immediately after json calls res.end, although a slow client can leave that response buffered. The byte budget charges request input only, the sockets limit applies to WebSockets only, and there is no global HTTP output/connection budget or response write timeout. Node applies per-connection pipeline backpressure but additional authenticated HTTP connections remain admitted, so unread response data can accumulate outside the declared budgets.",
+      "reproduction": "A real isolated gateway with one authenticated event owner and eight paused HTTP readers accepted three sequential thread/read requests on each connection. Each response was 6 MiB, within the runtime history and gateway response limits. All 24 requests were forwarded; eight responses remained not writableFinished with combined writableLength 50337032 bytes. A separate bounded probe admitted 52 independent HTTP connections using the same owner, confirming the WebSocket count does not cap HTTP connections. Initial single-response probes were absorbed by OS send buffers and were not counted as proof of JavaScript response retention.",
+      "evidence": [
+        ".work/r3-control-web-slow-http.test.ts",
+        ".work/r3-control-web-http-result.json",
+        "src/runtime/types.ts:9"
+      ],
+      "recommendation": "Charge encoded responses against a global output budget before retention and release only on finish/close, with bounded active HTTP connections and a slow-response timeout or equivalent explicit admission policy."
+    }
+  ],
+  "skipped": [],
+  "limits": [
+    "No full suite was run. Two final focused ignored probes passed; exploratory slow-reader assumptions initially failed and were refined using observed transport behavior.",
+    "No user browser, remote instance, online deployment, personal runtime home, paid inference or real external MCP was accessed.",
+    "The local terminal probe used a component transport substitute; runtime source independently establishes the indefinite shell and owner-scoped cleanup behavior.",
+    "Assigned web/VERIFICATION.md includes historical implementation and repair notes; it was read as required documentation but its conclusions were not used as audit evidence. No verification/audit-evidence reports were read."
+  ]
+}

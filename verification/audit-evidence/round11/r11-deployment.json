@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round11",
+  "reviewerId": "r11-deployment",
+  "digest": "1f4f3724cdad1ccad3c8623bb947c25f6bdd6c41a03c4bdaa7376d07353003e7",
+  "complete": true,
+  "scopes": [
+    "deployment-release"
+  ],
+  "startedAt": "2026-10-25T15:54:29.1693172Z",
+  "completedAt": "2026-10-25T16:08:41.831Z",
+  "method": "Fresh independent deployment/release audit of all 115 assigned current files (1,456,370 bytes). Read AGENTS.md first. Fully read every assigned deployment module, ordinary and root test, new native-env fixture, release/test/snapshot script, CI/configuration and documentation; followed installation, release preparation, UID/file/process authority, resource bounds, publication/rollback, provider/system layer, HTTPS identity, control-update and workspace recovery paths. Re-read every truncated output segment before completion. Read all feature-evidence prose and fields. For the large capability JSON, used lossless parsed structure plus human review of all 178 method mappings, all 50 unique group assessments and references, all 15 additional workflows, all metadata/limits; repeated assessments were checked for exact equality and every SHA-256 reference was independently checked against bytes. Read the lock header/importers and strictly parsed every one of its 3,111 lines, rejecting unknown grammar/duplicate keys; checked all 336 package and 336 snapshot structures, 644 dependency edges, integrity canonical form, manifest/workspace equality, approved overrides, engines/platform/peer metadata. Historical audit references were opaque byte/hash checks only; no prior audit findings, prior fixes lists, old/sibling implementation, preexisting repository history, credentials or external services were inspected. Executed only six exact affected test files through the official targeted runner, retaining negative-fixture output. All product/source files remained unchanged. Verified the current full source snapshot at completion.",
+  "inspectedFiles": [
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "reference/PROTOCOL-CONTRACT.md",
+    "reference/PROVENANCE.json",
+    "scripts/release-audit.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ],
+  "findings": [],
+  "skipped": [],
+  "validations": [
+    {
+      "name": "official-exact-targeted-tests",
+      "status": "passed",
+      "command": "HARNESS_TEST_PYTHON=<explicit Python 3.12.14> node scripts/run-tests.mjs --targeted tests/deploy/test_dependency_lock.py tests/deploy/test_journal_schema.py tests/deploy/test_origins.py tests/tooling/run-tests.test.ts tests/tooling/select-tests.test.ts tests/tooling/release-audit.test.ts",
+      "python": "<HARNESS_TEST_PYTHON>",
+      "node": "24.15.0",
+      "platform": "Windows",
+      "files": [
+        "tests/deploy/test_dependency_lock.py",
+        "tests/deploy/test_journal_schema.py",
+        "tests/deploy/test_origins.py",
+        "tests/tooling/run-tests.test.ts",
+        "tests/tooling/select-tests.test.ts",
+        "tests/tooling/release-audit.test.ts"
+      ],
+      "exitCode": 0,
+      "javascript": {
+        "files": 3,
+        "passed": 44,
+        "failed": 0,
+        "pending": 0
+      },
+      "pythonTests": {
+        "files": 3,
+        "passed": 12,
+        "failed": 0,
+        "skipped": 0
+      },
+      "notes": "Tooling tests intentionally construct synthetic temporary repositories and emit expected failing/empty/skipped nested runner cases. These are asserted negative cases, not omitted top-level tests. No full repository or full JavaScript suite was executed.",
+      "log": ".work/round11/r11-deployment-targeted.log"
+    },
+    {
+      "name": "lock-full-structure",
+      "status": "passed",
+      "sha256": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63",
+      "bytes": 102240,
+      "lines": 3111,
+      "parsedNonblankLines": 2433,
+      "packageCount": 336,
+      "snapshotCount": 336,
+      "edgeCount": 644,
+      "packageFields": {
+        "resolution": 336,
+        "engines": 178,
+        "hasBin": 11,
+        "peerDependencies": 23,
+        "peerDependenciesMeta": 13,
+        "cpu": 46,
+        "os": 47,
+        "libc": 10
+      },
+      "overrides": {
+        "@z_ai/mcp-server@0.1.5>@modelcontextprotocol/sdk": "1.32.2",
+        "zod": "4.6.7"
+      },
+      "allImportersMatchPackageJson": true,
+      "allDependencyEdgesResolve": true,
+      "allIntegrityValuesCanonical64ByteSha512": true,
+      "allPackageMetadataFieldsRecognized": true,
+      "evidence": ".work/round11/r11-lock-structure.json"
+    },
+    {
+      "name": "capability-full-structure",
+      "status": "passed",
+      "typedMethods": 178,
+      "jsonMethods": 175,
+      "stableMethods": 106,
+      "experimentalMethods": 69,
+      "legacyMethods": 3,
+      "evidenceGroups": 50,
+      "additionalWorkflows": 15,
+      "methodMembershipAndAssessmentsMatch": true,
+      "allSourceReferencesExist": true,
+      "allDeclaredCountsRecomputed": true,
+      "referencesChecked": 763,
+      "missing": [],
+      "evidence": ".work/round11/r11-capability-check.json"
+    },
+    {
+      "name": "feature-evidence-byte-bindings",
+      "status": "checked",
+      "checks": 825,
+      "matching": 797,
+      "historicalSourceHashesChanged": 28,
+      "missing": 0,
+      "currentCapabilityHashes": {
+        "matching": 674,
+        "changed": 0,
+        "missing": 0
+      },
+      "notes": "The 28 changed hashes belong to explicitly point-in-time historical feature batches, which disclose moving-source limitations. They were not treated as current execution evidence. All capability-inventory hashes match current bytes. Old audit JSON was read only as opaque bytes for hashing.",
+      "evidence": ".work/round11/r11-deployment-evidence-hashes.json"
+    },
+    {
+      "name": "final-source-snapshot",
+      "status": "passed",
+      "files": 1785,
+      "digest": "1f4f3724cdad1ccad3c8623bb947c25f6bdd6c41a03c4bdaa7376d07353003e7"
+    },
+    {
+      "name": "python-yaml-availability-probe",
+      "status": "failed",
+      "command": "<explicit Python> -B -c \"import yaml; print(yaml.__version__)\"",
+      "detail": "ModuleNotFoundError: No module named yaml. No dependency was installed; replaced with a strict parser for all grammar present in this lock.",
+      "resolvedBy": "lock-full-structure"
+    },
+    {
+      "name": "lock-parser-first-attempt",
+      "status": "failed",
+      "detail": "Strict parser rejected sequence syntax at line 1644: - supports-color. Added explicit bounded sequence handling and reran the entire lock successfully.",
+      "evidence": ".work/round11/r11-lock-check.log",
+      "resolvedBy": ".work/round11/r11-lock-check-2.log"
+    },
+    {
+      "name": "capability-parser-first-attempt",
+      "status": "failed",
+      "detail": "The initial method regex expected an unquoted TypeScript property and counted zero. Inspected the generated quoted property, corrected the regex, and reran the complete check successfully.",
+      "evidence": ".work/round11/r11-capability-check.log",
+      "resolvedBy": ".work/round11/r11-capability-check-2.log"
+    }
+  ],
+  "limitations": [
+    "This is an independent source/structure audit plus narrowly selected local tests. No full suite, full JavaScript inventory, build, installation or release was executed; those remain later gates.",
+    "No Linux root/systemd/cgroup/UID/network namespace/loop mount/real reboot acceptance was executed this round. Root and Linux-only tests were fully reviewed but were not invoked or counted as passing. Existing Linux feature evidence is historical evidence only.",
+    "No SSH, online instance mutation, public TLS issuance, real Authelia login, production restoration, authenticated cloud task, paid inference, external MCP or personal credential/configuration access occurred.",
+    "Integrity strings and source/report hashes were checked locally; this round did not re-query upstream registries/releases or perform a fresh online vulnerability audit.",
+    "Hash checking establishes correspondence of referenced bytes. Historical passing tests, synthetic fixtures and current method inventories do not establish current external service/account eligibility or full end-to-end business acceptance."
+  ],
+  "artifacts": [
+    {
+      "path": ".work/round11/r11-deployment-targeted.log",
+      "sha256": "55651365856b4ffe5de7aedfae5c49b242092cd061e7c267ba6076edbf40cacd"
+    },
+    {
+      "path": ".work/test-results/run-vmoBhp/vitest.json",
+      "sha256": "8440b7ccdbbec0d30bfaaf2fd400991e52fc9ea8fa75b8c1d2e3ecf9a41bb506"
+    },
+    {
+      "path": ".work/round11/r11-evidence-check.mjs",
+      "sha256": "e411a304cf14327387f1eef0ee990fc47783ad9e77041396026e803f0ae6d5a5"
+    },
+    {
+      "path": ".work/round11/r11-deployment-evidence-hashes.json",
+      "sha256": "36933e215c1ae24c105f183918da1c2bbb705a6e2c675a78c6ecfabe63af9577"
+    },
+    {
+      "path": ".work/round11/r11-capability-normalized.jsonl",
+      "sha256": "8d364a8c880ec45fa96a18fb3b46bcb50c1d5ab1a7055702cb4301fa90363b8c"
+    },
+    {
+      "path": ".work/round11/r11-capability-check.mjs",
+      "sha256": "07db849570eb2c665f21a35f3e2e0b38b996a11736d28dafd5810dcc53b5fd5b"
+    },
+    {
+      "path": ".work/round11/r11-capability-check.log",
+      "sha256": "64e04111fa4d93f85ae134217dae7043476d7a16b5db65d68a5012a661ecc9d3"
+    },
+    {
+      "path": ".work/round11/r11-capability-check-2.log",
+      "sha256": "8e141fd5cb2a72dcd7cfeaedd3bd7293911142a7f24e91e878b8db99826de395"
+    },
+    {
+      "path": ".work/round11/r11-capability-check.json",
+      "sha256": "170803260b6f751140ee2f740962874028286c859b74e2ec20b4a19e1f811144"
+    },
+    {
+      "path": ".work/round11/r11-lock-check.py",
+      "sha256": "a410e2d8b53013c1aa06989c070d4ab3a53ff5a2271da53d5295b034bb818e18"
+    },
+    {
+      "path": ".work/round11/r11-lock-check.log",
+      "sha256": "f976b564b517cfa8ca2b91677abd9b0b7bd16e27c26b5448670bd5d32e122be9"
+    },
+    {
+      "path": ".work/round11/r11-lock-check-2.log",
+      "sha256": "d8204ed6604c1c28971c8b44868e0816ccdde5d925295df715b00f3173a1a54c"
+    },
+    {
+      "path": ".work/round11/r11-lock-structure.json",
+      "sha256": "ebced6237c309acd5cb6161d00e0b93450957f2cca6907b618e5fc0f5a5a02aa"
+    }
+  ]
+}

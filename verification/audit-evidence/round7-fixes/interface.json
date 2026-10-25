@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round7-fixes",
+  "reviewerId": "r7-interface",
+  "status": "fixed-and-targeted-verified",
+  "baseAuditSnapshotDigest": "3a355d650d3f4cdb8cd6952bebf1c8f039df1c2f4f61a1ffdc77ccb325dbe5b8",
+  "firstRecordedUtcCheckpoint": "2026-10-25T09:47:16Z",
+  "completedAt": "2026-10-25T09:55:50.176Z",
+  "sourceFiles": [
+    {
+      "path": "web/components/ProcessPanel.tsx",
+      "sha256": "b354aa64dd1a3627c62e2de428d0d634fe6f197484bb05c82463bc0514b57c11"
+    },
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "sha256": "9671339dd426af495a7f05d06973cbb02dc07ac2903e22ee1266292f8ef3d561"
+    }
+  ],
+  "addressedFindings": [
+    {
+      "id": "R7-INTERFACE-01",
+      "priority": "P2",
+      "status": "fixed",
+      "file": "web/components/ProcessPanel.tsx",
+      "originalLine": 52,
+      "finalLines": [
+        43,
+        44,
+        45,
+        55,
+        62,
+        83
+      ],
+      "change": "Process selection, stdin text and revision now share one state. Every explicit selection and text edit advances the revision. The send kind explicitly distinguishes text from interrupt and close controls. Only an accepted text call may clear the exact submitted processHandle and revision. Control-only success leaves input intact. Existing workflow receipt, unknown-outcome and no-replay behavior remain in use.",
+      "regressionCoverage": [
+        "Ctrl+C with unsent text",
+        "closeStdin with unsent text",
+        "unchanged accepted text clears once",
+        "later text edit",
+        "A-to-B-to-A edit",
+        "new process same text",
+        "selection away and back with same text",
+        "not_sent retains draft",
+        "unknown followed by original accepted receipt retains draft and does not replay",
+        "epoch replacement",
+        "connection replacement",
+        "disconnect/reconnect in the same component",
+        "unmount/remount"
+      ]
+    }
+  ],
+  "fixPhaseDiscoveries": [
+    {
+      "id": "R7-FIX-INTERFACE-02",
+      "priority": "P2",
+      "status": "fixed",
+      "file": "web/components/ProcessPanel.tsx",
+      "originalLines": [
+        63,
+        70
+      ],
+      "finalLines": [
+        77,
+        80,
+        85
+      ],
+      "trigger": "A delayed process/spawn response arrives after the user selected another process or edited stdin; even an unchanged pre-existing draft was carried into the spawned process. A delayed removal of exited process A arrives after the user selected running process B and typed a draft.",
+      "impact": "Spawn success silently rebinds an unsent draft to another process. Removal success clears the later selected process and hides or discards its draft.",
+      "evidence": "Three delayed-spawn component tests failed against the original source in run-96kgbl. The delayed-removal component test failed before its guard in run-qyC5zv. All four pass in the final run.",
+      "change": "Successful spawn auto-selects only when the captured owner/revision is still current and no unsent input exists. Otherwise it refreshes the process list and visibly explains that the process started but the current selection/input was retained. Successful removal clears selection only when its captured owner/revision remains current.",
+      "auditRecordHandling": "Discovered and recorded during the authorized repair phase; no old round7 audit evidence or coverage was modified."
+    }
+  ],
+  "implementationReview": "Re-read the final component. All asynchronous writers of process selection are covered: explicit selection/disconnect changes revision; spawn and removal check their captured owner/revision; accepted stdin checks the submitted owner/revision and intent kind. Epoch/connection replacement still remounts the process session, and useWorkflow still suppresses results after unmount. No mutation or receipt API was changed.",
+  "validation": {
+    "method": "Test-first React/jsdom interactions using real Api/useWorkflow/local operation storage with an isolated fetch fixture and deferred response promises. These are component regressions, not source-extraction VM checks.",
+    "newComponentTests": 17,
+    "reports": [
+      {
+        "phase": "original-defect-red",
+        "path": ".work/test-results/run-UvH35C/vitest.json",
+        "tests": 20,
+        "failed": 6,
+        "passed": 14,
+        "purpose": "Real component interactions first reproduced control-only loss, A-B-A edits, process changes and same-key reconnect before implementation.",
+        "sha256": "c967ea73c4b08e54ac60e67db9464f3fe191bfd3f00f55996fb1621a0eb16dee"
+      },
+      {
+        "phase": "spawn-ownership-red",
+        "path": ".work/test-results/run-96kgbl/vitest.json",
+        "tests": 23,
+        "failed": 9,
+        "passed": 14,
+        "purpose": "Three newly added delayed-spawn cases also failed on the original implementation.",
+        "sha256": "c96408401d4d1777f5df417d4823e66be23f663de38ee330b1aa8b6c8c8d36f8"
+      },
+      {
+        "phase": "initial-green",
+        "path": ".work/test-results/run-AK28zv/vitest.json",
+        "tests": 23,
+        "failed": 0,
+        "passed": 23,
+        "purpose": "Original defect and delayed-spawn ownership were repaired before additional notice/removal regressions.",
+        "sha256": "39a8fe16cdf773bcdfd9467848897b521ca5cd240887dfeeb3bae5167faac2e1"
+      },
+      {
+        "phase": "notice-and-removal-red",
+        "path": ".work/test-results/run-qyC5zv/vitest.json",
+        "tests": 24,
+        "failed": 4,
+        "passed": 20,
+        "purpose": "Three requested success-notice assertions and one newly confirmed delayed-removal ownership case failed before those final changes.",
+        "sha256": "485e56151d52ecfda18cd6d77e2b044b511c042e2199c1fd38d773569340d9ef"
+      },
+      {
+        "phase": "final-green",
+        "path": ".work/test-results/run-YLchsT/vitest.json",
+        "tests": 58,
+        "failed": 0,
+        "passed": 58,
+        "purpose": "Final process-remote 24, workflows 28 and recovery 6 tests, counted once.",
+        "sha256": "6d36ef519cfc944550e8deb3e00fdcfd6812272bf7c5ac1d9a1e93e41ba846bb"
+      }
+    ],
+    "finalCommands": [
+      {
+        "command": "node scripts/run-tests.mjs --targeted web/tests/process-remote.test.tsx web/tests/workflows.test.tsx web/tests/recovery.test.tsx",
+        "exitCode": 0,
+        "passed": 58,
+        "files": 3,
+        "result": ".work/test-results/run-YLchsT/vitest.json"
+      },
+      {
+        "command": "pnpm exec tsc -p web/tsconfig.json --noEmit",
+        "exitCode": 0,
+        "output": "",
+        "result": "passed; tool execution returned no diagnostics"
+      }
+    ],
+    "repeatedRunsNotAddedToFinalCount": true,
+    "limits": [
+      "No full repository suite",
+      "No production build",
+      "No real browser or screenshot QA",
+      "No real process/PTY or external network service",
+      "No SSH or deployment",
+      "No actual model or external MCP",
+      "No personal home or credentials",
+      "This scoped repair evidence is not a new independent clean full audit"
+    ]
+  },
+  "ownership": {
+    "changedProductFilesOnly": [
+      "web/components/ProcessPanel.tsx",
+      "web/tests/process-remote.test.tsx"
+    ],
+    "oldAuditAndCoverageEdited": false,
+    "sourceWritesStopped": true
+  }
+}

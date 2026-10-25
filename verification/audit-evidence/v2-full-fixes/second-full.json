@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "kind": "full-test-attempt",
+  "attempt": 2,
+  "digest": "41816690ad436ed6c333bd33bec231981bf97710b950fdd887e52789526bb8a7",
+  "createdAt": "2026-10-25T20:33:58.842Z",
+  "status": "failed-publication-blocked",
+  "windows": {
+    "javascript": {
+      "cases": 1043,
+      "passed": 1040,
+      "failed": 1,
+      "skipped": 2
+    },
+    "python": {
+      "cases": 298,
+      "passed": 147,
+      "failed": 0,
+      "skipped": 151
+    },
+    "sourceUnchanged": true,
+    "cleanupConfirmed": true,
+    "failedCase": "tests/runtime/defaults-lifecycle.test.ts: closing the service awaits its actual defaults child held at thread/start",
+    "failure": "Fixture marker did not become visible within the polling deadline; cause requires bounded investigation."
+  },
+  "linux": {
+    "javascript": {
+      "cases": 1043,
+      "passed": 1029,
+      "failed": 0,
+      "skipped": 14
+    },
+    "pythonNobody": {
+      "cases": 298,
+      "passed": 229,
+      "failed": 0,
+      "skipped": 69
+    },
+    "pythonRoot": {
+      "cases": 69,
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0
+    },
+    "originalExitCodes": {
+      "nobody": 3,
+      "root": 0
+    },
+    "cleanupConfirmed": true
+  },
+  "evidence": [
+    {
+      "path": ".work/final-windows-cpU9C9/result.json",
+      "sha256": "b7d39f1a109ac8609b12e40b95e2789d57693d43b8624fb0d50a4db404c49199"
+    },
+    {
+      "path": ".work/final-windows-cpU9C9/stdout.log",
+      "sha256": "3cab7764be9ceaed64a3597fdcbbede11298d2d6b210915092c674745ed5d8f3"
+    },
+    {
+      "path": ".work/final-windows-cpU9C9/stderr.log",
+      "sha256": "2057046140a2b1a96e2071c6bbf6af42dc1420e9539ec9c7f722e9b1a2f318bd"
+    },
+    {
+      "path": ".work/test-results/run-eMzMH4/vitest.json",
+      "sha256": "ece15391f59360cc7eb37b8f3d0a3025eac69ce5a5055a2f92b7362d92719123"
+    },
+    {
+      "path": ".work/user-directed-release/attempt2/result.json",
+      "sha256": "65ea3aabc31c486ab13bd9c9644fc3dc8a334b1c12f08b6af0dbb1564cf71948"
+    },
+    {
+      "path": ".work/user-directed-release/attempt2/nobody-bundle.json",
+      "sha256": "1b3b12549eb86bb101aa1907e1acf6effd941a011c14d4a1e8b0c1667bf2e110"
+    },
+    {
+      "path": ".work/user-directed-release/attempt2/root-bundle.json",
+      "sha256": "2fef7cebf67d4680cfb4f88387093b11af17acdaf0a3150f28116e4c28348b14"
+    }
+  ],
+  "limitations": [
+    "Original platform skips remain skips. Windows failure prevents release acceptance despite passing Linux results.",
+    "No live application update or publication occurred. No new clean audit round is claimed."
+  ]
+}

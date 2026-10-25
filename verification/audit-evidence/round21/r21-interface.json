@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round21",
+  "reviewerId": "r21-interface",
+  "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+  "complete": true,
+  "scopes": [
+    "gateway-core",
+    "web-ux"
+  ],
+  "method": "Independently read every assigned file in full, including complete test fixtures, actions, race/failure paths and assertions, CSS, configuration and documentation. Re-read truncated output. Traced authentication, receipt recovery, async ownership and bounded resources across current gateway/core and Web sources, compared prompt behavior against the fixed generated protocol, and used an exact official regression plus three isolated local component probes. No prior audit conclusions or source history were consulted.",
+  "startedAt": "2026-10-25T19:32:22.512Z",
+  "completedAt": "2026-10-25T19:44:42.5359653+00:00",
+  "inspectedFiles": [
+    "src/core/automations.ts",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/extension-methods.ts",
+    "src/core/feature-methods.ts",
+    "src/core/ledger.ts",
+    "src/core/organization-methods.ts",
+    "src/core/process-methods.ts",
+    "src/core/realtime-methods.ts",
+    "src/core/remote-methods.ts",
+    "src/core/schedule.ts",
+    "src/core/validation.ts",
+    "src/core/worktrees.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/organization-receipt.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "assignedManifest": ".work/round21/interface.json",
+  "assignedFileCount": 172,
+  "frozenTotalFiles": 1788,
+  "findings": [
+    {
+      "id": "R21-INTERFACE-001",
+      "priority": 2,
+      "severity": "medium",
+      "title": "Preserve opaque question IDs when constructing prompt answers",
+      "file": "web/components/Prompts.tsx",
+      "lineStart": 30,
+      "lineEnd": 30,
+      "description": "The requestUserInput submit handler builds response with a normal object and assigns response[id]. A schema-valid question whose id is __proto__ invokes the inherited prototype setter rather than creating its own answer property. After the user selects the offered answer A, the rendered component submits JSON {\"answers\":{}}. The runtime requires an own answer for each question and therefore rejects this response; repeating the same UI action cannot answer the waiting native question.",
+      "trigger": "A native item/tool/requestUserInput request with question id __proto__, isOther false and an ordinary offered option A; select A and submit.",
+      "expected": "Serialize the exact opaque question ID as an own property with its selected answer.",
+      "actual": "The component calls onAnswer, but its serialized response contains an empty answers object.",
+      "evidence": [
+        {
+          "path": "protocol/json/ToolRequestUserInputParams.json",
+          "detail": "Question id is an unconstrained string. The isolated fixture passed the current official input schema before rendering."
+        },
+        {
+          "path": "protocol/json/ToolRequestUserInputResponse.json",
+          "detail": "Answers are a dictionary indexed by string question IDs; the expected own-property response passed this schema."
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "lines": "210-224,547-552",
+          "detail": "Supported server requests are retained with original params; answering calls validatePrompt before native respond."
+        },
+        {
+          "path": "src/runtime/validation.ts",
+          "lines": "93-104",
+          "detail": "Every native question must have an own property in answers; otherwise Each question requires an answer is thrown."
+        },
+        {
+          "path": ".work/round21/interface-probe-results.json",
+          "sha256": "2ed108ccf2b80b2c4321e502856ddbd4f9ab1ff11d2d9fe6e448787224193148",
+          "test": "preserves an officially valid __proto__ question ID through the rendered form and JSON serialization",
+          "status": "failed",
+          "actual": "Expected own __proto__ answer; received {answers:{}}."
+        }
+      ],
+      "recommendation": "Construct answer dictionaries without inherited setters, and use own-property access when reading question-indexed state. Add a regression using an opaque prototype-named question ID."
+    },
+    {
+      "id": "R21-INTERFACE-002",
+      "priority": 2,
+      "severity": "medium",
+      "title": "Separate Other selection state from literal answer values",
+      "file": "web/components/Prompts.tsx",
+      "lineStart": 30,
+      "lineEnd": 31,
+      "description": "The UI uses the literal answer value __other as an internal Other-mode sentinel, and the submit loop applies that conversion to every question even when it has no options. Consequently a schema-valid literal __other option is shown as a custom-answer input even with isOther false; an options-null free-text question answered with the exact text __other is rejected locally as incomplete and never reaches onAnswer. These are legitimate protocol values and cannot be distinguished from mode state by comparing answer text.",
+      "trigger": "Either select an offered label __other with isOther false, or enter the literal __other in a free-text question whose options are null, then submit.",
+      "expected": "Submit the exact selected or typed text; enable a separate Other mode only when offered by that question.",
+      "actual": "The offered literal opens an unoffered Other input; the free-text literal produces zero answer calls and cannot be submitted as entered.",
+      "evidence": [
+        {
+          "path": "protocol/json/ToolRequestUserInputParams.json",
+          "detail": "Option labels are strings and options may be null; both local fixtures passed the current official schema with isOther false."
+        },
+        {
+          "path": "src/runtime/validation.ts",
+          "lines": "99-104",
+          "detail": "A non-Other choice is valid when its text equals an offered label; free text has no label restriction."
+        },
+        {
+          "path": ".work/round21/interface-probe-results.json",
+          "sha256": "2ed108ccf2b80b2c4321e502856ddbd4f9ab1ff11d2d9fe6e448787224193148",
+          "tests": [
+            "submits an officially valid literal __other option without opening an unoffered other answer",
+            "submits the literal __other as a free text answer with no select or custom-answer mode"
+          ],
+          "status": "failed",
+          "actual": "The option fixture rendered a custom input despite isOther false; the free-text fixture made zero onAnswer calls."
+        }
+      ],
+      "recommendation": "Track the selected option or Other mode separately from arbitrary user/option strings, and apply custom-answer substitution only to a question explicitly in Other mode. Cover both literal-option and free-text cases."
+    }
+  ],
+  "skipped": [],
+  "validations": [
+    {
+      "kind": "official-targeted-regression",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/prompts.test.tsx",
+      "status": "passed",
+      "files": 1,
+      "tests": 12,
+      "failed": 0,
+      "pending": 0,
+      "raw": ".work/test-results/run-hntDVE/vitest.json",
+      "sha256": "3a2492055fe3f9aec6117f945450b3310d5c46992e4e103e6654229f16398fee",
+      "provenance": "Exact raw path obtained from this reviewer's own command stdout, then hashed directly."
+    },
+    {
+      "kind": "isolated-component-probe",
+      "command": "node node_modules/vitest/vitest.mjs run --config .work/round21/interface-probe.config.ts --passWithNoTests=false --allowOnly=false --reporter=default --reporter=json --outputFile.json=.work/round21/interface-probe-results.json",
+      "status": "failed-as-expected-for-confirmed-defects",
+      "tests": 3,
+      "failed": 3,
+      "pending": 0,
+      "raw": ".work/round21/interface-probe-results.json",
+      "sha256": "2ed108ccf2b80b2c4321e502856ddbd4f9ab1ff11d2d9fe6e448787224193148",
+      "probe": ".work/round21/interface-probe.test.tsx",
+      "probeSha256": "2aac17549e2942b127f8c019eced2970a4557b6eae908a149c91710ef6523654",
+      "config": ".work/round21/interface-probe.config.ts",
+      "configSha256": "1093227c82b4de8c21e94a06cf008d8493c4c31063396eebc9fb6bc3bfda47f8",
+      "provenance": "Parent explicitly authorized local component probes under ignored .work; rendered current Prompts and validated fixtures against exact current standalone protocol JSON. No native process or external service."
+    },
+    {
+      "kind": "probe-setup-limitation",
+      "status": "not-product-evidence",
+      "raw": ".work/round21/interface-probe-startup-error.json",
+      "sha256": "d7b63a5b137ba06577e8e955ed44894f9b59f9129b96ebf24c6ca2e97e97f2b3",
+      "detail": "Initial jsdom import of runtime validation caused Vite's dynamic URL asset transformation to attempt an above-root path; access was denied before any tests executed. No outside content was returned and no filesystem allowlist was widened. Removed that import and used exact current standalone schema files."
+    },
+    {
+      "kind": "probe-setup-limitation",
+      "status": "not-product-evidence",
+      "raw": ".work/round21/interface-probe-schema-setup-error.json",
+      "sha256": "faea5e1f6e40645c1e2f86082950d0e827586ce2bf6b0970ca1307033b0351a0",
+      "detail": "An initial schema-only probe looked in aggregate definitions; these prompt schemas are standalone. Corrected the ignored probe to exact standalone files before obtaining the three product assertion failures."
+    },
+    {
+      "kind": "unused-probe-loader",
+      "status": "not-product-evidence",
+      "detail": "A preliminary node --import tsx expression did not execute because tsx is not installed. No dependency was installed and no source was changed."
+    }
+  ],
+  "supportingReads": [
+    {
+      "path": "AGENTS.md",
+      "coverage": "full"
+    },
+    {
+      "path": "package.json",
+      "coverage": "full"
+    },
+    {
+      "path": "reference/PROTOCOL-CONTRACT.md",
+      "coverage": "full"
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "coverage": "full"
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "coverage": "full"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "coverage": "full"
+    },
+    {
+      "path": "vitest.config.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "src/runtime/validation.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "src/runtime/types.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "src/runtime/structured-output.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "src/runtime/permission-grants.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "coverage": "supporting excerpts only",
+      "lines": "202-242,536-566"
+    },
+    {
+      "path": "protocol/ts/v2/ToolRequestUserInputParams.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "protocol/ts/v2/ToolRequestUserInputQuestion.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "protocol/ts/v2/ToolRequestUserInputOption.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "protocol/ts/v2/ToolRequestUserInputResponse.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "protocol/ts/v2/ToolRequestUserInputAnswer.ts",
+      "coverage": "full"
+    },
+    {
+      "path": "protocol/json/ToolRequestUserInputParams.json",
+      "coverage": "full"
+    },
+    {
+      "path": "protocol/json/ToolRequestUserInputResponse.json",
+      "coverage": "full"
+    }
+  ],
+  "limitations": [
+    "This reviewer completed all 172 assigned files. Other Web tests are allocated to the deployment reviewer; this report does not claim their inspection.",
+    "Assigned web/VERIFICATION.md contains historical implementation and fix descriptions. Its full text was inspected as current documentation; linked prior reports were not opened and their conclusions were not adopted.",
+    "No prior checkout, Git history, previous audit/fix report or personal CODEX_HOME was intentionally accessed. A denied Vite above-root asset attempt during probe setup is disclosed in validations and supplied no external content.",
+    "The exact official regression passes but lacks the confirmed special-ID/literal-answer cases. The three failing local probes are separate diagnostic evidence and are not represented as an official suite pass.",
+    "No full or aggregate test suite, deployment, SSH, real model, external MCP/account integration or microphone was exercised. This audit does not establish those integration outcomes.",
+    "No source, frozen test, product documentation or ordinary feature evidence was modified. Writes were limited to ignored .work probe artifacts and this reviewer evidence file."
+  ]
+}

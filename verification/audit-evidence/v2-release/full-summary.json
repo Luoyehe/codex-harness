@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "kind": "v2-final-full-test-summary",
+  "createdAt": "2026-10-25T20:44:49.611Z",
+  "version": "2.0.0",
+  "sourceDigest": "96cde170ad50eb50753feb3229881ce609f6d3328691ffee5c479105803963d1",
+  "sourceFiles": 1789,
+  "testFiles": 148,
+  "uniqueCases": 1343,
+  "observations": 2755,
+  "failures": 0,
+  "coverageGaps": 0,
+  "originalSkipsRetained": true,
+  "complementedObservations": 236,
+  "phases": [
+    {
+      "phase": "windows",
+      "originalExitCode": 3,
+      "cleanupConfirmed": true,
+      "sourceUnchanged": true,
+      "javascript": {
+        "cases": 1045,
+        "passed": 1043,
+        "failed": 0,
+        "skipped": 2
+      }
+    },
+    {
+      "phase": "nobody",
+      "originalExitCode": 3,
+      "cleanupConfirmed": true,
+      "sourceUnchanged": true,
+      "javascript": {
+        "cases": 1045,
+        "passed": 1031,
+        "failed": 0,
+        "skipped": 14
+      }
+    },
+    {
+      "phase": "root",
+      "originalExitCode": 0,
+      "cleanupConfirmed": true,
+      "sourceUnchanged": true,
+      "javascript": null
+    }
+  ],
+  "python": {
+    "windows": {
+      "cases": 298,
+      "passed": 147,
+      "skipped": 151
+    },
+    "nobody": {
+      "cases": 298,
+      "passed": 229,
+      "skipped": 69
+    },
+    "root": {
+      "cases": 69,
+      "passed": 69,
+      "skipped": 0
+    }
+  },
+  "evidence": [
+    {
+      "path": ".work/user-directed-release/attempt3/windows-bundle.json",
+      "sha256": "a3ae49ae5ee05790239d2865a44ec3b26ecc4f1b48ac50766f957d79900eb7c4"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/nobody-bundle.json",
+      "sha256": "41ff33df21f23e1a371c5f5678e7387b19e98bb796d2a10775f58c6b541bdd86"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/root-bundle.json",
+      "sha256": "5d0e8576de4163c03b7056bbf04f8619c1d02feb8f66d65072e86efa69001100"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/reconciliation.json",
+      "sha256": "026578d8e98337a28ca9316a51513e9c9cf1c746d57b7014a247df413acb24c2"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/package.json",
+      "sha256": "a0cbe48c3e5eeb2a334917fdf3d416435da489ba7cc63369e01e912ea533a6c6"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/transfer-proof.json",
+      "sha256": "37efeea91d70d2c4fb6a2375e0a310bc308226a9ada30b3b48ffd6af94e3f5d9"
+    }
+  ],
+  "caseReconciliation": {
+    "path": "verification/audit-evidence/v2-release/full-tests.json",
+    "sha256": "026578d8e98337a28ca9316a51513e9c9cf1c746d57b7014a247df413acb24c2"
+  },
+  "authorization": {
+    "path": "verification/audit-evidence/final-authorization/user-directed.json",
+    "sha256": "c27275935710aef466d8a542e213adf0be39209d1e6a926affd5b978868b2ad9"
+  },
+  "limits": [
+    "Both complete platform runs retain exit 3 for platform-specific skips. Exact file and case identity across the same frozen source proves every skipped case passed in a complementary run; no original skip is rewritten as a pass.",
+    "No paid model inference, real external MCP or real account business acceptance. No new clean audit rounds are fabricated.",
+    "Live deployment and browser acceptance are recorded separately. GitHub Actions execution is separate from these local Windows and isolated Linux results."
+  ]
+}

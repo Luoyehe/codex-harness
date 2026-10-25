@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "phase": "automations-ui",
+  "completedAt": "2026-10-24T21:59:21.577Z",
+  "source": "parent CUA message",
+  "result": "Parent CUA on readonly5117 confirmed1280x720 plan list,details,run history and distinct enable/manual-run/remove buttons.",
+  "screenshot": "reference/evidence/automations-ui-visual.png",
+  "limits": [
+    "Controlled read-only visual fixture only, not120 deployed acceptance.",
+    "Parent performed browser interaction, not this agent."
+  ]
+}

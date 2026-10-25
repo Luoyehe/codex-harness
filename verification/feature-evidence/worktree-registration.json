@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T21:56:42.887Z",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "kind": "targeted-feature-batches",
+  "reports": [
+    {
+      "file": ".work/test-results/run-AuSX1t/vitest.json",
+      "sha256": "8ebfc319628b412ff91e1e3e840de714047b3d5bc721b752dada85db18e55b4b",
+      "passed": 51,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-5jDhLK/vitest.json",
+      "sha256": "c710001b1401e8ce8330276763ff7598efbcfad5963363ca576a7355ec7c0b00",
+      "passed": 17,
+      "failed": 0
+    }
+  ],
+  "verified": [
+    "Supervisor-private inode binding created only from live, matching helper acknowledgement; binding and witness commit atomically.",
+    "Gateway project create/archive/restore registration shares receipt transaction; original create operation identity is stable.",
+    "Unknown creation can reconcile only its matching positive witness, without redispatch; monotonically increasing worktree generations prevent late proof from undoing newer archive.",
+    "Active work and concurrent project removal cannot race lifecycle operations; changed identities and malformed acknowledgements fail closed."
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "src/runtime/worktree-bindings.ts": "3e02f04121fb36220962518bd8d7b198776ced6f1559554c9fd2859c5031c1b6",
+    "src/runtime/workspace-witness.ts": "a4111aecf65f0834b693728828140b47f8fd0fff551054b61c1fe5ad117d1144",
+    "src/core/worktrees.ts": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089",
+    "tests/gateway/worktrees.test.ts": "184d6b07fd9f66a3a0c5255dbdaff261903f71ce73fcb78f1b5d15d252096314"
+  },
+  "limitations": [
+    "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+    "Linux filesystem preservation evidence is separately recorded in workspace-worktrees.json. Full service/helper/CLI cross-identity integration remains pending."
+  ]
+}

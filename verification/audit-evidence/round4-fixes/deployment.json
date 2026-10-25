@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-round4-fix",
+  "reviewerId": "deployment",
+  "completedAt": "2026-10-25T08:12:20.897191+00:00",
+  "formalAudit": false,
+  "independentCleanRounds": 0,
+  "fullSuiteRun": false,
+  "finding": "Advanced providers could downgrade to legacy configuration directly or through old candidate recovery journals.",
+  "sourceFiles": [
+    {
+      "path": "deploy/provider.py",
+      "sha256": "fc748565d5d25c5b747e584925d189fd187457dde3f8a5f91ee793d7535a9db7"
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "sha256": "645aa4ceab94ce52580692c91d1313f44eda5ddeaab4256930f21c172b7cebef"
+    },
+    {
+      "path": "tests/deploy/test_provider_layers.py",
+      "sha256": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82"
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "sha256": "9ca7d80b94f8a3a482fd7683dee8e634c9952557ccada4c7eac97654b27fa669"
+    }
+  ],
+  "fix": [
+    "Shared provider/layer compatibility policy permits legacy only for explicitly compatible chatgpt/responses/zhipu-coding kinds; advanced and unknown future kinds fail closed.",
+    "Normal rollback checks the selected provider before the legacy no-op, pending sudo file, generation/transaction preparation, barriers or service actions.",
+    "Candidate recovery reads exact journal candidateProvider/settings.json and verifies matching revision before changing barriers, service state or journal phase. It does not authorize from the currently selected pointer.",
+    "The publication entrypoint rechecks the candidate generation immediately before any selection or file write.",
+    "The guard is conditional on candidate direction, leaving restoration of the exact original journal snapshot available."
+  ],
+  "regressions": [
+    "Three advanced kinds reject rollback with byte/owner/mode/path/service-state equality.",
+    "Old unsafe prepared/stopped/selected candidates reject without changing any captured materials, phase, pointer or service activity; the same records recover target old and restore requirements mount, check unit, sudo policy, provider pointer and user bytes.",
+    "Current compatible provider does not authorize an incompatible recorded candidate.",
+    "Publication guard rejects advanced kinds and mismatched stored generation identity before writes.",
+    "An older completed unsafe downgrade cannot pass the legacy no-op, while explicit forward migration repairs it.",
+    "Existing compatible rollback, host policy drift/conflict, power-loss, unknown stop and control rollback cases remain passing."
+  ],
+  "validation": {
+    "localOrdinary": {
+      "command": "HARNESS_TEST_PYTHON=<PYTHON> node scripts/run-tests.mjs --targeted tests/deploy/test_provider_layers.py tests/deploy/test_provider_gateway.py tests/deploy/test_provider_bedrock.py",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux": {
+      "archiveSha256": "9e9ca8667379032cdf6f6d444409740e428d159f6d5bd293e84a4f98a84a71e0",
+      "archive": {
+        "path": ".work/r4-config-layer-targeted.tgz",
+        "sha256": "9e9ca8667379032cdf6f6d444409740e428d159f6d5bd293e84a4f98a84a71e0"
+      },
+      "manifest": {
+        "path": ".work/r4-config-layer-source.json",
+        "sha256": "4b82e7f744983986d68a96763af4077264bae1eb58f21b74cfda536b2721d78b"
+      },
+      "packagedFiles": 65,
+      "currentPackagedBytesVerifiedUnchanged": true,
+      "finalResult": {
+        "path": ".work/r4-config-layer-linux-final.json",
+        "sha256": "bdbdb2df79fbbf9b8aa33c2d2173705594fc3d32ac39e93465758752e80364d9"
+      },
+      "remoteResult": "/var/tmp/crtest-r4-config-layer-keqhatwf/result.json",
+      "nobody": {
+        "passed": 23,
+        "failed": 0,
+        "skipped": 0
+      },
+      "root": {
+        "passed": 47,
+        "failed": 0,
+        "skipped": 0
+      },
+      "runner": {
+        "path": ".work/r4-config-layer-linux.py",
+        "sha256": "ac553529b01b4c306e9782e4cca23b06a913fe7be0fd92386fa99a6478564dbc"
+      },
+      "network": "Separate unshare network namespaces; clean environment and isolated homes/temp roots.",
+      "services": "No systemd operations, sudo policy/account changes or online instance updates."
+    },
+    "selection": {
+      "evidence": {
+        "path": ".work/r4-config-layer-selection.json",
+        "sha256": "fd0ebe46bb1573bcaa0e0fb0ed836b64397de79d706d69c0cfd418ad3a6853ea"
+      },
+      "assertion": "Existing deploymentPairs mapping for test_provider_layers.py already includes root/test_config_layer.py; no mapping edit required."
+    },
+    "encoding": "All four changed source/test files verified UTF-8 LF."
+  },
+  "failureChain": [
+    {
+      "result": {
+        "path": ".work/r4-config-layer-linux-initial.json",
+        "sha256": "0c98aec6b35accc8d10afe31c90963a9090a3f5c0a550f5ea11249f38ee53992"
+      },
+      "remoteResult": "/var/tmp/crtest-r4-config-layer-gmz11dzt/result.json",
+      "outcome": "nobody23 passed; root46 passed and one existing native-token cross-UID fixture failed, zero skips.",
+      "cause": "New ignored runner set TMPDIR beneath root-owned 0700 HOME. A fixture 0755 child could not bypass its inaccessible ancestor after setuid."
+    },
+    {
+      "outcome": "Runner-only correction used a separate 0755 root temporary parent while retaining private 0700 HOME. Same product/test archive reran nobody23/root47 with zero failures/skips.",
+      "relatedPreparation": "The ignored future full-test preparation runner received the same TMPDIR correction; it has not executed a full suite."
+    }
+  ],
+  "limits": [
+    "No full suite, new formal audit, live provider inference, external MCP or online deployment performed.",
+    "Root systemd interactions are substituted by relocated fixture System; native UID/mode/flock/token checks remain actual Linux operations.",
+    "This fix changes source and resets any clean-round count. Parent will refresh coverage only after all parallel fixes stop."
+  ]
+}

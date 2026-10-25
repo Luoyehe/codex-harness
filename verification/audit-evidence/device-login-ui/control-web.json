@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:56:33.150Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "device-login-ui",
+  "files": [
+    "web/components/AccountSettings.tsx",
+    "web/components/Settings.tsx",
+    "web/tests/device-login.test.tsx"
+  ],
+  "tests": 8,
+  "contracts": [
+    "Device-code receipts contain only login identity. Codes are read from the current owner handoff and never stored in browser storage.",
+    "Actual runtime and browser connection identity govern lifecycle. Settings tabs preserve the component; modal reopening retains only non-secret original operation identities.",
+    "Unknown login/cancel/logout only query original receipts. Native completion and late handoff races cannot revive old codes. Disconnect clears codes. Missing accepted identities retain a restart/recovery gate across modal reopening."
+  ],
+  "sourceHashes": {
+    "web/components/AccountSettings.tsx": "eb1ed2259bb4a64055af44f0445fb32a6ad0723c3f619f61e23fe0dfb85de4eb",
+    "web/components/Settings.tsx": "2eda5a26b7ca8347787557a5bda82ae1015fdcb15f335ef97a5e5280c9e71685",
+    "web/tests/device-login.test.tsx": "0c5676bd428e2eb24f366d11af1ecca47beb91d506f4f2e99bf9b7dabe40c5b6"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/hook-events.test.tsx web/tests/memory-settings.test.tsx web/tests/device-login.test.tsx web/tests/extensions.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 5,
+    "tests": 38,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed"
+  },
+  "limits": [
+    "Affected frontend tests only, no full suite or formal frozen audit.",
+    "No real account authentication, reset credit consumption, paid inference or external Hook execution by this agent.",
+    "Hook prompt history rendering is implemented and validated separately by root.",
+    "No visual or deployed 120 acceptance claimed for this batch."
+  ]
+}

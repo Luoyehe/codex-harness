@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "fixId": "v2-full-windows-cache",
+  "reviewerId": "r21-interface",
+  "complete": true,
+  "evidenceStartedAt": "2026-10-25T20:14:58.493Z",
+  "completedAt": "2026-10-25T20:20:40.263Z",
+  "timingNote": "Evidence start records original-byte backup capture after initial read-only diagnosis.",
+  "scope": [
+    "src/runtime/windows-job.ts",
+    "src/runtime/windows-process.ts",
+    "src/runtime/processes.ts",
+    "tests/runtime/windows-job.test.ts",
+    "tests/runtime/windows-process.test.ts",
+    "tests/runtime/processes.test.ts"
+  ],
+  "changes": [
+    {
+      "path": "src/runtime/windows-job.ts",
+      "beforeSha256": "116dd879b467b0399b2ed0c502eb3a273ab034e3eefab2fe6ba8a067e6d0c649",
+      "afterSha256": "63f05288d2e59ef5cd38bed2ca094792d0b2df40f626053e9b8a3618cd59e198",
+      "backup": ".work/v2-full-fixes/windows-cache/before/src/runtime/windows-job.ts",
+      "backupSha256": "116dd879b467b0399b2ed0c502eb3a273ab034e3eefab2fe6ba8a067e6d0c649",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "src/runtime/windows-process.ts",
+      "beforeSha256": "de87fad1c83654aef01921e99b93e016ffa079cfcf094ded379a0516eac2cee8",
+      "afterSha256": "18d6a2823777285e259daa9f9f61c78170ac6cc064f1fc80bae8905052520022",
+      "backup": ".work/v2-full-fixes/windows-cache/before/src/runtime/windows-process.ts",
+      "backupSha256": "de87fad1c83654aef01921e99b93e016ffa079cfcf094ded379a0516eac2cee8",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "src/runtime/processes.ts",
+      "beforeSha256": "ae5fce78a81b09b24d1e863f6db3bb830beb3faac39f8df7d1498b1e53651ee6",
+      "afterSha256": "c063b69fa769ba90562a1b587856fd618da794a830a21a7302060fe2fe777db2",
+      "backup": ".work/v2-full-fixes/windows-cache/before/src/runtime/processes.ts",
+      "backupSha256": "ae5fce78a81b09b24d1e863f6db3bb830beb3faac39f8df7d1498b1e53651ee6",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "tests/runtime/windows-job.test.ts",
+      "beforeSha256": "3183a655ab6bf3f7f3e50cdfe5d8d6f99ddfcd26cf8a63e080949354ed76bd59",
+      "afterSha256": "9c9778dfcb1986da3a90664d3315875f1e0f295079ccc17f5b341a248d9a3013",
+      "backup": ".work/v2-full-fixes/windows-cache/before/tests/runtime/windows-job.test.ts",
+      "backupSha256": "3183a655ab6bf3f7f3e50cdfe5d8d6f99ddfcd26cf8a63e080949354ed76bd59",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "tests/runtime/windows-process.test.ts",
+      "beforeSha256": "9ef5abfaf496866533facc4df4844e143b083d53ede6756fdea774b86c739f87",
+      "afterSha256": "1474983201cb93473f7c215c3ac345c136dffb5761cdffb09420ffaa9b98a2a9",
+      "backup": ".work/v2-full-fixes/windows-cache/before/tests/runtime/windows-process.test.ts",
+      "backupSha256": "9ef5abfaf496866533facc4df4844e143b083d53ede6756fdea774b86c739f87",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "tests/runtime/processes.test.ts",
+      "beforeSha256": "f6edb56501c9a4ed7b50d14583dafaee7a49b6853d0ff5aa96fdd01f8fc458e9",
+      "afterSha256": "7e2e906fc86d4244f96a76294070196ce5c022927489d2835716f81da9684dc1",
+      "backup": ".work/v2-full-fixes/windows-cache/before/tests/runtime/processes.test.ts",
+      "backupSha256": "f6edb56501c9a4ed7b50d14583dafaee7a49b6853d0ff5aa96fdd01f8fc458e9",
+      "lineEndings": "LF"
+    }
+  ],
+  "method": "Backed up original bytes; added behavior regressions on real isolated Windows PowerShell controllers and actual emitted process/spawn environment parameters; obtained failing assertions before repair; fixed only process-scoped controller environments; ran exact affected tests and server TypeScript validation.",
+  "trigger": {
+    "source": "Parent full-run diagnosis",
+    "evidence": ".work/final-windows-acsY3X/result.json",
+    "description": "A full Windows run created Microsoft/Windows/PowerShell/ModuleAnalysisCache in the source cwd with sparse environment lacking LOCALAPPDATA. Parent owns removal and snapshot/full-run evidence; this task did not touch that artifact."
+  },
+  "rootCause": "Both Windows launcher environments and both PowerShell shutdown-signal environments omitted PSModuleAnalysisCachePath. PowerShell 5.1 defaults to LOCALAPPDATA/Microsoft/Windows/PowerShell; with sparse environment, its disk-cache path can resolve against cwd. A caller-supplied cache path, including a differently cased name, also remained active.",
+  "changesSummary": [
+    "windowsPowerShellEnv is a small exported helper in existing windows-job.ts. It copies the environment, removes only case variants of PSModuleAnalysisCachePath, and writes canonical PSModuleAnalysisCachePath=NUL before PowerShell startup.",
+    "Both launchers and both shutdown signal subprocesses use the helper. Processes applies it again after merging actual Windows process/spawn user overrides, so aliases cannot bypass the final fixed setting; other strings and null deletion overrides remain intact.",
+    "No Win32 controller/entrypoint logic, job ownership, named event/pipe identity, cleanup acknowledgement, permission check, approval path, execution policy, profile setting, machine environment or user environment was changed.",
+    "Existing standalone Windows tests now use isolated environment directories instead of inheriting process.env. All six changed files are LF."
+  ],
+  "reference": {
+    "title": "Microsoft Learn: about_Environment_Variables, PSModuleAnalysisCachePath",
+    "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-7.6#powershell-environment-variables",
+    "checked": true,
+    "finding": "Set the variable before PowerShell starts. NUL disables disk caching on Windows without reporting an error; this setting is process-scoped and inherited by child processes."
+  },
+  "validations": [
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-job.test.ts tests/runtime/windows-process.test.ts tests/runtime/processes.test.ts",
+      "exitCode": 1,
+      "stdout": ".work/v2-full-fixes/windows-cache/red.stdout.txt",
+      "stdoutSha256": "7eb1bb4981f96b6926ccac98995892f5399729040a668e70b471ab2a5498b48b",
+      "raw": ".work/test-results/run-Uhghz4/vitest.json",
+      "rawSha256": "5e0ea7e0a66743b5ffee0eb05a2edb1543983d2977ded22c6a5966a7a2c1d7c0",
+      "passed": 13,
+      "failed": 6,
+      "total": 19,
+      "note": "Initial red: 6 failed, 13 passed. Three native-controller cases stopped at an over-strict empty-stderr assertion because Windows PowerShell emits CLIXML progress during module preparation. Those three diagnostic failures are not cache-product evidence."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-job.test.ts tests/runtime/windows-process.test.ts tests/runtime/processes.test.ts",
+      "exitCode": 1,
+      "stdout": ".work/v2-full-fixes/windows-cache/red-corrected.stdout.txt",
+      "stdoutSha256": "80497f4dd7e118ccf00bbce48c9ed29412da9c53e5fd302dfaf42557a30ffff0",
+      "raw": ".work/test-results/run-IX3Snb/vitest.json",
+      "rawSha256": "00066ecf081e570d17baf07e5eed6c96d6662e5c1c267e2efe13f2dafb33016e",
+      "passed": 13,
+      "failed": 6,
+      "total": 19,
+      "note": "Definitive red on original product source: 6 regression cases failed, 13 existing cases passed. Captured real child environment and real signal invocation options show missing or caller-controlled cache settings; final process/spawn params retain conflicting case variants."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-job.test.ts tests/runtime/windows-process.test.ts tests/runtime/processes.test.ts",
+      "exitCode": 0,
+      "stdout": ".work/v2-full-fixes/windows-cache/green.stdout.txt",
+      "stdoutSha256": "16b33f38ca5567c798d013c8211f2e5721a8abdceae747183541b90af82f9167",
+      "raw": ".work/test-results/run-53IKAB/vitest.json",
+      "rawSha256": "e3cf049c580fa4f23735d75ed23705b08d7d8964969a9b92875e8f52319cc6de",
+      "passed": 19,
+      "failed": 0,
+      "total": 19,
+      "note": "19 cases passed after the environment repair, including real controllers/signals and all existing ownership/cleanup tests."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-process.test.ts",
+      "exitCode": 0,
+      "stdout": ".work/v2-full-fixes/windows-cache/green-isolated.stdout.txt",
+      "stdoutSha256": "93e4a295eb819f02fe486ed5add95aa08f73c71b35457eacbca0d086564c4871",
+      "raw": ".work/test-results/run-8Niy4H/vitest.json",
+      "rawSha256": "a760fc75513cb9c743ec7aa61fcbd8f4123937dd3ce6b962852709c92992380f",
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "note": "4 affected standalone tests passed again after replacing the two pre-existing tests inherited process.env with isolated HOME/USERPROFILE/TEMP/TMP. Product source unchanged since the 19-case green run."
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "stdout": ".work/v2-full-fixes/windows-cache/server-tsc.stdout.txt",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutBytes": 0
+    }
+  ],
+  "regressionCoverage": [
+    "Real native Windows controller launched with missing cache override, canonical custom cache path, and uppercase custom cache path. Child observes NUL, shutdown signal receives NUL, controller exits successfully, original input environment is unchanged, and no default or redirected cache exists in the fixture after shutdown.",
+    "Real standalone Windows controller launched with missing or custom parent cache path. Separate started/exited proof and real shutdown signal complete; child dies and controller exits 0; no cache appears in the fixture.",
+    "Processes.call(process/spawn) actual final operation.params.env is captured at host.start with three conflicting case variants; it contains only the canonical NUL setting while preserving unrelated string and null values. This uses a job/native substitute rather than a real upstream app-server.",
+    "Existing detached descendant, root exit, owner death, controller failure, backpressure, private output, owner revocation, output cap and separate cleanup-proof tests remain passing."
+  ],
+  "normalizedWin32ControllerSourcesUnchanged": true,
+  "independentReview": {
+    "status": "Initial bounded static advice only; root will review final changes.",
+    "note": "The initial reviewer identified the final environment merge alias issue. That reviewer was subsequently reassigned by root to separate Linux failures and did not review this final patch."
+  },
+  "limitations": [
+    "Only exact targeted tests and server typecheck were run; no full suite, build, SSH, deployment, real inference, external MCP or account workflow was run by this task. 用户已授权后续直接 full；本报告不是新的全仓 clean 轮。",
+    "The original full-run cache-file creation is parent-provided evidence. These short real-controller regressions prove the cache setting is applied before launch and that no cache exists at their completed lifecycle; they do not independently reproduce the background cache file from the longer full run. Root will confirm the final whole-run snapshot.",
+    "New controller fixtures have isolated cwd and HOME/USERPROFILE/TEMP/TMP and omit LOCALAPPDATA. Signals retain their existing trusted SystemRoot cwd and receive only SystemRoot plus the fixed process-scoped cache setting. No personal CODEX_HOME or credentials were read.",
+    "The two pre-existing standalone tests still inherited process.env in initial red/green runs; their final versions were changed to isolated environment and passed a separate exact rerun. All execFile calls in new tests delegate to the real subprocess implementation while recording options."
+  ]
+}

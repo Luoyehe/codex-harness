@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T09:23:10.442Z",
+  "sourceEditsStopped": true,
+  "sourceFiles": [
+    {
+      "file": "web/components/Prompts.tsx",
+      "sha256": "9c5db1438f5e539291f27b256aea7a9c5e8b2a5210425940e8d940192e6a1839"
+    },
+    {
+      "file": "web/components/RealtimePanel.tsx",
+      "sha256": "5da7ee8c7ccc42275c2b8001206563a4227f7296fde86fe2785ba367bc7b4f89"
+    },
+    {
+      "file": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "28691f3cae6708865819296a0f4d5b45b7543ac61af986c16139366a67132572"
+    },
+    {
+      "file": "web/components/TaskPanel.tsx",
+      "sha256": "45e4ecaf4f44bcaa558949f584ba6cabcc7cebbd09f284cf134728f38d7fad95"
+    },
+    {
+      "file": "web/components/HistoryTools.tsx",
+      "sha256": "85c6a3da5bf726b53e0c551d2dddcd02968e1a0084e6f7fa597324d7693e8ca2"
+    },
+    {
+      "file": "web/components/RenameDialog.tsx",
+      "sha256": "bc89ed80f1a3d89071d64d2b4996ffc604c542d56a415c19c8769b348c8638d8"
+    },
+    {
+      "file": "web/components/ProjectDialog.tsx",
+      "sha256": "84e40309ca9e49584f718b43a88bf7d0635a2740695df7440a2fe70c910364d9"
+    },
+    {
+      "file": "web/components/WorkspacePanel.tsx",
+      "sha256": "80dc99d3474668db8773e58d35f4fc137e5f8bc5c46c263ced164868cce0b1e6"
+    },
+    {
+      "file": "web/styles.css",
+      "sha256": "5944f011c8eab595e78ada37e114bda463b849fc3c10d0e450f4b0a0a464e9b0"
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "warning": "Existing 1.22 MB JavaScript bundle warning remains; no new code-splitting change."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/prompts.test.tsx web/tests/prompt-fields.test.tsx web/tests/realtime.test.tsx web/tests/execution-settings.test.tsx web/tests/workflows.test.tsx web/tests/modal-mutations.test.tsx web/tests/workspace-ui.test.tsx web/tests/workspace-management.test.tsx",
+      "reason": "Integrated regression after sibling queue repair and shared fieldset style were merged.",
+      "files": 8,
+      "passed": 112,
+      "skipped": 0,
+      "exitCode": 0,
+      "report": ".work/test-results/run-2raDKD/vitest.json",
+      "reportSha256": "835a0a9217674212a71bc122e2f324e122252c001e1f12e55c89d8262df9d8e6"
+    }
+  ],
+  "browser": {
+    "kind": "Production build against bounded localhost read-only protocol fixture; no real worker, model or external service",
+    "url": "http://127.0.0.1:5127/?pending=1&thread=visual-thread",
+    "fixture": ".work/pending-forms-preview.mjs",
+    "fixtureSha256": "52b163f5842b75d04bde6dcec42a2955f27128bf3daefd1a2ed89f47a261c887",
+    "builtIndexSha256": "71d1407280feefff1a1566226f970893587be837b64a16ccbd280cbc1e431cc6",
+    "observations": [
+      "Question selects, other-answer input and submit disabled while reply pending; original text and editability restored after definite not_sent response.",
+      "Rename input and save disabled during pending submission; definite failure restores editing with unchanged name.",
+      "Two edited queue entries keep both unsent text values after refreshing the queue.",
+      "Queue dialog inspected at desktop and 390x844; controls and both drafts visible without horizontal overlap."
+    ],
+    "screenshots": [
+      {
+        "file": "reference/evidence/pending-answer-fixed.png",
+        "sha256": "7c5e83eda40c0db07f855b2d05ae8462e31c1374213f47a80172d6dc5ac70674"
+      },
+      {
+        "file": "reference/evidence/pending-rename-fixed.png",
+        "sha256": "f0f55442a88a1acc263fe3f6aec963d2891b088d3155aff4b87f7d3fb4634ff2"
+      },
+      {
+        "file": "reference/evidence/rename-failure-draft-retained.png",
+        "sha256": "9ddfd059e3be5d320cfc3eb2899c6a8d4a0c6a49660f92fba8247587b7c38142"
+      },
+      {
+        "file": "reference/evidence/queue-refresh-drafts-retained.png",
+        "sha256": "82bcf4570549cfeb1a1b57bdab01886830bf3a83d07d99f2293069754db31c47"
+      },
+      {
+        "file": "reference/evidence/queue-drafts-mobile.png",
+        "sha256": "39542dfc66ac4d77740a27b8255f546d8772b07757eee7066cdf43547c2f27fb"
+      }
+    ],
+    "cleanup": {
+      "tabClosed": true,
+      "viewportReset": true,
+      "processId": 26016,
+      "processCommand": "\"C:\\Program Files\\nodejs\\node.exe\" .work/pending-forms-preview.mjs",
+      "stop": "Explicit owned process termination after verified path and command; initial command-pattern mismatch performed no mutation.",
+      "noListenerOn5127": true,
+      "sessionExitCode": 1,
+      "exitMeaning": "Intentional fixture termination, not a test failure or successful graceful-shutdown claim."
+    }
+  },
+  "limits": [
+    "These are targeted integration checks, not a fresh audit or a full suite.",
+    "No live deployment or paid inference was performed."
+  ]
+}

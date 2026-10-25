@@ -1,0 +1,455 @@
+{
+  "schemaVersion": 1,
+  "kind": "integration-preaudit",
+  "reviewer": "preaudit-control-web",
+  "createdAt": "2026-10-24T17:48:02.257Z",
+  "formalCleanAudit": false,
+  "completeForAssignedInitialSourceInventory": true,
+  "scope": [
+    "src/core",
+    "src/gateway",
+    "web",
+    "scripts",
+    ".github",
+    "tests/core",
+    "tests/gateway",
+    "tests/tooling",
+    "README.md",
+    "ARCHITECTURE.md"
+  ],
+  "method": "Read every file in the assigned source and related test inventory, followed the relevant runtime/deployment contracts, and ran six safe in-memory source probes against local substitutes. No old repository, old tests or old Git history was inspected.",
+  "inspectedFiles": [
+    ".github/workflows/affected.yml",
+    "scripts/release-audit.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/ledger.ts",
+    "src/core/validation.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "tests/core/ledger.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/components/AccountSettings.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/Composer.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/Icon.tsx",
+    "web/components/Login.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/Welcome.tsx",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/operations.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/types.ts",
+    "web/main.tsx",
+    "web/styles-responsive.css",
+    "web/styles.css",
+    "web/tests/attachments.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/preview-server.mjs",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/terminal.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts",
+    "AGENTS.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "ARCHITECTURE.md",
+    "package.json",
+    "vitest.config.ts",
+    "reference/PROTOCOL-CONTRACT.md",
+    "protocol/ts/v2/FileChangeRequestApprovalParams.ts",
+    "protocol/ts/v2/TurnStartParams.ts"
+  ],
+  "supportingPartialReads": [
+    "src/runtime/service.ts: selected admission/defaults/terminal functions",
+    "src/runtime/attachments.ts: targeted attachment metadata/ownership search",
+    "deploy/manager.py: recovery, operation/read, logs methods",
+    "deploy/journal.py: recover_journal and recover_as_owner entry",
+    "deploy/system.py: logs parameter validation",
+    "protocol/ts/ServerRequest.ts: supported approval method union"
+  ],
+  "findings": [
+    {
+      "id": "CW-01",
+      "priority": "P1",
+      "title": "Unknown browser intents have no explicit reviewed-abandonment recovery path",
+      "locations": [
+        {
+          "file": "web/lib/operations.ts",
+          "lines": "29-32,56-64"
+        },
+        {
+          "file": "web/App.tsx",
+          "lines": "52,100"
+        },
+        {
+          "file": "web/components/Recovery.tsx",
+          "lines": "12-14"
+        }
+      ],
+      "trigger": [
+        "Submit conversation/start or turn/start, then lose the response after the transport boundary.",
+        "The gateway durably records unknown. The administrator inspects history and uses the stop-confirmed restart/repair path, which correctly clears only activityUncertain.",
+        "Return to the same project new-conversation draft or same thread: the original unknown record remains and blocks any new intent. Recovery only offers another read, never an explicit reviewed abandonment."
+      ],
+      "impact": "A single persistent unknown can permanently disable new conversations for the project or later turns for the thread in this browser profile; clearing localStorage manually is the only existing escape, losing safe tombstones.",
+      "evidence": {
+        "type": "in-memory localStorage probe",
+        "result": {
+          "acknowledge": "未知操作仍需保留，不能据此重复发送。",
+          "newIntent": "此操作还有待确认的请求。请先查询回执。",
+          "state": "unknown"
+        }
+      },
+      "requiredBehavior": "Provide an explicit, fenced recovery action that preserves original unknown facts/tombstones and never automatically replays. A not_received observation alone must not authorize it.",
+      "statusAtReport": "communicated; gateway operation/retire work appeared during review; browser fix still being implemented"
+    },
+    {
+      "id": "CW-02",
+      "priority": "P2",
+      "title": "Optional form fields collapse omission, false, first enum value, and empty arrays",
+      "locations": [
+        {
+          "file": "web/components/PromptFields.tsx",
+          "lines": "7-13"
+        },
+        {
+          "file": "web/lib/prompt-validation.ts",
+          "lines": "20-24"
+        }
+      ],
+      "trigger": [
+        "Select the second optional enum choice, then choose the blank placeholder.",
+        "Select true in an optional boolean, then choose the blank placeholder.",
+        "Clear an optional number, or try to submit an explicitly empty required array without toggling one of its entries first."
+      ],
+      "impact": "The enum becomes its first choice (Number(\"\") is 0); boolean becomes false; cleared optional number remains an own undefined property and fails validation; required empty arrays cannot be explicitly initialized and optional arrays cannot return to omission. These change or block valid MCP answers.",
+      "evidence": {
+        "type": "current TSX transformed in memory with Vite/Oxc and exercised in jsdom",
+        "results": [
+          {
+            "kind": "enum",
+            "afterChoosingPlaceholder": "first"
+          },
+          {
+            "kind": "boolean",
+            "afterChoosingPlaceholder": false
+          },
+          {
+            "kind": "optional-number",
+            "errors": [
+              "n需要有效数字。"
+            ]
+          }
+        ]
+      },
+      "requirements": [
+        "PROTO-04"
+      ],
+      "statusAtReport": "communicated to web owner"
+    },
+    {
+      "id": "CW-03",
+      "priority": "P2",
+      "title": "Terminal notifications preceding open response are silently lost",
+      "locations": [
+        {
+          "file": "web/components/TerminalPanel.tsx",
+          "lines": "31-39"
+        },
+        {
+          "file": "src/runtime/service.ts",
+          "lines": "269-279"
+        }
+      ],
+      "trigger": [
+        "Keep terminal/open HTTP response pending.",
+        "Deliver terminal output and then exit for its terminalId over the event socket.",
+        "Resolve terminal/open with the same id."
+      ],
+      "impact": "The listener rejects every early event while terminalId.current is empty; initial shell output is lost, and a quickly exited shell is then shown as an active terminal with a Close button. No terminal history/read API can restore those events.",
+      "evidence": {
+        "type": "current TerminalPanel compiled in memory with stub xterm and jsdom",
+        "result": {
+          "renderedOutput": [],
+          "showsCloseForAlreadyExitedTerminal": true,
+          "showsNewTerminal": false
+        }
+      },
+      "statusAtReport": "communicated to web owner"
+    },
+    {
+      "id": "CW-04",
+      "priority": "P2",
+      "title": "Three small pending RPCs exhaust gateway admission and block recovery reads",
+      "locations": [
+        {
+          "file": "src/gateway/server.ts",
+          "lines": "161-166",
+          "reviewedOriginal": "release = this.#budget.acquire(LIMITS.requestBytes)"
+        },
+        {
+          "file": "src/core/contracts.ts",
+          "lines": "20-24"
+        },
+        {
+          "file": "web/App.tsx",
+          "lines": "40-48,69-73"
+        }
+      ],
+      "trigger": [
+        "Hold three tiny authenticated model/list HTTP calls pending in the worker.",
+        "Issue an authenticated operation/read for an unrelated operation."
+      ],
+      "impact": "Each tiny call is charged as the full 8 MiB request ceiling against a 24 MiB total, so the fourth call fails capacity. App startup/reconnection fans out more than three reads and aborts older generations without stopping backend retention, making this a normal recovery-path failure rather than only a large-upload limit.",
+      "evidence": {
+        "type": "real loopback GatewayServer + in-memory Ledger + held local worker substitute",
+        "result": {
+          "heldRequests": 3,
+          "fourthStatus": 400,
+          "fourthBody": {
+            "ok": false,
+            "error": {
+              "code": "capacity",
+              "delivery": "not_sent"
+            }
+          }
+        }
+      },
+      "statusAtReport": "root changed to incremental chunk charging while audit was active; inspected the new code but did not rerun this probe after the fix"
+    },
+    {
+      "id": "CW-05",
+      "priority": "P1",
+      "title": "File approval accepts changes even when their review content has not loaded",
+      "locations": [
+        {
+          "file": "web/components/Prompts.tsx",
+          "lines": "19-22,32"
+        },
+        {
+          "file": "web/App.tsx",
+          "lines": "47,99"
+        },
+        {
+          "file": "protocol/ts/v2/FileChangeRequestApprovalParams.ts",
+          "lines": "5-17"
+        }
+      ],
+      "trigger": [
+        "Reconnect or navigate to a thread with a pending file approval.",
+        "prompt/list completes before history, or history fails/exceeds its limit, so the matching fileChange item is absent.",
+        "Click the enabled accept button."
+      ],
+      "impact": "The approval request itself contains identities/reason/grantRoot, not the diff; the only diff source is optional contextItems.find(itemId). The current UI sends accept while showing no changed paths/content, violating review-before-approval. Matching only itemId also omits explicit turn identity.",
+      "evidence": {
+        "type": "current Prompts compiled in memory and exercised in jsdom",
+        "result": {
+          "acceptEnabled": true,
+          "submissions": [
+            [
+              "p",
+              {
+                "decision": "accept"
+              }
+            ]
+          ],
+          "reviewChangeControls": 0
+        }
+      },
+      "requirements": [
+        "PROTO-05"
+      ],
+      "requiredBehavior": "Only offer acceptance when current thread/turn/item changes are fully available, with safe retry/detail access; separately present legitimate grantRoot authorization semantics.",
+      "statusAtReport": "communicated to web owner"
+    },
+    {
+      "id": "CW-06",
+      "priority": "P2",
+      "title": "Service log UI always sends a parameter rejected by the installed manager",
+      "locations": [
+        {
+          "file": "web/components/Settings.tsx",
+          "lines": "17"
+        },
+        {
+          "file": "deploy/manager.py",
+          "lines": "310-312"
+        }
+      ],
+      "trigger": [
+        "Open Settings -> service administration in a real installed instance.",
+        "The UI sends system/logs with {limit:100}; dispatcher forwards params unchanged."
+      ],
+      "impact": "Manager accepts only service and lines, so every initial read and retry fails Invalid logs parameters. The visual fixture does not validate the params and therefore masked this integration defect.",
+      "evidence": {
+        "type": "direct contract inspection",
+        "webParams": {
+          "limit": 100
+        },
+        "managerAllowedKeys": [
+          "service",
+          "lines"
+        ]
+      },
+      "statusAtReport": "communicated to web owner"
+    },
+    {
+      "id": "CW-07",
+      "priority": "P1",
+      "title": "Composer shows old thread defaults after persistent native turn overrides",
+      "locations": [
+        {
+          "file": "web/App.tsx",
+          "lines": "48-49,89-90,100"
+        },
+        {
+          "file": "web/components/Composer.tsx",
+          "lines": "15,35"
+        },
+        {
+          "file": "protocol/ts/v2/TurnStartParams.ts",
+          "lines": "85-120"
+        }
+      ],
+      "trigger": [
+        "Resume a thread and retain its initial threadDefaults.",
+        "Send a turn with an explicit model/effort/approvalPolicy/sandbox override.",
+        "After successful acknowledgement the draft/options clear, but threadDefaults are not refreshed. Select or observe the UI default again and send with omitted options."
+      ],
+      "impact": "Official TurnStartParams documents those overrides as applying to subsequent turns. The UI displays the pre-override values while the runtime continues using the previous override. An earlier never or danger-full-access choice can therefore persist behind misleading default labels.",
+      "evidence": {
+        "type": "source flow plus generated official protocol contract",
+        "nativeSemantics": "model, reasoning effort, approval policy and sandbox overrides apply to this turn and subsequent turns"
+      },
+      "requiredBehavior": "Align displayed and dispatched defaults field by field, and reconcile the README promise that default means effective project/provider configuration rather than an old override.",
+      "statusAtReport": "web owner confirmed official sticky behavior and is implementing refreshed resume/default labels; no paid turn run"
+    },
+    {
+      "id": "CW-08",
+      "priority": "P2",
+      "title": "The second acceptance cleanup deletes an edited draft despite its changed revision",
+      "locations": [
+        {
+          "file": "web/lib/drafts.ts",
+          "lines": "23-28"
+        },
+        {
+          "file": "web/hooks/useDraft.ts",
+          "lines": "16-17"
+        },
+        {
+          "file": "web/App.tsx",
+          "lines": "90"
+        },
+        {
+          "file": "web/lib/api.ts",
+          "lines": "40,49"
+        }
+      ],
+      "trigger": [
+        "Start sending a draft. While the request is pending, change its model/permission options without changing text or attachment IDs.",
+        "The accepted receipt correctly preserves the changed revision through clearDraftSnapshot.",
+        "App then calls draftState.accepted, whose acceptDraft compares only text/IDs and deletes the changed draft."
+      ],
+      "impact": "A later user edit is lost and selected options revert to defaults; this contradicts the documented unchanged-revision cleanup invariant. Composer leaves these controls editable during dispatch.",
+      "evidence": {
+        "type": "current drafts.ts source loaded in memory with jsdom storage",
+        "result": {
+          "afterRevisionCheck": {
+            "model": "next"
+          },
+          "afterAppAcceptance": {},
+          "remainingText": ""
+        }
+      },
+      "statusAtReport": "communicated to web owner"
+    },
+    {
+      "id": "CW-09",
+      "priority": "P2",
+      "title": "Full-audit gate accepts sampled source coverage as complete",
+      "locations": [
+        {
+          "file": "scripts/run-tests.mjs",
+          "lines": "34-55",
+          "reviewedOriginal": "scopeAreas[scope].every(area => evidence.inspectedFiles.some(name => area.test(name)))"
+        },
+        {
+          "file": "tests/tooling/run-tests.test.ts",
+          "lines": "13,20-28,74-77"
+        }
+      ],
+      "trigger": [
+        "Create three clean, correctly hashed evidence artifacts against the current digest.",
+        "List one existing source file per required area, but omit another source file in those same areas and all related tests/docs.",
+        "Set complete:true: validateAuditRecord only tests that each regex has at least one inspected file."
+      ],
+      "impact": "The executable full-suite gate cannot enforce the stated full-repository review prerequisite; a partial reviewer manifest can authorize full testing while uninspected files are part of the bound digest. This is a workflow-integrity defect, not evidence that this review ran full tests.",
+      "evidence": {
+        "type": "static path-condition inspection; no audit records forged and no full tests invoked"
+      },
+      "requiredBehavior": "Check the union of inspectedFiles against the declared required source/test/document inventory for every round, with explicit legitimate exclusions.",
+      "statusAtReport": "not repaired or dynamically reproduced"
+    }
+  ],
+  "limitations": [
+    "This was an integration preaudit, not any of the three formal full-repository clean rounds. Findings are not a clean bill of health.",
+    "The repository was being actively changed by other agents. Locations and probes refer to the source read during this review; gateway budget/admission changes appeared before this report, and web fixes were in progress. No immutable final-snapshot conclusion is claimed.",
+    "All assigned source files and corresponding gateway/core/web/tooling tests were read. Runtime/deployment modules were inspected only at the named cross-module contracts, not comprehensively.",
+    "No full test suite, paid inference, real account login, external MCP call, deployment, migration, remote host mutation, or legacy repository/source/test/history access occurred.",
+    "Six focused offline probes used the current source with in-memory transformation/storage or a loopback local substitute. They reproduce defects, not repaired regressions; jsdom and stub xterm are not real browser/OS IME/Linux PTY acceptance.",
+    "Existing tests were reviewed but not rerun as a broad batch. Real browser visual layout, mobile device accessibility, native account/MCP authorization and production provider behavior remain unverified.",
+    "The initial suspicion that activityUncertain had no recovery path was withdrawn after reading deploy/manager.py and deploy/journal.py: stop-confirmed restart/repair does clear the server barrier while correctly retaining unknown receipts. CW-01 concerns the remaining browser intent lifecycle."
+  ]
+}

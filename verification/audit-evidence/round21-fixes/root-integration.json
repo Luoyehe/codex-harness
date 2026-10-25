@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-source-preparation",
+  "createdAt": "2026-10-25T20:05:14.865Z",
+  "version": "2.0.0",
+  "digest": "1ff6d029fe901ec89f9dc44e9ff244239b3f6dbd0d578884f43ed1216c826e71",
+  "sourceFiles": 1789,
+  "sourceFixes": [
+    {
+      "path": "web/components/Prompts.tsx",
+      "sha256": "2e5a994c4454e6129300ca39b112ecbe67fc41ede4072be85af04d66fec412de"
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "sha256": "e65ac473d3e8c8101d08d0239664ecc3da9e6af84e1bdcc9189dac4c673647e5"
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "sha256": "c7aa12a228483b37f02cba7969966872d1e581e4a6b3da707f2efe4aea560a0d"
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "sha256": "812ee7d6236feaaf12d2530668c5739cfdfd1628193b24a3e6854a0962023d15"
+    },
+    {
+      "path": "web/tests/prompt-fields.test.tsx",
+      "sha256": "a74e3f49e36f59803bc56cbea55cdf3535ebc180d871a2be5bf8972b7ecc1969"
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "sha256": "0baec85d6a89faee8e9581a9c1f54096aafbf8c3d6b8fbbe76243d7fb8ee2768"
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "sha256": "c09b847bb931cefcfe31deedb2d34a6298d7616d6d7522c339f69be1476e9942"
+    }
+  ],
+  "repairEvidence": [
+    {
+      "path": "verification/audit-evidence/round21-fixes/forms.json",
+      "sha256": "ebbb25d97cfc4568a3c5dea40203b62701ac953976243f09e83c95a3da6eb99d"
+    },
+    {
+      "path": "verification/audit-evidence/round21-fixes/forms-cross-review.json",
+      "sha256": "f7ed99659204146f9c24da2df10a663121d2d3c2eff9e95388164d85972d83b7"
+    },
+    {
+      "path": "verification/audit-evidence/round21-fixes/related-findings.json",
+      "sha256": "73ffef201354c8954e12f6c90de00da19fd253c5add7788f3552b35c472bc208"
+    },
+    {
+      "path": "verification/audit-evidence/v2-docs/review.json",
+      "sha256": "9977a27e24d582218d8a5e0dab3bee8d47354ccf45b51f41ebfd94386abbf427"
+    }
+  ],
+  "rootReview": "Read all changed implementation modules and affected tests, checked seven repair source/backup hashes and final targeted raw assertions. Read final README and independently reviewed limited cross-review. No additional full audit is claimed.",
+  "encoding": {
+    "path": "web/components/Prompts.tsx",
+    "beforeSha256": "9c56b511a651823b03b7151fde7a49e9e817618db9b1517882eee1eb5f597610",
+    "afterSha256": "2e5a994c4454e6129300ca39b112ecbe67fc41ede4072be85af04d66fec412de",
+    "change": "CRLF to LF only after completed functional review; historical repair evidence retained unchanged",
+    "at": "2026-10-25T20:04:33.958Z"
+  },
+  "targeted": {
+    "passed": 66,
+    "failed": 0,
+    "skipped": 0,
+    "raw": {
+      "path": ".work/test-results/run-90VG2T/vitest.json",
+      "sha256": "935f23dbf8a00e88a2a9730c68e068b7f42dc3feae6320c9bf70f9b0a041e056"
+    },
+    "typecheck": "Web TypeScript exit 0; repair evidence retains empty diagnostics."
+  },
+  "build": {
+    "command": "pnpm build",
+    "exitCode": 0,
+    "observation": "Observed command output, not a separately retained raw log. Server TypeScript and Web production build passed on the restored identical implementation; final subsequent source change is CRLF to LF only.",
+    "modules": 378,
+    "webAsset": {
+      "path": "web/dist/assets/index-rnZARg1S.js",
+      "sha256": "d8116481c430c6f6eeecd5f3f01761bd1281ca34ede88e2b12bee2a81311bc3c"
+    },
+    "warning": "Existing chunk greater than 500 kB warning retained."
+  },
+  "docs": {
+    "markdownReviewed": 13,
+    "markdownChanged": 7,
+    "relativeLinksChecked": 27,
+    "brokenLinks": 0
+  },
+  "history": {
+    "lastAudit": "round21",
+    "consecutiveClean": 0,
+    "actionableFindingsRepaired": true,
+    "additionalCleanRoundsNotRun": true
+  },
+  "limits": [
+    "Targeted and build results are not full-suite or external-service acceptance.",
+    "User explicitly replaced the remaining three-round prerequisite with immediate full testing after this repair.",
+    "No real model inference, external MCP/account action or live deployment is claimed here."
+  ]
+}

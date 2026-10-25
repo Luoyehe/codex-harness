@@ -1,0 +1,47 @@
+{
+  "scope": "Operator-only trusted control update, recovery and rollback",
+  "recordedAtUtc": "2026-10-24T18:24:24Z",
+  "implementationFrozen": true,
+  "fullRepositoryAudit": false,
+  "fullSuiteRun": false,
+  "sourceHashes": {
+    "deploy/control_update.py": "a7de694742f3b52e8914ffece1bc8f0b4b987cc7eff55f1356700d37cc157de7",
+    "tests/deploy/test_control_update.py": "9a843506853f2b2b955b54fd171645b1ca6dde33c417eb86a988fb1c048a2ade"
+  },
+  "checks": [
+    {"command": "python -m unittest discover -s tests/deploy -p test_control_update.py -v", "selected": 23, "passed": 23, "skipped": 0},
+    {"command": "python -m unittest discover -s tests/deploy -p test_https.py -v", "selected": 8, "passed": 8, "skipped": 0},
+    {"command": "python -m unittest discover -s tests/deploy -p test_deployment.py -v", "selected": 39, "passed": 35, "skipped": 4, "note": "Affected install/CLI regression selected earlier during implementation; concurrent dependency/first-install work is recorded separately."},
+    {"command": "python -m deploy.cli --help", "passed": true}
+  ],
+  "fixture": "Windows temporary filesystem, substituted systemd/process/secure snapshot operations; real generated-bootstrap subprocess verifies pending transaction rejection before legacy imports.",
+  "coverage": [
+    "Independent original active and enabled service sets; gateway-only does not start the previously stopped worker",
+    "Initialized instance with no current application release stays stopped",
+    "Durable shell launch blockers installed before any control directory rename",
+    "Known management/build transients included; exact instance matching excludes longer instance names",
+    "Uncertain cgroup stop and escaped account process retain code, transaction and barriers",
+    "Startup, health, reload and integrity failures; interrupted phase and rename recovery",
+    "Legacy root-owned bytecode cache writes resealed after stop; fixed rollback bootstrap disables future cache writes",
+    "Verified edge executable tree and metadata bindings retained, including later edge installation during Python rollback",
+    "Collision preflight leaves no pending transaction or unavailable helper",
+    "Operator CLI source-argument rejection and fixed bootstraps; root ownership and RPC allowlist boundaries inspected in code"
+  ],
+  "independentTargetedReview": {
+    "reviewer": "control_review subagent",
+    "findingsFixed": [
+      "Legacy bytecode cache could prevent failed rollback recovery",
+      "Previously queued management transient required a durable launcher barrier",
+      "Drop-in collision could create pending transaction and block otherwise healthy RPC",
+      "Nested old-tree files and directories required fsync before sealing and rename"
+    ],
+    "notCountedAsCleanFullRepositoryAudit": true
+  },
+  "notExercised": [
+    "Real Linux systemd conditions, transient scheduling and complete /proc visibility",
+    "Actual host reboot or physical power-loss durability",
+    "Real active-instance control upgrade/rollback or external login/provider/MCP calls"
+  ],
+  "remoteHostsTouchedByThisAgent": [],
+  "paidInferenceCalls": 0
+}

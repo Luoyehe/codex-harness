@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-repair-crossreview",
+  "reviewerId": "r14-deployment",
+  "completedAt": "2026-10-25T17:42:48.589571+00:00",
+  "complete": true,
+  "formalAuditRound": false,
+  "newCleanRounds": 0,
+  "method": "Read the complete changed MCP components, complete current media/session helpers and affected UI tests, compared the current rewrite before-copies, and traced protocol/result identities and resource teardown. Re-read the final implementation and tests after the author confirmed freeze, verified final file hashes and inspected the fresh exact-targeted runner summary. No source/test edits or additional test execution by this reviewer.",
+  "findings": [],
+  "sourceHashes": {
+    "web/components/McpContent.tsx": "7ba713b891431e930c4c52043d6cc8ad77ba9299bd65728a329d1842bba0ab38",
+    "web/components/McpPanel.tsx": "fbbb01ed708bc5fc49d8872b97947d79a8f42c3de20fbf74a3438a7082f05e9d",
+    "web/tests/mcp-ui.test.tsx": "71c2f195c135801252074fa26f7511f644f6a64b384db1b6c3d0a37e3d16e794",
+    "web/tests/mcp-media.test.tsx": "13fbd6b3059817b6c7c12ea20e973c777dcb17106fc18700f5591440d157985b",
+    "web/lib/media.ts": "fa8cb8151a230ec5c8bf2fcad3d162fa0acc2ede4b2630781042cad8d2d2a900",
+    "web/lib/mcp-session.ts": "7ee44964cc6cd8eac39399cc6ce2519a54866b72f267ea0362e8a111968182b5"
+  },
+  "contractsReviewed": [
+    "protocol/ts/v2/McpResourceReadResponse.ts",
+    "protocol/ts/ResourceContent.ts",
+    "protocol/ts/v2/McpServerToolCallResponse.ts",
+    "protocol/json/v2/McpServerToolCallResponse.json",
+    "protocol/ts/v2/McpServerStatus.ts"
+  ],
+  "contextReviewed": [
+    "web/tests/message-media.test.tsx",
+    "src/runtime/mcp.ts tool result retention, identity and resource-read paths"
+  ],
+  "checks": [
+    "No image/audio element or object URL is allocated before an explicit item action. Encoded input is limited to 1,400,000 characters before Base64 decoding; empty/invalid/data-URL input and unsupported declared MIME are rejected.",
+    "The existing media helper checks supported signatures and declared dimensions before object URL creation: nonzero dimensions, maximum 16,384 per side and 40,000,000 pixels; detected MIME must equal the declared allowlisted MIME. SVG/HTML are not embedded.",
+    "A single panel provider covers retained tool results and resource contents. Owner identity includes result/resource identity, content reference, item reference/index, kind, bytes and MIME; scope changes, connection loss, content replacement/reordering and unmount release the prior selection. A-to-B-to-A does not restore the previous loaded state.",
+    "The held ref prevents duplicate same-owner allocations. Exact Preview-object comparison prevents a delayed prior onError or close callback from clearing a newer allocation, including reopening the same owner.",
+    "Ref cleanup removes img/audio src; audio additionally pauses and reloads after source removal. StrictMode reattachment restores only the already validated URL; provider and item cleanup do not double-revoke a released held value.",
+    "Validation and decoder errors are local media state. They do not change accepted/unknown receipts, retry the tool, discard the retained body, suppress sibling text/resource content, remove the raw JSON download, or alter resource-link actions. Existing WAV/MP3/Ogg explicit loading is retained with preload none and no autoplay.",
+    "The new integration test verifies a rejected oversized image retains accepted result identity and content, downloads only the original result ID, and performs one original tool call. Component tests cover MIME/signature/byte/dimension refusal, switch/close/unmount, old onError, ABA, allocation failure and StrictMode."
+  ],
+  "validation": {
+    "executor": "implementation author; fresh result independently inspected by crossreviewer",
+    "report": ".work/test-results/run-V1AByy/vitest.json",
+    "sha256": "a602a586a8e1b84b79ce70becf98a4cf21aaf2b3286098071739c499da41e994",
+    "passed": 69,
+    "failed": 0,
+    "pendingOrSkipped": 0,
+    "suites": [
+      {
+        "file": "web/tests/mcp-media.test.tsx",
+        "passed": 34
+      },
+      {
+        "file": "web/tests/mcp-ui.test.tsx",
+        "passed": 35
+      }
+    ],
+    "implementationEvidence": "verification/audit-evidence/round14-fixes/interface.json",
+    "implementationEvidenceSha256": "e2997a0d3735399bb7746920d7dbc01151d1c7e9d7863efbe1de5483796ffef3"
+  },
+  "preparationNotes": [
+    "An initial combined read truncated only a long displayed diff; current components and the final tests were read separately and completely.",
+    "Two guessed context filenames (ContentBlock.ts and media.test.ts) did not exist; file inventory located the actual MCP contracts and message-media.test.tsx.",
+    "The first before-copy comparison used the Windows default text codec and failed; the comparison was repeated successfully with explicit UTF-8.",
+    "The author added two test-only as Blob casts after the first stable notice; the final source/test hashes and run-V1AByy were checked after the final freeze notice. Earlier 69-test output was not substituted for that final run."
+  ],
+  "limitations": [
+    "This is a bounded repair crossreview and earns no complete clean audit round; it does not revive any pre-repair frozen snapshot.",
+    "No tests were run by this reviewer. The inspected fresh 69-test execution is attributed to the implementation author. No full suite, SSH, online mutation, external MCP or image decoding was performed.",
+    "Tests use jsdom, mocked object URLs and media pause/load methods. They establish validation/DOM/ownership behavior, not actual browser codec acceptance or measured native decoder memory release.",
+    "Replacement creates the candidate object URL before revoking the old registration so an allocation failure preserves the previous valid preview. There can be two URL registrations during that bounded synchronous handoff; only one is selected/rendered afterward. No accumulation path was found.",
+    "Header/signature checks are not full file-format validation or a guarantee against browser codec defects. This change reuses the existing bounded media policy and leaves raw result inspection/download available."
+  ]
+}

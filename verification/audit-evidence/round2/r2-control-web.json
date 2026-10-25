@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round2",
+  "reviewerId": "r2-control-web",
+  "digest": "856c954ad2d2b2cb6736142c8333db435a5ff5430bd09174f65df9b06a4da684",
+  "scopes": [
+    "gateway-core",
+    "web-ux"
+  ],
+  "startedAt": "2026-10-24T19:16:06.440Z",
+  "completedAt": "2026-10-24T19:24:08.224Z",
+  "complete": true,
+  "method": "Independent source audit of every one of the 81 assigned inventory files, including all implementation code, tests, CSS, configurations, the preview fixture and web documentation. Read complete file contents with line numbers and traced authentication, Origin/CSRF, session revocation, worker-channel/browser leases, resource reservations, durable receipt transitions, unknown recovery, draft/navigation ownership, stream/history merge, approvals/forms, settings and terminal lifetimes. Re-read truncated worker-client output in full. Read current clean-room acceptance rules and supporting package/test configuration. Used selective current runtime/deploy reads only to check interfaces; no old checkout, old Git history or previous verification/audit-evidence conclusions were read. Three independently authored deterministic reproductions under ignored .work confirmed concrete defects; these passing reproductions assert existing incorrect behavior and are not repair or full-suite evidence.",
+  "assignedFileCount": 81,
+  "inspectedFiles": [
+    "AGENTS.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "package.json",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/ledger.ts",
+    "src/core/validation.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "tests/core/ledger.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "vitest.config.ts",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/components/AccountSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/Composer.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/Icon.tsx",
+    "web/components/Login.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/Welcome.tsx",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/operations.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/types.ts",
+    "web/main.tsx",
+    "web/styles-responsive.css",
+    "web/styles.css",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/preview-server.mjs",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings.test.tsx",
+    "web/tests/terminal.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "auxiliaryInspection": [
+    {
+      "file": "src/runtime/attachments.ts",
+      "coverage": "Selected cross-layer read: lines 1-180, attachment read/remove/pin behavior; not full-file audit coverage."
+    },
+    {
+      "file": "src/runtime/service.ts",
+      "coverage": "Selected cross-layer read: lines 75-180 and 190-240, notification, attachment, conversation and history interfaces; not full-file audit coverage."
+    },
+    {
+      "file": "deploy/journal.py",
+      "coverage": "Targeted search verified explicit recovery clears activityUncertain; not full-file audit coverage."
+    },
+    {
+      "file": "deploy/manager.py",
+      "coverage": "Targeted search for recover_control and expectedRevision; not full-file audit coverage."
+    },
+    {
+      "file": "ARCHITECTURE.md",
+      "coverage": "Targeted RPC/receipt contract search; not full-file audit coverage."
+    },
+    {
+      "file": "README.md",
+      "coverage": "Targeted RPC/receipt contract search only; not full-file audit coverage."
+    },
+    {
+      "file": "reference/PROTOCOL-CONTRACT.md",
+      "coverage": "Targeted RPC/receipt contract search only; not full-file audit coverage."
+    }
+  ],
+  "findings": [
+    {
+      "id": "R2-CW-01",
+      "priority": "P2",
+      "title": "Late attachment removal overwrites the departed draft and blanks the current composer",
+      "file": "web/components/Composer.tsx",
+      "line": 37,
+      "reproduction": "Store draft A with unsent text and an attachment, plus draft B with different unsent text. Start removing the attachment from A while attachment/remove is deferred. Navigate to B without unmounting the shared Composer/useDraft. Resolve removal successfully. The stale removal callback uses the current attachmentRef but the previous onAttachmentsChange closure. useDraft.ts lines 12-14 now sees a different current key and starts from emptyDraft(A), persists A with empty text, and replaces the displayed draft state with key A. The B composer immediately becomes blank while its stored B text is still present. Confirmed by the first test in .work/r2-control-web/edge.test.tsx.",
+      "impact": "A successful ordinary attachment deletion can irreversibly erase unsent text in the original draft and make the newly selected draft disappear from the visible input. Preserve the original draft contents while removing the deleted ID from that original draft, and prevent late completion from publishing into the currently selected draft.",
+      "evidence": {
+        "command": "pnpm exec vitest run --config .work/r2-control-web/vitest.config.ts",
+        "fixture": ".work/r2-control-web/edge.test.tsx",
+        "result": "Two tests passed before the later HTTP fixture was added; test one asserts the observed wrong A text and blank current textarea."
+      }
+    },
+    {
+      "id": "R2-CW-02",
+      "priority": "P2",
+      "title": "History merge permanently displays a streamed answer before the user message that preceded it",
+      "file": "web/lib/history.ts",
+      "line": 26,
+      "endLine": 28,
+      "reproduction": "Open or reconnect to an active conversation and defer the history response. First deliver item/agentMessage/delta for answer item A, creating the current turn with only A and marking it touched. Then deliver history for the same turn containing chronological items [user question Q, answer A]. mergeHistory initializes its Map from current [A], then appends Q from history, producing [A,Q]. item/completed later replaces A at its existing index and leaves [A,Q]. The touched check also discards any historical answer prefix, so only the newly received suffix is visible before completion. Confirmed by the second test in .work/r2-control-web/edge.test.tsx.",
+      "impact": "Routine navigation or reconnection while a turn is streaming reverses question/answer display order for the remainder of the visit, and loses already-generated answer text until a complete item arrives. Merge authoritative historical order with current live content instead of using arrival order as item chronology.",
+      "evidence": {
+        "command": "pnpm exec vitest run --config .work/r2-control-web/vitest.config.ts",
+        "fixture": ".work/r2-control-web/edge.test.tsx",
+        "result": "Two deterministic tests passed, asserting incorrect order answer,question both before and after a full item/completed notification."
+      }
+    },
+    {
+      "id": "R2-CW-03",
+      "priority": "P2",
+      "title": "HTTP lease admission reports a known accepted operation as not_sent before receipt replay",
+      "file": "src/gateway/server.ts",
+      "line": 181,
+      "endLine": 185,
+      "reproduction": "Through a short loopback GatewayServer fixture with an in-memory Ledger and explicit worker substitute, authenticate and open the browser event connection. Submit turn/start with operation ID X and receive an accepted durable receipt. Close the browser event connection and wait for server-side lease cleanup. Resubmit exactly the same method, params and ID X using the still-valid authenticated cookie and CSRF token. The response is connection_required with delivery:not_sent, although Ledger.read(X).state is accepted and worker write count remains one. server.ts rejects before Dispatcher.call reaches reserve/replay. Confirmed by .work/r2-control-web/receipt-http.test.ts.",
+      "impact": "The public RPC endpoint gives a conflicting delivery fact for an already accepted identity whenever its connection lease is gone. A client retry can receive apparent not-sent evidence instead of the durable accepted result. Existing receipt/fingerprint checks must precede admission that is only required for new dispatch, while retaining different-payload conflict rejection.",
+      "evidence": {
+        "command": "pnpm exec vitest run --config .work/r2-control-web/vitest.config.ts .work/r2-control-web/receipt-http.test.ts",
+        "fixture": ".work/r2-control-web/receipt-http.test.ts",
+        "result": "One test passed after correcting the fixture to wait for server-side disconnect cleanup. The first fixture run raced client-side close and was not counted as bug evidence."
+      }
+    }
+  ],
+  "skipped": [],
+  "limits": [
+    "No full test suite was run. No implementation files were modified. Only ignored reproduction/configuration files and this unique audit report were written.",
+    "No real browser, browser visual screenshot, operating-system IME, native screen reader or mobile-device integration was exercised in this round. Frontend reproduction used jsdom with real product components/hooks.",
+    "No persistent local worker or gateway was started. The HTTP reproduction used a bounded test-owned loopback gateway with a substituted worker and in-memory journal; it closed its WebSocket, server and journal.",
+    "No commercial model, provider credentials, personal home, real external MCP, remote Linux/systemd integration, retired deployment or online service was accessed.",
+    "Source coverage is complete for the 81 assigned files. Selective cross-layer runtime/deploy/contract checks are listed separately and do not claim complete coverage of those files.",
+    "The original declared inventory and the pre-report snapshot both contain 1519 source files with the exact requested digest. A post-report snapshot check is performed separately; this report does not claim a clean audit because it contains three findings."
+  ]
+}

@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round1",
+  "reviewerId": "r1-control-web",
+  "digest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485",
+  "scopes": [
+    "gateway-core",
+    "web-ux"
+  ],
+  "complete": true,
+  "startedAt": "2026-10-24T18:31:04.274Z",
+  "completedAt": "2026-10-24T18:39:39.963Z",
+  "method": "Independent read-only audit of every complete file assigned by .work/audit-round1-inventory.json under src/core, src/gateway, tests/core, tests/gateway, and web (77 files). Reviewed implementation first, then its tests, CSS, browser/build configuration and documentation; no previous audit-evidence artifacts, old implementation, old tests or Git history were used. Traced durable admission/dispatch/settlement, same-ID replay, ownership, bounded retention, auth/CSRF/session lifecycle, shutdown/reconnect, drafts, history streams, approvals, forms, attachments, terminal startup/cleanup, provider settings and navigation. Cross-checked selected runtime and deploy transport/lifecycle contracts. Ran two bounded in-memory probes by transforming current TypeScript source using Node 24.15.0 node:module.stripTypeScriptTypes: actual Dispatcher and Ledger, actual useEvents hook logic with minimal state/effect/WebSocket substitutes. No worker/gateway server, browser, model or external MCP was started. Compared an independently recalculated source snapshot to the assigned digest after review; will verify again after writing this evidence.",
+  "inspectedFiles": [
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/ledger.ts",
+    "src/core/validation.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "tests/core/ledger.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/components/AccountSettings.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/Composer.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/Icon.tsx",
+    "web/components/Login.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/Welcome.tsx",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/operations.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/types.ts",
+    "web/main.tsx",
+    "web/styles-responsive.css",
+    "web/styles.css",
+    "web/tests/attachments.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/preview-server.mjs",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/terminal.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "relatedFilesRead": [
+    {
+      "path": "AGENTS.md",
+      "scope": "complete repository rules"
+    },
+    {
+      "path": "package.json",
+      "scope": "complete current package/scripts/runtime metadata"
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "scope": "complete snapshot algorithm"
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "scope": "selected evidence schema/coverage checks only"
+    },
+    {
+      "path": "src/runtime/main.ts",
+      "scope": "complete current worker transport and boot lifecycle"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "scope": "state/epoch/notification, routing, history and disconnect lifecycle sections"
+    },
+    {
+      "path": "src/runtime/attachments.ts",
+      "scope": "complete attachment ownership/storage/pinning implementation"
+    },
+    {
+      "path": "deploy/journal.py",
+      "scope": "complete stopped-service uncertainty recovery contract"
+    },
+    {
+      "path": "deploy/manager.py",
+      "scope": "provider change, catalog discovery, restart and RPC receipt dispatch sections"
+    },
+    {
+      "path": "deploy/provider.py",
+      "scope": "provider/model/effort input and persistence search matches only"
+    },
+    {
+      "path": "PROBLEM-ACCEPTANCE.md",
+      "scope": "acceptance constraints read as context; large output was partial and is not claimed as full coverage"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R1-CW-001",
+      "priority": "P2",
+      "title": "Management completion publishes maintenance=true but never publishes its release",
+      "scope": "gateway-core",
+      "location": {
+        "path": "src/gateway/dispatch.ts",
+        "start": 95,
+        "end": 105
+      },
+      "relatedLocations": [
+        {
+          "path": "web/hooks/useEvents.ts",
+          "start": 33,
+          "end": 33
+        },
+        {
+          "path": "web/components/ModelCatalog.tsx",
+          "start": 11,
+          "end": 11
+        }
+      ],
+      "description": "A management mutation emits its receipt and status while #maintenance is still true, then clears #maintenance in finally without emitting another state. Browsers have already set activityReady=false. Custom-provider model discovery returns source=provider and ModelCatalog does not trigger onApplied/reload in that branch, so an otherwise idle runtime emits no later state to restore the UI; management failures have the same problem. The server internally permits work again while the browser keeps new-task submission disabled.",
+      "reproduction": [
+        "Start with connected=true, activity.unknown=false and no active work.",
+        "Invoke system/models/refresh against a provider discovery manager substitute, with a fresh operation ID and a manager result that does not restart the worker.",
+        "Record Dispatcher state events and compare its current status after the call resolves.",
+        "The final published status has maintenance=true, whereas dispatcher.status().maintenance is false; feeding the published event to useEvents leaves activityReady=false."
+      ],
+      "observed": "Bounded in-memory source probe reproduced lastBroadcast.maintenance=true, actualStatus.maintenance=false and browserActivityReady=false. The probe's result projection used source=native; provider result differences do not alter Dispatcher state ordering, and the production provider UI branch was separately traced to ensure it does not mask the missing broadcast.",
+      "recommendation": "Publish a current state after releasing the maintenance flag in finally, including the failure path, and add a focused lifecycle assertion on the last externally emitted state."
+    },
+    {
+      "id": "R1-CW-002",
+      "priority": "P1",
+      "title": "Same-worker event reconnection does not resynchronize history or pending prompts",
+      "scope": "web-ux",
+      "location": {
+        "path": "web/hooks/useEvents.ts",
+        "start": 27,
+        "end": 33
+      },
+      "relatedLocations": [
+        {
+          "path": "web/App.tsx",
+          "start": 40,
+          "end": 50
+        },
+        {
+          "path": "src/runtime/main.ts",
+          "start": 52,
+          "end": 54
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "start": 19,
+          "end": 19
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "start": 325,
+          "end": 325
+        }
+      ],
+      "description": "When only the gateway-to-worker event WebSocket drops, the browser WebSocket stays open. RuntimeService keeps its epoch and the worker reconnect snapshot contains status only, with no missed notification/prompt replay. useEvents restores runtimeConnected/activityReady but does not change revision; App's resourceEpoch therefore remains identical. Conversation history, resume/default state and prompt/list are not refreshed. A completion or approval created during the event gap can be absent indefinitely even though the UI reports a healthy connection, leaving incomplete history or an invisible pending decision.",
+      "reproduction": [
+        "Keep an authenticated browser WebSocket open with runtime epoch E and a loaded conversation.",
+        "Drop only the gateway-to-worker event channel; let the native worker continue and produce a turn completion or a new approval during the gap.",
+        "Reconnect to the same RuntimeService; its initial state snapshot still has epoch E.",
+        "No browser onopen occurs, no hook revision advances and no history/prompt/resume generation changes; missed events are not recovered."
+      ],
+      "observed": "Current source lifecycle confirms same epoch and no replay. A source-transformed useEvents probe fed connected=true(E), connected=false, connected=true(E): epoch and revision stayed E/1 before and after while runtimeConnected and activityReady returned true.",
+      "recommendation": "Introduce a resynchronization generation when the upstream runtime/event connection recovers even with the same process epoch, and use it to re-read pending prompts, thread metadata/history, resume state and other connection-sensitive resources before declaring readiness."
+    },
+    {
+      "id": "R1-CW-003",
+      "priority": "P2",
+      "title": "Expired or restarted gateway sessions cannot return the open page to login",
+      "scope": "web-ux",
+      "location": {
+        "path": "web/App.tsx",
+        "start": 103,
+        "end": 108
+      },
+      "relatedLocations": [
+        {
+          "path": "web/lib/api.ts",
+          "start": 25,
+          "end": 35
+        },
+        {
+          "path": "web/hooks/useEvents.ts",
+          "start": 38,
+          "end": 38
+        },
+        {
+          "path": "src/gateway/auth.ts",
+          "start": 39,
+          "end": 51
+        },
+        {
+          "path": "src/gateway/server.ts",
+          "start": 150,
+          "end": 156
+        }
+      ],
+      "description": "SessionApp checks authentication only on its initial mount and sets authenticated=false only after a successful logout. A 12-hour session expiration, logout from another document or gateway restart invalidates the in-memory session, but subsequent 401 RPCs merely become local errors and the event socket retries indefinitely. The existing logout control also requires a valid session; its 401 rejects before setAuthenticated(false), so it cannot reopen Login. Users must discover that a manual page reload is required, including after the product's own restart flow.",
+      "reproduction": [
+        "Open a logged-in workspace and retain an unsent draft.",
+        "Expire/remove the server session (or restart the gateway).",
+        "Observe RPC unauthorized responses and failed WebSocket reconnections.",
+        "Try the workspace logout button: DELETE /api/session returns 401, Api.logout rejects, authenticated remains true and no Login screen appears."
+      ],
+      "observed": "Deterministic code-path audit across auth expiration, authenticated DELETE, Api error handling, useEvents close handling and SessionApp state ownership. No real browser/session-expiry integration was executed.",
+      "recommendation": "Handle authoritative authentication loss centrally or recheck the session after connection recovery failure, return the document to a clear login state, and preserve drafts and operation recovery metadata."
+    },
+    {
+      "id": "R1-CW-004",
+      "priority": "P2",
+      "title": "Archive action follows the sidebar filter instead of the selected conversation",
+      "scope": "web-ux",
+      "location": {
+        "path": "web/App.tsx",
+        "start": 95,
+        "end": 97
+      },
+      "description": "The archived state is the thread-list filter, but the current conversation menu also uses it to choose both the label and thread/archive versus thread/unarchive. Toggling the sidebar filter does not navigate away or change the selected thread's actual archive state. Thus an ordinary conversation immediately offers Restore and sends unarchive after the filter is changed to archived; an archived conversation opened from that list offers Archive again after the filter is changed back. Deep links also begin with the default false filter regardless of the target's archive state.",
+      "reproduction": [
+        "Open an ordinary unarchived conversation.",
+        "Toggle the sidebar's archived-list filter without selecting another conversation.",
+        "Open conversation actions: the same conversation now shows Restore and sends thread/unarchive.",
+        "Alternatively open an archived conversation, switch the sidebar to normal history, and observe Archive/thread/archive on the still-selected archived conversation."
+      ],
+      "observed": "Direct state/action trace: onArchived only toggles archived, while the current menu derives its action and label from that exact filter variable. No browser interaction is claimed.",
+      "recommendation": "Track or query the selected thread's archive state independently of list filtering, and derive the menu action from the selected resource's state."
+    }
+  ],
+  "skipped": [],
+  "probes": [
+    {
+      "description": "In-memory actual Dispatcher + Ledger and source-transformed useEvents with minimal state/effect/WebSocket substitutes; no worker/server/model",
+      "result": "After system/models/refresh returns success, last broadcast maintenance=true, dispatcher.status maintenance=false, browserActivityReady=false."
+    },
+    {
+      "description": "Source-transformed useEvents fed same-epoch state: connected -> disconnected -> connected while browser socket stays open",
+      "result": "epoch= same-worker and revision=1 before and after; runtimeConnected/activityReady return true without a resource refresh generation."
+    }
+  ],
+  "limitations": [
+    "This is a complete assigned-file code audit with actionable findings, not a clean audit and not a full test report.",
+    "Existing tests were completely read for the assigned scope; the test suite and build were not run. Only the two described bounded in-memory source probes were executed.",
+    "No actual browser layout, operating-system IME/accessibility, authenticated HTTP/WebSocket end-to-end flow, real worker/native CLI/PTY process, Linux/systemd integration, external provider, paid model inference or external MCP call was executed by this reviewer.",
+    "No remote 120/110 access or personal credentials were used. Deployment and runtime files outside the assignment were inspected only as the explicitly listed contract cross-checks.",
+    "web/VERIFICATION.md was read after the implementation/test audit as an assigned documentation file; its earlier implementation-phase assertions were not used as independent proof."
+  ],
+  "freezeVerification": {
+    "expectedDigest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485",
+    "files": 1510,
+    "reviewEndDigest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485",
+    "unchanged": true,
+    "command": "node scripts/snapshot.mjs"
+  }
+}

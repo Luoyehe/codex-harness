@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T22:29:44.375Z",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "reports": [
+    {
+      "file": ".work/test-results/run-ia67EP/vitest.json",
+      "sha256": "1a3298611b6b99e63932e09423a2c1a4267e638d2d2401c1ea23ac7d293d4e39",
+      "passed": 24,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-8qzEF4/vitest.json",
+      "sha256": "15b7e2988f61a7d26822807cbea2d4b4219e8c7bd4f866ec837048e9badef7e5",
+      "passed": 4,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-lj6VDm/vitest.json",
+      "sha256": "96c71754d4cbce0af46dfe56b4f60d6b48d689dc0950cf2790390d864b8be818",
+      "passed": 15,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-l5liIZ/vitest.json",
+      "sha256": "804036c31644c8032d332c61fb84603a870e375b12aefd687a76879f7e6a38fc",
+      "passed": 40,
+      "overlappingRunsNotSummed": true
+    }
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "src/runtime/account-tools.ts": "bf08cd7539b576af18b59811022e09cbc6232c6ef90b619a16a40a1ef6f49684",
+    "src/runtime/extensions.ts": "ac44b664f7745812bf0e62a82835fb76461407d447b1e480b4fadde386349049",
+    "src/runtime/workspace-witness.ts": "64a1453a875f67431131f7dfcefa56adc82db15adb473ed52c177e7a854e8b99",
+    "src/core/extension-methods.ts": "0f38a26f5509e464064d67fa509f515d5e7a706450ad38ea2dc7f626e39beada",
+    "src/core/feature-methods.ts": "14aef51791d6a375a1aeace04d571af74c14a6f42e77e35c64d859c96b6f9753",
+    "src/gateway/receipt-result.ts": "577ed33cce956524660a8dacf523af95deca183492fdfff27acdbff12e3fdeec",
+    "web/components/AccountToolsPanel.tsx": "e6530c75aade2262994ad249e4d6267098258d869f8555494265d207786ea3d0",
+    "web/hooks/useWorkspaceWatch.ts": "1b5ba93ada172376e41c4fe68ae135287bbdac4935faae241c883865acb5f052"
+  },
+  "verified": [
+    "Credit redemption requires a fresh account/credit preview and explicit confirmation; native idempotency key is the original durable operation ID. Unknown browser results only read the original receipt.",
+    "OAuth links are private to the initiating client plus event channel, never persisted in result receipts or forwarded in public notifications. Close/disconnect/expiry revoke access.",
+    "Native gateway OAuth notifications lack a login ID. Any dispatched handoff retains an epoch tombstone after cancellation, including confirmed cancellation; another handoff needs native restart. Early observed dispatch or notification cannot be classified as safe-to-retry not_sent.",
+    "Isolated fixed Windows CLI read verifies gateway OAuth and local user-verification status, actual project skill/marketplace skill content, configuration conflicts and extension workflows without model inference.",
+    "Workspace watch is explicit bounded metadata polling, not a claimed native fs/watch subscription; no draft replacement and stale responses abort.",
+    "Git index durable success is restricted to a supervisor-observed live witness that matches operation, original HEAD/index, selected paths or recovery identity. Native-user helper journal alone is never positive acceptance."
+  ],
+  "limitations": [
+    "No real credit redemption, outbound email, external OAuth login, microphone session, native biometric enrollment/signature, paid inference or external MCP call was performed.",
+    "Browser component tests are not actual deployed API/WebSocket integration. Full cross-UID integration, latest isolated-instance deployment and final audit gate remain pending.",
+    "Point-in-time source hashes describe this batch, not a frozen final repository snapshot."
+  ]
+}

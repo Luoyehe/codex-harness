@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:45:32.191Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "media-input-ui",
+  "specificTests": 7,
+  "files": [
+    "web/lib/input-modalities.ts",
+    "web/components/Composer.tsx",
+    "web/styles-input-context.css",
+    "web/tests/input-modalities.test.tsx"
+  ],
+  "contracts": [
+    "Images and audio require a unique actual model catalog match and explicit inputModalities. Missing/loading/ambiguous catalog does not imply support.",
+    "Normal send uses prepared collaboration mode/model options or current session/default model; queued input uses the session model and ignores send-only overrides.",
+    "Steering cannot infer current-turn model overrides from thread session defaults, so media remains blocked with a clear queued/next-turn path until current-turn capability can be proved.",
+    "Supported audio is described as native audio, never a text-path fallback. Draft text and attachments survive unsupported selection. Server format/model checks remain authoritative."
+  ],
+  "sourceHashes": {
+    "web/lib/input-modalities.ts": "73ef41d1a14c0e6785c6daaae3fba96f9d02b61c4467ec9db7f3beb5eee10ca1",
+    "web/components/Composer.tsx": "f2bed7c53e0f8d9a5a3faf60f7a4944613be277785d3df47a4108e49cd9bfb2f",
+    "web/styles-input-context.css": "1d69acfb01ce2609e8b4e453103d90791ba4e791643bd1ce000d39009e840496",
+    "web/tests/input-modalities.test.tsx": "e0e4590bb77526e431d3a2e15bebfc2cc8b066ccaeacb9d0902030e5bd96a1a8"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/input-modalities.test.tsx web/tests/composer.test.tsx web/tests/defaults.test.tsx web/tests/input-context.test.tsx web/tests/thread-terminals.test.tsx web/tests/execution-settings.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 7,
+    "tests": 47,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed"
+  },
+  "limits": [
+    "Only affected frontend tests. No full suite or frozen audit.",
+    "Native shell/audio validation belongs to runtime agent; no actual shell command, media inference, external provider or120 browser action by this agent.",
+    "No visual acceptance yet for these new controls."
+  ]
+}

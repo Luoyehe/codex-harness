@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T10:41:04.316Z",
+  "sourceEditsStopped": true,
+  "reports": [
+    {
+      "domain": "deployment",
+      "file": "verification/audit-evidence/round8-fixes/deployment.json",
+      "sha256": "230833856e16064dade8990de415d04adced86d1303d8fe9f7fceefdcfde3980"
+    },
+    {
+      "domain": "interface",
+      "file": "verification/audit-evidence/round8-fixes/interface.json",
+      "sha256": "468a4e7c54546835ebc77d55e381bbf1ec22ddbe247ee03661c439010df10499"
+    },
+    {
+      "domain": "runtime",
+      "file": "verification/audit-evidence/round8-fixes/runtime.json",
+      "sha256": "9991b13da5b9f83a7b31f1f390a94cf831d9ad91a67a160c502d266fbfa49754"
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "builtIndexSha256": "d33ce1bc25882128714e6630fa069bc9e08d2cbe433dd38f4e727a733893a9f0",
+      "warning": "Existing single-bundle size warning: current main bundle 1223.03 kB."
+    },
+    {
+      "command": "node .work/check-source-encoding.mjs",
+      "files": 1783,
+      "findings": []
+    },
+    {
+      "command": "node scripts/release-audit.mjs --source",
+      "status": "clean",
+      "findings": [],
+      "skipped": []
+    }
+  ],
+  "targetedResults": {
+    "interface": {
+      "passed": 113,
+      "skipped": 0
+    },
+    "runtimeAndRealtimeWeb": {
+      "passed": 65,
+      "skipped": 0
+    },
+    "deploymentNew": {
+      "passed": 8,
+      "skipped": 0
+    },
+    "deploymentExistingBoundaryClass": {
+      "passed": 6,
+      "skipped": 0
+    }
+  },
+  "browser": {
+    "kind": "Production-built UI with a bounded loopback read-only fabricated RPC directory; all mutations rejected by fixture. No real worktree, MCP, shell or model execution.",
+    "fixture": ".work/r8-ownership-preview.mjs",
+    "fixtureSha256": "7f43dee204493f71a9c209089715a4a677ada4973c1248ea7bf1aadba55dda8f",
+    "observations": [
+      "Opening creation closes the existing worktree action form. After checking create consent and selecting archive, archive consent is unchecked and archive submit disabled.",
+      "MCP service A subscription parameters and consent entered without submitting. Switching to B retains visible parameters for review, invalidates consent and disables start. No subscription is started."
+    ],
+    "screenshots": [
+      {
+        "file": "reference/evidence/worktree-confirmation-fixed.png",
+        "sha256": "740f534ca85d1905e8ebf09dcef13a03ca532e2ce8edd9ed740afa1bbd8a1a21"
+      },
+      {
+        "file": "reference/evidence/mcp-target-consent-fixed.png",
+        "sha256": "4c2c6949fa0e474aecccba75ff647de135929c21f095f3cb78ae8003f86ba73b"
+      },
+      {
+        "file": "reference/evidence/mcp-target-consent-fixed-visible.png",
+        "sha256": "2a3a5038374f21c0c1e615dba11851b0d6854d6cd4f709dba9fbda174dbe2277"
+      }
+    ],
+    "cleanup": {
+      "tabsClosed": [
+        11,
+        12
+      ],
+      "ownedProcessId": 11024,
+      "exactExecutableAndCommandVerified": true,
+      "noListenerOn5129": true,
+      "exitCode": 1,
+      "exitMeaning": "Intentional termination of owned bounded fixture; not a test failure or natural-exit assertion."
+    }
+  },
+  "limits": [
+    "No full suite, live external provider or online update.",
+    "Targeted repair integration earns no independent clean audit.",
+    "Capability references regenerated once after all source writers stopped; fresh source/privacy validation follows before freeze."
+  ]
+}

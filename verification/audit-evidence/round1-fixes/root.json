@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "kind": "repair-evidence",
+  "formalCleanRound": false,
+  "findings": [
+    "R1-DEP-003",
+    "LIVE-120-NATIVE-STOP-ACK"
+  ],
+  "changes": [
+    "Git object scanner parses NUL-delimited tree entries and traverses complete paths for every forest root, including orphan and shared subtrees. Corrupt or over-budget graph traversal fails closed; historical names/content remain redacted.",
+    "Dependency-security evidence private temporary home paths changed to portable OS_TEMP notation. Test results and integrity hashes retained.",
+    "Streaming native launcher acknowledges requested EOF or service-signal shutdown only after process-tree cleanup is confirmed. Spontaneous native crashes and non-streaming helper statuses retain their exit semantics."
+  ],
+  "files": [
+    {
+      "path": "scripts/release-audit.mjs",
+      "sha256": "eec4848743a0cf106981f6f5d399f20848851615a8fe282847cd34d04d8e2941"
+    },
+    {
+      "path": "tests/tooling/release-audit.test.ts",
+      "sha256": "20566ddc2d46eb3502b4f576f248245fe951ea06fe11253a6899d8ccd898eeef"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "46fe6924886d918826d2d799511bbb6d683b9a27f97992c1ad97768387d00159"
+    },
+    {
+      "path": "tests/deploy/test_native_shutdown.py",
+      "sha256": "7b25d9c0ae55ebc66786fdf2570125b7bae6b8b893d098a09f98ad95c413c1af"
+    }
+  ],
+  "checks": [
+    {
+      "test": "tests/tooling/release-audit.test.ts",
+      "status": "passed",
+      "count": 10,
+      "report": ".work/test-results/run-w4FLlP/vitest.json"
+    },
+    {
+      "test": "tests.deploy.test_native_shutdown",
+      "host": "isolated Linux 120",
+      "beforeFix": "2 regressions reproduced; 2 failure-preservation checks passed",
+      "afterFix": "4 passed; no descendants remained"
+    },
+    {
+      "test": "tests.deploy.test_deployment.NativeLauncherTests",
+      "host": "isolated Linux 120",
+      "afterFix": "3 passed; real pipe backpressure, escaped descendants and project resolution"
+    },
+    {
+      "test": "tests/tooling/select-tests.test.ts",
+      "status": "passed",
+      "count": 9,
+      "report": ".work/test-results/run-po4Mox/vitest.json"
+    },
+    {
+      "test": "tests/tooling/run-tests.test.ts",
+      "status": "first run failed prerequisite-dependent assertion",
+      "reason": "No explicit HARNESS_TEST_PYTHON; Windows python alias unavailable. Rerunning with bundled interpreter."
+    },
+    {
+      "test": "tests/tooling/run-tests.test.ts",
+      "status": "passed",
+      "count": 11,
+      "report": ".work/test-results/run-fxkV0j/vitest.json",
+      "prerequisite": "Explicit bundled Python 3.11+ path"
+    },
+    {
+      "test": "tests/tooling/release-audit.test.ts",
+      "status": "passed",
+      "count": 15,
+      "report": ".work/test-results/run-24WhGZ/vitest.json",
+      "supersedes": "earlier 10-test scanner run"
+    },
+    {
+      "test": "tests.deploy.test_native_shutdown",
+      "status": "passed",
+      "host": "isolated Linux 120",
+      "count": 4,
+      "details": "Final pidfd/start-time guarded cleanup; no instance service mutation."
+    }
+  ],
+  "startupDiagnosis": {
+    "nativeInitialized": true,
+    "workerStatus": 200,
+    "gatewayHealth": 503,
+    "cause": "systemd RuntimeDirectory recreated its group as control before ExecStart, leaving gateway IPC group unable to traverse/socket-connect",
+    "nativePluginSync": "Observed background activity, disproven as initialization failure by native stdout response and actual connected worker status",
+    "unitRepair": "Actual control-update, stopped-unit migration and release activation passed; IPC group now owns directory and socket; readiness200 and verify19878 files integrity/permissions/managedUnits passed. Existing unrelated PIDs/InvocationIDs unchanged."
+  },
+  "limits": [
+    "No full suite, paid inference, external MCP task or old implementation read.",
+    "Linux native shutdown tests use controlled Python children; application service signal behavior must also be verified after updating trusted control tools."
+  ],
+  "shortReview": {
+    "findings": [
+      "Streaming regex prefixes with unlimited separators could evade a fixed retained window.",
+      "Dangling tree with missing referenced blob could be reported clean.",
+      "Linux test cleanup reused numeric PIDs after their confirmed exit."
+    ],
+    "fixed": true,
+    "changes": [
+      "Bounded separator prefixes plus explicit conservative overflow findings before window exhaustion.",
+      "Ordinary tree/blob edges require matching scanned local object types.",
+      "Atomic fixture readiness and process start identity verified before retaining pidfds; cleanup targets handles only."
+    ]
+  }
+}

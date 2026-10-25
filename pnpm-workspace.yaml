@@ -1,0 +1,12 @@
+{
+  "packages": ["."],
+  "minimumReleaseAge": 1440,
+  "blockExoticSubdeps": true,
+  "trustPolicy": "no-downgrade",
+  "strictDepBuilds": true,
+  "ignoreScripts": true,
+  "overrides": {
+    "@z_ai/mcp-server@0.1.5>@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  }
+}

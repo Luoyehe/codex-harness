@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-cross-review",
+  "reviewerId": "r21-interface",
+  "status": "no-new-actionable-finding-in-reviewed-test-change",
+  "complete": true,
+  "startedAt": "2026-10-25T20:37:52.0503725Z",
+  "completedAt": "2026-10-25T20:39:52.3087405+00:00",
+  "method": "Read both final test files in full, compared their exact current-repair backups, inspected the defaults probe lifecycle and shared fixture consumers, and verified original/final hashes plus recorded controlled-red and targeted-green results. No product changes or test executions were performed.",
+  "scope": [
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/native-fixture.mjs"
+  ],
+  "comparisons": [
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "before": ".work/v2-full-fixes/defaults-lifecycle/before/tests__runtime__defaults-lifecycle.test.ts",
+      "beforeSha256": "3b1853c647923ec0d25793ba57e65b1fcd9b2424e6e636b6b9d4e64b51a75e35",
+      "afterSha256": "c5dcc0a9b761d48b094f8b0c642f1e28ed3d2fc7e6ff0a6ee96e46d333a8d30c",
+      "hashesIndependentlyVerified": true
+    },
+    {
+      "path": "tests/runtime/native-fixture.mjs",
+      "before": ".work/v2-full-fixes/defaults-lifecycle/before/tests__runtime__native-fixture.mjs",
+      "beforeSha256": "e8d6b7b8ab420c18e7c8318c9cbea379b2af3f11f115f9d67ebcf0ec9723be67",
+      "afterSha256": "d34e23f65716ad112ac9f6847bb93ebf203197da0caa2e91abd49c3be757251a",
+      "hashesIndependentlyVerified": true
+    }
+  ],
+  "supportingReads": [
+    "src/runtime/service.ts defaults probe creation and cleanup",
+    "tests/runtime/native.test.ts shared fixture consumers",
+    ".work/v2-full-fixes/defaults-lifecycle/original-timing.json"
+  ],
+  "reviewedReport": {
+    "path": "verification/audit-evidence/v2-full-fixes/defaults-lifecycle.json",
+    "sha256": "efee0ad219a6aeb9f6304444db283d1ae4e609c1e8839e3a8c15f65f824757e9"
+  },
+  "findings": [],
+  "conclusions": [
+    "The directory watcher is installed before the immediate PID read, covering both readiness already present when observation begins and subsequent filesystem changes. The helper does not rely on filename/event-type delivery details. A bounded 10-second deadline and watcher-error rejection remain available.",
+    "Readiness requires a complete newline-terminated positive safe-integer PID. Empty/partial records remain pending rather than returning a truncated PID or NaN. The fixture changes only this hold marker framing.",
+    "A pending probe resolution or rejection rejects the readiness wait while it is unsettled. The actual lifecycle uses a fresh unique marker and installs observation immediately after starting the async probe, so a stale prior-run marker cannot win that race. The later live-PID and pending runtime_lost assertions remain necessary and retained.",
+    "Promise.finally closes the watcher and clears the timer after readiness, early outcome, read error, watcher error or deadline. Promise handlers remain attached to the probe and do not introduce an unhandled rejection path.",
+    "The controlled 1200 ms startup delay exercises the real local Node fixture and Windows Job ownership with unchanged production lifecycle code. Original assertions still check child liveness, idempotent close promise identity, main disconnect, actual child death, unknown runtime_lost outcome and post-close rejection; the config-read-after-shutdown assertion is also unchanged.",
+    "Verified recorded evidence: delayed fixture red is 1 failed/3 passed; final targeted run is 12/12, including helper early-outcome/partial-record checks and the shared native fixture suite."
+  ],
+  "validations": [
+    {
+      "kind": "controlled-red",
+      "path": ".work/test-results/run-4tePD8/vitest.json",
+      "sha256": "166dc4ecfeea70c8c7a37f487ab71d9aff6a0069c3519fa60f16266f0a0ef047",
+      "passed": 3,
+      "failed": 1,
+      "hashIndependentlyVerified": true,
+      "rerunByReviewer": false
+    },
+    {
+      "kind": "final-targeted",
+      "path": ".work/test-results/run-NE0nDh/vitest.json",
+      "sha256": "f22095b08c1a9038eedd1a1a51a9a9df22619da5733c7aad3b304cd10e491879",
+      "passed": 12,
+      "failed": 0,
+      "hashIndependentlyVerified": true,
+      "rerunByReviewer": false
+    }
+  ],
+  "limitations": [
+    "Bounded review only; not a full repository audit or additional clean round. No targeted rerun, full suite, build, SSH, deployment, external model/MCP/account call or personal environment access was performed by this reviewer.",
+    "Filesystem event delivery across every filesystem/load condition is not established by this review. A missed readiness event remains bounded by the deadline and fails the test; it cannot bypass the retained liveness and cleanup assertions.",
+    "The original 1000.8759765625 ms directory-to-marker timing is reported artifact evidence; as the author discloses, linking its directory to the original full failure uses timestamp alignment rather than an embedded raw fixture path. The controlled delayed case supplies direct timing regression evidence.",
+    "All production source remains unchanged by this test-only repair. Root owns the next source freeze and full rerun under the user-authorized workflow."
+  ]
+}

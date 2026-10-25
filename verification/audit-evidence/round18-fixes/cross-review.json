@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round18-fixes",
+  "reviewerId": "r18-deployment-cross-review",
+  "type": "bounded-static-cross-review",
+  "fullAuditRound": false,
+  "reviewComplete": true,
+  "scope": [
+    "realtime callback ownership repair",
+    "retired owner cleanup and receipt preservation"
+  ],
+  "reviewStartedAt": null,
+  "reviewCompletedAt": null,
+  "reviewTiming": "Exact start and completion timestamps of the previously completed static cross-review were not retained. They are deliberately left null rather than reconstructed. The recording timestamps below describe sealing this evidence only.",
+  "recordingStartedAt": "2026-10-25T18:56:16.7014574+00:00",
+  "recordedAt": "2026-10-25T18:56:16.7806746+00:00",
+  "inspectedFiles": [
+    "web/hooks/useConversation.ts",
+    "web/components/RealtimePanel.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/realtime.test.tsx"
+  ],
+  "sourceHashes": [
+    {
+      "path": "web/hooks/useConversation.ts",
+      "sha256": "ba39851bc3c28e8f67c5d41eefc57c435be37fb866c89ee8d355c2c33486f719"
+    },
+    {
+      "path": "web/components/RealtimePanel.tsx",
+      "sha256": "5073b81e9600c8f49f3ea57c37b4ce35adbff15705a558f69aa4db7ece356055"
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "sha256": "a3e1e1352fef41e5d8531c47906c5d03ad8b200e52e6ffb616f7c39865c684aa"
+    },
+    {
+      "path": "web/tests/realtime.test.tsx",
+      "sha256": "742ad39b53566db33c8193197268218b4009bcfb16a0020a47bf806ad6446148"
+    }
+  ],
+  "method": "Previously completed read-only review of the final versions of the four listed files, including both full implementation files and full regression-test bodies. Reviewed hook visit identity independently from history traversal generation, API/thread/resource-epoch changes, A-to-B-to-A navigation, unmount and StrictMode handling. Traced retired realtime-panel accepted startup through native snapshot acceptance, media release and stop while external notifications remain limited to the current mounted owner. This sealing action only hashes current files and records the prior conclusion; it does not rerun review or tests.",
+  "findings": [],
+  "conclusion": "No confirmed issue introduced by the reviewed repair was identified. The hook uses an independently scoped visit token and layout cleanup, with API replacement included in context reset. The panel remounts for each API/epoch/lease/thread identity transition; retired instances retain their own API, refs and session for cleanup while current-owner checks gate outward lifecycle notifications. The regression sources cover stale start/close callbacks, original-API cleanup, unknown stop receipt retention, no replay and StrictMode.",
+  "independentlyRunTests": [],
+  "testsRunByThisReviewer": false,
+  "productFilesModifiedByThisReviewer": [],
+  "externalValidation": {
+    "basis": "Execution results reported by the repair agent; not independently executed or raw-result verified by this reviewer during this limited cross-review.",
+    "targetedTests": "39/39 passed",
+    "webTypecheck": "tsc --noEmit exited 0"
+  },
+  "limitations": [
+    "This is a bounded repair cross-review, not a new complete audit round, and must not count toward complete-round requirements.",
+    "Only the four listed final files establish this cross-review coverage; the earlier design discussion is not additional complete repository coverage.",
+    "No tests, typecheck, build, aggregate runner, browser, media capture, model, remote service or privileged action was independently executed during this cross-review or sealing step.",
+    "The reported test and typecheck results are attributed to the repair agent. This reviewer makes no independent execution claim.",
+    "Exact static-review timestamps were not preserved. Current file hashes were computed during sealing; no product file was edited by this reviewer.",
+    "No old repository, Git history or previous audit conclusion was used to decide the repair conclusion."
+  ]
+}

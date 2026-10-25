@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-10-25T09:47:52.753Z",
+  "evidence": "verification/audit-evidence/round7/r7-deployment.json",
+  "beforeSha256": "220861a007020bd644b9f3dfb046b9a9038fbaf1c78c895dba1607c33926e0ca",
+  "afterSha256": "51dd3b47bc3c48736bf32f36f1468d4efdf327fca079c799cb722c74b0dd2a7e",
+  "reason": "Source privacy scan found a personal Windows home path in the recorded Python command. Replace only the interpreter display path with HARNESS_TEST_PYTHON; preserve original bytes in ignored local evidence.",
+  "modifiedField": "validations[kind=focused-python-tests].command",
+  "unchanged": [
+    "source digest",
+    "inspection inventory",
+    "findings",
+    "skips and limitations",
+    "test results and log checksums",
+    "reviewer identity and timing"
+  ],
+  "originalRetainedUnderIgnoredWork": true
+}

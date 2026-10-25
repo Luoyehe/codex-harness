@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round7-fixes",
+  "reviewerId": "r7-deployment-fixes",
+  "kind": "targeted-deployment-resource-boundary-fixes",
+  "completedAt": "2026-10-25T09:55:25Z",
+  "baseAuditDigest": "3a355d650d3f4cdb8cd6952bebf1c8f039df1c2f4f61a1ffdc77ccb325dbe5b8",
+  "sourceFrozen": false,
+  "formalAudit": false,
+  "independentCleanRounds": 0,
+  "fullSuiteRun": false,
+  "addressedFindings": [
+    "r7-deployment-001",
+    "r7-deployment-002"
+  ],
+  "changedFiles": [
+    {
+      "file": "deploy/safe_fs.py",
+      "sha256": "81f3fedce8f11509d313457c68e6c1f54ee675c6211b95614e2e684393101eca"
+    },
+    {
+      "file": "tests/deploy/test_deployment.py",
+      "sha256": "1a1e21ce837d04ea45c25eca4f54bd6681ad8d9ea5661894ecfe98132d82a1ac"
+    },
+    {
+      "file": "deploy/README.md",
+      "sha256": "368d4595fd9e88b0276e53059d1e09945bc49ea95ac2ab51dec03e1ccbe26cb6"
+    }
+  ],
+  "changes": [
+    "Replaced snapshot listdir and inspection os.walk ingress with streaming scandir admission. Each listing collects only the remaining global entry allowance and consumes at most one rejected entry, then sorts its bounded list in place.",
+    "Global reserved counters charge every enumerated entry before descending, including unprocessed siblings still held by ancestor frames or pending directories. Manifest/result counts remain separately checked. Snapshot descriptor-relative NOFOLLOW, UID, inode stability, hardlink, byte, mode, producer-stop and retained-failure behavior remain intact.",
+    "Archive extraction reserves all newly needed parent directories plus the current ordinary file/directory/delayed symlink before any member parent is created. Implicit directories count once; later explicit directory headers remain supported. Replacing an implicit directory with a file or delayed link is rejected before mutation. Header/metadata/decoded-byte budgets remain independent.",
+    "Documented actual filesystem-entry charging, pending-sibling reservation and the separate physical archive limits. Root-owned retention listings and check_links after accepted bounded import were reviewed; no unproved unrelated behavior was broadened into this fix."
+  ],
+  "testsAdded": [
+    "inspection rejects a12-entry directory at cap3 after consuming only4 entries",
+    "inspection reserves3 pending sibling directories before entering a wide child; only4 total entries consumed",
+    "Linux actual descriptor snapshot covers both wide and nested-wide input with the same global admission bound",
+    "an archive member exceeding the remaining total through implicit parents is rejected before any new parent; earlier accepted file remains intact",
+    "strip and an explicit directory header following its implicit creation share one actual-entry charge and succeed at the exact limit",
+    "ordinary files and delayed links cannot replace an implicitly created directory",
+    "Linux real delayed symlinks reserve their own and parent slots before creation and remain valid at the exact limit"
+  ],
+  "testFirstEvidence": {
+    "status": "expected-fail-before-fix",
+    "selectedTests": 4,
+    "failures": 3,
+    "subtestErrors": 2,
+    "details": "Old inspection consumed12 and15 entries where4 was required; old extraction exceeded its real entry limit without rejecting. Implicit-directory collisions surfaced OS errors rather than the required pre-mutation rejection.",
+    "evidence": {
+      "file": ".work/round7/r7-fixes-before.txt",
+      "sha256": "21cae830b1ff300bdfcb2d95dd09f896f5d21ebc7f8e86ca80f83d59b0f99256"
+    }
+  },
+  "validations": [
+    {
+      "kind": "windows-targeted",
+      "command": "<HARNESS_TEST_PYTHON> -B -m unittest tests.deploy.test_deployment",
+      "pythonIdentity": "Explicit bundled Python executable verified and used; never PATH WindowsApps stub.",
+      "selected": 55,
+      "passed": 49,
+      "failed": 0,
+      "skipped": 6,
+      "completePlatformPass": false,
+      "evidence": {
+        "file": ".work/round7/r7-fixes-local-deployment.txt",
+        "sha256": "1ac671d37ba00073b23f3eed616fec7638b6f14158080cff885c77da4cae9343"
+      }
+    },
+    {
+      "kind": "linux-ordinary-targeted",
+      "identity": "nobody",
+      "command": "/usr/bin/python3 -B -m unittest discover -s tests/deploy -p test_deployment.py -v",
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "file": ".work/round7/r7-fixes-linux-tests.json",
+        "sha256": "b635d77360805b2179ba4603a60a741097ea386e9f87a0e778a5079bd59b7b9b"
+      }
+    },
+    {
+      "kind": "linux-root-targeted",
+      "identity": "root",
+      "commands": [
+        "/usr/bin/python3 -B -m unittest discover -s tests/deploy/root -p test_release_reuse.py -v",
+        "/usr/bin/python3 -B -m unittest discover -s tests/deploy/root -p test_control_update.py -v"
+      ],
+      "releaseReusePassed": 3,
+      "controlUpdatePassed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "boundary": "Fresh UUID scratch; real root ownership with substituted service/process operations. No live service changes.",
+      "evidence": {
+        "file": ".work/round7/r7-fixes-linux-tests.json",
+        "sha256": "b635d77360805b2179ba4603a60a741097ea386e9f87a0e778a5079bd59b7b9b"
+      }
+    },
+    {
+      "kind": "official-package-archive-compatibility",
+      "package": "@openai/codex",
+      "version": "0.164.0-win32-x64",
+      "integrity": "Rechecked exact npm SHA512 from current reference/PROVENANCE.json before extraction.",
+      "operation": "Actual revised extract_tar(strip=1) followed by complete inspect_tree; package code not executed.",
+      "entries": 55,
+      "files": 47,
+      "bytes": 483692160,
+      "status": "passed",
+      "evidence": {
+        "file": ".work/round7/r7-fixes-official-archive.json",
+        "sha256": "38f6aedadfc2ede2fc18a684b579d36494631d069bd4af2685a3ad361cce7fe1"
+      }
+    },
+    {
+      "kind": "changed-source-release-scan",
+      "status": "clean",
+      "evidence": {
+        "file": ".work/round7/r7-fixes-source-scan.json",
+        "sha256": "5ba340b0f7633c9bb770522e007b897280a57cdfc7aca4816b8c7b24c26af98c"
+      }
+    }
+  ],
+  "limits": [
+    "Windows has6 explicitly reported Linux-only skips; these are not counted as passing. The same selected deployment file ran55/55 without skips on Linux.",
+    "Windows and Linux runs overlap and are not summed into an independent coverage count.",
+    "The official Windows platform archive demonstrates real archive-layout compatibility only; no claim of official Linux distribution reinstallation or service deployment is made.",
+    "No full suite, online update, systemd reboot acceptance, account/service/paid inference or external MCP execution ran. No personal home or credentials were inspected.",
+    "These fixes do not constitute a new independent clean audit. Root will freeze and audit the changed snapshot separately. Round7 original findings/evidence were not edited by this agent."
+  ]
+}

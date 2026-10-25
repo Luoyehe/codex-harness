@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round1-fixes",
+  "reviewerId": "r1-deploy-release",
+  "complete": true,
+  "completedAt": "2026-10-24T18:58:28.281431+00:00",
+  "addressedFindings": [
+    "R1-DEP-001",
+    "R1-DEP-002",
+    "R1-DEP-004",
+    "R1-DEP-005"
+  ],
+  "additionalFix": "Actual Linux startup defect reported by root: systemd reset RuntimeDirectory group between pre-start commands and ExecStart, making the worker socket inaccessible to gateway.",
+  "changes": [
+    "Added a shared mutation gate for unfinished application and control transactions. Provider/catalog, HTTPS, trusted-control update, uninstall and release entrypoints fail before creating a new mutable transaction. Valid initial-release retries and explicit recovery remain available.",
+    "Existing completed operation receipts remain readable/replayable while a different transaction is pending. Read-only operation lookup no longer creates the receipt directory. Legacy installation-marker discovery is non-writing until the recovery gate allows mutation.",
+    "Initialization preflights instance paths, fixed unit names, known systemd search directories, drop-ins, sudo policy and loaded systemd state before creating identities or resumable configuration.",
+    "Resume, repair, trusted-control maintenance and uninstall validate complete managed unit/sudo definitions before managing them. Unrecognized overrides fail closed. Exact existing control-maintenance and HTTPS-recovery condition drop-ins remain recognized and preserved.",
+    "HTTPS rollback uses independent per-role persistent start conditions, restores the recorded enabled set, verifies it, and starts only previously active services. Gateway Wants=worker cannot restart a previously stopped worker. Uncertain recovery retains barriers and journal for repair.",
+    "PEM test headers are constructed dynamically while retaining the unchanged secret scanner rule.",
+    "Worker service uses its IPC group directly, with control and native groups supplementary; ineffective pre-start chgrp/chmod commands are removed. The exact old managed declaration is accepted only for ownership recognition and migrates after confirmed worker shutdown. systemd reload is repeated on a retry after publication/reload interruption.",
+    "Deployment documentation explains transaction gates, ownership checks, HTTPS recovery conditions and the IPC group migration."
+  ],
+  "modifiedFiles": [
+    {
+      "path": "deploy/transactions.py",
+      "sha256": "69128bcef9d995eaa700981fbc0013a101071192361c97d4ed62c27b179a063c"
+    },
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "f58429d0707fd504a17c0bedf092151674b26de6db6fb55301fd28feb256ce8c"
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "10003d4ede7f0ef651abf348a71ecc42026abece1e1ef9a72901694370a98eba"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "df7565a4f57cf199b9eb85c1b247867f41f28986196e5f3826502af55c96f8f4"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "925dade2ad9755ce51dcb7dd4c579650d02013fc1b535522541550888366bcaf"
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "ac16d67b5c8dac88a1d4619ea41976a916886ba94c5e32108a9006635d954107"
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "f3d2166ab419cb5dee31fa3a32052a54b94be1b3e702666c3e213ce324ab83bd"
+    },
+    {
+      "path": "deploy/https.py",
+      "sha256": "747847abe35be90021e72d18306fa384f08879f29bb2fc57c7193d9ff2cf1ed6"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "59faf954da3f7ea35b6ac24de3d30f113a6246047e5141080f409df19eff74dd"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "d313f614a28d07f6bf02838976ab6c8b21a7a1f358265bc3061a566f993b29fe"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "fbf0dcd5767d169c163b0bbd5ef155dd2e10cece6797c5d581cdcd2d26bc735e"
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "sha256": "d3a73c60f802f8018df17ab9750dca4f291d349f506bbce55014d11b66825054"
+    },
+    {
+      "path": "tests/deploy/test_https.py",
+      "sha256": "9b061ada2de20bdbb942e5062f0e62412854cb3f9ab273bdf702c0188ce760ee"
+    },
+    {
+      "path": "tests/deploy/test_management_boundaries.py",
+      "sha256": "ff3bb2f532bd8ed7d4e5d0975b72e01a74330d4a1dd901c341c47a53538af78b"
+    }
+  ],
+  "validation": {
+    "fullSuiteExecuted": false,
+    "targetedTests": [
+      {
+        "file": "tests/deploy/test_management_boundaries.py",
+        "selected": 7,
+        "passed": 7,
+        "skipped": 0,
+        "failed": 0
+      },
+      {
+        "file": "tests/deploy/test_https.py",
+        "selected": 10,
+        "passed": 10,
+        "skipped": 0,
+        "failed": 0
+      },
+      {
+        "file": "tests/deploy/test_control_update.py",
+        "selected": 23,
+        "passed": 23,
+        "skipped": 0,
+        "failed": 0
+      },
+      {
+        "file": "tests/deploy/test_install_recovery.py",
+        "selected": 19,
+        "passed": 19,
+        "skipped": 0,
+        "failed": 0
+      },
+      {
+        "file": "tests/deploy/test_deployment.py",
+        "selected": 39,
+        "passed": 35,
+        "skipped": 4,
+        "failed": 0
+      }
+    ],
+    "uniqueFinalSelected": 98,
+    "uniqueFinalPassed": 94,
+    "uniqueFinalSkipped": 4,
+    "skippedCases": [
+      "ArchiveTests.test_stopped_snapshot_preserves_full_tree_and_rejects_hardlinks",
+      "ArchiveTests.test_umask_077_does_not_hide_published_input",
+      "NativeLauncherTests.test_native_bridge_backpressures_without_losing_large_protocol_frames",
+      "NativeLauncherTests.test_native_supervision_reaps_descendant_that_escaped_its_process_group"
+    ],
+    "commandForm": "Bundled Python -B -m unittest discover -s tests/deploy -p EXACT_TEST_FILE -v; TEMP and TMP point to ignored .work/deploy-fix-tests.",
+    "syntax": {
+      "method": "compile source bytes without creating bytecode",
+      "deploymentPythonFiles": 18,
+      "status": "passed"
+    },
+    "sourceScan": {
+      "method": "scanFiles over the 14 changed files",
+      "status": "clean",
+      "findings": [],
+      "artifacts": [],
+      "unreadable": [],
+      "skipped": []
+    },
+    "iterationNote": "One initial control-update fixture assertion expected an empty barrier directory. The earlier ownership preflight now correctly creates no directory; the assertion was corrected to require absence, and all 23 tests then passed. Installation and boundary tests were rerun after the final marker/replay refinements; repeated passes are not added to the unique totals."
+  },
+  "postFixReview": {
+    "completed": true,
+    "checks": [
+      "All new write entrypoints reach the shared pending gate; completed receipt replay does not re-execute mutation.",
+      "First-start and legacy installation retry semantics remain covered by 19 focused regressions.",
+      "Ownership checks precede stop/delete and preserve recognized control-update drop-ins; unrelated service contents remain untouched.",
+      "HTTPS barriers use different files from control maintenance and remain durable through failed recovery; successful repair clears only its own markers.",
+      "Worker UID, native UID/GID and sudo target permissions remain distinct; the service group change does not grant native IPC membership.",
+      "Exact legacy worker migration occurs only after confirmed shutdown; a failed reload is retried before start.",
+      "No implementation edit was made to deploy/native_launcher.py or tests/deploy/test_native_shutdown.py; root owns those changes."
+    ],
+    "newActionableIssuesFound": []
+  },
+  "parentReportedLinuxValidation": {
+    "source": "Root agent message; not independently executed by this reviewer.",
+    "controlUpdateTransaction": "6184dc121d4f410f96beb0f2d1e361dc",
+    "result": "Control update on the stopped pending test instance succeeded. Activation of the retained candidate migrated the old worker unit; runtime directory and socket have IPC gid, health passed in 4.7 seconds, verify checked 19878 files with integrity/permissions/managedUnits true, both new services active and gateway health HTTP 200. Existing unrelated services kept their PIDs and invocation IDs unchanged.",
+    "sourceOwnershipCheck": "Control update initially refused group-writable reviewed source; root removed group/other write permissions and the same checks then passed."
+  },
+  "limits": [
+    "This reviewer ran local Windows filesystem/state-machine fixtures with substituted OS identities and systemd commands. Four Linux-only cases were explicitly skipped.",
+    "Parent independently performed the reported Linux control-update, migration and health validation; its own evidence remains authoritative for those executions.",
+    "No real Caddy/Authelia login, TLS issuance, actual HTTPS service rollback, reboot recovery, external MCP or paid inference was performed by this reviewer.",
+    "No full test suite, archived implementation or old Git history was read or executed."
+  ],
+  "outcome": "assigned deployment fixes implemented and locally reviewed; independent full-repository audit rounds must restart for the changed source"
+}

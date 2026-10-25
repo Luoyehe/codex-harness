@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "phase": "input-context-ui",
+  "completedAt": "2026-10-24T21:59:21.577Z",
+  "source": "parent CUA message",
+  "result": "Parent CUA on readonly5117 confirmed1280x720 expanded references/output-schema context region scrolls internally and keeps message input/send visible.",
+  "limits": [
+    "Controlled read-only visual fixture only, not120 deployed acceptance.",
+    "Parent performed browser interaction, not this agent."
+  ]
+}

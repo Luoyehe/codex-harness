@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "issueId": "R14-FIX-CROSS-001",
+  "stage": "repair-support-cross-review",
+  "formalRound14Finding": false,
+  "reviewerId": "r14-runtime",
+  "startedAt": "2026-10-25T17:33:23.789Z",
+  "completedAt": "2026-10-25T17:34:07.854Z",
+  "finding": {
+    "priority": "P2",
+    "title": "Attachment image previews bypass bounded image signature and dimension validation",
+    "file": "web/components/AttachmentButton.tsx",
+    "line": 11,
+    "description": "An authenticated attachment/read result with declared image/png is converted directly to a Blob and assigned to img without mediaMime. The encoded attachment limit and CSS display dimensions do not bound intrinsic decoded pixels.",
+    "reproduction": "A 24-byte PNG header declaring 65535 by 65535 pixels, delivered by a controlled attachment/read response, caused the unchanged component to render img src=blob:preview. The new assertion expecting no img failed. No image decoder, image loading, actual large image, credentials or remote service was used."
+  },
+  "beforeFiles": [
+    {
+      "name": "web/components/AttachmentButton.tsx",
+      "sha256": "795eaa86ff2af02c36aa0c5cec38fd820cd01af15aa8fe45de4d849b1974fcba"
+    },
+    {
+      "name": "web/tests/attachments.test.tsx",
+      "sha256": "3305735b1907d3af97101f807aff38cac84a6a74ad4f950d42b7f5ce2bf40eb0"
+    },
+    {
+      "name": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "9140f6154d92744ff3c668ff93ef0edc0a4a15532e9c02aa867e0881fac50e87"
+    }
+  ],
+  "sharedMediaSha256": "fa8cb8151a230ec5c8bf2fcad3d162fa0acc2ede4b2630781042cad8d2d2a900",
+  "validation": {
+    "command": "node scripts/run-tests.mjs --targeted web/tests/attachments.test.tsx",
+    "exitCode": 1,
+    "tests": 3,
+    "passed": 2,
+    "failed": 1,
+    "report": ".work/test-results/run-FXMfDg/vitest.json",
+    "reportSha256": "9cb7dd482db4eb46844123a8d0fcbe57903c3b9a64765b090849427e89d31103",
+    "startedAt": "2026-10-25T17:33:34.734Z",
+    "completedAt": "2026-10-25T17:33:36.032Z",
+    "testFileSha256": "7a40e199d4dfbb434fca5110b2b7aa11d99340df1f69b22fbc29833d7ee4b534"
+  },
+  "constraints": [
+    "Reuse shared mediaBytes and mediaMime without editing shared helper.",
+    "Rejected/unsupported image previews preserve bounded raw download, and empty ordinary files remain supported.",
+    "Keep authentication suspension/draft behavior and stale Api/attachment identity ownership fenced.",
+    "Only component, focused attachment tests and approved app-lifecycle fixture metadata may change."
+  ],
+  "limitations": [
+    "Static review and jsdom controlled response only; no real image decoding or browser visual acceptance.",
+    "Separate repair-stage issue; no new clean audit round credit."
+  ]
+}

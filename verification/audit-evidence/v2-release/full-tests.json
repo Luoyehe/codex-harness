@@ -1,0 +1,2195 @@
+{
+  "schemaVersion": 1,
+  "kind": "cross-platform-case-reconciliation",
+  "createdAt": "2026-10-25T20:43:06.938Z",
+  "digest": "96cde170ad50eb50753feb3229881ce609f6d3328691ffee5c479105803963d1",
+  "auditRounds": [],
+  "authorization": {
+    "kind": "user-directed-one-time-release",
+    "id": "v2-0-0-user-directed-20261026-attempt3",
+    "sourceDigest": "96cde170ad50eb50753feb3229881ce609f6d3328691ffee5c479105803963d1",
+    "recordPath": "verification/audit-evidence/final-authorization/user-directed.json",
+    "recordSha256": "c27275935710aef466d8a542e213adf0be39209d1e6a926affd5b978868b2ad9"
+  },
+  "status": "case-coverage-complete",
+  "originalExitCodes": {
+    "windows": 3,
+    "nobody": 3,
+    "root": 0
+  },
+  "originalSkipsRetained": true,
+  "uniqueCases": 1343,
+  "observations": 2755,
+  "complements": [
+    {
+      "phase": "windows",
+      "file": "tests/runtime/attachments.test.ts",
+      "case": [
+        "symlink and FIFO substitutions never follow or block"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/runtime/attachments.test.ts",
+      "case": [
+        "read-only native data group never gains metadata or directory write access"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_advanced_rollback_rejects_before_any_material_or_service_change",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_candidate_checks_its_generation_instead_of_the_current_pointer",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_candidate_publication_rechecks_policy_and_generation_identity",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_gateway_only_and_stopped_activity_are_preserved",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_generated_layer_tamper_blocks_check_and_is_not_silently_refreshed",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_host_conflict_rejects_before_stop_or_missing_target_creation",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_host_drift_blocks_check_and_explicit_refresh_rebuilds_new_generation",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_migrate_and_rollback_preserve_user_and_host_bytes_and_old_generation",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_old_completed_unsafe_downgrade_is_not_accepted_as_a_legacy_noop",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_old_unsafe_candidates_reject_without_changes_and_old_recovery_still_works",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_power_loss_between_file_publications_can_finish_candidate",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_power_loss_journal_phases_are_recoverable",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_prior_unit_without_native_home_is_recognized_and_migrated_after_stop",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_start_failure_restores_original_files_pointer_and_activity",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_unknown_stop_never_publishes_pointer_config_units_or_sudo",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_user_config_change_after_stop_is_retained_and_invalid_bytes_abort",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_user_symlink_fifo_hardlink_and_parent_link_fail_without_follow_or_block",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_crash_after_rename_before_phase_write_is_recovered_from_files",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_crashes_before_and_between_directory_renames_recover",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_dropin_collision_does_not_install_entrypoint_or_service_barriers",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_enablement_change_cannot_be_silently_committed",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_escaped_account_process_prevents_any_control_directory_rename",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_gateway_only_restoration_does_not_start_previously_stopped_worker",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_health_failure_restores_old_code",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_initialized_instance_without_application_release_stays_stopped",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_launchers_are_durably_blocked_before_any_control_directory_rename",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_mismatched_edge_hash_aborts_before_services_stop",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_new_fixed_bootstrap_rejects_pending_transaction_before_importing_legacy_modules",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_old_control_rollback_requires_legacy_namespace_and_sudo_first",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_old_control_without_layer_support_is_rejected_before_any_stop",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_old_helper_cache_written_during_stop_is_sealed_without_changing_source",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_probe_failure_never_stops_services_or_replaces_control",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_reload_failure_restores_old_activity_without_changing_code",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_rollback_restores_code_but_preserves_edge_installed_after_original_update",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_start_failure_restores_old_code_and_exact_activity",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_tampered_old_generation_blocks_recovery_and_leaves_every_service_stopped",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_unknown_stop_retains_trees_and_persistent_start_barriers",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_update_preserves_edge_binary_and_config_binding",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_update_preserves_independent_active_and_enabled_sets_and_old_tree",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_candidate_validation_failure_does_not_stop_or_replace_the_old_pair",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_failed_first_edge_activation_restores_absent_units_and_http_origin",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_gateway_only_recovery_does_not_follow_wants_to_stopped_worker",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_gateway_only_repair_preserves_control_maintenance_dropin",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_prior_stopped_edge_services_are_not_started_by_recovery",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_process_interruption_after_snapshot_is_recoverable_by_repair",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_provided_pair_rotation_is_validated_and_selected_together",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_unchanged_explicit_pair_is_reused_and_partial_pair_is_rejected",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_unit_write_reload_start_health_and_enable_failures_restore_previous_state",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_unknown_recovery_stop_preserves_selected_material_and_repair_restores_it",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_completed_receipt_remains_queryable_during_pending_recovery",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_first_https_password_hash_input_is_a_complete_stdin_line",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_known_control_dropins_are_preserved_but_unknown_overrides_are_rejected",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_pending_nonrelease_transaction_does_not_create_legacy_installation_marker",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_pending_transactions_block_all_new_write_entrypoints_without_new_receipts",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_recognized_runtime_group_unit_migrates_only_after_stop_and_reloads_on_retry",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_uninstall_and_resume_reject_unowned_service_before_stop_or_delete",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "case": "ExtendedProviderGenerationTests.test_fixed_native_token_verb_returns_only_managed_token_and_root_is_denied",
+      "reason": "'Real Linux root and native UID boundary'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "case": "ExtendedProviderGenerationTests.test_foreign_owned_environment_cannot_feed_token_command",
+      "reason": "'Real Linux root and native UID boundary'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "case": "ExtendedProviderGenerationTests.test_generation_separates_bearer_from_config_and_clears_it_when_leaving_bedrock",
+      "reason": "'Real Linux root and native UID boundary'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_existing_files_never_overwritten_and_content_drift_changes_manifest",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_missing_mount_targets_create_only_empty_files_and_keep_other_host_content",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_root_private_policy_is_not_copied_into_native_readable_generation",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_symlink_hardlink_and_native_writable_policy_are_rejected",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_target_appearing_after_preflight_is_not_replaced",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "case": "ReleaseReuseTests.test_changed_existing_tree_or_manifest_is_not_overwritten",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "case": "ReleaseReuseTests.test_identical_release_is_reused_without_replacing_it",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "case": "ReleaseReuseTests.test_rename_before_manifest_interruption_is_recoverable",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_request_spool.py",
+      "case": "RootRequestSpoolTests.test_foreign_owner_open_mode_links_and_symlinks_are_not_collectable",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/root/test_request_spool.py",
+      "case": "RootRequestSpoolTests.test_root_private_files_use_real_independent_nonblocking_locks",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_deployment.py",
+      "case": "ArchiveTests.test_delayed_links_consume_entry_budget_before_parent_creation",
+      "reason": "'Real archive symlinks require Linux'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_deployment.py",
+      "case": "ArchiveTests.test_snapshot_bounds_fd_enumeration_and_reserves_pending_siblings",
+      "reason": "'Descriptor-safe import requires Linux'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_deployment.py",
+      "case": "ArchiveTests.test_stopped_snapshot_preserves_full_tree_and_rejects_hardlinks",
+      "reason": "'Descriptor-safe import requires Linux'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_deployment.py",
+      "case": "ArchiveTests.test_umask_077_does_not_hide_published_input",
+      "reason": "'Linux permissions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_deployment.py",
+      "case": "NativeLauncherTests.test_native_bridge_backpressures_without_losing_large_protocol_frames",
+      "reason": "'Linux pipe backpressure and subreaper'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_deployment.py",
+      "case": "NativeLauncherTests.test_native_supervision_reaps_descendant_that_escaped_its_process_group",
+      "reason": "'Linux subreaper/process groups'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_native_shutdown.py",
+      "case": "NativeShutdownTests.test_eof_acknowledges_cleanup_even_when_native_ignores_eof_and_term",
+      "reason": "'Linux subreaper and service signals'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_native_shutdown.py",
+      "case": "NativeShutdownTests.test_service_signal_acknowledges_confirmed_cleanup",
+      "reason": "'Linux subreaper and service signals'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_native_shutdown.py",
+      "case": "NativeShutdownTests.test_unconfirmed_cleanup_cannot_acknowledge_success",
+      "reason": "'Linux subreaper and service signals'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_native_shutdown.py",
+      "case": "NativeShutdownTests.test_unrequested_native_crash_preserves_failure",
+      "reason": "'Linux subreaper and service signals'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_binary_download_is_exact_bounded_and_requires_current_bytes",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_binary_large_preview_and_listing_budget_are_explicit",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_collision_between_capture_and_publish_preserves_both_versions",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_copy_and_delete_are_explicit_and_recoverable",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_directory_symlink_swap_does_not_follow_outside_root",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_download_rejects_large_and_linked_files_without_receipts",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_edit_preserves_executable_mode_and_git_metadata_symlinks_are_rejected",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_execute_only_ancestors_allow_scoped_read_write_without_listing_parent",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_git_view_preserves_staged_unstaged_and_unborn_index_semantics",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_only_empty_directories_can_be_removed",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_protected_root_and_reserved_metadata_roots_rejected",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_real_git_status_diff_refs_disable_repository_programs",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_retained_receipt_budget_blocks_new_writes",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_revision_conflict_preserves_current_file",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_symlink_hardlink_and_special_file_previews_are_rejected",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_text_create_edit_readback_and_replay_preserve_before_image",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace.py",
+      "case": "WorkspaceFilesystemTests.test_unresolvable_protected_boundary_is_not_silently_omitted",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_callbacks_signing_and_filters_do_not_execute",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_commit_only_staged_bytes_preserves_original_index_and_replays_once",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_empty_in_progress_and_unmerged_indexes_are_rejected",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_foreign_index_lock_and_symlinked_refs_are_not_modified",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_head_and_index_version_conflicts_do_not_publish_or_overwrite",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_lost_publication_result_stays_unknown_with_candidate_and_no_resend",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_prepared_transaction_rechecks_index_and_aborts_without_overwriting_external_change",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_query_refuses_existing_child_without_reaping_or_starting_a_sibling",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_unborn_and_detached_heads_commit_without_changing_mode",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_commit.py",
+      "case": "CommitFilesystemTests.test_unknown_shutdown_retains_owned_lock_and_lock_replacement_is_never_unlinked",
+      "reason": "'Requires Linux descriptors and Git ref transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_deletions_are_explicit_and_symlink_hardlink_directory_selections_fail",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_discard_requires_completed_current_manifest_and_frees_retention_slot",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_file_change_inside_prepared_fence_aborts_without_index_change",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_foreign_primary_git_pointer_cannot_authorize_status_stage_or_commit",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_prepared_fence_blocks_real_head_changes_and_git_add_before_index_publication",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_publish_collision_preserves_old_external_and_candidate_indexes_and_explicit_restore",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_raw_staging_never_runs_filters_hooks_or_signing_and_binds_file_mode",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_real_linked_worktree_backlinks_allow_scoped_stage_and_commit",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_recovery_revision_conflicts_and_record_paths_cannot_redirect_index_restore",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_replayed_stage_does_not_apply_again_or_recreate_discarded_material",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_split_index_snapshot_survives_original_shared_index_removal",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_stage_unstage_and_commit_only_selected_paths_preserve_worktree_and_other_index_entries",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_stale_head_index_and_file_versions_never_publish",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_index.py",
+      "case": "IndexFilesystemTests.test_unborn_sha1_sha256_and_absent_original_index_restore",
+      "reason": "'Requires native Linux Git and descriptor transactions'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_discard_capture_race_keeps_every_payload_and_reports_unknown",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_discard_refuses_stale_manifest_and_unknown_or_failed_receipts",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_discard_releases_payload_and_retains_receipt_replay_even_under_byte_pressure",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_publish_collision_retains_target_backup_source_and_new_content",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_recovery_inventory_is_bounded_and_cross_project_sources_are_absent",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_removed_file_and_empty_directory_restore_to_explicit_absent_destinations",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_restore_preserves_source_backup_captures_current_target_and_replays_once",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_recovery.py",
+      "case": "RecoveryFilesystemTests.test_stale_source_destination_and_injected_record_path_never_redirect_restore",
+      "reason": "'Requires real Linux descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_binary_invalid_utf8_and_byte_overflow_are_bounded",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_control_secret_and_nonallowlisted_global_locations_are_rejected",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_directory_preflight_returns_pinned_project_identity_and_rejects_links",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_fixed_skill_scopes_read_without_opening_general_codex_home",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_plugin_file_count_depth_and_byte_budgets_are_explicit",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_plugin_preview_hashes_relative_bytes_modes_and_empty_directories",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_plugin_preview_refuses_git_links_hardlinks_and_special_files",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_skill_parent_moved_after_open_is_conflict_not_success",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_resources.py",
+      "case": "ResourceFilesystemTests.test_symlink_hardlink_fifo_and_ancestor_links_are_refused",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_search.py",
+      "case": "SearchFilesystemTests.test_links_metadata_fifo_and_binary_are_never_traversed_as_text",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_search.py",
+      "case": "SearchFilesystemTests.test_moved_root_or_scope_cannot_return_outside_results",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_search.py",
+      "case": "SearchFilesystemTests.test_path_and_literal_text_search_report_matching_lines",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_search.py",
+      "case": "SearchFilesystemTests.test_result_entry_byte_depth_and_time_budgets_report_incomplete",
+      "reason": "'Requires Linux descriptors and procfs'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_archive_restore_preserve_dirty_staged_untracked_and_ignored_bytes_and_index",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_attach_requires_prior_binding_and_matching_current_revision",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_create_failure_and_retention_budget_preserve_all_partial_material",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_create_is_detached_scoped_and_materializes_raw_blobs_without_filters_or_hooks",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_exact_entry_and_depth_boundaries_create_readable_real_worktrees",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_interruption_after_archive_move_keeps_whole_tree_and_explicit_restore_repairs_backlink",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_over_budget_commit_creates_no_checkout_retention_holder_or_git_registration",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_restore_never_overwrites_an_occupied_active_uuid_and_forged_journal_is_not_authority",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_unsupported_tracked_symlink_is_rejected_before_git_worktree_creation",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "windows",
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "case": "WorktreeFilesystemTests.test_user_lock_nested_repository_and_shared_directory_are_not_archived",
+      "reason": "'Requires real Linux Git, descriptor paths and renameat2'",
+      "witnessPhases": [
+        "nobody"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/attachments.test.ts",
+      "case": [
+        "real OS unlink denial leaves a durable tombstone and quota charge until restart can delete"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/processes.test.ts",
+      "case": [
+        "forces the final Windows spawn environment to disable cache despite case-variant user overrides"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "keeps the real native controller cache disabled with parent override undefined"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "keeps the real native controller cache disabled with parent override PSModuleAnalysisCachePath"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "keeps the real native controller cache disabled with parent override PSMODULEANALYSISCACHEPATH"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "close confirms detached descendants are gone after spawn"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "close confirms detached descendants are gone after spawn-exit"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "shutdown remains responsive while native stdin is backpressured"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "owner process death kills its controller and detached descendants"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-job.test.ts",
+      "case": [
+        "Windows job ownership",
+        "controller failure kills the job but never reports a cleanup acknowledgement"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-process.test.ts",
+      "case": [
+        "keeps real standalone launcher and signal caches disabled with custom parent path false"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-process.test.ts",
+      "case": [
+        "keeps real standalone launcher and signal caches disabled with custom parent path true"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-process.test.ts",
+      "case": [
+        "standalone Windows job preserves child exit and closes descendants before its separate proof"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/runtime/windows-process.test.ts",
+      "case": [
+        "job shutdown proof stays independent of stderr output and open stdin"
+      ],
+      "reason": "skipped",
+      "witnessPhases": [
+        "windows"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_advanced_rollback_rejects_before_any_material_or_service_change",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_candidate_checks_its_generation_instead_of_the_current_pointer",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_candidate_publication_rechecks_policy_and_generation_identity",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_gateway_only_and_stopped_activity_are_preserved",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_generated_layer_tamper_blocks_check_and_is_not_silently_refreshed",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_host_conflict_rejects_before_stop_or_missing_target_creation",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_host_drift_blocks_check_and_explicit_refresh_rebuilds_new_generation",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_migrate_and_rollback_preserve_user_and_host_bytes_and_old_generation",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_old_completed_unsafe_downgrade_is_not_accepted_as_a_legacy_noop",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_old_unsafe_candidates_reject_without_changes_and_old_recovery_still_works",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_power_loss_between_file_publications_can_finish_candidate",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_power_loss_journal_phases_are_recoverable",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_prior_unit_without_native_home_is_recognized_and_migrated_after_stop",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_start_failure_restores_original_files_pointer_and_activity",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_unknown_stop_never_publishes_pointer_config_units_or_sudo",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_user_config_change_after_stop_is_retained_and_invalid_bytes_abort",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "case": "ConfigurationLayerTests.test_user_symlink_fifo_hardlink_and_parent_link_fail_without_follow_or_block",
+      "reason": "'Real Linux root configuration-layer fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_crash_after_rename_before_phase_write_is_recovered_from_files",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_crashes_before_and_between_directory_renames_recover",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_dropin_collision_does_not_install_entrypoint_or_service_barriers",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_enablement_change_cannot_be_silently_committed",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_escaped_account_process_prevents_any_control_directory_rename",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_gateway_only_restoration_does_not_start_previously_stopped_worker",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_health_failure_restores_old_code",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_initialized_instance_without_application_release_stays_stopped",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_launchers_are_durably_blocked_before_any_control_directory_rename",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_mismatched_edge_hash_aborts_before_services_stop",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_new_fixed_bootstrap_rejects_pending_transaction_before_importing_legacy_modules",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_old_control_rollback_requires_legacy_namespace_and_sudo_first",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_old_control_without_layer_support_is_rejected_before_any_stop",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_old_helper_cache_written_during_stop_is_sealed_without_changing_source",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_probe_failure_never_stops_services_or_replaces_control",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_reload_failure_restores_old_activity_without_changing_code",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_rollback_restores_code_but_preserves_edge_installed_after_original_update",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_start_failure_restores_old_code_and_exact_activity",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_tampered_old_generation_blocks_recovery_and_leaves_every_service_stopped",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_unknown_stop_retains_trees_and_persistent_start_barriers",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_update_preserves_edge_binary_and_config_binding",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_control_update.py",
+      "case": "ControlUpdateTests.test_update_preserves_independent_active_and_enabled_sets_and_old_tree",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_candidate_validation_failure_does_not_stop_or_replace_the_old_pair",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_failed_first_edge_activation_restores_absent_units_and_http_origin",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_gateway_only_recovery_does_not_follow_wants_to_stopped_worker",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_gateway_only_repair_preserves_control_maintenance_dropin",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_prior_stopped_edge_services_are_not_started_by_recovery",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_process_interruption_after_snapshot_is_recoverable_by_repair",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_provided_pair_rotation_is_validated_and_selected_together",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_unchanged_explicit_pair_is_reused_and_partial_pair_is_rejected",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_unit_write_reload_start_health_and_enable_failures_restore_previous_state",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_https.py",
+      "case": "HttpsTransactionTests.test_unknown_recovery_stop_preserves_selected_material_and_repair_restores_it",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_completed_receipt_remains_queryable_during_pending_recovery",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_first_https_password_hash_input_is_a_complete_stdin_line",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_known_control_dropins_are_preserved_but_unknown_overrides_are_rejected",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_pending_nonrelease_transaction_does_not_create_legacy_installation_marker",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_pending_transactions_block_all_new_write_entrypoints_without_new_receipts",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_recognized_runtime_group_unit_migrates_only_after_stop_and_reloads_on_retry",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "case": "ManagementBoundaryTests.test_uninstall_and_resume_reject_unowned_service_before_stop_or_delete",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "case": "ExtendedProviderGenerationTests.test_fixed_native_token_verb_returns_only_managed_token_and_root_is_denied",
+      "reason": "'Real Linux root and native UID boundary'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "case": "ExtendedProviderGenerationTests.test_foreign_owned_environment_cannot_feed_token_command",
+      "reason": "'Real Linux root and native UID boundary'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "case": "ExtendedProviderGenerationTests.test_generation_separates_bearer_from_config_and_clears_it_when_leaving_bedrock",
+      "reason": "'Real Linux root and native UID boundary'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_existing_files_never_overwritten_and_content_drift_changes_manifest",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_missing_mount_targets_create_only_empty_files_and_keep_other_host_content",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_root_private_policy_is_not_copied_into_native_readable_generation",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_symlink_hardlink_and_native_writable_policy_are_rejected",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "case": "ProviderHostFilesTests.test_target_appearing_after_preflight_is_not_replaced",
+      "reason": "'Real Linux root host-policy fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "case": "ReleaseReuseTests.test_changed_existing_tree_or_manifest_is_not_overwritten",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "case": "ReleaseReuseTests.test_identical_release_is_reused_without_replacing_it",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "case": "ReleaseReuseTests.test_rename_before_manifest_interruption_is_recoverable",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_request_spool.py",
+      "case": "RootRequestSpoolTests.test_foreign_owner_open_mode_links_and_symlinks_are_not_collectable",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    },
+    {
+      "phase": "nobody",
+      "file": "tests/deploy/root/test_request_spool.py",
+      "case": "RootRequestSpoolTests.test_root_private_files_use_real_independent_nonblocking_locks",
+      "reason": "'Real Linux root ownership fixture'",
+      "witnessPhases": [
+        "root"
+      ]
+    }
+  ],
+  "gaps": [],
+  "limitations": [
+    "Coverage reconciliation never changes an original exit 3 to 0 or declares an individual full run all-pass.",
+    "Matching is exact source manifest, file, and case identity; failures/prerequisite gaps/unknown parse cannot be complemented.",
+    "These results do not establish production deployment or external-service acceptance."
+  ]
+}
