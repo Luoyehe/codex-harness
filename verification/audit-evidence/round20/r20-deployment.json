@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round20",
+  "reviewerId": "r20-deployment",
+  "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+  "complete": true,
+  "scopes": [
+    "deployment-release",
+    "web-ux"
+  ],
+  "method": "Independent read of every assigned deployment implementation, complete deployment/tooling test fixture and assertion, release tool, documentation and Web test. Reviewed preparation, publication, ownership, stop proof, rollback, receipts, limits and browser stale-owner recovery against current source and the pinned official contract. Large inventories received exhaustive structural, semantic, dependency-edge and reference-hash checks rather than sampling. Historical audit links were checked only for path and bytes, never read for conclusions.",
+  "startedAt": "2026-10-25T19:15:44.4401361Z",
+  "completedAt": "2026-10-25T19:26:49.809700+00:00",
+  "sourceSnapshot": {
+    "files": 1788,
+    "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2"
+  },
+  "assignment": {
+    "file": ".work/round20/deployment.json",
+    "assignedFiles": 142,
+    "fullFileReads": 140,
+    "exhaustiveStructuredInventories": [
+      "pnpm-lock.yaml",
+      "verification/feature-evidence/capability-coverage.json"
+    ]
+  },
+  "inspectedFiles": [
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "reference/PROTOCOL-CONTRACT.md",
+    "reference/PROVENANCE.json",
+    "scripts/release-audit.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-watch.test.tsx"
+  ],
+  "findings": [],
+  "skipped": [],
+  "validations": [
+    {
+      "kind": "official-targeted-python",
+      "command": "node scripts/run-tests.mjs --targeted tests/deploy/test_dependency_lock.py tests/deploy/test_install_recovery.py tests/deploy/test_request_spool.py",
+      "pythonSelection": "Explicit HARNESS_TEST_PYTHON; Python 3.12.14",
+      "exitCode": 0,
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0,
+      "stdout": {
+        "path": ".work/round20/r20-deployment/targeted-python.stdout.txt",
+        "sha256": "5e38f3d8964f9f3904e44f6001734c0806afe534ab06bc7e704b4421f63341d7"
+      },
+      "stderr": {
+        "path": ".work/round20/r20-deployment/targeted-python.stderr.txt",
+        "sha256": "e3d0dcf92cf140bbad488ea6f72a4564580a119ae3cc79e88bba6121c12e9e34"
+      },
+      "interpretation": "Unprivileged temporary file and substituted-service tests. No Vitest artifact was used to attribute this Python-only execution."
+    },
+    {
+      "kind": "official-targeted-web",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/automations.test.tsx web/tests/process-remote.test.tsx web/tests/workspace-management.test.tsx",
+      "exitCode": 0,
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "stdout": {
+        "path": ".work/round20/r20-deployment/targeted-web.stdout.txt",
+        "sha256": "336f3e215125e6e361758e8f62cdcd3b5811d38793b49b99c822c5841708f737"
+      },
+      "stderr": {
+        "path": ".work/round20/r20-deployment/targeted-web.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "report": {
+        "path": ".work/test-results/run-OANYJB/vitest.json",
+        "sha256": "f89a59b11eba20d7e4d04de338a2367227f22c94e49be15c057da386e857e10e"
+      },
+      "interpretation": "Three exact jsdom component suites with mocked RPC. The report path came from this execution stdout; no shared latest directory was used."
+    },
+    {
+      "kind": "exhaustive-inventory-and-reference-check",
+      "script": {
+        "path": ".work/round20/r20-deployment/inventory-check.py",
+        "sha256": "401f3ec8cc6a6ef46c9045bc564622019ad431f3b22358cc2c7f0547baef98fc"
+      },
+      "result": {
+        "path": ".work/round20/r20-deployment/inventory-check.json",
+        "sha256": "a128457f2c09716b9ddce3d336ac74c1c66bf66bd4b2a6ee3cc4f83dba1a32c4"
+      },
+      "references": {
+        "path": ".work/round20/r20-deployment/reference-check.json",
+        "sha256": "c0f12ff94a27829a2466f53dce001734834a51ef3b726860845e6c1cd3dc4264"
+      },
+      "stdout": {
+        "path": ".work/round20/r20-deployment/inventory.stdout.txt",
+        "sha256": "a128457f2c09716b9ddce3d336ac74c1c66bf66bd4b2a6ee3cc4f83dba1a32c4"
+      },
+      "stderr": {
+        "path": ".work/round20/r20-deployment/inventory.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "lock": {
+        "nonemptyLines": 2433,
+        "packages": 336,
+        "snapshots": 336,
+        "dependencyEdges": 623,
+        "allEntriesParsed": true
+      },
+      "capability": {
+        "methods": 178,
+        "groups": 50,
+        "additionalWorkflows": 15,
+        "allEntriesValidated": true,
+        "references": 700,
+        "referenceStates": {
+          "match": 700
+        }
+      },
+      "allAssignedEvidenceReferences": {
+        "count": 851,
+        "states": {
+          "match": 822,
+          "different": 29
+        }
+      },
+      "interpretation": "All 336 package records, 336 snapshots and 623 edges parsed; importer/specifier/security overrides, registry resolution and every SHA-512 integrity encoding checked, plus the production dependency-input validator. All 178 typed methods match 175 generated JSON variants and 106 stable variants; groups, classifications, statuses and schema targets are coherent. All 700 capability file-reference hashes match. Of 851 total explicit path/hash references, 29 differ only in historical source captures; their documents explicitly limit those hashes to the original time and do not claim this frozen source was rerun."
+    },
+    {
+      "kind": "frozen-source-check",
+      "result": {
+        "files": 1788,
+        "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2"
+      },
+      "evidence": {
+        "path": ".work/round20/r20-deployment/snapshot-before-report.json",
+        "sha256": "5a711599382a53ae9ea898b71cfa70844160d783fc17d633f8501525f5abb5e4"
+      }
+    }
+  ],
+  "limitations": [
+    "This is the assigned 142-file independent audit scope; other reviewers establish the remaining frozen repository coverage. No full or aggregate test suite was run.",
+    "No new Linux root, systemd, cgroup, namespace, cross-UID, TLS/Authelia, real reboot or online deployment acceptance was executed. Those branches were read completely; the recorded local tests do not replace those platform checks.",
+    "Web tests validate fixture interactions and payload/ownership assertions, not a real deployed browser or OS input-method acceptance.",
+    "No SSH, production mutation, personal Codex home, model request, account login, external MCP or paid capability was used.",
+    "Existing feature evidence was treated as bounded historical evidence. Explicit local path/hash references were checked, but standalone remote-only digests without a local artifact mapping were not reconstructed or promoted to new runtime proof.",
+    "Lock integrity values were exhaustively checked for registry-only resolution, graph consistency and SHA-512 encoding. Dependency archives were not downloaded again, and this audit does not assert current registry vulnerability status.",
+    "No application source, tests, documentation or ordinary feature evidence was changed. Only ignored audit work files and this reviewer report were written."
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "fixId": "round6-modal-forms",
+  "findings": [
+    "r6-interface-04",
+    "r6-interface-05"
+  ],
+  "complete": true,
+  "sourceEditsStopped": true,
+  "stoppedAt": "2026-10-25T09:09:26.4753518Z",
+  "scope": [
+    "web/components/HistoryTools.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/tests/modal-mutations.test.tsx"
+  ],
+  "changes": [
+    "Branch edit controls freeze only while their own submission is pending or unresolved. Captured persisted revision is handed off and clearDraftSnapshot clears only that exact revision; newer durable drafts survive success and receipt recovery.",
+    "Branch and review input controls and dismiss actions are protected during pending submission, including synchronous duplicate submission. Existing useWorkflow unmount fences and recovery behavior remain active.",
+    "Rename and project forms use existing useWorkflow receipt gates, freeze pending or unknown drafts, preserve definite-failure drafts, and guard close and duplicate submission. Rename remounts its form on thread identity changes.",
+    "Workspace mkdir, copy and remove fields freeze during pending or unresolved writes. Receipt recovery has a synchronous guard and retains the form when the receipt confirms not_sent.",
+    "Controls remain editable when no submission is in progress, including switching to separate review when inline review is unavailable."
+  ],
+  "validations": [
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/modal-mutations.test.tsx web/tests/workflows.test.tsx web/tests/workspace-ui.test.tsx web/tests/workspace-management.test.tsx",
+      "result": "passed",
+      "exitCode": 0,
+      "files": 4,
+      "tests": 66,
+      "newRegressionTests": 23,
+      "report": ".work/test-results/run-FWjv5H/vitest.json",
+      "reportSha256": "6ebee47620e75ab93519a244fb16f04a8928227bff17bae1438044c66407b66a"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "result": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "Scoped source byte checks",
+      "result": "passed",
+      "details": "All five edited files use LF and no UTF-8 BOM."
+    }
+  ],
+  "priorValidation": [
+    "Initial three-file targeted run passed 44 tests. Its simultaneous typecheck caught an unsupported exact option in the new test; corrected before final run. Final run above supersedes this result."
+  ],
+  "regressionCoverage": [
+    "Deferred successful and definite-failure responses",
+    "Unknown outcomes and not-sent receipt recovery without replay",
+    "Branch external persisted revision preservation after direct success and accepted receipt recovery",
+    "Branch late response after unmount",
+    "Branch fork boundary and revert confirmation freezing",
+    "Rename owner change late-response fence",
+    "Pending modal close and Escape blocking",
+    "Synchronous duplicate submit blocking",
+    "Workspace copy, mkdir and remove submitted values",
+    "Separate review selection while inline execution unavailable"
+  ],
+  "files": [
+    {
+      "file": "web/components/HistoryTools.tsx",
+      "sha256": "85c6a3da5bf726b53e0c551d2dddcd02968e1a0084e6f7fa597324d7693e8ca2",
+      "bytes": 15542,
+      "encoding": "UTF-8 without BOM, LF"
+    },
+    {
+      "file": "web/components/RenameDialog.tsx",
+      "sha256": "bc89ed80f1a3d89071d64d2b4996ffc604c542d56a415c19c8769b348c8638d8",
+      "bytes": 1763,
+      "encoding": "UTF-8 without BOM, LF"
+    },
+    {
+      "file": "web/components/ProjectDialog.tsx",
+      "sha256": "84e40309ca9e49584f718b43a88bf7d0635a2740695df7440a2fe70c910364d9",
+      "bytes": 1989,
+      "encoding": "UTF-8 without BOM, LF"
+    },
+    {
+      "file": "web/components/WorkspacePanel.tsx",
+      "sha256": "80dc99d3474668db8773e58d35f4fc137e5f8bc5c46c263ced164868cce0b1e6",
+      "bytes": 19186,
+      "encoding": "UTF-8 without BOM, LF"
+    },
+    {
+      "file": "web/tests/modal-mutations.test.tsx",
+      "sha256": "6d4c481165e21258cefc4ddd3122ca5198a66e1f65add88d4af0804fa4a279a7",
+      "bytes": 15666,
+      "encoding": "UTF-8 without BOM, LF"
+    }
+  ],
+  "limits": [
+    "Only scoped local jsdom tests using real Api with intercepted fetch and web typecheck were run. No paid inference, external MCP calls, SSH, native service, personal credentials, deployment, full suite, build, coverage generation or browser visual verification.",
+    "Root owns shared submission-fields CSS and final integrated build/browser verification. No shared CSS edited here.",
+    "This evidence records a fix and targeted checks; it is not an independent clean audit. Source changes reset the consecutive clean-audit gate."
+  ]
+}

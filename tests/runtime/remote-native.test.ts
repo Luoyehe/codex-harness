@@ -1,0 +1,44 @@
+import { expect, test } from 'vitest';
+import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { RuntimeService } from '../../src/runtime/service.js';
+import { windowsProcessJob } from '../../src/runtime/windows-process.js';
+import { linuxProcessJob } from '../../src/runtime/linux-process.js';
+import { object } from '../../src/runtime/types.js';
+import { nativeTestEnvironment } from '../fixtures/native-env.js';
+test('official CLI connects to an owned authenticated loopback exec-server and exposes local capability/status without inference', async () => {
+  const parent = path.resolve('.work/remote-native'); mkdirSync(parent, { recursive: true }); const workerHome = mkdtempSync(path.join(parent, 'home-')), home = path.join(workerHome, 'codex'), tmp = path.join(workerHome, 'tmp'); mkdirSync(home); mkdirSync(tmp); writeFileSync(path.join(home, 'config.toml'), 'check_for_update_on_startup = false\n');
+  const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: tmp });
+  const reservation = createServer(); await new Promise<void>(resolve => reservation.listen(0, '127.0.0.1', resolve)); const port = (reservation.address() as { port: number }).port; await new Promise<void>(resolve => reservation.close(() => resolve()));
+  const endpoint = `ws://127.0.0.1:${port}`, token = randomUUID() + randomUUID(), tokenFile = path.join(workerHome, 'exec-token'); writeFileSync(tokenFile, token, { mode: 0o600 });
+  const bin = process.env.HARNESS_TEST_CODEX_BIN!; const job = await (process.platform === 'win32' ? windowsProcessJob : linuxProcessJob)([bin, 'exec-server', '--listen', endpoint, '--ws-auth', 'capability-token', '--ws-token-file', tokenFile], workerHome);
+  const child = spawn(job.command[0]!, job.command.slice(1), { cwd: workerHome, env: { ...env, ...job.env }, windowsHide: true, stdio: 'pipe' }); child.stdout.resume(); let errors = ''; child.stderr.on('data', bytes => { errors = (errors + String(bytes)).slice(-4096); }); const closed = new Promise<number | null>(resolve => child.on('close', resolve));
+  let service: RuntimeService | undefined;
+  try {
+    await job.started; service = await RuntimeService.create({ bin, home, workerHome, cwd: workerHome, env, dev: true }); const context = { clientId: 'remote-native', beforeWrite: () => {} };
+    const voices = object(await service.call('thread/realtime/listVoices', {}, context)); expect(Array.isArray(object(voices.voices).v1)).toBe(true);
+    expect(await service.call('remoteControl/status/read', {}, context)).toMatchObject({ status: 'disabled' });
+    const wrong = object(await service.call('environment/add', { name: 'Rejected token', execServerUrl: endpoint, authBearerToken: 'fixture-wrong-token', connectTimeoutMs: 5000, confirmRemoteExecution: true }, context));
+    await expect(service.call('environment/info', { environmentId: wrong.environmentId! }, context)).rejects.toMatchObject({ code: 'native_error', delivery: 'not_sent' });
+    expect(await service.call('environment/read', { environmentId: wrong.environmentId! }, context)).toMatchObject({ selectionReady: false });
+    const added = object(await service.call('environment/add', { name: 'Loopback', execServerUrl: endpoint, authBearerToken: token, connectTimeoutMs: 5000, confirmRemoteExecution: true }, context));
+    await service.call('environment/info', { environmentId: added.environmentId! }, context);
+    expect(await service.call('environment/status', { environmentId: added.environmentId! }, context)).toMatchObject({ status: 'ready' });
+    expect(await service.call('environment/read', { environmentId: added.environmentId! }, context)).toMatchObject({ selectionReady: true, info: { shell: { name: expect.any(String) }, cwd: expect.stringContaining('file:') } });
+    const thread = object(await service.call('thread/start', { cwd: workerHome, options: { environments: [added.environmentId!] } }, context));
+    expect(object(thread.thread).environments).toMatchObject([{ environmentId: added.environmentId, cwd: workerHome }]);
+    const localThread = object(await service.call('thread/start', { cwd: workerHome }, context)); const threadId = object(localThread.thread).id!; expect(object(localThread.thread).environments).toEqual([{ environmentId: 'local', cwd: workerHome, runtimeWorkspaceRoots: [workerHome] }]);
+    const marker = path.join(workerHome, 'shell-marker.txt'); const notices: unknown[] = []; service.on('event', event => { if (event.type === 'notification') notices.push(event.data); });
+    await service.call('thread/shellCommand', { threadId, command: process.platform === 'win32' ? `Set-Content -LiteralPath '${marker.replaceAll("'", "''")}' -Value 'thread-shell-fixture'` : `printf thread-shell-fixture > '${marker.replaceAll("'", "'\"'\"'")}'`, confirmUnsandboxed: true, timeoutMs: 5000 }, context);
+    await expect.poll(() => object(object(service!.status()).activity).activeThreads, { timeout: 10000 }).not.toContain(threadId);
+    const history = await service.call('thread/history', { threadId }, context); expect(object(history).complete).toBe(true); writeFileSync(path.join(workerHome, 'shell-notifications.json'), JSON.stringify(notices)); expect(readFileSync(marker, 'utf8')).toContain('thread-shell-fixture');
+    expect(await service.call('thread/backgroundTerminals/list', { threadId }, context)).toMatchObject({ data: [], nextCursor: null });
+    expect(await service.call('thread/backgroundTerminals/clean', { threadId, confirm: true }, context)).toMatchObject({ cleanupRequested: true });
+    expect(object(object(await service.call('thread/resume', { threadId }, context)).thread).environments).toEqual([{ environmentId: 'local', cwd: workerHome, runtimeWorkspaceRoots: [workerHome] }]);
+    await service.clientDisconnected(context.clientId); expect(await service.call('environment/status', { environmentId: added.environmentId! }, context)).toMatchObject({ status: 'ready' });
+  } catch (error) { if (child.exitCode !== null) throw new Error(`Exec-server exited early (${child.exitCode}): ${errors}`, { cause: error }); throw error; }
+  finally { await service?.close(); await job.signal(); await job.exited; expect(await closed).toBe(0); job.dispose(); }
+}, 30000);

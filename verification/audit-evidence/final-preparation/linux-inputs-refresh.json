@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "scope": "read-only-final-environment-refresh",
+  "recordedAt": "2026-10-25T19:21:31.908Z",
+  "observedAt": "2026-10-25T19:21:04.872576+00:00",
+  "instance": "crtest-rw-20261025",
+  "sourceDigest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+  "services": {
+    "worker": {
+      "active": "active",
+      "substate": "running",
+      "enabled": "enabled"
+    },
+    "gateway": {
+      "active": "active",
+      "substate": "running",
+      "enabled": "enabled"
+    },
+    "caddy": {
+      "active": "active",
+      "substate": "running",
+      "enabled": "enabled"
+    },
+    "authelia": {
+      "active": "active",
+      "substate": "running",
+      "enabled": "enabled"
+    }
+  },
+  "gatewayHealth": 200,
+  "workerHealth": 200,
+  "workerConnected": true,
+  "activity": {
+    "activeThreads": [],
+    "pendingStarts": 0,
+    "terminals": 0,
+    "unknown": false
+  },
+  "nodeVersion": "v24.22.1",
+  "nodeSha256": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+  "manifestEntriesChecked": 12415,
+  "dependencyBytesHashed": 137492909,
+  "manifestSha256": "1c56eff4ba87c18b7a98b71dcf3a22395af36b02b7bd47e53be11ac8d917d6a6",
+  "dependencyInputs": {
+    "package.json": "038eec35eaecb8a11ea85042f7298ca6e92fc85bc4e62415bc99dbd2e5730b00",
+    "pnpm-lock.yaml": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63",
+    "pnpm-workspace.yaml": "fca80313d304e48a75d03840a45f6a9456a280777d60b205bd2c02729e72be21"
+  },
+  "cliArchiveIntegrityVerified": true,
+  "evidence": [
+    {
+      "path": ".work/final-instance-baseline-20261025-r20.json",
+      "sha256": "44892c00c57da6cf80608c2bea5669aba8bc8cdc242884c5a394a2d9ee89141b"
+    },
+    {
+      "path": ".work/final-linux-runtime-inputs-20261025-r20.json",
+      "sha256": "d064b2dbdf0ada510aa94074119ecb19527058f7e2568d32dc9f716be324377c"
+    },
+    {
+      "path": ".work/final-instance-baseline.py",
+      "sha256": "f2913074f11b50f4b4a2d288769dec0e54718e20e2f297ad853708c7e1dd7672"
+    },
+    {
+      "path": ".work/verify-linux-runtime-inputs-final.py",
+      "sha256": "f88159763a850f268204a00d93ed53be1a447ff7e6ed2d69d21963a5ee22ced6"
+    }
+  ],
+  "limits": [
+    "Two read-only SSH Python processes on the selected 120 host; no service restart, update, configuration mutation or full test.",
+    "Only installed Node, third-party dependencies and fixed CLI archive provenance were inspected; no previous application source was read.",
+    "This is preparation evidence, not full tests or final deployed-source acceptance."
+  ]
+}

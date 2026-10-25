@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round11-fixes",
+  "reviewerId": "r11-interface",
+  "complete": true,
+  "startedAt": "2026-10-25T16:13:20.5084629Z",
+  "completedAt": "2026-10-25T16:20:33.667Z",
+  "scopes": [
+    "web-ux"
+  ],
+  "fixedFindingIds": [
+    "r11-interface-1"
+  ],
+  "before": {
+    "files": 1785,
+    "digest": "1f4f3724cdad1ccad3c8623bb947c25f6bdd6c41a03c4bdaa7376d07353003e7",
+    "audit": "verification/audit-evidence/round11/r11-interface.json",
+    "auditSha256": "83d3507b7b58e07b99d741d686bf62837b0197d20fd0cfd2710cb6a8bf8354e8",
+    "behavior": "An open or late-returning attachment preview retained native modal ownership inside the hidden Workspace when authentication expired, blocking the visible login controls."
+  },
+  "after": {
+    "files": 1785,
+    "digest": "6ad676b4dc7c510d4f28cb402d4f12a76ad757742423e65a18c274bde801e01b",
+    "behavior": "The authenticated Workspace supplies a composed DialogScope. All descendant Dialogs synchronously release native modal ownership and document keyboard handlers when unavailable, without calling business onClose or unmounting draft state. A newly mounted late preview also remains closed. After successful authentication, still-owned previews/forms resume, while top-level App modals already cleared by existing state logic remain closed."
+  },
+  "files": [
+    {
+      "path": "web/App.tsx",
+      "beforeSha256": "a39ad7e06b89530bf6d918bced1fd32c2cb401a726432f9ab30a86e2cb5c851a",
+      "afterSha256": "274d203877dffa67b6f6ae276f91c1dea8d55c27fcf349d7651a5766e2b5b168",
+      "changed": true
+    },
+    {
+      "path": "web/components/Dialog.tsx",
+      "beforeSha256": "0df9870d9c16ea74098e843c947f133c9c1bba32ca0e0c804b68101489b66a63",
+      "afterSha256": "5ab90a4589bcf1f169b5f8d9120990478e17d99d60b81d9e0d01e4cd31bc3bf1",
+      "changed": true
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "beforeSha256": "c84188ac71ba05e3d291a0308c57aa318cc27eb6c88ca963044d12daf0f34b57",
+      "afterSha256": "9140f6154d92744ff3c668ff93ef0edc0a4a15532e9c02aa867e0881fac50e87",
+      "changed": true
+    },
+    {
+      "path": "web/tests/dialog.test.tsx",
+      "beforeSha256": "d3391b9b355cc22a76c2cd469296e590ddfee05261b27f9f97c99ee670b9b887",
+      "afterSha256": "96014b4afe14ea333e4dab2b00ff0ecd1cb5ea4dffe3e941b42889cd80802d42",
+      "changed": true
+    },
+    {
+      "path": "web/tests/attachments.test.tsx",
+      "beforeSha256": "3305735b1907d3af97101f807aff38cac84a6a74ad4f950d42b7f5ce2bf40eb0",
+      "afterSha256": "3305735b1907d3af97101f807aff38cac84a6a74ad4f950d42b7f5ce2bf40eb0",
+      "changed": false
+    }
+  ],
+  "design": [
+    "DialogScope combines its own active state with the parent scope, so an active inner scope cannot override an unavailable parent.",
+    "Dialog uses a layout effect to acquire/release browser modal ownership before paint. Suspension invokes only the native close method, never the business onClose callback; it does not clear draft or recovery state and dispatches no mutation.",
+    "Retained Dialogs keep their state and input nodes across suspension. A preview read completing while inactive may retain its bounded Blob result, but cannot show a modal or intercept the login keyboard. Restoration after explicit successful login is intentional and covered by application tests.",
+    "Dialogs keep a stable owner order. Because React child layout effects run first, setup reorders existing upper layers after opening a lower layer, preserving native inner-above-outer order on restoration. Only the topmost layer consumes Escape/Tab.",
+    "Focus restoration skips unavailable scopes, non-top layers, hidden elements and closed-dialog descendants. Ordinary visible opener restoration and IME-aware Escape behavior remain covered."
+  ],
+  "additionalFindings": [
+    {
+      "id": "r11-interface-fix-1",
+      "status": "fixed",
+      "priority": "P2",
+      "title": "Nested Dialog Escape invokes both inner and outer close callbacks",
+      "discovery": "Directly related keyboard-ownership check requested during the fix review; not retroactively added to the frozen round11 audit.",
+      "before": "A dynamically opened inner Dialog and its parent both installed document capture listeners. Escape in the inner input called both onClose callbacks. The regression failed with outerClose called once instead of zero.",
+      "evidence": ".work/test-results/run-hjfvEV/vitest.json",
+      "after": "Only the current topmost registered Dialog handles keyboard events. Regression checks Escape isolation and Tab ownership, and a separate StrictMode test checks native restoration order and cleanup."
+    }
+  ],
+  "validations": [
+    {
+      "stage": "before implementation",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/app-lifecycle.test.tsx",
+      "status": "failed_as_expected",
+      "exitCode": 1,
+      "passed": 15,
+      "failed": 2,
+      "skipped": 0,
+      "evidence": ".work/test-results/run-peUIv3/vitest.json",
+      "detail": "Both open and pending attachment preview cases failed because dialog.open remained true after authentication loss."
+    },
+    {
+      "stage": "before keyboard fix",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/dialog.test.tsx",
+      "status": "failed_as_expected",
+      "exitCode": 1,
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "evidence": ".work/test-results/run-hjfvEV/vitest.json",
+      "detail": "Inner Escape unexpectedly called the outer onClose callback."
+    },
+    {
+      "stage": "after implementation",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/app-lifecycle.test.tsx web/tests/dialog.test.tsx web/tests/attachments.test.tsx web/tests/modal-mutations.test.tsx",
+      "status": "passed",
+      "exitCode": 0,
+      "files": 4,
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": ".work/test-results/run-usHOSH/vitest.json"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check -- web/App.tsx web/components/Dialog.tsx web/tests/app-lifecycle.test.tsx web/tests/dialog.test.tsx",
+      "status": "passed",
+      "exitCode": 0
+    }
+  ],
+  "regressionCoverage": [
+    "Open preview suspension and a read completing only after the session becomes inactive.",
+    "Visible login focus and unclaimed Tab while suspended; preview restoration after explicit login.",
+    "Preserved draft text, attachment and unknown operation receipt; one attachment read and no turn/conversation replay.",
+    "Blob URL retained through suspension and released exactly once on explicit preview close.",
+    "Nested inactive-parent scope composition, preserved input DOM/value, no business close callback or focus theft.",
+    "Nested Escape/Tab exclusivity, native modal stack order through suspension/restoration and StrictMode cleanup.",
+    "Hidden opener/fallback exclusion, existing visible focus restoration and IME Escape handling.",
+    "Existing 23 modal mutation tests preserve pending and uncertain-result workflows."
+  ],
+  "skipped": [],
+  "limitations": [
+    "The targeted tests use jsdom and a native-layer order simulation; the main reviewer will perform production build and real-browser revalidation after this implementation is sealed. This report does not claim that browser revalidation already passed.",
+    "No full suite, Linux/systemd/SSH, live service/provider, paid inference, external MCP, personal configuration or credential access was performed.",
+    "The availability scope addresses authentication loss for the retained Workspace. It does not broadly change other panel visibility or feature lifecycle policies.",
+    "The unconfirmed image-pixel candidate from the audit was not included in this fix; no image decoding behavior changed.",
+    "The frozen round11 audit and its evidence were not modified. Only the four listed implementation/test files and new ignored/fix-report evidence were written."
+  ],
+  "crossReview": {
+    "reviewer": "/root/fresh_r11_runtime",
+    "source": "Independent read-only peer message after implementation and tests were frozen for review",
+    "status": "reviewed_no_additional_blocker_confirmed",
+    "reviewedFiles": [
+      "web/components/Dialog.tsx",
+      "web/App.tsx",
+      "web/tests/dialog.test.tsx",
+      "web/tests/app-lifecycle.test.tsx"
+    ],
+    "conclusion": "Parent scope composition, inactive layout ownership release without business onClose, late attachment mount gating, stable layer restoration, StrictMode cleanup, topmost keyboard ownership, hidden/closed focus filtering and compatibility with current callers were reviewed. No additional blocking risk was confirmed.",
+    "limits": "Peer performed read-only review without repeating tests. Actual browser top-layer/inert behavior and real IME remain independent validation boundaries."
+  }
+}

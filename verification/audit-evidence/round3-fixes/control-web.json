@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "phase": "round3-fixes",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T20:11:00.6487794Z",
+  "complete": true,
+  "resolvedFindings": [
+    "R3-CW-01"
+  ],
+  "files": [
+    "web/lib/api.ts",
+    "web/lib/operations.ts",
+    "web/components/TerminalPanel.tsx",
+    "web/tests/operations.test.ts",
+    "web/tests/terminal.test.tsx"
+  ],
+  "changes": [
+    "Added a typed terminal open identity and read-only recovery API. The operation store retains only terminalId plus document/connection ownership metadata, validates accepted identities, and rejects conflicting terminal results.",
+    "Terminal opening retains its operation identity after HTTP uncertainty. An already received accepted WebSocket receipt restores the requested terminal; later accepted results can be queried explicitly to recover interaction or close the terminal without replaying terminal/open.",
+    "Project changes retain an unresolved prior-project operation for closure only. Worker connection generation changes invalidate terminal interaction; old identities are never adopted or deliberately sent through replacement leases. Failed closure leaves a visible close retry while input is paused.",
+    "Kept the existing bounded serialized terminal input queue. Pending creation output remains bounded and ordered; overflow closes the confirmed terminal.",
+    "Coordinated the App epoch input with the parent so the terminal connection key includes both runtime epoch and connection revision. The parent owns that App edit and static terminal import."
+  ],
+  "validation": {
+    "targetedCommand": "node node_modules/vitest/vitest.mjs run web/tests/terminal.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/app-lifecycle.test.tsx web/tests/events.test.tsx web/tests/session.test.ts",
+    "files": 6,
+    "tests": 48,
+    "result": "passed",
+    "typecheck": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit: passed",
+    "build": "node node_modules/vite/bin/vite.js build --config web/vite.config.ts: passed",
+    "coverage": [
+      "Accepted WebSocket proof with lost HTTP response and preserved early terminal output.",
+      "Later acceptance discovered through the original operation ID, with one terminal/open only.",
+      "Explicit recovered-terminal closure, failed-close retry, and blocked input.",
+      "Unresolved original-project terminal closed after navigation without adoption.",
+      "Delayed proof after a changed connection cannot control the former terminal.",
+      "Definitive not-sent result permits a fresh open; unknown and missing observations do not.",
+      "Typed result minimization, monotonic acceptance, conflicting IDs, receipt identity validation and document/connection binding.",
+      "Existing terminal bounds, early exit, pending-buffer overflow, delayed close, session lifecycle and generic recovery regressions."
+    ]
+  },
+  "observationSnapshot": {
+    "files": 1530,
+    "digest": "c44937cb20c80048217b13d72e472023f7441f5154180304a55765920e39ac33",
+    "note": "Observed during concurrent unfrozen repairs; this is not a clean-audit gate snapshot."
+  },
+  "limits": [
+    "No full test suite was run.",
+    "No real browser, remote deployment, native shell, commercial model or external MCP call was used for this fix.",
+    "The first fixture pass found one changed button-label assertion and TypeScript fixture typing issues; these were corrected before the final passing run.",
+    "The parent static xterm import produces a non-failing jsdom canvas getContext notice. The production build reports its single minified chunk above 500 kB; the parent intentionally removed late authenticated asset loading.",
+    "The separate gateway slow-HTTP-response finding R3-CW-02 is owned by the parent and is not claimed fixed here."
+  ]
+}

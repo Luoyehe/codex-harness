@@ -1,0 +1,205 @@
+{
+  "date": "2026-10-25",
+  "agent": "/root/preaudit_deploy",
+  "status": "Implemented, targeted verification complete; source files frozen for integration.",
+  "changes": [
+    "Keep official @z_ai/mcp-server 0.1.5 unchanged; use exact scoped SDK override to 1.32.2 and exact zod override to 4.6.7.",
+    "Remove unused root direct dependencies @iarna/toml and zod; vision owns the retained Zod transitive dependency.",
+    "Include pnpm-workspace.yaml in source archives. Accept only a bounded JSON subset with no duplicate fields and the exact reviewed single-root settings/override map. Independently reconstruct fetch/offline workspace files.",
+    "Bind pnpm to an explicit project root with --dir and --workspace-root; keep disabled hooks/scripts, sanitized process environment, frozen lock, 1440-minute release age and existing supply-chain policy.",
+    "Validate matching exact overrides in the lockfile; bind workspace, sanitized dependency declarations and lock into the dependency digest.",
+    "Use a separate explicit pnpm metadata cache per stage. After fetch producer stop, securely snapshot package store and full public-registry metadata; record both manifest digests against the dependency digest and import both into the isolated offline stage.",
+    "Add rejection tests for arbitrary overrides, extra workspace members, hooks, catalogs, config dependencies, URL overrides, ranges, policy relaxation, duplicate JSON fields and workspace/lock mismatch.",
+    "Add an explicit no-tool vision stdio/schema probe and update deployment documentation."
+  ],
+  "changedFiles": [
+    {
+      "path": "package.json",
+      "sha256": "038eec35eaecb8a11ea85042f7298ca6e92fc85bc4e62415bc99dbd2e5730b00"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "acef6f475d96438e25719bb19304e5b8eb05822e3dc70f4a1cb708a051066c16"
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "b4c87486ebae02b3026b1fbc45e663b640422d20f82f15af64420643113e01a3"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "0fb305b7876b13e5619b5e1aae97ea7af7e22a64ff575114812eb87ada1907d7"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "24cbf4d538c3ee98eb290fd9c8f8154d9d4af7a85c6856de206011e6888feb96"
+    },
+    {
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+    }
+  ],
+  "audit": {
+    "before": {
+      "info": 0,
+      "low": 0,
+      "moderate": 2,
+      "high": 4,
+      "critical": 0
+    },
+    "after": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "afterDependencyCount": 336,
+    "rawBefore": ".work/dependency-audit.json",
+    "rawAfter": ".work/dependency-audit-after.json",
+    "rawAfterSha256": "6a1cba65a791908055c63e9416e37c5dda31e5c8d2dda778b03a2bad98df10e7"
+  },
+  "visionCompatibility": {
+    "baseline": {
+      "vision": "0.1.5",
+      "sdk": "1.26.0",
+      "zod": "3.25.76"
+    },
+    "candidate": {
+      "vision": "0.1.5",
+      "sdk": "1.32.2",
+      "zod": "4.6.7"
+    },
+    "realStdio": [
+      "initialize protocol 2025-11-25",
+      "notifications/initialized",
+      "tools/list with all eight tools",
+      "stdin EOF and exit code 0"
+    ],
+    "registeredSchemas": [
+      "ui_to_artifact",
+      "extract_text_from_screenshot",
+      "diagnose_error_screenshot",
+      "understand_technical_diagram",
+      "analyze_data_visualization",
+      "ui_diff_check",
+      "analyze_image",
+      "analyze_video"
+    ],
+    "schemaChecks": [
+      "exact required and property sets",
+      "string property types and descriptions",
+      "four ui_to_artifact enum values",
+      "all optional empty strings accepted",
+      "missing required fields rejected",
+      "wrong field types rejected",
+      "invalid enum rejected",
+      "unknown fields stripped by actual registered Zod parser"
+    ],
+    "schemaDifference": "Only additionalProperties:false is omitted in SDK/Zod4 input-mode JSON Schema. All other tool metadata and schema fields match baseline exactly; actual object parsing still strips unknown fields.",
+    "networkAttempts": 0,
+    "toolCalls": 0,
+    "runs": [
+      ".work/vision-baseline.json",
+      ".work/vision-candidate.json",
+      ".work/vision-current.json",
+      ".work/vision-offline-import.json",
+      ".work/vision-full-offline-import.json"
+    ],
+    "limits": "Actual local child processes with isolated HOME/USERPROFILE and fake credential. Built-in network-entry guards count and reject attempts; no OS network namespace in this Windows probe."
+  },
+  "dependencyFlow": {
+    "root": "<OS_TEMP>/harness-dependency-flow-cspe1ela",
+    "workspace": {
+      "packages": [
+        "."
+      ],
+      "minimumReleaseAge": 1440,
+      "blockExoticSubdeps": true,
+      "trustPolicy": "no-downgrade",
+      "strictDepBuilds": true,
+      "ignoreScripts": true,
+      "overrides": {
+        "@z_ai/mcp-server@0.1.5>@modelcontextprotocol/sdk": "1.32.2",
+        "zod": "4.6.7"
+      }
+    },
+    "storeManifestDigest": "19c3a673b164679d9d0ca5df6b577f1fdeffdd7f11a7622aa0e37ca13f172f99",
+    "metadataManifestDigest": "1ae08daae8d617d1489aef30b8ab5e0f87508aa25fa00d1fed95d73370ac6c85",
+    "storeEntries": 8844,
+    "metadataEntries": 706,
+    "networkAttemptsInOffline": 0,
+    "results": {
+      "missingMetadata": {
+        "exitCode": 1,
+        "missingMetadataError": true
+      },
+      "completeMetadata": {
+        "exitCode": 0,
+        "missingMetadataError": false
+      }
+    },
+    "sourceCachesUnchanged": true,
+    "offlineProject": "<OS_TEMP>/harness-dependency-flow-cspe1ela/offline-complete",
+    "limitations": "Windows file copy substitutes Linux descriptor-safe snapshot; namespace/cgroup enforcement not exercised."
+  },
+  "verification": [
+    {
+      "command": "pnpm install --frozen-lockfile --ignore-scripts",
+      "result": "passed with production 1440-minute policy after SDK release reached maturity"
+    },
+    {
+      "command": "python -m unittest discover -s tests/deploy -p test_deployment.py -v",
+      "selected": 39,
+      "passed": 35,
+      "skipped": 4,
+      "platform": "Windows"
+    },
+    {
+      "command": "pnpm typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm build",
+      "result": "passed"
+    },
+    {
+      "command": "python -m py_compile deploy/build.py tests/deploy/test_deployment.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check (changed files)",
+      "result": "passed"
+    },
+    {
+      "command": "python .work/dependency-flow.py --full",
+      "result": "All current root-lock dependencies fetched then installed offline in independent OS-temp roots. Store-only negative case reproduced ERR_PNPM_NO_OFFLINE_META. Complete metadata case succeeded with zero guarded network attempts and unchanged original cache manifests."
+    }
+  ],
+  "primaryReferences": [
+    "https://github.com/pnpm/pnpm/blob/main/pnpm/docs/package_json.md",
+    "https://github.com/pnpm/pnpm/blob/main/pnpm/docs/settings.md",
+    "https://ts.sdk.modelcontextprotocol.io/",
+    "https://ts.sdk.modelcontextprotocol.io/faq"
+  ],
+  "limitations": [
+    "No full repository test suite, paid inference, real external MCP tool call, personal Codex home or remote deployment was executed by this agent.",
+    "Initial isolated compatibility installation temporarily set minimum release age to zero because the chosen patch was minutes short of 24 hours. Production config was never relaxed; final root lock/install succeeded under 1440 after maturity.",
+    "Windows dependency-flow file copying substitutes for Linux root descriptor-safe snapshot/cgroup/namespace enforcement; the production importer retains those checks and requires isolated Linux acceptance by the root agent.",
+    "Four original deployment tests require Linux and were explicitly skipped on Windows.",
+    "Root agent separately changed System.isolated stdout to the existing rate-limited journal; that source file was not modified by this agent.",
+    "A zero-advisory registry audit is a dated dependency result, not a proof of general vulnerability absence."
+  ],
+  "ignoredFixtures": [
+    ".work/probe-vision.mjs",
+    ".work/dependency-flow.py",
+    ".work/dependency-flow-vision-evidence.json",
+    ".work/dependency-flow-evidence.json",
+    ".work/dependency-flow-online.log",
+    ".work/dependency-flow-missingMetadata.log",
+    ".work/dependency-flow-completeMetadata.log"
+  ]
+}

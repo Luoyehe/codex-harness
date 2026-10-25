@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-fix",
+  "finding": "r6-interface-06",
+  "at": "2026-10-25T09:05:29.411Z",
+  "source": [
+    {
+      "path": "web/components/Prompts.tsx",
+      "sha256": "9c5db1438f5e539291f27b256aea7a9c5e8b2a5210425940e8d940192e6a1839"
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "sha256": "19e055649420655b21fa6bf6746bfe21593edad7e13b5b83601fe1b8a49b2046"
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "5944f011c8eab595e78ada37e114bda463b849fc3c10d0e450f4b0a0a464e9b0"
+    }
+  ],
+  "fix": [
+    "Pending prompt answer freezes the whole answer control group, including question options, secret other inputs, permission scopes, MCP schema fields and URL confirmation.",
+    "A synchronous pending latch prevents duplicate answer submission before or during rerender.",
+    "Failure unlocks original controls and retains all entered values. No automatic retry or permission schema changes."
+  ],
+  "validation": {
+    "before": {
+      "report": {
+        "path": ".work/test-results/run-QyuA5X/vitest.json",
+        "sha256": "6e12897f616cca467a16eb57a278460bed9e88719aa3ddefbaca5454e8a507e9"
+      },
+      "passed": 11,
+      "failed": 5
+    },
+    "intermediate": {
+      "report": {
+        "path": ".work/test-results/run-w3LlZG/vitest.json",
+        "sha256": "e805cc68322afa8007c8f3996ae73decc22f98f80adaf6347f24099a79121a58"
+      },
+      "passed": 15,
+      "failed": 1,
+      "reason": "New regression incorrectly expected optional absent MCP input to become enabled. Adjusted test to assert restoration of its pre-submit disabled states; no product workaround."
+    },
+    "after": {
+      "report": {
+        "path": ".work/test-results/run-9tHFo7/vitest.json",
+        "sha256": "9c78e412fcfbc5cb82ccbe1c85b49fb69a8b7aff4791ced1a22558a385cde139"
+      },
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "limits": [
+    "Actual usePrompts and Prompts are exercised with local API substitutes; no model, live approval, external MCP or network operation.",
+    "No full suite; final UI type/build/browser integration follows after parallel edits stop."
+  ]
+}

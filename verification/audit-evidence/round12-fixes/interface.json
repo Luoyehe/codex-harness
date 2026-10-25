@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round12-fixes",
+  "reviewerId": "r12-interface",
+  "findingId": "R12-INTERFACE-001",
+  "complete": true,
+  "status": "fixed-with-targeted-validation",
+  "startedAt": "2026-10-25T16:44:06.0151920Z",
+  "completedAt": "2026-10-25T16:49:24.087Z",
+  "originalAudit": {
+    "path": "verification/audit-evidence/round12/r12-interface.json",
+    "sha256": "4e3b888772cc226b43511c06c06c822c2629a66a16ee7bb9db01c2e1948c8164",
+    "sourceDigest": "5f6bc835439d39fb5c69726834246b50e0828a62ac7aeb2449dcbf42efc6b92e"
+  },
+  "changes": [
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "beforeBackup": ".work/round12-fixes/web__components__RemoteSettings.tsx.before",
+      "beforeSha256": "86fe970670af04773be320f511c3ae01b8957068d9e4c2150966d270f673726d",
+      "afterSha256": "f7d3fd34772015b40e052c55eb32429495bff5b2710091c10da9b11c80cd87f6",
+      "encoding": "UTF-8 without BOM",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "beforeBackup": ".work/round12-fixes/web__tests__process-remote.test.tsx.before",
+      "beforeSha256": "9671339dd426af495a7f05d06973cbb02dc07ac2903e22ee1266292f8ef3d561",
+      "afterSha256": "504b4277fbe0276faca13c69c9bc279ad27eda1e8e330b87d126eaa9a2ac8a77",
+      "encoding": "UTF-8 without BOM",
+      "lineEndings": "LF"
+    }
+  ],
+  "summary": "Pairing status reads now belong to a per-transition owner object and a unique request object. Busy state is derived for the current owner. Owner departure aborts its read, late resolve/reject/finally cannot update another owner or request, and the synchronous request ref prevents repeated dispatch before React rerenders.",
+  "method": "Preserved the exact pre-change bytes of both authorized files. Added focused regressions before implementation, ran the official exact-file targeted command to preserve genuine pre-fix failures, then changed only RemoteSettings.tsx and reran the same targeted file. Reviewed the implementation and regressions and ran the Web noEmit typecheck. No shared hook or other source file changed.",
+  "regressionCoverage": [
+    "Expiry followed by creation of a new pairing, with old success and failure completing before the new pair, after its creation, or during the new status read. The fixture reuses the same pairing ID to check generation identity.",
+    "Old success/failure during a new pending query across disconnect/reconnect, environment change, environment A-to-B-to-A return, connection ID replacement, runtime epoch replacement, and unmount/remount.",
+    "Aborted fetch signals are asserted while mocked transport deliberately ignores cancellation, so callbacks must still reject stale ownership.",
+    "Current query failure clears its own busy state and displays its error; a retry clears that error; current claimed=false preserves the code and permits another query; current claimed=true hides the code.",
+    "Repeated clicks in one React update batch dispatch exactly one status read.",
+    "Fake Date and timers are restored after every test; all original 24 process/remote tests continue to pass."
+  ],
+  "validations": [
+    {
+      "id": "before-duplicate",
+      "phase": "before-implementation",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/process-remote.test.tsx",
+      "exitCode": 1,
+      "status": "failed-as-expected-before-fix",
+      "startedAt": "2026-10-25T16:46:16.604Z",
+      "testFiles": 1,
+      "tests": 43,
+      "passed": 24,
+      "failed": 19,
+      "skipped": 0,
+      "runnerReport": ".work/test-results/run-qp7aE0/vitest.json",
+      "preservedRawReport": ".work/round12-fixes/interface-before-duplicate.vitest.json",
+      "preservedRawReportSha256": "094d05a762c482462fb459ad0fcc2973f59542cc1cb67d42921cef45ca2bd258",
+      "log": ".work/round12-fixes/interface-before-targeted.log",
+      "interpretation": "Initial regression helper issued two clicks in the same update batch. All 19 new scenarios stopped at the duplicate-dispatch assertion; the original 24 tests passed. This genuine failure is retained, but was not sufficient by itself to show the expiry assertion."
+    },
+    {
+      "id": "before-race",
+      "phase": "before-implementation",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/process-remote.test.tsx",
+      "exitCode": 1,
+      "status": "failed-as-expected-before-fix",
+      "startedAt": "2026-10-25T16:46:36.588Z",
+      "testFiles": 1,
+      "tests": 44,
+      "passed": 25,
+      "failed": 19,
+      "skipped": 0,
+      "runnerReport": ".work/test-results/run-TA9ZmG/vitest.json",
+      "preservedRawReport": ".work/round12-fixes/interface-before-race.vitest.json",
+      "preservedRawReportSha256": "9f7b2587838f2d7810679886ce7e188f51b0f56a827de34cb26061e630bb39cd",
+      "log": ".work/round12-fixes/interface-before-targeted-race.log",
+      "interpretation": "Separated repeated-click behavior into its own regression. Six expiry cases and six retained-owner transitions failed because the new check stayed disabled; six remounted-owner cases failed the required cancellation assertion; the repeated-click test failed duplicate dispatch. The original 24 plus the new current-query retry test passed."
+    },
+    {
+      "id": "after-targeted",
+      "phase": "after-implementation",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/process-remote.test.tsx",
+      "exitCode": 0,
+      "status": "passed",
+      "startedAt": "2026-10-25T16:47:27.159Z",
+      "testFiles": 1,
+      "tests": 44,
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "runnerReport": ".work/test-results/run-gDHyX2/vitest.json",
+      "preservedRawReport": ".work/round12-fixes/interface-after.vitest.json",
+      "preservedRawReportSha256": "78d9a5aec7468aa46e1eccd3733c02517760b6cdd98765e553dc3dce51e7f351",
+      "log": ".work/round12-fixes/interface-after-targeted.log",
+      "interpretation": "All 44 tests passed: 24 original and 20 new regression cases. Zero skips."
+    },
+    {
+      "id": "web-types",
+      "phase": "after-implementation",
+      "command": "pnpm exec tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "status": "passed",
+      "log": ".work/round12-fixes/interface-web-tsc.log"
+    },
+    {
+      "id": "source-format",
+      "status": "passed",
+      "utf8WithoutBom": true,
+      "lfOnly": true,
+      "files": [
+        "web/components/RemoteSettings.tsx",
+        "web/tests/process-remote.test.tsx"
+      ]
+    },
+    {
+      "id": "original-audit-preserved",
+      "status": "passed",
+      "path": "verification/audit-evidence/round12/r12-interface.json",
+      "sha256": "4e3b888772cc226b43511c06c06c822c2629a66a16ee7bb9db01c2e1948c8164"
+    }
+  ],
+  "skipped": [],
+  "limitations": [
+    "Only the authorized component and affected test file changed. No shared hook, coverage, documentation, or original audit record was updated.",
+    "No full test suite, build, browser, SSH, Linux, live deployment, real provider, or personal credential validation was run by this agent. Build and browser validation remain with the root task; broader release gates are not claimed passed.",
+    "The tests use jsdom with synthetic pairing/status responses and deterministic timers; they validate component state and dispatch/cancellation ownership, not native provider pairing or real network cancellation.",
+    "This fix changes the audited source snapshot; the old round12 digest is retained only as the original audit reference and is not claimed to describe the repaired source."
+  ]
+}

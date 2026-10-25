@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "phase": "extensions-ui-first-batch",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:08:17.866Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/components/Settings.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/hooks/useEvents.ts",
+    "web/styles-extensions.css",
+    "web/tests/extensions.test.tsx",
+    "web/tests/events.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "d960e3800d67abd46fcb0759a677682264392a184071c7c3c70403a44961019e",
+    "web/components/Settings.tsx": "7a39bf94fb212a1874724f618079a62770f6b41dca1d42698aab50003949b25b",
+    "web/components/ExtensionsPanel.tsx": "6ac665474f578d0a1eb40109f9449fbcdfdf2941a7a9baea25790ac89f7954a1",
+    "web/components/ExtensionControls.tsx": "275bf6239065def04023cc7b59c8df9eb6ac0f46ccd74246335c64b5f41a9291",
+    "web/components/SkillSettings.tsx": "c35b99bfec521dae59fc8e1a58f1be9c822905117149b2bc6c3cb0d63568f529",
+    "web/components/PluginSettings.tsx": "ce3f38657d0d5360868c0a5841f4416f71d8ccf0422e0068b9749e12af345d3c",
+    "web/components/ConfigSettings.tsx": "08aa6505e9b1aa685c5f27f153011c78ac79becc19e00b6963ae220599cf97ff",
+    "web/components/RuntimeInsights.tsx": "6147750087abf1a3e5ca7183b3450d934a9fc4abade6b98a2c0f95f9a9dd252b",
+    "web/hooks/useEvents.ts": "03a25801fa88ed9fb55a49107eb04a2e28a8b6985ccc625ceca48e83c480936e",
+    "web/styles-extensions.css": "f4cd00451e702ab6b73b2eb5644afcfb9828cb41ab45cd2dd45672983a50e022",
+    "web/tests/extensions.test.tsx": "ffc1bd0c2cef95f09e137bad51abed631273ba191e64dc371e09470d7fe3da3f",
+    "web/tests/events.test.tsx": "3b00d65f4e88677ce4ff9af88707603b7166ba7ce17be0392b62173b87f37769"
+  },
+  "contracts": {
+    "skills": "Project-scoped skills/list and discovered opaque skillId for config/write. UI displays scope, native paths as text, dependencies and current enabled state; paths never become write params. Hook source/trust/managed state and handler description are read-only.",
+    "plugins": "Native catalog and installed views, paged search, identity-selected detail. Install requires current previewHash and explicit content/policy/authentication review; unavailable policy disables install. Uninstall is explicit. Write success means accepted then reread, never tool-ready. Reconcile asks for native installed-plugin update. Marketplace source forms distinguish registered-project relative path and credential-free HTTPS Git; change intent is explicit.",
+    "apps": "Native catalog, installed committed snapshot and tool details. Accessible/enabled/connected/callable states remain distinct. Catalog-provided links use safe http/https schemes and require user navigation; no automatic external authentication or tool calls.",
+    "configuration": "settings/read includes effective values/origins/layers and managed requirements. Named controls submit only changed supported fields with captured userVersion. Masked values are never echoed in write. Concurrent version changes preserve input, require explicit comparison/rebase, and a separate save. Native model catalog supplies reasoning choices. Structured/deeper config remains read-only pending dedicated forms.",
+    "drafts": "Unsent configuration edits remain in bounded in-memory project-scoped cache across modal/auth transitions. No config text or secrets are persisted to localStorage/sessionStorage. At 10 dirty project drafts, new editing is blocked rather than evicting unsent input.",
+    "features": "Native paged feature catalog, lifecycle labels and managed locks. Deprecated/removed/managed flags cannot be toggled from UI. Policy-read errors or pending requirements disable mutation.",
+    "insights": "Native memory status and explicit typed confirmation for global memory/reset; separate from context compression/history deletion. Account usage preserves null as unavailable, includes daily buckets; workspace messages and process/gauge diagnostics rendered as structured data.",
+    "delivery": "All changes use durable Api mutations. Unresolved operations block another configuration action; own unknown operation has original-receipt query only. Accepted receipt triggers status read, never mutation retry. Global idle indicator requires no active threads/pending starts/terminal/subscription or uncertain/maintenance state; backend still owns admission."
+  },
+  "validation": {
+    "targetedCommand": "node node_modules/vitest/vitest.mjs run web/tests/extensions.test.tsx web/tests/events.test.tsx web/tests/workspace-ui.test.tsx web/tests/workflows.test.tsx web/tests/composer.test.tsx web/tests/app-lifecycle.test.tsx web/tests/resume.test.tsx web/tests/defaults.test.tsx web/tests/drafts.test.tsx web/tests/history.test.ts web/tests/conversation.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/terminal.test.tsx web/tests/dialog.test.tsx web/tests/settings.test.tsx",
+    "testFiles": 16,
+    "tests": 113,
+    "result": "passed",
+    "extensionSpecificTests": 9,
+    "configurationIdleStateTests": 1,
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle remains above 500kB warning threshold",
+    "browser": "Parent CUA to review fresh loopback-only read-only visual fixture port5112, bounded15minutes. No production browser touched by this agent."
+  },
+  "limits": [
+    "No full repository suite and no clean audit assertion; required three unchanged-source audits remain pending.",
+    "UI tests use controlled API responses, not native or deployed integration proof. Backend owners provide separate native evidence.",
+    "No real external MCP, plugin installation, paid inference, personal credentials, online deployment or external message was performed.",
+    "Dedicated MCP tool/resource/stream configuration and calls, organization UI, scheduler UI, and nested configuration editors remain later batches; existing MCP page is not described as full capability.",
+    "Plugin sharing is not exposed because no implemented backend sharing contract was provided.",
+    "No edits marking FEATURES.md accepted or fully implemented.",
+    "Concurrent source edits mean file hashes document this handoff only."
+  ]
+}

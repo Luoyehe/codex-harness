@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round2-fixes",
+  "reviewerId": "root-r2-fixes",
+  "completedAt": "2026-10-24T19:34:59.818Z",
+  "findings": [
+    "R2-DEPLOY-002",
+    "R2-DEPLOY-003",
+    "R2-INTEGRATION-002"
+  ],
+  "changes": [
+    "Shared artifact policy includes SQLite rollback sidecars, including historical tree paths.",
+    "Streaming raw-byte scanning now also scans UTF-16 LE and BE at both byte alignments with independent overlap/line cursors. BOM-less and binary-embedded text are included; scanned-byte counts are not inflated.",
+    "Terminal flex descendants can shrink to their parent width; proposed cell dimensions are bounded before resizing both the rendered terminal and native PTY to the same supported size. Hidden/unmeasured dimensions retain a valid existing grid."
+  ],
+  "tests": [
+    {
+      "files": [
+        "tests/tooling/release-audit.test.ts"
+      ],
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": ".work/test-results/run-lqBYuQ/vitest.json"
+    },
+    {
+      "files": [
+        "web/tests/terminal.test.tsx"
+      ],
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": ".work/test-results/run-S1rDoa/vitest.json"
+    }
+  ],
+  "sourceScan": {
+    "status": "clean",
+    "scannedFiles": 1542,
+    "scannedBytes": 6640834,
+    "findings": 0,
+    "artifacts": 0,
+    "unreadable": 0,
+    "skipped": 0,
+    "note": "Interim scan before remaining integration changes; repeat at freeze."
+  },
+  "sourceHashes": {
+    "scripts/release-audit.mjs": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b",
+    "tests/tooling/release-audit.test.ts": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+    "web/components/TerminalPanel.tsx": "68d056f16c79635975d730f4abd003c3daf54b31f523f783d188754fe5d3e34d",
+    "web/tests/terminal.test.tsx": "d9f967f43d2e7004d6ee364118816a538769cf16910edb5803a42e60fb50edea",
+    "web/styles.css": "cd85c56955701de3a37e86e47efcae930fadc05574112855ff48760d67a8b753"
+  },
+  "limits": [
+    "Live browser terminal repair remains pending deployment verification",
+    "No full suite, paid model turn or external MCP call"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "phase": "timeline-history-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:07:49.027Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedBatch": true,
+  "files": [
+    "web/lib/timeline.ts",
+    "web/lib/history.ts",
+    "web/hooks/useConversation.ts",
+    "web/components/Messages.tsx",
+    "web/App.tsx",
+    "web/styles.css",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/conversation.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/preview-server.mjs"
+  ],
+  "sourceHashes": {
+    "web/lib/timeline.ts": "4071c575f37205aec071909de9c6744ad5e853c3cf5d116d01888675bd6a4436",
+    "web/lib/history.ts": "12e027b62d6d7e44509c6e535ddf9d859088ccedbbdbe001f0e94c287354f381",
+    "web/hooks/useConversation.ts": "91a46b24a660dd828a69e17061ecdcb504bdb504ec648531056053ad6317fbf0",
+    "web/components/Messages.tsx": "e3add4dcf9b30882079cee13ed16ca2cf65ae2e144a2fc05e0dce95383702beb",
+    "web/App.tsx": "948c46e38657432e74314288480815e664b2d78c3787a131a79496c00aa844a3",
+    "web/styles.css": "1d3ad34204bce6afb0203e1e2b4e2cb6a237e267be77c22643b59046b7bfb6c0",
+    "web/tests/timeline-history.test.tsx": "a7cfaf382e5d1e9ef863aafe4c5333e0c9befd47a3071a6949ca77fa344cb576",
+    "web/tests/history.test.ts": "cee8c77c722302dc9fa586ebbadc55db06ca15cd4c85b8cccbd7dc095a48fe2d",
+    "web/tests/conversation.test.tsx": "cc8b9a4c9fffcf072d0b2788f470b2724112e0319b5118d76aca9e2773ffe09c",
+    "web/tests/app-lifecycle.test.tsx": "3e3b3fa1654ea879ba6575eb918883f8fff31cb7a2f53b7c819d44a8c378edb8",
+    "web/tests/defaults.test.tsx": "ce5182b0d7ed1bf2bc3cda972760df4555d8e238114cd9bce9b023b88671eef5",
+    "web/tests/input-context.test.tsx": "b1784b5e10d33fb3a0fa75a46380da5074300328ac82dbcc0f18a060248592aa",
+    "web/tests/preview-server.mjs": "c19a1c557f9336ba1a5751e73c60b4e7a513b746d49e367495c297d6229572a8"
+  },
+  "contracts": {
+    "proof": "Requires both turnsComplete and timelineComplete with consistent complete,nextCursor and monotonic historyVersion. Turn-only legacy public response fails closed. Both streams use bounded combined retention.",
+    "timeline": "Native pages walk newest to oldest; each page is chronological. Incoming older page is prepended and stable-sorted by position. Shared positions across kinds allowed; dedup uses position and kind/turn/item identity. Ordinary items render once, preferring authoritative/live turn content; voice lifecycle, plain-text transcripts and promoted message references remain visible.",
+    "invalidation": "History invalidation immediately aborts old traversal and revokes ready; late responses cannot restore proof. Voice started suppresses automatic refresh. Closed reloads full dual history. Explicit recheck supports other-owner voice state without loops. Navigation/epoch clears prior voice scope.",
+    "presentation": "Canonical timeline order is used for ordinary positioned messages and realtime records. Unpositioned live items remain visible once until canonical history arrives. Promoted-item control locates existing message rather than duplicating it."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/timeline-history.test.tsx web/tests/history.test.ts web/tests/conversation.test.tsx web/tests/app-lifecycle.test.tsx web/tests/defaults.test.tsx web/tests/input-context.test.tsx web/tests/workflows.test.tsx",
+    "testFiles": 7,
+    "tests": 58,
+    "specificTests": 10,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; existing static bundle threshold warning remains"
+  },
+  "limits": [
+    "No full suite or formal clean source audit.",
+    "Native timeline pagination direction and shared positions confirmed separately by runtime agent real CLI probe; frontend tests use controlled responses.",
+    "No paid voice connection,audio,externalMCP,120deployment or production browser executed by this agent.",
+    "Fixture5119 is read-only visual data, not voice execution acceptance."
+  ]
+}

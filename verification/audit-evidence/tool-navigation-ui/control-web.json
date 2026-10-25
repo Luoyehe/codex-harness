@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T23:09:00.949Z",
+  "formalCleanAudit": false,
+  "trigger": "Parent CUA at 1280x720 found the next-step tool beneath an unclosed menu and squeezed to about 110px by simultaneous chat and expanded approval content.",
+  "changes": [
+    "Chat/history renders only for the chat panel, removing fragile per-tool exclusions that omitted prediction.",
+    "Every tool panel retains a compact pending-request count and explicit return-to-chat control. Approval forms stay mounted, preserving unsent answers.",
+    "Menu actions close the details menu; Escape closes and restores summary focus; outside pointer closes it. All panel transitions focus the visible tool heading or chat composer.",
+    "All non-shell native CLI programs, including codex-cloud, share frontend global configuration readiness admission. Backend admission remained authoritative."
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "2cb4af5ec6c8dc03b48ebb652faf81b73206121a4b21544b7122143e072e4b16",
+    "web/components/Prompts.tsx": "15c41fe3d2349aab1aae6622d6ad1ada13a001e34d7548bbf9172ecd0311555f",
+    "web/tests/app-lifecycle.test.tsx": "31f637115bbb4c2403f9d1ebcf7ef8f97c6134c4dcdc101e2dae62906ce17206"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/app-lifecycle.test.tsx web/tests/prompts.test.tsx web/tests/prediction.test.tsx web/tests/terminal.test.tsx",
+    "testFiles": 4,
+    "tests": 46,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "build": "Vite passed: 377 modules; JS1215.38kB, gzip344.26kB; existing chunk warning"
+  },
+  "limits": [
+    "jsdom verifies menu, focus, branch ownership and answer retention, not pixel geometry.",
+    "No paid/native/cloud operation, full suite or complete source audit."
+  ],
+  "browserFollowup": {
+    "source": "Parent CUA inspection message",
+    "fixture": "http://127.0.0.1:5125",
+    "viewport": "1280x720",
+    "result": "passed_for_reported_menu_layout_focus_and_answer_retention",
+    "screenshot": "reference/evidence/tool-navigation-fixed.png",
+    "confirmed": [
+      "Selecting next-step suggestions immediately closes the menu and focuses the panel title.",
+      "The primary generation button is fully visible and pending requests occupy only their compact count strip.",
+      "Returning to pending requests retains the selected 项目导航 answer and focuses the composer.",
+      "Voice, standalone process and cloud panel entry content is visible; no actual execution was started."
+    ],
+    "limits": [
+      "Readonly controlled fixture, not deployed 120 acceptance or actual cloud/voice/process execution."
+    ]
+  },
+  "readonlyFollowupFinding": {
+    "severity": "P3",
+    "status": "resolved_in_followup_pending_visual_recheck",
+    "summary": "Standalone process and cloud/native terminal panels have no explicit return-to-chat action when no pending approval strip is present.",
+    "evidence": [
+      "ProcessPanel props and markup contain no onChat/return action. App only offers toggling the selected global process icon.",
+      "TerminalPanel offers close terminal and switch-to-shell, neither of which is a return-to-chat action. The cloud icon always selects terminal rather than toggling back.",
+      "The App return-to-chat approval control exists only when visiblePrompts.length is nonzero. The project-file panel similarly relies on its global icon."
+    ],
+    "suggestedScope": "A common always-visible return-to-chat control for any non-chat panel, preserving mounted owned sessions and drafts; do not equate return with stopping processes.",
+    "resolutionEvidence": "verification/audit-evidence/tool-return-ui/control-web.json"
+  }
+}

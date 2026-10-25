@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "workspace-git-filter-boundary-fix",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T21:40:36.821116+00:00",
+  "status": "targeted-validation-passed",
+  "finding": "Ordinary Git status and diff can run repository clean filters even when external diff/textconv/hooks/fsmonitor are disabled. An isolated marker-only fixture reproduced both paths.",
+  "fix": "Status and diff use a private Git view with fixed configuration, bounded copied index and pinned object storage. Repository config/filter includes cannot execute during raw content comparison.",
+  "tests": [
+    {
+      "environment": "isolated Linux nobody",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "Malicious clean-filter and hook markers remain absent; staged, unstaged and unborn-index queries and file recovery regressions pass."
+    }
+  ],
+  "linuxEvidence": {
+    "path": ".work/workspace-git-filter-linux-result.json",
+    "sourceArchiveSha256": "67c01ca3dbfd0f16ad2f41c166bcd0e36da4b788866abff720fefa41f6c84701",
+    "resultSha256": "33efd550d419fd9489fb5e7b24c5cc218609284d175e5881189324a4e4ada9fb"
+  },
+  "limits": [
+    "Git query results compare raw bytes; custom clean/filter/autocrlf conversions are intentionally not inherited.",
+    "No network, paid inference, service mutations or full suite."
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-25",
+  "scope": "Authorized targeted repair of PRE-DEP-01, PRE-DEP-02 and PRE-DEP-03 after the independent deployment preaudit; not an independent clean audit round.",
+  "status": "Implementation and local targeted regression complete; ready for independent audit and isolated Linux acceptance.",
+  "changes": [
+    "Persist fixed-path pre-stop snapshots of instance configuration, HTTPS metadata, Caddyfile and four unit files, plus the prior active and enabled service sets.",
+    "Wrap stop, publication, daemon-reload, startup, health, enablement and commit in one recoverable HTTPS transaction. Confirm every involved cgroup stopped before restoring; retain records and immutable certificate pairs on uncertain recovery.",
+    "Route kind=https interrupted transactions through the ordinary Manager.repair command.",
+    "Import changed provided certificate/key inputs into immutable TLS revision directories, validate the candidate Caddyfile as the edge UID before stop, and publish the pair through configuration references after stop. Recovery restores the previous reference without altering the identity database or encryption keys.",
+    "Correct the documented authentication-port argument to --authelia-port and document certificate renewal and HTTPS repair."
+  ],
+  "files": [
+    {
+      "path": "deploy/https.py",
+      "sha256": "8d939ace0b2e32be53545f3545efae1727a437878bc949aa4daf86f2fe57d1bc"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "48dd014d4fb26f381d49b46f681dd6ffc9bc39662ffd576b3c58e0372dc625a9"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "e3a41bf55a7147d8b892b2a4213c16399bd61188aaa2637be17cb589d4d0776e"
+    },
+    {
+      "path": "tests/deploy/test_https.py",
+      "sha256": "fa2f440e47cfdbb5b40785dccc28bfe7101fa6ef32490674ddae22f398c370e5"
+    }
+  ],
+  "verification": [
+    {
+      "command": "python -m unittest discover -s tests/deploy -p test_https.py -v",
+      "selected": 8,
+      "passed": 8,
+      "skipped": 0,
+      "platform": "Windows",
+      "details": "Local filesystem and substituted system/edge commands. Includes five independent fault subcases: unit-write, reload, start, health and enable. Also checks candidate validation before stop, first edge activation, previous stopped services, unknown-stop retention, process interruption and repair, pair renewal and unchanged/partial pair input."
+    },
+    {
+      "command": "python -m unittest discover -s tests/deploy -p test_deployment.py -v",
+      "selected": 36,
+      "passed": 32,
+      "skipped": 4,
+      "platform": "Windows",
+      "skips": [
+        "Descriptor-safe import",
+        "Linux umask permissions",
+        "Native pipe backpressure/subreaper",
+        "Escaped process-group descendant reaping"
+      ]
+    },
+    {
+      "command": "python -m py_compile deploy/https.py deploy/manager.py tests/deploy/test_https.py",
+      "passed": true
+    },
+    {
+      "command": "git diff --check -- deploy/https.py deploy/manager.py deploy/README.md tests/deploy/test_https.py",
+      "passed": true
+    },
+    {
+      "check": "Parent new Layout.state namespace /var/lib/codex-harness-instances/INSTANCE",
+      "result": "Reviewed dependent deployment paths; they derive state from Layout. Targeted search found no hard-coded former /var/lib/codex-harness/ paths in deploy, related runtime or primary docs."
+    }
+  ],
+  "runtime": {
+    "python": "3.12.14"
+  },
+  "limitations": [
+    "No full suite, remote access or deployment was executed by this agent.",
+    "Real Linux systemd, Caddy/Authelia startup, certificate/key cryptographic validity and browser authentication were not executed in this repair run; test commands replace those boundaries.",
+    "No paid model inference, external MCP calls, personal Codex home or previous repository was accessed.",
+    "The HTTPS unit fixture requires root ownership when run on Linux; non-root Linux execution explicitly skips that fixture class. Windows executed all eight.",
+    "Immutable failed/previous TLS generations are retained under a bounded directory budget for recovery; operator inspection is required at the retention cap."
+  ]
+}

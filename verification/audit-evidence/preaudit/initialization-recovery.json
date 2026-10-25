@@ -1,0 +1,92 @@
+{
+  "scope": "Additional targeted repair after parent observed first install recovery failures; not a formal unchanged-source audit round",
+  "date": "2026-10-25",
+  "findings": [
+    {
+      "id": "initial-enable-retry",
+      "trigger": "Initialization succeeds, candidate preparation fails, operator retries using update",
+      "before": "Only install enabled services, so successful update recovery did not enable boot startup",
+      "fix": "initialize writes a private pending installation record; Manager activate/restart persist healthy and complete phases around retryable enablement"
+    },
+    {
+      "id": "failed-first-current",
+      "trigger": "The first candidate fails health after current is selected; operator retries with the same or another source",
+      "before": "The retained current was treated as an already-active release; identical activation did nothing and another activation made the failed candidate previous",
+      "fix": "Confirmed failed first start clears current; unknown stop retains it. A pending installation never treats that pointer as a rollback target. Legacy first-start journals identify pre-marker failed candidates, and abandoned first-start transactions are retired only after confirmed stop"
+    },
+    {
+      "id": "duplicate-release-retry",
+      "trigger": "A candidate with an already imported exact release digest is independently rebuilt during retry",
+      "before": "Publication rejected any existing release directory before activation could recover",
+      "fix": "Reuse only an exclusively root-owned real directory matching the complete new verified manifest and recorded manifest. Do not overwrite its contents. Reconstruct a missing manifest only from the independently rebuilt identical tree"
+    },
+    {
+      "id": "operator-cli-false-unsent",
+      "trigger": "Operator install/update/control command throws after a mutation",
+      "before": "The outer CLI exception envelope incorrectly declared delivery not_sent",
+      "fix": "Outer operator exceptions omit delivery; gateway RPC and persistent operation receipts retain their existing boundary-based delivery fields"
+    },
+    {
+      "id": "interrupted-current-as-previous",
+      "trigger": "A is healthy or complete; update B is interrupted after selection; update C starts before recovery",
+      "before": "The uncommitted B pointer became the next rollback target",
+      "fix": "activate and restart reject nonterminal management transactions until repair, except stop-confirmed recoverable first attempts with no healthy predecessor",
+      "files": [
+        "deploy/manager.py:112",
+        "deploy/manager.py:214",
+        "deploy/manager.py:324"
+      ]
+    },
+    {
+      "id": "rollback-pointer-lost-on-commit-failure",
+      "trigger": "A/current and Z/previous; update B changes previous to A, then commit-record publication fails or the process exits",
+      "before": "Failure/repair restored current A but kept previous A, losing Z and making rollback a self-reference",
+      "fix": "Release journal snapshots oldPrevious before stop; automatic restoration and explicit repair restore both pointers. For older journals lacking the snapshot, recovery removes only a self-reference and does not invent the lost target",
+      "files": [
+        "deploy/manager.py:124",
+        "deploy/manager.py:232"
+      ]
+    }
+  ],
+  "files": [
+    "deploy/manager.py",
+    "deploy/install.py",
+    "deploy/build.py",
+    "deploy/cli.py",
+    "deploy/README.md",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_deployment.py"
+  ],
+  "validation": {
+    "command": "python -m unittest tests.deploy.test_install_recovery tests.deploy.test_deployment.TransactionTests tests.deploy.test_deployment.BoundaryTests tests.deploy.test_https -v",
+    "selected": 42,
+    "passed": 42,
+    "skipped": 0,
+    "newTests": 19,
+    "pythonCompile": "passed",
+    "diffCheck": "passed",
+    "fullSuite": "not run"
+  },
+  "limitations": [
+    "Local Windows fixtures substitute systemd commands and symlink creation/reading; Linux executes real symlink methods but has not been run by this agent",
+    "Parent owns all real 120 deployment and systemd acceptance; this agent performed no remote operations",
+    "Legacy installations with a committed release but no completion marker cannot distinguish a failed old enable step from an intentional operator disable, so automatic recovery preserves their current enablement",
+    "Duplicate verified candidate exports and all prior transaction/release data remain retained under the existing eight-candidate workspace budget",
+    "No paid inference, external MCP calls, personal runtime home or full repository test suite was used",
+    "Legacy journals without oldPrevious cannot reconstruct an already lost historical rollback pointer; only the invalid self-reference can be removed safely"
+  ],
+  "independentNarrowReview": {
+    "agent": "initial_recovery_review",
+    "confirmedFindings": 2,
+    "status": "Both fixes independently confirmed; four related regression tests rerun and passed; no new issue in the narrow review"
+  },
+  "sha256": {
+    "deploy/manager.py": "6c28f763c7431d08e43f4ca1e408f1989b40dcaf84fc7ab6baedfd1d75064244",
+    "deploy/install.py": "eb121904946fe370ee492735c188ca120289e728802547b6d0dc962ef33ce710",
+    "deploy/build.py": "82bd90d107e4f2b95dff988bb9c0db9ca0280216f129fb4b1d20993218f9c074",
+    "deploy/cli.py": "e068cc1ff283bf10306b3c50f1ad2b3c358435f24b7abb53a73d7841db32c4a0",
+    "deploy/README.md": "683e6be5d52522e5aa841533d7989a8d2192b731259324865a8d8ad4b714bad9",
+    "tests/deploy/test_install_recovery.py": "b8e36f9ab024b989a9c02de2544dc0e7f557ee3352814b6657c9a393629f34b5",
+    "tests/deploy/test_deployment.py": "08eac5f75de11c1493a2c1b4a6f83829a5cefacd6fe4d7228edbaa89dc2bed5c"
+  }
+}

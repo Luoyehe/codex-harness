@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-preparation-script-review",
+  "reviewerId": "deployment",
+  "completedAt": "2026-10-25T08:42:48.470Z",
+  "sourceDigestAtCompletion": "f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d",
+  "sourceFiles": 1779,
+  "formalAudit": false,
+  "independentCleanRounds": 0,
+  "fullSuiteRun": false,
+  "onlineUpdate": false,
+  "remoteCalls": false,
+  "productSourceChanged": false,
+  "reviewedFiles": [
+    ".work/final-linux-package.mjs",
+    ".work/final-linux-entry.mjs",
+    ".work/final-linux-run.py",
+    ".work/final-windows-run.mjs",
+    ".work/FINAL-LINUX-AND-UPDATE-PLAN.md"
+  ],
+  "scriptSha256": {
+    ".work/final-linux-package.mjs": "6e4b9c501d93b381db1bd0cca0f778e24517154f44e0278670bc43c86252eac4",
+    ".work/final-linux-entry.mjs": "d9e8a8260d5a878dc2dbf896cf0c1e75bb19ec1bd6e533ca14ca5f6d436158c4",
+    ".work/final-linux-run.py": "f6d6c6255a1eae31b2032b83bea9cd4a89b5ee77444fbbc472dd2d4c910cc64c",
+    ".work/final-windows-run.mjs": "dfafde56ef539d3603403335d3e47b2d33cb05628b563f9fcc554818478c50b0",
+    ".work/FINAL-LINUX-AND-UPDATE-PLAN.md": "fc29d22987f96b4c6335d48347c52299ed4fcc78fde427c2e4cdbeecf9abf5d4"
+  },
+  "method": "Reviewed packaging, Linux entry/orchestration, Windows orchestration and update plan against current snapshot/audit/test tooling, root fixture paths and current Windows Job helper. Reviewed the provided read-only dependency and instance-baseline records without remote access or credential reads. Corrected only confirmed wrapper exit/log/cleanup-proof defects in ignored preparation files. Verification used syntax checks, pure result/stop-proof fixtures, harmless local Python subprocesses and local Windows child/descendant transport fixtures; no full suite was invoked.",
+  "resolvedFindings": [
+    {
+      "id": "PREP-LINUX-RESULT",
+      "priority": 1,
+      "path": ".work/final-linux-run.py",
+      "impact": "The orchestration process returned zero even when a phase failed or had skips; a timeout or stop-query exception could discard output and prevent a retained phase/final result.",
+      "fix": "Persist stdout/stderr directly to flushed files; preserve stop errors and failed proof in result.json; return overall 1 for failure/uncertain stop, 3 for completed runs with skips, and 0 only for two fully passed/stopped phases. A nobody skip continues to root fixtures."
+    },
+    {
+      "id": "PREP-WINDOWS-CLEANUP",
+      "priority": 1,
+      "path": ".work/final-windows-run.mjs",
+      "impact": "A normal runner exit or ignored taskkill result did not establish that descendant processes were gone, and output-budget termination did not bound retained log bytes.",
+      "fix": "Reuse the current audited suspended-start non-breakaway Windows Job controller; require authenticated empty-Job ACK, preserve actual test exit code including 3, cap each output log and await flushed streams. Taskkill is only emergency fallback, never cleanup evidence."
+    },
+    {
+      "id": "PREP-LINUX-PROOF",
+      "priority": 2,
+      "path": ".work/final-linux-run.py",
+      "impact": "LoadState=not-found alone was accepted even with missing or contradictory process fields.",
+      "fix": "Require the full observed six-field state, zero main/control PIDs, stopped ActiveState/SubState, acceptable query status and an empty or absent exact cgroup."
+    }
+  ],
+  "verification": {
+    "syntax": [
+      "node --check .work/final-linux-package.mjs",
+      "node --check .work/final-linux-entry.mjs",
+      "node --check .work/final-windows-run.mjs",
+      "Python import under -B with Linux-only pwd stub; main not executed"
+    ],
+    "linuxLocalSmoke": ".work/final-preparation/linux-runner-smoke.json",
+    "linuxSmokeChecks": 5,
+    "windowsLocalSmoke": ".work/final-preparation/windows-runner-smoke.json",
+    "windowsCases": 3,
+    "windowsSkipExitVerifiedByDirectSpawn": 3,
+    "gateChecks": [
+      {
+        "script": ".work/final-linux-package.mjs",
+        "currentDigest": "f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d",
+        "result": "blocked by actual audit validator before packaging"
+      },
+      {
+        "script": ".work/final-windows-run.mjs",
+        "currentDigest": "f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d",
+        "result": "blocked by actual audit validator before any full test launch"
+      }
+    ]
+  },
+  "boundaryReview": {
+    "threeCleanGate": "Package and both Linux phases use actual current validateAuditRecord/prepareRun; Windows validates before creating the Job. No gate bypass added.",
+    "sameSource": "Full source manifest hashes and executable bits are rechecked on extraction; Linux entry verifies exact snapshot before and after tests. Current final source digest was not changed by preparation edits.",
+    "linux": "PrivateNetwork, empty /etc/codex, independent HOME/CODEX_HOME/temp and separate root/nobody extractions. Root fixture traversal ancestors are 0755; root fixture mutation targets are relocated and service calls mocked.",
+    "windows": "Clean HOME/CODEX_HOME/application-data/temp and Git NUL config; denying proxies allow loopback fixtures. This is not OS-level network isolation.",
+    "dependencyInputs": "Only the existing third-party node_modules tree is eligible for copying. Provided root read-only record reports 12415 manifest entries and exact dependency input hashes/canonical workspace equivalence; preparation checks do not independently re-attest that remote tree.",
+    "instance": "Provided corrected baseline identifies crtest-rw-20261025, R2 release, legacy layer and active idle services. This point-in-time baseline must be refreshed before an authorized update."
+  },
+  "limitations": [
+    "No real Linux systemd unit, root fixture or full suite was executed in this review. Root execution/namespace behavior still requires future isolated acceptance.",
+    "No archive transfer, SSH action, online update, external API, personal configuration/credential access or host 110 access occurred.",
+    "The initial Windows transport fixtures used source digest d06e446fe909ab676fdbcdc45437bfbcf25e4be8c42eb184e19060d7d87a0c38 while the parent completed product changes. These fixtures test wrapper cleanup only; final gate checks use f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d.",
+    "Preparation review earns zero formal clean-audit rounds and grants no release/full-test authorization. Future source repairs reset the real three-round gate."
+  ],
+  "openFindings": []
+}

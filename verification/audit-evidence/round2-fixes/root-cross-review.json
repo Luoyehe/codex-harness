@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "r2-runtime",
+  "kind": "targeted-cross-review-and-authorized-repair",
+  "formalCleanRound": false,
+  "completedAt": "2026-10-24T19:45:26.189Z",
+  "complete": true,
+  "inspectedFiles": [
+    "scripts/release-audit.mjs",
+    "tests/tooling/release-audit.test.ts",
+    "web/components/TerminalPanel.tsx",
+    "web/tests/terminal.test.tsx",
+    "web/styles.css",
+    "web/styles-responsive.css"
+  ],
+  "sourceHashes": {
+    "scripts/release-audit.mjs": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b",
+    "tests/tooling/release-audit.test.ts": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+    "web/components/TerminalPanel.tsx": "1782db8aa9d5e6f357391702c675e5c9a155e5514fd7f1a559c381f7bb525822",
+    "web/tests/terminal.test.tsx": "d9f967f43d2e7004d6ee364118816a538769cf16910edb5803a42e60fb50edea",
+    "web/styles.css": "2ab23af74a6e7bf4bac04596a3b2fb5751fa7a8220057323fb607949bc37f970",
+    "web/styles-responsive.css": "a8d3a45d574b9a9ad249cabed2716821ba6db10b13bb9ef4715fbb045d63ebd4"
+  },
+  "method": [
+    "Read all current scanner implementation and focused tests, terminal component, focused tests and associated styles; reviewed R2-DEPLOY-002 and R2-DEPLOY-003 for adequacy. No historical checkout used.",
+    "Independently exercised every scanner rule with mixed odd/even/empty chunks, both UTF-16 byte orders and byte alignments, overlap turnover and byte/line accounting.",
+    "Loaded the actual current TerminalPanel, xterm 6.0.0, addon-fit 0.11.0 and application CSS through an ignored local Vite fixture with a simulated API. Inspected browser layout, terminal output and native dimension requests before and after repair."
+  ],
+  "scanner": {
+    "findingsReviewed": [
+      "R2-DEPLOY-002",
+      "R2-DEPLOY-003"
+    ],
+    "conclusion": "Both fixes cover the reported source/Git scanner omissions. No further scanner issue found in this focused review.",
+    "independentProbe": {
+      "command": "node .work/root-cross-scanner.mjs",
+      "exitCode": 0,
+      "utf16MixedChunkCasesPassed": 96,
+      "sqliteSidecarPathCasesPassed": 12
+    },
+    "previousRootValidation": {
+      "reportedBy": "root",
+      "scannerTestsPassed": 21,
+      "independentlyRerunHere": false
+    }
+  },
+  "findings": [
+    {
+      "id": "R2-CROSS-TERMINAL-001",
+      "priority": "P2",
+      "file": "web/styles.css",
+      "line": 8,
+      "status": "fixed-and-revalidated",
+      "summary": "Padded fit host plus overflow clipping hides the final terminal row.",
+      "reproduction": "Actual TerminalPanel in a 500 x 490 CSS pixel container proposed rows=24 and cols=58. The surface ended at y=468, while the xterm grid ended at y=478.375: the last row was cropped by 10.375 pixels. Its right edge also exceeded the surface by 1 pixel.",
+      "cause": "FitAddon subtracts padding on the xterm element, but does not subtract padding on the parent used for measurement. The terminal-surface parent had 15px padding.",
+      "fix": "Retained the padded/background terminal-surface as an outer wrapper. Moved the terminal ref, xterm mount and ResizeObserver target to a new unpadded terminal-mount child with height:100%, min-height:0 and min-width:0. Existing 1..500 dimension clamping remains unchanged."
+    }
+  ],
+  "changedFiles": [
+    "web/components/TerminalPanel.tsx",
+    "web/styles.css"
+  ],
+  "validation": [
+    {
+      "command": "node node_modules/vitest/vitest.mjs run web/tests/terminal.test.tsx",
+      "exitCode": 0,
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "kind": "real-browser-current-component",
+      "container": {
+        "width": 500,
+        "height": 490
+      },
+      "open": {
+        "rows": 22,
+        "cols": 54
+      },
+      "surfaceBottom": 468,
+      "gridBottom": 448.375,
+      "clippedRight": 0,
+      "clippedBottom": 0,
+      "lastRowFullyVisible": true
+    },
+    {
+      "kind": "real-browser-current-component",
+      "container": {
+        "width": 1100,
+        "height": 760
+      },
+      "open": {
+        "rows": 41,
+        "cols": 132
+      },
+      "surfaceBottom": 738,
+      "gridBottom": 714.6875,
+      "clippedRight": 0,
+      "clippedBottom": 0,
+      "panelClientWidth": 1100,
+      "panelScrollWidth": 1100,
+      "lastRowFullyVisible": true
+    },
+    {
+      "kind": "real-browser-live-resize",
+      "from": {
+        "width": 1100,
+        "height": 760
+      },
+      "to": {
+        "width": 500,
+        "height": 490
+      },
+      "observedRequest": {
+        "method": "terminal/resize",
+        "rows": 22,
+        "cols": 54
+      },
+      "clippedRight": 0,
+      "clippedBottom": 0,
+      "panelClientWidth": 500,
+      "panelScrollWidth": 500
+    }
+  ],
+  "review": [
+    "The ref and observer now measure the same unpadded element that directly contains xterm. Height responds to parent flex layout and narrowing does not increase panel width.",
+    "Open and live resize keep the rendered grid and native request dimensions synchronized; existing large-dimension and invalid-proposal tests pass.",
+    "During a blurred live shrink, xterm can retain off-screen helper-textarea coordinates in its internal scroll extent. The outer surface clips those helpers; the visible grid and panel remain within bounds. No terminal output is clipped."
+  ],
+  "unresolvedFindings": [],
+  "skipped": [],
+  "limits": [
+    "This focused review and subsequent authorized repair is not a formal independent clean audit round.",
+    "Browser API and terminal output were simulated locally; no actual shell, remote host, commercial model, external MCP or full test suite was used.",
+    "The 21 scanner unit tests reported by root were reviewed but not rerun here; independent scanner probes were executed instead.",
+    "Hashes represent this repair snapshot before planned repository-wide text newline normalization."
+  ]
+}

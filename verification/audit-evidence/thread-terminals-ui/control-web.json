@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:45:32.188Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "thread-terminals-ui",
+  "specificTests": 6,
+  "files": [
+    "web/components/ThreadTerminals.tsx",
+    "web/App.tsx",
+    "web/tests/thread-terminals.test.tsx"
+  ],
+  "contracts": [
+    "Native thread background process identities are discovered with bounded pagination, distinct from browser terminal IDs and standalone process handles.",
+    "Single-process terminate requires a reviewed discovered identity; terminated:false stays explicit and list refreshes. Whole-thread clean is confirmed, includes newly appeared native processes, and is never described as OS cleanup proof.",
+    "Explicit per-thread shell runs only after full-history/loaded/idle admission and unsandboxed consent. Native submission is not command completion; output and stopping remain in canonical conversation history.",
+    "Unknown operations only query original durable receipts. New drafts typed during submission are retained."
+  ],
+  "sourceHashes": {
+    "web/components/ThreadTerminals.tsx": "e1f07415a6f6a03e2c04f4bd2c4118474b0158957861e55754bb0abf38147b42",
+    "web/App.tsx": "c7af0c4314d7bc1f488c60dc7b0cf90907b5cff1c4a89999f0028c989537ab1c",
+    "web/tests/thread-terminals.test.tsx": "bdb6278d41c610decd62d58c8bee205e1f59006979b26964b8b6156e0e79c376"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/input-modalities.test.tsx web/tests/composer.test.tsx web/tests/defaults.test.tsx web/tests/input-context.test.tsx web/tests/thread-terminals.test.tsx web/tests/execution-settings.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 7,
+    "tests": 47,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed"
+  },
+  "limits": [
+    "Only affected frontend tests. No full suite or frozen audit.",
+    "Native shell/audio validation belongs to runtime agent; no actual shell command, media inference, external provider or120 browser action by this agent.",
+    "No visual acceptance yet for these new controls."
+  ]
+}

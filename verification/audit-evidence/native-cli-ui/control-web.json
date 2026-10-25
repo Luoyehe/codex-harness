@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:37:12.957Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedBatch": true,
+  "phase": "native-cli-ui",
+  "specificTests": 4,
+  "files": [
+    "web/lib/api.ts",
+    "web/components/TerminalPanel.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/Settings.tsx",
+    "web/App.tsx",
+    "web/tests/terminal.test.tsx",
+    "web/tests/settings.test.tsx"
+  ],
+  "contracts": [
+    "Hooks entry routes the selected registered project into the official CLI panel. It does not launch or type commands; starting is an explicit user action gated by idle connection and unresolved-operation state.",
+    "Api.openTerminal supports program:codex with fixed backend program selection, no browser executable or args. Local terminal attempt identity captures program; project/program replacement cannot adopt an old result, only close it.",
+    "Lost-response recovery reuses original terminal receipt and preserves owner/lease checks, early output buffering and bounded serialized input.",
+    "Confirmed close/exit or connection loss from a CLI session asks the user to explicitly restart service for native configuration sync. No automatic restart or claim of Hook trust. Topbar reopens existing CLI instead of implicitly changing program. Shell switch waits for CLI exit and actual runtime replacement.",
+    "ProviderSettings receives configurationReady && connected from Settings. Root owns provider/account component implementation and testing."
+  ],
+  "sourceHashes": {
+    "web/lib/api.ts": "8b0cb790941e71e0f9a9a6d96245fdf9a15d53bafaa1c488e1f60348d23477b2",
+    "web/components/TerminalPanel.tsx": "d977ec9998182adc288f579e63191000f02f1cd24e22e81d0ac8cd1217ac8275",
+    "web/components/SkillSettings.tsx": "79383d018c2e838df373ac2409b285c776be1b86f7ed72c630715864c16f92cd",
+    "web/components/ExtensionsPanel.tsx": "376a86f86095dee1bb7a6a1c245cddc6312bd1b67996e462b87a72c4fb42d317",
+    "web/components/Settings.tsx": "895a6171ba8bef7b1edc2d185c5e14c287efe804102b5c81c71b094409077682",
+    "web/App.tsx": "ea42b0f30a5f9e46df15cfa6e1203159072b0ecb91743844a94664e1bfa1afcd",
+    "web/tests/terminal.test.tsx": "89484dc4c552147416f458a66cefffdf6a01c2e62303cb73b0710f3937506dcb",
+    "web/tests/settings.test.tsx": "0346867111f064bfc4e5b74e6781d66dfed510acf27e1a34c3105663e4e0d974"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/guardian-review.test.tsx web/tests/execution-settings.test.tsx web/tests/terminal.test.tsx web/tests/settings.test.tsx web/tests/app-lifecycle.test.tsx web/tests/extensions.test.tsx",
+    "testFiles": 6,
+    "tests": 54,
+    "result": "passed",
+    "finishedAt": "2026-10-24T22:36:49Z",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite passed, 367 modules. Existing static bundle size warning remains."
+  },
+  "limits": [
+    "Only affected deterministic frontend tests; no full suite or frozen source audit.",
+    "No paid model request, external MCP, real CLI launch/Hook trust/Guardian execution by this agent. Runtime agent separately owns official CLI backend evidence.",
+    "Readonly loopback fixture 5122 provided for parent CUA; no 120 deployment or actual browser acceptance claimed."
+  ]
+}

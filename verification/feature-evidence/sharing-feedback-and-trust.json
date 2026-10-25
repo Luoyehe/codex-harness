@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T21:56:42.889Z",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "kind": "targeted-feature-batches",
+  "reports": [
+    {
+      "file": ".work/test-results/run-uwXbxu/vitest.json",
+      "sha256": "ad85449298a6b27dd522ebfa0957ddb9c74d2548b99fb577a4db51eedeb29fed",
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-5jDhLK/vitest.json",
+      "sha256": "c710001b1401e8ce8330276763ff7598efbcfad5963363ca576a7355ec7c0b00",
+      "passed": 17,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-3WTA8G/vitest.json",
+      "sha256": "5b33c7670dccf60a26e9be337c1a6224ca679d4916de959c2c8b8850918ed203",
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-RADBos/vitest.json",
+      "sha256": "3d19f2fe6ae39bf3a34aa3fd6e65744672fa9c8f23be141cfa864c1498fb4d8e",
+      "passed": 8,
+      "failed": 0
+    }
+  ],
+  "verified": [
+    "Shared-plugin changes require a fresh selection, directory inventory and explicit audience; unknown responses are never replayed.",
+    "Actual CLI performed local skill reads, extra-root changes, local marketplace preflight and bounded plugin-sharing preview without remote sharing.",
+    "Actual CLI saved a local feedback ZIP with explicit logs=false, refused its existing filename, and acknowledged storage compression only as a trigger.",
+    "Actual CLI exact-path trust CAS enabled a harmless project configuration and untrust disabled it, preserving user configuration.",
+    "Browser unit workflows cover explicit disclosure/audience confirmation, current identities, local-only diagnostic download and original receipt recovery.",
+    "Windows development resource adapter rejects junction escapes and tracks content changes; production uses the native identity descriptor helper."
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "src/runtime/plugin-sharing.ts": "3d2e6f5e7d33ba05bf522b74803935ec359abc4da00e3f419a5b5325c86979b8",
+    "src/runtime/feedback.ts": "aac1bed56ed149bd025cf2bb0de13aa5b6ac34884fb9e546aa37e6b5fd725135",
+    "src/runtime/project-trust.ts": "2fbf7cc2f754054815fb74ec9e3afcca49fa053ff893db90af835190f5013a16",
+    "src/runtime/dev-resources.ts": "d81709a2640a354737abc0fe0231e5cbcd93c7ce48f4cbdf3e244a4d4a686396",
+    "web/components/PluginSharing.tsx": "b9a978148fa75665042c4f070208a01e7a910601e66fea29530869df3a885e98",
+    "web/components/DiagnosticsPanel.tsx": "7b305cbbd194250bc5be5fc7aef16f5a787122589ba38575c45067d0cef93ed5",
+    "web/components/ProjectTrustSettings.tsx": "44d9197ba0514cbaecbb90c5e744b0f386396910272e23f86f26b37e29a384bb"
+  },
+  "limitations": [
+    "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+    "No remote plugin publication, feedback upload, paid inference, or external MCP execution occurred.",
+    "Native feedback archives are not claimed to be fully redacted. Directory preflight is not isolation from malicious concurrent writes by the same native UID.",
+    "A saved project trust preference applies on subsequent project loads and does not approve changed Hook hashes."
+  ]
+}

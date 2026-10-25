@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "v2-docs",
+  "completedAt": "2026-10-25T20:02:58.305Z",
+  "scope": "Complete publication Markdown review for 2.0.0; documentation-only reconciliation, not a new full-repository audit or a test run.",
+  "complete": true,
+  "countedCleanAuditRounds": 0,
+  "inventoryMethod": "Union of rg --files --hidden -g *.md excluding ignored temporary/dependency trees, actual snapshot(undefined, true).names Markdown, and explicitly excluded WORKLOG/RELEASE-CHECKS. Snapshot adds the tracked fixed official reference/PROTOCOL-CONTRACT.md.",
+  "markdownCount": 13,
+  "sourceObservation": {
+    "files": 1789,
+    "digest": "4290014083d701bbaf7a0e0d183afd74d09aa6a883dfa70ed9cba43ac05f8039",
+    "frozen": false
+  },
+  "backup": {
+    "directory": ".work/v2-docs/before",
+    "manifest": ".work/v2-docs/before/manifest.json",
+    "immutableForThisReview": true
+  },
+  "markdown": [
+    {
+      "path": "AGENTS.md",
+      "fullyRead": true,
+      "beforeSha256": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+      "afterSha256": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+      "changed": false,
+      "inSourceDigest": true,
+      "bytes": 1968,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Read in full before work. Retained the normal three-clean-audit rule; the human-authorized v2 exception belongs in the final release record, not a silently weakened policy."
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "fullyRead": true,
+      "beforeSha256": "34f0e7cf712ccbe3b13d04df1852c69e693db21895cf1594ffc5d599b6d1c352",
+      "afterSha256": "6cb261906448c50a11db77b1ebbbbf52d02eb6680b077fdca8cf7e115ea63770",
+      "changed": true,
+      "inSourceDigest": true,
+      "bytes": 9865,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Removed stale development-version and old-instance status wording. Retained current module, receipt and identity contracts; described migration independently of this release outcome."
+    },
+    {
+      "path": "FEATURES.md",
+      "fullyRead": true,
+      "beforeSha256": "5e70901b9e57faf17f82366c7d136ceb91987ccde0bd6cbe5139e35dc6afb8e8",
+      "afterSha256": "1a933858ec2bce88e3653230f7d7594521d84fdcc122a7ad299a4a72555ad0b9",
+      "changed": true,
+      "inSourceDigest": true,
+      "bytes": 6963,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Describes existing named user workflows for 2.0.0, states 178 typed/175 JSON/106 stable accounting without all-parameter parity, separates platform/account limitations and real-service acceptance, and corrects unsubscribe versus unload semantics."
+    },
+    {
+      "path": "NOTICE.md",
+      "fullyRead": true,
+      "beforeSha256": "403b29c9250ac716e123f8164a7f187049a278afd9f9d940b3f8e0cb686a5faa",
+      "afterSha256": "403b29c9250ac716e123f8164a7f187049a278afd9f9d940b3f8e0cb686a5faa",
+      "changed": false,
+      "inSourceDigest": true,
+      "bytes": 809,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Official 0.164.0 protocol provenance and third-party licensing statement remain applicable. No dependency or license contents were altered."
+    },
+    {
+      "path": "PROBLEM-ACCEPTANCE.md",
+      "fullyRead": true,
+      "beforeSha256": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e",
+      "afterSha256": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e",
+      "changed": false,
+      "inSourceDigest": true,
+      "bytes": 38888,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Read the complete current-repository acceptance document. Preserved its explicitly dated historical problem catalogue; no referenced outer/old source or old reports were opened or adopted as current proof."
+    },
+    {
+      "path": "README.md",
+      "fullyRead": true,
+      "beforeSha256": "26fb45e491235e9b9c84d0bfd121f9a4d71acb4de66f19308965cb60ece27752",
+      "afterSha256": "827dfee2fed3f88e4e739626047f9edc6aea485928bbb093e144185e8e5311fb",
+      "changed": true,
+      "inSourceDigest": true,
+      "bytes": 9716,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Matches package 2.0.0 and fixed CLI 0.164.0; removes obsolete dev/archive lead, aligns host prerequisites and install working directory with deployment code, preserves concise use/management steps and explicitly limits optional-parameter coverage."
+    },
+    {
+      "path": "deploy/README.md",
+      "fullyRead": true,
+      "beforeSha256": "368d4595fd9e88b0276e53059d1e09945bc49ea95ac2ab51dec03e1ccbe26cb6",
+      "afterSha256": "7ffa53a587621eccec19df22bca17995ed476f9b21c49a8acd07b360508cca98",
+      "changed": true,
+      "inSourceDigest": true,
+      "bytes": 60174,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "All command examples checked against the current argparse definitions and execution dispatch. Added a boundary separating current helper contracts from historical directed-test results; no final deployment result was fabricated."
+    },
+    {
+      "path": "reference/PROTOCOL-CONTRACT.md",
+      "fullyRead": true,
+      "beforeSha256": "702ebf4452c18f803a05735fa98c92ff83c537491fe91ff33e931feb9ea3ccc1",
+      "afterSha256": "702ebf4452c18f803a05735fa98c92ff83c537491fe91ff33e931feb9ea3ccc1",
+      "changed": false,
+      "inSourceDigest": true,
+      "bytes": 12545,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Fixed upstream contract was included by actual source snapshot despite the initial rg reference exclusion. Read fully, backed up and left unchanged; application-specific restrictions are documented elsewhere."
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "fullyRead": true,
+      "beforeSha256": "059bdb6d58a9b732d72d61eae45e7352d3cd5bdca7bce044ad7663698377eb49",
+      "afterSha256": "893db2e1f533d133a8a1b2f80b1cc89e8f3d5c26fabbe0cfb60227e076fe71fd",
+      "changed": true,
+      "inSourceDigest": true,
+      "bytes": 35318,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Corrected current four-mode supervisor sudo allowlist, native execution identity terminology, targeted-test selection wording and historical platform/result scope. Kept real external-service limits explicit."
+    },
+    {
+      "path": "verification/RELEASE-CHECKS.md",
+      "fullyRead": true,
+      "beforeSha256": "e3accc76cce75abaf5153ad4e0218c51b2f360abb123c38b391316bb2715756c",
+      "afterSha256": "e3accc76cce75abaf5153ad4e0218c51b2f360abb123c38b391316bb2715756c",
+      "changed": false,
+      "inSourceDigest": false,
+      "bytes": 11617,
+      "lfOnly": false,
+      "nulFree": true,
+      "reviewBasis": "Read fully; left byte-for-byte unchanged for the root agent to append the explicit human exception and actual final source/test/deploy/publication outcomes. Existing CRLF bytes are intentionally preserved."
+    },
+    {
+      "path": "verification/WORKLOG.md",
+      "fullyRead": true,
+      "beforeSha256": "891e923759ce1d1b6b3d389e69ef5b44cc14686cabfbe5c2a61fc4eee190eb49",
+      "afterSha256": "891e923759ce1d1b6b3d389e69ef5b44cc14686cabfbe5c2a61fc4eee190eb49",
+      "changed": false,
+      "inSourceDigest": false,
+      "bytes": 33684,
+      "lfOnly": false,
+      "nulFree": true,
+      "reviewBasis": "Read fully as the current repository chronology, not as fresh behavioral proof. Left byte-for-byte unchanged for root final outcome/status append; existing CRLF and historical sealed evidence bytes remain intact."
+    },
+    {
+      "path": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+      "fullyRead": true,
+      "beforeSha256": "6af5b99515a06a6dd79d5f0ebcaa6a5cf94ef6eafa17cda0c4d3e8ae5837ec22",
+      "afterSha256": "2cd452d823265035bdfd2a8bbb63b5878b65301662d15e346d704e488a03cd19",
+      "changed": true,
+      "inSourceDigest": true,
+      "bytes": 6013,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Preserved per-workflow accounting and historical tests while removing blanket current-state claims that full tests/deployment are still future. Added JSON total and links to authoritative final outcome records."
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "fullyRead": true,
+      "beforeSha256": "19b7c758d48091b63738cc527e7cd00f92f094d1cdd091b0638b74327d5e7b58",
+      "afterSha256": "b8c0e90ab2349a413c5819d35ef23df66d00daf56d7646c56cb0f707808ff077",
+      "changed": true,
+      "inSourceDigest": true,
+      "bytes": 12959,
+      "lfOnly": true,
+      "nulFree": true,
+      "reviewBasis": "Removed the contradictory lazy-loaded-terminal implementation claim, verified eager imports in App and TerminalPanel, and scoped historical test counts/screenshots to their own snapshots."
+    }
+  ],
+  "currentSourceCrosschecks": [
+    {
+      "file": "package.json",
+      "sha256": "4cc8b54e914ac4bdc80dae137bbdf18ac19abb078a1bdfbffbe88bff3e6cba79",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "scripts/run-tests.mjs",
+      "sha256": "bc4e41a12afd0901f90abd7aee4b927f47a9531b217ae533b0c7a0a31d4ab3f8",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": ".github/workflows/affected.yml",
+      "sha256": "f2bdd5cf75795e0d1af7a56451784274001c794042a21f4373bfccb497e4a84f",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "deploy/cli.py",
+      "sha256": "12ab9c054ba4ca9a8f152dc5c5fe10139e4290a8ad15fc029553bd98fd106ab2",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "deploy/common.py",
+      "sha256": "385390b52a232b1e0f212194dc2788894e0fc1e0ca342c73710e6604d5c420d2",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "deploy/system.py",
+      "sha256": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "deploy/build.py",
+      "sha256": "3728d5987f66b6697e769c138603d7d36abdd96aead39f4dd6047fbce423db4f",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "deploy/units.py",
+      "sha256": "53ed4b2f26519657c42229b3b94635508b633bc28b3483dc6068802929ac0850",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/core/feature-methods.ts",
+      "sha256": "af8fce5eb9da1827def88ad39b4fb1bbab2226eef4a1261ee99780db9575ae04",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/core/extension-methods.ts",
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/core/organization-methods.ts",
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/core/remote-methods.ts",
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/core/realtime-methods.ts",
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/runtime/native-launch.ts",
+      "sha256": "0e4258e88431d659f533c828a672566f70e49aee17083e4beda5cdf0304a52f0",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/runtime/workflows.ts",
+      "sha256": "3330e7962ee3ae65f47bea86c681c6c29367fe424ad34cf02ccece87cccae190",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/runtime/extensions.ts",
+      "sha256": "ced7c804ccb2f9061d1d2fa34bfcb605a4f5b50d422f0187d90359da4a5ce3c5",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/runtime/account-tools.ts",
+      "sha256": "002ba18612e76cfd53b667e7a09ca5747bca5bd9b7ee8d4657f9ec06355f85ec",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/runtime/remote-control.ts",
+      "sha256": "39ea7ff7d1fe83e5402cac370f3589da1709def9b70cdd36ac7e73f4fa2626bb",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/runtime/cli-terminals.ts",
+      "sha256": "63c2aab9bd6138432b5c2f2088ef11b22cfd271cd57b1d912b1c3c7331b02d74",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "src/runtime/validation.ts",
+      "sha256": "968a80d2e963b56c69a10cff2a6f122a0b3d24e6284c8282538631ddb219f7db",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/App.tsx",
+      "sha256": "274d203877dffa67b6f6ae276f91c1dea8d55c27fcf349d7651a5766e2b5b168",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/components/TerminalPanel.tsx",
+      "sha256": "fa40e8acaab86eec298b17534eec4be0017334793f1f502cd46cee421121b850",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/components/ProviderSettings.tsx",
+      "sha256": "c1f765a8a1c6d5fb44d3003679c041fdb13bafcccf0c96c17c994a3c23d087ef",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/components/ModelCatalog.tsx",
+      "sha256": "75b749c5d73fe01172193189ccf0639c9cd0aff388e200ff5ff61dbf0878815a",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/components/PromptFields.tsx",
+      "sha256": "e65ac473d3e8c8101d08d0239664ecc3da9e6af84e1bdcc9189dac4c673647e5",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/lib/drafts.ts",
+      "sha256": "e8664fa223cf67dab716ddacb9044e4fb11404be0c3758a3e02c5307c43f9c6f",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/lib/history.ts",
+      "sha256": "12e027b62d6d7e44509c6e535ddf9d859088ccedbbdbe001f0e94c287354f381",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/lib/operations.ts",
+      "sha256": "1e6f6b1389e3e4aa486037ff8079725fa440b386e8100a010f08956d774a0f00",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/hooks/usePaged.ts",
+      "sha256": "0206164f7441646b1c6e725d5d93f26c9d37d3b9e577b271e89174ffb16ae774",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/hooks/useConversation.ts",
+      "sha256": "ba39851bc3c28e8f67c5d41eefc57c435be37fb866c89ee8d355c2c33486f719",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "web/hooks/useResource.ts",
+      "sha256": "cc98653e0d0d369891f9c17b655a6068146334cc19845ee770d559a2ec9e1f31",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "protocol/ts/ClientRequest.ts",
+      "sha256": "2e3313e6213863410cfd8b7437f79ca9c5fda2f214de37e2a9fcbe1abc3b4c4e",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    },
+    {
+      "file": "protocol/json/ClientRequest.json",
+      "sha256": "503d09a12ae36fca152e044877d22e93b0094c2d08c3a53ed731f3c8cf33b9ce",
+      "inspection": "Relevant current declarations, implementation sections or bounded searches; not claimed as a full source-file security audit."
+    }
+  ],
+  "validation": {
+    "relativeMarkdownLinks": {
+      "checked": 27,
+      "broken": [],
+      "details": [
+        {
+          "from": "FEATURES.md",
+          "target": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+          "exists": true
+        },
+        {
+          "from": "FEATURES.md",
+          "target": "verification/WORKLOG.md",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "verification/WORKLOG.md",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "deploy/README.md",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "FEATURES.md",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "deploy/README.md",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "ARCHITECTURE.md",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "PROBLEM-ACCEPTANCE.md",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "reference/PROVENANCE.json",
+          "exists": true
+        },
+        {
+          "from": "README.md",
+          "target": "LICENSE",
+          "exists": true
+        },
+        {
+          "from": "deploy/README.md",
+          "target": "../verification/WORKLOG.md",
+          "exists": true
+        },
+        {
+          "from": "deploy/README.md",
+          "target": "../verification/RELEASE-CHECKS.md",
+          "exists": true
+        },
+        {
+          "from": "tests/runtime/README.md",
+          "target": "../../verification/WORKLOG.md",
+          "exists": true
+        },
+        {
+          "from": "tests/runtime/README.md",
+          "target": "../../verification/RELEASE-CHECKS.md",
+          "exists": true
+        },
+        {
+          "from": "verification/WORKLOG.md",
+          "target": "audit-evidence/round17-fixes/runtime.json",
+          "exists": true
+        },
+        {
+          "from": "verification/WORKLOG.md",
+          "target": "audit-evidence/round17-fixes/cross-review.json",
+          "exists": true
+        },
+        {
+          "from": "verification/WORKLOG.md",
+          "target": "audit-evidence/round17-fixes/root-integration.json",
+          "exists": true
+        },
+        {
+          "from": "verification/WORKLOG.md",
+          "target": "audit-evidence/round18-fixes/realtime.json",
+          "exists": true
+        },
+        {
+          "from": "verification/WORKLOG.md",
+          "target": "audit-evidence/round18-fixes/cross-review.json",
+          "exists": true
+        },
+        {
+          "from": "verification/WORKLOG.md",
+          "target": "audit-evidence/round18-fixes/root-integration.json",
+          "exists": true
+        },
+        {
+          "from": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+          "target": "capability-coverage.json",
+          "exists": true
+        },
+        {
+          "from": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+          "target": "attachments-linux.json",
+          "exists": true
+        },
+        {
+          "from": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+          "target": "linux-cli-crossuid.json",
+          "exists": true
+        },
+        {
+          "from": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+          "target": "../WORKLOG.md",
+          "exists": true
+        },
+        {
+          "from": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+          "target": "../RELEASE-CHECKS.md",
+          "exists": true
+        },
+        {
+          "from": "web/VERIFICATION.md",
+          "target": "../verification/WORKLOG.md",
+          "exists": true
+        },
+        {
+          "from": "web/VERIFICATION.md",
+          "target": "../verification/RELEASE-CHECKS.md",
+          "exists": true
+        }
+      ]
+    },
+    "protocolMethodCount": {
+      "typed": 178,
+      "json": 175,
+      "stableJson": 106,
+      "experimentalJson": 69,
+      "typescriptOnly": [
+        "getConversationSummary",
+        "gitDiffToRemote",
+        "getAuthStatus"
+      ],
+      "method": "Direct extraction from current generated TS and JSON; stable count read from existing fixed official stable-schema artifact .work/cli-feature-stable/ClientRequest.json, not regenerated by this review.",
+      "stableArtifactSha256": "9b89e2459362d20cec67a429ef9430fe6b0e9fb8bd87d445d4c9a6acccd87450"
+    },
+    "version": {
+      "application": "2.0.0",
+      "codexCli": "0.164.0",
+      "deployedNodePin": "24.22.1",
+      "developmentNodeRange": ">=24.15.0 <25",
+      "pnpm": "11.22.0"
+    },
+    "deploymentCommands": {
+      "method": "Static inspection of all deploy.cli examples against parser() and main() in current deploy/cli.py; no installation or root command executed.",
+      "result": "All documented subcommands and named options exist with matching required arguments."
+    },
+    "encoding": {
+      "utf8Read": "All 13 files decoded as UTF-8.",
+      "sourceMarkdownLf": "All Markdown included in the source digest is LF-only.",
+      "retainedExcludedCrlf": [
+        "verification/RELEASE-CHECKS.md",
+        "verification/WORKLOG.md"
+      ]
+    },
+    "testsExecuted": [],
+    "sshOrDeploymentExecuted": false,
+    "gitMutationsExecuted": false,
+    "externalAccountOrCommercialServiceCalls": false
+  },
+  "resolvedDocumentationIssues": [
+    "README and architecture described the present release as development-only.",
+    "Feature checklist still described the implemented workflows entirely as future requirements.",
+    "Feature history row used unload wording for native unsubscribe.",
+    "Web implementation simultaneously claimed lazy loading and its removal.",
+    "Runtime identity documentation omitted the implemented workspace launcher mode.",
+    "Historical directed-verification sections could be mistaken for final current-snapshot outcomes.",
+    "Workflow counts needed explicit JSON total and optional-parameter limitation."
+  ],
+  "limits": [
+    "No claim of a fresh full source audit, independent clean round, full test success, deployment success, Git publication or GitHub Release creation.",
+    "Historical recorded numeric results were retained with their original scope; this review did not reproduce them or use them as fresh implementation proof.",
+    "No outer or archived implementation, tests, assets or Git history were inspected.",
+    "External documentation hyperlinks were preserved as fixed-contract references and were not live-network checked in this documentation-only review.",
+    "Source observation was taken while other authorized agents could be working; it is not a final frozen release identity.",
+    "Current accounting covers user workflows, not every optional protocol field or all account/platform/service integrations."
+  ],
+  "rootFinalizationRequired": [
+    "Append the explicit human-authorized direct-full exception and actual full verification outcomes to verification/RELEASE-CHECKS.md; keep routine three-round policy unchanged.",
+    "After final tests and deployment/publication, update verification/WORKLOG.md and RELEASE-CHECKS.md with actual snapshot, skipped platform/integration boundaries, running 120 state and Git/default-branch/tag facts.",
+    "Preserve existing bytes, including CRLF, in the two excluded status documents and append only final outcomes as directed by root; their pre-review copies and hashes are retained.",
+    "Do not convert account-dependent services, commercial inference, external MCP/OAuth, live voice or authenticated cloud use into passed claims without their own actual evidence."
+  ],
+  "writeDisposition": "All documentation edits and this report are complete. Reviewer stops writing after handoff; final excluded status documents are owned by root."
+}

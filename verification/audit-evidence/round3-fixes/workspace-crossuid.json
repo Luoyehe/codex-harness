@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "kind": "workspace-cross-uid-native-integration",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T22:38:29.865730+00:00",
+  "status": "targeted-cross-uid-integration-passed",
+  "validationChain": [
+    {
+      "round": 1,
+      "path": ".work/crossuid-result-r1.json",
+      "sha256": "92619ef05c3a7e4f88baa4d01239bc29d31fc36d3e5684cae6df59f33fb8a38f",
+      "passed": false,
+      "checks": 8,
+      "rpcCalls": 8,
+      "completedWitnesses": 0,
+      "networkRequests": [],
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "userVerification": {
+        "credentialId": null,
+        "unavailableReason": "providerUnavailable",
+        "unavailableMessage": "User verification is not available in this build or account."
+      }
+    },
+    {
+      "round": 2,
+      "path": ".work/crossuid-result-r2.json",
+      "sha256": "771fc8a50443f92b2bd9fd1860b3336aa33b6641cb6adebda1f5f5bfd9f11901",
+      "passed": false,
+      "checks": 10,
+      "rpcCalls": 12,
+      "completedWitnesses": 0,
+      "networkRequests": [],
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "userVerification": {
+        "credentialId": null,
+        "unavailableReason": "providerUnavailable",
+        "unavailableMessage": "User verification is not available in this build or account."
+      }
+    },
+    {
+      "round": 3,
+      "path": ".work/crossuid-result-r3.json",
+      "sha256": "a3f5c0adb3664dd2a423824ec0135322c0f0ee953dd340cc72ccf5a2f07a52ee",
+      "passed": true,
+      "checks": 45,
+      "rpcCalls": 66,
+      "completedWitnesses": 16,
+      "networkRequests": [],
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "userVerification": {
+        "credentialId": null,
+        "unavailableReason": "providerUnavailable",
+        "unavailableMessage": "User verification is not available in this build or account."
+      }
+    }
+  ],
+  "failureAnalysis": [
+    {
+      "round": 1,
+      "category": "product-defect",
+      "cause": "Root and Git metadata descriptor traversal used O_RDONLY for all ancestors. The deployment state directory is correctly root-owned 0711, allowing search but denying directory reads to the native UID.",
+      "repair": "Shared open_directory uses O_PATH|O_DIRECTORY|O_NOFOLLOW for ancestors and O_RDONLY only for the final root. No permission was broadened. Unresolvable protected roots remain fail-closed with an explicit error."
+    },
+    {
+      "round": 2,
+      "category": "fixture-defect",
+      "cause": "The client proof assertion compared the {value,operationId} RPC wrapper itself rather than its value. Workspace write and private witness had already succeeded.",
+      "repair": "Unwrap .value for private witness assertions; no product change."
+    }
+  ],
+  "successfulSourceArchiveSha256": "f2724c43afb593f82bed5b3ae5cc98eed887148cd12654bd681504ac4e5e406a",
+  "regression": {
+    "path": ".work/ancestor-linux-result.json",
+    "resultSha256": "2585d4a9e9645ecc65d741da33fa6eb651668b2c281cd90a5998d400ef048dcd",
+    "sourceArchiveSha256": "2228ae21c02e53d8c9969c342d9dffbc820402d4e777f1affb925ae60c3dc2b9",
+    "identity": "nobody",
+    "passed": 92,
+    "failed": 0,
+    "skipped": 0
+  },
+  "files": [
+    {
+      "path": "deploy/workspace_paths.py",
+      "sha256": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088"
+    },
+    {
+      "path": "deploy/workspace_git_view.py",
+      "sha256": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2"
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "sha256": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0"
+    },
+    {
+      "path": ".work/workspace-crossuid-probe.py",
+      "sha256": "ec48bf4b4c087506b3dc0193f16c90831822131a631259c3d51cbc2183029b8e"
+    },
+    {
+      "path": ".work/workspace-crossuid-client.mjs",
+      "sha256": "b70a106391d25030de53d20eeaf59cf2825c275bde1380541f9c5fd1c59e3f64"
+    }
+  ],
+  "coverage": [
+    "Separate unprivileged supervisor/native UIDs, immutable fixed launcher and exact sudo verbs, production environment selection, real Unix event channel ownership and worker RPC.",
+    "Actual official CLI 0.164.0 version/initialize/account/configRequirements/user settings write/skill catalog and helper content reads; actual userVerification/status reports platform capability without enrollment or hardware prompt.",
+    "Files, binary download, search, recovery restore/discard, Git stage/unstage/index restore/discard/staged-only commit, managed worktree create/attach/archive/restore with ignored bytes, supervisor-private witness continuity after RuntimeService recreation.",
+    "Control UID cannot directly read native project; native helper rejects supervisor root; parent directories retain execute-only permissions."
+  ],
+  "limits": [
+    "No gateway/browser registration or full production deployment proof; server and client run in one isolated supervisor unit while native execution crosses the real sudo identity boundary.",
+    "No inference business success, real credentials, external MCP, AWS or external network calls. PrivateNetwork enforced and all local transport request counters remained empty.",
+    "Exact probe authority was removed only after unit/cgroup/UID process stop confirmation. Material directories remain for review. Existing instances were not modified.",
+    "This is author integration evidence, not a formal independent full-repository audit."
+  ]
+}

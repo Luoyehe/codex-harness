@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "scope": "bounded-independent-preparation-review",
+  "reviewedAt": "2026-10-25T19:26:43.908Z",
+  "helper": {
+    "path": ".work/stage-publication-exact.mjs",
+    "sha256": "715b097910b9bdaef9d09fc770daf656fa6a0677d98f796981f0f4913c464644"
+  },
+  "review": "Root fully read the final staging helper and its complete fixture script, checked the sealed helper hash, inspected all twelve retained synthetic outcomes and the preparation report. No confirmed issue remained within this narrow one-time initial publication scope.",
+  "rootExecutedProbe": {
+    "script": ".work/probe-sealed-evidence-git.mjs",
+    "sha256": "c1b4fd605dca8fed62a520d34015021904e151ae0e17a5f30afc7058069937e7",
+    "fixture": ".work/sealed-git-probe-xAzMYb",
+    "observations": {
+      "ordinaryInitialAddChangesCRLF": true,
+      "exactBlobPreservesBytes": true,
+      "freshClonePreservesBytes": true,
+      "ordinaryReaddPreservesBytes": true
+    }
+  },
+  "agentFixture": {
+    "cases": 12,
+    "status": "passed",
+    "scriptSha256": "ac6452ddd74c99054973de6988c49ad3481bc4d40138380630cf873fb2862496",
+    "resultSha256": "4b4b116b926eb50f94551d1271fc7d507afafb94c95fcd6cfb933566b73f69a9",
+    "rootReran": false
+  },
+  "findings": [],
+  "limits": [
+    "No main repository index mutation, commit or push executed.",
+    "The fixture gate records are explicitly synthetic, not full audit evidence.",
+    "Actual staging requires three clean source audits, source privacy, unchanged bytes and subsequent independent index/head and Git-object checks."
+  ]
+}

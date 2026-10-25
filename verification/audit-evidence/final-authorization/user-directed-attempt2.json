@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "user-directed-one-time-release",
+  "id": "v2-0-0-user-directed-20261026-attempt2",
+  "sourceDigest": "41816690ad436ed6c333bd33bec231981bf97710b950fdd887e52789526bb8a7",
+  "sourceFiles": 1789,
+  "createdAt": "2026-10-25T20:30:33.997Z",
+  "auditRoundsWaived": true,
+  "userInstruction": "本次修复之后就直接进入全量测试与发布，以及在120上进行生产环境部署吧，不用重新开始下三轮了。",
+  "releaseInstruction": "发布为正式版 v2.0.0，并更新默认分支；发布时重新检查所有 Markdown，尤其 README。",
+  "scopes": [
+    "full-tests",
+    "publication",
+    "120-deployment"
+  ],
+  "version": "2.0.0",
+  "targetHost": "192.168.1.120",
+  "targetInstance": "crtest-rw-20261025",
+  "servicesRemainRunning": true,
+  "interpretation": "One explicit user-directed exception for this source snapshot. Historical audit results remain unchanged, no missing clean round is fabricated, and the repository default full-test audit rule remains intact. Full test failures still block publication until repaired and verified.",
+  "repairedFindings": {
+    "path": "verification/audit-evidence/v2-full-fixes/root-integration.json",
+    "sha256": "2b0089983c7264b3ff542cd60a18ba9cd4108bfe50cff9e0ee194606534dd5a6"
+  },
+  "documentationReview": {
+    "path": "verification/audit-evidence/v2-docs/review.json",
+    "sha256": "9977a27e24d582218d8a5e0dab3bee8d47354ccf45b51f41ebfd94386abbf427"
+  },
+  "priorAttempt": {
+    "path": "verification/audit-evidence/final-authorization/user-directed-attempt1.json",
+    "sha256": "5b1e326291cd0977528ba708965a044a90ce0ed1dd1d6b70451d9487a76ca841"
+  }
+}

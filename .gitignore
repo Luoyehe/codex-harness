@@ -1,0 +1,16 @@
+node_modules/
+dist/
+web/dist/
+.work/
+reference/runtime/
+reference/evidence/
+reference/app-server.official.md
+reference/codex-npm-manifest.json
+*.log
+.env
+.env.*
+!.env.example
+*.sqlite*
+coverage/
+__pycache__/
+*.pyc

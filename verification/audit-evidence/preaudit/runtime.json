@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "roundId": "preaudit",
+  "reviewerId": "preaudit-runtime",
+  "formalCleanRound": false,
+  "complete": true,
+  "scopes": ["runtime-protocol"],
+  "method": "Independent clean-room source audit of all runtime modules and runtime tests, generated official protocol types and response schemas used at runtime boundaries, gateway transport/dispatch/receipt cross-checks, and native UID launcher lifecycle inspection. Existing archival source/tests/history and personal homes were not read. Findings were reproduced using a fresh isolated NativePort substitute, then a separate official 0.164.0 process exercised immediate terminal disconnect cleanup without model turns.",
+  "inspectedFiles": [
+    "AGENTS.md", "PROBLEM-ACCEPTANCE.md", "reference/PROTOCOL-CONTRACT.md", "reference/PROVENANCE.json",
+    "src/runtime/attachments.ts", "src/runtime/main.ts", "src/runtime/metadata.ts", "src/runtime/native-launch.ts", "src/runtime/native.ts", "src/runtime/redaction.ts", "src/runtime/service.ts", "src/runtime/types.ts", "src/runtime/validation.ts",
+    "src/gateway/worker-client.ts", "src/gateway/dispatch.ts", "src/gateway/receipt-result.ts", "src/core/contracts.ts", "src/core/errors.ts", "src/core/ledger.ts",
+    "deploy/native_launcher.py", "deploy/units.py", "deploy/install.py", "deploy/common.py",
+    "tests/runtime/approval-native.test.ts", "tests/runtime/attachments.test.ts", "tests/runtime/fixture-model-catalog.json", "tests/runtime/gateway-native.test.ts", "tests/runtime/native-fixture.mjs", "tests/runtime/native-smoke.test.ts", "tests/runtime/native.test.ts", "tests/runtime/README.md", "tests/runtime/redaction.test.ts", "tests/runtime/server.test.ts", "tests/runtime/service.test.ts",
+    "protocol/ts/ClientRequest.ts", "protocol/ts/ServerRequest.ts", "protocol/ts/ServerNotification.ts", "protocol/json/codex_app_server_protocol.v2.schemas.json",
+    "protocol/json/CommandExecutionRequestApprovalResponse.json", "protocol/json/FileChangeRequestApprovalResponse.json", "protocol/json/PermissionsRequestApprovalResponse.json", "protocol/json/ToolRequestUserInputResponse.json", "protocol/json/McpServerElicitationRequestResponse.json",
+    "protocol/ts/v2/ThreadStartParams.ts", "protocol/ts/v2/ThreadStartResponse.ts", "protocol/ts/v2/ThreadResumeParams.ts", "protocol/ts/v2/ThreadReadParams.ts", "protocol/ts/v2/ThreadHistoryMode.ts", "protocol/ts/v2/ThreadTurnsListResponse.ts", "protocol/ts/v2/Turn.ts", "protocol/ts/v2/TurnItemsView.ts", "protocol/ts/v2/TurnStartParams.ts", "protocol/ts/v2/ThreadUnsubscribeStatus.ts",
+    "protocol/ts/v2/CommandExecParams.ts", "protocol/ts/v2/CommandExecutionRequestApprovalParams.ts", "protocol/ts/v2/CommandExecutionApprovalDecision.ts", "protocol/ts/v2/FileChangeRequestApprovalParams.ts", "protocol/ts/v2/PermissionsRequestApprovalParams.ts", "protocol/ts/v2/PermissionsRequestApprovalResponse.ts", "protocol/ts/v2/RequestPermissionProfile.ts", "protocol/ts/v2/AdditionalFileSystemPermissions.ts", "protocol/ts/v2/AdditionalPermissionProfile.ts", "protocol/ts/v2/FileSystemSandboxEntry.ts", "protocol/ts/v2/FileSystemPath.ts", "protocol/ts/v2/SandboxPolicy.ts",
+    "protocol/ts/v2/ToolRequestUserInputQuestion.ts", "protocol/ts/v2/ToolRequestUserInputResponse.ts", "protocol/ts/v2/McpServerElicitationRequestResponse.ts", "protocol/ts/v2/DynamicToolCallResponse.ts", "protocol/ts/v2/DynamicToolCallOutputContentItem.ts", "protocol/ts/v2/ModelListParams.ts", "protocol/ts/v2/ListMcpServerStatusParams.ts", "protocol/ts/v2/McpServerOauthLoginParams.ts", "protocol/ts/v2/CancelLoginAccountParams.ts", "protocol/ts/v2/ConfigReadParams.ts", "protocol/ts/v2/GetAccountParams.ts", "protocol/ts/v2/LoginAccountParams.ts",
+    "package.json", "tsconfig.server.json", "vitest.config.ts", "scripts/run-tests.mjs", "web/lib/history.ts", "web/hooks/useConversation.ts", "tests/gateway/dispatch.test.ts"
+  ],
+  "findings": [
+    {
+      "id": "PRE-RUNTIME-01", "priority": "P2", "title": "History reports completeness without checking the native item-loading contract",
+      "locations": ["src/runtime/service.ts:200-224", "protocol/ts/v2/Turn.ts:21-27"],
+      "reproduction": ["Return an official-shaped turn with items:[], itemsView:notLoaded and nextCursor:null from thread/turns/list.", "Call thread/history for that thread.", "The result contains complete:true while its turn explicitly declares itemsView:notLoaded."],
+      "impact": "Unloaded or summary payloads can receive the full-history readiness claim. The native request asks for full items but the received evidence is not validated before publishing.",
+      "evidence": ".work/preaudit-runtime/repro-results.json#history-items-view"
+    },
+    {
+      "id": "PRE-RUNTIME-02", "priority": "P2", "title": "Incomplete history does not prevent backend turn admission",
+      "locations": ["src/runtime/service.ts:190-242"],
+      "reproduction": ["Read a first history page returning a non-null nextCursor and complete:false.", "Submit turn/start from the same client without reading the remaining pages.", "The runtime issues turn/start once; admission checks activity but no complete history proof."],
+      "impact": "The HIST-02 invariant depends entirely on browser state and does not hold at the final runtime write boundary.",
+      "evidence": ".work/preaudit-runtime/repro-results.json#incomplete-history-admission"
+    },
+    {
+      "id": "PRE-RUNTIME-03", "priority": "P2", "title": "Definitively rejected turns permanently pin unused attachments",
+      "locations": ["src/runtime/service.ts:231-241", "src/runtime/attachments.ts:136-159"],
+      "reproduction": ["Upload one attachment and submit it on an idle thread.", "Let the native turn/start return native_error with delivery:not_sent after its write boundary.", "Try attachment/remove: it returns attachment_in_use; index.json retains the thread pin despite no accepted turn."],
+      "impact": "Known unused data remains undeletable and consumes the fixed attachment quota across restart. A rollback must preserve earlier accepted/unknown references and concurrent reference ownership.",
+      "evidence": ".work/preaudit-runtime/repro-results.json#rejected-turn-pin"
+    },
+    {
+      "id": "PRE-RUNTIME-04", "priority": "P2", "title": "Disconnected history contexts retain all traversal capacity",
+      "locations": ["src/runtime/service.ts:214-220", "src/runtime/service.ts:292-297"],
+      "reproduction": ["For 256 client identities, complete an empty paginated history and call clientDisconnected.", "Read the same thread from a new client.", "History fails with capacity/History traversal capacity exhausted although every prior client has disconnected."],
+      "impact": "The declared 256-context bound becomes a lifetime limit, requiring worker restart for later users. Late reads must also be fenced so cleanup cannot be undone.",
+      "evidence": ".work/preaudit-runtime/repro-results.json#finished-history-contexts-retained"
+    },
+    {
+      "id": "PRE-RUNTIME-05", "priority": "P2", "title": "Read-classified thread resume accepts configuration mutations",
+      "locations": ["src/gateway/dispatch.ts:9", "src/gateway/dispatch.ts:61", "src/runtime/service.ts:135-137", "protocol/ts/v2/ThreadResumeParams.ts:43-70"],
+      "reproduction": ["Call thread/resume without an operation ID and include options.sandbox or options.approvalPolicy.", "Dispatcher treats it as a read, bypassing mutation receipts and maintenance admission.", "Runtime forwards the configuration overrides through official ThreadResumeParams."],
+      "impact": "A recovery/read endpoint can modify model and permission configuration without the declared mutation boundary. This is established from the public contract and dispatch source, not a commercial provider test."
+    },
+    {
+      "id": "PRE-RUNTIME-06", "priority": "P2", "title": "A known first-turn rejection is also published as unknown live activity",
+      "locations": ["src/runtime/service.ts:174-179", "src/runtime/service.ts:49", "src/gateway/dispatch.ts:73-75"],
+      "reproduction": ["Create a native thread successfully, then definitively reject its first turn with delivery:not_sent.", "The composite outcome correctly retains the partial thread identity, but runtime also sets that thread activity.unknown=true.", "The thread is placed in activeThreads even without a turn ID. Reads cannot clear it, and the gateway's busy check blocks its restart recovery route."],
+      "impact": "Partial creation facts and current live-work uncertainty are conflated; the known idle partial thread can unnecessarily disable new work and browser recovery. Gateway restart admission is being reviewed separately."
+    }
+  ],
+  "additionalObservations": [
+    "The official MCP elicitation response schema requires only action; validatePrompt currently rejects omitted content for decline/cancel and url acceptance even though native optional/null fields are part of PROTO-02. This was identified during final schema review and needs a focused legal-default regression.",
+    "Opaque attachment IDs being reusable across administrator tabs is explicitly documented, so it was not reported as an authorization bug.",
+    "Stopped-journal recovery exists in deployment code, so the persisted activity barrier was not incorrectly reported as having no reset path."
+  ],
+  "checks": [
+    {"command": "node --experimental-transform-types --import ./.work/preaudit-runtime/loader.mjs .work/preaudit-runtime/repro.mjs", "result": "passed as defect reproduction", "coverage": "Four isolated deterministic boundary reproductions; not a repair regression or native integration."},
+    {"command": "node --experimental-transform-types --import ./.work/preaudit-runtime/loader.mjs .work/preaudit-runtime/native-terminal.mjs", "result": "passed", "coverage": "Eight official 0.164.0 Windows PTY open/immediate-disconnect cycles returned terminal count to zero with no error events; native PID exited during cleanup. No model turn was issued.", "evidence": ".work/preaudit-runtime/native-terminal-results.json"}
+  ],
+  "limitations": [
+    "This is a pre-audit with actionable findings; it is not one of the three formal clean rounds and does not authorize a full suite.",
+    "No real provider inference, account login, external MCP, personal CODEX_HOME, retired 110 host, or 192.168.1.120 operation was performed.",
+    "Linux UID, sudo, subreaper, cgroup, directory-mode and process-tree behavior was inspected statically only; the Windows native terminal check does not establish those platform guarantees.",
+    "No actual 0.149.0 history migration was performed; the legacy branch's structure is not native backward-compatibility evidence.",
+    "Gateway, web and HTTPS source was concurrently being repaired by other reviewers. Cross-boundary line references describe the inspected pre-repair state and must be rechecked on the final snapshot.",
+    "The entire generated protocol inventory was not manually read; the official bundles, runtime-used contracts and all runtime method adapters were examined. Unused generated API types are outside this focused pre-audit."
+  ]
+}

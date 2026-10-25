@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-10-25T16:24:05.923Z",
+  "evidence": "verification/audit-evidence/round11/r11-deployment.json",
+  "beforeSha256": "7bf4de4df286237c8006f0cd6716fe438786c391eaef93bc491fda07edb73e4b",
+  "afterSha256": "662b8f95d42a7ed5b089fd4a42d2e27b160521c992ff9d51ec44551f038553d0",
+  "reason": "Only the Python interpreter display field contained a personal Windows home path. Replace the display with HARNESS_TEST_PYTHON; preserve original bytes under ignored local evidence.",
+  "modifiedField": "validations[name=official-exact-targeted-tests].python",
+  "unchanged": [
+    "source digest",
+    "inspection inventory",
+    "findings",
+    "skips and limitations",
+    "test results and log checksums",
+    "reviewer identity and timing"
+  ],
+  "originalRetainedUnderIgnoredWork": true
+}

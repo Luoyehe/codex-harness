@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-browser-regression",
+  "at": "2026-10-25T08:41:40.154Z",
+  "finding": "r5-interface-001",
+  "source": [
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "817d3f6d8404615902f34483b78b6d003a663fe62129854a9ee2ca965039639f"
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "sha256": "59309e72bf5f3e3f2e9d8e1731e24ac1055a84d4515baa5d27f7152c0d61195f"
+    }
+  ],
+  "fixture": {
+    "path": ".work/common-tool-return-preview.mjs",
+    "sha256": "735c680184015e0a930ecdcbec97ed1f62d65e8073144f27ddf45a68266b97d6"
+  },
+  "builtIndex": {
+    "path": "web/dist/index.html",
+    "sha256": "331f6cb548151acb5ae13c5d58d8d02ee0a9379a93b8a6d789cd806e8d571a94"
+  },
+  "screenshot": {
+    "path": "reference/evidence/draft-navigation-fixed.png",
+    "sha256": "f799816c18eed1eded5aa09dbc5fa256310507434a914fd29f17e2fb18c159eb"
+  },
+  "checks": {
+    "sixNavigationTransitions": {
+      "environmentControlCounts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "bothDraftsPreserved": true
+    },
+    "currentEnvironmentOptionEdit": {
+      "oldDraftPreserved": true,
+      "newDraftPreserved": true,
+      "optionPreserved": true
+    }
+  },
+  "limits": [
+    "Current production UI bundle with isolated read-only protocol fixture; no worker, model, native process, real project or external service was used.",
+    "Only unsent synthetic draft text and local environment selection changed. This is not deployed provider acceptance or a formal clean audit."
+  ],
+  "fixtureStopped": {
+    "confirmed": true,
+    "exitCode": 0
+  }
+}

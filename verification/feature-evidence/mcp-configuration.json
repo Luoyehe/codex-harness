@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T21:56:42.886Z",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "kind": "targeted-feature-batches",
+  "reports": [
+    {
+      "file": ".work/test-results/run-6mYp8x/vitest.json",
+      "sha256": "50e242341464a0b48d62815d831a3ac322c8886f9c687a8b0e44e0c7b04d3ebe",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-kRgrDF/vitest.json",
+      "sha256": "a524ffd698ed2924431f2916ec66b0ef5b8460ebac2c8eaec784cee624d172dc",
+      "passed": 26,
+      "failed": 0
+    }
+  ],
+  "verified": [
+    "Fresh unredacted user-layer merge with expectedVersion; preserves omitted environment/header secrets and unrelated servers.",
+    "Explicit transport/secret replacement and removal; inherited definitions remain distinct.",
+    "Actual CLI wrote a disabled MCP fixture, preserved its secret through an unrelated edit, rejected stale version and removed it without spawning the fixture."
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "src/runtime/mcp-configuration.ts": "966a533fc21d8a1f0925568924f1a7c14f9f40821131bc4705744909d87e6e85",
+    "tests/runtime/mcp-configuration.test.ts": "7dc96193e67f48af534f24f2be00be79b56d7c1c5023aed33dae48b33725603f"
+  },
+  "limitations": [
+    "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+    "This does not establish external MCP credentials or business-tool success."
+  ]
+}

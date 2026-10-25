@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "native-worktree-lifecycle-helper",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T21:40:36.821116+00:00",
+  "status": "helper-targeted-validation-passed-integration-separate",
+  "files": [
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "sha256": "e7ee28bc7cf71eda9016175b1edf53febc25cc40fe441a265e46bad23fcdd842"
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "sha256": "184eaecd79a58fb0cb3d778174d39de018447be68818ca8a3f50720dec168744"
+    },
+    {
+      "path": "deploy/workspace_git_view.py",
+      "sha256": "a4bb214a67786328ec113106fff01246b58e2797a667261a70511efb837bff33"
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "53ed4b2f26519657c42229b3b94635508b633bc28b3483dc6068802929ac0850"
+    },
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "a80531c938aeb9347075102939c43ee2ff4d90cdcf6f8ad5f1e05dcbfcf8eb36"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "1bff39e8722ef011bfbefdd62be4460b62877e7f7e6eea2a58674e2deef37fbf"
+    },
+    {
+      "path": "tests/deploy/test_workspace_worktrees.py",
+      "sha256": "359ad77b568bd89a0cf486d3ebea61423c9dfdeacf0069685fd809677de4d2a3"
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "sha256": "8e6d77081a5d43ceba397a06a9ded9f0956b7521f2be38abc1538e77f5b3d9f0"
+    }
+  ],
+  "changes": [
+    "Detached worktree creation uses the durable operation UUID and a fixed native HOME destination. Raw commit trees are fully checked before creation and materialized without checkout filters/hooks.",
+    "Read/attach/archive/restore require a supervisor-owned binding to the origin/common-dir/Git-dir/checkout identities; native journals cannot authorize paths or browser registration.",
+    "Archive moves the entire checkout with no-replace semantics, preserves staged/dirty/untracked/ignored data, repairs Git backlinks and never reclaims disk by recursive deletion.",
+    "Interruption preserves the complete checkout; explicit restore repairs validated fixed-location partial states. User locks, primary/shared/nested/symlink/hardlink/ambiguous trees are refused.",
+    "Native HOME is emitted from the fixed launcher cwd in worker environment. Previously owned units lacking that environment entry are recognized and migrated only after confirmed stop."
+  ],
+  "tests": [
+    {
+      "environment": "Windows",
+      "command": "<PYTHON> -B -m unittest tests.deploy.test_workspace_worktrees.WorktreeValidationTests tests.deploy.test_provider_layers tests.deploy.test_transaction tests.deploy.test_control_update -q",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "Windows",
+      "command": "HARNESS_TEST_PYTHON=<PYTHON> node scripts/run-tests.mjs --targeted tests/runtime/workspace.test.ts tests/runtime/workspace-witness.test.ts tests/gateway/receipt-result.test.ts tests/gateway/dispatch.test.ts tests/tooling/select-tests.test.ts",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "isolated Linux nobody",
+      "command": "<PYTHON> -B -m unittest test_workspace test_workspace_recovery test_workspace_worktrees -v",
+      "passed": 41,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "isolated Linux root relocated fixture",
+      "command": "<PYTHON> -B -m unittest test_config_layer -v",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "linuxEvidence": {
+    "path": ".work/worktree-linux-result.json",
+    "sourceArchiveSha256": "d0cdbf5be3ffb084d0e199f39dde39a2021e20479376c3da6f650e8c708cf6d1",
+    "resultSha256": "453b3e57e98183ecac96f7316217f243460b29375bfee427ded9df4a18468d52"
+  },
+  "limits": [
+    "No online service changes, real systemd operations, paid inference, external MCP or full suite.",
+    "Gateway registration, supervisor binding/witness and active reference checks are integrated separately by the root/runtime agents; this evidence does not claim their completion.",
+    "Native UID concurrent writes are not an adversarial isolation boundary. Worktree archive preserves rather than deletes content.",
+    "Source remains unfrozen. Subsequent skill/resource/download additions to shared dispatch files have separate targeted evidence; the archived Linux source digest identifies the exact tested snapshot."
+  ]
+}

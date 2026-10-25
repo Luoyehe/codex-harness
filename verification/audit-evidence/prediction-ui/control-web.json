@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T23:03:00.712Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "prediction-ui",
+  "tests": 8,
+  "files": [
+    "web/components/PredictionPanel.tsx",
+    "web/hooks/useDraft.ts",
+    "web/App.tsx",
+    "web/tests/prediction.test.tsx"
+  ],
+  "contracts": [
+    "Next-step generation is an explicit user action bound to the latest completed source turn. Official composer-predictions documentation states generation does not consume Codex usage or credits; sending the suggestion is billed normally. Account, model and regional availability remain subject to actual service results. Generation never automatically submits a turn.",
+    "Current-owner results are identified by predictionId/threadId/sourceTurnId and obtained by readback after identity-only mutation acceptance. Early events, old pending reads, stale sources, disconnect and unknown original receipts are handled explicitly.",
+    "Placement performs a fresh result read, then atomically inserts only into an empty current draft. A draft typed during the request or a changed source turn is preserved. Native unknown terminal state offers explicit service recovery.",
+    "At most 20 per-thread identities and 16 KiB result text per thread are retained in the current connection component; navigation preserves identities, disconnect clears them."
+  ],
+  "sourceHashes": {
+    "web/components/PredictionPanel.tsx": "02c62b1e1463bd8aac3c072b536cef0dfa77eb5dd10f3985a63b911fb541f3b1",
+    "web/hooks/useDraft.ts": "73f8583b32462464091d76a1cf3b4ed5ca68ab614c37aa3e93afb329926ad739",
+    "web/App.tsx": "7f6244dfeb1518adf6d86da6559fe341276f3949934898ce76aae328503f643f",
+    "web/tests/prediction.test.tsx": "ecb828d242950611c34af3ed0719ceab3772eacb69112d404df939bcec5e842e"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/prediction.test.tsx web/tests/loaded-threads.test.tsx web/tests/terminal.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 4,
+    "tests": 42,
+    "result": "passed",
+    "startedAtLocal": "2026-10-25T07:02:17+08:00",
+    "typecheck": "web TypeScript noEmit passed",
+    "build": "Vite production build passed: 377 modules; JS 1213.96 kB, gzip 343.64 kB; existing chunk size warning retained"
+  },
+  "limits": [
+    "Affected frontend tests only; no full suite, formal source audit, actual prediction or real cloud account operation.",
+    "Backend CLI/native validation belongs to runtime agent. No actual remote 120 browser actions by this agent.",
+    "Visual fixture acceptance and deployed integration remain separate. Terminal remains statically loaded to avoid the observed external-authentication CSS lazy-load failure."
+  ],
+  "documentationSource": "https://learn.chatgpt.com/docs/features/composer-predictions",
+  "copyFollowup": {
+    "source": "Parent live verification of official documentation, section around line 994",
+    "change": "Correct generation vs sending usage semantics; no control-flow change",
+    "targetedTests": "web/tests/prediction.test.tsx: 8 passed",
+    "completedAt": "2026-10-24T23:06:12.858Z",
+    "build": "Vite passed: 377 modules; JS 1214.24 kB, gzip 343.82 kB; existing chunk warning"
+  }
+}

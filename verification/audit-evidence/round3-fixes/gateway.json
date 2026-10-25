@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-repair",
+  "createdAt": "2026-10-24T20:19:06.523Z",
+  "author": "root",
+  "finding": "R3 slow HTTP output escaped request-budget lifetime",
+  "changes": [
+    "HTTP connection cap 96; all HTTP request slots remain charged until backend and response both settle.",
+    "Shared 32 MiB retained-response budget covers JSON and static assets; static bytes reserved before file read.",
+    "Response reservations release on finish/close, with a 15-second write deadline. Error response admission fails closed without recursive allocation.",
+    "Abandoning a browser request does not free admission for retained backend work."
+  ],
+  "checks": [
+    {
+      "file": "tests/gateway/http.test.ts",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "result": ".work/test-results/run-4uWWkV/vitest.json"
+    },
+    {
+      "command": "pnpm exec tsc -p tsconfig.server.json --noEmit",
+      "status": "passed"
+    }
+  ],
+  "regressionEvidence": [
+    "Eight paused real sockets with three sequential 6 MiB replies each stay within the global output cap; excess output rejected; capacity recovers after close.",
+    "Forty-eight abandoned pending backend reads still consume admission until backend settlement.",
+    "A real slow socket is destroyed at the 15-second response deadline."
+  ],
+  "testDevelopmentNotes": [
+    "Initial deadline fixture used a 10 MiB dispatcher result which correctly hit its separate response cap; corrected to three valid 6 MiB replies. One invocation listed a nonexistent static test and the runner correctly refused to start."
+  ],
+  "sourceHashes": {
+    "src/core/contracts.ts": "31089f4709eb14325ed00f16e5ff86a2f595718ed90346e9f67638ffea615ada",
+    "src/gateway/server.ts": "9549e348746807b55162bd48a3b5713aea1c17bee852b960f45026e120012e1b",
+    "tests/gateway/http.test.ts": "ca22cdc431c90071b1330be9fd990618925eb2e2272a60694f58f803ae9b9353"
+  },
+  "fullSuiteRun": false,
+  "remoteDeploymentVerified": false
+}

@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "kind": "native-git-index-and-scope",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T22:25:47.559636+00:00",
+  "status": "helper-targeted-validation-passed",
+  "files": [
+    {
+      "path": "deploy/workspace_index.py",
+      "sha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945"
+    },
+    {
+      "path": "deploy/workspace_index_store.py",
+      "sha256": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1"
+    },
+    {
+      "path": "deploy/workspace_git_transaction.py",
+      "sha256": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56"
+    },
+    {
+      "path": "deploy/workspace_commit.py",
+      "sha256": "ba1df0dc53f9f8e0fa4a7c8a56528b5543c891b816b3fed4bcf14f8a11685050"
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "sha256": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5"
+    },
+    {
+      "path": "deploy/workspace_paths.py",
+      "sha256": "597ab46e30edeaba25f3c558bab79286970f8df074765edc94fbb71d0ccbacd7"
+    },
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "sha256": "abc60acef375132df45ca2f31730c6266bc5197247f5136c023bf7dd9662b811"
+    },
+    {
+      "path": "deploy/workspace.py",
+      "sha256": "fd7d41003fe1f0ad90f2492c5be5c19eddb31a9d6cd8894a710e63f190cef22f"
+    },
+    {
+      "path": "src/runtime/workspace.ts",
+      "sha256": "8cadae08a38978ac8df0a74dc4ac512ea74f9f110b520ea51b25b105391811b7"
+    },
+    {
+      "path": "src/runtime/workspace-index.ts",
+      "sha256": "94108d13acc49982d652a73cfba577f78b8c6bc87bcfab4336e67e8e50540670"
+    },
+    {
+      "path": "tests/deploy/test_workspace_index.py",
+      "sha256": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf"
+    },
+    {
+      "path": "tests/runtime/workspace-index.test.ts",
+      "sha256": "c739b6ed90add83bce62f92dc054d4fd575dbb844d29d5c074a5d6a4d7676ec9"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "5108b724d4c82a3258dbe82f886d784251a21bd907cbf2a244a16cd666171349"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "d9b4964ccd232089e199f6b331fad011554f1d83b91cc6a66a84352bcc025e3e"
+    }
+  ],
+  "changes": [
+    "Stage accepts at most 32 explicitly selected regular files with current file revisions or explicit confirmed absence for deletion. Unstage selects exact paths. Both require HEAD, HEAD-file and complete index versions.",
+    "A private index consumes raw hash-object/update-index data without repository filters, hooks, signing, network or recursive stage-all. Collateral index changes outside the explicit selection are rejected.",
+    "Publication holds index.lock and a prepared Git verify-HEAD transaction. The locked interval starts no child process; descriptor checks, no-replace capture and publication preserve concurrently replaced indexes instead of overwriting them.",
+    "Dedicated fixed native-HOME/git-index-state retains before.full, captured before.raw and next slots. Restore requires source hash and current HEAD/index versions; completed-only discard requires a current manifest and confirmation. Native-owned records never authorize another path or positive acceptance.",
+    "Full before-images remain self-contained after split-index shared files disappear. Retention limits are 32 projects, 64 payload records and 128 MiB per project, with 16 MiB individual indexes. Unknown materials are never automatically removed.",
+    "Author security review found that a registered project .git file could point at a foreign primary repository while rev-parse still reported the selected worktree. Repository metadata now requires either the actual in-root .git directory or bidirectionally linked common/worktrees Git metadata; separate-git-dir without that link is rejected."
+  ],
+  "validationChain": [
+    {
+      "environment": "isolated Linux nobody",
+      "selected": 88,
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0,
+      "path": ".work/index-linux-result.json",
+      "sourceArchiveSha256": "e7f72169bc156195c7b295d924c12c0b20da3e09e41ae31af89bbf2ff6cf3a04",
+      "resultSha256": "8e9ea10478631b1e7115a15024e983e553610a5ef7e55ec6e9f4eb3e7646a8c5"
+    },
+    {
+      "environment": "Windows newly initialized Git repositories",
+      "path": ".work/git-foreign-pointer-probe-result.json",
+      "finding": "Selected-root show-toplevel does not prove Git metadata belongs to that root; a foreign primary .git path had no linked-worktree backlink."
+    },
+    {
+      "environment": "isolated Linux nobody",
+      "selected": 64,
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "path": ".work/git-scope-linux-result.json",
+      "sourceArchiveSha256": "ec8139bec2a00c309e3c8ba9333aa66bde092d2c8d8c022740a5f7407c56b7fc",
+      "resultSha256": "938ead1c1fa760715192f5510159dd30196fea5c8b23fffcf01e519a1092084a"
+    }
+  ],
+  "coverage": [
+    "Raw bytes and executable-mode versions; staged/unstaged preservation; delete confirmation; links/special paths; stale HEAD/index/file revisions; real prepared Git locks; SHA-1/SHA-256 unborn branches; publication collision; split-index recovery; completed-only discard and bounded retention; idempotent receipt replay; foreign primary metadata denial; legitimate linked-worktree stage and commit without changing origin HEAD/index."
+  ],
+  "localChecks": [
+    {
+      "kind": "Windows pure Python validators",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "kind": "Windows targeted runtime/tooling",
+      "passed": 30,
+      "skipped": 0,
+      "runId": "run-5YJfjc"
+    },
+    {
+      "kind": "server typecheck",
+      "exitCode": 0
+    }
+  ],
+  "limits": [
+    "This is author feature verification, not an independent clean full-repository audit; source remains unfrozen.",
+    "Cross-UID RuntimeService/launcher/helper/actual-CLI acceptance remains a separate integration gate; helper tests do not prove gateway registration or browser workflow.",
+    "Gateway/witness/receipt/ledger integration has separate root-owned tests (40 passed, run-l5liIZ).",
+    "Git locks coordinate ordinary Git writers, not adversarial concurrent filesystem mutation by the same native UID.",
+    "Corrupt current indexes or unknown/failed retained records can require operator inspection. No automatic garbage collection, unknown replay, recursive cleanup or foreign lock deletion.",
+    "No full suite, paid inference, external MCP, real AWS, remote Git traffic or online service modification."
+  ]
+}

@@ -1,0 +1,815 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-25T07:39:08.634Z",
+  "kind": "linux-crossuid-cli-acceptance",
+  "formalAudit": false,
+  "fullSuiteRun": false,
+  "passed": true,
+  "execution": {
+    "host": "192.168.1.120",
+    "instance": "crtest-xu-0c4e8f55",
+    "controlUid": 983,
+    "nativeUid": 984,
+    "privateNetwork": true,
+    "source": "/opt/codex-harness-rewrite-20261025/crossuid-source-9eac32a038d6",
+    "bundleSha256": "72631f84364a969cdbf1cb2c6d425476c5c9b969e2649cc88b3721730c472246",
+    "buildSnapshotDigest": "2a098bcdfba7724799572b2c6d58fbd783f28f54fb2cd7622e9187c4d6c8e862",
+    "buildSnapshotFiles": 1778,
+    "resourceCounters": {
+      "tasksMax": "256",
+      "memoryMax": "3221225472",
+      "peak": 112,
+      "current": 6,
+      "pidsEvents": "max 0"
+    },
+    "sourceManifestSha256": "549768e2e395e46832152a65a818b59dd61abb55f1d27befd6333d1443e87b6e",
+    "notes": "Disposable random native/control UIDs, production fixed launcher and worker UDS. Only the ignored fixture resource limits were aligned to production TasksMax=256 and MemoryMax=3G; no product limits, networking or deadlines changed."
+  },
+  "checks": [
+    "control and native identity are distinct",
+    "control cannot directly read native project",
+    "production fixed native launcher selected",
+    "verified CLI version",
+    "diagnostics starts without prior native processes",
+    "diagnostics native account has no credentials",
+    "doctor terminal status",
+    "doctor receipt contains only identity",
+    "doctor report outcome captured",
+    "doctor finished without unknown",
+    "models-bundled terminal status",
+    "models-bundled receipt contains only identity",
+    "models-bundled report outcome captured",
+    "models-bundled finished without unknown",
+    "diagnostics never broadcast process or terminal output",
+    "diagnostics service close proves native UID empty",
+    "diagnostics process scan has no unreadable ownership",
+    "codex-close starts without prior native processes",
+    "codex-close native account has no credentials",
+    "codex-close owned controller and CLI execute as native UID",
+    "codex-close requires explicit runtime restart",
+    "codex-close terminal output keeps owner identity",
+    "codex-close service close proves native UID empty",
+    "codex-close process scan has no unreadable ownership",
+    "codex-disconnect starts without prior native processes",
+    "codex-disconnect native account has no credentials",
+    "codex-disconnect owned controller and CLI execute as native UID",
+    "codex-disconnect requires explicit runtime restart",
+    "codex-disconnect terminal output keeps owner identity",
+    "codex-disconnect service close proves native UID empty",
+    "codex-disconnect process scan has no unreadable ownership",
+    "codex-cloud starts without prior native processes",
+    "codex-cloud native account has no credentials",
+    "cloud reports missing ChatGPT login",
+    "codex-cloud requires explicit runtime restart",
+    "codex-cloud terminal output keeps owner identity",
+    "codex-cloud service close proves native UID empty",
+    "codex-cloud process scan has no unreadable ownership",
+    "no model transport was requested",
+    "each explicit restart gets a new epoch"
+  ],
+  "epochs": [
+    {
+      "kind": "diagnostics",
+      "runtimeEpoch": "aad219d8-1df3-418a-af9a-d4e58935b4c8",
+      "diagnostics": [
+        {
+          "kind": "doctor",
+          "status": "completed",
+          "exitCode": 0,
+          "reportBytes": 13068,
+          "codexVersion": "0.164.0",
+          "overallStatus": "warning"
+        },
+        {
+          "kind": "models-bundled",
+          "status": "completed",
+          "exitCode": 0,
+          "reportBytes": 658630,
+          "modelCount": 11
+        }
+      ],
+      "rawDoctorShape": {
+        "keys": [
+          "schemaVersion",
+          "generatedAt",
+          "overallStatus",
+          "codexVersion",
+          "checks"
+        ],
+        "schemaVersion": 1,
+        "codexVersion": "0.164.0",
+        "overallStatus": "warning",
+        "checksType": "object",
+        "checksKeys": [
+          "app_server.status",
+          "auth.credentials",
+          "config.load",
+          "git.environment",
+          "installation",
+          "mcp.config",
+          "network.env",
+          "network.provider_reachability",
+          "network.websocket_reachability",
+          "runtime.provenance",
+          "runtime.search",
+          "sandbox.filesystem_paths",
+          "sandbox.helpers",
+          "security.endpoint",
+          "state.paths",
+          "state.rollout_db_parity",
+          "system.disk",
+          "system.environment",
+          "terminal.env",
+          "terminal.title",
+          "updates.status"
+        ]
+      },
+      "nativeUiReadyWithin12s": null,
+      "outputEvidence": {
+        "bytes": 0,
+        "nativeUiVisible": false
+      },
+      "terminalExitEvents": [],
+      "unknownAtEnd": false,
+      "baseline": [
+        {
+          "pid": 2225137,
+          "ppid": 2225136,
+          "start": "182897292",
+          "state": "S",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225138,
+          "ppid": 2225137,
+          "start": "182897294",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225197,
+          "ppid": 2225138,
+          "start": "182897305",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225208,
+          "ppid": 2225137,
+          "start": "182897305",
+          "state": "Z",
+          "name": "git"
+        }
+      ],
+      "observedProcesses": [
+        {
+          "pid": 2225137,
+          "ppid": 2225136,
+          "start": "182897292",
+          "state": "R",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225138,
+          "ppid": 2225137,
+          "start": "182897294",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225184,
+          "ppid": 2225138,
+          "start": "182897300",
+          "state": "Z",
+          "name": "bwrap"
+        },
+        {
+          "pid": 2225197,
+          "ppid": 2225138,
+          "start": "182897305",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225208,
+          "ppid": 2225137,
+          "start": "182897305",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225250,
+          "ppid": 2225138,
+          "start": "182897314",
+          "state": "R",
+          "name": "python3"
+        },
+        {
+          "pid": 2225254,
+          "ppid": 2225250,
+          "start": "182897316",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225431,
+          "ppid": 2225138,
+          "start": "182897824",
+          "state": "R",
+          "name": "python3"
+        },
+        {
+          "pid": 2225432,
+          "ppid": 2225431,
+          "start": "182897826",
+          "state": "S",
+          "name": "codex"
+        }
+      ],
+      "afterTerminalProcesses": null,
+      "remainingNativeProcesses": []
+    },
+    {
+      "kind": "codex-close",
+      "runtimeEpoch": "7a7cb3bf-18e8-4e04-89d9-5683fa743198",
+      "diagnostics": null,
+      "rawDoctorShape": null,
+      "nativeUiReadyWithin12s": true,
+      "outputEvidence": {
+        "bytes": 927,
+        "nativeUiVisible": true
+      },
+      "terminalExitEvents": [
+        {
+          "type": "exit",
+          "terminalId": "612f7ab9-8692-4b75-9bcd-1fbd7f8a5646",
+          "clientId": "9bb86b76-cbee-4e94-b292-bb3bfecd3baf",
+          "exitCode": -9
+        }
+      ],
+      "unknownAtEnd": true,
+      "baseline": [
+        {
+          "pid": 2225487,
+          "ppid": 2225486,
+          "start": "182897849",
+          "state": "S",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225488,
+          "ppid": 2225487,
+          "start": "182897851",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225545,
+          "ppid": 2225488,
+          "start": "182897858",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225549,
+          "ppid": 2225487,
+          "start": "182897858",
+          "state": "Z",
+          "name": "git"
+        }
+      ],
+      "observedProcesses": [
+        {
+          "pid": 2225487,
+          "ppid": 2225486,
+          "start": "182897849",
+          "state": "R",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225488,
+          "ppid": 2225487,
+          "start": "182897851",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225534,
+          "ppid": 2225488,
+          "start": "182897853",
+          "state": "Z",
+          "name": "bwrap"
+        },
+        {
+          "pid": 2225545,
+          "ppid": 2225488,
+          "start": "182897858",
+          "state": "S",
+          "name": "git"
+        },
+        {
+          "pid": 2225549,
+          "ppid": 2225545,
+          "start": "182897858",
+          "state": "R",
+          "name": "git"
+        },
+        {
+          "pid": 2225581,
+          "ppid": 2225488,
+          "start": "182897862",
+          "state": "R",
+          "name": "python3"
+        },
+        {
+          "pid": 2225582,
+          "ppid": 2225581,
+          "start": "182897864",
+          "state": "S",
+          "name": "codex"
+        }
+      ],
+      "afterTerminalProcesses": [
+        {
+          "pid": 2225487,
+          "ppid": 2225486,
+          "start": "182897849",
+          "state": "S",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225488,
+          "ppid": 2225487,
+          "start": "182897851",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225549,
+          "ppid": 2225487,
+          "start": "182897858",
+          "state": "Z",
+          "name": "git"
+        }
+      ],
+      "remainingNativeProcesses": []
+    },
+    {
+      "kind": "codex-disconnect",
+      "runtimeEpoch": "cb8dede9-5701-4825-b7e2-92f336fc6cab",
+      "diagnostics": null,
+      "rawDoctorShape": null,
+      "nativeUiReadyWithin12s": true,
+      "outputEvidence": {
+        "bytes": 927,
+        "nativeUiVisible": true
+      },
+      "terminalExitEvents": [],
+      "unknownAtEnd": true,
+      "baseline": [
+        {
+          "pid": 2225668,
+          "ppid": 2225667,
+          "start": "182898136",
+          "state": "S",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225669,
+          "ppid": 2225668,
+          "start": "182898139",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225747,
+          "ppid": 2225669,
+          "start": "182898146",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225750,
+          "ppid": 2225668,
+          "start": "182898146",
+          "state": "Z",
+          "name": "git"
+        }
+      ],
+      "observedProcesses": [
+        {
+          "pid": 2225668,
+          "ppid": 2225667,
+          "start": "182898136",
+          "state": "R",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225669,
+          "ppid": 2225668,
+          "start": "182898139",
+          "state": "R",
+          "name": "codex"
+        },
+        {
+          "pid": 2225716,
+          "ppid": 2225669,
+          "start": "182898141",
+          "state": "Z",
+          "name": "bwrap"
+        },
+        {
+          "pid": 2225747,
+          "ppid": 2225669,
+          "start": "182898146",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225750,
+          "ppid": 2225668,
+          "start": "182898146",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225782,
+          "ppid": 2225669,
+          "start": "182898150",
+          "state": "R",
+          "name": "python3"
+        },
+        {
+          "pid": 2225784,
+          "ppid": 2225782,
+          "start": "182898152",
+          "state": "R",
+          "name": "codex"
+        }
+      ],
+      "afterTerminalProcesses": [
+        {
+          "pid": 2225668,
+          "ppid": 2225667,
+          "start": "182898136",
+          "state": "S",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225669,
+          "ppid": 2225668,
+          "start": "182898139",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225750,
+          "ppid": 2225668,
+          "start": "182898146",
+          "state": "Z",
+          "name": "git"
+        }
+      ],
+      "remainingNativeProcesses": []
+    },
+    {
+      "kind": "codex-cloud",
+      "runtimeEpoch": "b3196ee9-eb40-4322-a300-019026ac6184",
+      "diagnostics": null,
+      "rawDoctorShape": null,
+      "nativeUiReadyWithin12s": null,
+      "outputEvidence": {
+        "loginRequired": true,
+        "mentionsCodexLogin": true
+      },
+      "terminalExitEvents": [
+        {
+          "type": "exit",
+          "terminalId": "fb290bb4-994a-4d6c-a9ef-ab1adee70abd",
+          "clientId": "9bb86b76-cbee-4e94-b292-bb3bfecd3baf",
+          "exitCode": 1
+        }
+      ],
+      "unknownAtEnd": true,
+      "baseline": [
+        {
+          "pid": 2225925,
+          "ppid": 2225924,
+          "start": "182898417",
+          "state": "S",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225926,
+          "ppid": 2225925,
+          "start": "182898420",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225983,
+          "ppid": 2225926,
+          "start": "182898426",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225987,
+          "ppid": 2225925,
+          "start": "182898427",
+          "state": "Z",
+          "name": "git"
+        }
+      ],
+      "observedProcesses": [
+        {
+          "pid": 2225925,
+          "ppid": 2225924,
+          "start": "182898417",
+          "state": "R",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225926,
+          "ppid": 2225925,
+          "start": "182898420",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225972,
+          "ppid": 2225926,
+          "start": "182898421",
+          "state": "Z",
+          "name": "bwrap"
+        },
+        {
+          "pid": 2225983,
+          "ppid": 2225926,
+          "start": "182898426",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2225987,
+          "ppid": 2225925,
+          "start": "182898427",
+          "state": "Z",
+          "name": "git"
+        },
+        {
+          "pid": 2226019,
+          "ppid": 2225926,
+          "start": "182898430",
+          "state": "R",
+          "name": "python3"
+        },
+        {
+          "pid": 2226020,
+          "ppid": 2226019,
+          "start": "182898432",
+          "state": "R",
+          "name": "codex"
+        }
+      ],
+      "afterTerminalProcesses": [
+        {
+          "pid": 2225925,
+          "ppid": 2225924,
+          "start": "182898417",
+          "state": "S",
+          "name": "native-launch"
+        },
+        {
+          "pid": 2225926,
+          "ppid": 2225925,
+          "start": "182898420",
+          "state": "S",
+          "name": "codex"
+        },
+        {
+          "pid": 2225987,
+          "ppid": 2225925,
+          "start": "182898427",
+          "state": "Z",
+          "name": "git"
+        }
+      ],
+      "remainingNativeProcesses": []
+    }
+  ],
+  "cleanup": {
+    "runtimeClosed": true,
+    "stopConfirmed": true,
+    "stopStatus": {
+      "MainPID": "0",
+      "ControlPID": "0",
+      "ControlGroup": "",
+      "LoadState": "loaded",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "remainingUidProcesses": {
+      "ch-crtest-xu-0c4e8f55-worker": [],
+      "ch-crtest-xu-0c4e8f55-control": []
+    },
+    "probeAuthorityRemoved": true,
+    "materialRootsRetained": [
+      "/etc/codex-harness/crtest-xu-0c4e8f55",
+      "/usr/lib/codex-harness/crtest-xu-0c4e8f55",
+      "/var/lib/codex-harness-instances/crtest-xu-0c4e8f55"
+    ],
+    "noProbeUnitsRemaining": true
+  },
+  "healthRequests": [
+    {
+      "method": "HEAD",
+      "path": "/v1/responses"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models"
+    }
+  ],
+  "modelPostRequests": 0,
+  "corrections": {
+    "doctor": "Pinned Linux doctor emits overallStatus warning. The adapter now accepts and preserves this value; successful diagnostic completion does not mean every health check passed.",
+    "failureReasons": "Bounded failures expose fixed reason timed_out/output_truncated/invalid_report and flags only, never raw partial report text.",
+    "fixtureLimits": "The original workspace fixture used 96 tasks/1G, stricter than the actual worker 256 tasks/3G. A read-only observation of crtest-xu-7841f2db showed pids.peak 96 and pids.events max 6. With product limits the final peak was 112, max events 0; CLI startup and no-auth cloud exit were observed."
+  },
+  "limitedProcessObservation": {
+    "instance": "crtest-xu-7841f2db",
+    "tasksMax": 96,
+    "tasksCurrent": 88,
+    "pidsPeak": 96,
+    "pidsEventsMax": 6,
+    "processes": [
+      {
+        "pid": 2200739,
+        "name": "native-launch",
+        "threads": 1,
+        "wchan": "ep_poll"
+      },
+      {
+        "pid": 2200740,
+        "name": "codex app-server",
+        "threads": 47,
+        "wchan": "futex_wait_queue"
+      },
+      {
+        "pid": 2200834,
+        "name": "owned Python controller",
+        "threads": 1,
+        "wchan": "do_select"
+      },
+      {
+        "pid": 2200835,
+        "name": "codex cloud",
+        "threads": 31,
+        "wchan": "futex_wait_queue"
+      }
+    ],
+    "interpretation": "The fixture hit its thread limit. Wait channels alone do not establish a software deadlock or network cause."
+  },
+  "tests": {
+    "file": ".work/test-results/run-zRlAqL/vitest.json",
+    "sha256": "d941a0889633974cb547c40bb97380f5a1cc81e604ede104d54f2d86a9baa92b",
+    "success": true,
+    "passed": 11,
+    "failed": 0,
+    "pending": 0,
+    "serverBuild": "passed before final bundle"
+  },
+  "attempts": [
+    {
+      "file": ".work/cli-crossuid-initial-result.json",
+      "sha256": "d7d9cbc3cc269328080299a7fdca84b81bcd0cfa87b674e022339ed3a91a5b56",
+      "instance": "crtest-xu-8abb8d05",
+      "passed": false,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": "doctor completed"
+    },
+    {
+      "file": ".work/cli-crossuid-second-result.json",
+      "sha256": "772ac32c11c31ba88dfe3a2213cd35d19cfe632ec1e7c6171ab8ac609397e2be",
+      "instance": "crtest-xu-91964875",
+      "passed": false,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": "Timed out: native TUI visible"
+    },
+    {
+      "file": ".work/cli-crossuid-third-result.json",
+      "sha256": "9618e3519a28f3ee8d6cbcd92a4a27129fa8dff778fe9c3cecfef355f91e047b",
+      "instance": "crtest-xu-1974546f",
+      "passed": false,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": "Timed out: native TUI visible"
+    },
+    {
+      "file": ".work/cli-crossuid-final-result.json",
+      "sha256": "21c3b26333f8ee46305c7be3799080f276d9ec95232bb9c79078c0e200a1d252",
+      "instance": "crtest-xu-719e2f2c",
+      "passed": false,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": "Timed out: cloud exit"
+    },
+    {
+      "file": ".work/cli-crossuid-cloud96-result.json",
+      "sha256": "2f221bbfbeb0d302f3675e484105042e11f5bf9d1ef326714ad5e25f1e8e1127",
+      "instance": "crtest-xu-7841f2db",
+      "passed": false,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": "Timed out: cloud exit"
+    },
+    {
+      "file": ".work/cli-crossuid-product-result.json",
+      "sha256": "542eaf6c71b107559fd9c7d4f1fab6427904ebcb4de4a86789c7b76f8b32be31",
+      "instance": "crtest-xu-30c2e557",
+      "passed": false,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": "doctor real report shape"
+    },
+    {
+      "file": ".work/cli-crossuid-schema-result.json",
+      "sha256": "03e08871942a8589d1572396b0dbd4215166a7caf3475ed7dd2b6de644a51b17",
+      "instance": "crtest-xu-8fe2ede0",
+      "passed": false,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": null
+    },
+    {
+      "file": ".work/cli-crossuid-verified-result.json",
+      "sha256": "e90f8b8e33585d6fe37b031e27ae9ce2d3afb5716645518a89e995510244479a",
+      "instance": "crtest-xu-0c4e8f55",
+      "passed": true,
+      "stopConfirmed": true,
+      "probeAuthorityRemoved": true,
+      "error": null
+    }
+  ],
+  "provenance": {
+    "rawResult": {
+      "file": ".work/cli-crossuid-verified-result.json",
+      "sha256": "e90f8b8e33585d6fe37b031e27ae9ce2d3afb5716645518a89e995510244479a"
+    },
+    "orchestrator": {
+      "file": ".work/cli-product-crossuid-probe.py",
+      "sha256": "874ba91078104af5d0ba52f542b34a569215aad44524ef24c5e7132f6eaf3218"
+    },
+    "client": {
+      "file": ".work/cli-schema-crossuid-client.mjs",
+      "sha256": "d3997f30274e80a0837499811cddc792f12a5d3c108d9c5df97c3ad3ab2e1150"
+    },
+    "sourceFiles": [
+      {
+        "file": "src/runtime/cli-diagnostics.ts",
+        "sha256": "79f421a39df3de5468b6e6ad662ee76c1cb70160b5621f46380fb2ee0a33f5ba"
+      },
+      {
+        "file": "src/runtime/cli-terminals.ts",
+        "sha256": "63c2aab9bd6138432b5c2f2088ef11b22cfd271cd57b1d912b1c3c7331b02d74"
+      },
+      {
+        "file": "src/runtime/processes.ts",
+        "sha256": "ae5fce78a81b09b24d1e863f6db3bb830beb3faac39f8df7d1498b1e53651ee6"
+      },
+      {
+        "file": "src/runtime/linux-process.ts",
+        "sha256": "7fd8e590412340772610ee3687ae3641a3ecd7f46e1df4d5e71817783fabe3ce"
+      },
+      {
+        "file": "src/runtime/service.ts",
+        "sha256": "1ef8010bd3ec3d91bf655adc234fb973666533e43c3592ba6ff2f5e9d82cfa3f"
+      },
+      {
+        "file": "src/runtime/main.ts",
+        "sha256": "e77f57f2aede3e8089e1d09feb996c807dfb407f9ec44fb72dbc1b485a02659f"
+      },
+      {
+        "file": "deploy/native_launcher.py",
+        "sha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff"
+      },
+      {
+        "file": "deploy/units.py",
+        "sha256": "53ed4b2f26519657c42229b3b94635508b633bc28b3483dc6068802929ac0850"
+      },
+      {
+        "file": "tests/runtime/cli-diagnostics.test.ts",
+        "sha256": "586c12963edd552b1799f72082b16d02cf148608e96412f2b4d70dc092265e4a"
+      }
+    ]
+  },
+  "limits": [
+    "No personal homes/credentials, paid inference, external MCP, authenticated cloud submission or diff application.",
+    "The terminal transport used a bounded protocol probe emulating standard xterm query responses, not a real browser/Xterm screenshot acceptance. Native Linux CLI first-screen output and process lifecycle were verified; full Linux /hooks trust interaction was not exercised.",
+    "The only HTTP requests were local rejected health probes HEAD /v1/responses and GET /v1/models; these were not model inference requests.",
+    "Earlier source hashes remain point-in-time evidence. Root may normalize CRLF to LF before the frozen audit snapshot. No full suite or formal clean audit performed."
+  ]
+}

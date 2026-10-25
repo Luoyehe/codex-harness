@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round3",
+  "reviewerId": "r3-deployment",
+  "digest": "eff71f0b8cd5921e0f227aa10208fc51666ab7156ece4ac88432b1c1d08bb765",
+  "scopes": [
+    "deployment-release"
+  ],
+  "complete": true,
+  "startedAt": "2026-10-24T19:46:07.233Z",
+  "completedAt": "2026-10-24T19:54:44.896797Z",
+  "method": "Independent clean-room source audit of all 56 assigned files. Read every non-lock source, test, configuration, workflow and document in full, rereading portions obscured by initial tool-output truncation. Traced fixed sudo identities and native launcher capabilities, immutable toolchain/import/build policy, ownership recognition, release/provider/control/HTTPS transaction and recovery state machines, complete process-stop evidence, provider secret and catalog handling, release scanning, snapshot binding, full-audit gating, exact affected-test selection and CI identity separation. For pnpm-lock.yaml, independently parsed all 102240 bytes / 3111 lines (2433 nonempty lines) using an exhaustive constrained YAML parser with duplicate-key and syntax rejection; checked all 336 integrity-bearing package records, 336 snapshots, 21 root dependencies, 623 dependency edges including 56 optional edges, complete reachability, package/snapshot correspondence, exact root versions, registry-only resolutions, all metadata-field families and both reviewed overrides. Read build.py/system.py phase policy in full and traced sanitized workspace/lock inputs through separate registry fetch, stopped cache and metadata import, offline installation, compiler/build commands and final stopped import. All 48 distinct Node engine ranges accept both CI Node 24.15.0 and deployment Node 24.22.1. Ran only a bounded ignored local helper-retention reproduction and lock-analysis probes; did not execute a full test suite, privileged fixtures or services. Verified the 1525-file source digest during and after the audit.",
+  "inspectedFiles": [
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/safe_fs.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "scripts/release-audit.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tsconfig.server.json",
+    "vitest.config.ts"
+  ],
+  "findings": [
+    {
+      "id": "R3-DEP-01",
+      "priority": "P2",
+      "title": "Bound management request staging before creating privileged files or units",
+      "file": "deploy/cli.py",
+      "lineStart": 64,
+      "lineEnd": 73,
+      "relatedLocations": [
+        {
+          "file": "deploy/cli.py",
+          "lineStart": 57,
+          "lineEnd": 58
+        },
+        {
+          "file": "deploy/cli.py",
+          "lineStart": 74,
+          "lineEnd": 83
+        },
+        {
+          "file": "deploy/manager.py",
+          "lineStart": 403,
+          "lineEnd": 440
+        }
+      ],
+      "trigger": "A gateway-identity caller invokes its permitted manage rpc entry with a recognized mutation while systemd launch/wait fails, times out or the caller disconnects. Each invocation uses a new request UUID before the envelope, operationId, recovery gate or receipt-retention budget is checked.",
+      "impact": "Failed or interrupted calls retain root-owned request JSON under state/requests, including raw provider input. No count/aggregate-byte quota or stopped-unit reclamation applies to these request/result objects. The existing 10000-receipt cap does not cover them, so even invalid requests or replays can grow privileged state storage without bound and exhaust the filesystem. Successful restart transactions also outlive the gateway caller, leaving result files that the killed waiter cannot consume.",
+      "evidence": "The ignored probe prefilled the 10000 receipt count, then made three helper_main RPC calls with method provider/write, no operationId and an extra 65536-character field. Only require_linux/Layout/stdio and the OS command boundary were substituted; production request serialization, UUID allocation, staging and exception handling ran against a fresh isolated directory. Simulated systemd launch failure retained 1/2/3 files totaling 65612/131224/196836 bytes; each call still attempted one systemd launch and created zero new receipts. The retained fixture request input remained readable from each staged file. No root/systemd command was executed.",
+      "reproduction": [
+        "Use an isolated temporary Layout and create state/requests and state/receipts.",
+        "Populate state/receipts with 10000 ordinary fixture records to reach the existing receipt count limit.",
+        "Invoke cli.helper_main with argv [manage,rpc] and a provider/write JSON body lacking operationId and containing a 64 KiB extra field; substitute the systemd command function with a command_failed exception.",
+        "Repeat three times and observe state/requests grows by a fresh input file each time although the requests are invalid and the receipt budget is already full."
+      ],
+      "probeArtifacts": [
+        ".work/r3-deployment/probe_request_retention.py",
+        ".work/r3-deployment/request-retention.json"
+      ],
+      "recommendation": "Validate the bounded mutation envelope before staging and enforce a root-owned aggregate count/byte/in-flight budget under a separate short admission lock before creating a request or transient unit. Retain uncertain outcomes safely, but refuse further admission at the bound; reclaim request/result files only after confirming the owning unit has stopped and the durable receipt preserves the needed recovery facts. Add focused coverage for launch failure, waiter disconnect, invalid request flooding and receipt replay."
+    }
+  ],
+  "skipped": [],
+  "limits": [
+    "Complete source audit coverage, not a claim of dynamic acceptance of every integration. Existing test files were read and traced; the full suite and privileged root fixtures were not run.",
+    "No sibling or archived implementation, old source/tests/assets, Git history, or prior verification/audit-evidence conclusions were inspected. Only the current designated PROBLEM-ACCEPTANCE.md requirement catalog and assigned current documentation were used.",
+    "No host 192.168.1.120 or retired 110 access, deployment, migration, service changes, paid inference, real external MCP calls or personal CODEX_HOME/credential reads.",
+    "Real Linux/systemd/cgroup, UID/procfs, loop mounts, network namespaces, native subreaper and HTTPS/Authelia login behavior remain runtime acceptance limits. The retention reproduction substitutes only OS dispatch and uses ordinary isolated files on Windows.",
+    "Lock coverage is complete structural/integrity-reference/graph/policy analysis, not a line-by-line human review of every opaque base64 digest, a fresh registry advisory query, or independent download/verification of all dependency payload bytes.",
+    "Source remained unchanged: 1525 files, digest eff71f0b8cd5921e0f227aa10208fc51666ab7156ece4ac88432b1c1d08bb765. Only ignored local probes/results and this audit JSON were written."
+  ],
+  "verification": {
+    "snapshotFiles": 1525,
+    "snapshotUnchanged": true,
+    "lockArtifact": ".work/r3-deployment/lock-structure.json",
+    "lockAudit": {
+      "bytes": 102240,
+      "lines": 3111,
+      "packages": 336,
+      "snapshots": 336,
+      "roots": 21,
+      "edges": 623,
+      "optionalEdges": 56,
+      "unparsedLines": 0,
+      "duplicateKeys": 0,
+      "unreachableSnapshots": 0,
+      "missingPackageRecords": 0,
+      "allIntegritySha512": true
+    },
+    "targetedProbes": [
+      {
+        "name": "management-request-retention",
+        "status": "reproduced",
+        "rootCommands": 0,
+        "requests": 3,
+        "retainedBytes": 196836
+      },
+      {
+        "name": "lock-engine-compatibility",
+        "status": "passed",
+        "distinctRanges": 48,
+        "versions": [
+          "24.15.0",
+          "24.22.1"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-24T22:37:12.959Z",
+  "source": "parent CUA message",
+  "fixture": "readonly5119",
+  "screenshot": "reference/evidence/timeline-unified-ui.png",
+  "confirmed": "Ordinary turns plus realtime start,two transcript segments,and close are accessible.",
+  "finding": "At 1280x720 pending approval plus composer originally left about 50px history. Current UI reserves a 220px minimum history area and allows collapsing the bounded approval area while keeping pending count visible.",
+  "limits": [
+    "Controlled readonly fixture only, notrealvoice or120deployedacceptance."
+  ],
+  "followup": {
+    "source": "parent CUA message",
+    "fixture": "readonly5120",
+    "result": "passed",
+    "confirmed": "Collapsed approval keeps readable history, persistent pending count and visible composer.",
+    "screenshot": "reference/evidence/timeline-approval-collapsed.png"
+  }
+}

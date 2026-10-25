@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "issueId": "R14-FIX-CROSS-001",
+  "stage": "repair",
+  "formalRound14Finding": false,
+  "reviewerId": "r14-runtime",
+  "startedAt": "2026-10-25T17:33:23.789Z",
+  "completedAt": "2026-10-25T17:40:23.943Z",
+  "status": "fixed-targeted-tests-passed",
+  "crossReview": {
+    "path": "verification/audit-evidence/round14-fixes/attachment-cross-review.json",
+    "sha256": "0c30f4b976e0aef6347ff046e8321f25198d038f5c5bf4009a70671a2a048d28"
+  },
+  "files": [
+    {
+      "path": "web/components/AttachmentButton.tsx",
+      "beforeSha256": "795eaa86ff2af02c36aa0c5cec38fd820cd01af15aa8fe45de4d849b1974fcba",
+      "afterSha256": "de33a9bec581abc312af73526430d2b9676f634265785947e032eccbb3322b50",
+      "beforeCopy": ".work/round14-fixes/attachment-before-files/web/components/AttachmentButton.tsx"
+    },
+    {
+      "path": "web/tests/attachments.test.tsx",
+      "beforeSha256": "3305735b1907d3af97101f807aff38cac84a6a74ad4f950d42b7f5ce2bf40eb0",
+      "afterSha256": "62cf8f8a92b329d0d71bba7b1f89aea32e572e21b975350771e3a38928385b2d",
+      "beforeCopy": ".work/round14-fixes/attachment-before-files/web/tests/attachments.test.tsx"
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "beforeSha256": "9140f6154d92744ff3c668ff93ef0edc0a4a15532e9c02aa867e0881fac50e87",
+      "afterSha256": "da512764595a63d814b82cbb82c018ccd8c00ac33d03d5d3f7829e9ecec05952",
+      "beforeCopy": ".work/round14-fixes/attachment-before-files/web/tests/app-lifecycle.test.tsx"
+    }
+  ],
+  "changes": [
+    "Attachment responses require matching attachment identity, valid bounded metadata, raw base64 and matching decoded byte count; shared mediaBytes enforces the 4 MiB file limit while allowing empty ordinary files.",
+    "Images pass shared mediaMime signature and dimension validation before any img source is assigned; mismatched, unsupported and oversized image previews become application/octet-stream downloads with a visible preview rejection notice. Original bounded bytes and filename are retained for download.",
+    "Existing text preview remains literal and capped at 64 KiB; audio and other files retain their download-only behavior. No new media type is automatically embedded. Unknown or control-bearing MIME strings still permit a safe application/octet-stream download with notice; valid uncommon MIME token characters are preserved for ordinary downloads.",
+    "Request and preview ownership is scoped to Api plus attachmentId. Obsolete requests abort, stale completions cannot create a URL or clear a replacement request busy state, and previous URLs are revoked on close, owner replacement and unmount. This is a preventative invariant included with the repair, not a separately reproduced finding.",
+    "Only the approved two app-lifecycle attachment fixtures were corrected to include real attachmentId and size metadata. Existing authentication suspension, draft and receipt assertions were preserved."
+  ],
+  "validation": [
+    {
+      "phase": "failed-before",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/attachments.test.tsx",
+      "exitCode": 1,
+      "startedAt": "2026-10-25T17:33:34.734Z",
+      "completedAt": "2026-10-25T17:33:36.032Z",
+      "files": [
+        "web/tests/attachments.test.tsx"
+      ],
+      "total": 3,
+      "passed": 2,
+      "failed": 1,
+      "pending": 0,
+      "report": ".work/test-results/run-FXMfDg/vitest.json",
+      "reportSha256": "9cb7dd482db4eb46844123a8d0fcbe57903c3b9a64765b090849427e89d31103"
+    },
+    {
+      "phase": "initial-success-after",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/attachments.test.tsx web/tests/app-lifecycle.test.tsx",
+      "exitCode": 0,
+      "startedAt": "2026-10-25T17:36:38.648Z",
+      "completedAt": "2026-10-25T17:36:42.829Z",
+      "files": [
+        "web/tests/attachments.test.tsx",
+        "web/tests/app-lifecycle.test.tsx"
+      ],
+      "total": 39,
+      "passed": 39,
+      "failed": 0,
+      "pending": 0,
+      "report": ".work/test-results/run-GW7MjH/vitest.json",
+      "reportSha256": "28f4baa56eb25698c4056c9f769c434b9b05760ff56ed4197900c1fe648c8002"
+    },
+    {
+      "phase": "success-before-root-compatibility-review",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/attachments.test.tsx web/tests/app-lifecycle.test.tsx",
+      "exitCode": 0,
+      "startedAt": "2026-10-25T17:37:48.373Z",
+      "completedAt": "2026-10-25T17:37:51.973Z",
+      "files": [
+        "web/tests/attachments.test.tsx",
+        "web/tests/app-lifecycle.test.tsx"
+      ],
+      "total": 39,
+      "passed": 39,
+      "failed": 0,
+      "pending": 0,
+      "report": ".work/test-results/run-Pct1Hi/vitest.json",
+      "reportSha256": "735c113b2736e4a376ff4d3e0b5944ed6de55cfd2aa56df54723e01d90a8c554"
+    },
+    {
+      "phase": "final-success-after",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/attachments.test.tsx web/tests/app-lifecycle.test.tsx",
+      "exitCode": 0,
+      "startedAt": "2026-10-25T17:39:49.685Z",
+      "completedAt": "2026-10-25T17:39:53.204Z",
+      "files": [
+        "web/tests/attachments.test.tsx",
+        "web/tests/app-lifecycle.test.tsx"
+      ],
+      "total": 42,
+      "passed": 42,
+      "failed": 0,
+      "pending": 0,
+      "report": ".work/test-results/run-PUhtpX/vitest.json",
+      "reportSha256": "2fb3ac14068e8033f0c93badbbf4475884953d2254b8a0f1cb4b4ad8b4029801"
+    }
+  ],
+  "environment": "Credential-free allowlisted test process with isolated HOME/USERPROFILE/CODEX_HOME/TEMP/TMP and upper/lower denial proxies. Local jsdom/API fixtures only.",
+  "sharedHelper": {
+    "path": "web/lib/media.ts",
+    "sha256": "fa8cb8151a230ec5c8bf2fcad3d162fa0acc2ede4b2630781042cad8d2d2a900",
+    "changed": false
+  },
+  "setupErrors": [
+    "One apply_patch request attempted delete and add of the same component in one patch; the tool rejected the request before writing any files. It was replaced with one update patch."
+  ],
+  "verificationNotes": [
+    "Both intermediate successful 39-case runs were retained, including the rerun after the heterogeneous test data tuple type was made explicit with as const. Root then identified an overly restrictive MIME grammar in the draft fix. The current upload contract was rechecked, unknown MIME was changed to a raw-download fallback, focused compatibility regressions were added, and the final exact two-file run passed all 42 cases.",
+    "The initial repair evidence revision is retained at .work/round14-fixes/attachment-repair-initial.json; it is superseded by this record.",
+    "All three edited files are UTF-8 without BOM and use LF. Every retained before-file copy matches its captured original SHA-256.",
+    "The image regression uses only a 24-byte PNG header plus a controlled response. Object URLs are mocked and jsdom never invokes a real image decoder."
+  ],
+  "limitations": [
+    "No actual large image, browser decoder, external MCP, model/provider call, personal credentials, SSH, full suite or deployment was used.",
+    "This repair-stage record is not a clean audit round and does not change formal round14 findings.",
+    "Root owns subsequent shared web noEmit/build, capability evidence regeneration and independent cross-review; those are not claimed by this record.",
+    "Global source digest is intentionally not asserted unchanged because authorized attachment and parallel MCP repairs change source. This record binds the exact owned files only."
+  ]
+}

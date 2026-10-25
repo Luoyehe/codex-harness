@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "full-test-readiness-repair-preparation",
+  "createdAt": "2026-10-25T20:40:04.190Z",
+  "sourceDigest": "96cde170ad50eb50753feb3229881ce609f6d3328691ffee5c479105803963d1",
+  "priorDigest": "41816690ad436ed6c333bd33bec231981bf97710b950fdd887e52789526bb8a7",
+  "sourceFiles": 1789,
+  "changes": [
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "c5dcc0a9b761d48b094f8b0c642f1e28ed3d2fc7e6ff0a6ee96e46d333a8d30c"
+    },
+    {
+      "path": "tests/runtime/native-fixture.mjs",
+      "sha256": "d34e23f65716ad112ac9f6847bb93ebf203197da0caa2e91abd49c3be757251a"
+    },
+    {
+      "path": "verification/feature-evidence/capability-coverage.json",
+      "sha256": "f6ffcf29b4e1a1c16f0cd997789d0ede5196260bc2b9d9d5f63e0646eaafef98"
+    }
+  ],
+  "repair": {
+    "path": "verification/audit-evidence/v2-full-fixes/defaults-lifecycle.json",
+    "sha256": "efee0ad219a6aeb9f6304444db283d1ae4e609c1e8839e3a8c15f65f824757e9"
+  },
+  "crossReview": {
+    "path": "verification/audit-evidence/v2-full-fixes/defaults-cross-review.json",
+    "sha256": "18cdc2ce6e60e513d4345d38802827e9172c3e026b4763f671abe0bb5da478fa"
+  },
+  "rootReview": "Read the complete local readiness helper and tests. Original shutdown assertions are retained; marker requires a complete valid PID record, pending early termination fails explicitly, and watcher/timer are closed. The controlled delay establishes the original default polling deadline defect.",
+  "productSourceChanged": false,
+  "targeted": {
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "raw": {
+      "path": ".work/test-results/run-NE0nDh/vitest.json",
+      "sha256": "f22095b08c1a9038eedd1a1a51a9a9df22619da5733c7aad3b304cd10e491879"
+    }
+  },
+  "encoding": "UTF-8 source, no BOM or CRLF",
+  "build": "Production code and build inputs are unchanged from the passing attempt2 build and typecheck; only two test files and capability references changed.",
+  "next": "Repeat both platform full runs. Earlier failures remain recorded and cannot be counted as acceptance."
+}

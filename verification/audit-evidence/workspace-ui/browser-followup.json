@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "phase": "workspace-ui-browser-followup",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:08:17.868Z",
+  "finding": "Parent CUA at 1280x720 reported AGENTS editor save controls below visible scroll area.",
+  "change": "Editor actions now sticky at scroll-container bottom, with persistent sync/dirty/pending status; responsive narrow-screen wrapping retained.",
+  "files": [
+    "web/components/FileEditor.tsx",
+    "web/styles-workspace.css"
+  ],
+  "sourceHashes": {
+    "web/components/FileEditor.tsx": "6a972c6f6c9f1cc19c684ea1aadf9074072b3db0a75dc56044cdde9cebcffe50",
+    "web/styles-workspace.css": "170a5e7d40c094f42a37c7c9e6071d11908ef2a3861f95681db578d8c3e0628f"
+  },
+  "validation": {
+    "targetedTests": "Included in final 16-file113-test affected UI run; passed.",
+    "build": "Web typecheck and Vite build passed.",
+    "browser": "Parent CUA confirmed the controlled port5112 fixture at1280x720: save control, sync/dirty status and shortcut hint visible in window. Screenshot reference/evidence/workspace-sticky-actions.png. Parent-reported verification, not120deployment acceptance."
+  },
+  "limits": [
+    "Controlled loopback fixture only; does not prove120deployment acceptance.",
+    "No production browser or deployment touched by this agent."
+  ],
+  "visualConfirmedAt": "2026-10-24T21:10:07.818Z"
+}

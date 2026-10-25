@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "kind": "root-repair-integration",
+  "roundId": "round14-fixes",
+  "at": "2026-10-25T17:45:18.070Z",
+  "findingsFixed": [
+    "R14-INTERFACE-001",
+    "R14-FIX-CROSS-001"
+  ],
+  "formalRound14FindingsRewritten": false,
+  "repairEvidence": [
+    {
+      "path": "verification/audit-evidence/round14-fixes/interface.json",
+      "sha256": "e2997a0d3735399bb7746920d7dbc01151d1c7e9d7863efbe1de5483796ffef3"
+    },
+    {
+      "path": "verification/audit-evidence/round14-fixes/attachment.json",
+      "sha256": "16d0076577f916f44b9a6c35be22549392af5a2821edfa02b412341dd7ce741d"
+    }
+  ],
+  "crossReviews": [
+    {
+      "path": "verification/audit-evidence/round14-fixes/mcp-cross-review.json",
+      "sha256": "e6d3d4d4feb8aaa211f3bc097d6aea1102c68863987354bfb4e8b627231d5614"
+    },
+    {
+      "path": "verification/audit-evidence/round14-fixes/attachment-repair-cross-review.json",
+      "sha256": "8a6c4568b9ce2b8a9f91a919e05570ddd9faf2680e912eca5f8fd04748c76f51"
+    }
+  ],
+  "rootReview": "Read complete final MCP/attachment components and changed tests, provider wiring and app-lifecycle diffs, both repair evidence records and independent crossreviews; rechecked raw final reports and all exact before/after source hashes. Confirmed unknown MIME remains a raw-download fallback after root compatibility review. Shared media validation remains unchanged.",
+  "validation": {
+    "targeted": {
+      "passed": 111,
+      "failed": 0,
+      "skipped": 0,
+      "files": 4,
+      "runs": [
+        {
+          "path": ".work/test-results/run-V1AByy/vitest.json",
+          "sha256": "a602a586a8e1b84b79ce70becf98a4cf21aaf2b3286098071739c499da41e994",
+          "passed": 69
+        },
+        {
+          "path": ".work/test-results/run-PUhtpX/vitest.json",
+          "sha256": "2fb3ac14068e8033f0c93badbbf4475884953d2254b8a0f1cb4b4ad8b4029801",
+          "passed": 42
+        }
+      ]
+    },
+    "webTypecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    "webBuild": {
+      "command": "pnpm build:web",
+      "exitCode": 0,
+      "modules": 377,
+      "asset": "web/dist/assets/index-CvQwJE8M.js",
+      "sha256": "9fc813b28abd1f1bb8998781925c395a180ad0806c2501e60c8edc67aa38d7f8",
+      "sizeKiBReported": 1232.18,
+      "gzipKiBReported": 349.96,
+      "retainedWarning": "Existing output chunk is larger than 500 kB; no new warning class."
+    },
+    "encoding": {
+      "files": 1786,
+      "utf8NoBomLf": true
+    }
+  },
+  "sourceBeforeCapabilityRefresh": {
+    "files": 1786,
+    "digest": "f920cbfe0f4d83e1acad29ce6f6dff662bf2244ea18c0657005681a1ace02079"
+  },
+  "fullSuiteRun": false,
+  "sourceAuditGateReset": true,
+  "cleanRoundCredit": 0,
+  "limitations": [
+    "Small synthetic headers/jsdom and mocked object URLs establish guard/DOM/ownership behavior, not real codec/OOM behavior.",
+    "No new browser, Linux/systemd, deployed service, provider, real MCP or paid-model acceptance was executed in this repair phase.",
+    "Earlier failed-before and intermediate StrictMode test failure remain in their author evidence and original raw results.",
+    "Capability references must be refreshed once after this record, then a new frozen complete audit sequence must begin."
+  ]
+}

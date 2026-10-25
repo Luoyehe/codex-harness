@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-24T19:43:51.737Z",
+  "purpose": "Match declared Git LF checkout policy before freezing independent audit snapshot; content changes are CRLF-to-LF only.",
+  "changed": [
+    {
+      "path": "deploy/README.md",
+      "before": "6ccf02434c35361b81fcf934513b1d1048bf538e96669a7f3c6f9b2d47a3a5fc",
+      "after": "f9f04b11ed66a4b8173c3a34e69fcdddc65a8bd930102a9ce77e19244d79fc8b"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "before": "abf16eb30940adc10637b2a4d9c850b1b4ae3c43a1ff152ee5131985026e38b5",
+      "after": "f589db67666e3257bfaee7020fcc4467bf5c40d50da98af50fae8b1244065249"
+    },
+    {
+      "path": "tests/deploy/root/test_https.py",
+      "before": "12e00e1bbc41e96fe4f445e79b6d820e8589906e32758cbf6f62372786c9d28e",
+      "after": "6354349564414909a7dc62a01476fb11dc614c91aafbe5af292105ef703d9056"
+    },
+    {
+      "path": "tests/deploy/root/test_management_boundaries.py",
+      "before": "76cd164467af562aa714998a997351d3c8aad74a4b563da5a9c78bab7a48f65f",
+      "after": "849a141b4bc05d648b182db0c5ee1709abd886834a64f285e5e2fa1d834dc625"
+    },
+    {
+      "path": "tests/deploy/root/test_release_reuse.py",
+      "before": "a058028019990a51f0273ea0315a02f24bf7d883e823bbd2c42c7f9cbb0f3e54",
+      "after": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "before": "f11f23ac2cc6c4dcd431696e548f41b715646c703fbe157548135c5b032a91f4",
+      "after": "d309062e101e57dced9d50a0030482daea803989ad1f39fcbef0c0095e154dc1"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "before": "38665528181b2891c71ede8b5df8df535e864cbfef13c5a931e957c8754d8956",
+      "after": "65a4b1d0ceaa7a094c406a904eaea70aae39adff0aedce8f1343225dfbb55e50"
+    },
+    {
+      "path": "tests/deploy/test_https.py",
+      "before": "60a638feea402901f513ad052ae7ff6ecb90c6accb1992cd3fe6caf03d6e5981",
+      "after": "2dbf790bc8a25d91c94ccd4f9e73b76299a13f4b9d12871bc19da5dafdef5f9f"
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "before": "357eb53acca85c01f16e032cfbf2d2055d9a4b9d1465c69f67a64655f5f6945e",
+      "after": "f0d7e3c18f4b6745813daee1b2a5f8c0f38fe6f134a317ca0c11e34c4400a860"
+    },
+    {
+      "path": "tests/deploy/test_management_boundaries.py",
+      "before": "b721a94ede9dbf89c7585b2ccaa0060c04ec082aa3992689586a8c65d347dce9",
+      "after": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707"
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "before": "4b88da06d326618da82efd42708ef5848521aee14b550fc8cfcf340dd065e48a",
+      "after": "bc4a598449ffc3aaa57d8c3a7212092919a07e47812cf0ed15def21c3bfcaddc"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "stage": "independent-repair-cross-review",
+  "issueId": "R14-FIX-CROSS-001",
+  "reviewerId": "r14-interface",
+  "reviewedAt": "2026-10-25T17:44:09.788Z",
+  "status": "no-actionable-findings",
+  "method": "Read the complete current AttachmentButton implementation and both affected test files, reviewed diffs against the exact approved repair-before copies, checked their SHA-256 values against repair evidence, and traced current media validation, server attachment response metadata, Api cancellation and Dialog/App authentication-suspension callsites. This was read-only crossreview after freezing the independent MCP repair. No tests or probes were executed for this crossreview.",
+  "files": [
+    {
+      "path": "web/components/AttachmentButton.tsx",
+      "sha256": "de33a9bec581abc312af73526430d2b9676f634265785947e032eccbb3322b50",
+      "beforeCopy": ".work/round14-fixes/attachment-before-files/web/components/AttachmentButton.tsx",
+      "beforeSha256": "795eaa86ff2af02c36aa0c5cec38fd820cd01af15aa8fe45de4d849b1974fcba",
+      "fullCurrentContentRead": true,
+      "diffRead": true
+    },
+    {
+      "path": "web/tests/attachments.test.tsx",
+      "sha256": "62cf8f8a92b329d0d71bba7b1f89aea32e572e21b975350771e3a38928385b2d",
+      "beforeCopy": ".work/round14-fixes/attachment-before-files/web/tests/attachments.test.tsx",
+      "beforeSha256": "3305735b1907d3af97101f807aff38cac84a6a74ad4f950d42b7f5ce2bf40eb0",
+      "fullCurrentContentRead": true,
+      "diffRead": true
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "da512764595a63d814b82cbb82c018ccd8c00ac33d03d5d3f7829e9ecec05952",
+      "beforeCopy": ".work/round14-fixes/attachment-before-files/web/tests/app-lifecycle.test.tsx",
+      "beforeSha256": "9140f6154d92744ff3c668ff93ef0edc0a4a15532e9c02aa867e0881fac50e87",
+      "fullCurrentContentRead": true,
+      "diffRead": true
+    }
+  ],
+  "findings": [],
+  "observations": [
+    {
+      "area": "validation-and-download",
+      "detail": "Response identity, metadata size/name/type and raw Base64 are checked before URL allocation. Shared mediaBytes enforces decoded byte size and empty-file policy. Declared image MIME is compared with the detected header format and dimensions; rejected images retain their bounded original bytes and filename as application/octet-stream downloads with rejection text. Text stays literal with a 64 KiB preview cap; audio remains download-only."
+    },
+    {
+      "area": "current-response-contract",
+      "detail": "src/runtime/attachments.ts public() emits attachmentId/name/mimeType/size, read() appends canonical Base64, upload() enforces current file/name/type/size limits. The new checks match fields emitted by the real local response rather than a fixture-only contract. Unknown MIME values retain an octet-stream download fallback."
+    },
+    {
+      "area": "ownership-and-cancellation",
+      "detail": "Api plus attachmentId gets an object identity; pending request identity, current owner and AbortSignal must all still match before publication. Unmount/owner-change cleanup aborts the old request and revokes only its URL. A stale finally branch cannot clear another request busy state. New owner objects prevent A-to-B-to-A resurrection; displayed errors/previews are gated by owner. Same-owner duplicate dispatch is fenced by the pending ref."
+    },
+    {
+      "area": "authentication-suspension",
+      "detail": "App retains Workspace and its drafts/receipts while authentication is suspended; DialogScope closes modal participation without invoking business onClose and restores it after renewal. Attachment behavior preserves this existing contract for already open or pending reads. The app-lifecycle diff is exactly two fixture metadata additions (attachmentId a, size 5), with all authentication, no-replay, draft and receipt assertions unchanged."
+    }
+  ],
+  "supportingReads": [
+    {
+      "path": "web/lib/media.ts",
+      "scope": "complete current shared helper; unchanged by both repairs"
+    },
+    {
+      "path": "web/components/Dialog.tsx",
+      "scope": "complete current file"
+    },
+    {
+      "path": "src/runtime/attachments.ts",
+      "scope": "current public/upload/get/read/readHistory implementation, lines 99-146"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "scope": "current authentication and call cancellation implementation, lines 1-125"
+    },
+    {
+      "path": "web/App.tsx",
+      "scope": "current authentication retention/DialogScope callsites at lines 82-83 and 197-204"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "scope": "current AttachmentButton mapping and attachmentId key callsite"
+    }
+  ],
+  "validation": {
+    "kind": "reviewed-existing-targeted-evidence",
+    "executedByThisReviewer": false,
+    "report": ".work/test-results/run-PUhtpX/vitest.json",
+    "sha256": "2fb3ac14068e8033f0c93badbbf4475884953d2254b8a0f1cb4b4ad8b4029801",
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0,
+    "files": [
+      "web/tests/app-lifecycle.test.tsx",
+      "web/tests/attachments.test.tsx"
+    ]
+  },
+  "checks": {
+    "repairCurrentHashesMatch": true,
+    "beforeCopyHashesMatch": true,
+    "appLifecycleOnlyTwoMetadataEdits": true,
+    "frozenMcpFilesUnchanged": true
+  },
+  "setupNotes": [
+    "Batched source/diff output was truncated at supporting-callsite text; the complete final test sources and diffs were inspected, and the affected supporting Dialog/runtime/Api/authentication callsites were read separately.",
+    "git diff --no-index returned exit code 1 because the expected before/after changes exist; no Git history or previous implementation was consulted."
+  ],
+  "limitations": [
+    "No additional tests, browser/audio decoding, provider/model/MCP/network execution, login, SSH or personal home access occurred in this crossreview. Existing 42-test evidence was read and hash-checked, not rerun.",
+    "Static review does not establish real browser-decoder or download behavior. Shared mediaMime checks image signatures/dimension headers and is not a full decoder.",
+    "This is a scoped repair crossreview, not a complete repository audit or a new clean audit round."
+  ],
+  "skipped": []
+}

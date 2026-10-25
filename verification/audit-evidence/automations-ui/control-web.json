@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "phase": "automations-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:40:12.595Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useEvents.ts",
+    "web/lib/automations.ts",
+    "web/styles-automations.css",
+    "web/tests/automations.test.tsx",
+    "web/tests/events.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "c9fb857fea2a4fb5c9ccb47a5b53006bc3a29a6564094580d3e321a837de0f9b",
+    "web/components/Sidebar.tsx": "b82c50846929bfa6f23a691726f6d3fbb280b88249e0040e9a2e36d52de54eca",
+    "web/components/AutomationForm.tsx": "e8bb15463a3c91e7ac5ecdf8ffd3048b20405fa04062903047ca310aef024a34",
+    "web/components/AutomationsPanel.tsx": "0d7b8f0ede6c6c8959cbedd81a5d9109ef004a40e9c1487589b698c0b949b69e",
+    "web/hooks/useAutomationRuns.ts": "d7a54be6ecce9c1d131bf4bce1fa31717ebb09aec3757538c562f05dfaf118b5",
+    "web/hooks/useEvents.ts": "643e6dbd6255e6f1020dade256c4dad63a004b15e96fd13af174961e076e95ff",
+    "web/lib/automations.ts": "9aa75051e2252db3a7c8d211d2c27a89b65f527c73caf925ead2ac547655b029",
+    "web/styles-automations.css": "5cdd638769e204fd226b936ccfe4bb5063ac07e08d82d2885c8f34ca9726ef93",
+    "web/tests/automations.test.tsx": "a73083b466c49494b11024bba9b1d6e9a554016b81296bcf2c88fb9feb40ab33",
+    "web/tests/events.test.tsx": "0514d0eb24328e7561b070240edcfc13787bb9e7a33aa158f526f1ce571eca66"
+  },
+  "contracts": {
+    "creation": "Named schedule form previews up to five authoritative future instants; creation always explicitly enabled:false. Later enable and manual run require separate visible execution confirmation. Each run creates a new conversation and survives browser disconnection.",
+    "time": "IANA wall-clock conversion independent of browser zone; DST gaps rejected, repeated time chooses first. Weekly schedule preview is server-authoritative. Changing schedule invalidates preview; stale preview responses cannot authorize save. Hour interval is elapsed time.",
+    "ownership": "Updates carry captured revision; conflicts preserve draft, require fresh read and explicit rebase before a new action. Original unknown operation receipt only, never automatic create/run replay. Same-document drafts survive modal/auth unmount, bounded to64 entries.",
+    "runs": "Contiguous numeric-cursor history refreshes through previous boundary, capped20pages/1000records; stale owner responses ignored. Pause changes future triggers only. Stop targets exact run. Unknown closure requires explicit confirmation and global idle including standalone processes, never claims success. Thread jumps preserve actual native identity.",
+    "options": "Uses native model/mode/effort/approval/sandbox options; unedited original options retained. No generic RPC or JSON action controls."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/automations.test.tsx web/tests/events.test.tsx web/tests/app-lifecycle.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/organization.test.tsx",
+    "testFiles": 6,
+    "tests": 49,
+    "automationSpecificTests": 9,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle threshold warning remains"
+  },
+  "limits": [
+    "No full suite or formal clean audit.",
+    "UI tests use controlled responses, not native scheduler integration proof. Root independently owns scheduler realCLI/lease verification.",
+    "Readonly visual fixture port5115 for parent CUA; not120deployment.",
+    "Unsubmitted automation form drafts survive only this document lifetime, not a browser restart. Durable submitted receipts persist through restart.",
+    "No paid inference,externalMCP,credentials,online deployment oractual120browser interaction."
+  ]
+}

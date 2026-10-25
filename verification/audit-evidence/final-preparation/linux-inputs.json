@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-25T10:03:25.493Z",
+  "readOnly": true,
+  "node": "/opt/codex-harness/crtest-rw-20261025/releases/9eeda317f2def81284a0d67fa31736d45a2519d7140741c81fbdb64a5f042b6c/node/bin/node",
+  "nodeSha256": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+  "nodeVersion": "v24.22.1",
+  "release": "9eeda317f2def81284a0d67fa31736d45a2519d7140741c81fbdb64a5f042b6c",
+  "manifestSha256": "1c56eff4ba87c18b7a98b71dcf3a22395af36b02b7bd47e53be11ac8d917d6a6",
+  "dependencyRoot": "/opt/codex-harness/crtest-rw-20261025/releases/9eeda317f2def81284a0d67fa31736d45a2519d7140741c81fbdb64a5f042b6c/app/node_modules",
+  "manifestEntriesChecked": 12415,
+  "bytesHashed": 137492909,
+  "dependencyInputs": {
+    "package.json": "038eec35eaecb8a11ea85042f7298ca6e92fc85bc4e62415bc99dbd2e5730b00",
+    "pnpm-lock.yaml": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63",
+    "pnpm-workspace.yaml": "fca80313d304e48a75d03840a45f6a9456a280777d60b205bd2c02729e72be21"
+  },
+  "cliArchive": "/var/cache/codex-harness/crtest-rw-20261025/tools-17faf6e37c464668b18702381495d17b/codex.tgz",
+  "cliArchiveIntegrityVerified": true,
+  "limits": [
+    "Confirms immutable installed dependency tree and pinned CLI archive; not a new install or full test run.",
+    "Preflight only; full test entrypoint remains blocked until three clean audits.",
+    "Initial optional PyYAML import was unavailable and ran no comparison; exact JSON parsing of these JSON documents established equality."
+  ],
+  "workspacePolicy": {
+    "parsedValuesIdentical": true,
+    "currentSha256": "acef6f475d96438e25719bb19304e5b8eb05822e3dc70f4a1cb708a051066c16",
+    "installedSha256": "fca80313d304e48a75d03840a45f6a9456a280777d60b205bd2c02729e72be21",
+    "policy": {
+      "packages": [
+        "."
+      ],
+      "minimumReleaseAge": 1440,
+      "blockExoticSubdeps": true,
+      "trustPolicy": "no-downgrade",
+      "strictDepBuilds": true,
+      "ignoreScripts": true,
+      "overrides": {
+        "@z_ai/mcp-server@0.1.5>@modelcontextprotocol/sdk": "1.32.2",
+        "zod": "4.6.7"
+      }
+    }
+  },
+  "report": ".work/final-linux-runtime-inputs-20261025-1002.json",
+  "reportSha256": "9183f42eccb874f45e02e3632d402edc19f36f686be7de28fc0d7a2166a33df5",
+  "probe": ".work/verify-linux-runtime-inputs-final.py",
+  "probeSha256": "f88159763a850f268204a00d93ed53be1a447ff7e6ed2d69d21963a5ee22ced6"
+}

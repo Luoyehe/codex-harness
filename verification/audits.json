@@ -1,0 +1,2782 @@
+{
+  "schemaVersion": 1,
+  "phase": "independent-audit",
+  "consecutiveClean": 0,
+  "rounds": [
+    {
+      "id": "round1",
+      "sequence": 1,
+      "digest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485",
+      "complete": true,
+      "startedAt": "2026-10-24T18:30:01.028Z",
+      "completedAt": "2026-10-24T18:42:52.790959+00:00",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R1-RUNTIME-01",
+          "priority": 2,
+          "severity": "P2",
+          "title": "Service shutdown does not close or await the active effective-defaults probe",
+          "file": "src/runtime/service.ts",
+          "lineStart": 284,
+          "lineEnd": 294,
+          "relatedLocations": [
+            {
+              "file": "src/runtime/service.ts",
+              "lineStart": 326,
+              "lineEnd": 326
+            },
+            {
+              "file": "src/runtime/main.ts",
+              "lineStart": 94,
+              "lineEnd": 94
+            }
+          ],
+          "description": "defaults() creates a separate NativeRpc in a local variable. RuntimeService.close() only closes this.native, so it can return while an already-running defaults probe is still waiting for initialize/thread/start. The main shutdown path then exits the worker without waiting for that probe. Linux systemd cgroup cleanup may mitigate process leakage in production, but the runtime close contract and supported Windows development shutdown do not verify that independently spawned process tree. A close/config-read race can also continue the defaults path after the service is closed.",
+          "reproduction": [
+            "Compile the unchanged source with node node_modules/typescript/bin/tsc -p tsconfig.server.json --outDir .work/r1-runtime-build.",
+            "Run node .work/r1-runtime-lifecycle.mjs. It supplies a main FakeNative config/read response and starts a separate local Node protocol child which answers initialize but holds thread/start.",
+            "Wait until the child writes its PID, call await service.close(), then probe that PID with process.kill(pid, 0)."
+          ],
+          "observed": {
+            "serviceCloseReturned": true,
+            "mainConnected": false,
+            "probePid": 39824,
+            "probeAliveAfterClose": true
+          },
+          "cleanup": "The reproduction explicitly called close on the captured probe after observation; its pending request rejected runtime_lost/unknown and the Node process exited normally.",
+          "recommendation": "Track the dedicated probe as service-owned state, fence probe creation against shutdown, and have close cancel and await both the primary RPC and any in-flight probe before claiming cleanup."
+        },
+        {
+          "id": "R1-RUNTIME-02",
+          "priority": 2,
+          "severity": "P2",
+          "title": "A delayed terminal-open request can create a terminal after its gateway disconnect cleanup",
+          "file": "src/runtime/service.ts",
+          "lineStart": 319,
+          "lineEnd": 325,
+          "relatedLocations": [
+            {
+              "file": "src/runtime/main.ts",
+              "lineStart": 30,
+              "lineEnd": 43
+            },
+            {
+              "file": "src/runtime/main.ts",
+              "lineStart": 52,
+              "lineEnd": 52
+            },
+            {
+              "file": "src/runtime/service.ts",
+              "lineStart": 297,
+              "lineEnd": 305
+            },
+            {
+              "file": "src/gateway/worker-client.ts",
+              "lineStart": 47,
+              "lineEnd": 49
+            }
+          ],
+          "description": "gatewayDisconnected/clientDisconnected clean only the terminals currently present. An authenticated /rpc body which was already in flight can finish after the final event WebSocket has closed and the cleanup snapshot has completed. There is no gateway/client disconnect generation bound to that HTTP request and no event-channel admission check before terminal creation, so the late terminal/open starts command/exec with both timeout and output cap disabled and has no remaining disconnect event to terminate it. WorkerClient uses separate HTTP requests and does not abort them when its event WebSocket closes.",
+          "reproduction": [
+            "Run node .work/r1-runtime-late-terminal.mjs against the compiled current modules.",
+            "Open an authenticated worker /events WebSocket, start a terminal/open HTTP request with its declared Content-Length, and send only the first 20 bytes.",
+            "Terminate the final event WebSocket and wait for gatewayDisconnected() to finish, then send the rest of the original HTTP request body.",
+            "Inspect the HTTP result, service terminal count, and FakeNative command history."
+          ],
+          "observed": {
+            "eventChannelClosedBeforeBodyComplete": true,
+            "rpcOk": true,
+            "terminalCountAfterDisconnect": 1,
+            "nativeCalls": [
+              "command/exec"
+            ],
+            "terminateCalls": 0
+          },
+          "cleanup": "The probe used FakeNative and never spawned a shell; it closed the worker HTTP server, event socket, and service afterward.",
+          "recommendation": "Bind terminal admissions to a connection generation which cannot be reopened by requests admitted before disconnect; revoke that generation before cleanup and check it at the final native write. Ensure late HTTP work cannot create ownerless terminals when the gateway event channel has disappeared."
+        },
+        {
+          "id": "R1-CW-001",
+          "priority": "P2",
+          "title": "Management completion publishes maintenance=true but never publishes its release",
+          "scope": "gateway-core",
+          "location": {
+            "path": "src/gateway/dispatch.ts",
+            "start": 95,
+            "end": 105
+          },
+          "relatedLocations": [
+            {
+              "path": "web/hooks/useEvents.ts",
+              "start": 33,
+              "end": 33
+            },
+            {
+              "path": "web/components/ModelCatalog.tsx",
+              "start": 11,
+              "end": 11
+            }
+          ],
+          "description": "A management mutation emits its receipt and status while #maintenance is still true, then clears #maintenance in finally without emitting another state. Browsers have already set activityReady=false. Custom-provider model discovery returns source=provider and ModelCatalog does not trigger onApplied/reload in that branch, so an otherwise idle runtime emits no later state to restore the UI; management failures have the same problem. The server internally permits work again while the browser keeps new-task submission disabled.",
+          "reproduction": [
+            "Start with connected=true, activity.unknown=false and no active work.",
+            "Invoke system/models/refresh against a provider discovery manager substitute, with a fresh operation ID and a manager result that does not restart the worker.",
+            "Record Dispatcher state events and compare its current status after the call resolves.",
+            "The final published status has maintenance=true, whereas dispatcher.status().maintenance is false; feeding the published event to useEvents leaves activityReady=false."
+          ],
+          "observed": "Bounded in-memory source probe reproduced lastBroadcast.maintenance=true, actualStatus.maintenance=false and browserActivityReady=false. The probe's result projection used source=native; provider result differences do not alter Dispatcher state ordering, and the production provider UI branch was separately traced to ensure it does not mask the missing broadcast.",
+          "recommendation": "Publish a current state after releasing the maintenance flag in finally, including the failure path, and add a focused lifecycle assertion on the last externally emitted state."
+        },
+        {
+          "id": "R1-CW-002",
+          "priority": "P1",
+          "title": "Same-worker event reconnection does not resynchronize history or pending prompts",
+          "scope": "web-ux",
+          "location": {
+            "path": "web/hooks/useEvents.ts",
+            "start": 27,
+            "end": 33
+          },
+          "relatedLocations": [
+            {
+              "path": "web/App.tsx",
+              "start": 40,
+              "end": 50
+            },
+            {
+              "path": "src/runtime/main.ts",
+              "start": 52,
+              "end": 54
+            },
+            {
+              "path": "src/runtime/service.ts",
+              "start": 19,
+              "end": 19
+            },
+            {
+              "path": "src/runtime/service.ts",
+              "start": 325,
+              "end": 325
+            }
+          ],
+          "description": "When only the gateway-to-worker event WebSocket drops, the browser WebSocket stays open. RuntimeService keeps its epoch and the worker reconnect snapshot contains status only, with no missed notification/prompt replay. useEvents restores runtimeConnected/activityReady but does not change revision; App's resourceEpoch therefore remains identical. Conversation history, resume/default state and prompt/list are not refreshed. A completion or approval created during the event gap can be absent indefinitely even though the UI reports a healthy connection, leaving incomplete history or an invisible pending decision.",
+          "reproduction": [
+            "Keep an authenticated browser WebSocket open with runtime epoch E and a loaded conversation.",
+            "Drop only the gateway-to-worker event channel; let the native worker continue and produce a turn completion or a new approval during the gap.",
+            "Reconnect to the same RuntimeService; its initial state snapshot still has epoch E.",
+            "No browser onopen occurs, no hook revision advances and no history/prompt/resume generation changes; missed events are not recovered."
+          ],
+          "observed": "Current source lifecycle confirms same epoch and no replay. A source-transformed useEvents probe fed connected=true(E), connected=false, connected=true(E): epoch and revision stayed E/1 before and after while runtimeConnected and activityReady returned true.",
+          "recommendation": "Introduce a resynchronization generation when the upstream runtime/event connection recovers even with the same process epoch, and use it to re-read pending prompts, thread metadata/history, resume state and other connection-sensitive resources before declaring readiness."
+        },
+        {
+          "id": "R1-CW-003",
+          "priority": "P2",
+          "title": "Expired or restarted gateway sessions cannot return the open page to login",
+          "scope": "web-ux",
+          "location": {
+            "path": "web/App.tsx",
+            "start": 103,
+            "end": 108
+          },
+          "relatedLocations": [
+            {
+              "path": "web/lib/api.ts",
+              "start": 25,
+              "end": 35
+            },
+            {
+              "path": "web/hooks/useEvents.ts",
+              "start": 38,
+              "end": 38
+            },
+            {
+              "path": "src/gateway/auth.ts",
+              "start": 39,
+              "end": 51
+            },
+            {
+              "path": "src/gateway/server.ts",
+              "start": 150,
+              "end": 156
+            }
+          ],
+          "description": "SessionApp checks authentication only on its initial mount and sets authenticated=false only after a successful logout. A 12-hour session expiration, logout from another document or gateway restart invalidates the in-memory session, but subsequent 401 RPCs merely become local errors and the event socket retries indefinitely. The existing logout control also requires a valid session; its 401 rejects before setAuthenticated(false), so it cannot reopen Login. Users must discover that a manual page reload is required, including after the product's own restart flow.",
+          "reproduction": [
+            "Open a logged-in workspace and retain an unsent draft.",
+            "Expire/remove the server session (or restart the gateway).",
+            "Observe RPC unauthorized responses and failed WebSocket reconnections.",
+            "Try the workspace logout button: DELETE /api/session returns 401, Api.logout rejects, authenticated remains true and no Login screen appears."
+          ],
+          "observed": "Deterministic code-path audit across auth expiration, authenticated DELETE, Api error handling, useEvents close handling and SessionApp state ownership. No real browser/session-expiry integration was executed.",
+          "recommendation": "Handle authoritative authentication loss centrally or recheck the session after connection recovery failure, return the document to a clear login state, and preserve drafts and operation recovery metadata."
+        },
+        {
+          "id": "R1-CW-004",
+          "priority": "P2",
+          "title": "Archive action follows the sidebar filter instead of the selected conversation",
+          "scope": "web-ux",
+          "location": {
+            "path": "web/App.tsx",
+            "start": 95,
+            "end": 97
+          },
+          "description": "The archived state is the thread-list filter, but the current conversation menu also uses it to choose both the label and thread/archive versus thread/unarchive. Toggling the sidebar filter does not navigate away or change the selected thread's actual archive state. Thus an ordinary conversation immediately offers Restore and sends unarchive after the filter is changed to archived; an archived conversation opened from that list offers Archive again after the filter is changed back. Deep links also begin with the default false filter regardless of the target's archive state.",
+          "reproduction": [
+            "Open an ordinary unarchived conversation.",
+            "Toggle the sidebar's archived-list filter without selecting another conversation.",
+            "Open conversation actions: the same conversation now shows Restore and sends thread/unarchive.",
+            "Alternatively open an archived conversation, switch the sidebar to normal history, and observe Archive/thread/archive on the still-selected archived conversation."
+          ],
+          "observed": "Direct state/action trace: onArchived only toggles archived, while the current menu derives its action and label from that exact filter variable. No browser interaction is claimed.",
+          "recommendation": "Track or query the selected thread's archive state independently of list filtering, and derive the menu action from the selected resource's state."
+        },
+        {
+          "id": "R1-DEP-001",
+          "priority": "P1",
+          "title": "Provider and HTTPS writes bypass an unfinished management transaction",
+          "file": "deploy/manager.py",
+          "lineStart": 272,
+          "lineEnd": 284,
+          "description": "activate and restart enforce require_recovered_transactions, but provider_change (including confirmed catalog application) does not. setup_https only rejects pending HTTPS transactions. After an interrupted release/provider/HTTPS selection, these entrypoints can create and commit a second transaction and restart services on the uncommitted configuration. If the second write is also interrupted, repair rejects the multiple pending records and cannot automatically recover.",
+          "relatedLocations": [
+            {
+              "file": "deploy/https.py",
+              "lineStart": 295,
+              "lineEnd": 298
+            },
+            {
+              "file": "deploy/manager.py",
+              "lineStart": 307,
+              "lineEnd": 316
+            },
+            {
+              "file": "deploy/manager.py",
+              "lineStart": 337,
+              "lineEnd": 345
+            }
+          ],
+          "reproduction": {
+            "platform": "Windows local Python filesystem fixture; System and ProviderStore side effects substituted, actual validation/dispatch/receipt/transaction writes executed",
+            "setup": "Create a persisted release transaction with phase selected and an old healthy release, then call Manager.dispatch(provider/write) with a valid expected provider revision and fresh UUID.",
+            "observed": {
+              "existingBarrier": "recovery_required",
+              "dispatchAccepted": true,
+              "events": [
+                "stop worker",
+                "start worker",
+                "start gateway"
+              ],
+              "originalSelectedTransactionUnchanged": true,
+              "transactionPhases": [
+                "committed",
+                "selected"
+              ]
+            }
+          },
+          "recommendation": "Apply the common unfinished-transaction guard before preparing or dispatching provider/catalog and HTTPS writes; keep read-only discovery/status and explicit recovery available."
+        },
+        {
+          "id": "R1-DEP-002",
+          "priority": "P1",
+          "title": "HTTPS test fixtures make the mandatory source-security scan fail",
+          "file": "tests/deploy/test_https.py",
+          "lineStart": 82,
+          "lineEnd": 84,
+          "description": "The two opaque private-key fixtures embed literal PEM private-key headers. The unchanged scanner intentionally detects these markers in every source file, so the first source-security step in affected.yml exits nonzero for this snapshot before type/build/tests can run. These are fake fixture contents, not evidence of an actual leaked private key.",
+          "relatedLocations": [
+            {
+              "file": ".github/workflows/affected.yml",
+              "lineStart": 37,
+              "lineEnd": 38
+            },
+            {
+              "file": "scripts/release-audit.mjs",
+              "lineStart": 11,
+              "lineEnd": 11
+            }
+          ],
+          "reproduction": {
+            "command": "node scripts/release-audit.mjs --source",
+            "exitCode": 1,
+            "status": "blocked",
+            "assignedFindings": [
+              {
+                "path": "tests/deploy/test_https.py",
+                "line": 82,
+                "rule": "private-key"
+              },
+              {
+                "path": "tests/deploy/test_https.py",
+                "line": 84,
+                "rule": "private-key"
+              }
+            ],
+            "note": "The scanner also emitted two private-home findings in existing evidence outside this assigned source inventory; those evidence conclusions were not opened or reviewed and are not used as a separate finding."
+          },
+          "recommendation": "Construct safe fixture marker bytes at runtime as the tooling tests already do, retaining the scanner rules and then rerun the source gate."
+        },
+        {
+          "id": "R1-DEP-003",
+          "priority": "P2",
+          "title": "Git-object scanning loses parent paths and misses prohibited nested runtime trees",
+          "file": "scripts/release-audit.mjs",
+          "lineStart": 119,
+          "lineEnd": 124,
+          "description": "History mode applies pathFindings only to each tree entry basename. Rules for reference/runtime and reference/evidence require the parent path, so a Git tree containing those generated directories is reported clean when no blob independently matches a secret regex. The source scan detects these same relative paths, leaving the history scan inconsistent with its declared artifact coverage.",
+          "reproduction": {
+            "fixture": "Fresh Git repository under ignored .work; add only reference/runtime/fixture.txt and run git write-tree, without reading any existing Git history.",
+            "command": "auditGitObjects(freshFixtureRoot)",
+            "observed": {
+              "mode": "git-objects",
+              "status": "clean",
+              "scannedFiles": 4,
+              "scannedBytes": 206,
+              "findings": [],
+              "artifacts": [],
+              "unreadable": [],
+              "skipped": []
+            }
+          },
+          "recommendation": "Reconstruct and scan repository-relative paths when traversing tree objects, while retaining dangling-object scanning and content-redacted diagnostics."
+        },
+        {
+          "id": "R1-DEP-004",
+          "priority": "P1",
+          "title": "A failed install collision leaves state that can stop or delete a pre-existing service unit",
+          "file": "deploy/install.py",
+          "lineStart": 158,
+          "lineEnd": 161,
+          "description": "initialize checks service-unit collisions only after creating instance state, installation metadata, sudo policy, control code and possibly the worker unit. A pre-existing gateway unit therefore causes a late collision but leaves a Manager-loadable partial instance. activate can stop/start/enable the existing unit without verifying ownership. More directly, uninstall blindly stops and unlinks both fixed unit names, deleting the pre-existing unit even though installation refused to claim it.",
+          "relatedLocations": [
+            {
+              "file": "deploy/install.py",
+              "lineStart": 139,
+              "lineEnd": 157
+            },
+            {
+              "file": "deploy/install.py",
+              "lineStart": 181,
+              "lineEnd": 189
+            },
+            {
+              "file": "deploy/manager.py",
+              "lineStart": 214,
+              "lineEnd": 244
+            }
+          ],
+          "reproduction": {
+            "platform": "Relocated Windows filesystem; OS identities, privilege validation and system commands substituted. Real initialization files and uninstall unlinks executed.",
+            "initializationCollision": {
+              "failure": "collision",
+              "instanceRecordRetained": true,
+              "workerUnitWrittenBeforeCollision": true,
+              "preexistingGatewayUnitUnchanged": true
+            },
+            "resumeActivation": {
+              "events": [
+                "stop gateway and worker",
+                "start worker and gateway",
+                "enable worker and gateway"
+              ],
+              "installationPhase": "complete"
+            },
+            "uninstallFromEquivalentPartialState": {
+              "servicesRemoved": true,
+              "unownedGatewayUnitDeleted": true,
+              "events": [
+                "stop gateway and worker",
+                "reload"
+              ]
+            },
+            "note": "An initial combined uninstall probe reached a Windows read-only sudo-file PermissionError after unit deletion; the isolated ownership probe removed that incidental platform condition and returned successfully."
+          },
+          "independentCrossCheck": "A separate read-only subagent confirmed both activation and the direct uninstall deletion path.",
+          "recommendation": "Preflight all unit/sudo/drop-in collisions before initialization writes, persist explicit ownership or initialization-completion facts, and require that ownership before resume or uninstall manages service units."
+        },
+        {
+          "id": "R1-DEP-005",
+          "priority": "P2",
+          "title": "HTTPS recovery cannot restore a gateway that was running with its worker stopped",
+          "file": "deploy/https.py",
+          "lineStart": 246,
+          "lineEnd": 248,
+          "description": "prior_service_state accepts gateway active with worker stopped. recover_https_transaction starts the recorded gateway, whose generated Wants=worker dependency starts the worker as well. confirm_service_state then rejects the newly running worker, leaves the transaction recovering, and repair repeats the same failure. The control updater already uses per-role startup barriers for this legitimate service-state combination; HTTPS recovery has no equivalent.",
+          "relatedLocations": [
+            {
+              "file": "deploy/units.py",
+              "lineStart": 112,
+              "lineEnd": 113
+            },
+            {
+              "file": "deploy/https.py",
+              "lineStart": 193,
+              "lineEnd": 202
+            },
+            {
+              "file": "deploy/manager.py",
+              "lineStart": 347,
+              "lineEnd": 350
+            }
+          ],
+          "reproduction": {
+            "platform": "Local files with substituted systemd; start explicitly models the Wants relation read from real render_units output. This is not actual Linux systemd execution.",
+            "priorActive": [
+              "gateway"
+            ],
+            "fault": "One-time daemon reload failure during HTTPS setup",
+            "observed": [
+              {
+                "attempt": "setup failure recovery",
+                "code": "recovery_required",
+                "active": [
+                  "gateway",
+                  "worker"
+                ],
+                "phase": "recovering"
+              },
+              {
+                "attempt": "repair",
+                "code": "health",
+                "message": "Previously stopped HTTPS service is running",
+                "active": [
+                  "gateway",
+                  "worker"
+                ],
+                "phase": "recovering"
+              }
+            ]
+          },
+          "independentCrossCheck": "A separate read-only subagent confirmed worker stop does not stop gateway because the unit uses Wants rather than BindsTo/Requires, and repair re-enters the same recovery function.",
+          "recommendation": "Use stop-confirmed per-role start barriers or an equivalent dependency-safe restoration mechanism so recovery preserves the original active set."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r1-runtime",
+          "evidence": "verification/audit-evidence/round1/r1-runtime.json",
+          "sha256": "aabb4a5e2234975fd60a520ac97903588252b56c5ac36d89331f386f18a66f34",
+          "scopes": [
+            "runtime-protocol"
+          ]
+        },
+        {
+          "id": "r1-control-web",
+          "evidence": "verification/audit-evidence/round1/r1-control-web.json",
+          "sha256": "5e3198555b6cd4d995e60ae14f85be7045b79d5607e47fb65765fd43c601022d",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ]
+        },
+        {
+          "id": "r1-deploy-release",
+          "evidence": "verification/audit-evidence/round1/r1-deploy-release.json",
+          "sha256": "6c01832afd185aa64b0661645572df32e6febe2fbe3e2a16351c752d9e7cb80b",
+          "scopes": [
+            "deployment-release"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "round2",
+      "sequence": 2,
+      "digest": "856c954ad2d2b2cb6736142c8333db435a5ff5430bd09174f65df9b06a4da684",
+      "startedAt": "2026-10-24T19:16:06.440Z",
+      "complete": true,
+      "completedAt": "2026-10-24T19:26:19.921Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R2-RUNTIME-001",
+          "priority": "P1",
+          "file": "src/runtime/service.ts",
+          "line": 178,
+          "title": "Conversation creation suppresses the owner check before its first turn",
+          "reproduction": "The independent ignored test holds thread/read after thread/start returns a fresh thread, revokes the browser owner, calls clientDisconnected, and releases the read. The real RuntimeService still writes turn/start and returns an inProgress turn. Recorded native writes are thread/start, thread/read, turn/start; the supplied owner-check hook is invoked once only.",
+          "cause": "compositeContext wraps beforeWrite with boundaryNotified, but the HTTP worker supplies requireOwner at src/runtime/main.ts:67-69. Its authorization must be checked at every native mutation. A fresh thread bypasses history admission, so deleting history traversals on disconnection does not compensate for the skipped hook.",
+          "impact": "Closing a browser owner or its gateway event connection after creation can still start model work and tool execution after that owner has been revoked.",
+          "expected": "Check current owner/channel authority immediately before both native writes. Keep any one-time durable dispatch bookkeeping distinct from the repeated owner check. If thread creation already succeeded and the first turn is then rejected, preserve conversation_start_incomplete with unknown overall delivery and phase/threadId/cause metadata; do not replay creation or the first turn automatically.",
+          "evidence": [
+            ".work/r2-runtime-repro.test.ts: first conversation turn crosses a revoked owner boundary",
+            "src/runtime/main.ts:56",
+            "src/runtime/main.ts:67",
+            "src/runtime/service.ts:179",
+            "src/runtime/service.ts:182",
+            "src/runtime/service.ts:259"
+          ]
+        },
+        {
+          "id": "R2-RUNTIME-002",
+          "priority": "P2",
+          "file": "src/runtime/attachments.ts",
+          "line": 107,
+          "title": "Valid maximum-size attachments overflow the Base64 regular expression stack",
+          "reproduction": "On Node v24.15.0, call the real Attachments.upload with Buffer.alloc(4*1024*1024,97).toString(\"base64\"), a normal filename and text/plain MIME type. The 5,592,408-byte canonical Base64 string is below the 6 MiB text limit and encodes exactly the allowed 4 MiB. The grouped repetition in the regular expression throws RangeError: Maximum call stack size exceeded. The independent test asserts this actual failure; a 1 MiB control succeeds in the direct regex probe.",
+          "cause": "The repeating grouped Base64 validator uses the JavaScript RegExp stack proportional to sufficiently large valid input before binary quota validation or storage writes.",
+          "impact": "Files permitted by the advertised 4 MiB limit cannot be uploaded. The untyped RangeError is converted by the worker to internal_error with unknown delivery even though no attachment was written, leaving misleading recovery state.",
+          "expected": "Validate Base64 with a bounded-stack implementation and preserve malformed-input/size rejection before any mutation. Exercise a canonical file at the declared limit, padding variants, and invalid input without reducing the documented limit merely to conceal the failure.",
+          "evidence": [
+            ".work/r2-runtime-repro.test.ts: valid upload at the documented 4 MiB limit",
+            "src/runtime/types.ts:9",
+            "src/runtime/main.ts:72",
+            "web/components/Composer.tsx:25"
+          ]
+        },
+        {
+          "id": "R2-RUNTIME-003",
+          "priority": "P1",
+          "file": "src/runtime/service.ts",
+          "line": 332,
+          "title": "Transient request capacity permanently abandons disconnected terminal cleanup",
+          "reproduction": "An independent stdio substitute runs behind the real NativeRpc and RuntimeService. Open the allowed 16 terminals under eight owners and one event channel, then submit 48 short hold requests so the native pending map reaches its permitted 64 slots. Call gatewayDisconnected for that channel. Every command/exec/terminate is rejected locally as capacity/not_sent and swallowed. After all 48 holds resolve after 200 ms, native.connected remains true, pending remains 16, and runtime activity still reports 16 terminals. There is no retained cleanup retry. The test finally closes the native subprocess.",
+          "cause": "clientDisconnected catches every terminate error as though it proved a lost native connection. Capacity rejection and definitive native errors leave the connection alive. gatewayDisconnected awaits this falsely successful cleanup once and has no follow-up path.",
+          "impact": "A routine gateway reconnect under permitted load can leave shells running with no connected owner and no future termination attempt. These processes and terminal slots can remain indefinitely after temporary congestion has cleared, and they block subsequent maintenance.",
+          "expected": "Track cleanup obligations until a terminal exit or whole-process cleanup is positively confirmed. Retry safely after not_sent capacity errors, or fail the epoch and confirm process-tree cleanup. A rejected terminate is not an acknowledgement that the process is gone.",
+          "evidence": [
+            ".work/r2-runtime-terminal-fixture.mjs",
+            ".work/r2-runtime-repro.test.ts: transient native capacity failure",
+            "src/runtime/native.ts:57",
+            "src/runtime/service.ts:337",
+            "src/runtime/main.ts:87"
+          ]
+        },
+        {
+          "id": "R2-CW-01",
+          "priority": "P2",
+          "title": "Late attachment removal overwrites the departed draft and blanks the current composer",
+          "file": "web/components/Composer.tsx",
+          "line": 37,
+          "reproduction": "Store draft A with unsent text and an attachment, plus draft B with different unsent text. Start removing the attachment from A while attachment/remove is deferred. Navigate to B without unmounting the shared Composer/useDraft. Resolve removal successfully. The stale removal callback uses the current attachmentRef but the previous onAttachmentsChange closure. useDraft.ts lines 12-14 now sees a different current key and starts from emptyDraft(A), persists A with empty text, and replaces the displayed draft state with key A. The B composer immediately becomes blank while its stored B text is still present. Confirmed by the first test in .work/r2-control-web/edge.test.tsx.",
+          "impact": "A successful ordinary attachment deletion can irreversibly erase unsent text in the original draft and make the newly selected draft disappear from the visible input. Preserve the original draft contents while removing the deleted ID from that original draft, and prevent late completion from publishing into the currently selected draft.",
+          "evidence": {
+            "command": "pnpm exec vitest run --config .work/r2-control-web/vitest.config.ts",
+            "fixture": ".work/r2-control-web/edge.test.tsx",
+            "result": "Two tests passed before the later HTTP fixture was added; test one asserts the observed wrong A text and blank current textarea."
+          }
+        },
+        {
+          "id": "R2-CW-02",
+          "priority": "P2",
+          "title": "History merge permanently displays a streamed answer before the user message that preceded it",
+          "file": "web/lib/history.ts",
+          "line": 26,
+          "endLine": 28,
+          "reproduction": "Open or reconnect to an active conversation and defer the history response. First deliver item/agentMessage/delta for answer item A, creating the current turn with only A and marking it touched. Then deliver history for the same turn containing chronological items [user question Q, answer A]. mergeHistory initializes its Map from current [A], then appends Q from history, producing [A,Q]. item/completed later replaces A at its existing index and leaves [A,Q]. The touched check also discards any historical answer prefix, so only the newly received suffix is visible before completion. Confirmed by the second test in .work/r2-control-web/edge.test.tsx.",
+          "impact": "Routine navigation or reconnection while a turn is streaming reverses question/answer display order for the remainder of the visit, and loses already-generated answer text until a complete item arrives. Merge authoritative historical order with current live content instead of using arrival order as item chronology.",
+          "evidence": {
+            "command": "pnpm exec vitest run --config .work/r2-control-web/vitest.config.ts",
+            "fixture": ".work/r2-control-web/edge.test.tsx",
+            "result": "Two deterministic tests passed, asserting incorrect order answer,question both before and after a full item/completed notification."
+          }
+        },
+        {
+          "id": "R2-CW-03",
+          "priority": "P2",
+          "title": "HTTP lease admission reports a known accepted operation as not_sent before receipt replay",
+          "file": "src/gateway/server.ts",
+          "line": 181,
+          "endLine": 185,
+          "reproduction": "Through a short loopback GatewayServer fixture with an in-memory Ledger and explicit worker substitute, authenticate and open the browser event connection. Submit turn/start with operation ID X and receive an accepted durable receipt. Close the browser event connection and wait for server-side lease cleanup. Resubmit exactly the same method, params and ID X using the still-valid authenticated cookie and CSRF token. The response is connection_required with delivery:not_sent, although Ledger.read(X).state is accepted and worker write count remains one. server.ts rejects before Dispatcher.call reaches reserve/replay. Confirmed by .work/r2-control-web/receipt-http.test.ts.",
+          "impact": "The public RPC endpoint gives a conflicting delivery fact for an already accepted identity whenever its connection lease is gone. A client retry can receive apparent not-sent evidence instead of the durable accepted result. Existing receipt/fingerprint checks must precede admission that is only required for new dispatch, while retaining different-payload conflict rejection.",
+          "evidence": {
+            "command": "pnpm exec vitest run --config .work/r2-control-web/vitest.config.ts .work/r2-control-web/receipt-http.test.ts",
+            "fixture": ".work/r2-control-web/receipt-http.test.ts",
+            "result": "One test passed after correcting the fixture to wait for server-side disconnect cleanup. The first fixture run raced client-side close and was not counted as bug evidence."
+          }
+        },
+        {
+          "id": "R2-DEPLOY-001",
+          "priority": "P2",
+          "title": "Run root-owned deployment fixtures under a supported CI identity",
+          "file": ".github/workflows/affected.yml",
+          "line": 57,
+          "reproduction": "The affected job uses the ordinary ubuntu-24.04 runner and invokes node scripts/select-tests.mjs --base \"$CHANGE_BASE\" --head \"$CHANGE_HEAD\" --run deploy without privilege elevation. Any deploy implementation change selects all tests/deploy/test_*.py. tests/deploy/test_control_update.py:87-115 creates files as the current user and substitutes only ancestry/process/snapshot behavior; update still calls deploy/control_update.py:47-55 -> inspect_tree(root_owned=True), which requires st_uid == 0 at deploy/safe_fs.py:195-197. Its unguarded tests therefore fail for a non-root runner. tests/deploy/test_management_boundaries.py similarly feeds runner-owned files into require_owned. Even after those failures are addressed, tests/deploy/test_https.py:73 and tests/deploy/test_install_recovery.py:246 explicitly skip their root-ownership fixtures for that user, and scripts/select-tests.mjs:133-136 correctly returns nonzero for skips. Reproduce on the configured non-root Ubuntu runner with node scripts/select-tests.mjs --changed deploy/control_update.py --run deploy. This finding is established by the complete source execution path; a real Linux runner was not executed during this audit.",
+          "impact": "Deployment changes cannot obtain a passing affected CI result in the configured job. The fix must provide truthful execution of root-ownership fixtures while preserving ordinary unprivileged checks; silently skipping them or weakening the ownership checks would conceal the coverage gap."
+        },
+        {
+          "id": "R2-DEPLOY-002",
+          "priority": "P2",
+          "title": "Reject SQLite rollback journal artifacts in source and Git scans",
+          "file": "scripts/release-audit.mjs",
+          "line": 24,
+          "reproduction": "Create a new isolated Git repository containing a tracked gateway.sqlite-journal file, then call auditSource and auditGitObjects from release-audit.mjs. Both return status clean with zero artifacts. The generated-artifact suffix only accepts .sqlite/.sqlite3 plus -wal/-shm, omitting the -journal sidecar already recognized by deploy/journal.py:18. Executed reproducer: .work/r2-deploy-scanner-probe.mjs; results: .work/r2-deploy-scanner-results.json. The source probe scanned the complete 33-byte harmless sidecar fixture; Git mode scanned its blob and tree, also clean.",
+          "impact": "A force-tracked or historical SQLite rollback journal can pass both release checks and enter the audited source snapshot even though generated database state must remain outside Git. Such journals can retain prior database page contents. Add the rollback-journal suffix to the shared path policy and cover source plus historical trees."
+        },
+        {
+          "id": "R2-DEPLOY-003",
+          "priority": "P2",
+          "title": "Recognize supported credential patterns in UTF-16 text",
+          "file": "scripts/release-audit.mjs",
+          "line": 62,
+          "reproduction": "Create settings.txt as BOM-prefixed UTF-16LE containing an api_key assignment whose value is a synthetic sk- token followed by 32 alphabetic fixture characters. Track it in a new isolated Git repository. auditSource reads all 94 bytes and returns clean; auditGitObjects scans the complete blob/tree and also returns clean. scanStream decodes each byte with latin1, leaving NUL characters between every credential character, so both the api-token and literal-secret rules miss the same token that they detect in ordinary ASCII/UTF-8. Executed reproducer and results are .work/r2-deploy-scanner-probe.mjs and .work/r2-deploy-scanner-results.json. No real credentials were used or emitted.",
+          "impact": "A normal UTF-16 configuration or text file can contain a credential matching an explicitly supported rule while both release scan modes certify it clean. Decode recognized UTF-16 encodings with chunk-safe handling, or classify unsupported encoded text as incomplete rather than clean, and add source/blob regressions."
+        },
+        {
+          "id": "R2-INTEGRATION-001",
+          "priority": "P2",
+          "title": "Expired outer authentication becomes a generic fetch failure while WebSocket stays connected",
+          "file": "web/lib/api.ts",
+          "reproduction": "On the actual 120 HTTPS deployment, leave the authenticated browser idle beyond Authelia inactivity=5m. Subsequent account/status fetch calls show Failed to fetch and retain the connected workspace. Reloading navigates to the authentication portal; after signing in the same draft is restored. A separate TLS-verified live request confirmed browser-default Accept */* yields 303 to the portal while application/json or X-Requested-With XMLHttpRequest yields 401.",
+          "evidence": "verification/audit-evidence/round2-fixes/browser-integration.json"
+        },
+        {
+          "id": "R2-INTEGRATION-002",
+          "priority": "P2",
+          "title": "Terminal min-content width grows beyond the panel and produces unsupported native column counts",
+          "file": "web/components/TerminalPanel.tsx",
+          "reproduction": "At a 1743px browser viewport, opening the terminal panel and allowing ResizeObserver fitting measured terminal-panel width 8811px, terminal-surface width 8767px and xterm-screen width 8737px within a 1499px workspace. The visible open terminal action returned Invalid cols; native RPC permits at most 500 columns. The button was outside the visible panel.",
+          "evidence": "verification/audit-evidence/round2-fixes/browser-integration.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r2-runtime",
+          "evidence": "verification/audit-evidence/round2/r2-runtime.json",
+          "sha256": "9b1891da95d12900ac855ccf3bbd7bfd24e94108eaf16db1408963b09d344a11",
+          "scopes": [
+            "runtime-protocol"
+          ]
+        },
+        {
+          "id": "r2-control-web",
+          "evidence": "verification/audit-evidence/round2/r2-control-web.json",
+          "sha256": "72f31bd30b8a9a63e176a399a6d696e5b29e77af72984fd42c2246eb9a82d6e4",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ]
+        },
+        {
+          "id": "r2-deploy-release",
+          "evidence": "verification/audit-evidence/round2/r2-deploy-release.json",
+          "sha256": "f43e0e656318f878aa1ca3dfbe140c13935f91f9db4556b44f7372ef104afef1",
+          "scopes": [
+            "deployment-release"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "round3",
+      "sequence": 3,
+      "digest": "eff71f0b8cd5921e0f227aa10208fc51666ab7156ece4ac88432b1c1d08bb765",
+      "startedAt": "2026-10-24T19:46:07.233Z",
+      "complete": true,
+      "completedAt": "2026-10-24T19:55:22.1245554Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R3-RUNTIME-001",
+          "priority": "P2",
+          "file": "src/runtime/native.ts",
+          "line": 172,
+          "title": "Reject a failed Windows tree kill even when the native root has exited",
+          "description": "The taskkill callback resolves on `code === 0 || this.exited`. If the native root exits after stop() starts taskkill but before taskkill enumerates the tree, taskkill returns 128 and the child close event sets this.exited. The OR condition then reports successful process-tree cleanup despite live descendants. The earlier already-exited guard does not cover this race.",
+          "impact": "On Windows development/isolated-probe runs, a terminal command or other native descendant can survive a supposedly successful NativeRpc.close(). Defaults probing can cache and return a result after a false cleanup acknowledgement, and service shutdown can report cleanup success while orphaned work remains. Production Linux launcher cleanup is a separate branch and is not implicated by this reproduction.",
+          "reproduction": {
+            "scripts": [
+              ".work/r3-runtime-exit-fixture.mjs",
+              ".work/r3-runtime-exit-probe.mjs"
+            ],
+            "result": ".work/r3-runtime-exit-probe/result.json",
+            "steps": [
+              "Compile the frozen source with `node node_modules/typescript/bin/tsc -p tsconfig.server.json --outDir .work/r3-runtime-probe-dist` and copy package.json into that ignored output root for runtime metadata.",
+              "Run `node .work/r3-runtime-exit-probe.mjs` on Windows. Its local stdio fixture completes initialization, spawns a detached idle Node descendant, sends a valid request result, then exits ten milliseconds later. The caller immediately awaits NativeRpc.close() with dev:true.",
+              "The probe observes the actual taskkill exit code through a pass-through spawn wrapper and checks descendant liveness after close() settles. It does not mock taskkill, timing or process termination.",
+              "All three runs recorded taskkillExitCode:128, cleanup:resolved and descendantAlive:true. The probe finally explicitly taskkills every fixture descendant; a separate follow-up liveness check confirmed all three were gone."
+            ],
+            "observations": [
+              {
+                "run": 0,
+                "rootPid": 38736,
+                "childId": 23504,
+                "outcome": {
+                  "childId": 23504
+                },
+                "cleanup": "resolved",
+                "descendantAlive": true,
+                "taskkillExitCode": 128
+              },
+              {
+                "run": 1,
+                "rootPid": 29460,
+                "childId": 26812,
+                "outcome": {
+                  "childId": 26812
+                },
+                "cleanup": "resolved",
+                "descendantAlive": true,
+                "taskkillExitCode": 128
+              },
+              {
+                "run": 2,
+                "rootPid": 25936,
+                "childId": 45680,
+                "outcome": {
+                  "childId": 45680
+                },
+                "cleanup": "resolved",
+                "descendantAlive": true,
+                "taskkillExitCode": 128
+              }
+            ]
+          },
+          "recommendation": "Treat nonzero taskkill exit as an unconfirmed cleanup failure even if the root has closed. Add a focused regression for root exit during tree-kill startup; only acknowledge successful cleanup with evidence for the process tree."
+        },
+        {
+          "id": "R3-CW-01",
+          "priority": "P2",
+          "title": "Recover or close a terminal whose accepted HTTP result is lost",
+          "locations": [
+            {
+              "path": "web/components/TerminalPanel.tsx",
+              "startLine": 67,
+              "endLine": 73
+            },
+            {
+              "path": "web/lib/operations.ts",
+              "startLine": 76,
+              "endLine": 85
+            },
+            {
+              "path": "web/components/Recovery.tsx",
+              "startLine": 40,
+              "endLine": 40
+            }
+          ],
+          "description": "When terminal/open is durably accepted and its receipt is received over the still-live WebSocket, losing only its HTTP response leaves the TerminalPanel without terminalId. Receipt reconciliation retains accepted status but discards result.terminalId. The recovery row then offers only acknowledgement, while the panel offers another open with no recover or close action. Later output for the accepted terminal is ignored. The existing runtime keeps this shell running without a timeout until its authenticated owner disconnects; it occupies a terminal slot and prevents configuration changes while it exists. This concerns a positively accepted result, not the unavoidable uncertainty of a request without a receipt.",
+          "reproduction": "Open a terminal with a stable owner; deliver its accepted receipt containing terminalId before rejecting the fetch with a transport error. The isolated component probe observes one accepted operation, an enabled open button, no close button, no query-receipt button, and zero terminal/close requests. Owned output afterward still does not restore controls.",
+          "evidence": [
+            ".work/r3-control-web-terminal-recovery.test.tsx",
+            "src/runtime/service.ts:304-320"
+          ],
+          "recommendation": "Keep or reread the durable terminal result and bind an explicit recover/close action to its original live owner, or safely close the accepted orphan when recovery is possible; do not silently discard its resource identity."
+        },
+        {
+          "id": "R3-CW-02",
+          "priority": "P2",
+          "title": "Retain a bounded HTTP output reservation until the response drains or closes",
+          "locations": [
+            {
+              "path": "src/gateway/server.ts",
+              "startLine": 26,
+              "endLine": 30
+            },
+            {
+              "path": "src/gateway/server.ts",
+              "startLine": 178,
+              "endLine": 196
+            }
+          ],
+          "description": "GatewayServer releases the only request reservation immediately after json calls res.end, although a slow client can leave that response buffered. The byte budget charges request input only, the sockets limit applies to WebSockets only, and there is no global HTTP output/connection budget or response write timeout. Node applies per-connection pipeline backpressure but additional authenticated HTTP connections remain admitted, so unread response data can accumulate outside the declared budgets.",
+          "reproduction": "A real isolated gateway with one authenticated event owner and eight paused HTTP readers accepted three sequential thread/read requests on each connection. Each response was 6 MiB, within the runtime history and gateway response limits. All 24 requests were forwarded; eight responses remained not writableFinished with combined writableLength 50337032 bytes. A separate bounded probe admitted 52 independent HTTP connections using the same owner, confirming the WebSocket count does not cap HTTP connections. Initial single-response probes were absorbed by OS send buffers and were not counted as proof of JavaScript response retention.",
+          "evidence": [
+            ".work/r3-control-web-slow-http.test.ts",
+            ".work/r3-control-web-http-result.json",
+            "src/runtime/types.ts:9"
+          ],
+          "recommendation": "Charge encoded responses against a global output budget before retention and release only on finish/close, with bounded active HTTP connections and a slow-response timeout or equivalent explicit admission policy."
+        },
+        {
+          "id": "R3-DEP-01",
+          "priority": "P2",
+          "title": "Bound management request staging before creating privileged files or units",
+          "file": "deploy/cli.py",
+          "lineStart": 64,
+          "lineEnd": 73,
+          "relatedLocations": [
+            {
+              "file": "deploy/cli.py",
+              "lineStart": 57,
+              "lineEnd": 58
+            },
+            {
+              "file": "deploy/cli.py",
+              "lineStart": 74,
+              "lineEnd": 83
+            },
+            {
+              "file": "deploy/manager.py",
+              "lineStart": 403,
+              "lineEnd": 440
+            }
+          ],
+          "trigger": "A gateway-identity caller invokes its permitted manage rpc entry with a recognized mutation while systemd launch/wait fails, times out or the caller disconnects. Each invocation uses a new request UUID before the envelope, operationId, recovery gate or receipt-retention budget is checked.",
+          "impact": "Failed or interrupted calls retain root-owned request JSON under state/requests, including raw provider input. No count/aggregate-byte quota or stopped-unit reclamation applies to these request/result objects. The existing 10000-receipt cap does not cover them, so even invalid requests or replays can grow privileged state storage without bound and exhaust the filesystem. Successful restart transactions also outlive the gateway caller, leaving result files that the killed waiter cannot consume.",
+          "evidence": "The ignored probe prefilled the 10000 receipt count, then made three helper_main RPC calls with method provider/write, no operationId and an extra 65536-character field. Only require_linux/Layout/stdio and the OS command boundary were substituted; production request serialization, UUID allocation, staging and exception handling ran against a fresh isolated directory. Simulated systemd launch failure retained 1/2/3 files totaling 65612/131224/196836 bytes; each call still attempted one systemd launch and created zero new receipts. The retained fixture request input remained readable from each staged file. No root/systemd command was executed.",
+          "reproduction": [
+            "Use an isolated temporary Layout and create state/requests and state/receipts.",
+            "Populate state/receipts with 10000 ordinary fixture records to reach the existing receipt count limit.",
+            "Invoke cli.helper_main with argv [manage,rpc] and a provider/write JSON body lacking operationId and containing a 64 KiB extra field; substitute the systemd command function with a command_failed exception.",
+            "Repeat three times and observe state/requests grows by a fresh input file each time although the requests are invalid and the receipt budget is already full."
+          ],
+          "probeArtifacts": [
+            ".work/r3-deployment/probe_request_retention.py",
+            ".work/r3-deployment/request-retention.json"
+          ],
+          "recommendation": "Validate the bounded mutation envelope before staging and enforce a root-owned aggregate count/byte/in-flight budget under a separate short admission lock before creating a request or transient unit. Retain uncertain outcomes safely, but refuse further admission at the bound; reclaim request/result files only after confirming the owning unit has stopped and the durable receipt preserves the needed recovery facts. Add focused coverage for launch failure, waiter disconnect, invalid request flooding and receipt replay."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r3-runtime",
+          "evidence": "verification/audit-evidence/round3/r3-runtime.json",
+          "sha256": "be8be72ca87277b619af7ef9fa80bb6af5bb2052163b3097eacfbf5f7cdc107f",
+          "scopes": [
+            "runtime-protocol"
+          ]
+        },
+        {
+          "id": "r3-control-web",
+          "evidence": "verification/audit-evidence/round3/r3-control-web.json",
+          "sha256": "115d154a75573e4801e52e256a12ebac7da8095ef5d2476ce8cc591d2b3fd722",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ]
+        },
+        {
+          "id": "r3-deployment",
+          "evidence": "verification/audit-evidence/round3/r3-deployment.json",
+          "sha256": "4a5636932afc38b09a30224697ae9143da1b3ab85eb74c3a267739662f3df066",
+          "scopes": [
+            "deployment-release"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "round4",
+      "sequence": 4,
+      "digest": "c7d9ebbf601fb0563ce8b8fb40c46de5cb8e46fc8638303cded19cbcbc830aa0",
+      "complete": true,
+      "startedAt": "2026-10-25T07:42:27.156Z",
+      "completedAt": "2026-10-25T08:03:28.418Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R4-RUNTIME-001",
+          "priority": "P3",
+          "title": "Correct the resource-policy description of thread/resume as a read",
+          "file": "tests/runtime/README.md",
+          "line": 45,
+          "endLine": 45,
+          "trigger": "A reader follows the History resource-policy paragraph to implement or review a resume request.",
+          "impact": "The paragraph calls thread/resume a read-classified recovery read, contradicting the explicit mutation semantics documented at line 20 and implemented by the write/continue method classification. Resume may consume persisted native work, so this stale text misstates its operation and receipt requirements. This is documentation-only; the inspected implementation keeps the write boundary and does not expose a read-route authorization bypass.",
+          "evidence": [
+            "tests/runtime/README.md:45 says read-classified thread/resume and recovery read.",
+            "tests/runtime/README.md:20 correctly states that resume is an explicit mutation and may start persisted work.",
+            "src/core/feature-methods.ts:16 defines continuation as access write; line 51 assigns thread/resume to continuation."
+          ],
+          "reproduction": "Read the History resource-policy paragraph at tests/runtime/README.md line 45, then compare its read classification with the explicit mutation explanation at line 20 and the continuation classification at src/core/feature-methods.ts lines 16 and 51. The contradictory classification is directly reproducible from the frozen source without an external service."
+        },
+        {
+          "id": "r4-interface-001",
+          "priority": "P1",
+          "title": "Gateway document policy disables the microphone required by the default realtime audio flow",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "file": "src/gateway/server.ts",
+          "startLine": 23,
+          "endLine": 23,
+          "trigger": "Open the gateway-served UI in a browser that enforces microphone Permissions Policy, on HTTPS or trusted loopback, select an eligible loaded idle thread, retain the default audio modality and activate the realtime start control.",
+          "impact": "The document is served with microphone=(), so browser microphone capture is forbidden regardless of the user granting permission. RealtimeMedia.offer() requires getUserMedia before thread/realtime/start is sent. Thus the advertised audio flow cannot start for affected browsers even in an otherwise valid secure context; the existing capability check can still enable the control because it checks API presence and secure context only.",
+          "evidence": [
+            "src/gateway/server.ts:20-24 installs permissions-policy camera=(), microphone=(), geolocation=() on the real HTTP response.",
+            "web/components/RealtimePanel.tsx:79-87 awaits RealtimeMedia.offer() for audio before constructing the native realtime start mutation.",
+            "web/lib/realtime-media.ts:12-22 accepts secure contexts with media APIs and then awaits navigator.mediaDevices.getUserMedia({audio:...,video:false}).",
+            "The real loopback HTTP reproduction returned status 200, text/html; charset=utf-8, an application root element, and permissions-policy camera=(), microphone=(), geolocation=().",
+            "The existing realtime browser-unit fixture supplies fake media APIs in jsdom; that does not evaluate the actual GatewayServer document policy."
+          ],
+          "reproduction": {
+            "command": "node node_modules/vitest/vitest.mjs run --config .work/round4/interface-repro.config.ts",
+            "test": ".work/round4/interface-microphone.test.ts",
+            "configuration": ".work/round4/interface-repro.config.ts",
+            "observation": ".work/round4/interface-microphone-observation.json",
+            "result": "1 file, 1 test passed; the assertion confirms the blocking policy is present, not that the audio feature works.",
+            "observed": {
+              "observedAt": "2026-10-25T07:45:51.449Z",
+              "transport": "real loopback HTTP GatewayServer, local fake worker only",
+              "status": 200,
+              "contentType": "text/html; charset=utf-8",
+              "permissionsPolicy": "camera=(), microphone=(), geolocation=()",
+              "documentHasRoot": true
+            },
+            "limits": "Real local HTTP stack and HTML response; FakeWorker only. No real microphone or browser permission request was performed. Browser blocking follows from the response policy and required getUserMedia call."
+          },
+          "recommendation": "Permit same-origin microphone use on the app document, retaining the unrelated restrictions, and cover the actual document response policy alongside the audio startup flow."
+        },
+        {
+          "id": "R4-DEP-001",
+          "priority": 2,
+          "severity": "P2",
+          "title": "Configuration-layer rollback and forward recovery admit providers that require system-v1",
+          "file": "deploy/config_layer.py",
+          "lineStart": 243,
+          "lineEnd": 253,
+          "relatedLocations": [
+            {
+              "file": "deploy/config_layer.py",
+              "lineStart": 179,
+              "lineEnd": 191
+            },
+            {
+              "file": "deploy/config_layer.py",
+              "lineStart": 197,
+              "lineEnd": 204
+            },
+            {
+              "file": "deploy/provider.py",
+              "lineStart": 203,
+              "lineEnd": 212
+            },
+            {
+              "file": "deploy/README.md",
+              "lineStart": 55,
+              "lineEnd": 57
+            }
+          ],
+          "trigger": "Select chatgpt-gateway, bedrock-runtime, or bedrock-mantle in a valid system-v1 instance, then invoke config-layer-rollback. The same transition is admitted by config-layer-recover --target candidate for a retained, unfinished legacy-target journal prepared with one of those providers.",
+          "cause": "ProviderStore.prepare explicitly refuses these provider kinds without system-v1, but rollback reuses the existing generation after checking only that config.toml equals native_config. apply_candidate publishes the legacy instance/unit/sudo configuration without checking the selected provider kind. validate_journal verifies structural fields and unit ownership but does not enforce provider/layer compatibility, so forward recovery reaches the same publication path.",
+          "impact": "The operation reports a committed legacy transition while preserving a provider explicitly unsupported in legacy mode. The published worker unit removes the instance requirements bind and the separate host configuration check, and its config-check unit is deleted. This violates the enforced provider compatibility and documented downgrade prerequisite. The experiment proves the persisted unsupported state and removal of those controls; it does not claim observed real-provider traffic, credential leakage, or a live-service failure.",
+          "reproduction": {
+            "cases": 6,
+            "matrix": {
+              "entrypoints": [
+                "change_config_layer(layered=False)",
+                "recover_config_layer(candidate=True)"
+              ],
+              "providerKinds": [
+                "chatgpt-gateway",
+                "bedrock-runtime",
+                "bedrock-mantle"
+              ]
+            },
+            "observedEveryCase": {
+              "operationReturnedSuccess": true,
+              "providerConfigLayer": null,
+              "configCheckUnitExists": false,
+              "workerRequirementsBindExists": false,
+              "providerKindUnchanged": true
+            },
+            "procedure": "Create isolated relocated instance/config/unit/provider files under ignored .work. Call the real downgrade path. For forward recovery, interrupt the real path immediately after it writes the prepared journal, then pass that retained journal to the real recovery path with candidate=True. Inspect published instance.json and worker/config-check files. The actual journal validation and candidate unit ownership comparison run in the recovery cases.",
+            "substitutions": "Windows nonprivileged fixture substitutes service state/stop/reload, visudo execution, initial manager ownership/recovery preflights, user-layer Linux ownership inspection, and provider selection with a fixed current-generation model. Generated unit bytes, native_config, transaction snapshots/journals, legacy publication and forward recovery are real. Recovery snapshot modes are normalized to intended Linux 0644/0600/0440 because Windows reports writable regular files as 0666. No Linux permissions, systemd, native process or external provider behavior is claimed.",
+            "artifacts": [
+              {
+                "path": ".work/round4/deployment-repro/advanced-layer-rollback.py",
+                "sha256": "c1d875acb4d8c0db3af5557ad97504163a6276017ed7b6486474f0afd02404ac"
+              },
+              {
+                "path": ".work/round4/deployment-repro/advanced-layer-rollback.jsonl",
+                "sha256": "1e356197ba66fb4ab6c44c44fa0d2cd28bc84c35b933cbbde54f72f83ee35f2b"
+              }
+            ]
+          },
+          "recommendation": "Enforce provider-kind/target-layer compatibility before a new downgrade creates a transaction or stops services, and enforce the same invariant before apply_candidate publishes a retained candidate during forward recovery. Preserve the ability to recover the old state. Require selection of a legacy-supported provider before downgrading, and add regressions for all three advanced kinds through both ordinary rollback and prepared-journal candidate recovery."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r4-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round4/r4-runtime.json",
+          "sha256": "07000f41b9c471701383df148ff08e7e0b675c64152276469b5c13298d16ac49"
+        },
+        {
+          "id": "r4-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round4/r4-interface.json",
+          "sha256": "c048e98588521067d2f43af60424fe283edb15c55f5439da4d34ce353e58d7e7"
+        },
+        {
+          "id": "r4-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round4/r4-deployment.json",
+          "sha256": "a876ba32ae5013b63b03211c10f7d836210312f9bc5e944d1e55b369e8794de7"
+        }
+      ]
+    },
+    {
+      "id": "round5",
+      "sequence": 5,
+      "digest": "a7818c2e6337f8a499d777a25cb46eda6fb2dbb2021aed7f69e23e218b6eb7cb",
+      "complete": true,
+      "startedAt": "2026-10-25T08:14:08.634Z",
+      "completedAt": "2026-10-25T08:31:24.867Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "r5-interface-001",
+          "priority": "P1",
+          "path": "web/components/Composer.tsx",
+          "lines": {
+            "start": 50,
+            "end": 50
+          },
+          "impact": "EnvironmentPicker and InputContextPicker are sibling elements with the same key={contextKey}. When navigation changes contextKey, React leaves the old EnvironmentPicker mounted in the DOM. Repeated navigation accumulates duplicate environment controls with stale callbacks. Clicking a retained control can erase the previous conversation draft: its captured useDraft update closure sees a different current key, uses emptyDraft(oldKey), and persists that empty draft. It also leaves the currently displayed draft empty until reloaded. This affects normal thread/new-draft navigation because App changes attachmentContext on navigation and passes it to the same mounted Composer. Give the sibling controls distinct keys and cover navigation plus stale callback ownership with a regression test.",
+          "evidence": {
+            "source": [
+              "web/components/Composer.tsx:50 uses the identical key for the two sibling controls",
+              "web/App.tsx:134 and :143 change attachmentContext on browser/direct navigation; :193 passes it as Composer contextKey without remounting Composer",
+              "web/hooks/useDraft.ts:12-15 initializes emptyDraft(key) when an old update closure runs while current.current.key belongs to another draft"
+            ],
+            "reproduction": ".work/round5/r5-composer-context.test.tsx",
+            "command": "node node_modules/vitest/vitest.mjs run --config .work/round5/r5-interface-vitest.config.ts --reporter=default --reporter=json --outputFile=.work/round5/r5-composer-context-result.json",
+            "observed": [
+              "Rendering actual Composer with contexts a, b and c produced environment-picker counts [1,2,3], where [1,1,1] was expected; clicking the oldest retained control invoked options {model:\"model-a\"}.",
+              "With actual useDraft and persisted texts a=\"unsent A\" and b=\"unsent B\", render a, navigate to b, then click the old environment control: readDraft(\"a\").text became \"\", readDraft(\"b\").text stayed \"unsent B\", and the displayed textarea became \"\"."
+            ],
+            "result": "2 focused regression assertions failed as expected against the frozen source; both failures directly reproduce the defect.",
+            "log": ".work/round5/r5-composer-context.log",
+            "jsonReport": ".work/round5/r5-composer-context-result.json"
+          }
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r5-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round5/r5-runtime.json",
+          "sha256": "c88ec1b0e625aabd4818b9d1f08e29387b6b655408abe1fda2d22c42462fe96c"
+        },
+        {
+          "id": "r5-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round5/r5-interface.json",
+          "sha256": "613a634af08341fbdbbe85683e4d4de4398b3178daabc61a79c35c9e9d5cf032"
+        },
+        {
+          "id": "r5-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round5/r5-deployment.json",
+          "sha256": "fa91b12e951b45578ea7bb4cbdfc591a0b6be6a08d8d53b9f4d85c8ec7542bf3"
+        }
+      ]
+    },
+    {
+      "id": "round6",
+      "sequence": 6,
+      "digest": "f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d",
+      "complete": true,
+      "startedAt": "2026-10-25T08:40:35.563Z",
+      "completedAt": "2026-10-25T09:00:37.956Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "r6-interface-01",
+          "priority": 2,
+          "title": "Realtime send acknowledgements erase a newer unsent message",
+          "locations": [
+            {
+              "file": "web/components/RealtimePanel.tsx",
+              "line": 114
+            }
+          ],
+          "summary": "The realtime text field stays editable while appendText is awaiting acknowledgement. Sending A, typing B before A succeeds, and then receiving A acknowledgement unconditionally calls setText(\"\") and deletes B. The response belongs to A and does not acknowledge B.",
+          "reproduction": [
+            "Start a local realtime session in text mode.",
+            "Enter A and send it; keep appendText unresolved.",
+            "The text field remains enabled; replace its contents with unsent B.",
+            "Resolve the valid acknowledgement for A. The field becomes empty."
+          ],
+          "suggestedFix": "Disable editing during submission or clear only the submitted draft revision; preserve newer input.",
+          "verification": [
+            {
+              "file": ".work/round6/realtime-draft.test.tsx",
+              "test": "reproduces loss of a newer realtime draft when an earlier send succeeds",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            }
+          ]
+        },
+        {
+          "id": "r6-interface-02",
+          "priority": 2,
+          "title": "Execution settings acknowledgement clears settings edited after submission",
+          "locations": [
+            {
+              "file": "web/components/ThreadExecutionSettings.tsx",
+              "line": 68
+            },
+            {
+              "file": "web/components/ThreadExecutionSettings.tsx",
+              "line": 71
+            }
+          ],
+          "summary": "ExecutionForm captures its settings for action.run, but its selectors remain editable while that request is pending. A successful response resets all changes with empty(), discarding selections made after submission. Both thread and turn forms use this implementation; the reproduction uses thread summary settings.",
+          "reproduction": [
+            "Select concise summary, confirm, and save session settings with the acknowledgement deferred.",
+            "Change the still-enabled summary selector to detailed before acknowledgement.",
+            "Resolve the concise request successfully. The detailed selection reverts to Keep unchanged and was never sent."
+          ],
+          "suggestedFix": "Freeze the submitted execution form or reconcile success against a captured changes revision instead of resetting current edits.",
+          "verification": [
+            {
+              "file": ".work/round6/async-drafts.test.tsx",
+              "test": "reproduces loss of a newly edited execution option while a prior save is pending",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            }
+          ]
+        },
+        {
+          "id": "r6-interface-03",
+          "priority": 2,
+          "title": "Queue and goal save completion discards newer editor contents",
+          "locations": [
+            {
+              "file": "web/components/TaskPanel.tsx",
+              "line": 17
+            },
+            {
+              "file": "web/components/TaskPanel.tsx",
+              "line": 35
+            }
+          ],
+          "summary": "QueueEntry and GoalPanel leave draft controls editable while their captured edit is being saved. Success unconditionally closes the editor. Opening it again seeds from the saved server value, replacing text entered while the prior save was pending. This also exposes the goal budget controls to the same unguarded close path.",
+          "reproduction": [
+            "Edit an existing queued message to A, submit, then type B while queue/update is pending.",
+            "Resolve A successfully and reopen the queue editor: only A remains.",
+            "Repeat in the goal editor: submit objective A, type B while goal/set is pending, acknowledge A and reopen. The objective is A and B is gone."
+          ],
+          "suggestedFix": "Keep newer editor state and remain in edit mode after an older save, or disable the entire submitted editor until acknowledgement.",
+          "verification": [
+            {
+              "file": ".work/round6/async-drafts.test.tsx",
+              "test": "reproduces loss of newer queue edit text when the previous queue save succeeds",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            },
+            {
+              "file": ".work/round6/async-drafts.test.tsx",
+              "test": "reproduces loss of a newer goal draft when an earlier goal edit succeeds",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            }
+          ]
+        },
+        {
+          "id": "r6-interface-04",
+          "priority": 2,
+          "title": "Branch creation hands off stale text and deletes the newer persisted draft",
+          "locations": [
+            {
+              "file": "web/components/HistoryTools.tsx",
+              "line": 23
+            },
+            {
+              "file": "web/components/HistoryTools.tsx",
+              "line": 30
+            }
+          ],
+          "summary": "BranchDialog edit mode persists every edit, but submit closes over the earlier finish/text. While thread/fork is pending, a user can change A to B and B is saved under the source branch draft key. Fork success invokes the earlier finish, hands A to the new branch, and discards the source key containing B. App retains an in-memory source branch copy for this browser session, so the claim is stale handoff and deletion of durable B, not that every possible recovery copy immediately disappears.",
+          "reproduction": [
+            "In Create branch and edit, enter A and begin fork creation with its response deferred.",
+            "Type B in the enabled textarea and verify B exists in readDraft(branchDraftKey(source,turn)).",
+            "Resolve fork creation. onFork receives A, the new thread draft contains A, and readDraft(source branch key) is empty."
+          ],
+          "suggestedFix": "Hand off the latest owned draft consistently or freeze edits while creating; delete only the exact successfully handed-off revision.",
+          "verification": [
+            {
+              "file": ".work/round6/modal-drafts.test.tsx",
+              "test": "branch handoff uses old text and deletes persisted newer branch draft",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            }
+          ]
+        },
+        {
+          "id": "r6-interface-05",
+          "priority": 2,
+          "title": "Successful mutations dismiss transient forms containing newer unsent edits",
+          "locations": [
+            {
+              "file": "web/components/RenameDialog.tsx",
+              "line": 7
+            },
+            {
+              "file": "web/components/ProjectDialog.tsx",
+              "line": 7
+            },
+            {
+              "file": "web/components/HistoryTools.tsx",
+              "line": 44
+            },
+            {
+              "file": "web/components/WorkspacePanel.tsx",
+              "line": 67
+            }
+          ],
+          "summary": "Rename, add-project, custom-review and workspace mkdir forms disable their submit action but keep their fields editable. After submitting A, typing B is allowed; acknowledgement of A then closes or removes the form without preserving B. Each listed workflow was reproduced through rendered controls with a deferred real Api response. Workspace copy shares the destination field and completion path, but the executed workspace reproduction was mkdir.",
+          "reproduction": [
+            "Rename: submit name A, type name B before acknowledgement, then accept A; modal unmounts and only A was sent.",
+            "Add project: submit name/path A, edit them to B before acknowledgement; successful A closes the modal.",
+            "Custom review: submit instructions A, type B while pending; successful A closes the modal and never submits B.",
+            "New directory: submit directory-a, type directory-b while pending; accepting a removes the form, and reopening shows an empty path."
+          ],
+          "suggestedFix": "Freeze all submitted form fields until completion, or retain changed drafts and avoid closing/resetting the form when its revision has advanced.",
+          "verification": [
+            {
+              "file": ".work/round6/modal-drafts.test.tsx",
+              "test": "rename completion dismisses a newer name that was never sent",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            },
+            {
+              "file": ".work/round6/modal-drafts.test.tsx",
+              "test": "project creation completion dismisses a newly edited name and path",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            },
+            {
+              "file": ".work/round6/modal-drafts.test.tsx",
+              "test": "review completion dismisses newly typed custom instructions",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            },
+            {
+              "file": ".work/round6/modal-drafts.test.tsx",
+              "test": "mkdir completion removes a newer path that was typed while pending",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            }
+          ]
+        },
+        {
+          "id": "r6-interface-06",
+          "priority": 2,
+          "title": "Pending prompt answers still accept edits that acknowledgement removes",
+          "locations": [
+            {
+              "file": "web/components/Prompts.tsx",
+              "line": 29
+            },
+            {
+              "file": "web/hooks/usePrompts.ts",
+              "line": 12
+            }
+          ],
+          "summary": "The requestUserInput fields remain editable after Submit answer has sent their snapshot. usePrompts.answer removes the prompt after acknowledgement, including any newer text entered while the request was pending. The reproduction uses the actual usePrompts hook and Prompts component; it does not simulate removal with a test-only callback.",
+          "reproduction": [
+            "Load a requestUserInput prompt, enter answer A and submit with prompt/answer deferred.",
+            "Type B into the still-enabled answer field.",
+            "Resolve A acknowledgement; the prompt disappears, and the recorded request contains only A."
+          ],
+          "suggestedFix": "Disable the prompt answer fields for the lifetime of the pending answer so the UI cannot accept changes that cannot be delivered; apply the same pending-state ownership rule to supported structured answer fields.",
+          "verification": [
+            {
+              "file": ".work/round6/modal-drafts.test.tsx",
+              "test": "answer acknowledgement removes newer text entered in a still editable prompt",
+              "environment": "Local jsdom with real Api and intercepted fetch; no network, native service, credentials or paid calls",
+              "result": "Passed by asserting the current defective behavior"
+            }
+          ]
+        },
+        {
+          "id": "R6-DEPLOY-001",
+          "priority": "P2",
+          "title": "Bound tar extension metadata before the privileged parser reads it",
+          "file": "deploy/safe_fs.py",
+          "lineStart": 57,
+          "lineEnd": 59,
+          "body": "extract_tar opens and iterates tarfile before its member budgets run. Python tarfile eagerly reads a complete PAX extended header into one buffer and hides that header from the yielded members, so MAX_FILES, MAX_FILE and MAX_BYTES do not constrain it. A source archive containing one tiny allowed file and a large compressed PAX record can therefore exhaust the privileged installer memory before Builder.prepare reaches its bounded offline build stages. This affects the shared extraction entry point; pinned upstream downloads are integrity-checked, while operator-supplied application archives are parsed here before application-input validation. Enforce extension-header and aggregate decompressed-input limits before tarfile consumes the metadata, preserving required official archive compatibility.",
+          "trigger": "Install or update with an application source tar archive containing oversized PAX extension metadata.",
+          "impact": "Privileged installer CPU/memory denial of service outside the advertised candidate resource bounds. Actual OOM was not attempted.",
+          "crossReferences": [
+            {
+              "file": "deploy/build.py",
+              "lineStart": 224,
+              "lineEnd": 242,
+              "reason": "Root extracts source before constrained build workspace/stage preparation."
+            }
+          ],
+          "verification": {
+            "runtime": "Windows bundled Python 3.12.14, no services or external calls",
+            "reproduction": ".work/round6/r6-deployment-tar-budget.py",
+            "result": ".work/round6/r6-deployment-tar-budget-result.json",
+            "resultSha256": "5abad1f25c75eddf2ab1dfbb7778a4f3aca77617020fb03f5a371648810a41fa",
+            "observed": {
+              "source": "deploy/safe_fs.py",
+              "sourceSha256": "088598f69131c54cca7b86d0741aca3f84d67407aad7e3f64a0b28091a615a33",
+              "originalBudgets": {
+                "MAX_FILES": 150000,
+                "MAX_BYTES": 3221225472,
+                "MAX_FILE": 536870912
+              },
+              "scaledBudgets": {
+                "MAX_FILES": 1,
+                "MAX_BYTES": 1,
+                "MAX_FILE": 1
+              },
+              "compressedArchiveBytes": 246,
+              "parsedPaxCommentBytes": 65536,
+              "extractedFileBytes": 1,
+              "outcome": "accepted_without_budget_error",
+              "originalBudgetOversizeHeader": {
+                "declaredPaxBytes": 536870913,
+                "largestReadRequestedBeforeMemberBudgetCheck": 536871424,
+                "readInterceptedWithoutAllocation": true,
+                "instrumentation": "Replaced only file object with recording BytesIO; real tarfile parser and original safe_fs budget values."
+              },
+              "tarfilePaxReadSource": [
+                "buf = tarfile.fileobj.read(self._block(self.size))"
+              ],
+              "safety": "Tiny local archive, scaled module constants only in this process; no source edits, external calls or services."
+            },
+            "limitation": "The first case scales only module budget constants in-process. The second restores production constants and intercepts the real parser file-object read before any large allocation. No memory-exhaustion stress test was executed."
+          }
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r6-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round6/r6-runtime.json",
+          "sha256": "439f1d9c1660e01f8d7e7103b2fdc2199c55117da1ae25ef5d85b0973d84089b"
+        },
+        {
+          "id": "r6-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round6/r6-interface.json",
+          "sha256": "2847688ae60a2e7516157ddcf94a04b42793f0087923445e9653a149f4f54db6"
+        },
+        {
+          "id": "r6-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round6/r6-deployment.json",
+          "sha256": "0e9a597303252288af26d6eca209d6ed4f45a409853c98ba2dfa47a81aba67bb"
+        }
+      ]
+    },
+    {
+      "id": "round7",
+      "sequence": 7,
+      "digest": "3a355d650d3f4cdb8cd6952bebf1c8f039df1c2f4f61a1ffdc77ccb325dbe5b8",
+      "complete": true,
+      "startedAt": "2026-10-25T09:25:02.781Z",
+      "completedAt": "2026-10-25T09:45:19.739Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "priority": 2,
+          "id": "R7-RUNTIME-001",
+          "file": "src/runtime/dev-resources.ts",
+          "line": 16,
+          "title": "Open development resources without blocking on special files",
+          "trigger": "On Linux with HARNESS_DEV enabled and no native launcher, an authenticated skills/read request refreshes the native catalog (extensions.ts:118-125), then service.ts:91 calls devResource. A concurrent project writer can replace the selected SKILL.md with a FIFO after catalog discovery and before open. The directory walk rejects symlinks but permits FIFOs; read opens O_RDONLY before checking isFile. Local plugin/skill/read uses the same resource path. The isolated reproduction calls the actual devResource function directly with real FIFO paths; it does not claim to reproduce the native-catalog race end to end.",
+          "impact": "A FIFO without a writer leaves open pending indefinitely, before the ordinary-file/byte checks or finally cleanup can run. Four such calls consume the default libuv filesystem thread pool: unrelated filesystem reads also stop completing, while JavaScript timers remain responsive. This is availability/resource exhaustion in the explicitly supported development runtime; the production separate-identity helper is outside this finding.",
+          "evidence": {
+            "sourceSha256": {
+              "src/runtime/types.ts": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0",
+              "src/runtime/dev-resources.ts": "d81709a2640a354737abc0fe0231e5cbcd93c7ce48f4cbdf3e244a4d4a686396"
+            },
+            "route": [
+              "src/runtime/extensions.ts:118",
+              "src/runtime/extensions.ts:125",
+              "src/runtime/service.ts:91",
+              "src/runtime/dev-resources.ts:16",
+              "src/runtime/dev-resources.ts:18"
+            ],
+            "localArtifact": ".work/round7/runtime-fifo-result.json",
+            "probeScript": ".work/round7/runtime-fifo-probe.mjs",
+            "linuxScratch": "/opt/codex-harness-rewrite-20261025/r7-runtime-18a1522e-c9ad-4d12-baf6-fa8860536c84",
+            "linuxResult": {
+              "checkedAt": "2026-10-25T09:38:40.694109+00:00",
+              "root": "/opt/codex-harness-rewrite-20261025/r7-runtime-18a1522e-c9ad-4d12-baf6-fa8860536c84",
+              "pid": 2448911,
+              "exitCode": -9,
+              "stdout": "{\"uid\":65534,\"node\":\"v24.22.1\",\"baseline\":\"bounded-regular-control\",\"fifoCalls\":4,\"fifoCallsSettled\":0,\"unrelatedReadSettled\":false,\"timerTicks\":11,\"errors\":[]}\n",
+              "stderr": "",
+              "processReaped": true,
+              "forcedTimeoutCleanup": true
+            },
+            "observation": {
+              "uid": 65534,
+              "node": "v24.22.1",
+              "baseline": "bounded-regular-control",
+              "fifoCalls": 4,
+              "fifoCallsSettled": 0,
+              "unrelatedReadSettled": false,
+              "timerTicks": 11,
+              "errors": []
+            },
+            "regressionGap": "tests/runtime/dev-resources.test.ts covers escape/link rejection and content revisions but has no special-file or bounded-completion regression."
+          },
+          "recommendation": "Include O_NONBLOCK where available when opening resource files, then reject non-regular descriptors and retain the existing identity/size checks. A pre-open lstat check alone does not close the race. Add a bounded Linux regression with a FIFO and verify an unrelated filesystem operation remains responsive."
+        },
+        {
+          "priority": "P2",
+          "id": "R7-INTERFACE-01",
+          "file": "web/components/ProcessPanel.tsx",
+          "line": 52,
+          "trigger": "Enter an unsent stdin draft for a running process and successfully click Send Ctrl+C or Close input stream. Also reproducible for a pending ordinary text send: edit A to B and back to A before success, or switch from process-one to process-two and type the same A before process-one success.",
+          "impact": "A successful control operation clears text that it never submitted. A delayed ordinary-send response can clear a newer draft revision or another selected process draft. The discarded input exists only in component state and has no recovery path. This can silently lose command/input text during normal interactive process use.",
+          "evidence": [
+            "ProcessPanel.tsx:52 snapshots only the string input and calls setInput(current => current === before ? empty : current) after every successful send operation. It does not test whether text was submitted from that draft, whether the draft revision changed, or whether the selected process still owns it.",
+            "ProcessPanel.tsx:68 routes Send Ctrl+C through send(ETX) and Close input stream through send(empty, true); neither submits the editor draft. The editor remains editable while a control call is pending.",
+            "ProcessPanel.tsx:39 keys ProcessSession by epoch and connectionId; :44 uses the fixed owned-process-control workflow key. The process selector at :65 is disabled only when disconnected. Therefore changing the process during a pending call does not unmount or invalidate the original successful continuation. useWorkflow only checks component mounting before returning an accepted result.",
+            "node .work/round7/process-input-fixture.mjs executed the actual handler and reproduced four loss paths: Ctrl+C editorAfter empty with deltaBase64 Aw==; closeStdin editorAfter empty with no deltaBase64; A-to-B-to-A editorAfter empty; process-one pending send followed by process-two draft A editorAfter empty while sentParams.processHandle remained process-one. A normal unchanged send was included as a control.",
+            "The targeted existing web/tests/process-remote.test.tsx suite passes 7 tests but has no stdin control draft-preservation, edit-revision or process-selection race coverage. This passing result is not treated as proof that the affected workflow is correct."
+          ],
+          "suggestedCorrection": "Associate text submissions with their process owner and a monotonically changing draft revision. Clear only an unchanged submitted text draft owned by the same process. Control-only actions must preserve the editor. Add targeted interaction regressions for controls, pending edits and pending process changes."
+        },
+        {
+          "priority": "P2",
+          "id": "r7-deployment-001",
+          "file": "deploy/safe_fs.py",
+          "line": 131,
+          "trigger": "An untrusted build produces a very wide directory before it exits. Builder.prepare then calls privileged snapshot(build/app, export/app) at deploy/build.py:281 after the producer stops. snapshot first evaluates sorted(os.listdir(fd)), before checking MAX_FILES at line134; inspect_tree likewise lets os.walk materialize a whole directory before line199 enforces its count.",
+          "impact": "The advertised150000-entry cap does not bound privileged enumeration memory or sorting work. Candidate-created names, including hardlink names that would later be rejected, are all allocated first; candidate stage memory limits no longer contain this allocation. A sufficiently wide output can exhaust the importer/host resources before the intended budget error. This is an import resource-boundary flaw, not evidence of path escape or arbitrary root execution.",
+          "evidence": [
+            "Fresh Windows actual inspect_tree witness with2000 empty files and MAX_FILES temporarily3 consumed all2000 DirEntries before Tree file budget exceeded.",
+            "Fresh Linux actual fd snapshot witness under nobody UID65534: os.listdir received a real directory descriptor and returned2000 names; only3 entries were copied before Tree has too many files. No huge directory or OOM was attempted.",
+            {
+              "file": ".work/round7/r7-deployment-listing-repro.py",
+              "sha256": "825bfae75a59f80df5a36cb577a147fe6cb90feb15c41f02b717ec8db2811258"
+            },
+            {
+              "file": ".work/round7/r7-deployment-listing-repro.json",
+              "sha256": "b7fb90b11c3a8e06c18b0d0b6331aa24b8cb0421cd8d1eeddac5e1756e3ed33c"
+            },
+            {
+              "file": ".work/round7/r7-deployment-fd-probe.py",
+              "sha256": "b220cf6c1f66cfefd7179194ca70d7cfd5c73cf16a2bc65085e380f17bc95228"
+            },
+            {
+              "file": ".work/round7/r7-deployment-linux-fd-result.json",
+              "sha256": "ae838c0d8583d377b746f1654b2a8fa722cd6c32d350a227a9a138e190efbe5f"
+            },
+            "Adjacent protected-root provider/control/TLS retention listings are root-owned; workspace scandir paths enforce budgets during iteration and are not generalized into this finding. Bound enumeration while consuming it before sorting; preserve fd-relative verification."
+          ]
+        },
+        {
+          "priority": "P2",
+          "id": "r7-deployment-002",
+          "file": "deploy/safe_fs.py",
+          "line": 77,
+          "trigger": "A source tar contains many ordinary file headers with distinct nested parent paths, omitting separate directory headers. extract_tar counts physical headers at lines63-64, but tree_mkdir(target.parent,destination) recursively creates all missing parents without charging them to a filesystem-entry budget.",
+          "impact": "The tar member budget does not bound filesystem entries created during extraction. Builder.prepare extracts the untrusted archive directly into the ordinary stage/source at deploy/build.py:231-232 before its4/8GiB loop workspaces exist. Deep path prefixes can multiply disk/inode consumption on the privileged host filesystem; later inspect_tree rejection arrives only after those directories have already been created. Header/payload byte limits and per-file content limits do not charge these empty directory inodes.",
+          "evidence": [
+            "Fresh Windows actual extract_tar fixture with MAX_FILES temporarily3 and only2 one-byte file headers (first/a/b/c/file and second/a/b/c/file) returned successfully after creating10 filesystem entries. No links, special members, large directory or disk filling were required.",
+            {
+              "file": ".work/round7/r7-deployment-implicit-directories-repro.py",
+              "sha256": "5f5c5449013aab2a953ba44156564eae05191fec7ca7220b8777a563b92ef49d"
+            },
+            {
+              "file": ".work/round7/r7-deployment-implicit-directories-result.json",
+              "sha256": "22b765d602d72fa8e1f83d61678b574a9ee6feef7e1f2964f8b9664cb66182d2"
+            },
+            "tree_mkdir uses parents=True at line28; extract_tar entries tracks only explicit members. Count each newly created implicit directory before creation in addition to physical tar-header limits; ensure root source preparation has an enforced storage budget."
+          ]
+        }
+      ],
+      "skipped": [
+        {
+          "kind": "execution-not-run",
+          "scope": "All8 assigned tests/deploy/root fixtures, real systemd unit/condition/reboot behavior, production install/update/rollback, cgroup/namespace/loop-filesystem isolation, native UID privilege attacks, and subprocess/subreaper platform cases",
+          "reason": "This review began on Windows. The later narrow Linux nobody fd-import probe does not execute or establish these integration paths. Their source was reviewed; no pass is claimed."
+        },
+        {
+          "kind": "execution-not-run",
+          "scope": "Full repository test suite, SSH deployment acceptance, public TLS/Authelia login, actual provider/account/OAuth/Cloud/MCP/paid inference",
+          "reason": "Outside the authorized audit execution scope. Only one parent-authorized isolated Linux helper reproduction used SSH; no service/deployment work ran."
+        },
+        {
+          "kind": "evidence-boundary",
+          "scope": "Historical feature-evidence source/test execution reports and prior audit-report contents",
+          "reason": "Source/evidence pointers and relevant current hashes were checked, and artifact limitations were read; historical execution was not rerun or promoted to current pass. Prior audit/report content was intentionally not opened."
+        }
+      ],
+      "reviewers": [
+        {
+          "id": "r7-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round7/r7-runtime.json",
+          "sha256": "666958863bc0a96ca599deb544450c4490213c3a139b681c64b3decbb9e420ec"
+        },
+        {
+          "id": "r7-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round7/r7-interface.json",
+          "sha256": "ddf2b88c47d09c108ee1838acefdc61837e0a939d4d49e92b730eeb826977285"
+        },
+        {
+          "id": "r7-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round7/r7-deployment.json",
+          "sha256": "51dd3b47bc3c48736bf32f36f1468d4efdf327fca079c799cb722c74b0dd2a7e"
+        }
+      ],
+      "evidenceDisplayCorrections": [
+        {
+          "evidence": "verification/audit-evidence/round7/evidence-display-correction.json",
+          "sha256": "fe70e7386bb39e6254c5441b6630d5241306a8d9d2bcacbb9b72d9ddef2892c2"
+        }
+      ]
+    },
+    {
+      "id": "round8",
+      "sequence": 8,
+      "digest": "492a6b22e554c92e91090eafb22cb95f571f0d2ef029f3e2daf542dcef3e0b8e",
+      "complete": true,
+      "startedAt": "2026-10-25T09:58:24.154Z",
+      "completedAt": "2026-10-25T10:20:40.257Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "priority": 2,
+          "id": "R8-RUNTIME-01",
+          "file": "src/runtime/realtime.ts",
+          "line": 104,
+          "title": "Fence prior realtime sessions before assigning thread-only notifications to a new owner",
+          "trigger": "Session A stops and receives the empty ThreadRealtimeStopResponse; the wrapper marks A closed and permits session B on the same thread. A valid late canonical item from A, explicitly carrying A realtimeSessionId, or a delayed thread-only close/SDP/audio event then arrives.",
+          "impact": "notification() selects B solely by threadId. It emits A transcript under B sessionHandle/clientId/eventChannelId without comparing the explicit item session ID. A delayed closed event also closes B and releases its activity barrier while B may still be running. The private per-connection voice ownership invariant and current-session state are therefore not preserved across same-thread reuse.",
+          "evidence": [
+            "src/runtime/realtime.ts:64-76 generates a realtimeSessionId but does not retain it as the expected identity before startup notifications.",
+            "src/runtime/realtime.ts:104-110 selects the nonclosed session by threadId and forwards valid item notifications without checking item.realtimeSessionId; started can overwrite nativeSessionId.",
+            "src/runtime/realtime.ts:116 marks a session closed/reusable on the empty stop acknowledgement, independently of its closed notification.",
+            "protocol/ts/v2/ThreadRealtimeItem.ts carries realtimeSessionId; ThreadRealtimeClosedNotification, ThreadRealtimeSdpNotification and ThreadRealtimeOutputAudioDeltaNotification are thread-only and provide no session discriminator.",
+            "Deterministic current-module repro .work/round8/realtime-repro.mjs: start A, stop ack, start B, inject old canonical transcript and close. .work/round8/realtime-repro.json records the old session ID inside params while the envelope targets new-channel/new-owner/B handle, followed by B readback state closed.",
+            "The 38 existing realtime/timeline/service assertions pass, but none covers stop acknowledgement followed by another owner and late prior-session notification."
+          ],
+          "recommendation": "Retain the expected generated native session identity from admission and discard mismatched session-bearing notifications. Do not reuse a thread-only notification ownership slot until an explicit terminal/drain boundary is established; where the upstream contract cannot establish that boundary, retain a tombstone or require an epoch reset. Add regression coverage for delayed prior-session canonical items and close/SDP/audio events after same-thread restart.",
+          "confidenceBoundary": "The routing defect is reproduced using schema-valid deterministic events and current implementation modules. No real provider voice session was invoked, and this report does not claim observation of that event ordering from a live provider."
+        },
+        {
+          "priority": 2,
+          "id": "r8-interface-001",
+          "file": "web/components/SkillLibraryTools.tsx",
+          "line": 68,
+          "title": "Late skill import overwrites text entered while the file is loading",
+          "trigger": "Start importing a local SKILL.md, then edit the enabled skill-description textarea before file.arrayBuffer() resolves in the same project and epoch.",
+          "impact": "The import completion unconditionally replaces the newer manually entered description. The preparation step has not persisted a file draft yet, so this overwrites unsaved user work without a recovery draft. Track the draft revision when import starts, or explicitly prevent/resolve edits during the pending import.",
+          "evidence": "Current source checks only owner.current === key before setText(body); textarea onChange remains enabled and does not change that owner token. .work/round8/interface-repro.mjs case skill-import-overwrites-new-edit records beforeCompletion=\"new manually typed draft\", afterCompletion=\"imported old text\", recoveryDraftCount=0. The existing skill-library file passed all 9 tests but does not cover same-owner edits during a file read."
+        },
+        {
+          "priority": 2,
+          "id": "r8-interface-002",
+          "file": "web/components/WorkspaceWorktrees.tsx",
+          "line": 23,
+          "title": "Worktree creation consent also authorizes the open archive form",
+          "trigger": "Select an active managed worktree, expand the create-worktree form, open the archive confirmation for the selected tree, and check only the create-from-Git-reference confirmation.",
+          "impact": "Both forms share the single confirmed state from line 11. Checking the creation checkbox also checks the archive checkbox and enables archive; clicking its action sends workspace/worktree/archive with confirm:true even though the user never affirmed that separate archive intent. Keep confirmation scoped to the active action or make the forms mutually exclusive.",
+          "evidence": "The archive/attach/restore buttons set intent but do not close creating. Both confirmation inputs bind to confirmed. .work/round8/interface-repro.mjs case worktree-create-consent-enables-archive captured archiveConsentClicked=false, archiveConsentAfterCreateChecked=true and a simulated workspace/worktree/archive request with expectedRevision and confirm:true. The existing workspace-management file passed all 10 tests and lacks simultaneous-form coverage."
+        },
+        {
+          "priority": 2,
+          "id": "r8-interface-003",
+          "file": "web/components/ThreadTerminals.tsx",
+          "line": 40,
+          "title": "An earlier shell acknowledgement clears a newer draft with equal text",
+          "trigger": "Submit shell command A, edit the still-enabled textarea to B and then back to A while the first request is awaiting acknowledgement, preparing another invocation.",
+          "impact": "The old acknowledgement clears the new draft because it compares only current text with submitted text. It does not establish that the draft has not been edited since submission. Preserve draft revision identity, as text equality alone cannot distinguish the later input generation.",
+          "evidence": ".work/round8/interface-repro.mjs case shell-ack-clears-new-aba-draft captured beforeAcknowledgement=\"echo repeat\", afterAcknowledgement=\"\", dispatchedCommands=1. Source line 40 uses setCommand(current => current === submitted ? \"\" : current). The existing newer-edit test only changes the value to a different string and therefore misses the A-to-B-to-A case."
+        },
+        {
+          "priority": 2,
+          "id": "r8-interface-004",
+          "file": "web/components/McpPanel.tsx",
+          "line": 77,
+          "title": "Changing MCP server retains consent for the previous event subscription",
+          "trigger": "Select MCP service A, enter a service-specific stream name and arguments, confirm starting that subscription, then select connected service B before submitting.",
+          "impact": "The select handler resets tool/resource state but leaves streamName, streamArguments and streamConsent intact. The start button remains enabled and submits the old service-specific parameters to B, although the checkbox consent was given for A. Reset or bind subscription consent to server/thread/lease and the exact submitted parameters.",
+          "evidence": ".work/round8/interface-followup-repro.mjs case mcp-stream-consent-survives-server-change records confirmedServer=\"first\", submittedServer=\"second\", consentStillChecked=true and an actual component beginMutation(\"mcp/stream/start\") call to second with {scope:\"first-only\"}. The lease/thread reset effect on line 37 also omits this consent. Existing mcp-ui tests all 12 passed but do not exercise this stream selection transition."
+        },
+        {
+          "priority": "P2",
+          "id": "r8-deployment-lockfile-preallocation",
+          "file": "deploy/build.py",
+          "line": 116,
+          "title": "Enforce the lockfile byte limit before reading it into root memory",
+          "trigger": "An administrator installs or updates from a candidate source archive containing an oversized pnpm-lock.yaml. The source archive permits a regular member up to 512 MiB; dependency_input is called by Builder.prepare before entering the bounded isolated fetch/build units.",
+          "impact": "Path.read_text reads the complete candidate lock and lock.encode creates another full-size allocation before the 8 MiB check rejects it. A permitted 512 MiB archive member can therefore cause approximately 1 GiB of root-process allocation before rejection. The direct root install/update preparation path has no memory cgroup bound here, so a malformed candidate can create host memory pressure or OOM disruption while the existing deployment is still running.",
+          "evidence": [
+            "deploy/build.py:116 reads the complete file; line 117 evaluates len(lock.encode()) before rejecting sizes above 8 MiB.",
+            "deploy/safe_fs.py:19 permits 512 MiB per extracted file; deploy/build.py:232-235 extracts and calls dependency_input before isolated stages.",
+            "deploy/cli.py:163-170 and 195-199 invoke install/update preparation directly as root; the 512 MiB transient manager unit applies to RPC operations, not this source-build path.",
+            {
+              "reproduction": {
+                "file": ".work/round8/r8-deployment-lock-budget.py",
+                "sha256": "3177f24b2018b765e656a0d653c2effdee9223a406bd3f62a4d214eff8fc10da"
+              },
+              "result": {
+                "file": ".work/round8/r8-deployment-lock-budget-result.json",
+                "sha256": "aeb13df2b10f34b880c9daf10db07ab6ef67c4a8c4e46ad316bd1b664ad80aaf"
+              },
+              "command": "<HARNESS_TEST_PYTHON> .work/round8/r8-deployment-lock-budget.py",
+              "observed": {
+                "createdAt": "2026-10-25T10:13:59.865573+00:00",
+                "lockBytes": 9437184,
+                "limitBytes": 8388608,
+                "rejectionCode": "invalid_input",
+                "rejectionMessage": "Unsupported lock format",
+                "pythonAllocationPeakBytes": 18886591,
+                "oversizedAllocationBeforeRejectionConfirmed": true,
+                "hostOomAttempted": false
+              }
+            }
+          ],
+          "recommendation": "Read at most 8 MiB + 1 byte from the root-owned candidate file in binary mode, reject overflow before decoding or copying, and add an oversized-lock regression that checks bounded reading rather than only the final exception."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r8-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round8/r8-runtime.json",
+          "sha256": "248558a87cf8466b2c2dc41dcde85656b1a97fe556fa2eee12495b16613e74c5"
+        },
+        {
+          "id": "r8-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round8/r8-interface.json",
+          "sha256": "78eedad8272c4550f918c3e8072e3cb77c8924baa875bc6a9e4f6daa80691da4"
+        },
+        {
+          "id": "r8-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round8/r8-deployment.json",
+          "sha256": "200142cdb210f10973bb556246934ca93aae7181e10233c624df4c8e957bd16b"
+        }
+      ]
+    },
+    {
+      "id": "round9",
+      "sequence": 9,
+      "digest": "74b12821a3ced3d379a9b6c2c816468962c11488e7a92f4f536eef007ea05234",
+      "complete": true,
+      "startedAt": "2026-10-25T10:41:13.485Z",
+      "completedAt": "2026-10-25T10:59:09.045Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R9-RUNTIME-001",
+          "priority": "P2",
+          "category": "test-contract",
+          "title": "Native smoke logout omits the required durable operation context",
+          "location": {
+            "file": "tests/runtime/native-smoke.test.ts",
+            "start": 33,
+            "end": 33
+          },
+          "trigger": "Set HARNESS_TEST_CODEX_BIN to the verified local Codex CLI 0.164.0 and run node scripts/run-tests.mjs --targeted tests/runtime/native-smoke.test.ts.",
+          "description": "The test invokes account/logout with only { clientId: smoke }. RuntimeService.call routes logout through configurationMutation, which correctly requires context.beforeWrite. The call deterministically throws operation_required before native dispatch. The test never reaches the terminal/open, resize, write, output and exit checks on lines 34-38.",
+          "impact": "The native smoke fails and cannot establish its advertised real PTY coverage; a later authorized full run would also fail at this unchanged test. This is an outdated test contract, not a product permission-boundary defect.",
+          "evidence": {
+            "command": "node scripts/run-tests.mjs --targeted tests/runtime/native-smoke.test.ts",
+            "nativeBinary": "reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+            "result": ".work/test-results/run-ErLyGW/vitest.json",
+            "observed": "1 test failed; DeliveryError: Configuration changes require the durable operation boundary",
+            "guard": {
+              "file": "src/runtime/service.ts",
+              "line": 439
+            },
+            "route": {
+              "file": "src/runtime/service.ts",
+              "line": 303
+            }
+          },
+          "recommendation": "Update the smoke test authorization/receipt setup so the configuration mutation has a valid durable operation boundary and verify that boundary is consumed, then let the PTY assertions execute. Preserve the product operation_required guard.",
+          "status": "confirmed"
+        },
+        {
+          "id": "R9-DEP-01",
+          "severity": "P2",
+          "title": "Reserve implicit directory entries and depth before materializing a managed worktree",
+          "location": {
+            "path": "deploy/workspace_worktrees.py",
+            "startLine": 196,
+            "endLine": 204
+          },
+          "relatedLocations": [
+            {
+              "path": "deploy/workspace_worktrees.py",
+              "startLine": 226,
+              "endLine": 238
+            },
+            {
+              "path": "deploy/workspace_worktrees.py",
+              "startLine": 265,
+              "endLine": 279
+            },
+            {
+              "path": "deploy/workspace_worktrees.py",
+              "startLine": 96,
+              "endLine": 129
+            }
+          ],
+          "trigger": "Create a worktree from a valid local commit containing 5001 zero-byte files at distinct dN/f paths, or one zero-byte file below 33 directory components. Both satisfy the current blob count, byte and relative-path checks.",
+          "evidence": "checkout_data only compares len(files) with MAX_TREE_ENTRIES and never counts unique implicit parent directories or bounds their depth. materialize then creates every parent and file. run has already durably created its retained holder and checkout and invoked git worktree add before calling inspect/tree. tree finally counts both files and directories and rejects depth above 32, so rejection occurs after filesystem mutation. The isolated reproduction called the unchanged production checkout_data, materialize and tree: the 5001-file fixture wrote 5001 directories plus 5001 files (10002 entries) before budget rejection; the depth fixture wrote 33 directories plus one file before nesting rejection.",
+          "impact": "A structurally over-budget commit is admitted into worktree creation and can consume substantially more entries/inodes than the advertised 10000-entry or depth-32 limit before failing. The checkout and retention identity remain, but the failed create returns no positive supervisor binding, so normal attach/archive/restore cannot manage that unbound checkout. Repeating with new operation IDs consumes retained-worktree capacity and requires operator inspection.",
+          "recommendation": "While validating ls-tree output, count unique implicit directory prefixes together with files, enforce the same depth bound as tree, and reject before creating the retained holder, invoking git worktree add or materializing content. Add targeted regressions for aggregate directory entries and depth.",
+          "reproduction": {
+            "path": ".work/round9/deployment-worktree-repro.py",
+            "command": "<HARNESS_TEST_PYTHON> -B .work/round9/deployment-worktree-repro.py",
+            "exitCode": 0,
+            "scope": "Production functions with synthetic local Git output and in-memory descriptor filesystem; no actual Linux filesystem or service execution."
+          }
+        }
+      ],
+      "skipped": [
+        {
+          "kind": "validation-attempt",
+          "command": "node scripts/run-tests.mjs --targeted tests/runtime/native-smoke.test.ts",
+          "reason": "The initial runner preflight reported independent-official-cli-path-not-provided (logical exitCode 3) because HARNESS_TEST_CODEX_BIN was absent. No test executed in that attempt.",
+          "resolution": "The same exact test was rerun with the fixed verified local binary explicitly selected; that execution failed with R9-RUNTIME-001. This entry preserves the actual initial skip and does not denote an unreviewed file."
+        }
+      ],
+      "reviewers": [
+        {
+          "id": "r9-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round9/r9-runtime.json",
+          "sha256": "731d1358275d95a5b381e85d436f7bbdc366682230ebb50c3df9a09d623a58a6"
+        },
+        {
+          "id": "r9-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round9/r9-interface.json",
+          "sha256": "1755a713d56e635f74509fff19554f35b6ede13642f8e1aca5b5894bf297d720"
+        },
+        {
+          "id": "r9-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round9/r9-deployment.json",
+          "sha256": "54f9528242c7c1352704eff9f44be6f7e4bd4a43b2652483404f736868d816a5"
+        }
+      ]
+    },
+    {
+      "id": "round10",
+      "sequence": 10,
+      "digest": "0ea68b543586c9a511e9a3b222275964538bc86edc94bf793fceaf7187f5ef55",
+      "complete": true,
+      "startedAt": "2026-10-25T11:12:14.265Z",
+      "completedAt": "2026-10-25T11:32:03.159Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R10-INTERFACE-001",
+          "priority": "P2",
+          "scope": "web-ux",
+          "title": "恢复旧自动化提交回执时丢弃此后编辑的草稿",
+          "location": {
+            "path": "web/components/AutomationForm.tsx",
+            "startLine": 19,
+            "endLine": 19
+          },
+          "relatedLocations": [
+            {
+              "path": "web/components/AutomationForm.tsx",
+              "startLine": 20,
+              "endLine": 20
+            },
+            {
+              "path": "web/components/AutomationForm.tsx",
+              "startLine": 55,
+              "endLine": 55
+            },
+            {
+              "path": "web/components/AutomationsPanel.tsx",
+              "startLine": 21,
+              "endLine": 21
+            }
+          ],
+          "trigger": "创建或修改计划已在服务端受理，但浏览器收到网络错误，原操作进入 unknown；用户在表单重新可编辑后继续修改名称/指令等字段，再查询原操作回执并得到 accepted。",
+          "impact": "第 19 行仅根据旧操作的 accepted 状态无条件删除同一草稿缓存并调用 onSaved；父面板随即卸载表单。回执确认的是旧快照，此后编辑尚未发送，却一起被删除。重新打开表单不能恢复这些输入。",
+          "evidence": [
+            "表单第 55 行仅以 action.busy 禁用 fieldset；请求结束为 unknown 后字段可编辑，第 20 行将后续输入保存至同一个 cache key。",
+            "第 19 行未对照提交时的草稿或输入版本；accepted 后直接 cache.delete(key) 并 onSaved。AutomationsPanel.tsx 第 21 行的 onSaved 执行 setEditing(undefined)。",
+            "独立 jsdom 复现使用真实 Api、AutomationForm、回执/操作状态代码，所有 fetch 均为进程内模拟：原 create 提交 Submitted original instruction 后抛出网络错误；输入 New unsent instruction that must survive；查询旧 accepted 回执；onSaved 被调用 1 次；卸载后以同一 Api 重开，指令为空。整个过程仅 1 次 create，新指令从未发送。",
+            "现有 web/tests/automations.test.tsx 的 9 项定向测试全部通过；其 accepted 回执恢复用例未在 unknown 期间继续编辑。"
+          ],
+          "reproduction": {
+            "command": "node .work/round10/r10-interface-repro.mjs",
+            "artifact": ".work/round10/r10-interface-repro.mjs",
+            "exitCode": 0,
+            "result": {
+              "reproduced": true,
+              "originalCreateCount": 1,
+              "originalSubmittedText": "Submitted original instruction",
+              "editedWhileUnknown": "New unsent instruction that must survive",
+              "oldReceiptInvokedOnSaved": 1,
+              "reopenedDraftText": ""
+            }
+          },
+          "recommendation": "将回执完成绑定到提交时的草稿版本；仅当当前输入仍等于已提交快照时清空并关闭，否则保留后续未发送的草稿并提示旧版本已受理。"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r10-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round10/r10-runtime.json",
+          "sha256": "3e8f7b33ded2f07c61a0b4cafd4277e8592038952651c785eaa21a26a496f9e6"
+        },
+        {
+          "id": "r10-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round10/r10-interface.json",
+          "sha256": "ede80c4d299486af7c44a38bc21648394e7605cb204d4363e245c187a321b205"
+        },
+        {
+          "id": "r10-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round10/r10-deployment.json",
+          "sha256": "ddc064ac7e2437d5c917aa2f29e7d7334b0c874d83d8e73be584b38db4e7fb3e"
+        }
+      ]
+    },
+    {
+      "id": "round11",
+      "sequence": 11,
+      "digest": "1f4f3724cdad1ccad3c8623bb947c25f6bdd6c41a03c4bdaa7376d07353003e7",
+      "complete": true,
+      "startedAt": "2026-10-25T15:53:04.416Z",
+      "completedAt": "2026-10-25T16:11:33.451Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "r11-interface-1",
+          "priority": "P2",
+          "status": "confirmed",
+          "title": "Release nested attachment preview modal ownership when authentication expires",
+          "locations": [
+            {
+              "path": "web/components/AttachmentButton.tsx",
+              "startLine": 7,
+              "endLine": 11
+            },
+            {
+              "path": "web/App.tsx",
+              "startLine": 84,
+              "endLine": 84
+            },
+            {
+              "path": "web/App.tsx",
+              "startLine": 204,
+              "endLine": 204
+            },
+            {
+              "path": "web/components/Dialog.tsx",
+              "startLine": 9,
+              "endLine": 20
+            }
+          ],
+          "explanation": "App retains Workspace under a hidden wrapper when authentication becomes false so that drafts survive renewal. Workspace clears its own modal/mobile/branchAction states, but the AttachmentButton inside the retained Composer owns a separate preview state and has no authentication/active input. Its Dialog remains mounted and open. Native showModal ownership survives the hidden ancestor and makes the visible login page inert. The ordinary password-field login interaction is therefore blocked exactly when the session must be renewed.",
+          "reproduction": [
+            "Open the current application with a valid session and a draft attachment; use the attachment button to open its preview dialog.",
+            "While the preview is open, let the session check become authenticated=false after the WebSocket connection closes.",
+            "The login page becomes visible, while the attachment dialog remains connected, open, modal, and inside the hidden Workspace wrapper.",
+            "In the main reviewer native-browser fixture, click the visible administrator password field: focus remains BODY and the accessibility tree contains only the root."
+          ],
+          "expected": "Authentication loss releases all modal/top-layer ownership, including nested attachment previews, while retaining the unsent draft.",
+          "impact": "Session renewal controls cannot be focused through the ordinary visible login flow. This is a reproducible UI availability failure; no claim of data loss or permanent account lockout is made.",
+          "evidence": [
+            {
+              "source": "this reviewer",
+              "path": ".work/round11/attachment-modal-probe.mjs",
+              "result": "Current App under jsdom: dialogStillConnected=true, dialogOpen=true, hasHiddenAncestor=true, loginPresent=true, draftRetained=\"Unsent draft\", mutationCalls=[]. showModal/close are polyfilled, so this alone establishes lifecycle state rather than native inertness."
+            },
+            {
+              "source": "main reviewer independent validation supplied during this round",
+              "path": "verification/audit-evidence/round11/root-browser.json",
+              "result": "Current production UI with only a 59-byte local synthetic text attachment: modalSelectorMatched=true, hiddenAncestor=true, passwordInputCount=1, activeElementAfterPasswordClick=BODY, accessibilityTreeOnlyRoot=true. Isolated loopback fixture and browser tab were stopped after reproduction."
+            }
+          ],
+          "recommendation": "Make nested preview modal ownership follow the active/authenticated workspace lifetime, closing or unmounting the preview when access expires without discarding the draft. Add an auth-loss lifecycle regression through the attachment preview entry point; the existing settings-modal lifecycle test does not cover this nested owner."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r11-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round11/r11-runtime.json",
+          "sha256": "4e8c5573576cc721a968410784cac3e3041c7c607fe52f82623b075b2e73495c"
+        },
+        {
+          "id": "r11-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round11/r11-interface.json",
+          "sha256": "83d3507b7b58e07b99d741d686bf62837b0197d20fd0cfd2710cb6a8bf8354e8"
+        },
+        {
+          "id": "r11-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round11/r11-deployment.json",
+          "sha256": "662b8f95d42a7ed5b089fd4a42d2e27b160521c992ff9d51ec44551f038553d0"
+        }
+      ]
+    },
+    {
+      "id": "round12",
+      "sequence": 12,
+      "digest": "5f6bc835439d39fb5c69726834246b50e0828a62ac7aeb2449dcbf42efc6b92e",
+      "complete": true,
+      "startedAt": "2026-10-25T16:22:56.967Z",
+      "completedAt": "2026-10-25T16:43:21.995Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R12-INTERFACE-001",
+          "severity": "P2",
+          "title": "An expired pairing status query leaves the next pairing check disabled until the settings owner remounts",
+          "file": "web/components/RemoteSettings.tsx",
+          "lineStart": 63,
+          "lineEnd": 63,
+          "relatedLines": [
+            39,
+            43,
+            48,
+            50,
+            62,
+            71
+          ],
+          "evidence": "The status handler sets the component-wide checking boolean true. Its finally clears checking only while scopeRef.current still matches the original pairScope. Expiry clears pairingId at line 50, changing the scope. A late status completion therefore cannot clear checking. Neither the owner-reset effect at line 48 nor creating a new pairing at line 62 resets or replaces that pending state. The next pairing renders its check button disabled by the retained checking=true at line 63.",
+          "reproduction": [
+            "Render RemoteSettings with a stable epoch and connectionId; create pair-1 with an imminent expiry. Start its pairing/status read and hold the mocked response pending.",
+            "Allow pair-1 to expire, so the expiry message appears and pairingId is cleared.",
+            "Variant A: resolve the old read with claimed=false, then explicitly confirm and create pair-2. Variant B: create pair-2 first, then resolve the old read with claimed=true.",
+            "In both variants code-2 is visible but Check whether paired remains disabled. Clicking it dispatches no second pairing/status request.",
+            "Change connectionId to a new owner. The prior code is removed; explicitly creating code-3 produces an enabled check button. Its current claimed=true response hides code-3 normally."
+          ],
+          "actual": "Both bounded probes reproduced newStatusDisabled=true with pairingStarts=2 and statusReads=1. The late claimed=true response did not hide the new code, so the existing data-scope guard works, but its busy state is stranded. A new connection owner restored querying; a current successful claim still hid its code.",
+          "expected": "After expiry and explicit creation of a new pairing, its own check must be available and have independently owned pending state. A late old response must neither disable the new check nor clear a newer pending check nor apply the old claimed result.",
+          "impact": "The current mounted settings owner cannot query the new pairing status through this control; the user must remount the owner, for example by reopening settings or establishing a new connection. This is a functional UX dead end. The probes did not show an authorization bypass or stale claimed data applied to the new pairing.",
+          "recommendation": "Bind pending status-query state and cancellation to the current pairing owner/generation, and clear only the request that owns that state. Add focused regression coverage for expiry and replacement while an old status query is pending, including late success/failure, new-query overlap, disconnect/reconnect, and environment change.",
+          "validationIds": [
+            "targeted-process-remote",
+            "pairing-expiry-probe",
+            "pairing-owner-boundary-probe"
+          ]
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r12-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round12/r12-runtime.json",
+          "sha256": "75e6be7617c62b9ee1329fe9bed939ceb25b3dbb5e2933ba70781141353d7956"
+        },
+        {
+          "id": "r12-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round12/r12-interface.json",
+          "sha256": "4e3b888772cc226b43511c06c06c822c2629a66a16ee7bb9db01c2e1948c8164"
+        },
+        {
+          "id": "fresh-r12-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round12/r12-deployment.json",
+          "sha256": "b5bfcf67af04a648320313a601793fdea71129f6ca79338d9718f8b6be21f3bd"
+        }
+      ]
+    },
+    {
+      "id": "round13",
+      "sequence": 13,
+      "digest": "a630af3178fe351cadfc7a50b189cebd78c8a58ac7e927370bd123e19beb7c5c",
+      "complete": true,
+      "startedAt": "2026-10-25T17:02:07.415Z",
+      "completedAt": "2026-10-25T17:14:11.442Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r13-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round13/r13-runtime.json",
+          "sha256": "6c3037bb634bfda75e7561ca1588b3543ad98d238172095ceac98dd6a9320f33"
+        },
+        {
+          "id": "r13-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round13/r13-interface.json",
+          "sha256": "00faa88bf4aecadf357cc54b9130a5ecf541922ea9a8c4107abbd78187ffb1aa"
+        },
+        {
+          "id": "r13-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round13/r13-deployment.json",
+          "sha256": "7bbba02573dbc3b07b769fa8c9c6d7c340c5c44efd7848bbbea3007dacdfcd66"
+        }
+      ]
+    },
+    {
+      "id": "round14",
+      "sequence": 14,
+      "digest": "a630af3178fe351cadfc7a50b189cebd78c8a58ac7e927370bd123e19beb7c5c",
+      "complete": true,
+      "startedAt": "2026-10-25T17:14:11.836Z",
+      "completedAt": "2026-10-25T17:29:03.038Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R14-INTERFACE-001",
+          "priority": "P2",
+          "scope": "web-ux",
+          "title": "MCP tool images bypass decoded-media budgets and load automatically",
+          "file": "web/components/McpContent.tsx",
+          "startLine": 2,
+          "endLine": 7,
+          "description": "McpContent trusts a declared image MIME type, a permissive Base64 character regex and a 1,400,000-character bound, then immediately emits an img with a data URL for every image entry. It never applies mediaBytes/mediaMime, reads image dimensions, limits total preview pixels or requires a separate preview action. McpPanel renders retained tool content immediately. A connected tool can therefore return a compact, schema-valid image that fits all serialized-byte caps but exceeds the existing 40,000,000-pixel policy and drives excessive browser decode memory/CPU. Multiple images also receive src simultaneously. This can freeze or terminate the active browser tab and disrupt unsaved work. The audit demonstrated missing guards and size feasibility; it did not decode a large image or reproduce an actual OOM.",
+          "evidence": [
+            {
+              "file": "web/components/McpContent.tsx",
+              "lines": "2-7",
+              "observation": "Only MIME/encoded-string checks precede automatic img creation; map has no preview count or pixel budget."
+            },
+            {
+              "file": "web/components/McpPanel.tsx",
+              "lines": "60-65,110",
+              "observation": "Accepted tool result is read into the attempt and its content is rendered through McpContent without an explicit image-preview control."
+            },
+            {
+              "file": "web/lib/mcp-session.ts",
+              "lines": "18-23",
+              "observation": "Body retention is capped at 2 MiB of UTF-8 JSON, which does not bound image dimensions or decoded memory."
+            },
+            {
+              "file": "src/runtime/mcp.ts",
+              "lines": "22,87",
+              "observation": "Native MCP result validation checks the protocol schema and serialized historyBytes cap (8 MiB); it has no image-header/pixel validation."
+            },
+            {
+              "file": "protocol/ts/v2/McpServerToolCallResponse.ts",
+              "lines": "6",
+              "observation": "Tool content is Array<JsonValue>; the official result contract does not supply a decoded-media budget."
+            },
+            {
+              "file": "web/lib/media.ts",
+              "lines": "29-33,46-66",
+              "observation": "Existing shared helpers enforce Base64/byte validity, PNG/GIF/WebP/JPEG signatures/dimensions, dimensions <=16,384 per side, positive dimensions and <=40,000,000 pixels; MCP does not call them."
+            },
+            {
+              "file": "web/components/MessageMedia.tsx",
+              "lines": "51-52",
+              "observation": "Other message media requires an explicit load/preview action before assigning an image src."
+            }
+          ],
+          "reproduction": [
+            "Load the current McpContent and mediaMime modules with Vite SSR and render McpContent with React renderToStaticMarkup only; no browser or raster decoder is involved.",
+            "Supply a 24-byte synthetic PNG header with IHDR width=12000 and height=12000. McpContent emits one img with data:image/png;base64 src. mediaMime rejects the same 144,000,000-pixel header. The tool-body JSON is 95 UTF-8 bytes.",
+            "Supply 100 such entries. The actual component produces 100 img elements; the JSON is 8,213 UTF-8 bytes, demonstrating there is no aggregate preview-count gate.",
+            "Separately stream 12,000 zero-valued 1-bit grayscale scanlines of 1,501 bytes each through zlib, count and discard compressed output. 18,012,000 filtered bytes compress to 17,525 bytes; with 57 bytes of normal PNG chunk/signature overhead this would be 17,582 bytes or 23,444 Base64 characters. This is far below the MCP 1,400,000-character and 2 MiB body caps, although a 12,000x12,000 RGBA raster is 576,000,000 bytes. No complete image was constructed or decoded."
+          ],
+          "recommendation": "Use the shared strict byte/signature/dimension validation before creating any media URL. Make image loading an explicit per-item action and bound simultaneous/aggregate preview resources, with useful rejection feedback and cleanup on release/owner changes. Preserve the original result receipt and raw JSON download path independently of preview eligibility.",
+          "validationRefs": [
+            "V2"
+          ],
+          "status": "confirmed-unfixed"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r14-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round14/r14-runtime.json",
+          "sha256": "b821994173f0bb96e93aacb475e472d1a020ecf7b7962b569cadae138019ceb7"
+        },
+        {
+          "id": "r14-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round14/r14-interface.json",
+          "sha256": "755f9fee267d6b381c004e0151ff3d1d151faa5c3c0c51d55e770bd29e9115bd"
+        },
+        {
+          "id": "r14-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round14/r14-deployment.json",
+          "sha256": "60bec3cf969d625f04937af0b1294d48525422588f26504cf04c3cd4d43dfdd7"
+        }
+      ]
+    },
+    {
+      "id": "round15",
+      "sequence": 15,
+      "digest": "1a327fa9b8d17120bae2d40f37ba391ee735af37b5e02b0e1acad74394a22bec",
+      "complete": true,
+      "startedAt": "2026-10-25T17:45:18.666Z",
+      "completedAt": "2026-10-25T17:58:21.948Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r15-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round15/r15-runtime.json",
+          "sha256": "9d6645b84ea3f40a6bd984a68b03a62483d16e8beabd0ece84a9b832feaaaa2f"
+        },
+        {
+          "id": "r15-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round15/r15-interface.json",
+          "sha256": "257506e385cfb799424352d596fa4ddd6b01ef525c02c2b761518ccf0a1235b0"
+        },
+        {
+          "id": "r15-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round15/r15-deployment.json",
+          "sha256": "5520ab36c09be1c2a397431372b01edffd823ecd8034863a4f0d0998f1a48fb3"
+        }
+      ]
+    },
+    {
+      "id": "round16",
+      "sequence": 16,
+      "digest": "1a327fa9b8d17120bae2d40f37ba391ee735af37b5e02b0e1acad74394a22bec",
+      "complete": true,
+      "startedAt": "2026-10-25T17:58:22.673Z",
+      "completedAt": "2026-10-25T18:09:13.579Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r16-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round16/r16-runtime.json",
+          "sha256": "c5d14fa8477aee8158b5df6b8ddeaebb62ea7d46f235472aab5ccc0c77964117"
+        },
+        {
+          "id": "r16-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round16/r16-interface.json",
+          "sha256": "8e30e41892a79c2b35a9c88e579f932191557e2cad4d9cb0616cc94f80aa362f"
+        },
+        {
+          "id": "r16-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round16/r16-deployment.json",
+          "sha256": "6b9cf513f85d847cd2b3151e9d179ee8477e670f136c5ed90d73be86acceefcf"
+        }
+      ]
+    },
+    {
+      "id": "round17",
+      "sequence": 17,
+      "digest": "1a327fa9b8d17120bae2d40f37ba391ee735af37b5e02b0e1acad74394a22bec",
+      "complete": false,
+      "startedAt": "2026-10-25T18:09:14.248Z",
+      "completedAt": "2026-10-25T18:22:20.377Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R17-RUNTIME-001",
+          "priority": "P2",
+          "title": "Permission subset validation does not preserve all restrictive filesystem constraints",
+          "locations": [
+            {
+              "path": "src/runtime/validation.ts",
+              "symbol": "subset and validatePrompt"
+            }
+          ],
+          "status": "Harness validation behavior observed; downstream effective-permission impact unverified",
+          "summary": "The generic subset comparison can accept a permission response that omits a restrictive filesystem entry. This is inconsistent with the Harness requested-subset validation boundary. A previously completed isolated authorization-object check observed acceptance; it did not perform filesystem access or execute an authorized action. Final upstream contraction could limit effective impact, but its implementation was not fully inspected before the stop instruction.",
+          "evidence": [
+            "Current src/runtime/validation.ts full-file inspection",
+            "Previously completed object-only validation output recorded in this audit session; no persisted standalone reproduction artifact"
+          ],
+          "recommendation": "Compare effective permission semantics and preserve restrictive constraints; verify the pinned upstream final intersection behavior separately.",
+          "uncertainty": "Omitted globScanMaxDepth semantics, mixed legacy projections, and final upstream contraction remain unverified. No claim of successful filesystem privilege escalation is made."
+        }
+      ],
+      "skipped": [
+        {
+          "scope": "audit completion",
+          "reason": "Automatic safety review interrupted permission investigation. Parent then directed evidence-only handoff and prohibited further execution, reproduction, or external-source investigation."
+        },
+        {
+          "scope": "handwritten file review",
+          "files": [
+            "tests/runtime/README.md",
+            "tests/runtime/gateway-native.test.ts",
+            "tests/runtime/gateway-oauth-native.test.ts",
+            "tests/runtime/input-native.test.ts",
+            "tests/runtime/loopback-provider.ts",
+            "tests/runtime/mcp-native.test.ts",
+            "tests/runtime/organization-native.test.ts",
+            "tests/runtime/process-native.test.ts",
+            "tests/runtime/remote-native.test.ts",
+            "tests/runtime/workflows-native.test.ts",
+            "tests/runtime/workflows.test.ts"
+          ],
+          "reason": "Not read before interruption."
+        },
+        {
+          "scope": "handwritten file review",
+          "files": [
+            "tests/runtime/extensions-native.test.ts"
+          ],
+          "reason": "Output was truncated; omitted content was not reread before interruption. Not counted as fully inspected."
+        },
+        {
+          "scope": "upstream final permission semantics",
+          "reason": "Official pinned sources were located/downloaded and selectively searched, but final intersection implementation was not read or verified. Pending omission/default-depth and legacy projection questions were not completed."
+        },
+        {
+          "scope": "fresh generated directory full-set equality",
+          "reason": "Every assigned generated file was compared, but a separate enumeration proving no extra generated files was not completed."
+        },
+        {
+          "scope": "post-report global digest recheck",
+          "reason": "Not run after execution was halted. Root reviewer was asked to perform the final global snapshot verification."
+        },
+        {
+          "reviewer": "r17-runtime",
+          "reason": "review-not-complete"
+        },
+        {
+          "reason": "source-coverage-missing",
+          "files": [
+            "tests/runtime/README.md",
+            "tests/runtime/extensions-native.test.ts",
+            "tests/runtime/gateway-native.test.ts",
+            "tests/runtime/gateway-oauth-native.test.ts",
+            "tests/runtime/input-native.test.ts",
+            "tests/runtime/loopback-provider.ts",
+            "tests/runtime/mcp-native.test.ts",
+            "tests/runtime/organization-native.test.ts",
+            "tests/runtime/process-native.test.ts",
+            "tests/runtime/remote-native.test.ts",
+            "tests/runtime/workflows-native.test.ts",
+            "tests/runtime/workflows.test.ts"
+          ]
+        }
+      ],
+      "reviewers": [
+        {
+          "id": "r17-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round17/r17-runtime.json",
+          "sha256": "21a34628c8ea2330ad7a771095da3eb042a94446d3b37770fbd2f54b0a7463c9"
+        },
+        {
+          "id": "r17-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round17/r17-interface.json",
+          "sha256": "6d1b2c8d3d5979507d7a32dd73e1d44f4a7a76c355d992fbe12895c2b9b3c23b"
+        },
+        {
+          "id": "r17-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/round17/r17-deployment.json",
+          "sha256": "84e451766e8090e5d423a5ddecc4cdaf3ed1134fb0871dae87f1adc3e54803d2"
+        }
+      ]
+    },
+    {
+      "id": "round18",
+      "sequence": 18,
+      "digest": "c652892011ba0e69531d6ed79f859accb209390f6deaf4985de37ff7e506ac0e",
+      "complete": true,
+      "startedAt": "2026-10-25T18:36:12.879Z",
+      "completedAt": "2026-10-25T18:50:20.762Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R18-INTERFACE-001",
+          "severity": "P2",
+          "title": "旧实时会话的迟到回调会修改当前选中会话的语音与历史状态",
+          "location": {
+            "path": "web/hooks/useConversation.ts",
+            "startLine": 24,
+            "endLine": 25
+          },
+          "relatedLocations": [
+            {
+              "path": "web/components/RealtimePanel.tsx",
+              "startLine": 32,
+              "endLine": 43
+            },
+            {
+              "path": "web/components/RealtimePanel.tsx",
+              "startLine": 53,
+              "endLine": 60
+            },
+            {
+              "path": "web/components/RealtimePanel.tsx",
+              "startLine": 90,
+              "endLine": 93
+            },
+            {
+              "path": "web/App.tsx",
+              "startLine": 192,
+              "endLine": 192
+            }
+          ],
+          "description": "voiceStarted / voiceClosed 只比较传入 target 与闭包中的旧 threadId，没有核对 hook 当前选择、资源 epoch、API 或本次访问身份。hook 中的 voice、generation、controller 及 React state 则由后续选择继续复用。RealtimePanel 按 thread/epoch/lease 更换子组件后，旧组件仍可接收启动或停止结果；owned() 有意允许卸载后的清理，accept() 却也无条件调用旧 onStarted/onClosed，因而将清理结果传播到新会话状态。",
+          "confirmedEvidence": [
+            "本轮纯 hook 探针：保留 A 的 voiceClosed，切到 B 并令 B 语音活动，再调用旧 close(A)；B realtimeActive 从 true 变为 false，期望保持 true 的断言失败。此项只证明旧 callback 能污染共享 hook 状态，不作为真实双语音执行证明。",
+            "本轮组件探针使用真实 RealtimePanel、useConversation、useOperations 和 jsdom localStorage，仅 API 为本地替身。A 以文字实时方式启动，HTTP promise 未完成时切换 B；B 完整历史读取后 ready=true、realtimeActive=false。随后 A 启动返回 active，旧组件确实提交了 cleanup stop，但 B realtimeActive 变为 true，期望 false 的断言失败。探针没有启动 B 的实时会话，也没有使用 native、WebRTC、麦克风或网络。"
+          ],
+          "reproduction": [
+            "在 A 会话发起实时会话启动，在其响应尚未完成时切换到 B。",
+            "让 B 的正常历史读取完成，再让旧 A 启动响应返回有效 active 状态。",
+            "旧面板 accept(result) 先执行保存的 onStarted(A)，之后才请求停止 A；此时 B 被错误标记为 realtimeActive 并失去历史 ready。"
+          ],
+          "staticConsequences": [
+            "invalidate() 会终止当前 B 的历史请求，清除 complete/ready，并将 B 标记为需要重新同步；普通输入因此会被阻止。",
+            "若旧 A 清理 stop 没有取得明确关闭响应，旧面板不再接收实时事件，B 的假活动标志可持续到当前会话主动重读。该持续分支为当前代码静态推导，未通过真实 native 集成验证。",
+            "旧 close 回调改变另一活动会话状态的 UI 可达性还受全局 pending 操作门控及回执到达顺序影响；本报告不将纯 hook 探针扩张为真实同时执行两条语音的证明。"
+          ],
+          "recommendation": "用包含 threadId、resourceEpoch、API 及访问代次的当前 owner 校验 voice 回调，防止同 ID 重访的 ABA；旧组件卸载后的 native stop 清理应继续执行，但不得更新新访问的会话状态。",
+          "evidenceArtifacts": [
+            ".work/round18/realtime-owner.test.ts",
+            ".work/round18/interface-probe-result.json",
+            ".work/round18/realtime-component-owner.test.tsx",
+            ".work/round18/interface-component-probe-result.json"
+          ]
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r18-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round18/r18-runtime.json",
+          "sha256": "78473933760d7bc21e82f790c2d2688ae2bb0ba83a4a091a4e26e5a5af76805b"
+        },
+        {
+          "id": "r18-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round18/r18-interface.json",
+          "sha256": "850d5c8534af9288167d7c9af094a7716e518dfa1a63227b1d3df4ca005753fb"
+        },
+        {
+          "id": "r18-deployment",
+          "scopes": [
+            "deployment-release",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round18/r18-deployment.json",
+          "sha256": "dbc87527745c20644c7a2b74417021dec0f6c807e4d19d42ef5706416c2cf366"
+        }
+      ]
+    },
+    {
+      "id": "round19",
+      "sequence": 19,
+      "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+      "complete": true,
+      "startedAt": "2026-10-25T18:56:34.997Z",
+      "completedAt": "2026-10-25T19:15:11.618Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r19-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round19/r19-runtime.json",
+          "sha256": "e69126b0f8ea931fb22e08e339733242b253f6388c7d48fcf47317c8ed42c1de"
+        },
+        {
+          "id": "r19-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round19/r19-interface.json",
+          "sha256": "2225d680f0307b6935a1cf4e309d400f7a17c8578db8c1a0a75c4c978dbb3ea6"
+        },
+        {
+          "id": "r19-deployment",
+          "scopes": [
+            "deployment-release",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round19/r19-deployment.json",
+          "sha256": "6e4eb9b1434dac16e1268d4b5062851b8040d4b4eeea513fbd0629752a3b845d"
+        }
+      ]
+    },
+    {
+      "id": "round20",
+      "sequence": 20,
+      "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+      "complete": true,
+      "startedAt": "2026-10-25T19:15:12.025Z",
+      "completedAt": "2026-10-25T19:31:53.551Z",
+      "scopes": [
+        "runtime-protocol",
+        "web-ux",
+        "gateway-core",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r20-runtime",
+          "scopes": [
+            "runtime-protocol",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round20/r20-runtime.json",
+          "sha256": "20aa3b55482ffb995a5d68ac2bdd9a4b8083ed8b5248ef4fc9e374e17f15c25d"
+        },
+        {
+          "id": "r20-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round20/r20-interface.json",
+          "sha256": "513b57e71a2672a6c1314f26a253f79daa9ad7e4973442db147a3dd2a5fd61bb"
+        },
+        {
+          "id": "r20-deployment",
+          "scopes": [
+            "deployment-release",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round20/r20-deployment.json",
+          "sha256": "60fcf2ac409b22efa0b29a9b0ede589046bdc7df3b9e387f6d46e16a66b72a78"
+        }
+      ]
+    },
+    {
+      "id": "round21",
+      "sequence": 21,
+      "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+      "complete": true,
+      "startedAt": "2026-10-25T19:31:53.930Z",
+      "completedAt": "2026-10-25T19:51:04.168Z",
+      "scopes": [
+        "runtime-protocol",
+        "gateway-core",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R21-INTERFACE-001",
+          "priority": 2,
+          "severity": "medium",
+          "title": "Preserve opaque question IDs when constructing prompt answers",
+          "file": "web/components/Prompts.tsx",
+          "lineStart": 30,
+          "lineEnd": 30,
+          "description": "The requestUserInput submit handler builds response with a normal object and assigns response[id]. A schema-valid question whose id is __proto__ invokes the inherited prototype setter rather than creating its own answer property. After the user selects the offered answer A, the rendered component submits JSON {\"answers\":{}}. The runtime requires an own answer for each question and therefore rejects this response; repeating the same UI action cannot answer the waiting native question.",
+          "trigger": "A native item/tool/requestUserInput request with question id __proto__, isOther false and an ordinary offered option A; select A and submit.",
+          "expected": "Serialize the exact opaque question ID as an own property with its selected answer.",
+          "actual": "The component calls onAnswer, but its serialized response contains an empty answers object.",
+          "evidence": [
+            {
+              "path": "protocol/json/ToolRequestUserInputParams.json",
+              "detail": "Question id is an unconstrained string. The isolated fixture passed the current official input schema before rendering."
+            },
+            {
+              "path": "protocol/json/ToolRequestUserInputResponse.json",
+              "detail": "Answers are a dictionary indexed by string question IDs; the expected own-property response passed this schema."
+            },
+            {
+              "path": "src/runtime/service.ts",
+              "lines": "210-224,547-552",
+              "detail": "Supported server requests are retained with original params; answering calls validatePrompt before native respond."
+            },
+            {
+              "path": "src/runtime/validation.ts",
+              "lines": "93-104",
+              "detail": "Every native question must have an own property in answers; otherwise Each question requires an answer is thrown."
+            },
+            {
+              "path": ".work/round21/interface-probe-results.json",
+              "sha256": "2ed108ccf2b80b2c4321e502856ddbd4f9ab1ff11d2d9fe6e448787224193148",
+              "test": "preserves an officially valid __proto__ question ID through the rendered form and JSON serialization",
+              "status": "failed",
+              "actual": "Expected own __proto__ answer; received {answers:{}}."
+            }
+          ],
+          "recommendation": "Construct answer dictionaries without inherited setters, and use own-property access when reading question-indexed state. Add a regression using an opaque prototype-named question ID."
+        },
+        {
+          "id": "R21-INTERFACE-002",
+          "priority": 2,
+          "severity": "medium",
+          "title": "Separate Other selection state from literal answer values",
+          "file": "web/components/Prompts.tsx",
+          "lineStart": 30,
+          "lineEnd": 31,
+          "description": "The UI uses the literal answer value __other as an internal Other-mode sentinel, and the submit loop applies that conversion to every question even when it has no options. Consequently a schema-valid literal __other option is shown as a custom-answer input even with isOther false; an options-null free-text question answered with the exact text __other is rejected locally as incomplete and never reaches onAnswer. These are legitimate protocol values and cannot be distinguished from mode state by comparing answer text.",
+          "trigger": "Either select an offered label __other with isOther false, or enter the literal __other in a free-text question whose options are null, then submit.",
+          "expected": "Submit the exact selected or typed text; enable a separate Other mode only when offered by that question.",
+          "actual": "The offered literal opens an unoffered Other input; the free-text literal produces zero answer calls and cannot be submitted as entered.",
+          "evidence": [
+            {
+              "path": "protocol/json/ToolRequestUserInputParams.json",
+              "detail": "Option labels are strings and options may be null; both local fixtures passed the current official schema with isOther false."
+            },
+            {
+              "path": "src/runtime/validation.ts",
+              "lines": "99-104",
+              "detail": "A non-Other choice is valid when its text equals an offered label; free text has no label restriction."
+            },
+            {
+              "path": ".work/round21/interface-probe-results.json",
+              "sha256": "2ed108ccf2b80b2c4321e502856ddbd4f9ab1ff11d2d9fe6e448787224193148",
+              "tests": [
+                "submits an officially valid literal __other option without opening an unoffered other answer",
+                "submits the literal __other as a free text answer with no select or custom-answer mode"
+              ],
+              "status": "failed",
+              "actual": "The option fixture rendered a custom input despite isOther false; the free-text fixture made zero onAnswer calls."
+            }
+          ],
+          "recommendation": "Track the selected option or Other mode separately from arbitrary user/option strings, and apply custom-answer substitution only to a question explicitly in Other mode. Cover both literal-option and free-text cases."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r21-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/round21/r21-runtime.json",
+          "sha256": "a14610dbbbe6e6f2f8ac403c27ca8127ddfa7e1cc640c64a89a55a442f459a58"
+        },
+        {
+          "id": "r21-interface",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round21/r21-interface.json",
+          "sha256": "13cb60b6abf4129eec17996d844bf60fcd371c1bebbd444c1abc1b44ef76554b"
+        },
+        {
+          "id": "r21-deployment",
+          "scopes": [
+            "deployment-release",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/round21/r21-deployment.json",
+          "sha256": "dd5229f17ad84b6c2ca3b29e1a6ee76ee3ad49f3d9740de63ef80220e53b9a24"
+        }
+      ]
+    }
+  ],
+  "fullTests": null,
+  "scopeExtension": "Complete modern-agent and pinned Codex CLI user-facing capabilities as requested 2026-10-25; resume complete audit gate after feature implementation.",
+  "featureAcceptance": "FEATURES.md"
+}

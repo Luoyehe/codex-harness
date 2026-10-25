@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:37:12.958Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedBatch": true,
+  "phase": "guardian-review-ui",
+  "specificTests": 6,
+  "files": [
+    "web/components/GuardianReviewPanel.tsx",
+    "web/App.tsx",
+    "web/tests/guardian-review.test.tsx"
+  ],
+  "contracts": [
+    "Reads at most ten captured denials for the exact thread; rejects foreign/malformed records and explains captureExhausted without claiming completeness.",
+    "Displays all seven fixed native action variants, rationale, risk, existing authorization, associated history and complete raw action. Missing native patch body/tool arguments are explicitly described as absent. No shell concatenation or user-supplied assessment payload.",
+    "Explicit checkbox and idle+loaded+complete history gate. Approval sends only threadId, captured approvalId and confirm:true. Expiry/context changes remove availability and consent.",
+    "Accepted one-retry registration triggers full history refresh; no automatic turn/start. Unknown resolves only through the original durable receipt, never a new authorization."
+  ],
+  "sourceHashes": {
+    "web/components/GuardianReviewPanel.tsx": "61a4521f30587e62bbcdebd156a68d0cb3ce629457498804013cbc2fb0afde92",
+    "web/App.tsx": "ea42b0f30a5f9e46df15cfa6e1203159072b0ecb91743844a94664e1bfa1afcd",
+    "web/tests/guardian-review.test.tsx": "419f562578752d4824a47c3d5b7755b478eec5e6ee746ee1145695ded6578860"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/guardian-review.test.tsx web/tests/execution-settings.test.tsx web/tests/terminal.test.tsx web/tests/settings.test.tsx web/tests/app-lifecycle.test.tsx web/tests/extensions.test.tsx",
+    "testFiles": 6,
+    "tests": 54,
+    "result": "passed",
+    "finishedAt": "2026-10-24T22:36:49Z",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite passed, 367 modules. Existing static bundle size warning remains."
+  },
+  "limits": [
+    "Only affected deterministic frontend tests; no full suite or frozen source audit.",
+    "No paid model request, external MCP, real CLI launch/Hook trust/Guardian execution by this agent. Runtime agent separately owns official CLI backend evidence.",
+    "Readonly loopback fixture 5122 provided for parent CUA; no 120 deployment or actual browser acceptance claimed."
+  ]
+}

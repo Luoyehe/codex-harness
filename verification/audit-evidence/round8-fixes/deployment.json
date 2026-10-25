@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round8",
+  "kind": "targeted-fix-evidence",
+  "reviewerId": "r8-deployment",
+  "scope": "deployment-release",
+  "startedAt": "2026-10-25T10:21:16Z",
+  "completedAt": "2026-10-25T10:28:50.803615+00:00",
+  "complete": true,
+  "fullSuiteRun": false,
+  "formalAudit": false,
+  "independentCleanRounds": 0,
+  "resolvedFindings": [
+    "r8-deployment-lockfile-preallocation"
+  ],
+  "changes": [
+    {
+      "file": "deploy/build.py",
+      "line": 101,
+      "details": "Added dependency_lock with an explicit 8 MiB byte limit. The binary stream reads no more than cap + 1 before rejecting overflow, and only accepted bounded bytes are decoded as strict UTF-8. CRLF/CR normalization preserves the prior text contract."
+    },
+    {
+      "file": "deploy/build.py",
+      "line": 104,
+      "details": "Root preparation compares pathname metadata before/after and opened-descriptor metadata before/after, verifies selected/opened device and inode, and requires the returned byte count to equal the stable opened size. Same-size edits, growth and replacement reject. Each stat API is compared with itself because Windows stat/fstat ctime values differ."
+    },
+    {
+      "file": "tests/deploy/test_dependency_lock.py",
+      "line": 13,
+      "details": "Added eight focused test methods covering cap - 1 and exact-cap UTF-8 acceptance, cap + 1 before decode, growth after fstat, malformed UTF-8, CRLF/CR, same-size mutation, separate before-open and after-read replacement cases, and descriptor closure on read failure."
+    }
+  ],
+  "sourceFilesAtCompletion": [
+    {
+      "file": "deploy/build.py",
+      "sha256": "3728d5987f66b6697e769c138603d7d36abdd96aead39f4dd6047fbce423db4f",
+      "bytes": 19737,
+      "lines": 330
+    },
+    {
+      "file": "tests/deploy/test_dependency_lock.py",
+      "sha256": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+      "bytes": 7487,
+      "lines": 164
+    }
+  ],
+  "tests": [
+    {
+      "sequence": 1,
+      "command": "HARNESS_TEST_PYTHON=<HARNESS_TEST_PYTHON> node scripts/run-tests.mjs --targeted tests/deploy/test_dependency_lock.py",
+      "status": "failed",
+      "exitCode": 1,
+      "testsRun": 8,
+      "failureEntries": 2,
+      "errorEntries": 5,
+      "skipped": 0,
+      "details": "First implementation compared complete Path.stat metadata directly with os.fstat metadata. Windows ctime semantics caused normal, UTF-8 and newline cases to reject as integrity errors. These are subtest entries, not seven distinct failed test methods."
+    },
+    {
+      "sequence": 2,
+      "command": "HARNESS_TEST_PYTHON=<HARNESS_TEST_PYTHON> node scripts/run-tests.mjs --targeted tests/deploy/test_dependency_lock.py",
+      "status": "passed",
+      "exitCode": 0,
+      "testsRun": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "details": "After metadata comparison was changed to path-to-path and descriptor-to-descriptor with device/inode identity linkage."
+    },
+    {
+      "sequence": 3,
+      "command": "<HARNESS_TEST_PYTHON> -B -m unittest discover -s tests/deploy -p test_deployment.py -k BoundaryTests -v",
+      "status": "passed",
+      "exitCode": 0,
+      "testsRun": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "details": "Existing dependency/workspace security settings, exact overrides, real current lock, source packaging and related unit-boundary assertions remain passing."
+    },
+    {
+      "sequence": 4,
+      "command": "HARNESS_TEST_PYTHON=<HARNESS_TEST_PYTHON> node scripts/run-tests.mjs --targeted tests/deploy/test_dependency_lock.py",
+      "status": "passed",
+      "exitCode": 0,
+      "testsRun": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "details": "Final tests after parent review split the simulated pathname substitution into explicit before-open and after-read subcases, with lookup-count assertions. No production code changed after sequence 2."
+    }
+  ],
+  "otherChecks": [
+    {
+      "status": "passed",
+      "details": "Both modified/new Python files parsed with ast.parse. UTF-8, LF termination and absence of trailing whitespace checked. Final edited test file was also executed by sequence 4."
+    }
+  ],
+  "fixStageObservations": [
+    {
+      "status": "resolved",
+      "details": "Initial strict metadata cross-comparison was not portable because Windows stat and fstat reported different ctime values for the same unchanged file. No checks were dropped: each API now has its own before/after comparison and both identities must agree."
+    },
+    {
+      "status": "resolved",
+      "details": "Parent review found the first pathname-replacement fixture intercepted the initial lookup as well as the final one, so its comment overstated after-read race coverage. Final tests exercise both specific lookup positions separately."
+    }
+  ],
+  "additionalFindings": [],
+  "skipped": [],
+  "limitations": [
+    "Only the eight new test methods and six existing BoundaryTests methods were run. Repeated runs cover corrections to the same tests and are not additional unique coverage.",
+    "Tests ran on Windows Python 3.12.14. The pathname replacement cases substitute individual stat results instead of relying on Linux unlink-of-open-file behavior. Same-size mutation and file growth use actual isolated temporary files.",
+    "No Linux/SSH/systemd probe, full suite, network provider, personal configuration or online instance was accessed. This repair does not claim a new clean audit round or deployment acceptance.",
+    "No existing tests, documentation, feature evidence or audit ledger were changed. Source and test changes require the parent to refresh relevant current-source coverage pointers and restart the clean-audit gate."
+  ]
+}

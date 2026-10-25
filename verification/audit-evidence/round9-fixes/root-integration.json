@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T11:12:05.497Z",
+  "sourceEditsStopped": true,
+  "sourceFiles": [
+    {
+      "file": "tests/runtime/native-smoke.test.ts",
+      "sha256": "9773a5df375c3c45415c40f89a129e1a3dfe27a2efc562b412b9b2a345afe14f"
+    },
+    {
+      "file": "deploy/workspace_worktrees.py",
+      "sha256": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d"
+    },
+    {
+      "file": "tests/deploy/test_workspace_worktrees.py",
+      "sha256": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7"
+    }
+  ],
+  "reports": [
+    {
+      "file": "verification/audit-evidence/round9-fixes/runtime.json",
+      "sha256": "d7b7901e364ffdb3a3c46599220958d9b9881f533d4444cc5a95577b6825a26d"
+    },
+    {
+      "file": "verification/audit-evidence/round9-fixes/deployment.json",
+      "sha256": "efaeb8b3eee43ffb1791fc6f23fc5e7ef4becc8b6efb1a1a8b27737e20245438"
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "node .work/check-source-encoding.mjs",
+      "files": 1783,
+      "findings": []
+    },
+    {
+      "command": "node scripts/release-audit.mjs --source",
+      "status": "clean",
+      "findings": [],
+      "skipped": []
+    }
+  ],
+  "native": {
+    "test": "tests/runtime/native-smoke.test.ts",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "details": "Actual fixed official CLI, isolated Ledger pending/dispatching/accepted and independent receipt reopening, default probes and PTY lifecycle. Product authorization unchanged."
+  },
+  "deployment": {
+    "test": "tests/deploy/test_workspace_worktrees.py",
+    "windows": {
+      "passed": 6,
+      "skipped": 10,
+      "exitCode": 3
+    },
+    "linux": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "sourceHashesAllMatch": true,
+      "uid": 65534,
+      "gid": 65534,
+      "privateNetworkObserved": true,
+      "internetSocketDenied": true,
+      "sourceWriteDenied": true
+    },
+    "remoteEvidence": {
+      "file": ".work/round9-fixes/deployment-linux-raw-stdout.json",
+      "sha256": "9451db06841a2415d1fd204dcc4719a76dcfc70867a26f63c96ecc6c88ef10b1"
+    },
+    "cleanup": {
+      "unit": "crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service",
+      "state": {
+        "MainPID": "0",
+        "ControlPID": "0",
+        "ControlGroup": "",
+        "Description": "crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service",
+        "LoadState": "not-found",
+        "ActiveState": "inactive",
+        "SubState": "dead"
+      },
+      "cgroup": {
+        "path": "/sys/fs/cgroup/system.slice/crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service",
+        "exists": false
+      },
+      "cleanupErrors": [],
+      "stopConfirmed": true
+    },
+    "boundaries": "Only selected worktree test file executed. test_workspace.py was inventory accompaniment. Original services/configurations/accounts unchanged; retained UUID materials are independent test output."
+  },
+  "limits": [
+    "No full suite or online update.",
+    "The application TypeScript and Web sources did not change in this fix phase; existing production build and browser evidence remain in round8-fixes rather than being rerun or represented as new checks.",
+    "Repair integration earns no independent clean audit. Windows platform skips remain historical exit 3; the real Linux cases provide separate complementary coverage."
+  ]
+}

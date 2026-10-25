@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:37:12.955Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedBatch": true,
+  "phase": "execution-settings-ui",
+  "specificTests": 7,
+  "files": [
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/App.tsx",
+    "web/styles-workflows.css",
+    "web/tests/execution-settings.test.tsx"
+  ],
+  "contracts": [
+    "Read-only thread/session never resumes unloaded work. Settings refresh on native thread/settings/updated, closed and status notifications.",
+    "Separate future thread settings and current-turn settings. Current turn identity is pinned; changing the active turn discards unsubmitted selections rather than retargeting them. targetUnavailable is explicit.",
+    "Only selected fields are sent. Omission preserves existing fields; explicit serviceTier:null clears the override. Model efforts/tiers and allowed permission profiles are chosen from bounded current catalogs. Profile paging preserves opaque cursors and project ID scope.",
+    "Provider capability booleans are displayed as provider reports, not account/model guarantees.",
+    "Native replies and original durable receipts are distinguished; unknown does not replay and receipt acceptance alone does not claim current-turn settings applied."
+  ],
+  "sourceHashes": {
+    "web/components/ThreadExecutionSettings.tsx": "08fe8b706111467f82594b867153c907ce0ef045d3e8499521ba80239d9e7825",
+    "web/App.tsx": "ea42b0f30a5f9e46df15cfa6e1203159072b0ecb91743844a94664e1bfa1afcd",
+    "web/styles-workflows.css": "4d7b399c3d9e42588ccb91588f966ab4fd3ec5616fc8cb9546eba3f0ae425d79",
+    "web/tests/execution-settings.test.tsx": "f79fbd13e9dff695aea7977f7c8fe5e8858b378f21714221ad4de7f558162978"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/guardian-review.test.tsx web/tests/execution-settings.test.tsx web/tests/terminal.test.tsx web/tests/settings.test.tsx web/tests/app-lifecycle.test.tsx web/tests/extensions.test.tsx",
+    "testFiles": 6,
+    "tests": 54,
+    "result": "passed",
+    "finishedAt": "2026-10-24T22:36:49Z",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite passed, 367 modules. Existing static bundle size warning remains."
+  },
+  "limits": [
+    "Only affected deterministic frontend tests; no full suite or frozen source audit.",
+    "No paid model request, external MCP, real CLI launch/Hook trust/Guardian execution by this agent. Runtime agent separately owns official CLI backend evidence.",
+    "Readonly loopback fixture 5122 provided for parent CUA; no 120 deployment or actual browser acceptance claimed."
+  ]
+}

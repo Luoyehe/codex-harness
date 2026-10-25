@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-supplemental-findings",
+  "roundId": "round21-fixes",
+  "reviewerId": "r21-runtime",
+  "fullIndependentAuditRound": false,
+  "recordedAt": "2026-10-26T03:52:55.6286016+08:00",
+  "scope": "Read-only repair-design cross-review of prompt arbitrary-string keys and internal option markers; this artifact records already completed probes only.",
+  "preRepairSnapshot": {
+    "files": 1788,
+    "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+    "command": "node scripts/snapshot.mjs",
+    "observation": "Observed after the supplemental probe run and before source repair authorization. This records that prior observation, not a new claim about the current repair working tree."
+  },
+  "sealedReport": {
+    "path": "verification/audit-evidence/round21/r21-runtime.json",
+    "sha256": "a14610dbbbe6e6f2f8ac403c27ca8127ddfa7e1cc640c64a89a55a442f459a58",
+    "unchangedByThisTask": true
+  },
+  "probe": {
+    "command": "node node_modules/vitest/vitest.mjs run --config .work/round21-fixes/runtime-ui-keys.config.ts --reporter=default --reporter=json --outputFile=.work/round21-fixes/runtime-ui-keys.raw.json",
+    "runStartedAt": "2026-10-25T19:45:35.3790000+00:00",
+    "assertionsStartedAt": "2026-10-25T19:45:36.3730000+00:00",
+    "assertionsCompletedAt": "2026-10-25T19:45:36.5020000+00:00",
+    "total": 6,
+    "failed": 6,
+    "passed": 0,
+    "interpretation": "All six assertions expressed the expected corrected behavior and failed against the frozen pre-repair source. These are reproduction failures, not passing validations.",
+    "evidenceSelection": "The exact output path printed by this probe invocation was read; no latest pointer was used.",
+    "artifacts": [
+      {
+        "path": ".work/round21-fixes/runtime-ui-keys.test.tsx",
+        "sha256": "d3184ede7782b4c27263e092089844a249534eb60cfda63f9abf84223214ac4c"
+      },
+      {
+        "path": ".work/round21-fixes/runtime-ui-keys.config.ts",
+        "sha256": "b2f9ef9f9b952d15b0701fc51e8c7f177f1e402fc6b05bb20baac8f0f6ee678b"
+      },
+      {
+        "path": ".work/round21-fixes/runtime-ui-keys.raw.json",
+        "sha256": "0e665fde0798cd63a5ab0c90f47bcea1a80cbc49c39d8d0ffb74fd0403dace8f"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "valid MCP optional key __proto__ begins absent",
+        "status": "failed"
+      },
+      {
+        "name": "valid MCP optional key constructor begins absent",
+        "status": "failed"
+      },
+      {
+        "name": "valid MCP optional key __proto__ stays absent after clear",
+        "status": "failed"
+      },
+      {
+        "name": "valid MCP optional key constructor stays absent after clear",
+        "status": "failed"
+      },
+      {
+        "name": "unanswered requestUserInput constructor id must not produce a response",
+        "status": "failed"
+      },
+      {
+        "name": "frontend validator should reject an undeclared own __proto__ key when additionalProperties is false",
+        "status": "failed"
+      }
+    ]
+  },
+  "contractValidation": {
+    "schemaPath": "protocol/json/McpServerElicitationRequestParams.json",
+    "method": "Direct readFileSync of the exact current protocol JSON, compiled using Ajv with strict=false, validateFormats=false and ownProperties=true; no runtime/validation import.",
+    "verifiedRequestShape": {
+      "threadId": "t",
+      "turnId": null,
+      "serverName": "local-data-only",
+      "mode": "form",
+      "_meta": null,
+      "message": "Fixture",
+      "requestedSchema": {
+        "type": "object",
+        "propertiesDescription": "An own __proto__ or constructor property created with Object.fromEntries; each property schema is type:string."
+      }
+    },
+    "result": "Each of the four MCP component cases passed the fixed full request schema assertion before failing its checkbox assertion.",
+    "questionIdContract": "protocol/json/ToolRequestUserInputParams.json defines question id as an unrestricted string. The constructor component probe only supplies UI-consumed question fields and was not itself asserted to be a complete ToolRequestUserInputParams envelope."
+  },
+  "confirmedRelatedFindings": [
+    {
+      "id": "R21-FIX-RELATED-PROTOTYPE-READ",
+      "classification": "Confirmed shared root cause in arbitrary-string dictionary reads",
+      "rootCause": "Plain bracket reads from initially empty ordinary objects return inherited Object.prototype values; field presence is then inferred from value !== undefined.",
+      "affectedPaths": [
+        {
+          "file": "web/components/Prompts.tsx",
+          "line": 34,
+          "flow": "MCP standard form with a legal string property named __proto__ or constructor",
+          "observed": "The optional string field starts with its presence checkbox checked. After entering a value and clearing the presence checkbox, it renders checked again.",
+          "expected": "An omitted property starts absent and remains absent after clearing its own stored value.",
+          "evidence": "The first four assertions in the raw probe result failed with expected false, received true."
+        },
+        {
+          "file": "web/components/Prompts.tsx",
+          "line": 30,
+          "flow": "requestUserInput with legal question id constructor and no entered answer",
+          "observed": "Clicking submit calls onAnswer once; the answer array contains the inherited Object constructor function. JSON serialization of that array yields null instead of a user string.",
+          "expected": "An unanswered question must not dispatch a response.",
+          "evidence": "The fifth assertion failed and printed the actual onAnswer call containing [Function Object]."
+        }
+      ],
+      "impact": "Legal prompt identifiers and MCP property names cause incorrect presence state or invalid answer dispatch. This is a functional data-handling defect; no privilege escalation or real permission execution was tested."
+    }
+  ],
+  "boundedHelperObservation": {
+    "file": "web/lib/prompt-validation.ts",
+    "line": 32,
+    "status": "Pure-data helper behavior confirmed; independent real UI flow not established",
+    "input": "validateValue({type:object, properties:{}, additionalProperties:false}, JSON.parse containing an own __proto__ string property)",
+    "observed": "Returns no validation errors because properties[key] resolves inherited Object.prototype.",
+    "expected": "An undeclared own key should fail additionalProperties:false.",
+    "boundary": "The current UI has no demonstrated legitimate path that creates this undeclared key. This helper fixture is not claimed to be a valid standard MCP requestedSchema, whose top-level contract does not allow additionalProperties. Do not promote this observation to an independent user-flow finding."
+  },
+  "repairDesign": [
+    "Use own-property reads for arbitrary question ids and schema keys, including answers, other, top-level content and recursive SchemaField access.",
+    "Construct the response dictionary using Object.create(null) or Object.fromEntries. Computed property creation in withField is safe to retain.",
+    "Represent option selection using internal indices or tagged state; map selections back to exact original labels only at submission. Keep free text distinct from internal Other state.",
+    "Use Object.hasOwn(properties, key) in prompt-validation rather than truthiness of properties[key]."
+  ],
+  "boundaries": [
+    "This is supplemental repair evidence, not a complete independent repository audit and not a clean audit round.",
+    "Nested object SchemaField access has the same code pattern, but the fixed standard MCP form contract does not permit nested object fields; it is not reported as a separate confirmed standard-form flow.",
+    "No source, tracked test, product documentation or sealed R21 report was changed. Only ignored probe files already created and this authorized supplemental JSON are involved.",
+    "No tests were rerun while recording this artifact. No real model, MCP, account, media, permission behavior, SSH or restricted-file investigation occurred.",
+    "The parent agent confirmed separate response-write and __other marker defects; this artifact does not claim those earlier probes as this reviewer own evidence."
+  ]
+}

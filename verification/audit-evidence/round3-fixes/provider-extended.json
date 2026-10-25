@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 1,
+  "kind": "managed-bedrock-and-chatgpt-gateway-providers",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T22:50:42.971106+00:00",
+  "status": "implemented-targeted-validation-passed",
+  "files": [
+    {
+      "path": "deploy/provider.py",
+      "sha256": "39b1be59be31186be47f1cdc60ad3a80df3da47c09c5fe27e60966a7c9c54d66"
+    },
+    {
+      "path": "deploy/provider_gateway.py",
+      "sha256": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe"
+    },
+    {
+      "path": "deploy/provider_bedrock.py",
+      "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c"
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "sha256": "9dadcd6a8ab1a779a784c24c018cdf5c2a751d197667a791156e163811178d61"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "1dca37557b32deebda71e1ac54879edca2fd401520b3e11f20c1bb70b477eacc"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "65a43c2a979fd7bb801c5d4bb7f21df9a2d7dcbefd7c9a1239bfa0f777a07149"
+    },
+    {
+      "path": "tests/deploy/test_provider_gateway.py",
+      "sha256": "abffc53c21bf574f1fbb6ea496005418d122f5187d42e4b07ddc2a7d2dea502e"
+    },
+    {
+      "path": "tests/deploy/test_provider_bedrock.py",
+      "sha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c"
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "c39851af071ed9b33a34efffb2a2dd99879e9a9efceab95a7425b011023d0168"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "b3be1c53f8933942073e848eb8e02984b9d48ddf6c15db5871182fa2b9eeb747"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "e446383539712f05776e24351b75b096ddf56f9f043b2cf3e69855df2da03c9b"
+    }
+  ],
+  "implementation": [
+    "Six root provider kinds. New gateway and Bedrock kinds require system-v1 before generation creation; ordinary provider CAS, immutable publication, stop/restart and recovery remain in the existing transaction.",
+    "Gateway exposes HTTPS Responses/authorization/token URLs, public client ID, cookie delivery and optional loopback port only. New/changed targets require explicit credential-routing confirmation. Complete requirements replace user provider auth/header definitions; native owns ChatGPT and OAuth tokens separately.",
+    "Bedrock uses native amazon-bedrock-runtime or amazon-bedrock with commercial region and fixed regional endpoint. A fixed native-UID token command outranks cached native AWS credentials; no browser command, profile, credential-process or arbitrary endpoint is accepted.",
+    "The token-only verb is absent from control sudo authorization. Managed token bytes remain in root settings and native-group-readable environment delivery, outside TOML and argv. Switching kinds removes AWS environment fields; region/kind changes require a fresh token.",
+    "Root catalog refresh returns source:native for these kinds; it performs no gateway or AWS discovery. Runtime search is disabled; Mantle permits disabled/cached. Native SDK config/credential paths are fixed to /dev/null and metadata lookup is disabled.",
+    "Existing host-policy conflict/drift checks and separate host-namespace config-check are unchanged. Provider UI, explicitGatewayOauth initialization and diagnostic secret redaction were integrated by the parent/runtime agents."
+  ],
+  "linuxTargeted": {
+    "path": ".work/provider-extended-linux-tests-result.json",
+    "sha256": "57d4445bbe89f09517529dc62be4bd8d9afde70b5bd9d912d9b7648059b2d8fe",
+    "sourceArchive": {
+      "path": ".work/provider-extended-targeted.tgz",
+      "sha256": "0b02b20f745c49e58c4adc19e8d48f42c7e84afa36083fb68425a2f4bd88ee0b"
+    },
+    "command": "/usr/bin/python3 -B -m unittest <modules> -v",
+    "runs": [
+      {
+        "identity": "nobody",
+        "modules": [
+          "tests.deploy.test_provider_gateway",
+          "tests.deploy.test_provider_bedrock",
+          "tests.deploy.test_provider_layers"
+        ],
+        "passed": 21,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "identity": "root",
+        "modules": [
+          "tests.deploy.root.test_provider_extended",
+          "tests.deploy.root.test_provider_layers",
+          "tests.deploy.root.test_config_layer"
+        ],
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "isolation": "Fresh /var/tmp source extraction; root fixtures relocate Layout entirely, substitute service operations, and create no fixed host config, users or service units."
+  },
+  "nativeLinuxChain": [
+    {
+      "attempt": 1,
+      "path": ".work/provider-extended-native-initial-result.json",
+      "sha256": "9fc0d6f3b9c0641407dbe6f5b04b8a70dbc07a660a1daafec098e6e4b20cf9e9",
+      "passed": false,
+      "cases": [
+        {
+          "kind": "bedrock-runtime",
+          "exitCode": 1,
+          "passed": false,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [],
+          "nativeModelCount": 0,
+          "gateway": null,
+          "nativeLauncherExit": null,
+          "userConfigWritable": false,
+          "injectedProviderFieldsExcluded": false
+        },
+        {
+          "kind": "bedrock-mantle",
+          "exitCode": 1,
+          "passed": false,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [],
+          "nativeModelCount": 0,
+          "gateway": null,
+          "nativeLauncherExit": null,
+          "userConfigWritable": false,
+          "injectedProviderFieldsExcluded": false
+        },
+        {
+          "kind": "chatgpt-gateway",
+          "exitCode": 1,
+          "passed": false,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [],
+          "nativeModelCount": 0,
+          "gateway": null,
+          "nativeLauncherExit": null,
+          "userConfigWritable": false,
+          "injectedProviderFieldsExcluded": false
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "path": ".work/provider-extended-native-r2-result.json",
+      "sha256": "af00d8a3954d8a14cda8387026880d5f759000a3d900c86c1196dae3e0d31b26",
+      "passed": false,
+      "cases": [
+        {
+          "kind": "bedrock-runtime",
+          "exitCode": 1,
+          "passed": false,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [],
+          "nativeModelCount": 0,
+          "gateway": null,
+          "nativeLauncherExit": 0,
+          "userConfigWritable": false,
+          "injectedProviderFieldsExcluded": false
+        },
+        {
+          "kind": "bedrock-mantle",
+          "exitCode": 1,
+          "passed": false,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [],
+          "nativeModelCount": 0,
+          "gateway": null,
+          "nativeLauncherExit": 0,
+          "userConfigWritable": false,
+          "injectedProviderFieldsExcluded": false
+        },
+        {
+          "kind": "chatgpt-gateway",
+          "exitCode": 1,
+          "passed": false,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [],
+          "nativeModelCount": 0,
+          "gateway": null,
+          "nativeLauncherExit": 0,
+          "userConfigWritable": false,
+          "injectedProviderFieldsExcluded": false
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "path": ".work/provider-extended-native-result.json",
+      "sha256": "8f201397e0c0040943b35b5515d2d84fc698a2044ed3793857c90ef33ebfc7c7",
+      "passed": true,
+      "cases": [
+        {
+          "kind": "bedrock-runtime",
+          "exitCode": 0,
+          "passed": true,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [
+            "initialize",
+            "configRequirements/read",
+            "config/read",
+            "account/gatewayOAuth/read",
+            "model/list",
+            "config/batchWrite",
+            "config/read"
+          ],
+          "nativeModelCount": 14,
+          "gateway": null,
+          "nativeLauncherExit": 0,
+          "userConfigWritable": true,
+          "injectedProviderFieldsExcluded": true
+        },
+        {
+          "kind": "bedrock-mantle",
+          "exitCode": 0,
+          "passed": true,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [
+            "initialize",
+            "configRequirements/read",
+            "config/read",
+            "account/gatewayOAuth/read",
+            "model/list",
+            "config/batchWrite",
+            "config/read"
+          ],
+          "nativeModelCount": 8,
+          "gateway": null,
+          "nativeLauncherExit": 0,
+          "userConfigWritable": true,
+          "injectedProviderFieldsExcluded": true
+        },
+        {
+          "kind": "chatgpt-gateway",
+          "exitCode": 0,
+          "passed": true,
+          "stopConfirmed": true,
+          "unitRemoved": true,
+          "methods": [
+            "initialize",
+            "configRequirements/read",
+            "config/read",
+            "account/gatewayOAuth/read",
+            "config/batchWrite",
+            "config/read"
+          ],
+          "nativeModelCount": 0,
+          "gateway": {
+            "providerId": "harness_chatgpt_gateway",
+            "providerName": "ChatGPT through managed gateway",
+            "required": true,
+            "status": "notReady",
+            "error": null
+          },
+          "nativeLauncherExit": 0,
+          "userConfigWritable": true,
+          "injectedProviderFieldsExcluded": true
+        }
+      ]
+    }
+  ],
+  "nativeLinuxFailureAnalysis": [
+    {
+      "attempt": 1,
+      "category": "fixture-defect",
+      "cause": "PrivateTmp hid /var/tmp fixture and archived source from the oneshot before product code ran.",
+      "repair": "Remove PrivateTmp from this disposable probe; retain PrivateNetwork and exact fresh fixture paths. No product change."
+    },
+    {
+      "attempt": 2,
+      "category": "fixture-defect",
+      "cause": "Strict dictionary equality rejected native-added auth.cwd and gateway optional/default fields.",
+      "repair": "Check every required field and separately validate native auth.cwd against the fixture home. No product change."
+    }
+  ],
+  "nativeLinuxScope": {
+    "version": "official Codex 0.164.0 Linux x64",
+    "sourceArchiveSha256": "0b02b20f745c49e58c4adc19e8d48f42c7e84afa36083fb68425a2f4bd88ee0b",
+    "probe": {
+      "path": ".work/provider-extended-linux-probe.py",
+      "sha256": "3c26996611bc5eb713adb3c9d55e023bfd1d20431308ddefedffbda52546e6fe"
+    },
+    "identity": "nobody; fixed launcher checks its configured UID/GID/groups/capabilities",
+    "network": "Each temporary oneshot used PrivateNetwork=yes; no inference turn or OAuth login was issued.",
+    "checks": [
+      "Generated root-owned defaults/requirements with same-file binds inside a disposable /etc/codex namespace",
+      "User provider selection, endpoint, headers and AWS profile injection excluded from required/effective config",
+      "Fixed native token command; 14 runtime and 8 Mantle models from native catalogs",
+      "Gateway OAuth required:true/status:notReady without login",
+      "User config/batchWrite succeeds while required provider selection persists",
+      "Every launcher exits zero; exact temporary units stopped and cgroups empty before unit-file removal"
+    ],
+    "productionDifference": "The probe relocates only Layout in a root-owned launcher wrapper and supplies isolated /etc/codex. It does not replace production host-preservation/config-check acceptance or install a release."
+  },
+  "nativeWindowsAuthPrecedence": {
+    "initial": {
+      "path": ".work/bedrock-bearer-probe-initial-result.json",
+      "sha256": "3ae289bee7ddc9d555e16c65e1f02e4a606068a2c92565ad41e016285f7d8814"
+    },
+    "final": {
+      "path": ".work/bedrock-bearer-probe-result.json",
+      "sha256": "88db05ce53eea0e7ccbacbf4b4add315431b8682fe69b5d55c5858304f8b296a"
+    },
+    "probe": {
+      "path": ".work/bedrock-bearer-probe.mjs",
+      "sha256": "b5460fd59a1bc7aa0df1f08abe53bf54ac89936c32e0ba87652e10bd6c60c8b6"
+    },
+    "passed": true,
+    "initialFailure": "Fixture account/login/start changed user provider settings. Close/rewrite isolated fixture configuration/restart retained the deliberately cached fake account and restored the intended test policy.",
+    "checks": [
+      {
+        "provider": "amazon-bedrock-runtime",
+        "commandBearerOverridesCachedAccount": true,
+        "nativeModelCount": 14
+      },
+      {
+        "provider": "amazon-bedrock",
+        "commandBearerOverridesCachedAccount": true,
+        "nativeModelCount": 8
+      }
+    ],
+    "localRejectedResponseRequests": 4,
+    "externalConnectAttemptsRejectedByLocalProxy": 22,
+    "limits": "Fake credentials only; local Responses endpoint deliberately returns 503 and outbound CONNECT attempts are rejected by the local proxy. This validates command credential precedence and route selection, not inference success or Linux requirements replacement."
+  },
+  "affectedSelection": {
+    "path": ".work/test-results/run-aWfTGR/vitest.json",
+    "sha256": "694cd1ebb119d43d0e709cac4b321c2bcdee25f9b442efa5ad130511375668f6",
+    "passed": 12,
+    "failed": 0
+  },
+  "parentUiValidation": {
+    "path": ".work/test-results/run-rROAF9/vitest.json",
+    "sha256": "60fb619c794fb0693ee6fa1ae51d8e188a1cb94725e442da36f41519910adbe4",
+    "passed": 8,
+    "failed": 0,
+    "scope": "Parent provider UI tests, separate from deployment/helper proof."
+  },
+  "primarySources": [
+    "https://learn.chatgpt.com/docs/amazon-bedrock",
+    "https://learn.chatgpt.com/docs/enterprise/sign-in-with-chatgpt-through-a-gateway",
+    "https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/core/config.schema.json",
+    "https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/model-provider-info/src/lib.rs",
+    "https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/config/src/model_provider_requirements.rs"
+  ],
+  "limits": [
+    "No real AWS account/token, gateway OAuth authorization, paid inference or external MCP was used. A real account and operator-reviewed gateway are still needed for business-level acceptance.",
+    "IAM/profile/credential-process flows, noncommercial AWS partitions, custom Bedrock endpoints, OAuth header delivery, scopes/resource overrides and client secrets are intentionally unsupported.",
+    "No online instance, R2 service, host Codex policy or existing sudo rule was changed. Only newly created probe unit files were removed after confirmed stop; fixture materials remain.",
+    "Current source is unfrozen. These are affected tests and isolated probes, not a full repository audit, full test run or release/deployment approval."
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "slug": "harness-loopback-fixture",
+      "display_name": "Harness loopback protocol fixture",
+      "description": "Local deterministic protocol substitute; no external model capability claim.",
+      "default_reasoning_level": "low",
+      "supported_reasoning_levels": [{ "effort": "low", "description": "Local protocol fixture" }],
+      "shell_type": "disabled",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 0,
+      "support_verbosity": false,
+      "truncation_policy": { "mode": "bytes", "limit": 8192 },
+      "context_window": 32768,
+      "experimental_supported_tools": [],
+      "input_modalities": ["text"],
+      "supports_reasoning_summary_parameter": false,
+      "include_apps_usage_instructions": false,
+      "node_repl_disabled": true,
+      "base_instructions": "Return the deterministic local fixture response."
+    }
+  ]
+}

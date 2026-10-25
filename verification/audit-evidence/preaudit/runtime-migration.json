@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "isolated-native-history-migration",
+  "formalCleanRound": false,
+  "status": "passed",
+  "startedAt": "2026-10-24T18:11:35.078Z",
+  "completedAt": "2026-10-24T18:11:38.308Z",
+  "command": "node --experimental-transform-types --import ./.work/preaudit-runtime/loader.mjs .work/preaudit-runtime/legacy-migration.mjs",
+  "probe": {"path":".work/preaudit-runtime/legacy-migration.mjs","sha256":"fdb8e46a07f8c2d0a28dc3e6071011564909d2cca324106d753e0e0ad7fbe0d7"},
+  "rawResult": {"path":".work/legacy-migration/run-YYHLX4/result.json","sha256":"eb2078a4d66ac7c49f6d99a07b5547a39bbbf2a074735c0de62d673a6271d282"},
+  "runtimeSource": {"path":"src/runtime/service.ts","sha256":"2664ff8d5e7de45adace0df6f131b60ed8055aec548f798f6302f88ebe094a4c"},
+  "oldCli": {
+    "reportedVersion":"codex-cli 0.149.0",
+    "path":"reference/runtime/codex-0.149.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+    "sha256":"14b7e6b2356e82d1d9275579eaa588757b4e0a501b65dcc19fccdf77bd83dc00",
+    "registryMetadata":".work/legacy-cli-metadata.json",
+    "registryIntegrity":"sha512-qKbwSOOO/fdhQ5MlXE2fts6taPxRPZ/zqeC+eqHD72hLRymV9rFCUbUxOCquognUPRPvS/2/kRCV0UVhoDd3yQ==",
+    "packageSource":"https://registry.npmjs.org/@openai/codex/-/codex-0.149.0-win32-x64.tgz",
+    "archiveIntegrityVerification":"Downloaded and verified by the parent task before this probe; this probe independently checked binary --version and recorded its SHA256."
+  },
+  "newCli": {
+    "reportedVersion":"codex-cli 0.164.0",
+    "path":"reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+    "sha256":"6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36"
+  },
+  "sequence": [
+    "Created a new isolated home/project/temp tree under .work/legacy-migration/run-YYHLX4 with a static model catalog and Responses provider bound to 127.0.0.1:9227.",
+    "The official 0.149.0 CLI created one real legacy thread and completed two text-only turns against the local SSE fixture.",
+    "Read both complete old messages and answers, ended old stdin, observed natural process exit code 0, and confirmed the old PID exited before starting the new CLI.",
+    "Copied the original sessions history to an untouched backup and hashed its bytes before 0.164.0 opened that home.",
+    "The current RuntimeService using official 0.164.0 resumed the same thread, recognized historyMode=legacy, and returned two full turns through thread/read(includeTurns:true). No paginated method was called or claimed for the legacy history.",
+    "Started and completed a third turn through current RuntimeService, then read all three user messages and all three answers with itemsView=full.",
+    "Verified the provider config hash was unchanged, old/new native PIDs exited, and the loopback provider listener was closed without cleanup errors."
+  ],
+  "threadId":"01a16f1c-69e1-78d1-afa0-9af94472eaa7",
+  "calls": {
+    "providerRequests":3,
+    "oldProviderRequests":2,
+    "newProviderRequests":1,
+    "providerPath":"POST /v1/responses",
+    "providerModel":"harness-loopback-fixture",
+    "unexpectedProviderRequests":0,
+    "toolCalls":0,
+    "externalProviderOrMcpCallsIssued":0,
+    "oldNativeMethods":["thread/start","turn/start","turn/start","thread/read"],
+    "newNativeMethods":["thread/resume","thread/read","thread/read","turn/start","thread/read"]
+  },
+  "history": {
+    "oldInitialMode":"legacy",
+    "newResumedMode":"legacy",
+    "beforeContinue":{"pages":1,"legacy":true,"turns":2,"itemsViews":["full","full"]},
+    "afterContinue":{"legacy":true,"turns":3,"itemsViews":["full","full","full"]},
+    "originalBackup":".work/legacy-migration/run-YYHLX4/original-history-backup/2026/10/25/rollout-2026-10-25T02-11-35-01a16f1c-69e1-78d1-afa0-9af94472eaa7.jsonl",
+    "originalBackupBytes":20611,
+    "originalBackupSha256":"26914d779d2d6f6c1da6034969bdf1262d334a4025c7ba07e850fbe54596a5fc",
+    "oldReadSha256":"b2777e53ca27868d8649a91bd7e08a30eaf98a21d1f3979f2c34f36474632675",
+    "configSha256BeforeAndAfter":"2e897418806525e7979e811e83fe87207eba985fb92ab74ee15f91fcd6060fd7"
+  },
+  "cleanup":{"oldGracefulExitCode":0,"oldExitedBeforeUpgrade":true,"newExited":true,"oldExited":true,"providerClosed":true,"errors":[]},
+  "limitations":[
+    "This is one freshly generated old-version history with two text-only turns, not arbitrary personal-history, large-history or corrupted-rollout compatibility evidence.",
+    "The legacy path was actually exercised. Paginated new-history behavior has separate native integration evidence; this probe does not label legacy data as paginated.",
+    "An earlier exploratory run under .work/legacy-migration/run-OQ8FDs passed the same migration with standard NativeRpc Windows tree cleanup. The final run above supersedes it by verifying normal old-CLI EOF exit. There were six total local fixture requests across both runs; neither run contacted a commercial provider.",
+    "Provider routing was fixed to numeric loopback with strict route/request/body limits and deterministic text responses. This was not an OS-level network-isolation test.",
+    "No production source, repository test, deployment, online service, personal home, 120 host, or archival Harness code was changed or read for this probe.",
+    "This additional compatibility check is not a whole-repository suite or a formal clean audit round."
+  ]
+}

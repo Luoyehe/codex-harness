@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "r11-runtime",
+  "task": "Dialog auth-loss repair cross-review",
+  "status": "final-implementation-reviewed",
+  "designReviewedAt": "2026-10-25T16:13:59.000Z",
+  "scope": "Read-only repair design review of all 14 product Dialog call sites in 12 product files; no repeated whole-web audit, source edits or full tests.",
+  "callSemantics": [
+    {
+      "paths": [
+        "web/components/ProjectDialog.tsx",
+        "web/components/RenameDialog.tsx",
+        "web/components/HistoryTools.tsx"
+      ],
+      "behavior": "Project, rename, branch and review close callbacks are vetoed by running.current; forced modal release cannot depend on invoking them."
+    },
+    {
+      "paths": [
+        "web/components/AttachmentButton.tsx"
+      ],
+      "behavior": "Close clears preview and revokes Blob URL. AttachmentButton remains mounted during auth loss, so its mounted guard permits delayed attachment/read completion to mount Dialog."
+    },
+    {
+      "paths": [
+        "web/App.tsx",
+        "web/components/AutomationsPanel.tsx",
+        "web/components/LoadedThreadsPanel.tsx",
+        "web/components/GuardianReviewPanel.tsx",
+        "web/components/ThreadExecutionSettings.tsx",
+        "web/components/OrganizationPanel.tsx",
+        "web/components/TaskPanel.tsx",
+        "web/components/Settings.tsx",
+        "web/components/HistoryTools.tsx"
+      ],
+      "behavior": "Other dialogs delegate closure to parent setters. Existing App auth-loss reset unmounts top-level dialogs; generic availability must cover retained descendant dialogs outside that block."
+    }
+  ],
+  "requiredBoundaries": [
+    "Cover the entire retained Workspace including Composer/AttachmentButton and delayed descendant mounts; unavailable Dialog must never call showModal.",
+    "Release native modal ownership and document keyboard listeners synchronously with availability loss, independently of business onClose and in-flight vetoes.",
+    "Do not remount Workspace or clear useDraft/receipt state; no replay on authentication recovery. Preserve BranchDialog draft/created-branch identity behavior and normal close guards.",
+    "Do not restore focus into hidden/inert workspace or steal Login autofocus. Normal close restores connected visible opener/fallback. Distinguish attachment suspension from Blob disposal.",
+    "Preserve IME Escape/isComposing/keyCode229 behavior and Tab containment when available. Inactive dialogs cannot intercept login keys; multiple active dialogs must not consume the same Escape/Tab.",
+    "Validate open preview at auth loss and late attachment/read response after loss, login keyboard access, draft retention, no replay, and explicit reauthentication behavior."
+  ],
+  "supportingReads": [
+    "web/components/Dialog.tsx",
+    "web/components/Composer.tsx",
+    "web/components/Login.tsx",
+    "web/hooks/useWorkflow.ts",
+    "web/lib/types.ts",
+    "web/tests/dialog.test.tsx"
+  ],
+  "coordination": "Design constraints sent directly to root and fresh_r11_interface. Final implementation inspected only after interface explicitly stopped source writes. No source edits by reviewer.",
+  "testsExecutedByReviewer": [],
+  "finalImplementationReview": {
+    "verdict": "No additional confirmed blocking issue in the repaired scope.",
+    "files": {
+      "web/components/Dialog.tsx": "5ab90a4589bcf1f169b5f8d9120990478e17d99d60b81d9e0d01e4cd31bc3bf1",
+      "web/App.tsx": "274d203877dffa67b6f6ae276f91c1dea8d55c27fcf349d7651a5766e2b5b168",
+      "web/tests/dialog.test.tsx": "96014b4afe14ea333e4dab2b00ff0ecd1cb5ea4dffe3e941b42889cd80802d42",
+      "web/tests/app-lifecycle.test.tsx": "9140f6154d92744ff3c668ff93ef0edc0a4a15532e9c02aa867e0881fac50e87"
+    },
+    "conclusions": [
+      "DialogScope composes parentActive && active and wraps all retained Workspace descendants. Inactive/late Dialog mounts never enter native modal state or install keyboard listeners.",
+      "useLayoutEffect cleanup releases modal and keyboard ownership without invoking business onClose, preserving the existing in-flight vetoes, retained draft/receipt state and explicit top-level App modal reset.",
+      "Stable render-time owner order is retained across scope suspension; setup sorts registrations and reopens higher layers so child-first React layout effects do not place the outer native dialog above its inner dialog.",
+      "Only the last registered layer consumes Escape/Tab; composition handling is preserved. Cleanup removes its layer and skips custom focus restoration during unavailability or lower-layer removal. Normal restoration filters hidden/closed ancestors and respects the remaining modal.",
+      "New regressions cover nested Escape/Tab, StrictMode registration/cleanup, scope suspension/reopen, hidden opener/fallbacks and both open and delayed attachment previews across auth loss.",
+      "Reauthentication intentionally restores retained attachment previews, including a delayed response accepted while inactive. Existing top-level App dialogs remain reset. Blob URL is retained during suspension and revoked on explicit preview close; attachment/read and mutation requests are not replayed."
+    ],
+    "tests": {
+      "reviewerExecuted": [],
+      "authorReported": "Four exact affected test files: 48 passed; web TypeScript check passed. Reviewer read the two changed regression files but did not repeat successful test runs."
+    },
+    "limitations": [
+      "Native showModal/close and stacking are mocked in jsdom; no real browser top-layer/inert or physical IME acceptance was executed by this reviewer.",
+      "Read-only focused repair review, not a new complete frozen audit round. Historical round11 report was not modified."
+    ]
+  },
+  "completedAt": "2026-10-25T16:20:20.946Z"
+}

@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round14-fixes",
+  "reviewerId": "r14-interface-fix",
+  "findingId": "R14-INTERFACE-001",
+  "status": "implemented-targeted-tests-passed",
+  "startedAt": "2026-10-25T17:32:25.924Z",
+  "completedAt": "2026-10-25T17:41:38.537Z",
+  "beforeAuditDigest": "a630af3178fe351cadfc7a50b189cebd78c8a58ac7e927370bd123e19beb7c5c",
+  "method": "Implemented the current MCP preview boundary repair after formal R14 recording, restricted to the four listed web files. Preserved exact before copies for the three preexisting files, added two failing-before regressions, reused unchanged mediaBytes/mediaMime, and reviewed scoped resource ownership and error fencing. A React-owned provider allows one current panel preview across all results/resources. Validation precedes object URL allocation; lifecycle cleanup revokes URLs, removes source attributes, stops audio and explicitly releases its resource. Read every changed implementation/test and ran only the listed exact targeted files, retaining both pre-repair failures and an intermediate StrictMode failure.",
+  "files": [
+    {
+      "path": "web/components/McpContent.tsx",
+      "beforeSha256": "44a968523f96f7b9b5caa5730ac5d250fc550d7251d14b9c1513bb15c321b5b7",
+      "afterSha256": "7ba713b891431e930c4c52043d6cc8ad77ba9299bd65728a329d1842bba0ab38",
+      "beforeCopy": ".work/round14-fixes/interface-before/McpContent.tsx",
+      "encoding": "UTF-8 without BOM, LF"
+    },
+    {
+      "path": "web/components/McpPanel.tsx",
+      "beforeSha256": "fdc3db7d28be6cb0c3f25b0cfac30182aaff7877884d1733793d4dfa46a694bf",
+      "afterSha256": "fbbb01ed708bc5fc49d8872b97947d79a8f42c3de20fbf74a3438a7082f05e9d",
+      "beforeCopy": ".work/round14-fixes/interface-before/McpPanel.tsx",
+      "encoding": "UTF-8 without BOM, LF"
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "beforeSha256": "e2a2fea93b50ecf16312ea246cb2c96f8ad949eeeaa3057911f6db1eec50a827",
+      "afterSha256": "71c2f195c135801252074fa26f7511f644f6a64b384db1b6c3d0a37e3d16e794",
+      "beforeCopy": ".work/round14-fixes/interface-before/mcp-ui.test.tsx",
+      "encoding": "UTF-8 without BOM, LF"
+    },
+    {
+      "path": "web/tests/mcp-media.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "13fbd6b3059817b6c7c12ea20e973c777dcb17106fc18700f5591440d157985b",
+      "beforeCopy": null,
+      "encoding": "UTF-8 without BOM, LF"
+    }
+  ],
+  "behavior": [
+    "MCP images and audio require an explicit per-item preview/load action; the current MCP panel has one active preview across retained results and resources.",
+    "Strict Base64/encoded size, detected image/audio signature, declared-vs-detected MIME, positive bounded dimensions and the shared 40-million-pixel limit are checked before media source creation.",
+    "Rejected entries show a useful per-item error while sibling text, links, binary metadata, original result identity/body and raw JSON download remain usable.",
+    "Switching previews, result identity/content/item/type/MIME/bytes changes, result removal, scope/connection changes and unmount release the held preview; an old load error cannot close a replacement preview.",
+    "Audio uses preload=none without autoplay and is paused, detached from its source and reloaded empty on teardown. Image sources are removed on teardown. StrictMode ref reattachment restores only the already validated URL."
+  ],
+  "tests": [
+    {
+      "phase": "before-repair",
+      "detail": "Two focused regressions failed against the original automatic img behavior.",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/mcp-media.test.tsx",
+      "report": ".work/test-results/run-SJ82Tg/vitest.json",
+      "reportSha256": "6e98cc11f891f7e7c96c163780f1544072d2a1c52b2403e1412ff437bd1f3600",
+      "startedAt": "2026-10-25T17:32:29.180Z",
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0,
+      "todo": 0,
+      "success": false,
+      "failures": [
+        {
+          "test": "does not create image or audio sources until a separate preview action",
+          "message": "AssertionError: expected <img alt=\"MCP 工具返回的图像\" …(1)></img> to be null"
+        },
+        {
+          "test": "rejects an oversized compact PNG header before creating a source and keeps sibling text visible",
+          "message": "AssertionError: expected <img alt=\"MCP 工具返回的图像\" …(1)></img> to be null"
+        }
+      ]
+    },
+    {
+      "phase": "initial-repair",
+      "detail": "67 tests passed before explicit DOM media teardown and StrictMode coverage were added.",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/mcp-media.test.tsx web/tests/mcp-ui.test.tsx",
+      "report": ".work/test-results/run-Kgu7il/vitest.json",
+      "reportSha256": "2b558a2b5b5b895f29e1afd28a2728cfe49c445571c4b598a90d31866cd767a5",
+      "startedAt": "2026-10-25T17:37:08.355Z",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "success": true,
+      "failures": []
+    },
+    {
+      "phase": "expanded-lifecycle-regression",
+      "detail": "The new StrictMode regression failed because ref cleanup removed src and reattachment did not restore it; 68 other tests passed.",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/mcp-media.test.tsx web/tests/mcp-ui.test.tsx",
+      "report": ".work/test-results/run-aOKmeP/vitest.json",
+      "reportSha256": "93fbf95d0b0b72a4b8d4fec2f7961d27f08d86e3c1125f994e92f8031329c60e",
+      "startedAt": "2026-10-25T17:39:06.644Z",
+      "passed": 68,
+      "failed": 1,
+      "skipped": 0,
+      "todo": 0,
+      "success": false,
+      "failures": [
+        {
+          "test": "keeps a live preview usable through StrictMode ref and effect checks and revokes once on unmount",
+          "message": "AssertionError: expected null to be 'blob:mcp-1' // Object.is equality"
+        }
+      ]
+    },
+    {
+      "phase": "strictmode-repaired",
+      "detail": "Restoring only the already validated object URL on ref reattachment fixed the regression.",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/mcp-media.test.tsx web/tests/mcp-ui.test.tsx",
+      "report": ".work/test-results/run-4qKjRX/vitest.json",
+      "reportSha256": "13eef1e5a8eb4284545cdb76930798f3661bc370613ab01e2e475ac19d59b388",
+      "startedAt": "2026-10-25T17:39:27.964Z",
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "success": true,
+      "failures": []
+    },
+    {
+      "phase": "final",
+      "detail": "Final exact files, including two type-only Blob assertions, passed 69 tests.",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/mcp-media.test.tsx web/tests/mcp-ui.test.tsx",
+      "report": ".work/test-results/run-V1AByy/vitest.json",
+      "reportSha256": "a602a586a8e1b84b79ce70becf98a4cf21aaf2b3286098071739c499da41e994",
+      "startedAt": "2026-10-25T17:40:30.857Z",
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "success": true,
+      "failures": []
+    }
+  ],
+  "validations": [
+    {
+      "kind": "unchanged-shared-helper",
+      "path": "web/lib/media.ts",
+      "sha256": "fa8cb8151a230ec5c8bf2fcad3d162fa0acc2ede4b2630781042cad8d2d2a900",
+      "matchesFrozenAssignment": true
+    },
+    {
+      "kind": "unchanged-formal-audit",
+      "path": "verification/audit-evidence/round14/r14-interface.json",
+      "sha256": "755f9fee267d6b381c004e0151ff3d1d151faa5c3c0c51d55e770bd29e9115bd"
+    },
+    {
+      "kind": "before-copy-integrity",
+      "status": "passed",
+      "files": 3
+    },
+    {
+      "kind": "encoding",
+      "status": "passed",
+      "files": 4,
+      "detail": "All changed files are UTF-8 without BOM and LF."
+    },
+    {
+      "kind": "setup-error",
+      "status": "recovered",
+      "detail": "The first implementation apply_patch attempted delete/add of the same path in one patch and was rejected before any edit. Retried as an update patch; no source was partially replaced."
+    }
+  ],
+  "skipped": [],
+  "limitations": [
+    "No full/aggregate test selection, build or typecheck was run by this agent; root owns final shared web noEmit/build and integration evidence.",
+    "No browser raster decoding, real large image, OOM, audio playback, external/network service, real MCP/provider/model, login, SSH or personal CODEX_HOME was used. JSDOM fixture tests use safe one-pixel images or small synthetic headers, mock Blob URLs and mock audio pause/load.",
+    "The shared parser validates signatures and dimension headers; browser-level corruption is handled by per-preview error cleanup, not claimed as a complete media-format validator.",
+    "Only this four-file repair is claimed here; root and the deployment reviewer independently crossreview integration. Changes by the separate attachment-repair agent are outside this report.",
+    "No capability coverage regeneration or formal round14 report edits were performed. The failing-before and intermediate failed runs are retained above and in their original ignored test reports."
+  ]
+}

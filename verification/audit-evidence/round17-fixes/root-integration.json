@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "phase": "round17-fixes",
+  "completedAt": "2026-10-25T18:36:11.840Z",
+  "formerDigest": "1a327fa9b8d17120bae2d40f37ba391ee735af37b5e02b0e1acad74394a22bec",
+  "currentDigest": "c652892011ba0e69531d6ed79f859accb209390f6deaf4985de37ff7e506ac0e",
+  "sourceFileCount": 1788,
+  "auditDisposition": "Rounds 15 and 16 were complete and clean on the former snapshot. Round 17 recorded one validator finding and incomplete runtime review after automatic safety review interrupted its investigation. It is not a clean full audit; consecutive count is zero.",
+  "finding": "R17-RUNTIME-001",
+  "repair": "Dedicated conservative permission-rule comparison replaces generic JSON subset comparison. Original responses remain unchanged. Refusals and independent category selection remain available; nonempty filesystem responses retain selectors, deny/read restrictions and effective depth.",
+  "rootReview": "Read the complete final permission comparator, dedicated regressions, validation and service-test diffs, the final repair report and both static cross-review findings and resolution. Checked all repair source/backup and nine retained-evidence hashes and the actual final Vitest report.",
+  "sourceFiles": [
+    {
+      "path": "src/runtime/validation.ts",
+      "sha256": "968a80d2e963b56c69a10cff2a6f122a0b3d24e6284c8282538631ddb219f7db"
+    },
+    {
+      "path": "src/runtime/permission-grants.ts",
+      "sha256": "98fb19a78cd3c0255c8a11268e8267fa2dab93b57a4d55ff315e1b741f13d8c6"
+    },
+    {
+      "path": "tests/runtime/permission-validation.test.ts",
+      "sha256": "56bf986c78e7d79d817db9ffee6054bafee587fd9539ae77cc6c5ee39407abc2"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "37a96d0e997742d3e144d3e9bedff3032ffe4709fb4cb912b0c72fca2e3b3a56"
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "sha256": "059bdb6d58a9b732d72d61eae45e7352d3cd5bdca7bce044ad7663698377eb49"
+    },
+    {
+      "path": "verification/feature-evidence/capability-coverage.json",
+      "sha256": "3dc293953b7e898b279c96b2d52642b5017eb4652fa007278d69729aa95e3e2a"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "verification/audit-evidence/round17-fixes/runtime.json",
+      "sha256": "be205e81be2e9f0ecf7f54797dd275c6c5fbda12ef6b9082f00567b3924c8442"
+    },
+    {
+      "path": "verification/audit-evidence/round17-fixes/cross-review.json",
+      "sha256": "7dd0c4e2d0666f21084818a742e34f80d618675e96c77ccf8c0727bc4af3439d"
+    }
+  ],
+  "validation": {
+    "targeted": {
+      "files": 3,
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "rawReport": ".work/test-results/run-jGbsmW/vitest.json",
+      "sha256": "da46775476d3c0565bccc5ce8d95136f554eb9af317f4097dae13d0e9c487753"
+    },
+    "serverTypecheck": "repair agent completed tsc --noEmit",
+    "serverBuild": "root pnpm build:server exit 0",
+    "encoding": "1788 files, no UTF-8 BOM or CRLF findings",
+    "sourcePrivacyBeforeThisRecord": {
+      "status": "clean",
+      "files": 1964,
+      "bytes": 11954204,
+      "findings": 0,
+      "artifacts": 0,
+      "unreadable": 0,
+      "skipped": 0
+    }
+  },
+  "nextInventory": {
+    "testFiles": 148,
+    "javascript": 120,
+    "python": 28,
+    "rootPython": 8
+  },
+  "officialContractsRead": [
+    {
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs",
+      "scope": "Option fields and public-to-core conversion: non-null entries arrays override legacy lists; null/omission use legacy lists; depth is retained."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/protocol/src/permissions.rs",
+      "scope": "Documented equal-specificity conflict precedence and preservation of restrictive entries; selected static source passages only."
+    }
+  ],
+  "limits": [
+    "No full suite or three-clean-round claim for this changed snapshot.",
+    "No permissions action, protected-file access, downstream permission-enforcement acceptance, real provider or external MCP call in this repair.",
+    "No SSH, live deployment update, commit or push in this repair.",
+    "Static cross-review and pure-data tests do not establish final upstream execution behavior."
+  ]
+}

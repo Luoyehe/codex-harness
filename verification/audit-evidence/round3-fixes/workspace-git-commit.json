@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "kind": "native-staged-git-commit",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T21:58:20.576420+00:00",
+  "status": "helper-targeted-validation-passed",
+  "files": [
+    {
+      "path": "deploy/workspace_commit.py",
+      "sha256": "60f03b2c9b6a0d064592459d95ce5aa3bbacc32c3594dcc7d05925ae35981456"
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "sha256": "ff67a5135274dff2c92bb6cc128c4216ffdf9e0ed9b2b9a018d33431aa08ea33"
+    },
+    {
+      "path": "deploy/workspace_git_view.py",
+      "sha256": "a4bb214a67786328ec113106fff01246b58e2797a667261a70511efb837bff33"
+    },
+    {
+      "path": "deploy/workspace_store.py",
+      "sha256": "b3e32aba9dea00fc517301b6f89bef303300269cc16bc1b621da681d32f18397"
+    },
+    {
+      "path": "deploy/workspace.py",
+      "sha256": "0c3b2dcb826b1e7f0dc301422cdfafd005486fe2d7b3d1d4621d585800378148"
+    },
+    {
+      "path": "src/runtime/workspace.ts",
+      "sha256": "41f2ca16fe32c45e00d0c5604904982515af1b60f39afcdb04eedae30dcfe34b"
+    },
+    {
+      "path": "tests/deploy/test_workspace_commit.py",
+      "sha256": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378"
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "sha256": "c641e3f487971f282c029e29c568ed20bc55428394f845d2e5b65d8cc996cd4c"
+    },
+    {
+      "path": "tests/runtime/workspace.test.ts",
+      "sha256": "d2a2bae637dc12dba68cc502749f0750900efbcac9ff90887a8b35fa3b727632"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "7f509e8514f69d152e00af384295d2515bab5e4994de6c91ca08288f30c4224b"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "4177e63b7ee5af6099a3af4ca7fb7f90cfad828e4cfb6d57683c84c1116ff7c6"
+    }
+  ],
+  "changes": [
+    "Git status returns HEAD, symbolic target and exact HEAD/index revision tokens. Commit requires those versions, explicit author identity and bounded message.",
+    "Only a private copied index feeds raw write-tree/commit-tree; original index and unstaged bytes remain untouched. Empty/unmerged/in-progress operations and unsafe metadata paths are rejected.",
+    "An owned index.lock and Git prepared expected-old-HEAD ref transaction fence publication. Post-prepare validation reads only descriptors, then a durable candidate record precedes commit dispatch.",
+    "All one-shot Git operations require exclusive child ownership before spawning. Whole-helper descendant cleanup cannot reap an already-running independent executor.",
+    "Lost publication acknowledgement stays unknown, retains candidate diagnostics and is never replayed. Unknown shutdown retains the owned index lock; foreign/replaced locks are never deleted.",
+    "Missing-resource error classification is now not_found while dispatched mutations retain unknown delivery."
+  ],
+  "validationChain": [
+    {
+      "environment": "Windows isolated newly initialized repositories",
+      "evidence": ".work/git-commit-transaction-probe-result.json",
+      "passedModes": [
+        "branch",
+        "detached",
+        "unborn",
+        "abort"
+      ],
+      "coverage": "Prepared ref locks block symbolic HEAD change, index.lock blocks add, original index bytes preserved, final HEAD follows commit/abort."
+    },
+    {
+      "environment": "isolated Linux nobody initial run",
+      "selected": 66,
+      "passed": 62,
+      "failures": 1,
+      "errors": 3,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/commit-linux-result.json",
+        "sourceArchiveSha256": "d1ce3f94e3674621fb80b60149f0b0c0be5a8ba40a3bcddd94a60fcd15ebcf64",
+        "resultSha256": "6a5d22e2bdc8063e9ac7c8f44385acc20399fb0fbfda499e5e53eeee3ae0be1c"
+      },
+      "cause": "The post-prepare status check launched rev-parse. Its whole-helper descendant cleanup terminated the active prepared update-ref child. Closing its broken stdin then skipped remaining cleanup.",
+      "repair": "Use process-free HEAD-file/index verification under Git-held CAS locks; reject any existing child at one-shot Git/publication entry. Broken stdin closure no longer skips descendant confirmation or descriptor closure."
+    },
+    {
+      "environment": "isolated Linux nobody repaired run",
+      "selected": 67,
+      "passed": 67,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/commit-linux-repaired-result.json",
+        "sourceArchiveSha256": "2d9ab34fec45227aa770b2ddbde4aa9bf2f5e08eeae5935a0f8888f2bd001c7b",
+        "resultSha256": "e20b5ef9a70dc1c934dbab0043a8b8deca4a7dc8b61b35416adb949efdebd84a"
+      },
+      "coverage": "Real staged-only commit/replay, callback/filter/signing denial, unborn/detached heads, stale HEAD/index, empty/unmerged/in-progress index, unsafe refs/foreign locks, prepared-transaction conflict, lost result, unknown cleanup and pre-existing child preservation; all prior workspace/recovery/worktree/resource regressions."
+    },
+    {
+      "environment": "Windows",
+      "command": "<PYTHON> -B -m unittest tests.deploy.test_workspace.WorkspaceFailureTests -q",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "not_found remains not_sent before dispatch and unknown after dispatch; internal paths remain absent from generic failures."
+    }
+  ],
+  "tests": [
+    {
+      "environment": "Windows validators",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "Windows targeted runtime/tooling",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "Windows server typecheck",
+      "exitCode": 0
+    }
+  ],
+  "sources": [
+    "https://git-scm.com/docs/git-update-ref",
+    "https://git-scm.com/docs/git-commit-tree",
+    "https://git-scm.com/docs/git-write-tree",
+    "https://raw.githubusercontent.com/git/git/v2.43.0/builtin/update-ref.c"
+  ],
+  "limits": [
+    "No full suite, paid inference, external MCP, remote Git traffic or online service mutations.",
+    "Gateway configuration-idle routing, minimized receipts, ledger reconciliation and supervisor witness integration are owned by root and have separate targeted tests.",
+    "Git locks coordinate cooperative Git writers; arbitrary same-native-UID filesystem mutation is not a security isolation boundary.",
+    "No automatic Git garbage collection or index-lock deletion after uncertain shutdown. The diagnostic candidate is not acceptance proof.",
+    "Source remains unfrozen. The final not_found classification adds only two separately tested handler assertions after the archived 67-test Linux run.",
+    "Stage/unstage and dedicated index recovery are subsequent work and are not claimed implemented by this evidence."
+  ]
+}

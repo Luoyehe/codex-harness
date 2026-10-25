@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "instance": "crtest-rw-20261025",
+  "host": "192.168.1.120",
+  "applicationRelease": "35b3c4a1716395beb1fe7d4805be1198e61ca3356a777791c48b4acf913cbd89",
+  "origin": "https://harness.crtest.localhost:18443",
+  "observedAt": "2026-10-24T19:34:30.177Z",
+  "method": "Actual in-app browser with user-handled internal-CA interstitials. Existing instance-only test credentials used without printing values. No certificate validation/global trust bypass. Direct read-only DOM dimensions recorded for terminal failure. Separate live HTTPS client uses only this instance CA and no auth cookie for negotiation comparison.",
+  "findings": [
+    {
+      "id": "R2-INTEGRATION-001",
+      "priority": "P2",
+      "title": "Expired outer authentication becomes a generic fetch failure while WebSocket stays connected",
+      "file": "web/lib/api.ts",
+      "reproduction": "On the actual 120 HTTPS deployment, leave the authenticated browser idle beyond Authelia inactivity=5m. Subsequent account/status fetch calls show Failed to fetch and retain the connected workspace. Reloading navigates to the authentication portal; after signing in the same draft is restored. A separate TLS-verified live request confirmed browser-default Accept */* yields 303 to the portal while application/json or X-Requested-With XMLHttpRequest yields 401.",
+      "evidence": "verification/audit-evidence/round2-fixes/browser-integration.json"
+    },
+    {
+      "id": "R2-INTEGRATION-002",
+      "priority": "P2",
+      "title": "Terminal min-content width grows beyond the panel and produces unsupported native column counts",
+      "file": "web/components/TerminalPanel.tsx",
+      "reproduction": "At a 1743px browser viewport, opening the terminal panel and allowing ResizeObserver fitting measured terminal-panel width 8811px, terminal-surface width 8767px and xterm-screen width 8737px within a 1499px workspace. The visible open terminal action returned Invalid cols; native RPC permits at most 500 columns. The button was outside the visible panel.",
+      "evidence": "verification/audit-evidence/round2-fixes/browser-integration.json"
+    }
+  ],
+  "passedBeforeFix": [
+    "Authelia login and gateway token login",
+    "Actual gateway event connection",
+    "Registered project displayed",
+    "Unsent draft retained across settings navigation and full outer reauthentication"
+  ],
+  "repairStatus": "in_progress",
+  "modelTurns": 0,
+  "mcpCalls": 0
+}

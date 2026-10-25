@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "scope": "limited-initial-publication-byte-preservation-preparation",
+  "complete": true,
+  "isFullRepositoryAudit": false,
+  "reviewerId": "r19-interface",
+  "startedAt": "2026-10-25T19:16:14Z",
+  "completedAt": "2026-10-25T19:18:49Z",
+  "digest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+  "assessment": "The existing text=auto eol=lf policy can normalize sealed CRLF evidence during initial git add. The narrow wrapper preserves the reviewed working bytes without editing product files, attributes, existing audit reports, or sealed hashes: ordinary add first, exact blob replacement only for evidencePath-eligible files containing CRLF and whose staged object differs, then full inventory/mode/blob identity verification and the existing independent index bytechecker.",
+  "artifacts": [
+    {
+      "path": ".work/stage-publication-exact.mjs",
+      "sha256": "715b097910b9bdaef9d09fc770daf656fa6a0677d98f796981f0f4913c464644"
+    },
+    {
+      "path": ".work/test-stage-publication-exact.mjs",
+      "sha256": "ac6452ddd74c99054973de6988c49ad3481bc4d40138380630cf873fb2862496"
+    },
+    {
+      "path": ".work/verify-publication-bytes.mjs",
+      "sha256": "f97290f6f010add703ce77d3cdc2c704d77f6c7720972e100e433cd832f2281d"
+    }
+  ],
+  "review": [
+    "Reviewed the existing independent bytechecker, the initial CRLF Git probe, and current snapshot, source-privacy and three-clean-audit gates. This is a preparation review, not a new whole-repository audit.",
+    "The wrapper requires --check DIGEST or explicit --execute DIGEST, a standalone ordinary .git directory, the expected unborn branch and an empty ordinary index. It rejects environment redirection, filters/unsupported attributes and local configuration, gitlinks, unmerged entries and intent-to-add. It uses argv/stdin without shell command construction.",
+    "Every release file, including excluded evidence, is bound to its current raw hash and executable mode before staging and checked repeatedly. Product digest and complete index inventory must match. No source, gitattributes or prior evidence is rewritten."
+  ],
+  "validations": {
+    "schemaVersion": 1,
+    "scope": "limited-synthetic-publication-preparation",
+    "fixtureRoot": ".work/sealed-stage-validation-UZIDTx",
+    "status": "passed",
+    "cases": [
+      {
+        "name": "read-only-preflight",
+        "status": "passed",
+        "result": {
+          "status": "preflight-passed",
+          "digest": "50f9a942c18f3563b1462a81ed6507a21eaa97320017e410cd25dc82567f300f",
+          "sourceFiles": 13,
+          "releaseFiles": 18,
+          "auditRounds": [
+            "fixture1",
+            "fixture2",
+            "fixture3"
+          ],
+          "sourcePrivacy": "clean",
+          "crlfEvidenceFiles": 5,
+          "staged": false
+        },
+        "indexUnchanged": true
+      },
+      {
+        "name": "exact-initial-staging",
+        "status": "passed",
+        "result": {
+          "status": "staged-exact",
+          "digest": "50f9a942c18f3563b1462a81ed6507a21eaa97320017e410cd25dc82567f300f",
+          "sourceFiles": 13,
+          "releaseFiles": 18,
+          "auditRounds": [
+            "fixture1",
+            "fixture2",
+            "fixture3"
+          ],
+          "sourcePrivacy": "clean",
+          "exactEvidenceBlobs": 5,
+          "independentBytecheck": {
+            "mode": "index",
+            "digest": "50f9a942c18f3563b1462a81ed6507a21eaa97320017e410cd25dc82567f300f",
+            "sourceFiles": 13,
+            "releaseFiles": 18,
+            "bytes": 49838,
+            "gitTreeMatchesWorkingBytes": true,
+            "objectBatchSha256": "16d9623aa6411cac8b365f54fe44b971707ef9c7a7dc9972b97a7c86c75e2f9f"
+          },
+          "committed": false,
+          "followUpRequired": [
+            "independent bytechecker index DIGEST",
+            "git object privacy scan before commit/publication"
+          ]
+        }
+      },
+      {
+        "name": "fresh-clone-and-ordinary-readd",
+        "status": "passed",
+        "exactEvidenceFiles": 5
+      },
+      {
+        "name": "missing-execution-flag",
+        "status": "passed",
+        "code": "EXPLICIT_MODE_AND_FROZEN_DIGEST_REQUIRED",
+        "indexUnchanged": true
+      },
+      {
+        "name": "wrong-digest",
+        "status": "passed",
+        "code": "FROZEN_SOURCE_MISMATCH",
+        "indexUnchanged": true
+      },
+      {
+        "name": "privacy",
+        "status": "passed",
+        "code": "SOURCE_PRIVACY_GATE_FAILED",
+        "indexUnchanged": true
+      },
+      {
+        "name": "filter-attribute",
+        "status": "passed",
+        "code": "UNSUPPORTED_ATTRIBUTE_OR_FILTER",
+        "indexUnchanged": true
+      },
+      {
+        "name": "filter-config",
+        "status": "passed",
+        "code": "UNSUPPORTED_LOCAL_GIT_CONFIGURATION",
+        "indexUnchanged": true
+      },
+      {
+        "name": "git-environment",
+        "status": "passed",
+        "code": "UNSUPPORTED_GIT_ENVIRONMENT",
+        "indexUnchanged": true
+      },
+      {
+        "name": "intent-to-add",
+        "status": "passed",
+        "code": "INTENT_TO_ADD_REJECTED",
+        "indexUnchanged": true
+      },
+      {
+        "name": "gitlink",
+        "status": "passed",
+        "code": "UNMERGED_OR_NON_ORDINARY_INDEX_REJECTED",
+        "indexUnchanged": true
+      },
+      {
+        "name": "unmerged",
+        "status": "passed",
+        "code": "UNMERGED_OR_NON_ORDINARY_INDEX_REJECTED",
+        "indexUnchanged": true
+      }
+    ]
+  },
+  "mainRepository": {
+    "helperExecuted": false,
+    "stagedEntries": 0,
+    "sourceFiles": 1788,
+    "sourceDigestUnchanged": true,
+    "sealedR19InterfaceSha256": "2225d680f0307b6935a1cf4e309d400f7a17c8578db8c1a0a75c4c978dbb3ea6",
+    "sealedR19InterfaceUnchanged": true,
+    "commitOrNetworkAttempted": false
+  },
+  "findings": [],
+  "limitations": [
+    "All execution tests used newly created ignored synthetic local Git repositories. Synthetic three-round records test mechanics only and are not real audit claims. No real model, account, MCP, media, SSH, service or full test suite was invoked.",
+    "The helper has not run against the main repository. Its actual three-clean and source-privacy gates remain mandatory at the later authorized execution time.",
+    "Run with no concurrent Git writer. Checks reject observed source/config/index drift, but staging is not a transaction with unrelated external Git processes. A failure after staging starts retains the index for inspection and does not automatically roll back.",
+    "After authorized main-repository staging, the independent index bytechecker and Git-object privacy scan must still be run again before commit/publication. The helper itself does not commit or publish."
+  ]
+}

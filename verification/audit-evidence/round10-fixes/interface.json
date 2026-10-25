@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round10-fixes",
+  "reviewerId": "interface",
+  "findingId": "R10-INTERFACE-001",
+  "status": "fixed",
+  "baseline": {
+    "roundId": "round10",
+    "files": 1783,
+    "digest": "0ea68b543586c9a511e9a3b222275964538bc86edc94bf793fceaf7187f5ef55"
+  },
+  "changedFiles": [
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "sha256": "34f50debdce357ed6347c7fa70c39b6a85de05c63a732150f83fbf50df74abe3"
+    },
+    {
+      "path": "web/components/AutomationsPanel.tsx",
+      "sha256": "b06228c51b2bc40cbf948ad959150e5e3ba07c572b397912bf54ee24559aa2d4"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "fb9fd8a84604aa117bed8d739d13a4be94ac6f8499a427350e86b33f5e6b397e"
+    }
+  ],
+  "implementation": [
+    "AutomationForm 使用现有 Api.beginMutation，在发送前把原 operationId、提交快照、输入版本和方法写入同一草稿缓存。未知状态及关闭重开后仍能查询原回执，不能再创建或保存。",
+    "只有经过原操作身份、计划 ID 及明确版本校验的 accepted 结果才完成草稿处理。输入版本仍与提交一致时清理并完成一次 onSaved；期间发生过编辑（包括文本修改后又改回）则保留新草稿，并显示原版本已保存、新草稿尚未提交。",
+    "创建回执恢复后将保留的草稿迁移至实际计划 ID，以已确认的版本作为基准；AutomationsPanel 切换到同一计划编辑，后续请求使用 automation/update 和 expectedRevision，不重复 create。",
+    "如果目标计划已有另一份未保存草稿，保留两份并显示处理提示；已核验的 accepted 事实先解除全局 unknown 阻塞，允许先保存另一份后再完成迁移。",
+    "api、record ID、epoch 的每次归属变化产生新的表单访问代次，A→B→A 也不能复用旧异步结果；迟到响应不能关闭或改写重开的表单，原提交意图继续保留供当前访问查询。",
+    "较新的服务端 record revision 继续显示冲突并阻止保存；必须明确点击以最新版本为基准并重新确认。没有完整 ID/版本、外来计划/操作或不匹配回执都保留待核对；只有明确且属于原操作的 not_sent 证据解除该提交意图。",
+    "共享 Api/useWorkflow/operations 未修改；未触碰既有审计报告或领域外源码。"
+  ],
+  "validationFirstObservedAt": "2026-10-25T11:36:38.000Z",
+  "completedAt": "2026-10-25T15:49:25.847Z",
+  "validations": [
+    {
+      "stage": "initial-regression-harness",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/automations.test.tsx",
+      "exitCode": 1,
+      "passed": 9,
+      "failed": 9,
+      "skipped": 0,
+      "resultArtifact": ".work/test-results/run-fO074k/vitest.json",
+      "details": "先添加回归后执行。初次包含 1 个 jsdom 缺少 showModal 的测试环境失败；补上与现有 Dialog 测试一致的本地适配后再次执行，未将此环境错误当作产品证据。"
+    },
+    {
+      "stage": "before-fix",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/automations.test.tsx",
+      "exitCode": 1,
+      "passed": 9,
+      "failed": 9,
+      "skipped": 0,
+      "resultArtifact": ".work/test-results/run-S8ovCy/vitest.json",
+      "log": ".work/round10/interface-fix-before.log",
+      "details": "生产实现未改时，原 9 项通过，新增 9 项在实际功能断言失败：续编保留、重开原意图、归属 ABA、accepted 缺少完整结果。"
+    },
+    {
+      "stage": "first-fix",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/automations.test.tsx",
+      "exitCode": 0,
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "resultArtifact": ".work/test-results/run-IFBMwz/vitest.json",
+      "log": ".work/round10/interface-fix-first.log"
+    },
+    {
+      "stage": "migration-boundary-before-guard",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/automations.test.tsx",
+      "exitCode": 1,
+      "passed": 19,
+      "failed": 1,
+      "skipped": 0,
+      "resultArtifact": ".work/test-results/run-Bp9D3f/vitest.json",
+      "log": ".work/round10/interface-fix-boundary.log",
+      "details": "补充独立目标草稿边界后，迁移覆盖另一份草稿的回归先失败；随后添加冲突保护。"
+    },
+    {
+      "stage": "final-targeted",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/automations.test.tsx",
+      "exitCode": 0,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "resultArtifact": ".work/test-results/run-aIwATh/vitest.json",
+      "log": ".work/round10/interface-fix-after.log"
+    },
+    {
+      "stage": "web-typecheck",
+      "command": "pnpm exec tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "details": "初次 18 项通过后及最终边界修复后均通过；最终通过对应 changedFiles 摘要。"
+    },
+    {
+      "stage": "global-snapshot-observation",
+      "command": "node scripts/snapshot.mjs",
+      "files": 1785,
+      "digest": "6cc90bb9c6e7ddd795403eb500c4fbe480c3b69201a214910a8dfcb3d84b6eb0",
+      "details": "仅为取摘要时的全局观察，不作新的冻结快照。根确认增加的 2 文件来自并行授权 native test isolation 工作，不属于本修复；本修复仅上列 3 个既有文件。"
+    }
+  ],
+  "skipped": [],
+  "limitations": [
+    "仅运行明确受影响的自动化测试文件与 Web 类型检查；未运行全量测试、SSH、真实自动化、模型或外部服务。",
+    "本子任务未进行浏览器验收；根另行执行隔离构建/浏览器验证，其结果不计入本报告的已完成验证。",
+    "草稿和提交快照沿用本页面内按 Api 缓存的生命周期；组件关闭重开和连接代次切换受覆盖，整页刷新后的草稿持久化不属于本次修改。",
+    "全局源清单有并行授权变更，本报告封存本人 3 个文件的 SHA256，不把观察到的全局摘要宣称为不变冻结。"
+  ]
+}
