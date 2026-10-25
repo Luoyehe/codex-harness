@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round2-fixes",
+  "reviewerId": "r2-runtime-fixes",
+  "basisDigest": "856c954ad2d2b2cb6736142c8333db435a5ff5430bd09174f65df9b06a4da684",
+  "complete": true,
+  "completedAt": "2026-10-24T19:36:12.225Z",
+  "kind": "Focused repair report; not an independent clean audit or full-suite result",
+  "changedFiles": [
+    "src/runtime/attachments.ts",
+    "src/runtime/main.ts",
+    "src/runtime/service.ts",
+    "tests/runtime/README.md",
+    "tests/runtime/attachments.test.ts",
+    "tests/runtime/server.test.ts",
+    "tests/runtime/service.test.ts",
+    "tests/runtime/terminal-cleanup-fixture.mjs",
+    "tests/runtime/terminal-cleanup.test.ts"
+  ],
+  "fileSha256": {
+    "src/runtime/attachments.ts": "91eff972d95fe80a175f473af58451b579cd78be66b370eee62b58ba65215f5f",
+    "src/runtime/main.ts": "c0444e52906d3c256d6265a86cb31299167829bd64518f46ed5bc98151bb2356",
+    "src/runtime/service.ts": "bbee5f2e4813237a9725370a14e4f332512d5ba8003727156c7614ec589f25a8",
+    "tests/runtime/README.md": "4b88da06d326618da82efd42708ef5848521aee14b550fc8cfcf340dd065e48a",
+    "tests/runtime/attachments.test.ts": "b8c3c4da4ee6b1855a42efc2cf5059f4f4f4bfa6f5859c9080a3dc523077d0ed",
+    "tests/runtime/server.test.ts": "c16813e049e8f7bd4035eefdf1d1dbfb32085e990edc662321ccdfe2d866466e",
+    "tests/runtime/service.test.ts": "9e8b82fb3436ff6658b5683dab6814bf7e7891f3e400bf572094c10a47a18e93",
+    "tests/runtime/terminal-cleanup-fixture.mjs": "969e1349ffd8defee0e2aec9e8a1e5c4a8e5dd1bbbef363f11d076654a15b8f7",
+    "tests/runtime/terminal-cleanup.test.ts": "92c0bd1c1713bd31d4b1b01b1f94c18f11f9fcd83495144e5fd01d5d5fc2b1d5"
+  },
+  "fixes": [
+    {
+      "id": "R2-RUNTIME-001",
+      "status": "fixed",
+      "files": [
+        "src/runtime/service.ts",
+        "tests/runtime/service.test.ts"
+      ],
+      "change": "Removed one-shot suppression of the worker beforeWrite hook. The same owner authority is checked independently before thread/start and the first turn/start; the gateway continues to own the single durable dispatch record.",
+      "preserved": "When creation succeeds and the first turn is definitively rejected, conversation_start_incomplete still has overall unknown delivery and phase/threadId/causeCode/causeDelivery metadata. A known not_sent first turn leaves the created thread idle. Nothing is automatically replayed.",
+      "regression": "Both browser-owner and gateway-channel revocation are inserted while the first-turn metadata read is pending. Neither case sends turn/start; both retain the created-thread partial result, perform two owner checks, and release attachment pins for the unsent turn."
+    },
+    {
+      "id": "R2-RUNTIME-002",
+      "status": "fixed",
+      "files": [
+        "src/runtime/attachments.ts",
+        "tests/runtime/attachments.test.ts"
+      ],
+      "change": "Replaced grouped Base64 regexp validation with decoding and canonical round-trip comparison of the already bounded input. Decoding remains bounded by the existing 6 MiB input limit, with unchanged 4 MiB file limit and physical storage admission.",
+      "regression": "Successfully uploaded and reread after store reconstruction sizes 4 MiB minus two bytes, 4 MiB minus one byte, and exactly 4 MiB, covering both padding lengths and no padding. Malformed, noncanonical, large invalid and over-limit encodings leave no physical attachment; zero-byte upload still works."
+    },
+    {
+      "id": "R2-RUNTIME-003",
+      "status": "fixed",
+      "files": [
+        "src/runtime/service.ts",
+        "src/runtime/main.ts",
+        "tests/runtime/terminal-cleanup.test.ts",
+        "tests/runtime/terminal-cleanup-fixture.mjs",
+        "tests/runtime/server.test.ts"
+      ],
+      "change": "A rejected disconnect terminate request is no longer swallowed. If command completion has not independently established that the terminal ended, the service marks activity unknown, closes the entire epoch once, emits fatal, and awaits its shared service/native cleanup promise. Subsequent disconnect and close callers share that acknowledgement. Cleanup failure propagates through client/gateway cleanup; the WebSocket close handler turns asynchronous cleanup failure into worker fatal without an unhandled rejection. A confirmed natural terminal exit can satisfy cleanup despite a racing rejected terminate.",
+      "regression": "A real NativeRpc plus local stdio process substitute holds 16 terminals and 48 requests, reaches the 64-slot capacity, then loses its gateway. The runtime closes, the actual substitute PID exits, pending/retained budgets fall to zero, and no retry loop runs. An already accepted turn belonging to another channel remains active/unknown rather than completed; fatal is observed, outstanding written requests report unknown, and new work is rejected. Controlled tests cover shared close waiting, cleanup failure propagation, and natural-exit races."
+    }
+  ],
+  "tests": [
+    {
+      "command": "node node_modules/vitest/vitest.mjs run tests/runtime/service.test.ts tests/runtime/attachments.test.ts tests/runtime/terminal-cleanup.test.ts",
+      "exitCode": 0,
+      "passed": 39,
+      "skipped": 2,
+      "status": "targeted execution with explicit platform skips"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run tests/runtime/server.test.ts tests/runtime/defaults-lifecycle.test.ts",
+      "exitCode": 0,
+      "passed": 14,
+      "skipped": 0,
+      "status": "passed"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run tests/runtime/terminal-cleanup.test.ts",
+      "exitCode": 0,
+      "passed": 5,
+      "skipped": 0,
+      "status": "passed after strengthening the same-channel-loss/other-channel-active-work regression; overlaps the first command"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "status": "passed; production server source types, not standalone test-file type checking"
+    }
+  ],
+  "distinctTestSummary": {
+    "passed": 53,
+    "skipped": 2,
+    "note": "The final five terminal lifecycle checks overlap the earlier targeted group and are not added again."
+  },
+  "skippedTests": [
+    {
+      "file": "tests/runtime/attachments.test.ts",
+      "testName": "symlink and FIFO substitutions never follow or block",
+      "reason": "Windows platform guard; requires POSIX symlinks/FIFO and mkfifo"
+    },
+    {
+      "file": "tests/runtime/attachments.test.ts",
+      "testName": "read-only native data group never gains metadata or directory write access",
+      "reason": "Windows platform guard; requires POSIX UID/GID and permission bits"
+    }
+  ],
+  "linuxFollowup": {
+    "argv": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/runtime/attachments.test.ts",
+      "-t",
+      "^(symlink and FIFO substitutions never follow or block|read-only native data group never gains metadata or directory write access)$"
+    ],
+    "cwd": "Current isolated application root",
+    "prerequisites": [
+      "Pinned Node and installed dependencies",
+      "coreutils mkfifo on the explicit PATH",
+      "Execution identity can own and create .work/attachment-tests directories; no root privilege is needed"
+    ],
+    "environment": "Use an empty inherited environment plus an explicit pinned Node PATH and /usr/bin:/bin, LANG=C.UTF-8 and CI=1. Point HOME, USERPROFILE, CODEX_HOME, XDG_CONFIG_HOME, XDG_DATA_HOME, XDG_CACHE_HOME, TMPDIR, TEMP and TMP at newly created directories under the isolated application .work tree. These two tests require no Codex binary, personal credentials, network or provider."
+  },
+  "review": {
+    "ownerBoundary": "Verified the worker hook is requireOwner in main.ts and the gateway ledger dispatch hook remains at the HTTP transport boundary. Repeated worker checks do not create duplicate durable dispatches.",
+    "fatalRouting": "Reviewed main.ts service.on(fatal)->stop(1). The cleanup path first marks unknown and closes admission, then emits fatal; NativeRpc failure also marks active/pending thread outcomes unknown. main stop is idempotent and awaits handle.close plus the shared service.close promise; close failure exits nonzero. The existing initial connected guard handles a fatal transition before listener setup.",
+    "shutdownCoordination": "The shared close path owns the main native process and any effective-defaults probe. Targeted defaults-lifecycle checks remain passing. Cleanup errors remain errors for later close callers, rather than being converted into successful termination.",
+    "tradeoff": "A failed terminal termination closes the whole native epoch, including other terminals and active turns. This intentionally sacrifices ongoing work availability to avoid unowned processes when cleanup cannot be confirmed. Other accepted turns are not declared completed or replayed; they remain unknown and need normal recovery. The new regression explicitly verifies this cross-owner effect.",
+    "base64Bounds": "The decoder may allocate for at most the existing 6 MiB encoded input; the canonical re-encoding is also bounded. File size and physical quota checks still precede opening a data file."
+  },
+  "limits": [
+    "No full repository suite or all-runtime-suite run was performed.",
+    "No remote host, running deployment, commercial inference, real account/device-code login or external MCP was used.",
+    "The capacity regression uses a real child stdio process behind NativeRpc, not a real shell or official CLI inference. Native process-tree teardown implementation was not modified.",
+    "Two named POSIX checks remain unexecuted on Windows and are not counted as passing.",
+    "This repair report does not count as a fresh independent clean audit after the source changes."
+  ]
+}

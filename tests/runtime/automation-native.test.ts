@@ -1,0 +1,41 @@
+import { expect, test } from 'vitest';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import type { AddressInfo } from 'node:net';
+import { RuntimeService } from '../../src/runtime/service.js';
+import { startWorkerServer } from '../../src/runtime/main.js';
+import { WorkerClient } from '../../src/gateway/worker-client.js';
+import { Dispatcher } from '../../src/gateway/dispatch.js';
+import { AutomationScheduler } from '../../src/gateway/automation-scheduler.js';
+import { Ledger } from '../../src/core/ledger.js';
+import { object } from '../../src/runtime/types.js';
+import { loopbackProvider } from './loopback-provider.js';
+import { nativeTestEnvironment } from '../fixtures/native-env.js';
+
+test('scheduled runs use actual worker leases and official CLI after the browser disconnects, with local Responses only', async () => {
+  const parent = path.resolve('.work/automation-native'); mkdirSync(parent, { recursive: true }); const root = mkdtempSync(path.join(parent, 'run-'));
+  const home = path.join(root, 'codex'), project = path.join(root, 'project'), tmp = path.join(root, 'tmp'); for (const dir of [home, project, tmp]) mkdirSync(dir);
+  const env = nativeTestEnvironment({ home: root, codexHome: home, temporary: tmp, fixtureApiKey: 'local-fixture' });
+  const provider = await loopbackProvider(), catalog = path.join(root, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
+  writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup = false', 'model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = ${JSON.stringify(provider.url)}`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
+  const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: project, env, dev: true }).catch(async error => { await provider.close(); throw error; }); const pid = runtime.native.processId;
+  let handle: Awaited<ReturnType<typeof startWorkerServer>> | undefined, worker: WorkerClient | undefined, ledger: Ledger | undefined, scheduler: AutomationScheduler | undefined;
+  try {
+    const token = randomBytes(32).toString('hex'); handle = await startWorkerServer(runtime, { devPort: 0, token }); worker = new WorkerClient({ port: (handle.server.address() as AddressInfo).port, token });
+    let now = Date.now(); ledger = new Ledger(path.join(root, 'gateway.sqlite'), () => now); const dispatcher = new Dispatcher(ledger, worker, { call: async () => { throw new Error('Unexpected management call'); } });
+    worker.on('event', event => dispatcher.event(event)); worker.on('disconnect', () => dispatcher.disconnected()); worker.connect(); await expect.poll(() => worker!.connected, { timeout: 10000 }).toBe(true);
+    const projectId = ledger.addProject(project, 'Scheduled test').id; const browserClient = randomUUID(); await worker.clientConnected(browserClient);
+    const context = { clientId: browserClient, requireConnection: () => {} }; const operationId = randomUUID();
+    const created = object(await dispatcher.call({ method: 'automation/create', operationId, params: { spec: { name: 'Local run', projectId, text: 'Reply with the fixture message.', options: { model: 'harness-loopback-fixture', effort: 'low', approvalPolicy: 'never', sandbox: 'read-only' }, schedule: { kind: 'once', at: now + 60_000, timeZone: 'UTC' }, maxRunMinutes: 1 } } }, context));
+    expect(provider.calls()).toBe(0); await worker.clientDisconnected(browserClient);
+    scheduler = new AutomationScheduler(ledger, dispatcher, worker, () => now); scheduler.start(); await scheduler.tick(); now += 60_000; await scheduler.tick();
+    await expect.poll(async () => { await scheduler!.tick(); const result = object(ledger!.automations.read('automation/runs', { id: created.id! })); return object((result.data as unknown[])[0]).state; }, { timeout: 15000 }).toBe('completed');
+    const runs = object(ledger.automations.read('automation/runs', { id: created.id! })); const run = object((runs.data as unknown[])[0]);
+    expect(ledger.read(String(run.operationId))).toMatchObject({ state: 'accepted', result: { thread: { id: run.threadId }, turn: { id: run.turnId } } });
+    await scheduler.close(); scheduler = new AutomationScheduler(ledger, dispatcher, worker, () => now); scheduler.start(); await scheduler.tick(); expect(provider.calls()).toBe(1);
+    expect(object(dispatcher.status()).automation).toMatchObject({ running: true, lastError: null });
+  } finally {
+    await scheduler?.close(); worker?.close(); await handle?.close(); await runtime.close(); ledger?.close(); await provider.close(); if (pid) expect(() => process.kill(pid, 0)).toThrow();
+  }
+}, 30000);

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "kind": "read-only-probe-authority-residue-check",
+  "reviewerId": "deployment",
+  "completedAt": "2026-10-25T07:43:24.043125+00:00",
+  "formalAudit": false,
+  "independentCleanRounds": 0,
+  "fullSuiteRun": false,
+  "host": "192.168.1.120",
+  "passed": true,
+  "source": {
+    "path": ".work/final-probe-residue-read.py",
+    "sha256": "65401e859faaf1cb2baf41633bd0555e02041e5af1cbac5db834ba2fa27b7587"
+  },
+  "rawResult": {
+    "path": ".work/final-probe-residue-result.json",
+    "sha256": "20963487d79485ed8396b660f9771058bbb5dc60a8a3643555c5d94faeecc3d7"
+  },
+  "knownProbeIdentityIndex": {
+    "path": ".work/final-probe-known-identities.json",
+    "sha256": "9b4d930e5f440b83891cb31073038c3f84d1e23eef68dc4004d1e06765282d62"
+  },
+  "checks": {
+    "readOnly": true,
+    "units": {
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "unitStates": {},
+    "unitFiles": [],
+    "sudoersMetadata": [
+      {
+        "path": "/etc/sudoers.d/codex-harness-crtest-rw-20261025",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o440",
+        "symlink": false
+      }
+    ],
+    "probeUsers": [],
+    "probeGroups": [],
+    "probeUidProcesses": [],
+    "historicalFinalProbeUidProcesses": [],
+    "cgroups": [],
+    "notes": [
+      "Persistent crtest-rw deployment is not a probe-removal target.",
+      "Metadata presence or a reused numeric UID is not deletion authorization; compare exact originating probe receipts.",
+      "No unit, credential, file or account was modified; no sudoers contents or environment were read."
+    ]
+  },
+  "actions": [
+    "After runtime explicitly released SSH, executed only metadata reads through python stdin.",
+    "No units, sudoers, users, groups, source files, credentials or online instance state were changed.",
+    "Preserved the existing independent R2 instance sudoers; it is not disposable probe authority."
+  ],
+  "coverage": [
+    "No loaded crtest-* transient units or matching persistent/runtime unit files remain.",
+    "No matching crtest-* system.slice cgroups remain.",
+    "No temporary ch-crtest-xu-<id>-worker/control accounts or groups remain.",
+    "No processes use final probe UIDs 983 or 984 at observation time. Numeric UID reuse is not assumed to establish ownership.",
+    "No matching probe sudoers remain; the only codex-harness-crtest-* sudoers metadata belongs to retained crtest-rw-20261025."
+  ],
+  "preparation": {
+    "executed": false,
+    "syntaxChecks": "Python AST parse and Node --check only; no full suite or live update",
+    "files": [
+      {
+        "path": ".work/FINAL-LINUX-AND-UPDATE-PLAN.md",
+        "sha256": "a499e9bbd7483998ad2467767f5e4b59e3297b9401e411255820692908bf249d"
+      },
+      {
+        "path": ".work/final-linux-package.mjs",
+        "sha256": "6e4b9c501d93b381db1bd0cca0f778e24517154f44e0278670bc43c86252eac4"
+      },
+      {
+        "path": ".work/final-linux-entry.mjs",
+        "sha256": "d9e8a8260d5a878dc2dbf896cf0c1e75bb19ec1bd6e533ca14ca5f6d436158c4"
+      },
+      {
+        "path": ".work/final-linux-run.py",
+        "sha256": "5aaecb1bcd154cdbe137f3757e0912b24d637f5dcb8cb1cdb0d42f6cff54c69d"
+      }
+    ],
+    "gates": [
+      "Three real complete clean audit rounds before packaging or executing full tests",
+      "Frozen normalized source bytes and executable bits must produce identical independent Linux Git snapshot digest",
+      "PrivateNetwork nobody full run retains actual skips; separate untouched root fixture extraction supplements root-only cases",
+      "No automatic interpretation of cross-platform skips as zero-skip pass; deployment remains separately authorized"
+    ]
+  },
+  "limits": [
+    "This read-only metadata check does not audit every unrelated host service or credential.",
+    "Historical probe directories and logs intentionally remain retained; absence of authority is not absence of material.",
+    "This is not a formal full-repository audit and adds zero clean rounds."
+  ]
+}

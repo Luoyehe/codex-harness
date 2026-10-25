@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T16:22:53.975Z",
+  "sourceEditsStopped": true,
+  "sourceSnapshotBeforeCoverageRefresh": {
+    "files": 1785,
+    "digest": "6ad676b4dc7c510d4f28cb402d4f12a76ad757742423e65a18c274bde801e01b"
+  },
+  "reports": [
+    {
+      "path": "verification/audit-evidence/round11-fixes/interface.json",
+      "sha256": "1a710ae09bcc96a259deba90441fccd75dc7be1bb5968d04bdf55c1aceabb2cf"
+    },
+    {
+      "path": "verification/audit-evidence/round11-fixes/dialog-cross-review.json",
+      "sha256": "a86204214d1658298db0a848f620c3930a61e4ccd83ecd8f5b124b1455b66b3c"
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "webAsset": {
+        "path": "web/dist/assets/index-CUjJYamQ.js",
+        "sha256": "287a06eb9d5b5d2a24926cb14eec5562c4151de4ff036b09d224d133d64069ac"
+      },
+      "warning": "Existing large-bundle warning; minified JavaScript is 1227.11 kB."
+    },
+    {
+      "command": "node .work/check-source-encoding.mjs",
+      "files": 1785,
+      "findings": []
+    }
+  ],
+  "browser": {
+    "fixture": {
+      "path": ".work/r11-modal-recovery-preview.mjs",
+      "sha256": "7433aba49979645e6f267a50f2f45e4df1ab34bc8d89ba42444018a02f42d7e5"
+    },
+    "initialReproduction": {
+      "path": "verification/audit-evidence/round11/root-browser.json",
+      "sha256": "2c73fcccd2fa2cd7e50ac7f84679e115064728a75d58ba62415649087c79d174"
+    },
+    "observations": {
+      "expiredLoginAccessible": true,
+      "passwordFocused": true,
+      "activeElement": "INPUT",
+      "nativeModalCountWhileUnauthenticated": 0,
+      "retainedDialogCount": 1,
+      "reauthenticatedPreviewResumed": true,
+      "escapeClosedPreview": true,
+      "draftAndAttachmentPreserved": true,
+      "sendNotClicked": true
+    },
+    "screenshots": [
+      {
+        "path": "reference/evidence/attachment-modal-login-fixed-r11.jpg",
+        "sha256": "c51f7e631c2cd33bd2bdb64326d2d7573700eff443427a97af20d608acc1c51f"
+      },
+      {
+        "path": "reference/evidence/attachment-draft-restored-r11.jpg",
+        "sha256": "ae62fdf188e87d0edcab389978893a04b9cb91c696a6a78b000c2da4455a34a5"
+      }
+    ],
+    "cleanup": {
+      "tabId": "15",
+      "tabClosed": true,
+      "pid": 48640,
+      "exactExecutableAndCommandVerified": true,
+      "processStopped": true,
+      "port": 5132,
+      "listeningAfterStop": false,
+      "sessionExit": 1,
+      "exitReason": "Intentional stop after verification"
+    },
+    "limits": [
+      "Production-built UI and in-memory attachment/authentication fixture; only a synthetic test token, no real account authentication, model, MCP or online-instance operation.",
+      "Observed real auth-loss/relogin/modal/focus/draft flow. Nested-layer ordering and physical IME were not independently exercised in this browser pass; nested/IME code-path assertions are recorded in focused tests.",
+      "A read-only task queue dialog was opened and closed after the primary check; no queue operation was submitted."
+    ]
+  },
+  "limits": [
+    "Four selected files passed 48 assertions; no full suite was run.",
+    "The repair-phase nested Escape finding is recorded separately; frozen round11 history remains unchanged.",
+    "This integration and focused cross-review do not count as independent clean audits. Capability evidence will be refreshed once before the next freeze."
+  ]
+}

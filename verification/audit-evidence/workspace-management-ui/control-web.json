@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "phase": "workspace-management-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:59:21.575Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/lib/workspace.ts",
+    "web/styles-workspace.css",
+    "web/tests/workspace-management.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "4ddf4cc70a0c92bb74dcbae86086147aa2fe22a8d06d29a69921813310957086",
+    "web/components/WorkspacePanel.tsx": "b27ffab9778dd8ee12cf5ed27e578135aea6f9de70390b752dec704ddee59cfe",
+    "web/components/WorkspaceRecovery.tsx": "18c39a7ae5ce043e5260f64e3add6e12a298836e70d153c989cd6cd3f50a6b1b",
+    "web/components/WorkspaceWorktrees.tsx": "a695d592af17de638dcf5afb035706c9f9cf63009aaaa2c64b95ef71e4626d1e",
+    "web/components/WorkspaceDownload.tsx": "fd238b5b86f5fb918fbd245edf0ddc17733726bb7b342cd17f6ec30118af0e9b",
+    "web/components/WorkspaceCommit.tsx": "4c10af8b08d7d6d5901f61b5daefa21669ad304c67250090c1246ec199d0a8b6",
+    "web/components/WorkspaceGit.tsx": "9f9a886ac2535311477edbc1e5f42aeaa04107fcb1a48c897712bed32beb670a",
+    "web/components/ExtensionsPanel.tsx": "3b7450c0308a95644c04967512c47f370734993d7ca703889db0e40aebd42a86",
+    "web/lib/workspace.ts": "e42b64430c6eda2a6b506a6f11799819c8e5c9f294253bd53809216bdeb75190",
+    "web/styles-workspace.css": "0af929e080b50184a7c6d53f9a2fbb8f9259f3f5077fcf94993aa708f8fb13ea",
+    "web/tests/workspace-management.test.tsx": "9e02c59962cea31cc325b6e7d1e42a31d1a00a711a64fa5b5afdf0b2bd6a6365"
+  },
+  "contracts": {
+    "recovery": "Explicit source operation/slot/revision and user-chosen project-relative destination. New-path mode sends explicit null and relies on helper no-replace protection. Overwrite mode requires successful current metadata revision; generic errors never infer absence. Source preview identity checked. Helper local completed state never promotes global receipt. Discard requires completed source,current manifest and separate destructive confirmation; receipts remain.",
+    "worktrees": "List is last confirmed supervisor proof, live read required before actions. Active attach/archive versus archived/recovery restore use actual phase/current revision. All writes globalidle/durable. Create uses HEAD/fullref/fullcommit, no browser-root authority. Accepted and recovered writes refresh registered projects; user chooses when to open the worktree. Archive preserves all bytes and unregisters only managed project.",
+    "commit": "Explicit author/message and staged-only commit. Two consistent status reads surround complete staged diff preview, capturing HEAD/headRevision/indexRevision; final mutation compares all. No automatic stage/push/checkout. Conflict clears preview and confirmation; unknown only queries original receipt.",
+    "download": "Explicit file download sends selected revision, checks response path/revision/byte count and8MiB cap, rejects stale owner completion, creates inert download Blob. Metadata supports512KiB preview versus8MiB download.",
+    "integration": "Parent ProjectTrustSettings added as separate Config section with project/epoch key. Native trust semantics remain in parent component. Completed fixture CUA feedback for prior automation/input modules recorded separately."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/workspace-management.test.tsx web/tests/workspace-ui.test.tsx web/tests/input-context.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/sharing-diagnostics.test.tsx",
+    "testFiles": 6,
+    "tests": 56,
+    "workspaceManagementSpecificTests": 10,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle threshold warning remains"
+  },
+  "limits": [
+    "No full suite or formal clean audit.",
+    "Controlled frontend responses; parent/deploy separately own actual Linux helper and gateway validation.",
+    "Git stage/unstage UI awaits forthcoming backend contract; commit operates on already staged changes.",
+    "No real file restore,worktree creation,commit,credentials,paid inference,externalMCP or120deployment performed by this agent.",
+    "Readonly fixture5118 sent to parent for CUA, not production execution proof."
+  ]
+}

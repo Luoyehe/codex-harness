@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "phase": "import-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:50:37.149Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/components/ImportPanel.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/Settings.tsx",
+    "web/lib/imports.ts",
+    "web/lib/api.ts",
+    "web/styles-extensions.css",
+    "web/tests/import-ui.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/components/ImportPanel.tsx": "3edb62c3ba0e92530b321fadaa7e254c875e6f3f7ecf8f472861d13186089071",
+    "web/components/ExtensionsPanel.tsx": "ea06e76c87ca9bd46facfb3102d0c52d90e5d27b4165f17b2aba7c5e74a855ed",
+    "web/components/Settings.tsx": "96bd335f56773cf6b47d0b93be16c12ebcebbc356850669e249c0b9bc2244b8f",
+    "web/lib/imports.ts": "3a5c0fb531532094ac75e441d68b164c6b0e780b44655198a29958d7a9b01310",
+    "web/lib/api.ts": "6e9a1137b880e8d39f6aa8a27245515a983a47de93363e00bbf6af87e870f07a",
+    "web/styles-extensions.css": "6d31cfee3e33ba1f1ff5b51eb002be9f1c6aefde602532321f37087db65f639c",
+    "web/tests/import-ui.test.tsx": "232b3953f8924485d66e809b4674272acbcc56c8d6c362f03054891cd143e592"
+  },
+  "contracts": {
+    "scope": "Fixed Claude Code native migration inventory selected using registered project ID. Native home is opt-in. Age/session bounds explicit; no browser cwd/raw migrationItems accepted. PreviewHash and opaque itemIds identify the reviewed inventory, not frozen file bytes.",
+    "execution": "Executable config categories require independent explicit execution review. UI accurately warns imported MCP,Hooks,commands,plugins/config may activate under current policy. Apply requires globalidle and durable operation; server waits matching completion event. Partial failures displayed by type with stages/messages.",
+    "recovery": "Changed/not_sent inventory invalidates selection and requires fresh detection. Unknown never retries. Original receipt acceptance is re-read for completed result; identity and method must match. History supports native success/failure arrays and partial bounded results. Scope changes discard stale preview responses.",
+    "longTransactions": "Only import/apply,workspace/worktree create/attach/archive/restore,and workspace/git/commit use110s browser timeout for90s server work. All other API calls retain30s. Timeout records unknown without replay.",
+    "integration": "Parent-owned PluginSharing and DiagnosticsPanel now wired into ExtensionsPanel. Diagnostics receives current thread only when selected project matches current thread project; scope+epoch keys reset local state. Native feedback upload remains explicit and separate from local ZIP/summary download."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/import-ui.test.tsx web/tests/sharing-diagnostics.test.tsx web/tests/extensions.test.tsx web/tests/settings.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/input-context.test.tsx",
+    "testFiles": 7,
+    "tests": 52,
+    "importSpecificTests": 8,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle warning remains"
+  },
+  "limits": [
+    "No full suite or clean audit.",
+    "Controlled frontend responses only; parent separately verified official native import integration.",
+    "Native migration is inventory-based; UI does not claim an immutable byte-for-byte diff.",
+    "No real user-home scan,external sharing/upload,paid inference or120deployment.",
+    "Readonly fixture5117 includes import/sharing entries for parent CUA; fixture writes reject.",
+    "Workspace recovery/worktree UI remains next batch."
+  ]
+}

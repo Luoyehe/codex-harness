@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-async-read-cross-review",
+  "reviewerId": "fresh-r12-deployment",
+  "createdAt": "2026-10-25T16:48:39.057170+00:00",
+  "formalIndependentRound": false,
+  "publicReportWritten": false,
+  "scope": "Limited R12 fix-stage follow-up for async read pending-state ownership across scope change, expiry and unmount; not a full web or repository audit.",
+  "context": "Read only the finding array in the sealed R12 interface report to understand R12-INTERFACE-001. No sealed reviewer artifact was modified.",
+  "inspected": [
+    {
+      "file": "web/hooks/useResource.ts",
+      "coverage": "complete",
+      "assessment": "Each key/revision/enabled request gets generation and AbortController; new scope replaces state, old result cannot clear it.",
+      "sha256": "cc98653e0d0d369891f9c17b655a6068146334cc19845ee770d559a2ec9e1f31"
+    },
+    {
+      "file": "web/hooks/usePaged.ts",
+      "coverage": "complete",
+      "assessment": "New resource scope initializes loading and increments epoch; initial/more completions clear only matching epoch.",
+      "sha256": "0206164f7441646b1c6e725d5d93f26c9d37d3b9e577b271e89174ffb16ae774"
+    },
+    {
+      "file": "web/components/ImportPanel.tsx",
+      "coverage": "complete",
+      "assessment": "Preview generation advances per request/unmount; scope changes hide result; old in-flight loading clears on settlement because scope mismatch alone does not advance generation.",
+      "sha256": "3edb62c3ba0e92530b321fadaa7e254c875e6f3f7ecf8f472861d13186089071"
+    },
+    {
+      "file": "web/components/WorkspaceSearch.tsx",
+      "coverage": "complete",
+      "assessment": "Read is serialized by busy; query changes invalidate displayed result; finally always releases busy, and parent key remounts on project/epoch.",
+      "sha256": "ed70fd959c8a73d2ec970e55e0e2ab728efffad62006d1b9d03b40070f45fdc6"
+    },
+    {
+      "file": "web/components/WorkspaceDownload.tsx",
+      "coverage": "complete",
+      "assessment": "Owner changes reject data; no reset admits a new request while the prior read owns busy; old finally releases that same serialized slot.",
+      "sha256": "fd238b5b86f5fb918fbd245edf0ddc17733726bb7b342cd17f6ec30118af0e9b"
+    },
+    {
+      "file": "web/components/MessageMedia.tsx",
+      "coverage": "complete",
+      "assessment": "Scope cleanup aborts and nulls pending; new load owns a distinct controller and old finally compares controller identity.",
+      "sha256": "6f3881ef9d3f87a9bebb40493e062837e27d3389d065d5f1a22e28a8335b94ab"
+    },
+    {
+      "file": "web/components/ModelCatalog.tsx",
+      "coverage": "complete",
+      "assessment": "Local operations serialized by busy/action; parent keys catalog by provider revision.",
+      "sha256": "75b749c5d73fe01172193189ccf0639c9cd0aff388e200ff5ff61dbf0878815a"
+    },
+    {
+      "file": "web/components/AccountSettings.tsx",
+      "coverage": "complete",
+      "assessment": "Owner wrapper keys client/runtime/connection; handoff generation and disconnect clear protect state; no same-owner busy dead end established.",
+      "sha256": "be19d5139281d8c26e0b8b57cdee51fd6a625359a891094de8cc3f2d3578a3e2"
+    },
+    {
+      "file": "web/components/DiagnosticsPanel.tsx",
+      "coverage": "complete",
+      "assessment": "Locally resembles stranded download flag on identity change, but actual parent uses complete epoch/project/thread key and unmounts it. Rejected as a reachable finding.",
+      "sha256": "7b305cbbd194250bc5be5fc7aef16f5a787122589ba38575c45067d0cef93ed5"
+    },
+    {
+      "file": "web/components/CliDiagnosticsPanel.tsx",
+      "coverage": "complete",
+      "assessment": "DiagnosticsSession keyed by epoch/connection and result read uses useResource.",
+      "sha256": "123844e37278a82da484a07b3f4ef402737d35368c072ba1c38bd49e3c0c3aff"
+    },
+    {
+      "file": "web/components/PredictionPanel.tsx",
+      "coverage": "complete",
+      "assessment": "Inspected read/recovery and busy finalizers plus actual owner key; no confirmed matching stuck or cross-request busy case.",
+      "sha256": "ece10b2c98d874db27197b860aeac1ec0d3586abaa5e27a45a9ce07be38877bf"
+    },
+    {
+      "file": "web/components/ExtensionControls.tsx",
+      "coverage": "complete",
+      "assessment": "ExtensionStatus keeps busy in scope+operation state, and late updates require same current operation.",
+      "sha256": "b828244793059b187bda325de56bfd87b5c68c95e637e20e511327f4d64ed0c6"
+    },
+    {
+      "file": "web/components/ExtensionsPanel.tsx",
+      "coverage": "complete",
+      "assessment": "Confirmed actual DiagnosticsPanel, ImportPanel and other scoped child keys.",
+      "sha256": "9549e6f047ba3d74540cc1e62b986a9a12a47b4f5a336a2a641c0bec17a6f727"
+    },
+    {
+      "file": "web/components/McpPanel.tsx",
+      "coverage": "complete",
+      "assessment": "Resource reads have generation guards, but retained-result reread/download share scalar busy without request identity; confirmed finding below.",
+      "sha256": "aea14b0ec9ea315af929c7a954144af5630ccd9a498cad1f4176a88c7a2b2459"
+    },
+    {
+      "file": "web/lib/mcp-session.ts",
+      "coverage": "complete",
+      "assessment": "Verified seeded accepted-result prestate and current session/body identity checks used by probe.",
+      "sha256": "7ee44964cc6cd8eac39399cc6ce2519a54866b72f267ea0362e8a111968182b5"
+    },
+    {
+      "file": "web/tests/mcp-ui.test.tsx",
+      "coverage": "lines 1-120 only",
+      "assessment": "Read fixture setup and existing stale resource/session tests to construct a distinct ignored probe; did not execute or modify this test.",
+      "sha256": "ebdf9465bf9115f3a1957a326115e3e974da9fdc9b813c62f4d84b26fe38bbf2"
+    },
+    {
+      "file": "web/components/AutomationForm.tsx",
+      "coverage": "targeted lifecycle and preview sections only: lines 1-54 and 86-95",
+      "assessment": "Owner visit remount; preview completion guarded by request generation, schedule key and mounted state. No matching candidate confirmed.",
+      "sha256": "34f50debdce357ed6347c7fa70c39b6a85de05c63a732150f83fbf50df74abe3"
+    },
+    {
+      "file": "web/components/HistoryTools.tsx",
+      "coverage": "HistoryTools async locate/export component only",
+      "assessment": "New search invalidates result generation; busy is serialized until finally; actual App keys thread+resource epoch.",
+      "sha256": "85c6a3da5bf726b53e0c551d2dddcd02968e1a0084e6f7fa597324d7693e8ca2"
+    },
+    {
+      "file": "web/components/FileEditor.tsx",
+      "coverage": "async save/recover/readback and mount sections only",
+      "assessment": "Readback follows serialized save/recover; actual WorkspacePanel keys editor by project/path.",
+      "sha256": "b6b4d97fe165bed07b4c3fc0842ceb243470e9061687f3a69afab60c00f47464"
+    },
+    {
+      "file": "web/components/WorkspacePanel.tsx",
+      "coverage": "selected JSX call sites only",
+      "assessment": "Confirmed WorkspaceSearch project/epoch key, WorkspaceDownload project/path key, FileEditor project/path key.",
+      "sha256": "80dc99d3474668db8773e58d35f4fc137e5f8bc5c46c263ced164868cce0b1e6"
+    },
+    {
+      "file": "web/components/ProviderSettings.tsx",
+      "coverage": "ModelCatalog call site only",
+      "assessment": "Confirmed catalog revision key.",
+      "sha256": "c1f765a8a1c6d5fb44d3003679c041fdb13bafcccf0c96c17c994a3c23d087ef"
+    },
+    {
+      "file": "web/components/Settings.tsx",
+      "coverage": "scoped child call sites only",
+      "assessment": "Confirmed owner/epoch/connection inputs for account/MCP/diagnostic panels.",
+      "sha256": "2eda5a26b7ca8347787557a5bda82ae1015fdcb15f335ef97a5e5280c9e71685"
+    },
+    {
+      "file": "web/components/AutomationsPanel.tsx",
+      "coverage": "AutomationForm call site only",
+      "assessment": "Confirmed current epoch and record identity passed into editor owner wrapper.",
+      "sha256": "b06228c51b2bc40cbf948ad959150e5e3ba07c572b397912bf54ee24559aa2d4"
+    },
+    {
+      "file": "web/App.tsx",
+      "coverage": "targeted component call sites only",
+      "assessment": "Confirmed HistoryTools thread/epoch key, PredictionPanel runtime/connection key and actual settings/workspace props.",
+      "sha256": "274d203877dffa67b6f6ae276f91c1dea8d55c27fcf349d7651a5766e2b5b168"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R12-FIX-CROSS-001",
+      "severity": "P2",
+      "status": "confirmed-by-bounded-probe",
+      "title": "A late retained MCP result read clears the busy state of a newer resource request",
+      "file": "web/components/McpPanel.tsx",
+      "lineStart": 81,
+      "lineEnd": 81,
+      "relatedLines": [
+        29,
+        39,
+        40,
+        75,
+        77,
+        79
+      ],
+      "evidence": "The retained-result reread and download handlers set component-wide busy and clear it in finally whenever current() still matches the session. Changing the selected server clears busy immediately while leaving the same session current. A subsequent resource read owns the same busy value, but the older result handler has no request token/generation comparison and clears it on either success or failure.",
+      "reproduction": [
+        "Keep a valid accepted tool result in the current MCP session. Start either Re-read original result or Download original result JSON and hold mcp/result/read pending.",
+        "Change the selected MCP service. The selection handler clears busy, allowing the Resources tab read button.",
+        "Start a resource read for the new server and hold mcp/resource/read pending; its button is disabled.",
+        "Resolve or reject only the older result read. Its finally enables the resource button even though the newer resource read remains pending.",
+        "Click the newly enabled button: a second identical mcp/resource/read is dispatched before either resource request has completed."
+      ],
+      "actual": "All four combinations (reread/download times late success/failure) changed the new resource button from disabled to enabled and dispatched two overlapping resource reads. The probe then resolved both and observed only the latest resource data.",
+      "impact": "The UI loses ownership of its pending read and permits unintended overlapping resource requests. Users see controls become available before the requested resource finishes; repeated click handling no longer reflects actual pending work. No permanent stuck state, write dispatch, authorization bypass or stale resource-body substitution was demonstrated.",
+      "recommendation": "Give every pending read a request identity or separate pending slot. Scope change should invalidate only the old owner, and each finally must clear only the pending request that it owns. Cover retained-result reread/download plus server/scope change followed by a newer pending resource read.",
+      "validation": "async-read-probe: four defect-observation cases, one strictly included ignored test file, all observed the bug. These passing assertions confirm the defect and are not product regression passes."
+    }
+  ],
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run --config .work/round12-fixes/async-read-probe.config.mjs",
+    "classification": "ignored bounded defect-observation probe; not official targeted product regression",
+    "exitCode": 0,
+    "testFiles": 1,
+    "cases": 4,
+    "passedObservations": 4,
+    "failed": 0,
+    "skipped": 0,
+    "artifacts": [
+      {
+        "path": ".work/round12-fixes/async-read-probe.config.mjs",
+        "sha256": "ad9684176404541efe36ba4622db804f027c13353a7c4096af0e7971b1d4314b"
+      },
+      {
+        "path": ".work/round12-fixes/async-read-probe.test.tsx",
+        "sha256": "8d35bb389f68677d9b717438d548e58a148d04ed4121ebb1694ad24302176197"
+      },
+      {
+        "path": ".work/round12-fixes/async-read-probe.log",
+        "sha256": "a565750a2a2fbdfcf3edbe583dbdd29da72de60d1dfb7d4f81f8445d54a29651"
+      },
+      {
+        "path": ".work/round12-fixes/async-read-probe-result.json",
+        "sha256": "dd27adf18c82cec57ce48b7d8d8445b6f1a50072820a3de879a52e97a13720ba"
+      }
+    ],
+    "exactCollection": "Config include is exactly .work/round12-fixes/async-read-probe.test.tsx, exclude=[], maxWorkers=1; result contains exactly that one file."
+  },
+  "limitations": [
+    "This was a bounded pattern-driven follow-up, not a full independent audit or complete review of every web component. Targeted source coverage is stated per file.",
+    "No current source/test/documentation, RemoteSettings/process-remote owned files, or sealed R12 public report was modified. Only ignored probe and review artifacts were written.",
+    "No full suite, official targeted product test, SSH, service command, actual MCP service or external network was executed. Real Api calls used local fetch mocks with controlled deferred promises.",
+    "The four probe cases demonstrate a UI read-admission defect, not a backend privilege or resource-limit failure. No unproven related risks are findings.",
+    "An initial targeted text-read command used the default Windows encoding and failed decoding; it was rerun with explicit UTF-8. This was not a product or probe test failure."
+  ]
+}

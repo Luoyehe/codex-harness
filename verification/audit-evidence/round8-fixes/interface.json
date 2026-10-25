@@ -1,0 +1,476 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round8-fixes",
+  "reviewerId": "r8-interface-fixes",
+  "phase": "implementation-and-targeted-verification",
+  "complete": true,
+  "startedAt": "2026-10-25T10:21:17.341Z",
+  "completedAt": "2026-10-25T10:39:00.870Z",
+  "originalAudit": {
+    "roundId": "round8",
+    "reviewerId": "r8-interface",
+    "digest": "492a6b22e554c92e91090eafb22cb95f571f0d2ef029f3e2daf542dcef3e0b8e",
+    "findings": [
+      "r8-interface-001",
+      "r8-interface-002",
+      "r8-interface-003",
+      "r8-interface-004"
+    ]
+  },
+  "scope": "The four confirmed interface findings and necessary current UI ownership/recovery dependencies. No realtime implementation or tests were edited.",
+  "method": "Diagnosed the existing failing cleanup test first with temporary local trace instrumentation, then restored the test and implemented snapshot-bound confirmation. Updated the four assigned UI components and the shared workflow/recovery controls. Bound asynchronous effects to stable per-scope owner tokens, explicit operation identities and input draft generations; retained original global operation reconciliation and unknown-outcome blocks. Added regression cases for text/ref/scope ABA transitions, same-revision different worktree identities, late accepted and failed responses, retained drafts, directory pagination/refresh and both cross-scope and same-scope recovery queries. Ran only explicit affected test files through scripts/run-tests.mjs --targeted and Web TypeScript checks. No full suite, SSH, online instance changes, real shell execution, external MCP or personal configuration was used. Earlier frozen-source component artifacts in .work were used solely to verify the exact prior TerminalRow state transition from this same task; no older repository or historical implementation was consulted.",
+  "changedFiles": [
+    {
+      "file": "web/components/SkillLibraryTools.tsx",
+      "sha256": "fe9564e7f623dfcb65fc29bb72083cb8b56c75c7352ff1ac07e70e2769ba4344"
+    },
+    {
+      "file": "web/components/WorkspaceWorktrees.tsx",
+      "sha256": "16969ff9c3edcba1a764619cd0e8615220f2f05411b2f5cd42ffe7cd50727e32"
+    },
+    {
+      "file": "web/components/ThreadTerminals.tsx",
+      "sha256": "cc60c35d9fb1c0164eed603d49d7ccc5cf45082a5d04425bc6e1eba5e6c07c68"
+    },
+    {
+      "file": "web/components/McpPanel.tsx",
+      "sha256": "aea14b0ec9ea315af929c7a954144af5630ccd9a498cad1f4176a88c7a2b2459"
+    },
+    {
+      "file": "web/components/ExtensionControls.tsx",
+      "sha256": "b828244793059b187bda325de56bfd87b5c68c95e637e20e511327f4d64ed0c6"
+    },
+    {
+      "file": "web/hooks/useWorkflow.ts",
+      "sha256": "9855576714231e02c0743d9204dbbf58d08caa31b912b55a252d48bf8060eebd"
+    },
+    {
+      "file": "web/tests/skill-library.test.tsx",
+      "sha256": "285be9d1c3dbad9b8763651f5d3ae542af1c5aeaa4de736fff3177a9efa4508f"
+    },
+    {
+      "file": "web/tests/workspace-management.test.tsx",
+      "sha256": "2092c7fdcd02670e5fc4e22223826cb743be9adc754bb8b22f628aacea157fc5"
+    },
+    {
+      "file": "web/tests/thread-terminals.test.tsx",
+      "sha256": "062389541f42754b887bfba843b397e2c2fbe6a168be2c294b5ece9cd76ab053"
+    },
+    {
+      "file": "web/tests/mcp-ui.test.tsx",
+      "sha256": "ebdf9465bf9115f3a1957a326115e3e974da9fdc9b813c62f4d84b26fe38bbf2"
+    }
+  ],
+  "resolvedFindings": [
+    {
+      "id": "r8-interface-001",
+      "files": [
+        "web/components/SkillLibraryTools.tsx",
+        "web/tests/skill-library.test.tsx"
+      ],
+      "change": "Import attempts capture a stable owner, input text revision and attempt identity. A late file result cannot overwrite any intervening edit, including A-to-B-to-A. The UI reports that the current draft was retained. Failed reads preserve text, scope ABA cannot revive the old import, and skill confirmation is bound to the current owner."
+    },
+    {
+      "id": "r8-interface-002",
+      "files": [
+        "web/components/WorkspaceWorktrees.tsx",
+        "web/tests/workspace-management.test.tsx"
+      ],
+      "change": "Create and existing-worktree action forms are mutually exclusive. Confirmation carries owner, action, worktreeId, live phase and revision, or the exact creation ref. Selection and ref changes explicitly clear it. Epoch/connection ownership changes invalidate it synchronously. Late creation responses cannot close a newer scope form."
+    },
+    {
+      "id": "r8-interface-003",
+      "files": [
+        "web/components/ThreadTerminals.tsx",
+        "web/hooks/useWorkflow.ts",
+        "web/tests/thread-terminals.test.tsx"
+      ],
+      "change": "A command acknowledgement clears only the exact captured draft object, not an equal text value. Command or timeout edits advance the draft generation; errors retain the draft. Consent and status belong to a stable owner. Shared workflow ownership prevents prior thread/epoch/connection outcomes from changing a newer UI owner while Api still records and acknowledges the actual global outcome."
+    },
+    {
+      "id": "r8-interface-004",
+      "files": [
+        "web/components/McpPanel.tsx",
+        "web/tests/mcp-ui.test.tsx"
+      ],
+      "change": "Event subscription consent is bound to API/session/epoch/thread/server/connection ownership, invalidated by every parameter edit and consumed at submission. Server/scope ABA never restores consent. Pending results and failures preserve edited parameters, and an old service acknowledgement does not clear a new service draft or its independently supplied confirmation."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "id": "r8-interface-fix-001",
+      "priority": 2,
+      "status": "resolved",
+      "file": "web/components/ThreadTerminals.tsx",
+      "trigger": "Confirm cleanup before loading all background-terminal pages, then load another page.",
+      "impact": "The old boolean confirmation remained checked after the second page rendered and the cleanup button became enabled before the effect cleared it. The existing test clicked this still-checked checkbox again, cancelling consent, so no cleanup was sent. This was a real transient confirmation boundary defect, not a reason to weaken the test.",
+      "evidence": [
+        ".work/round8/cleanup-diagnostic-output.txt",
+        ".work/test-results/run-ujw15T/vitest.json"
+      ],
+      "resolution": "Confirmation is derived synchronously from owner, resource key and exact items snapshot. It is disabled until the complete directory is ready and invalidated by refresh/pagination/scope changes. The existing cleanup intent and accepted-result assertions are preserved and now pass."
+    },
+    {
+      "id": "r8-interface-fix-002",
+      "priority": 2,
+      "status": "resolved",
+      "file": "web/components/ThreadTerminals.tsx",
+      "trigger": "A later page replaces an already confirmed terminal row with a new object carrying the same processId and displayed fields.",
+      "impact": "The JSON-based React key retained the old boolean confirmation and allowed termination against the refreshed row without fresh confirmation.",
+      "evidence": [
+        ".work/round8/row-baseline-repro.mjs",
+        ".work/round8/row-baseline-result.json"
+      ],
+      "resolution": "Each terminal confirmation is tied to the exact row object and stable scope. The new pagination replacement regression requires it to reset. Existing command/identity-change protection via row validation and keys is retained."
+    },
+    {
+      "id": "r8-interface-fix-003",
+      "priority": 2,
+      "status": "resolved",
+      "file": "web/components/ExtensionControls.tsx",
+      "trigger": "An operation/read query completes after its UI scope changes, or after another operation becomes the current recovery target in the same scope.",
+      "impact": "The old query called action.refresh() on the replacement owner. In the concrete worktree regression, an old creation receipt dismissed the newer unknown archive intent.",
+      "evidence": [
+        ".work/test-results/run-vJZ2DB/vitest.json",
+        ".work/test-results/run-Fv9VgC/vitest.json"
+      ],
+      "resolution": "useWorkflow exports a stable owner token and current-owner predicate. ExtensionStatus additionally captures operationId, scopes busy/error state and guards refresh and callbacks. Valid original receipts still reconcile globally; stale UI errors and refreshes are dropped. Both accepted and failed late query cases and same-scope operation replacement are covered."
+    }
+  ],
+  "validations": {
+    "targetedRuns": [
+      {
+        "report": ".work/test-results/run-ujw15T/vitest.json",
+        "sha256": "fe1c7052e3e36a9ce643256938b637c536a763a6cd477c65206cfdf59fddc616",
+        "disposition": "failed-before-fix",
+        "explanation": "Temporary trace instrumentation isolated the pre-existing cleanup failure; original test text was restored immediately after the diagnostic.",
+        "status": "failed",
+        "startedAt": "2026-10-25T10:22:00.266Z",
+        "completedAt": "2026-10-25T10:22:02.408Z",
+        "total": 6,
+        "passed": 5,
+        "failed": 1,
+        "skipped": 0,
+        "files": [
+          {
+            "file": "web/tests/thread-terminals.test.tsx",
+            "status": "failed",
+            "failedTests": [
+              "requires full page review and explicit whole-thread cleanup consent without claiming OS proof"
+            ]
+          }
+        ]
+      },
+      {
+        "report": ".work/test-results/run-3eERg1/vitest.json",
+        "sha256": "48e4b36ec8e3e7b1694a96c447aa2c8e8fe50c485d961f1a75953877cddb08fe",
+        "disposition": "test-expectation-corrected",
+        "explanation": "Initial six-file validation: 109/112 passed. Three new scope tests incorrectly expected Api to retain an accepted non-input operation. Api intentionally acknowledges it at web/lib/api.ts:125; assertions were corrected to require exactly one dispatch, no stale UI callback and no unresolved local operation.",
+        "status": "failed",
+        "startedAt": "2026-10-25T10:30:05.886Z",
+        "completedAt": "2026-10-25T10:30:09.789Z",
+        "total": 112,
+        "passed": 109,
+        "failed": 3,
+        "skipped": 0,
+        "files": [
+          {
+            "file": "web/tests/mcp-ui.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/modal-mutations.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/skill-library.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/thread-terminals.test.tsx",
+            "status": "failed",
+            "failedTests": [
+              "ignores an old shell acknowledgement after the thread scope changes away and back",
+              "ignores an old shell acknowledgement after the epoch scope changes away and back",
+              "ignores an old shell acknowledgement after the connection scope changes away and back"
+            ]
+          },
+          {
+            "file": "web/tests/workflows.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/workspace-management.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          }
+        ]
+      },
+      {
+        "report": ".work/test-results/run-Z9ebz1/vitest.json",
+        "sha256": "e08c78c766a89aa1c8135a2554a4c6f2f438beb9bebba9ebefdb2e2beeccd9ee",
+        "disposition": "passed",
+        "explanation": "Corrected receipt-storage expectation; all 13 terminal tests passed.",
+        "status": "passed",
+        "startedAt": "2026-10-25T10:30:30.607Z",
+        "completedAt": "2026-10-25T10:30:31.961Z",
+        "total": 13,
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "file": "web/tests/thread-terminals.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          }
+        ]
+      },
+      {
+        "report": ".work/test-results/run-vJZ2DB/vitest.json",
+        "sha256": "b6be709948361ae5359337f15c6308212c7ad02ef5f94d4aa981317f6eaa4942",
+        "disposition": "failed-before-recovery-fix",
+        "explanation": "Added old-scope recovery regression failed with onChanged called once after epoch replacement; this confirmed the ExtensionStatus stale recovery callback defect before its fix.",
+        "status": "failed",
+        "startedAt": "2026-10-25T10:32:32.970Z",
+        "completedAt": "2026-10-25T10:32:34.350Z",
+        "total": 14,
+        "passed": 13,
+        "failed": 1,
+        "skipped": 0,
+        "files": [
+          {
+            "file": "web/tests/thread-terminals.test.tsx",
+            "status": "failed",
+            "failedTests": [
+              "reconciles an old recovery receipt without refreshing the replacement UI owner"
+            ]
+          }
+        ]
+      },
+      {
+        "report": ".work/test-results/run-Ab0qzw/vitest.json",
+        "sha256": "7128f696a61be30aecb0523669beebeb957a68447bc4a0c216c51dedfb5095e9",
+        "disposition": "passed",
+        "explanation": "Expanded recovery validation after scope ownership correction: all 110 tests in eight files passed.",
+        "status": "passed",
+        "startedAt": "2026-10-25T10:33:19.609Z",
+        "completedAt": "2026-10-25T10:33:22.983Z",
+        "total": 110,
+        "passed": 110,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "file": "web/tests/automations.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/extensions.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/mcp-ui.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/process-remote.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/recovery.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/skill-library.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/thread-terminals.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/workspace-management.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          }
+        ]
+      },
+      {
+        "report": ".work/test-results/run-Fv9VgC/vitest.json",
+        "sha256": "a71226b462521d86f53c269cf96d2e31be2d17819137d3508453ddd394fd7e9c",
+        "disposition": "failed-before-operation-identity-fix",
+        "explanation": "New same-scope/different-operation regression failed: an old creation recovery response removed the newer unknown archive intent. This established the need for operationId ownership in addition to stable scope.",
+        "status": "failed",
+        "startedAt": "2026-10-25T10:35:46.762Z",
+        "completedAt": "2026-10-25T10:35:48.559Z",
+        "total": 15,
+        "passed": 14,
+        "failed": 1,
+        "skipped": 0,
+        "files": [
+          {
+            "file": "web/tests/workspace-management.test.tsx",
+            "status": "failed",
+            "failedTests": [
+              "does not dismiss a later worktree intent when an earlier operation recovery finishes in the same scope"
+            ]
+          }
+        ]
+      },
+      {
+        "report": ".work/test-results/run-zZ0blS/vitest.json",
+        "sha256": "17793bc0a87d58df322044ccf763caa6ef3fc6f06f9a85d1add630dbccc65c4a",
+        "disposition": "final-passed",
+        "explanation": "Final affected recovery/component selection after all code edits: all 113 tests in eight files passed.",
+        "status": "passed",
+        "startedAt": "2026-10-25T10:36:10.205Z",
+        "completedAt": "2026-10-25T10:36:13.638Z",
+        "total": 113,
+        "passed": 113,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "file": "web/tests/automations.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/extensions.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/mcp-ui.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/process-remote.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/recovery.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/skill-library.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/thread-terminals.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          },
+          {
+            "file": "web/tests/workspace-management.test.tsx",
+            "status": "passed",
+            "failedTests": []
+          }
+        ]
+      }
+    ],
+    "typecheck": {
+      "command": "pnpm exec tsc -p web/tsconfig.json --noEmit",
+      "executions": 3,
+      "status": "passed",
+      "exitCodeEach": [
+        0,
+        0,
+        0
+      ],
+      "finalRunAfterAllCodeEdits": true
+    },
+    "sourceSecurity": {
+      "status": "clean",
+      "scannedFiles": 10,
+      "scannedBytes": 131758,
+      "findings": [],
+      "artifacts": [],
+      "unreadable": [],
+      "skipped": []
+    },
+    "finalPerFileTestCoverage": [
+      {
+        "file": "web/tests/mcp-ui.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      },
+      {
+        "file": "web/tests/modal-mutations.test.tsx",
+        "report": ".work/test-results/run-3eERg1/vitest.json"
+      },
+      {
+        "file": "web/tests/skill-library.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      },
+      {
+        "file": "web/tests/workflows.test.tsx",
+        "report": ".work/test-results/run-3eERg1/vitest.json"
+      },
+      {
+        "file": "web/tests/workspace-management.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      },
+      {
+        "file": "web/tests/thread-terminals.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      },
+      {
+        "file": "web/tests/automations.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      },
+      {
+        "file": "web/tests/extensions.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      },
+      {
+        "file": "web/tests/process-remote.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      },
+      {
+        "file": "web/tests/recovery.test.tsx",
+        "report": ".work/test-results/run-zZ0blS/vitest.json"
+      }
+    ],
+    "finalSelectedRun": {
+      "report": ".work/test-results/run-zZ0blS/vitest.json",
+      "passed": 113,
+      "failed": 0,
+      "skipped": 0
+    },
+    "baselineRowReproduction": {
+      "report": ".work/round8/row-baseline-result.json",
+      "sha256": "a618726e61d96c8d72a085a459d349bd35be65f8a2392cdc07ba05f99348e433",
+      "oldConsentRetained": true,
+      "terminationEnabled": true,
+      "mutationsDispatched": 0
+    }
+  },
+  "snapshotAtEvidenceCreation": {
+    "files": 1783,
+    "digest": "777b24b35f52454d68c7d38d4aa5ee6ebecee4cf4aab1d32ba548bccc5d09155"
+  },
+  "skipped": [],
+  "remainingKnownFindingsInAssignedFixScope": [],
+  "limitations": [
+    "This is fix verification evidence, not another independent full-repository audit or a claim of a clean audit round.",
+    "Full suite, native/deployed/live integration, SSH and browser verification were not run by this agent. Parent integration/browser verification is separate.",
+    "The shared repository also contains concurrent runtime and deployment work. Exact owned-file checksums above establish this implementation; the whole-repository snapshot is only a point-in-time observation."
+  ],
+  "stoppedWritingOwnedCode": true
+}

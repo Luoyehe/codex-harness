@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T17:01:52.339Z",
+  "sourceEditsStopped": true,
+  "sourceSnapshotBeforeCoverageRefresh": {
+    "files": 1785,
+    "digest": "66f90d48bbcfc6ff76abfa9eb5ae138b811d23b1f7afb809208bb603f24448de"
+  },
+  "repairs": [
+    {
+      "path": "verification/audit-evidence/round12-fixes/interface.json",
+      "sha256": "c98aeacde9977a24a67458a2e562e399e9e453b71bed633a3eeab0e8a5d5ea4d"
+    },
+    {
+      "path": "verification/audit-evidence/round12-fixes/mcp-interface.json",
+      "sha256": "0a07774558f6ba85a67fc5714050d02abc35ca98f22f02cad2b034c7232ca03d"
+    }
+  ],
+  "crossReviews": [
+    {
+      "path": "verification/audit-evidence/round12-fixes/async-read-cross-review.json",
+      "sha256": "354e3606919b574d0b1cf50d18968a08ee135e507def17a4e293691facbe4c95"
+    },
+    {
+      "path": "verification/audit-evidence/round12-fixes/remote-repair-cross-review.json",
+      "sha256": "a5f0b9856cfedadd9ac8c5d072de0a8c87afa451e74ab24bc9244cc07c6a3fc8"
+    },
+    {
+      "path": "verification/audit-evidence/round12-fixes/mcp-repair-cross-review.json",
+      "sha256": "8e33a190472dfb1122523d371e8327c847f5011799f950a271b34ab088e8c2b5"
+    }
+  ],
+  "sourceReview": "Root read both complete implementation diffs and every added test; independent bounded reviewers found no additional confirmed defect. These repair checks are not independent clean full audits.",
+  "targeted": {
+    "files": 2,
+    "passed": 78,
+    "failed": 0,
+    "skipped": 0,
+    "breakdown": {
+      "remote": 44,
+      "mcp": 34
+    },
+    "note": "Distinct final affected-file results; no counts from pre-fix failing runs are included."
+  },
+  "checks": [
+    {
+      "command": "pnpm build:web",
+      "exitCode": 0,
+      "asset": {
+        "path": "web/dist/assets/index-DFrOPevo.js",
+        "sha256": "c803f143a68885bc43954f0be97923a452e57e7982394dbf71d7c8cbf4219fa5"
+      },
+      "warning": "Existing large-chunk warning; minified JavaScript 1228.24 kB, gzip 348.57 kB."
+    },
+    {
+      "command": "node .work/check-source-encoding.mjs",
+      "files": 1785,
+      "findings": []
+    }
+  ],
+  "browser": {
+    "fixture": {
+      "path": ".work/r12-remote-preview.mjs",
+      "sha256": "c31321b9cec5ebdf0123c5f635d625b15b05edff8e4d1b7739efaa511e010cee"
+    },
+    "log": {
+      "path": ".work/round12-fixes/browser-success.jsonl",
+      "sha256": "65065725b8aee81af6becc597dc3c8199e108379b837fa8bc1ff81dee9509d6b"
+    },
+    "finalAX": {
+      "path": ".work/round12-fixes/browser-final-ax.txt",
+      "sha256": "1d822b7efd209f04b383d7b1798bf9d0f5e45948087cdaaffa25ef18ad852da5"
+    },
+    "screenshot": {
+      "path": "reference/evidence/pairing-query-restored-r12.jpg",
+      "sha256": "e3ba0f2ac2f790bf607cabe2def571d6e12650232515c0ef6b8d7ee504ce6694"
+    },
+    "observations": {
+      "firstCodeExpired": true,
+      "oldReadAborted": true,
+      "newPairingButtonEnabled": true,
+      "newReadDispatchedOnce": true,
+      "newReadBusyThenReleased": true,
+      "newCodePreservedAfterUnclaimedResponse": true,
+      "staleClaimedNotDisplayed": true,
+      "unhandledFixtureRpc": 0,
+      "pairingStarts": 2,
+      "statusReads": 2
+    },
+    "requestEvents": {
+      "oldClose": {
+        "event": "status-response-close",
+        "at": "2026-10-25T16:58:55.766Z",
+        "elapsedMs": 52972,
+        "sequence": 24,
+        "pairingId": "pair-1",
+        "requestCount": 1,
+        "responseFinished": false,
+        "peerClosedBeforeResponse": true
+      },
+      "oldSkipped": {
+        "event": "status-response-skipped",
+        "at": "2026-10-25T16:59:07.295Z",
+        "elapsedMs": 64501,
+        "sequence": 24,
+        "pairingId": "pair-1",
+        "requestCount": 1,
+        "reason": "peer-already-closed",
+        "plannedResult": "success"
+      },
+      "newPending": {
+        "event": "status-pending",
+        "at": "2026-10-25T16:59:38.515Z",
+        "elapsedMs": 95721,
+        "sequence": 35,
+        "pairingId": "pair-2",
+        "requestCount": 2,
+        "delayMs": 20000,
+        "dueAt": "2026-10-25T16:59:58.515Z",
+        "plannedResult": "unclaimed"
+      },
+      "newFinish": {
+        "event": "status-response-finish",
+        "at": "2026-10-25T16:59:58.517Z",
+        "elapsedMs": 115723,
+        "sequence": 35,
+        "pairingId": "pair-2",
+        "requestCount": 2,
+        "note": "Server write finished; this does not prove browser receipt or UI application."
+      }
+    },
+    "cleanup": {
+      "tabId": "16",
+      "tabClosed": true,
+      "pid": 42400,
+      "exactExecutableAndCommandVerified": true,
+      "processStopped": true,
+      "port": 5133,
+      "listeningAfterStop": false,
+      "sessionId": 17521,
+      "sessionExit": 1,
+      "exitReason": "Intentional owned fixture stop after verification"
+    },
+    "limitations": [
+      "Production-built UI with synthetic local pairing responses; no real remote client grant, account, provider or MCP call.",
+      "The browser actually canceled the first read at expiry; it did not receive the planned old claimed=true response. The server skipped that response before the second query started, so this pass does not establish overlapping old/new response handling. Ignored-Abort late success/failure and overlap are covered by the recorded targeted tests.",
+      "Only the synthetic success-mode fixture was used in this browser pass. The old-error branch and MCP races were validated by targeted component tests, not this browser pass."
+    ]
+  },
+  "limitations": [
+    "No full suite or online update occurred. Source changes reset the independent clean-audit count.",
+    "Capability evidence is refreshed once after all writers stop, before the next frozen complete audit sequence.",
+    "Existing targeted typechecks cover the final Web changes; no redundant test reruns or server source changes were made."
+  ]
+}

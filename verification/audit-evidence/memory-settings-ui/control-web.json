@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:56:33.153Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "memory-settings-ui",
+  "files": [
+    "web/components/MemorySettings.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/tests/memory-settings.test.tsx"
+  ],
+  "tests": 4,
+  "contracts": [
+    "Global generation and use controls display effective values separately from exact user overrides.",
+    "Only explicitly selected memories.generate_memories/use_memories leaf keys are written under native userVersion CAS. Null clears an override without replacing unrelated memory settings.",
+    "Revision changes preserve user choices and require comparison, adopting the new version, and a fresh explicit confirmation. Unknown results never trigger automatic writes."
+  ],
+  "sourceHashes": {
+    "web/components/MemorySettings.tsx": "7ef0fe21bb4373c75745637c0ea175fbbadc6024962d4a73224151073035233e",
+    "web/components/ExtensionsPanel.tsx": "9549e6f047ba3d74540cc1e62b986a9a12a47b4f5a336a2a641c0bec17a6f727",
+    "web/tests/memory-settings.test.tsx": "0f0ccf91025b7a68d2acecf01ea711409bf2a62ae60144b72e4c55a5669b1775"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/hook-events.test.tsx web/tests/memory-settings.test.tsx web/tests/device-login.test.tsx web/tests/extensions.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 5,
+    "tests": 38,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed"
+  },
+  "limits": [
+    "Affected frontend tests only, no full suite or formal frozen audit.",
+    "No real account authentication, reset credit consumption, paid inference or external Hook execution by this agent.",
+    "Hook prompt history rendering is implemented and validated separately by root.",
+    "No visual or deployed 120 acceptance claimed for this batch."
+  ]
+}

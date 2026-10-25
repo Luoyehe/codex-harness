@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T21:56:42.884Z",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "kind": "targeted-feature-batches",
+  "reports": [
+    {
+      "file": ".work/test-results/run-08IuIS/vitest.json",
+      "sha256": "949e5666d0246c18171f5c3586092db34a7b8e9fce6949110268ca19dcceb10f",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-UDxWbC/vitest.json",
+      "sha256": "2bf4ce3e1aa7e907c7e927be25e922d54679604ee79431952e692cd37d0291a7",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-urGCQi/vitest.json",
+      "sha256": "a4eb9fbc96c779f921c604e3ed972f3c5ae61ccb9b7b138f470becfb736841f8",
+      "passed": 14,
+      "failed": 0
+    }
+  ],
+  "verified": [
+    "Durable plan/run/operation identities, receipt transaction atomicity, no unknown replay, missed-window skipping and bounded retained history.",
+    "IANA weekly schedules including DST gaps/folds and half-hour offsets; explicit UTC instants for once/interval.",
+    "Actual isolated CLI through WorkerServer/WorkerClient dispatched one scheduled conversation to a loopback Responses fixture after browser disconnect; restart did not duplicate it.",
+    "Explicit pause versus current-run interruption and conservative unknown closure; scheduler health surfaced."
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "src/core/schedule.ts": "be05a50dbf8c9d1e3a2b6f91fc27434324263f95044a9e39afc79c8713364e37",
+    "src/core/automations.ts": "6c9920fcca299ff1555d6102e7a828ad1666128168974c7695709388082b2adb",
+    "src/gateway/automation-scheduler.ts": "37af88342aa63dc7e9b4f12821225e6f8bbc044b3f23497841edc683f4be6725",
+    "tests/runtime/automation-native.test.ts": "7998e04f58c21356e797a89ee458bc87c95491d0ecd755a5213221b25ad4b587"
+  },
+  "limitations": [
+    "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+    "No paid provider inference. Browser UI evidence is recorded separately; current online 120 instance has not received these feature batches."
+  ]
+}

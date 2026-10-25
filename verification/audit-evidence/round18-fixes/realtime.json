@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round18-fixes",
+  "repairId": "R18-INTERFACE-001",
+  "complete": true,
+  "startedAt": "2026-10-25T18:50:57.1670999Z",
+  "completedAt": "2026-10-25T18:55:30.9053739Z",
+  "method": "Read only the current clean-room rewrite, its AGENTS.md, current R18 report and local probes. Preserved original bytes, added production-level regressions, proved failures before changing implementation, then applied an owner-isolation repair and ran only the two affected official targeted test files plus web noEmit typecheck.",
+  "sourceFiles": [
+    {
+      "path": "web/hooks/useConversation.ts",
+      "beforeSha256": "2e4977433250833a9a660da3449af964f28a8d00a0be91a685e375b74216f6fa",
+      "beforeBackup": ".work/round18-fixes/before/web/hooks/useConversation.ts",
+      "beforeBackupSha256": "2e4977433250833a9a660da3449af964f28a8d00a0be91a685e375b74216f6fa",
+      "afterSha256": "ba39851bc3c28e8f67c5d41eefc57c435be37fb866c89ee8d355c2c33486f719"
+    },
+    {
+      "path": "web/components/RealtimePanel.tsx",
+      "beforeSha256": "5da7ee8c7ccc42275c2b8001206563a4227f7296fde86fe2785ba367bc7b4f89",
+      "beforeBackup": ".work/round18-fixes/before/web/components/RealtimePanel.tsx",
+      "beforeBackupSha256": "5da7ee8c7ccc42275c2b8001206563a4227f7296fde86fe2785ba367bc7b4f89",
+      "afterSha256": "5073b81e9600c8f49f3ea57c37b4ce35adbff15705a558f69aa4db7ece356055"
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "beforeSha256": "cc8b9a4c9fffcf072d0b2788f470b2724112e0319b5118d76aca9e2773ffe09c",
+      "beforeBackup": ".work/round18-fixes/before/web/tests/conversation.test.tsx",
+      "beforeBackupSha256": "cc8b9a4c9fffcf072d0b2788f470b2724112e0319b5118d76aca9e2773ffe09c",
+      "afterSha256": "a3e1e1352fef41e5d8531c47906c5d03ad8b200e52e6ffb616f7c39865c684aa"
+    },
+    {
+      "path": "web/tests/realtime.test.tsx",
+      "beforeSha256": "8cfff897f6f4e636b22a2462f06de73074b0c24ff79a01f314567bb1d1087177",
+      "beforeBackup": ".work/round18-fixes/before/web/tests/realtime.test.tsx",
+      "beforeBackupSha256": "8cfff897f6f4e636b22a2462f06de73074b0c24ff79a01f314567bb1d1087177",
+      "afterSha256": "742ad39b53566db33c8193197268218b4009bcfb16a0020a47bf806ad6446148"
+    }
+  ],
+  "beforeManifest": {
+    "path": ".work/round18-fixes/before-manifest.json",
+    "sha256": "975f0af62e5e8ee31467ea675350fc0ce846095e2164cf746849ec143bdf77c9"
+  },
+  "changes": [
+    "useConversation now gives each API/threadId/resourceEpoch visit a distinct token, activated and retired at layout effect setup/cleanup. Captured voice callbacks and subscribed events require their visit to remain active. History refresh generation remains separate so current close callbacks survive invalidation and refresh.",
+    "API replacement resets voice, diff, usage and minimum history version through the new visit context, including replacement history failure.",
+    "RealtimePanel remounts its owned child on every API, epoch, lease or thread transition. Layout cleanup retires mounted notification authority immediately. Accepted snapshots still update native cleanup and operation state; onStarted/onClosed require the current mounted owner.",
+    "The original API continues to stop a late accepted start exactly once after unmount. Unknown stop receipts remain durable with their original operation IDs, without replay or state pollution."
+  ],
+  "regressionCoverage": [
+    "Old start and old close callbacks across thread, epoch, API, thread ABA and API ABA transitions.",
+    "API replacement resets voice and metadata even when its first history read fails; minimum history version resets independently.",
+    "Current callbacks remain valid across history revision and React StrictMode setup replay; wrong-thread targets are ignored.",
+    "Real RealtimePanel, useConversation, Api and local operation storage are exercised together for late accepted startup across thread, epoch, lease, API and ABA replacement. The local fetch substitute loses the cleanup stop response, proving one stop and durable unknown identity without affecting current ready/history/voice state.",
+    "Unmount during pending audio start releases substitute local media once and stops a later accepted native session once without start/close notifications.",
+    "A pending old stop resolves closed after API replacement without notifying either previous or new owner.",
+    "Current StrictMode lifecycle starts and closes once, with one substitute media release and no repeated stop."
+  ],
+  "validations": [
+    {
+      "kind": "targeted-regression-before-fix",
+      "startedAt": "2026-10-25T18:53:11.2428235Z",
+      "completedAt": "2026-10-25T18:53:15.7262089Z",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/conversation.test.tsx web/tests/realtime.test.tsx",
+      "exitCode": 1,
+      "status": "failed",
+      "runMetadata": {
+        "path": ".work/round18-fixes/red-run.json",
+        "sha256": "9525e6a3e6f2d43cf7c8a89d6b9b80d1282c8dacaa6e98d3acc06331ae165702"
+      },
+      "rawOutput": {
+        "path": ".work/round18-fixes/red-output.txt",
+        "sha256": "34694fc1875ffa1285bc12a022d6af39741a8aa40cd187cc624243daf524f6d6"
+      },
+      "rawJson": [
+        {
+          "path": ".work/test-results/run-tSn2hb/vitest.json",
+          "sha256": "c99a3bda78dfc34cacaacedf27e021534b689780d22530a71d7ef9ea24a0a4d1",
+          "success": false,
+          "tests": 34,
+          "passed": 19,
+          "failed": 15,
+          "pending": 0,
+          "todo": 0,
+          "failedCases": [
+            "conversation voice callback ownership rejects both callbacks from the prior visit after thread changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after epoch changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after api changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after thread ABA changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after api ABA changes",
+            "conversation voice callback ownership clears API-owned voice and metadata even when replacement history fails",
+            "conversation voice callback ownership resets the history version floor for a replacement API",
+            "unmount during accepted startup cleans local media immediately and stops a late native session exactly once",
+            "isolates late accepted startup after thread replacement while retaining cleanup and its unknown receipt",
+            "isolates late accepted startup after epoch replacement while retaining cleanup and its unknown receipt",
+            "isolates late accepted startup after lease replacement while retaining cleanup and its unknown receipt",
+            "isolates late accepted startup after api replacement while retaining cleanup and its unknown receipt",
+            "isolates late accepted startup after thread ABA replacement while retaining cleanup and its unknown receipt",
+            "isolates late accepted startup after api ABA replacement while retaining cleanup and its unknown receipt",
+            "does not notify either owner when an old stop closes after replacement"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "targeted-additional-close-regression-before-fix",
+      "startedAt": "2026-10-25T18:53:52.2889494Z",
+      "completedAt": "2026-10-25T18:53:56.3839596Z",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/conversation.test.tsx",
+      "exitCode": 1,
+      "status": "failed",
+      "runMetadata": {
+        "path": ".work/round18-fixes/red-close-run.json",
+        "sha256": "95659ecc7894e65db39c91a0aa7bc6e7078720a0a4cc48af1396e8d196de370d"
+      },
+      "rawOutput": {
+        "path": ".work/round18-fixes/red-close-output.txt",
+        "sha256": "6349c3ff8e1250be62c103a6cb5736d878dd156581f92141079c1ec17e796b7d"
+      },
+      "rawJson": [
+        {
+          "path": ".work/test-results/run-ear3cf/vitest.json",
+          "sha256": "dde7d34f3627064b96af8923681a537bae0fe37527693ebda8d93e72f860034b",
+          "success": false,
+          "tests": 18,
+          "passed": 6,
+          "failed": 12,
+          "pending": 0,
+          "todo": 0,
+          "failedCases": [
+            "conversation voice callback ownership keeps current voice active when a previous visit closes after thread changes",
+            "conversation voice callback ownership keeps current voice active when a previous visit closes after epoch changes",
+            "conversation voice callback ownership keeps current voice active when a previous visit closes after api changes",
+            "conversation voice callback ownership keeps current voice active when a previous visit closes after thread ABA changes",
+            "conversation voice callback ownership keeps current voice active when a previous visit closes after api ABA changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after thread changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after epoch changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after api changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after thread ABA changes",
+            "conversation voice callback ownership rejects both callbacks from the prior visit after api ABA changes",
+            "conversation voice callback ownership clears API-owned voice and metadata even when replacement history fails",
+            "conversation voice callback ownership resets the history version floor for a replacement API"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "targeted-regression-after-fix",
+      "startedAt": "2026-10-25T18:54:25.1442105Z",
+      "completedAt": "2026-10-25T18:54:28.8504768Z",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/conversation.test.tsx web/tests/realtime.test.tsx",
+      "exitCode": 0,
+      "status": "passed",
+      "runMetadata": {
+        "path": ".work/round18-fixes/green-run.json",
+        "sha256": "8a3acffb2aa3ab317a418b666d769b3f6de3579f0951279a75dca4f0967c9150"
+      },
+      "rawOutput": {
+        "path": ".work/round18-fixes/green-output.txt",
+        "sha256": "59d37d36071a212aff78bfbd8d277134badbb56b6dc5079d842c6d60ee0e51ba"
+      },
+      "rawJson": [
+        {
+          "path": ".work/test-results/run-Z4j8KZ/vitest.json",
+          "sha256": "785b09ca2cd659079c761580b21a24e6ece1dc8e06ee89b64bb487334ec69c35",
+          "success": true,
+          "tests": 39,
+          "passed": 39,
+          "failed": 0,
+          "pending": 0,
+          "todo": 0,
+          "failedCases": []
+        }
+      ]
+    },
+    {
+      "kind": "web-typecheck",
+      "startedAt": "2026-10-25T18:54:25.142484Z",
+      "completedAt": "2026-10-25T18:54:25.7810019Z",
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "status": "passed",
+      "runMetadata": {
+        "path": ".work/round18-fixes/typecheck-run.json",
+        "sha256": "cd391c77cd6076f9f2da277091e808f7d15459ab95e7a120c4a3821379587a82"
+      },
+      "rawOutput": {
+        "path": ".work/round18-fixes/typecheck-output.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "limitations": [
+    "This is a targeted repair record, not an independent full-repository clean audit; the full-test gate requires three new consecutive independent clean rounds on an unchanged snapshot.",
+    "No full or aggregate test run, server build, SSH, deployment, online migration, paid model call, real external MCP call, real microphone or real native WebRTC integration was performed.",
+    "Browser behavior was tested with jsdom, local fetch substitutes and in-memory media substitutes; no real network or device timing claim is made.",
+    "No personal CODEX_HOME or credentials were read. No old repository, Git history, archive or previous implementation was inspected.",
+    "Product writes stopped after the four listed files; independent reviewer cross-check is supplied separately by the coordinator."
+  ],
+  "skipped": []
+}

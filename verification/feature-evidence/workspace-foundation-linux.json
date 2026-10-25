@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-linux-foundation",
+  "createdAt": "2026-10-24T20:30:01.927Z",
+  "host": "192.168.1.120",
+  "root": "/var/tmp/crtest-workspace-targeted-tvkbicc3",
+  "sourceSha256": "3c3b07e3baf898841a89d4545484f98a15beefc16fef41d8f905072eeec12393",
+  "results": [
+    {
+      "folder": "tests/deploy",
+      "name": "test_workspace.py",
+      "identity": "nobody",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "test_binary_large_preview_and_listing_budget_are_explicit (test_workspace.WorkspaceFilesystemTests.test_binary_large_preview_and_listing_budget_are_explicit) ... ok\ntest_collision_between_capture_and_publish_preserves_both_versions (test_workspace.WorkspaceFilesystemTests.test_collision_between_capture_and_publish_preserves_both_versions) ... ok\ntest_copy_and_delete_are_explicit_and_recoverable (test_workspace.WorkspaceFilesystemTests.test_copy_and_delete_are_explicit_and_recoverable) ... ok\ntest_directory_symlink_swap_does_not_follow_outside_root (test_workspace.WorkspaceFilesystemTests.test_directory_symlink_swap_does_not_follow_outside_root) ... ok\ntest_edit_preserves_executable_mode_and_git_metadata_symlinks_are_rejected (test_workspace.WorkspaceFilesystemTests.test_edit_preserves_executable_mode_and_git_metadata_symlinks_are_rejected) ... ok\ntest_only_empty_directories_can_be_removed (test_workspace.WorkspaceFilesystemTests.test_only_empty_directories_can_be_removed) ... ok\ntest_protected_root_and_reserved_metadata_roots_rejected (test_workspace.WorkspaceFilesystemTests.test_protected_root_and_reserved_metadata_roots_rejected) ... ok\ntest_real_git_status_diff_refs_disable_repository_programs (test_workspace.WorkspaceFilesystemTests.test_real_git_status_diff_refs_disable_repository_programs) ... ok\ntest_retained_receipt_budget_blocks_new_writes (test_workspace.WorkspaceFilesystemTests.test_retained_receipt_budget_blocks_new_writes) ... ok\ntest_revision_conflict_preserves_current_file (test_workspace.WorkspaceFilesystemTests.test_revision_conflict_preserves_current_file) ... ok\ntest_symlink_hardlink_and_special_file_previews_are_rejected (test_workspace.WorkspaceFilesystemTests.test_symlink_hardlink_and_special_file_previews_are_rejected) ... ok\ntest_text_create_edit_readback_and_replay_preserve_before_image (test_workspace.WorkspaceFilesystemTests.test_text_create_edit_readback_and_replay_preserve_before_image) ... ok\ntest_all_control_and_native_config_paths_are_explicitly_excluded (test_workspace.WorkspaceValidationTests.test_all_control_and_native_config_paths_are_explicitly_excluded) ... ok\ntest_binary_and_large_edits_and_stale_copy_contract_rejected (test_workspace.WorkspaceValidationTests.test_binary_and_large_edits_and_stale_copy_contract_rejected) ... ok\ntest_delete_never_defaults_to_recursive_or_forced (test_workspace.WorkspaceValidationTests.test_delete_never_defaults_to_recursive_or_forced) ... ok\ntest_git_queries_cannot_enable_hooks_programs_network_or_recursive_submodules (test_workspace.WorkspaceValidationTests.test_git_queries_cannot_enable_hooks_programs_network_or_recursive_submodules) ... ok\ntest_paths_reject_escapes_metadata_controls_and_oversized_components (test_workspace.WorkspaceValidationTests.test_paths_reject_escapes_metadata_controls_and_oversized_components) ... ok\ntest_unknown_methods_fields_root_overrides_and_read_receipts_are_rejected (test_workspace.WorkspaceValidationTests.test_unknown_methods_fields_root_overrides_and_read_receipts_are_rejected) ... ok\ntest_write_requires_explicit_revision_and_canonical_operation (test_workspace.WorkspaceValidationTests.test_write_requires_explicit_revision_and_canonical_operation) ... ok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.081s\n\nOK\n"
+    },
+    {
+      "folder": "tests/deploy",
+      "name": "test_request_spool.py",
+      "identity": "nobody",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "test_active_executor_preserves_input_and_output_and_blocks_new_admission (test_request_spool.RequestSpoolTests.test_active_executor_preserves_input_and_output_and_blocks_new_admission) ... ok\ntest_admission_lease_blocks_second_waiter_but_executor_file_gate_remains_available (test_request_spool.RequestSpoolTests.test_admission_lease_blocks_second_waiter_but_executor_file_gate_remains_available) ... ok\ntest_executor_rechecks_admission_after_staging_and_keeps_input_until_collection (test_request_spool.RequestSpoolTests.test_executor_rechecks_admission_after_staging_and_keeps_input_until_collection) ... ok\ntest_failed_launch_with_confirmed_stop_is_bounded_and_still_unknown (test_request_spool.RequestSpoolTests.test_failed_launch_with_confirmed_stop_is_bounded_and_still_unknown) ... ok\ntest_failed_wait_with_live_unit_retains_request_and_reports_unknown (test_request_spool.RequestSpoolTests.test_failed_wait_with_live_unit_retains_request_and_reports_unknown) ... ok\ntest_input_and_reserved_result_bytes_checked_before_directory_creation (test_request_spool.RequestSpoolTests.test_input_and_reserved_result_bytes_checked_before_directory_creation) ... ok\ntest_invalid_envelope_and_mutation_are_rejected_without_staging_or_launch (test_request_spool.RequestSpoolTests.test_invalid_envelope_and_mutation_are_rejected_without_staging_or_launch) ... ok\ntest_legacy_files_collect_only_after_every_unit_confirms_stopped (test_request_spool.RequestSpoolTests.test_legacy_files_collect_only_after_every_unit_confirms_stopped) ... ok\ntest_receipt_budget_and_recovery_reject_before_any_spool_write (test_request_spool.RequestSpoolTests.test_receipt_budget_and_recovery_reject_before_any_spool_write) ... ok\ntest_receipt_replay_never_stages_even_with_blocked_spool (test_request_spool.RequestSpoolTests.test_receipt_replay_never_stages_even_with_blocked_spool) ... ok\ntest_result_after_failed_wait_can_be_returned_only_after_confirmed_stop (test_request_spool.RequestSpoolTests.test_result_after_failed_wait_can_be_returned_only_after_confirmed_stop) ... ok\ntest_result_overflow_preserves_receipt_and_never_publishes_partial_output (test_request_spool.RequestSpoolTests.test_result_overflow_preserves_receipt_and_never_publishes_partial_output) ... ok\ntest_retained_count_and_aggregate_bytes_fail_closed_before_unit_commands (test_request_spool.RequestSpoolTests.test_retained_count_and_aggregate_bytes_fail_closed_before_unit_commands) ... ok\ntest_uncertain_state_or_stop_retains_all_material_and_blocks_growth (test_request_spool.RequestSpoolTests.test_uncertain_state_or_stop_retains_all_material_and_blocks_growth) ... ok\ntest_unknown_storage_and_duplicate_results_are_retained (test_request_spool.RequestSpoolTests.test_unknown_storage_and_duplicate_results_are_retained) ... ok\ntest_waiter_disconnect_allows_publish_then_confirmed_collection_without_receipt_change (test_request_spool.RequestSpoolTests.test_waiter_disconnect_allows_publish_then_confirmed_collection_without_receipt_change) ... ok\n\n----------------------------------------------------------------------\nRan 16 tests in 0.102s\n\nOK\n"
+    },
+    {
+      "folder": "tests/deploy/root",
+      "name": "test_request_spool.py",
+      "identity": "root",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "test_foreign_owner_open_mode_links_and_symlinks_are_not_collectable (test_request_spool.RootRequestSpoolTests.test_foreign_owner_open_mode_links_and_symlinks_are_not_collectable) ... ok\ntest_root_private_files_use_real_independent_nonblocking_locks (test_request_spool.RootRequestSpoolTests.test_root_private_files_use_real_independent_nonblocking_locks) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.007s\n\nOK\n"
+    }
+  ],
+  "boundaries": [
+    "All new temporary directories; no systemctl or active service mutation.",
+    "Workspace tests used nobody; root-only spool cases used root in a TemporaryDirectory.",
+    "This is helper verification, not end-to-end browser feature acceptance.",
+    "Worktree lifecycle not yet implemented."
+  ],
+  "fullSuiteRun": false
+}

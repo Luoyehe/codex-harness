@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "kind": "workspace-file-recovery-implementation",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T21:16:02.354341+00:00",
+  "status": "implemented-targeted-validation-passed",
+  "files": [
+    {
+      "path": "deploy/workspace_recovery.py",
+      "sha256": "754aa080852f3217fddfed5d58434e8555ccf7a99f077e6a9cbd4c0f95ca9e51"
+    },
+    {
+      "path": "deploy/workspace.py",
+      "sha256": "86d02b8075a95445e90bce1610ec9a113e366de63ae91aa2c79d7dd015514a9d"
+    },
+    {
+      "path": "deploy/workspace_store.py",
+      "sha256": "f5852ddfc0aa582814e24ec00fd8d239f433dd00747a835a730b2ad8a2c96c82"
+    },
+    {
+      "path": "src/runtime/workspace.ts",
+      "sha256": "e536c71fa7460fdedd5601eab4f38793edbf81511a4b7b7314c78a1204fb0050"
+    },
+    {
+      "path": "src/runtime/workspace-witness.ts",
+      "sha256": "55cdc41c915c0cf6242805b01fbf72f49de21848dc959c9abab68ed691d1cc2a"
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "57920557293eec71a26d74d39cf32c2a736a8931cb77b8ee4be8f0b11d501ece"
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "2c0e113ff3745fd57f648f7ea4c29027d30db93851edec67f34244ab86ee4216"
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "c66c9738847764392e8d66cbcd7e7f56d727b8fee6faa4a8e7a8bb63fbb77b9e"
+    },
+    {
+      "path": "tests/deploy/test_workspace_recovery.py",
+      "sha256": "3daea7f9266219bbab897a333d6036ab8db8c26b5138b6c305f2bb3b7950d7ac"
+    },
+    {
+      "path": "tests/runtime/workspace.test.ts",
+      "sha256": "6df2e8d1f639f840df0b6dd4f29d30f812256e5c8796ae041a47e0ae89a00eba"
+    },
+    {
+      "path": "tests/runtime/workspace-witness.test.ts",
+      "sha256": "3ea3680153c718afeab6d6530f2ba4af7aa5e7ead8f73e772948ac06618fe875"
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "1fdbbef67d07b6d3fab63238e4061e415080509f6992b8c8f570307b31cdfbc9"
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "75fcba9cb746003850cd20f623a0ffca2c70adbd426561456199a2c454c9d033"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "4e8db968c9319394b9a9673fe90f65f83234f40092cef9743d2c40dcf6c98c73"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "b55d6f8d54ab4579ffcb2c89c206a4836819cab718e92f444ab50690de1ce0a9"
+    }
+  ],
+  "changes": [
+    "Registered-project recovery/list and recovery/read expose bounded fixed-slot versions and manifests. Browser paths never come from native-owned journals.",
+    "Durable recovery/restore copies an exact selected backup into an explicit scoped destination, checks both revisions and captures replaced content. Source backups remain available; absent destinations use no-replace rename.",
+    "Durable recovery/discard requires confirmation/current manifest and completed source state, captures and rechecks all selected payloads before deletion, preserves the original receipt and uses a small cleanup reservation. Unknown/failed sources cannot be discarded.",
+    "Gateway methods, receipt minimization, ledger reconciliation and supervisor-private witness bind restore/discard identities. Witness completion additionally matches reserved project/root/helper digest/gateway digest/current operation.",
+    "Affected-test mapping pairs workspace and recovery fixtures and retains all three ordinary/root provider-layer fixture files."
+  ],
+  "tests": [
+    {
+      "environment": "Windows",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/workspace.test.ts tests/runtime/workspace-witness.test.ts tests/gateway/receipt-result.test.ts tests/gateway/dispatch.test.ts",
+      "passed": 45,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "Windows",
+      "command": "<PYTHON> -B -m unittest tests.deploy.test_workspace_recovery.RecoveryValidationTests tests.deploy.test_workspace.WorkspaceValidationTests -q",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "Windows",
+      "command": "HARNESS_TEST_PYTHON=<PYTHON> node scripts/run-tests.mjs --targeted tests/tooling/select-tests.test.ts tests/tooling/run-tests.test.ts",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "Windows",
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "environment": "isolated Linux nobody",
+      "command": "<PYTHON> -B -m unittest tests.deploy.test_workspace tests.deploy.test_workspace_recovery -v",
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "Real descriptor and renameat2 operations, file/directory/binary recovery, source/target revision conflicts, explicit path scope, publish/capture races, byte-pressure discard, receipt replay, unknown-state preservation, project isolation, prior file/Git regressions."
+    }
+  ],
+  "testCorrections": [
+    "Initial tooling run lacked HARNESS_TEST_PYTHON and could not run its interpreter fixture; rerun with the exact authorized executable passed all 23 assertions. No platform gap was reported as passing."
+  ],
+  "linuxEvidence": {
+    "path": ".work/workspace-recovery-linux-result.json",
+    "sourceArchiveSha256": "c260db66807f33ad8980ce3cbc93267e1758acf3700ea214e3348ecad89f29c3",
+    "resultSha256": "afd27d963767e126e6816052f3d452af98f2e3f4302b4906e5ffc1a13a51d276"
+  },
+  "limits": [
+    "No live service changes, full suite, external MCP or paid inference. Linux run used only native-owned temporary fixture paths.",
+    "Receipt identities remain bounded to 256 per project; explicit payload discard frees bytes but does not reset operation IDs or remove unknown records.",
+    "Web UI is integrated by a separate agent. Worktree lifecycle is a separate subsequent module, not claimed complete here.",
+    "Separate follow-up identified repository clean filters executed by Git status/diff; those queries require a further isolated Git-view hardening change before final acceptance."
+  ]
+}

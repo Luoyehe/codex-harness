@@ -1,0 +1,296 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round1-fixes",
+  "reviewerId": "r1-deploy-release",
+  "complete": true,
+  "passed": true,
+  "completedAt": "2026-10-24T19:09:03.211600+00:00",
+  "instance": "crtest-rw-20261025",
+  "host": "192.168.1.120",
+  "applicationRelease": "edf0462f92fa6fee2abe3f168a628d9c74b3ef1499dd1b62c6d087e087586bcf",
+  "origin": "https://harness.crtest.localhost:18443",
+  "authOrigin": "https://auth.crtest.localhost:18443",
+  "cookieDomain": "crtest.localhost",
+  "ports": {
+    "http": 18081,
+    "https": 18443,
+    "authelia": 19091,
+    "note": "18080 was occupied by an unrelated docker-proxy; it was left unchanged. The selected three ports were confirmed free before setup."
+  },
+  "method": "Real interactive deploy.cli https executed under an automated PTY on the disposable Linux instance. The PTY entered a root-generated random test password twice from a 0600 file and never printed it. Actual pinned Caddy and Authelia binaries validated and ran the generated configuration. A Node HTTPS/WS client verified TLS with only the instance CA, explicit per-client localhost lookup and no global trust/DNS/firewall change. It authenticated against real Authelia firstfactor, then the real gateway administrator-token endpoint, and connected through Caddy to the actual gateway WebSocket and native runtime state. No substitute upstream was used.",
+  "setup": {
+    "exitCode": 0,
+    "promptsHandled": 2,
+    "elapsedSeconds": 2.87,
+    "outputPath": "/var/lib/codex-harness-instances/crtest-rw-20261025/acceptance/https-round1-20261024T190036Z/https-cli-attempt2-output.txt"
+  },
+  "discoveredIssue": {
+    "id": "LINUX-HTTPS-001",
+    "priority": "P1",
+    "title": "First HTTPS setup passed an unterminated stdin password line to Caddy",
+    "file": "deploy/https.py",
+    "status": "fixed",
+    "beforeEvidence": {
+      "realCaddyVersion": "2.11.7",
+      "withoutTrailingNewline": {
+        "exitCode": 1,
+        "hashReturned": false,
+        "error": "EOF"
+      },
+      "withTrailingNewline": {
+        "exitCode": 0,
+        "argon2idHashReturned": true
+      },
+      "initialCliExitCode": 1,
+      "initialPromptsHandled": 2,
+      "identityCreatedBeforeFailure": false
+    },
+    "change": "Append one newline to the password passed to the Caddy stdin hasher. No password was moved into argv or environment; no scanner or validation rule was relaxed.",
+    "regression": {
+      "file": "tests/deploy/test_management_boundaries.py",
+      "test": "test_first_https_password_hash_input_is_a_complete_stdin_line",
+      "targetedFileTestsPassed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sourceHashes": {
+      "deploy/https.py": "ebda93b513b455ad1fcb241fd723ac78dd8125015c835d4a78372f58e0bb7faa",
+      "tests/deploy/test_management_boundaries.py": "24beb1d4b8c3eda75bdf17842b49051476534bc4b0025a7f9668aa136a4aaff9"
+    },
+    "trustedControlUpdate": {
+      "transaction": "c2b522df130542ffafa416798ea899b6",
+      "controlDigest": "b6f458069e02f8eb4fe2e1fa676125c43e7b347aefa45e3a4af6b4b86fe65996",
+      "previousDigest": "590315707b821535dbf84ff7497a0c7e047550fd73628d0ba7a5c285c99dfb07",
+      "sourceCheckout": "/opt/codex-harness-rewrite-20261025/review-round1-fixed",
+      "method": "Copied the reviewed changed Python source only into the separate root-owned checkout, then executed the real control-update. Installed control files were not manually overwritten."
+    }
+  },
+  "initialClientAcceptance": {
+    "passed": true,
+    "origin": "https://harness.crtest.localhost:18443",
+    "caPath": "/var/lib/codex-harness-instances/crtest-rw-20261025/caddy/.local/share/caddy/pki/authorities/local/root.crt",
+    "checks": [
+      {
+        "name": "anonymous-http-blocked",
+        "status": 401,
+        "redirectsToAuth": true
+      },
+      {
+        "name": "anonymous-websocket-blocked",
+        "status": 401
+      },
+      {
+        "name": "authelia-state",
+        "status": 200
+      },
+      {
+        "name": "real-authelia-firstfactor",
+        "status": 200,
+        "result": "OK"
+      },
+      {
+        "name": "gateway-token-still-required",
+        "status": 200,
+        "authenticated": false
+      },
+      {
+        "name": "authelia-only-websocket-blocked",
+        "status": 403
+      },
+      {
+        "name": "real-gateway-login",
+        "status": 200,
+        "authenticated": true
+      },
+      {
+        "name": "wrong-origin-websocket-blocked",
+        "status": 403
+      },
+      {
+        "name": "actual-gateway-websocket-upgraded",
+        "status": 101,
+        "event": "state",
+        "connected": true
+      },
+      {
+        "name": "read-only-rpc",
+        "method": "project/list",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "read-only-rpc",
+        "method": "system/status",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "gateway-health-through-edge",
+        "status": 200,
+        "ok": true
+      }
+    ],
+    "modelTurns": 0,
+    "mcpCalls": 0,
+    "trustScope": "Only this HTTPS/WS client supplied the instance CA; TLS verification remained enabled."
+  },
+  "restart": {
+    "applicationServices": "Real deploy.cli restart through the trusted manager",
+    "edgeServices": [
+      "codex-harness-crtest-rw-20261025-authelia.service",
+      "codex-harness-crtest-rw-20261025-caddy.service"
+    ],
+    "method": "Restarted only the two named new edge units after the managed worker/gateway restart."
+  },
+  "afterRestartClientAcceptance": {
+    "passed": true,
+    "origin": "https://harness.crtest.localhost:18443",
+    "caPath": "/var/lib/codex-harness-instances/crtest-rw-20261025/caddy/.local/share/caddy/pki/authorities/local/root.crt",
+    "checks": [
+      {
+        "name": "anonymous-http-blocked",
+        "status": 401,
+        "redirectsToAuth": true
+      },
+      {
+        "name": "anonymous-websocket-blocked",
+        "status": 401
+      },
+      {
+        "name": "authelia-state",
+        "status": 200
+      },
+      {
+        "name": "real-authelia-firstfactor",
+        "status": 200,
+        "result": "OK"
+      },
+      {
+        "name": "gateway-token-still-required",
+        "status": 200,
+        "authenticated": false
+      },
+      {
+        "name": "authelia-only-websocket-blocked",
+        "status": 403
+      },
+      {
+        "name": "real-gateway-login",
+        "status": 200,
+        "authenticated": true
+      },
+      {
+        "name": "wrong-origin-websocket-blocked",
+        "status": 403
+      },
+      {
+        "name": "actual-gateway-websocket-upgraded",
+        "status": 101,
+        "event": "state",
+        "connected": true
+      },
+      {
+        "name": "read-only-rpc",
+        "method": "project/list",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "read-only-rpc",
+        "method": "system/status",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "gateway-health-through-edge",
+        "status": 200,
+        "ok": true
+      }
+    ],
+    "modelTurns": 0,
+    "mcpCalls": 0,
+    "trustScope": "Only this HTTPS/WS client supplied the instance CA; TLS verification remained enabled."
+  },
+  "persistence": {
+    "identityAndCertificateFilesUnchanged": true,
+    "checkedImmutableFiles": 11,
+    "changedFileCount": 0,
+    "oldServicesUnchanged": {
+      "codex-harness.service": true,
+      "codex-harness-proxy.service": true
+    },
+    "newServices": {
+      "codex-harness-crtest-rw-20261025-worker.service": {
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "798390"
+      },
+      "codex-harness-crtest-rw-20261025-gateway.service": {
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "798391"
+      },
+      "codex-harness-crtest-rw-20261025-caddy.service": {
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "798588"
+      },
+      "codex-harness-crtest-rw-20261025-authelia.service": {
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "798587"
+      }
+    },
+    "releaseUnchanged": true,
+    "rootOnlyCredentials": "0o600",
+    "rootOnlyEvidenceDirectory": "0o700"
+  },
+  "verify": {
+    "files": 19878,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "gatewayActive": true,
+    "workerActive": true
+  },
+  "preservedServices": {
+    "codex-harness.service": {
+      "pid": 1639,
+      "invocationId": "f733c762cd164186ad9675f74ea8e8b8",
+      "unchanged": true
+    },
+    "codex-harness-proxy.service": {
+      "pid": 1612,
+      "invocationId": "4aadfc2f85ef44aea79721af2cc0fe7d",
+      "unchanged": true
+    }
+  },
+  "privateMaterialPaths": {
+    "evidenceDirectory": "/var/lib/codex-harness-instances/crtest-rw-20261025/acceptance/https-round1-20261024T190036Z",
+    "credentials": "/var/lib/codex-harness-instances/crtest-rw-20261025/acceptance/https-round1-20261024T190036Z/credentials.json",
+    "cookies": "/var/lib/codex-harness-instances/crtest-rw-20261025/acceptance/https-round1-20261024T190036Z/client-private-*.json",
+    "gatewayToken": "/etc/codex-harness/crtest-rw-20261025/gateway-token",
+    "instanceCa": "/var/lib/codex-harness-instances/crtest-rw-20261025/caddy/.local/share/caddy/pki/authorities/local/root.crt"
+  },
+  "secretHandling": {
+    "passwordCookieAndTokenValuesPrinted": false,
+    "testCredentialsMode": "0600",
+    "evidenceDirectoryMode": "0700",
+    "globalTrustChanged": false,
+    "globalDnsChanged": false,
+    "firewallChanged": false,
+    "credentialFilesCopiedToLocalWorkspace": false
+  },
+  "modelTurns": 0,
+  "mcpCalls": 0,
+  "paidCalls": 0,
+  "finalState": "All four new instance services remained active/running. No cleanup or application-source update was performed. Remote mutation ownership was returned to root for its later application update.",
+  "limits": [
+    "This is real Linux API/TLS/WS integration acceptance, not a graphical browser UI test.",
+    "Certificate trust was scoped to the Node test client. Public DNS, global/client trust installation, ACME and public-network access were not tested.",
+    "Real HTTPS crash/failure recovery was not fault-injected in this run; its earlier local transaction regressions are separate evidence.",
+    "The acceptance is bound to the edf0462f application release. Root is updating later gateway/web/runtime fixes separately.",
+    "An initial client expectation required a 302 anonymous WS rejection; actual Authelia correctly returned 401. The client was corrected to accept either denial status, without changing production code.",
+    "No archived implementation, retired 110 host, real model turn or external MCP invocation was used."
+  ]
+}

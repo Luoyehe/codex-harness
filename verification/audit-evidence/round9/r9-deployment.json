@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round9",
+  "reviewerId": "r9-deployment",
+  "digest": "74b12821a3ced3d379a9b6c2c816468962c11488e7a92f4f536eef007ea05234",
+  "complete": true,
+  "scopes": [
+    "deployment-release"
+  ],
+  "startedAt": "2026-10-25T10:45:08.4739294Z",
+  "completedAt": "2026-10-25T10:57:44.011758+00:00",
+  "method": "Fresh independent audit of every one of the 114 assigned files. Read all deployment Python/shell source, all assigned deployment/tooling tests, CI/scripts and prose documents completely; reread truncated outputs in bounded chunks. Independently traced root/native/control ownership, path and resource admission, systemd stop evidence, failure/recovery transactions, configuration/provider migrations, build/archive supply chain and audit gates. Parsed the entire 3111-line lock with a strict independent grammar validator and exhaustively checked all package/snapshot/dependency entries. Parsed the complete capability inventory, checked all method/schema/group/count mappings and non-historical-audit file references, and manually reviewed all 178 method assessments, 50 group assessments and 15 supplementary workflows. Read all assigned feature-evidence documents as bounded point-in-time claims, never as substitute proof of current behavior. Reproduced the worktree admission defect with production parser/materializer/inspection functions and an instrumented in-memory descriptor filesystem. No old/sibling implementations, tests/assets, Git history or historical audit report bodies were consulted; no frozen source was edited.",
+  "inspectedFiles": [
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "reference/PROTOCOL-CONTRACT.md",
+    "reference/PROVENANCE.json",
+    "scripts/release-audit.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ],
+  "findings": [
+    {
+      "id": "R9-DEP-01",
+      "severity": "P2",
+      "title": "Reserve implicit directory entries and depth before materializing a managed worktree",
+      "location": {
+        "path": "deploy/workspace_worktrees.py",
+        "startLine": 196,
+        "endLine": 204
+      },
+      "relatedLocations": [
+        {
+          "path": "deploy/workspace_worktrees.py",
+          "startLine": 226,
+          "endLine": 238
+        },
+        {
+          "path": "deploy/workspace_worktrees.py",
+          "startLine": 265,
+          "endLine": 279
+        },
+        {
+          "path": "deploy/workspace_worktrees.py",
+          "startLine": 96,
+          "endLine": 129
+        }
+      ],
+      "trigger": "Create a worktree from a valid local commit containing 5001 zero-byte files at distinct dN/f paths, or one zero-byte file below 33 directory components. Both satisfy the current blob count, byte and relative-path checks.",
+      "evidence": "checkout_data only compares len(files) with MAX_TREE_ENTRIES and never counts unique implicit parent directories or bounds their depth. materialize then creates every parent and file. run has already durably created its retained holder and checkout and invoked git worktree add before calling inspect/tree. tree finally counts both files and directories and rejects depth above 32, so rejection occurs after filesystem mutation. The isolated reproduction called the unchanged production checkout_data, materialize and tree: the 5001-file fixture wrote 5001 directories plus 5001 files (10002 entries) before budget rejection; the depth fixture wrote 33 directories plus one file before nesting rejection.",
+      "impact": "A structurally over-budget commit is admitted into worktree creation and can consume substantially more entries/inodes than the advertised 10000-entry or depth-32 limit before failing. The checkout and retention identity remain, but the failed create returns no positive supervisor binding, so normal attach/archive/restore cannot manage that unbound checkout. Repeating with new operation IDs consumes retained-worktree capacity and requires operator inspection.",
+      "recommendation": "While validating ls-tree output, count unique implicit directory prefixes together with files, enforce the same depth bound as tree, and reject before creating the retained holder, invoking git worktree add or materializing content. Add targeted regressions for aggregate directory entries and depth.",
+      "reproduction": {
+        "path": ".work/round9/deployment-worktree-repro.py",
+        "command": "<HARNESS_TEST_PYTHON> -B .work/round9/deployment-worktree-repro.py",
+        "exitCode": 0,
+        "scope": "Production functions with synthetic local Git output and in-memory descriptor filesystem; no actual Linux filesystem or service execution."
+      }
+    }
+  ],
+  "skipped": [],
+  "validations": [
+    {
+      "name": "Exhaustive dependency lock validation",
+      "command": "<HARNESS_TEST_PYTHON> -B .work/round9/deployment-lock-validate.py",
+      "exitCode": 0,
+      "result": {
+        "parsedLines": 3111,
+        "nonblankGrammarCheckedLines": 2433,
+        "importerEntries": 21,
+        "packages": 336,
+        "snapshots": 336,
+        "resolvedDependencyEdges": 623,
+        "missingReferences": 0,
+        "manifestAndWorkspaceOverrides": "matched",
+        "integrity": "All resolutions have canonical decodable 64-byte sha512 integrity; no local/Git/URL resolution entries."
+      }
+    },
+    {
+      "name": "Exhaustive capability mapping and reference validation",
+      "command": "<HARNESS_TEST_PYTHON> -B .work/round9/deployment-capability-validate.py",
+      "exitCode": 0,
+      "result": {
+        "typedMethods": 178,
+        "jsonMethods": 175,
+        "stableMethods": 106,
+        "evidenceGroups": 50,
+        "additionalWorkflows": 15,
+        "referenceOccurrencesChecked": 519,
+        "uniqueFilesChecked": 363,
+        "missingReferences": [],
+        "pointInTimeHashDifferences": [],
+        "historicalAuditReferenceOccurrencesNotOpened": 18
+      }
+    },
+    {
+      "name": "Worktree budget reproduction",
+      "command": "<HARNESS_TEST_PYTHON> -B .work/round9/deployment-worktree-repro.py",
+      "exitCode": 0,
+      "result": {
+        "entryCase": {
+          "files": 5001,
+          "listingBytes": 313953,
+          "writtenFiles": 5001,
+          "createdDirectories": 5001,
+          "createdEntries": 10002,
+          "postMaterializationError": "budget: Worktree entry budget reached"
+        },
+        "depthCase": {
+          "files": 1,
+          "listingBytes": 123,
+          "createdDirectories": 33,
+          "createdEntries": 34,
+          "postMaterializationError": "budget: Worktree nesting exceeds budget"
+        }
+      }
+    },
+    {
+      "name": "Frozen assigned-file baseline comparison",
+      "result": {
+        "checked": 114,
+        "changed": []
+      }
+    },
+    {
+      "name": "Current full source inventory snapshot",
+      "command": "node scripts/snapshot.mjs",
+      "result": {
+        "files": 1783,
+        "digest": "74b12821a3ced3d379a9b6c2c816468962c11488e7a92f4f536eef007ea05234"
+      },
+      "note": "Reads only current inventory and file contents; no Git history."
+    }
+  ],
+  "limitations": [
+    "This is complete source/document/test-implementation audit coverage of the assigned deployment-release scope, not full-suite or deployment acceptance. No repository tests were invoked in this audit; therefore no invoked test skips are hidden. The three local validation/reproduction utilities are described individually above.",
+    "Deliberately did not run the full suite, Linux root/systemd/cgroup/UID/mount/reboot acceptance, HTTPS/public issuance/Authelia login, online instance updates, SSH, native paid inference, external MCP or commercial provider/account flows. These remain separate post-gate acceptance work.",
+    "The worktree reproduction uses unchanged production functions with an in-memory descriptor filesystem and synthetic valid Git blob records. It establishes ordering and budget enforcement, not actual Linux disk allocation or timing.",
+    "Historical audit reports referenced by the capability document were not opened (18 reference occurrences), as required by the fresh-review instruction. They were not used to establish findings or cleanliness. Assigned feature-evidence documents were fully inspected as point-in-time documentation; their historical runtime/remote assertions were not re-executed.",
+    "The capability validator verifies every mapped method, schema pointer, group/count relationship and non-audit path/hash/line reference. Runtime/web semantic security conclusions beyond deployment-owned helpers remain the responsibility of the other fresh domain reviewers; reference existence alone is not runtime acceptance.",
+    "No online dependency advisory or current upstream availability check was performed. Pinned distribution integrity, dependency graph, constrained import and offline execution policy were reviewed from the frozen source; integrity pins do not prove the absence of upstream vulnerabilities."
+  ],
+  "sourceUnchanged": true,
+  "validationArtifacts": [
+    {
+      "path": ".work/round9/deployment-worktree-repro.py",
+      "sha256": "d4138e84b62f5df124a74c2d77ddaafcfb647a99134ebbc0aefb62b06bbdf849"
+    },
+    {
+      "path": ".work/round9/deployment-lock-validate.py",
+      "sha256": "5bc25116cf51e21a29f3f061da121fb561814ebf6c3a369d248a2abadbfb2606"
+    },
+    {
+      "path": ".work/round9/deployment-capability-validate.py",
+      "sha256": "832fcabda87f9ad8f401dcfa2123d91114ae2a6925ad4f94831ba3cf592a521f"
+    }
+  ]
+}

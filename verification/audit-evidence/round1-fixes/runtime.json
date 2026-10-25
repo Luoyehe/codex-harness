@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "phase": "round1-fixes",
+  "reviewerId": "r1-runtime",
+  "completedAt": "2026-10-24T18:59:19.922Z",
+  "status": "fixed-and-targeted-verified",
+  "fixedFindingIds": [
+    "R1-RUNTIME-01",
+    "R1-RUNTIME-02"
+  ],
+  "changes": [
+    {
+      "findingId": "R1-RUNTIME-01",
+      "files": [
+        "src/runtime/service.ts",
+        "tests/runtime/defaults-lifecycle.test.ts",
+        "tests/runtime/native-fixture.mjs"
+      ],
+      "summary": "The service owns its active defaults NativeRpc. Idempotent close marks the service closed synchronously and awaits cleanup of both primary and dedicated probe RPCs, propagating cleanup failure. A config read that resolves after close cannot spawn a new probe, and a probe cannot cache or return defaults after service shutdown.",
+      "regressions": [
+        "Actual isolated Node child held at initialize: close returns only after its PID has exited.",
+        "Actual isolated Node child held at thread/start: close returns only after its PID has exited.",
+        "Repeated close returns the same promise.",
+        "A delayed config/read completion after shutdown cannot spawn the probe."
+      ]
+    },
+    {
+      "findingId": "R1-RUNTIME-02",
+      "files": [
+        "src/runtime/main.ts",
+        "src/runtime/service.ts",
+        "src/runtime/types.ts",
+        "tests/runtime/server.test.ts",
+        "tests/runtime/service.test.ts"
+      ],
+      "summary": "Each worker event WebSocket receives a fresh private eventChannelId. HTTP admission captures the matching socket; complete request bodies and native final-write hooks recheck its identity and OPEN state. Multiple sockets cannot preserve or revive a closed socket's authority. History proofs, terminal ownership and terminal event routing are channel-specific, and closing a channel cleans only that channel.",
+      "regressions": [
+        "Split terminal/open body across old-channel closure and new-channel connection while another channel remains alive: rejected not_sent.",
+        "Queued native write after its channel closes: rejected not_sent.",
+        "Identical client identifiers in different event channels cannot control each other's terminal or reuse history proofs.",
+        "Closing one channel preserves another channel's terminal and complete history.",
+        "Worker terminal output is sent only to the owning event channel without its internal channel metadata."
+      ]
+    },
+    {
+      "findingId": "R1-RUNTIME-02-related-browser-race",
+      "authorization": "Root explicitly authorized the same race when only the browser connection disconnects.",
+      "summary": "Added explicit active browser-owner leases to the worker. The coordinated GatewayServer creates a new never-reused owner UUID for each browser handshake and registers it before exposing the connection. /disconnect revokes the owner before cleanup, including when no terminal exists. Every RPC requires the active owner and its exact lease object is checked again before native write. Active state is deleted on event-channel loss, without an unbounded tombstone map.",
+      "bounds": {
+        "eventChannels": 4,
+        "activeOwnersPerChannel": 64,
+        "maximumActiveOwners": 256,
+        "registrationBodyBytes": 4096,
+        "sharedInFlightRequests": 48
+      },
+      "regressions": [
+        "Unknown owners cannot make even a read RPC.",
+        "Browser disconnect before a delayed terminal/open body completes: rejected not_sent while the gateway event channel stays live.",
+        "Browser disconnect after dispatch but before native write: rejected not_sent.",
+        "A fresh replacement owner succeeds while old owner requests remain rejected.",
+        "The 65th active owner is rejected; disconnect immediately reclaims a registration slot."
+      ],
+      "coordination": "round1_control_web implemented WorkerClient/GatewayServer registration ordering, per-channel ownership capture, uncertainty-driven channel invalidation, browser reconnection behavior and transport identity removal. This reviewer did not edit gateway or web sources."
+    }
+  ],
+  "tests": [
+    {
+      "command": "node node_modules/vitest/vitest.mjs run tests/runtime/defaults-lifecycle.test.ts tests/runtime/server.test.ts tests/runtime/service.test.ts tests/runtime/native.test.ts",
+      "exitCode": 0,
+      "testFiles": 4,
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0,
+      "latestRunLocalTime": "2026-10-25 02:55:37 Asia/Shanghai",
+      "layer": "Controlled subprocess, business service, real local worker HTTP/WebSocket; native calls replaced where necessary to control exact races."
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run tests/runtime/native-smoke.test.ts",
+      "exitCode": 0,
+      "testFiles": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "latestRunLocalTime": "2026-10-25 02:49:28 Asia/Shanghai",
+      "layer": "Independent official Windows codex-cli 0.164.0; fresh home; account/read and directories, more than 16 real default probes with PID cleanup, PTY open/resize/write/output/exit; no inference."
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run tests/runtime/gateway-native.test.ts",
+      "exitCode": 0,
+      "testFiles": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "latestRunLocalTime": "2026-10-25 02:56:29 Asia/Shanghai",
+      "layer": "Rerun after active-owner lease integration: real authenticated gateway, worker, official CLI, local deterministic Responses SSE substitute, browser WS handshake, projects, native turns/history, receipt replay without resending, and interrupt. No commercial model or external MCP."
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "latestRunLocalTime": "2026-10-25 02:57:36 Asia/Shanghai"
+    }
+  ],
+  "uniqueTestCount": 42,
+  "riskReview": [
+    "Re-read changed runtime lifecycle, request parsing/admission, channel map deletion, per-owner revocation, native beforeWrite propagation, terminal/history keying and event filtering after implementation.",
+    "Verified the service has no asynchronous gap between shutdown fencing and capture of its owned probe; a late config response cannot resurrect a process.",
+    "Verified each channel is revoked independently even when other channels remain open, and all channel/lease maps are bounded and released on close.",
+    "Verified old owner UUIDs are not reused by the coordinated gateway lifecycle; unknown registration outcomes invalidate that exact event channel instead of treating HTTP settlement as proof that no late registration can happen.",
+    "Confirmed /status remains available without browser registration for deployment health checks.",
+    "Confirmed existing persistent operation receipts and unknown outcome semantics remain in gateway ownership; runtime rejects only before native writing and does not replay operations."
+  ],
+  "limitations": [
+    "No full repository suite was run. Repeated earlier targeted runs are not counted as additional unique coverage.",
+    "This reviewer did not touch 192.168.1.120, the retired 110 host, native_launcher.py, personal CODEX_HOME or credentials. Root owns the separate real Linux/systemd diagnosis and evidence.",
+    "No commercial model inference, real account login, external MCP, provider OAuth or production migration was executed.",
+    "Windows local process cleanup and loopback integration do not prove Linux systemd/sudo/cgroup cleanup.",
+    "The shared repository remains under coordinated repair; the whole-source snapshot below is an observation at evidence writing, not a new clean audit or a frozen final snapshot. Per-file hashes identify this reviewer's final source state."
+  ],
+  "sourceFiles": [
+    {
+      "file": "src/runtime/types.ts",
+      "sha256": "a882ab1dba906efacbba311758da4a21dbbdb7d559c22c54408683802c0ed384"
+    },
+    {
+      "file": "src/runtime/service.ts",
+      "sha256": "560ad1e7471a466c21b8cf4958aedd9826e3fd335166bd920dbedbed605c383c"
+    },
+    {
+      "file": "src/runtime/main.ts",
+      "sha256": "bc4738796737898a42cc6cc9653c8d5b78b35d6f989ff79e43820fc0dac896cd"
+    },
+    {
+      "file": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "3b1853c647923ec0d25793ba57e65b1fcd9b2424e6e636b6b9d4e64b51a75e35"
+    },
+    {
+      "file": "tests/runtime/native-fixture.mjs",
+      "sha256": "fdaab12c0df2bce42711f747270b8991f39d039a24c9530b26ac412fd547611f"
+    },
+    {
+      "file": "tests/runtime/service.test.ts",
+      "sha256": "d01b468d5aba26de1140d26ebad6e21d830beb85db5fb987ff78dfd5752b827d"
+    },
+    {
+      "file": "tests/runtime/server.test.ts",
+      "sha256": "83daa294e022738edba5c74e4b6e8597d7e52895ba347e6d883be6be35d6c223"
+    },
+    {
+      "file": "tests/runtime/README.md",
+      "sha256": "d01847555792d66893b0f775d59e5224e8cc259222204b3164ada6e68c078c9d"
+    }
+  ],
+  "integrationDependencies": [
+    {
+      "file": "src/gateway/worker-client.ts",
+      "sha256": "54be5f3db47e75776128a6a93da52790e64460431abcd5276b6d7857f440480e"
+    },
+    {
+      "file": "src/gateway/server.ts",
+      "sha256": "090d8035aa12e5decef6873d33d2221985c3dcb93443650741c0d0ddf058e0b2"
+    }
+  ],
+  "snapshotAtEvidence": {
+    "files": 1519,
+    "digest": "b7efea47124545cd02267772ac16dbeaf6c1f2f5728a3131b1ca642d6067f8c8"
+  }
+}

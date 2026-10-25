@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-cross-review",
+  "reviewerId": "r21-runtime",
+  "startedAt": "2026-10-25T20:24:26Z",
+  "completedAt": "2026-10-25T20:29:14.702Z",
+  "complete": true,
+  "reviewedFix": {
+    "path": "verification/audit-evidence/v2-full-fixes/windows-cache.json",
+    "bytes": 11837,
+    "sha256": "02a97164498ac7806da98ce2bc12fd3c845e6a931a5501f08ade361aec473a9f"
+  },
+  "scopes": [
+    "windows-cache-fix"
+  ],
+  "notFullRepositoryAudit": true,
+  "cleanAuditRoundsAdded": 0,
+  "method": "Read the complete six current files and their exact before/current diffs, verify original/current SHA256 and cited raw evidence identities, compare Win32 controller and standalone entrypoint contents, check actual cache-helper behavior with only in-memory records, and perform one bounded pinned-CLI local process/spawn environment probe for the pre-existing command-variable alias concern. Product source and tests were not changed by this reviewer.",
+  "inspectedFiles": [
+    {
+      "current": {
+        "path": "src/runtime/windows-job.ts",
+        "bytes": 12116,
+        "sha256": "63f05288d2e59ef5cd38bed2ca094792d0b2df40f626053e9b8a3618cd59e198"
+      },
+      "before": {
+        "path": ".work/v2-full-fixes/windows-cache/before/src/runtime/windows-job.ts",
+        "bytes": 11546,
+        "sha256": "116dd879b467b0399b2ed0c502eb3a273ab034e3eefab2fe6ba8a067e6d0c649"
+      }
+    },
+    {
+      "current": {
+        "path": "src/runtime/windows-process.ts",
+        "bytes": 9306,
+        "sha256": "18d6a2823777285e259daa9f9f61c78170ac6cc064f1fc80bae8905052520022"
+      },
+      "before": {
+        "path": ".work/v2-full-fixes/windows-cache/before/src/runtime/windows-process.ts",
+        "bytes": 9240,
+        "sha256": "de87fad1c83654aef01921e99b93e016ffa079cfcf094ded379a0516eac2cee8"
+      }
+    },
+    {
+      "current": {
+        "path": "src/runtime/processes.ts",
+        "bytes": 15005,
+        "sha256": "c063b69fa769ba90562a1b587856fd618da794a830a21a7302060fe2fe777db2"
+      },
+      "before": {
+        "path": ".work/v2-full-fixes/windows-cache/before/src/runtime/processes.ts",
+        "bytes": 14866,
+        "sha256": "ae5fce78a81b09b24d1e863f6db3bb830beb3faac39f8df7d1498b1e53651ee6"
+      }
+    },
+    {
+      "current": {
+        "path": "tests/runtime/windows-job.test.ts",
+        "bytes": 6939,
+        "sha256": "9c9778dfcb1986da3a90664d3315875f1e0f295079ccc17f5b341a248d9a3013"
+      },
+      "before": {
+        "path": ".work/v2-full-fixes/windows-cache/before/tests/runtime/windows-job.test.ts",
+        "bytes": 4655,
+        "sha256": "3183a655ab6bf3f7f3e50cdfe5d8d6f99ddfcd26cf8a63e080949354ed76bd59"
+      }
+    },
+    {
+      "current": {
+        "path": "tests/runtime/windows-process.test.ts",
+        "bytes": 5572,
+        "sha256": "1474983201cb93473f7c215c3ac345c136dffb5761cdffb09420ffaa9b98a2a9"
+      },
+      "before": {
+        "path": ".work/v2-full-fixes/windows-cache/before/tests/runtime/windows-process.test.ts",
+        "bytes": 3200,
+        "sha256": "9ef5abfaf496866533facc4df4844e143b083d53ede6756fdea774b86c739f87"
+      }
+    },
+    {
+      "current": {
+        "path": "tests/runtime/processes.test.ts",
+        "bytes": 8359,
+        "sha256": "7e2e906fc86d4244f96a76294070196ce5c022927489d2835716f81da9684dc1"
+      },
+      "before": {
+        "path": ".work/v2-full-fixes/windows-cache/before/tests/runtime/processes.test.ts",
+        "bytes": 7547,
+        "sha256": "f6edb56501c9a4ed7b50d14583dafaee7a49b6853d0ff5aa96fdd01f8fc458e9"
+      }
+    }
+  ],
+  "findings": [],
+  "conclusions": [
+    "Every case variant of PSModuleAnalysisCachePath is removed before adding one canonical NUL entry. The helper copies input rather than mutating it and applies to both PowerShell launch environments and both shutdown signal environments.",
+    "For process/spawn, user env is validated before the job is allocated; omitted env, whole env=null and env={} all reach the host merge as no user overrides. Unrelated empty-string values and null deletion overrides survive unchanged. A null or empty cache override is intentionally replaced by the fixed NUL setting.",
+    "The final Windows process/spawn environment is normalized after user overrides and host job fields are merged. Therefore a cache spelling with different capitalization cannot override the host cache setting. Linux retains the prior merge behavior.",
+    "Host command serialization still receives the original bin/argv/cwd and generated owner PID/event/pipe/token. The user command is wrapped exactly as before. Only the process-scoped cache environment setting was added.",
+    "Win32 controller and direct-console entrypoint source are unchanged after line-ending normalization. Job creation, suspended process assignment, kill-on-close flags, inherited handle list, ownership monitoring, separate cleanup proof and shutdown signalling behavior are unchanged by this patch.",
+    "The regression tests retain actual native controller and signal execution; execFile mocks call through to the real implementation. The process/spawn final-environment case uses the existing local substitute and explicitly checks both unrelated null/string preservation and the unique canonical cache key."
+  ],
+  "validations": {
+    "beforeAndCurrentHashes": "All six match the reviewed fix report.",
+    "controllerChecks": [
+      {
+        "path": "src/runtime/windows-job.ts",
+        "section": "controller",
+        "unchanged": true
+      },
+      {
+        "path": "src/runtime/windows-process.ts",
+        "section": "entrypoint",
+        "unchanged": true
+      }
+    ],
+    "inMemoryHelperCases": {
+      "passed": 6,
+      "cases": [
+        "empty object",
+        "empty canonical cache value",
+        "uppercase null cache value",
+        "lowercase undefined cache value",
+        "conflicting case aliases with ordinary empty/null/undefined values and owned command",
+        "own __proto__ string key is preserved"
+      ]
+    },
+    "priorTargetedEvidence": [
+      {
+        "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-job.test.ts tests/runtime/windows-process.test.ts tests/runtime/processes.test.ts",
+        "exitCode": 1,
+        "reusedEvidenceNotRerun": true,
+        "stdout": {
+          "path": ".work/v2-full-fixes/windows-cache/red.stdout.txt",
+          "bytes": 7607,
+          "sha256": "7eb1bb4981f96b6926ccac98995892f5399729040a668e70b471ab2a5498b48b"
+        },
+        "raw": {
+          "path": ".work/test-results/run-Uhghz4/vitest.json",
+          "bytes": 10232,
+          "sha256": "5e0ea7e0a66743b5ffee0eb05a2edb1543983d2977ded22c6a5966a7a2c1d7c0"
+        }
+      },
+      {
+        "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-job.test.ts tests/runtime/windows-process.test.ts tests/runtime/processes.test.ts",
+        "exitCode": 1,
+        "reusedEvidenceNotRerun": true,
+        "stdout": {
+          "path": ".work/v2-full-fixes/windows-cache/red-corrected.stdout.txt",
+          "bytes": 15276,
+          "sha256": "80497f4dd7e118ccf00bbce48c9ed29412da9c53e5fd302dfaf42557a30ffff0"
+        },
+        "raw": {
+          "path": ".work/test-results/run-IX3Snb/vitest.json",
+          "bytes": 14832,
+          "sha256": "00066ecf081e570d17baf07e5eed6c96d6662e5c1c267e2efe13f2dafb33016e"
+        }
+      },
+      {
+        "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-job.test.ts tests/runtime/windows-process.test.ts tests/runtime/processes.test.ts",
+        "exitCode": 0,
+        "reusedEvidenceNotRerun": true,
+        "stdout": {
+          "path": ".work/v2-full-fixes/windows-cache/green.stdout.txt",
+          "bytes": 1987,
+          "sha256": "16b33f38ca5567c798d013c8211f2e5721a8abdceae747183541b90af82f9167"
+        },
+        "raw": {
+          "path": ".work/test-results/run-53IKAB/vitest.json",
+          "bytes": 7331,
+          "sha256": "e3cf049c580fa4f23735d75ed23705b08d7d8964969a9b92875e8f52319cc6de"
+        }
+      },
+      {
+        "command": "node scripts/run-tests.mjs --targeted tests/runtime/windows-process.test.ts",
+        "exitCode": 0,
+        "reusedEvidenceNotRerun": true,
+        "stdout": {
+          "path": ".work/v2-full-fixes/windows-cache/green-isolated.stdout.txt",
+          "bytes": 1028,
+          "sha256": "93e4a295eb819f02fe486ed5add95aa08f73c71b35457eacbca0d086564c4871"
+        },
+        "raw": {
+          "path": ".work/test-results/run-8Niy4H/vitest.json",
+          "bytes": 1949,
+          "sha256": "a760fc75513cb9c743ec7aa61fcbd8f4123937dd3ce6b962852709c92992380f"
+        }
+      },
+      {
+        "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+        "exitCode": 0,
+        "reusedEvidenceNotRerun": true,
+        "stdout": {
+          "path": ".work/v2-full-fixes/windows-cache/server-tsc.stdout.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "raw": null
+      }
+    ],
+    "boundedNativeProbe": {
+      "cases": 1,
+      "passed": 1,
+      "failed": 0,
+      "observation": {
+        "observedValue": "host-owned-sentinel",
+        "expectedHostValue": "host-owned-sentinel",
+        "userAliasValue": "user-alias-sentinel",
+        "noModelOrMcp": true
+      },
+      "raw": {
+        "path": ".work/v2-full-fixes/windows-cross-review/reserved-env-vitest.json",
+        "bytes": 1031,
+        "sha256": "9ba7c4d36216789087b43a65260d4e15fc7f5e5e936546ff136aa9954a273c3e"
+      },
+      "observationArtifact": {
+        "path": ".work/v2-full-fixes/windows-cross-review/reserved-env-observation.json",
+        "bytes": 141,
+        "sha256": "cf71ab292bfacdfed8499a3ef730d634608aba5f42fe8e14dce43fb8d13c437e"
+      },
+      "execution": {
+        "path": ".work/v2-full-fixes/windows-cross-review/execution-Zerr7V/result.json",
+        "bytes": 195,
+        "sha256": "a9beadd60659e2b270c0d9f7390b79a0660432e15b749b4c62e8f957cf8e1ad2"
+      },
+      "note": "The official CLI launched only a local Node process printing a synthetic environment value. It used a dedicated home/codex home/temp, fixed verified binary, refusal proxy, and the unchanged Windows Job wrapper; no model or MCP request was made."
+    }
+  },
+  "aliasBoundary": "The pre-existing HARNESS_WINDOWS_/HARNESS_LINUX_ prefix validation is case-sensitive. This review initially identified that lower-case variants could be present beside a host-owned field. In the one actual pinned Windows CLI probe, the canonical all-uppercase HARNESS_WINDOWS_PROCESS_COMMAND value won over the lowercase string alias. No impact on the native command or Job isolation was demonstrated, so this is not listed as a confirmed finding and no expanded repair is requested. This probe is not an exhaustive test of every reserved environment variable or every value type.",
+  "probeArtifacts": [
+    {
+      "path": ".work/v2-full-fixes/windows-cross-review/reserved-env.test.ts",
+      "bytes": 2128,
+      "sha256": "5ec8c92d72b2ba8c820e631975f6f62b147bf52d2880b0e70ec43fa14836b918"
+    },
+    {
+      "path": ".work/v2-full-fixes/windows-cross-review/probe.config.ts",
+      "bytes": 200,
+      "sha256": "ebe89f7686afefdad0b3b6774e9feecc70557f6fafca15512b7ad8c246f6eb49"
+    },
+    {
+      "path": ".work/v2-full-fixes/windows-cross-review/execute-probe.mjs",
+      "bytes": 2477,
+      "sha256": "73bf3cb8d98f92fe7f5d258fb2f75e92b122b104a33ac09889ab78dd5f198111"
+    },
+    {
+      "path": ".work/v2-full-fixes/windows-cross-review/execution-Zerr7V/stdout.log",
+      "bytes": 524,
+      "sha256": "529ddcc6c3469c13eb49f38023acafff44161c379f3a1600ee84c31a71b87bcc"
+    },
+    {
+      "path": ".work/v2-full-fixes/windows-cross-review/execution-Zerr7V/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limitations": [
+    "This is a bounded independent review of the Windows cache fix, not a full repository clean round. It must not increment the audit gate or replace the parent full-run validation.",
+    "The prior cache targeted results and server typecheck were checked by content/hash and read, not rerun by this reviewer. Only the single local environment probe and in-memory helper checks were newly executed.",
+    "No full suite, SSH, deployment, commercial inference, external MCP, account, personal home or credentials were accessed.",
+    "The original long full-run ModuleAnalysisCache pollution was not reproduced here, and that artifact was not inspected or changed. Whole-run snapshot confirmation remains parent-owned.",
+    "Only this report and ignored .work probe files were written; no product, regression test, sealed review, authorization or source manifest was edited."
+  ]
+}

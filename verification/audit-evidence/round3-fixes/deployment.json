@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round3-fixes",
+  "reviewerId": "r3-deployment",
+  "findingIds": ["R3-DEP-01"],
+  "status": "implemented-targeted-validation-passed",
+  "completedAt": "2026-10-24T20:08:07Z",
+  "originalAuditDigest": "eff71f0b8cd5921e0f227aa10208fc51666ab7156ece4ac88432b1c1d08bb765",
+  "sourceFrozen": false,
+  "files": [
+    "deploy/cli.py",
+    "deploy/manager.py",
+    "deploy/requests.py",
+    "deploy/README.md",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/root/test_request_spool.py"
+  ],
+  "changes": [
+    "Shared read-only mutation preflight checks the envelope, canonical operation identity, replay/conflict, receipt budget, recovery/ownership and method parameters before staging. Final dispatch repeats the same checks under management.lock.",
+    "A root-only RequestSpool bounds retained identities to 32, aggregate content to 16 MiB, and each serialized input/result to 1 MiB including newline. Result capacity is reserved before creating input; atomic temporary files are included in retained inventory.",
+    "A nonblocking admission lease spans staging, launch and wait. The executor uses an independent short file lock for input reads and result publication. Collection shares that file lock and never recreates removed paths.",
+    "Both input and result are collected only after observed stopped state and System.stop cgroup-empty confirmation. Active units are not stopped. Unknown state, failed stop, unknown storage or exceeded legacy budgets retain material and block further staging.",
+    "Recognized legacy UUID files receive the same stop checks. Receipt records are never removed or rewritten by spool cleanup. Failed launch/wait without a trusted result stays unknown; an existing matching receipt replays without a new file/unit.",
+    "The fixed transient executor retains its 180-second runtime limit and now has MemoryMax=512M, MemorySwapMax=0 and TasksMax=32."
+  ],
+  "tests": [
+    {
+      "command": "<PYTHON> -B -m unittest discover -s tests/deploy -p test_request_spool.py -v",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "Invalid envelope/UUID/method/revision/receipt quota before staging; receipt replay with blocked spool; active and uncertain-stop retention; disconnected waiter; late load/publication revocation; admission lock separation; failed launch/wait; confirmed result after wait failure; execution-time recheck; result overflow with durable receipt; input/result reservation; retained count/byte caps; legacy collection; unknown material and duplicate publication."
+    },
+    {
+      "command": "<PYTHON> -B -m unittest discover -s tests/deploy -p test_install_recovery.py -v",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "<PYTHON> -B -m unittest discover -s tests/deploy -p test_control_update.py -v",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "<PYTHON> -B -m unittest tests.deploy.test_deployment.UnitStateTests tests.deploy.test_deployment.ProviderTests tests.deploy.test_deployment.TransactionTests -v",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "totalPassed": 53,
+  "testCorrections": ["The first new-test run passed 15/16; one expectation used POSIX separators on Windows. The fixture snapshot now uses Path.as_posix; all 16 passed on the subsequent run."],
+  "limits": [
+    "Executed on Windows with real isolated temporary files, controlled systemd-state/failure models and substituted nonblocking locks. No Linux root ownership, actual flock, cgroup or systemd execution is claimed.",
+    "The two new tests in tests/deploy/root/test_request_spool.py are not executed here. They require disposable Linux root, enforce actual UID/mode/link and flock behavior, and substitute only service operations.",
+    "No full suite, host120/110 connection, installed service change, paid turn, external MCP, personal home or credential access occurred.",
+    "This repair changes source and resets the independent clean-audit sequence. It is not a fresh complete repository audit."
+  ],
+  "linuxValidationPlan": {
+    "rootFixtureCommand": "sudo /usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/python3 -B -m unittest discover -s tests/deploy/root -p test_request_spool.py -v",
+    "ordinaryFixtureCommand": "/usr/bin/python3 -B -m unittest discover -s tests/deploy -p test_request_spool.py -v",
+    "realTransientIsolation": [
+      "On the authorized disposable Linux host, copy this reviewed deploy package to a root-private mktemp directory outside every installed instance; use a fresh Layout instance beginning crtest- and a relocated root inside that directory. Do not install, update, restart or stop any existing harness instance.",
+      "Create only config and state/requests in that relocated root. Launch a unique codex-harness-crtest-<suffix>-manage-<uuid>.service using /usr/bin/systemd-run and OS Python, Type=exec, User=root, RuntimeMaxSec=20, TimeoutStopSec=2, KillMode=control-group, MemoryMax=64M and TasksMax=8. The fixture child imports RequestSpool, loads its staged UUID, publishes a harmless result and waits for a release marker in its own root-private directory; it performs no network or provider operation.",
+      "With the fixture unit active, leave the waiter admission context to simulate disconnection. Verify finish and new stage both fail busy, no stop command is issued for the active unit, and request/result bytes remain unchanged. Signal release through the fixture marker; after actual stopped state, verify finish returns the result and removes only that UUID directory.",
+      "Separately probe a never-launched UUID and a normally collected transient. Capture actual systemctl state and ControlGroup return codes. Failed/empty queries must retain the input and report recovery_required; only complete stopped/cgroup-empty evidence permits collection. This establishes host-specific collection behavior without weakening unknown-state checks.",
+      "Inject a failed System.stop confirmation after observing the fixture stopped and verify byte-for-byte retention and blocked admission. Restore the real confirmer, reconfirm state and clean only the verified temporary fixture. If its cgroup cannot be confirmed empty, retain that fixture and report the exact unit/path instead of removing it."
+    ]
+  }
+}

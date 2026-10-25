@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round1",
+  "reviewerId": "r1-deploy-release",
+  "digest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485",
+  "scopes": [
+    "deployment-release"
+  ],
+  "complete": true,
+  "skipped": [],
+  "startedAt": "2026-10-24T18:30:01.028Z",
+  "completedAt": "2026-10-24T18:42:52.790959+00:00",
+  "timingNote": "startedAt uses the supplied shared round freeze timestamp; completedAt is the reviewer completion clock.",
+  "method": "Independent read-only review of every assigned deployment implementation, deployment/tooling test, workflow, root configuration and documentation file. Traced privilege boundaries, immutable input/output handoff, process identity and shutdown, application/control/provider/HTTPS transactions, install/upgrade/rollback/uninstall behavior, source/history scans and full-test gates. Read all pnpm-lock.yaml bytes using the real dependency_input allowlist plus exhaustive package/snapshot/resolution field inspection (336 packages and 336 snapshots, all 336 resolutions are SHA-512 integrity records). Executed the real source scan and source snapshot. Executed local isolated state-machine fixtures for pending-transaction provider dispatch, initialization collisions/resume, unowned-unit uninstall and HTTPS dependency-driven recovery, substituting OS identities/systemd/provider pointer I/O as stated in each finding. Executed auditGitObjects only against a newly created four-object synthetic Git fixture under ignored .work; no existing repository history was inspected. A separate subagent independently cross-checked install/uninstall ownership and HTTPS recovery against source. No source files were modified and no test suite was run.",
+  "inspectedFiles": [
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/provider.py",
+    "deploy/safe_fs.py",
+    "deploy/system.py",
+    "deploy/units.py",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "scripts/release-audit.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tsconfig.server.json",
+    "vitest.config.ts"
+  ],
+  "coverage": {
+    "assignedFiles": 48,
+    "inspectedAssignedFiles": 48,
+    "missingFiles": [],
+    "lockfileBytes": 102240,
+    "lockPackages": 336,
+    "lockSnapshots": 336
+  },
+  "snapshotChecks": [
+    {
+      "stage": "during-review",
+      "files": 1510,
+      "digest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485"
+    },
+    {
+      "stage": "before-evidence-publication",
+      "files": 1510,
+      "digest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485"
+    },
+    {
+      "stage": "after-evidence-publication",
+      "files": 1510,
+      "digest": "19260163db37d5e87a207e8b9e6429a54f52136911b49fc30ebe915f9f312485"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R1-DEP-001",
+      "priority": "P1",
+      "title": "Provider and HTTPS writes bypass an unfinished management transaction",
+      "file": "deploy/manager.py",
+      "lineStart": 272,
+      "lineEnd": 284,
+      "description": "activate and restart enforce require_recovered_transactions, but provider_change (including confirmed catalog application) does not. setup_https only rejects pending HTTPS transactions. After an interrupted release/provider/HTTPS selection, these entrypoints can create and commit a second transaction and restart services on the uncommitted configuration. If the second write is also interrupted, repair rejects the multiple pending records and cannot automatically recover.",
+      "relatedLocations": [
+        {
+          "file": "deploy/https.py",
+          "lineStart": 295,
+          "lineEnd": 298
+        },
+        {
+          "file": "deploy/manager.py",
+          "lineStart": 307,
+          "lineEnd": 316
+        },
+        {
+          "file": "deploy/manager.py",
+          "lineStart": 337,
+          "lineEnd": 345
+        }
+      ],
+      "reproduction": {
+        "platform": "Windows local Python filesystem fixture; System and ProviderStore side effects substituted, actual validation/dispatch/receipt/transaction writes executed",
+        "setup": "Create a persisted release transaction with phase selected and an old healthy release, then call Manager.dispatch(provider/write) with a valid expected provider revision and fresh UUID.",
+        "observed": {
+          "existingBarrier": "recovery_required",
+          "dispatchAccepted": true,
+          "events": [
+            "stop worker",
+            "start worker",
+            "start gateway"
+          ],
+          "originalSelectedTransactionUnchanged": true,
+          "transactionPhases": [
+            "committed",
+            "selected"
+          ]
+        }
+      },
+      "recommendation": "Apply the common unfinished-transaction guard before preparing or dispatching provider/catalog and HTTPS writes; keep read-only discovery/status and explicit recovery available."
+    },
+    {
+      "id": "R1-DEP-002",
+      "priority": "P1",
+      "title": "HTTPS test fixtures make the mandatory source-security scan fail",
+      "file": "tests/deploy/test_https.py",
+      "lineStart": 82,
+      "lineEnd": 84,
+      "description": "The two opaque private-key fixtures embed literal PEM private-key headers. The unchanged scanner intentionally detects these markers in every source file, so the first source-security step in affected.yml exits nonzero for this snapshot before type/build/tests can run. These are fake fixture contents, not evidence of an actual leaked private key.",
+      "relatedLocations": [
+        {
+          "file": ".github/workflows/affected.yml",
+          "lineStart": 37,
+          "lineEnd": 38
+        },
+        {
+          "file": "scripts/release-audit.mjs",
+          "lineStart": 11,
+          "lineEnd": 11
+        }
+      ],
+      "reproduction": {
+        "command": "node scripts/release-audit.mjs --source",
+        "exitCode": 1,
+        "status": "blocked",
+        "assignedFindings": [
+          {
+            "path": "tests/deploy/test_https.py",
+            "line": 82,
+            "rule": "private-key"
+          },
+          {
+            "path": "tests/deploy/test_https.py",
+            "line": 84,
+            "rule": "private-key"
+          }
+        ],
+        "note": "The scanner also emitted two private-home findings in existing evidence outside this assigned source inventory; those evidence conclusions were not opened or reviewed and are not used as a separate finding."
+      },
+      "recommendation": "Construct safe fixture marker bytes at runtime as the tooling tests already do, retaining the scanner rules and then rerun the source gate."
+    },
+    {
+      "id": "R1-DEP-003",
+      "priority": "P2",
+      "title": "Git-object scanning loses parent paths and misses prohibited nested runtime trees",
+      "file": "scripts/release-audit.mjs",
+      "lineStart": 119,
+      "lineEnd": 124,
+      "description": "History mode applies pathFindings only to each tree entry basename. Rules for reference/runtime and reference/evidence require the parent path, so a Git tree containing those generated directories is reported clean when no blob independently matches a secret regex. The source scan detects these same relative paths, leaving the history scan inconsistent with its declared artifact coverage.",
+      "reproduction": {
+        "fixture": "Fresh Git repository under ignored .work; add only reference/runtime/fixture.txt and run git write-tree, without reading any existing Git history.",
+        "command": "auditGitObjects(freshFixtureRoot)",
+        "observed": {
+          "mode": "git-objects",
+          "status": "clean",
+          "scannedFiles": 4,
+          "scannedBytes": 206,
+          "findings": [],
+          "artifacts": [],
+          "unreadable": [],
+          "skipped": []
+        }
+      },
+      "recommendation": "Reconstruct and scan repository-relative paths when traversing tree objects, while retaining dangling-object scanning and content-redacted diagnostics."
+    },
+    {
+      "id": "R1-DEP-004",
+      "priority": "P1",
+      "title": "A failed install collision leaves state that can stop or delete a pre-existing service unit",
+      "file": "deploy/install.py",
+      "lineStart": 158,
+      "lineEnd": 161,
+      "description": "initialize checks service-unit collisions only after creating instance state, installation metadata, sudo policy, control code and possibly the worker unit. A pre-existing gateway unit therefore causes a late collision but leaves a Manager-loadable partial instance. activate can stop/start/enable the existing unit without verifying ownership. More directly, uninstall blindly stops and unlinks both fixed unit names, deleting the pre-existing unit even though installation refused to claim it.",
+      "relatedLocations": [
+        {
+          "file": "deploy/install.py",
+          "lineStart": 139,
+          "lineEnd": 157
+        },
+        {
+          "file": "deploy/install.py",
+          "lineStart": 181,
+          "lineEnd": 189
+        },
+        {
+          "file": "deploy/manager.py",
+          "lineStart": 214,
+          "lineEnd": 244
+        }
+      ],
+      "reproduction": {
+        "platform": "Relocated Windows filesystem; OS identities, privilege validation and system commands substituted. Real initialization files and uninstall unlinks executed.",
+        "initializationCollision": {
+          "failure": "collision",
+          "instanceRecordRetained": true,
+          "workerUnitWrittenBeforeCollision": true,
+          "preexistingGatewayUnitUnchanged": true
+        },
+        "resumeActivation": {
+          "events": [
+            "stop gateway and worker",
+            "start worker and gateway",
+            "enable worker and gateway"
+          ],
+          "installationPhase": "complete"
+        },
+        "uninstallFromEquivalentPartialState": {
+          "servicesRemoved": true,
+          "unownedGatewayUnitDeleted": true,
+          "events": [
+            "stop gateway and worker",
+            "reload"
+          ]
+        },
+        "note": "An initial combined uninstall probe reached a Windows read-only sudo-file PermissionError after unit deletion; the isolated ownership probe removed that incidental platform condition and returned successfully."
+      },
+      "independentCrossCheck": "A separate read-only subagent confirmed both activation and the direct uninstall deletion path.",
+      "recommendation": "Preflight all unit/sudo/drop-in collisions before initialization writes, persist explicit ownership or initialization-completion facts, and require that ownership before resume or uninstall manages service units."
+    },
+    {
+      "id": "R1-DEP-005",
+      "priority": "P2",
+      "title": "HTTPS recovery cannot restore a gateway that was running with its worker stopped",
+      "file": "deploy/https.py",
+      "lineStart": 246,
+      "lineEnd": 248,
+      "description": "prior_service_state accepts gateway active with worker stopped. recover_https_transaction starts the recorded gateway, whose generated Wants=worker dependency starts the worker as well. confirm_service_state then rejects the newly running worker, leaves the transaction recovering, and repair repeats the same failure. The control updater already uses per-role startup barriers for this legitimate service-state combination; HTTPS recovery has no equivalent.",
+      "relatedLocations": [
+        {
+          "file": "deploy/units.py",
+          "lineStart": 112,
+          "lineEnd": 113
+        },
+        {
+          "file": "deploy/https.py",
+          "lineStart": 193,
+          "lineEnd": 202
+        },
+        {
+          "file": "deploy/manager.py",
+          "lineStart": 347,
+          "lineEnd": 350
+        }
+      ],
+      "reproduction": {
+        "platform": "Local files with substituted systemd; start explicitly models the Wants relation read from real render_units output. This is not actual Linux systemd execution.",
+        "priorActive": [
+          "gateway"
+        ],
+        "fault": "One-time daemon reload failure during HTTPS setup",
+        "observed": [
+          {
+            "attempt": "setup failure recovery",
+            "code": "recovery_required",
+            "active": [
+              "gateway",
+              "worker"
+            ],
+            "phase": "recovering"
+          },
+          {
+            "attempt": "repair",
+            "code": "health",
+            "message": "Previously stopped HTTPS service is running",
+            "active": [
+              "gateway",
+              "worker"
+            ],
+            "phase": "recovering"
+          }
+        ]
+      },
+      "independentCrossCheck": "A separate read-only subagent confirmed worker stop does not stop gateway because the unit uses Wants rather than BindsTo/Requires, and repair re-enters the same recovery function.",
+      "recommendation": "Use stop-confirmed per-role start barriers or an equivalent dependency-safe restoration mechanism so recovery preserves the original active set."
+    }
+  ],
+  "limits": [
+    "All 48 assigned source files were covered; skipped is empty for source review, not a claim of full integration coverage.",
+    "No real Linux/systemd, UID/DAC/cgroup/network namespace/loop filesystem, host reboot or full install/upgrade/rollback integration was executed in this audit.",
+    "HTTPS certificate validity, actual Caddy/Authelia service behavior, browser login, DNS, ACME and public networking were not exercised.",
+    "No paid inference, external MCP request, personal credential/home read, existing deployment, 192.168.1.120 or retired 192.168.1.110 was accessed.",
+    "No full or targeted test suite was run; dynamic checks were narrowly scoped reproducers plus scanner/snapshot commands.",
+    "Dependency checks were local input/lock consistency and integrity-shape review, not a fresh external vulnerability advisory lookup or distribution download.",
+    "The shell python alias produced no output, and bundled Python lacked PyYAML; real reproducers used the bundled interpreter, while lock coverage used the production allowlist and exhaustive line/entry inspection.",
+    "Independent subagent cross-check read only AGENTS.md, deploy/install.py, deploy/manager.py, deploy/https.py and deploy/units.py and made no edits."
+  ],
+  "outcome": "complete-with-actionable-findings; this round cannot count as clean"
+}

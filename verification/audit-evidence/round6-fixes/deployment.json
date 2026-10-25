@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round6-fixes",
+  "reviewerId": "r6-deployment",
+  "findingIds": [
+    "R6-DEPLOY-001"
+  ],
+  "completedAt": "2026-10-25T09:26:39.699Z",
+  "status": "fixed-targeted-validation-complete",
+  "sourceEditsStopped": true,
+  "sshReleased": true,
+  "frozenAuditDigestBeforeFix": "f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d",
+  "changedFiles": {
+    "deploy/archive.py": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+    "deploy/safe_fs.py": "f22a922ffbc05af57fefcb9de4d5989e973853b941309df416ca9ceb2374bab3",
+    "tests/deploy/test_deployment.py": "44d639c8547db100d6939a21cf6472c3df62f584be509a25e932ea3c3749b307",
+    "deploy/README.md": "54297f396d033db6a6d27da6e0617b4313218cbf4d542542ee9c13c31b3ea330"
+  },
+  "scope": "Shared privileged archive import and its existing deployment tests/documentation only. No web or capability-coverage edits. The old round6 audit report remains unchanged.",
+  "implementation": [
+    "Added deploy/archive.py; safe_fs.extract_tar now uses its sequential decoder and clears completed TarInfo cache entries. All source/tool/edge consumers keep using the same extract_tar entry point.",
+    "A guarded TarInfo._proc_member runs before PAX/GNU payload processing for each physical header. Bounds: 64 KiB per extension, 64 KiB UTF8 effective/global PAX state using surrogateescape, 64 MiB aggregate extension payload, 16 nested extensions, three physical headers per logical member limit (450000 by default). Effective PAX-overridden file sizes are checked before payload reads/seeks. Unsupported sparse formats fail closed before sparse-map processing.",
+    "Raw/compressed input has a 4 GiB cap and sequential decoded bytes have an explicit total covering data plus bounded metadata/header/padding allowances, including skipped members. Individual reader requests are capped at 1 MiB. gzip/bz2 use bounded-output buffered readers; XZ uses max_length output chunks and a 128 MiB decoder memory limit. Empty XZ outputs are never accumulated.",
+    "Preserved ordinary PAX/GNU long filenames and links, global metadata, raw/gzip/bzip2/XZ and explicitly named legacy .lzma archives, concatenated compressed streams and XZ padding. Existing filesystem safety and immutable release checks remain active.",
+    "Extended ArchiveTests in existing tests/deploy/test_deployment.py; no new test filename or deploymentPairs mapping was needed. scripts/select-tests.mjs already routes deploy/*.py to the deployment domain."
+  ],
+  "rootArchivePathReview": [
+    {
+      "file": "deploy/build.py",
+      "uses": [
+        "Node tar.xz",
+        "pnpm tgz",
+        "official Codex tgz",
+        "operator application source archive"
+      ],
+      "entry": "deploy.safe_fs.extract_tar"
+    },
+    {
+      "file": "deploy/https.py",
+      "uses": [
+        "Caddy tar.gz",
+        "Authelia tar.gz"
+      ],
+      "entry": "deploy.safe_fs.extract_tar"
+    },
+    {
+      "file": "deploy/build.py",
+      "uses": [
+        "pack_source tarfile writer"
+      ],
+      "note": "Output writer, not an untrusted root input parser."
+    }
+  ],
+  "beforeAfter": {
+    "before": {
+      "source": "deploy/safe_fs.py",
+      "sourceSha256": "088598f69131c54cca7b86d0741aca3f84d67407aad7e3f64a0b28091a615a33",
+      "originalBudgets": {
+        "MAX_FILES": 150000,
+        "MAX_BYTES": 3221225472,
+        "MAX_FILE": 536870912
+      },
+      "scaledBudgets": {
+        "MAX_FILES": 1,
+        "MAX_BYTES": 1,
+        "MAX_FILE": 1
+      },
+      "compressedArchiveBytes": 246,
+      "parsedPaxCommentBytes": 65536,
+      "extractedFileBytes": 1,
+      "outcome": "accepted_without_budget_error",
+      "originalBudgetOversizeHeader": {
+        "declaredPaxBytes": 536870913,
+        "largestReadRequestedBeforeMemberBudgetCheck": 536871424,
+        "readInterceptedWithoutAllocation": true,
+        "instrumentation": "Replaced only file object with recording BytesIO; real tarfile parser and original safe_fs budget values."
+      },
+      "tarfilePaxReadSource": [
+        "buf = tarfile.fileobj.read(self._block(self.size))"
+      ],
+      "safety": "Tiny local archive, scaled module constants only in this process; no source edits, external calls or services."
+    },
+    "after": {
+      "at": "2026-10-25T09:24:44.601Z",
+      "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "results": [
+        {
+          "case": "same_scaled_budget_pax_archive",
+          "outcome": "rejected",
+          "code": "budget",
+          "message": "Archive extension exceeds budget"
+        },
+        {
+          "case": "production_budget_oversize_pax_header",
+          "outcome": "rejected",
+          "code": "budget",
+          "message": "Archive extension exceeds budget",
+          "declaredPaxBytes": 536870913,
+          "largestReadRequested": 10240
+        }
+      ],
+      "largeAllocationAttempted": false,
+      "sourceSha256": {
+        "deploy/archive.py": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+        "deploy/safe_fs.py": "f22a922ffbc05af57fefcb9de4d5989e973853b941309df416ca9ceb2374bab3",
+        "tests/deploy/test_deployment.py": "44d639c8547db100d6939a21cf6472c3df62f584be509a25e932ea3c3749b307",
+        "deploy/README.md": "54297f396d033db6a6d27da6e0617b4313218cbf4d542542ee9c13c31b3ea330"
+      }
+    },
+    "conclusion": "The original 246-byte gzip with 65536-byte PAX metadata was accepted under scaled 1-byte budgets; it is now rejected with budget. A declared 536870913-byte PAX header previously caused a 536871424-byte parser read request; final code rejects it after a largest observed 10240-byte request. No actual large allocation or OOM was attempted."
+  },
+  "independentFixReview": {
+    "reviewer": "/root/fresh_r6_deployment/archive_fix_review",
+    "read": [
+      "AGENTS.md",
+      "deploy/archive.py",
+      "deploy/safe_fs.py extract_tar",
+      "tests/deploy/test_deployment.py ArchiveTests",
+      "deploy/README.md import limits paragraph"
+    ],
+    "issuesFoundAndFixed": [
+      {
+        "id": "R6-DEPLOY-FIX-001",
+        "priority": "P2",
+        "problem": "Empty concatenated XZ streams accumulated empty bytes entries and join metadata despite zero decoded output.",
+        "redTest": "test_empty_xz_streams_do_not_accumulate_output_buffers failed with peak1773352 >=786432 on640000-byte input containing20000 empty streams.",
+        "change": "Append only nonempty decoded blocks; preserve empty-stream-prefix compatibility.",
+        "green": {
+          "emptyXzStreams": 20000,
+          "compressedBytes": 640000,
+          "outputBytes": 0,
+          "peakTracedBytes": 133722,
+          "beforeFixObservedPeakTracedBytes": 1773352,
+          "regressionThresholdBytes": 786432
+        }
+      },
+      {
+        "id": "R6-DEPLOY-FIX-002",
+        "priority": "P3",
+        "problem": "Global/effective PAX state limit counted Unicode characters, not UTF8 bytes.",
+        "redTest": "Non-ASCII subcase of test_global_pax_state_cannot_accumulate_across_small_headers did not raise under a64-byte budget.",
+        "change": "Measure UTF8 bytes with surrogateescape for both global and effective dictionaries.",
+        "green": "The same ASCII and non-ASCII cases now reject oversized state; normal PAX/global metadata compatibility cases pass."
+      }
+    ],
+    "redRun": {
+      "selectedTests": 2,
+      "failures": 2,
+      "exitCode": 1
+    },
+    "greenRun": {
+      "selectedTests": 2,
+      "failures": 0,
+      "exitCode": 0
+    },
+    "note": "The reviewer reported no additional concrete issue after these; this focused review is not a replacement for the next complete independent source audit."
+  },
+  "validation": {
+    "windows": {
+      "python": "3.12.14",
+      "command": "python -B -m unittest discover -s tests/deploy -p test_deployment.py -v",
+      "selected": 48,
+      "passed": 44,
+      "skipped": 4,
+      "failures": 0,
+      "skips": [
+        "Linux descriptor-safe snapshot",
+        "Linux permissions",
+        "Linux pipe backpressure/subreaper",
+        "Linux escaped process-group reaping"
+      ],
+      "allSkippedCasesPassedOnLinux": true
+    },
+    "linux": {
+      "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+      "host": "192.168.1.120 via configured root-192-168-1-120 alias",
+      "scratch": "/opt/codex-harness-rewrite-20261025/r6-archive-3dd74061dc91452b9a6c78cc1158be7e",
+      "startedAt": "2026-10-25T09:24:16.953Z",
+      "completedAt": "2026-10-25T09:24:28.167Z",
+      "tests": [
+        {
+          "file": "tests/deploy/test_deployment.py",
+          "role": "ordinary",
+          "exitCode": 0,
+          "summary": [
+            "Ran 48 tests in 1.600s",
+            "OK"
+          ]
+        },
+        {
+          "file": "tests/deploy/root/test_release_reuse.py",
+          "role": "root",
+          "exitCode": 0,
+          "summary": [
+            "Ran 3 tests in 0.012s",
+            "OK"
+          ]
+        },
+        {
+          "file": "tests/deploy/root/test_control_update.py",
+          "role": "root",
+          "exitCode": 0,
+          "summary": [
+            "Ran 22 tests in 1.165s",
+            "OK"
+          ]
+        }
+      ],
+      "totalSelected": 73,
+      "passed": 73,
+      "skipped": 0,
+      "failures": 0,
+      "ordinaryIdentity": "nobody with cleared groups/capabilities and no_new_privs; private scratch HOME/TMPDIR",
+      "rootFixtures": "Actual root ownership in temporary scratch with substituted service/process management commands.",
+      "archiveHarnessPeakRssKiB": 101628
+    },
+    "officialArchiveCompatibility": [
+      {
+        "name": "node",
+        "path": "/var/cache/codex-harness/crtest-rw-20261025/tools-17faf6e37c464668b18702381495d17b/node.tar.xz",
+        "algorithm": "sha256",
+        "digest": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6",
+        "archiveBytes": 32026916,
+        "strip": 1,
+        "manifestEntries": 5887,
+        "regularBytes": 201757420,
+        "manifestSha256": "529a7d726a15c9bc9033b0039bb1a37a72dad106e54c3be362a4cc7987ad52fe",
+        "independentFullContentComparison": true,
+        "elapsedSeconds": 3.919
+      },
+      {
+        "name": "pnpm",
+        "path": "/var/cache/codex-harness/crtest-rw-20261025/tools-17faf6e37c464668b18702381495d17b/pnpm.tgz",
+        "algorithm": "sha512",
+        "digest": "1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621",
+        "archiveBytes": 9273377,
+        "strip": 1,
+        "manifestEntries": 1096,
+        "regularBytes": 38187995,
+        "manifestSha256": "ddfaa0e3e7d99570328eb20aeb710dd6e46755f86475926bc5c5b48921f416a7",
+        "independentFullContentComparison": true,
+        "elapsedSeconds": 0.429
+      },
+      {
+        "name": "codex",
+        "path": "/var/cache/codex-harness/crtest-rw-20261025/tools-17faf6e37c464668b18702381495d17b/codex.tgz",
+        "algorithm": "sha512",
+        "digest": "5cb028696b06393da487397e3f81580cf4e4cc0afd5b45455c569592a945764334b286b5807ff84b4c120f9ec49371c7c248ab0041b3dbf3307a1b1e87e97932",
+        "archiveBytes": 165142849,
+        "strip": 1,
+        "manifestEntries": 55,
+        "regularBytes": 444349626,
+        "manifestSha256": "8354c276bbdc7d5d9ef53223adc7bbb9de81db0de82702d11443c4efc0b6f5ac",
+        "independentFullContentComparison": true,
+        "elapsedSeconds": 2.964
+      },
+      {
+        "name": "caddy",
+        "path": "/var/cache/codex-harness/crtest-rw-20261025/caddy_2.11.7_linux_amd64.tar.gz",
+        "algorithm": "sha256",
+        "digest": "727b91701a392de6ebc5027509f548bf39979e5216340d0faed8fa5e69c84f8b",
+        "archiveBytes": 18113754,
+        "strip": 0,
+        "manifestEntries": 3,
+        "regularBytes": 51977845,
+        "manifestSha256": "9d1edf98d6c721d2973d86ebf922f89d3ca041ca478e690a7a522a17fab69be9",
+        "independentFullContentComparison": true,
+        "elapsedSeconds": 0.33
+      },
+      {
+        "name": "authelia",
+        "path": "/var/cache/codex-harness/crtest-rw-20261025/authelia-v4.39.28-linux-amd64.tar.gz",
+        "algorithm": "sha256",
+        "digest": "e8ad9ff965cbf3b93138945e13cb4b7874c999c254772b2bb77952863177699c",
+        "archiveBytes": 21115218,
+        "strip": 0,
+        "manifestEntries": 7,
+        "regularBytes": 63500414,
+        "manifestSha256": "303d787a850d163a64ad159f1def8f3ae32c3fe50444e7b1c19fef079fff35bf",
+        "independentFullContentComparison": true,
+        "elapsedSeconds": 0.39
+      }
+    ],
+    "officialMethod": "Rehashed each existing complete official Linux x64 archive against current embedded upstream pins before parsing. Extracted under a dedicated root-owned UUID scratch directory using the final shared entry point, then compared every output content hash, normalized mode and symlink target against an independently read complete tar projection. Removed only those scratch output trees after comparison. Did not run the extracted executables.",
+    "encoding": "All four changed files decode as UTF8, contain LF only and no BOM.",
+    "fullSuiteRun": false,
+    "externalProviderCalls": false,
+    "paidInference": false,
+    "realCredentialsRead": false,
+    "onlineInstancesChanged": false,
+    "servicesChanged": false,
+    "retired110Used": false
+  },
+  "artifacts": {
+    ".work/round6/r6-deployment-tar-budget-result.json": "5abad1f25c75eddf2ab1dfbb7778a4f3aca77617020fb03f5a371648810a41fa",
+    ".work/round6-fixes/deployment-fixed-repro.json": "c6ab273105d8dbd8647a425d2074d2263b2bf662193a87cd65b3c8ae6abd017c",
+    ".work/round6-fixes/deployment-xz-memory.json": "be253d7b24364ca7332c95c584bbe04e978c3fab403e5042156dc2c2037343f0",
+    ".work/round6-fixes/deployment-windows-final.txt": "b48092dc814e46aa9651ad5af635a8a9668df88b4e558de43ef21914be5679b6",
+    ".work/round6-fixes/deployment-linux-final.json": "33b004f58d109f0fa85f6423d4aabfb379f99698e9db59178b884fd4cb3d5948",
+    ".work/round6-fixes/deployment-transfer-final-manifest.json": "38ea3e6061b02acd1d6e9b83b24d9e23535b4eada1da16ca378f145fd2148806"
+  },
+  "limitations": [
+    "Official package compatibility was executed for the existing Linux x64 pinned archives, not arm64 distributions.",
+    "Executed Python versions were Windows3.12.14 and Linux3.12.3; Python3.11 was not available in this check.",
+    "These are targeted parsing/filesystem/control-fixture checks, not a fresh application installation, actual systemd boot/recovery acceptance, or a full repository suite.",
+    "The root SSH literal-IP login attempt was rejected before using the approved configured alias; no credentials were opened or printed. Remote writes were limited to two owned UUID scratch directories under /opt/codex-harness-rewrite-20261025.",
+    "Repository-wide snapshot finalization is owned by the parent task because other independently assigned UI fixes were concurrent; exact final hashes of these four files are recorded above."
+  ]
+}

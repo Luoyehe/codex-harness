@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T22:54:00.538Z",
+  "kind": "targeted-feature-verification",
+  "cliVersion": "0.164.0",
+  "fullSuiteRun": false,
+  "formalAudit": false,
+  "features": {
+    "guardian": {
+      "capturedOnly": true,
+      "publicMethods": [
+        "thread/guardian/list",
+        "thread/approveGuardianDeniedAction"
+      ],
+      "nativeAcceptance": [
+        "real denied command under loopback auto-review",
+        "real denied request_permissions with legacy projections plus canonical entries",
+        "one-time exact-action developer marker on next explicit turn",
+        "no new model request caused by registration"
+      ],
+      "adapterDifferences": [
+        "public unifiedExec -> internal unified_exec",
+        "writeStdin -> write_stdin; internal Windows cwd is a file URI",
+        "requestPermissions fileSystem -> file_system entries union; reject conflicting legacy read/write projections",
+        "fixed enumerated mappings for other public action kinds"
+      ],
+      "budgets": "10 denials/thread, 64 total, 10-minute TTL, 2048 deduplication identities, 64KiB per notification"
+    },
+    "nativeCliTerminal": {
+      "program": "codex",
+      "argv": [
+        "<configured verified CLI>",
+        "--no-alt-screen"
+      ],
+      "nativeAcceptance": "Actual native /hooks list, detail and trust action in an isolated home; no model requests and no hook execution",
+      "ownership": "connection and runtime epoch; startup reservation plus global work/configuration exclusion; independent process-tree cleanup before exit acknowledgement",
+      "afterCleanup": "Mark runtime unknown; explicit durable restart required to reconcile TUI account/configuration changes"
+    },
+    "diagnostics": {
+      "run": "diagnostics/cli/run",
+      "read": "diagnostics/cli/result/read",
+      "kinds": [
+        "doctor",
+        "models-bundled"
+      ],
+      "nativeAcceptance": "doctor --json produced a complete schemaVersion 1 report with exit 1 for diagnosed local issues; debug models --bundled produced the JSON catalog with exit 0",
+      "budgets": "20-second command timeout, 1MiB/stream capture, 64KiB stderr acceptance, 1MiB/report after redaction, 8 retained reports, 10-minute TTL",
+      "privacy": "Reports are owner/channel/epoch-local. Receipts retain only resultId, kind, status. No raw diagnostic output events.",
+      "cleanup": "Whole command and independent process proof retain the global configuration barrier; missing proof closes the runtime. Normal completed read-only diagnostics preserve thread/session/history snapshots."
+    },
+    "audio": {
+      "nativeAcceptance": "Uploaded 16kHz mono WAV reaches local Responses provider as input_audio with exactly matching data:audio/wav;base64 bytes. Text-only model rejection causes no second provider request.",
+      "storage": "Opaque attachment IDs; fixed wav/mp3/m4a/webm/ogg filename suffix derived internally. Index, identity/hash verification, quota, GC, delete, queue retention and history read use the same internal filename.",
+      "legacy": "Existing extensionless audio remains readable but must be reuploaded before native audio transmission.",
+      "capabilities": "Fresh bounded native model catalog. Unknown/absent/conflicting/unsupported inputModalities fail before inference. Covers normal turns, queue add/update/start, retained media and thread model changes with queued media; steering requires a known active model. Final write rechecks settings revision."
+    },
+    "gatewayOAuth": {
+      "capability": "explicitGatewayOauth:true",
+      "nativeAcceptance": "Configured gateway remains required:true/status:notReady after repeated readiness reads, with no automatic OAuth started/handoff and no connection to fixture gateway authorization/token/Responses hosts.",
+      "networkLimit": "CLI attempted unrelated ChatGPT/GitHub metadata CONNECTs; local proxy denied all of them. This capability is not a general network-off switch."
+    },
+    "realtime": {
+      "browserAcceptance": "WebRTC mock tests cover early/duplicate/conflicting SDP, microphone cancellation, owner loss, late start cleanup, explicit closed readback, and unknown live/durable results without replay.",
+      "history": "Combined ordinary turns and canonical timeline must complete under shared traversal budgets before input authorization."
+    }
+  },
+  "reports": [
+    {
+      "path": ".work/test-results/run-sORZZn/vitest.json",
+      "sha256": "c1379adac70a3fffd0739dc5d2b5e66c5ba9668e926d3157290e4622828f4ccd",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-jAbbgo/vitest.json",
+      "sha256": "bd2e40e1bf07592cba84b5a9f5ce1eeed9547c352f4c2794c4f3bb36cedc271f",
+      "passed": 38,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-H4cRrT/vitest.json",
+      "sha256": "e5490e70b37e2cd50f2adbf2c4efbcee3c77f184d9ff6080f0f9ee0a3f05f86e",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-2D1AE3/vitest.json",
+      "sha256": "ac77f7398cf49aee2cac181459232e8a29685240cc2eab2206b9f783c8bc33b0",
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-ObRGQK/vitest.json",
+      "sha256": "c5ea294c780f4b12055462ed0f6519f1b99f46c9b2c6e9b89487454fad6afe4e",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-J4zHue/vitest.json",
+      "sha256": "51f158f457fb849fc27ce3aa9d66af16b9c2662f13ad5c200b637c3becfb2dbe",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-ABeHww/vitest.json",
+      "sha256": "92cb7f8d17bff35f1da77bda98fc033c57ad7a4b5bed9d792c6f6f68bfa1b887",
+      "passed": 40,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": ".work/test-results/run-lWno6Z/vitest.json",
+      "sha256": "79e111856b94d540bd8a45d796e51067d7684afea19cf480c306b98b144f1385",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-CBI6f7/vitest.json",
+      "sha256": "14fb0428ee100890376b0b5f947fa024f30f6f327d0f71c5af95ffb5c9d33e52",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-yewY0j/vitest.json",
+      "sha256": "e4f0f8f10b06bb252878f23b1da7e98a6e95c87896c91460608e21c838cde8c2",
+      "passed": 38,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "limits": [
+    "No commercial inference, personal home or credential use, external MCP calls, or real external account login/pairing.",
+    "Real provider WebRTC audio, external remote pairing and native background-terminal termination with a running external task remain separate integrations.",
+    "Windows local attachments tests skip POSIX symlink/FIFO substitution and native read-only group permissions; cross-UID Linux acceptance is owned by the root reviewer.",
+    "Linux owned-process helper cases were run separately by root as nobody on isolated host 120; this evidence does not substitute those results or claim Linux CLI PTY acceptance.",
+    "Prior failed fixtures were corrected: permission marker expectation omitted native network:null; provider test awaited stale idle before the first local request; tooling Python default was a WindowsApps stub. Corrected targeted reports are recorded above."
+  ],
+  "moduleHashes": {
+    "src/runtime/guardian.ts": "d11a731bbfb91eec51aa1edcbaa0182eae444108971940b98e003756cc95da4e",
+    "src/runtime/cli-terminals.ts": "581fcd144f9fa5d4cd6bff77aa409f389ebaf2c3d2ff866299b742caa5f07c66",
+    "src/runtime/cli-diagnostics.ts": "1752b53e65b295c6c69606b529dfe7be44ed8b225f74d3d149ac76119e4fb8e4",
+    "src/runtime/attachments.ts": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+    "src/runtime/input-modalities.ts": "baa8dcba1e9107d4a112f413c54b00b5fffde7aeb301897eb083a9126fbf3360",
+    "src/runtime/native.ts": "7551a5dcf42c0466564152f5912156ed5e7fff61515f8653e76c1739a9fdae3c",
+    "src/runtime/service.ts": "3e452108d419e974333a6bfd893b64d5f6146916b871a8b9d30b4b93134d244c",
+    "src/runtime/workflows.ts": "3330e7962ee3ae65f47bea86c681c6c29367fe424ad34cf02ccece87cccae190",
+    "src/runtime/main.ts": "e77f57f2aede3e8089e1d09feb996c807dfb407f9ec44fb72dbc1b485a02659f",
+    "web/components/RealtimePanel.tsx": "4a5e9bee62988fe96a4dffd1ccdc12e2c0997bd5afe4c9b4e9b5ef354483a497",
+    "web/lib/realtime-media.ts": "bb66efb3081348e668b39848c2a2a1c4a192c5e0ce151122679cc11901be6d90"
+  }
+}

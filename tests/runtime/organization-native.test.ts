@@ -1,0 +1,46 @@
+import { expect, test } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { RuntimeService } from '../../src/runtime/service.js';
+import { object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
+import { loopbackProvider } from './loopback-provider.js';
+import { nativeTestEnvironment } from '../fixtures/native-env.js';
+
+test('official CLI persists projects, sections and thread attachment metadata separately from execution roots', async () => {
+  const parent = path.resolve('.work/organization-native'); mkdirSync(parent, { recursive: true }); const workerHome = mkdtempSync(path.join(parent, 'home-')); const home = path.join(workerHome, 'codex'), temp = path.join(workerHome, 'tmp'), firstRoot = path.join(workerHome, 'first'), secondRoot = path.join(workerHome, 'second'); for (const dir of [home, temp, firstRoot, secondRoot]) mkdirSync(dir);
+  const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: temp, fixtureApiKey: 'local-fixture' });
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'); const provider = await loopbackProvider(); const catalog = path.join(workerHome, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
+  writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup = false', 'model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = ${JSON.stringify(provider.url)}`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
+  let runtime = await RuntimeService.create({ bin, home, workerHome, cwd: firstRoot, env, dev: true }).catch(async error => { await provider.close(); throw error; }); const context = { clientId: 'organization-native', beforeWrite: () => {} }; const pids = [runtime.native.processId]; const events: RuntimeEvent[] = []; runtime.on('event', event => events.push(event));
+  try {
+    const created = object(await runtime.call('conversation/start', { cwd: firstRoot, text: 'Materialize isolated organization fixture.' }, context)); const threadId = object(created.thread).id!, turnId = object(created.turn).id!;
+    // An initial idle thread snapshot does not prove that the accepted first turn has finished.
+    await expect.poll(() => events.find(event => event.type === 'notification' && object(event.data).method === 'turn/completed' && object(object(event.data).params).threadId === threadId && object(object(object(event.data).params).turn).id === turnId)?.data, { timeout: 10000 }).toMatchObject({ params: { threadId, turn: { id: turnId, status: 'completed' } } });
+    await expect.poll(async () => object(object(await runtime.call('thread/read', { threadId }, context)).thread).status, { timeout: 10000 }).toMatchObject({ type: 'idle' });
+    await runtime.call('thread/history', { threadId }, context);
+    const project = object(object(await runtime.call('nativeProject/create', { name: 'First organization', roots: [{ path: firstRoot }], metadata: { color: 'blue' }, idempotencyKey: randomUUID() }, context)).project); const nativeProjectId = project.id!;
+    expect(object(object(await runtime.call('nativeProject/read', { nativeProjectId }, context)).project).roots).toEqual([{ path: firstRoot }]);
+    await runtime.call('thread/project/set', { threadId, nativeProjectId }, context); expect(object(object(await runtime.call('thread/read', { threadId }, context)).thread)).toMatchObject({ cwd: firstRoot, projectId: nativeProjectId });
+    const foreign = object(object(await runtime.call('nativeProject/create', { name: 'Other organization', roots: [{ path: secondRoot }], idempotencyKey: randomUUID() }, context)).project);
+    await expect(runtime.call('thread/project/set', { threadId, nativeProjectId: foreign.id! }, context)).rejects.toMatchObject({ code: 'project_mismatch', delivery: 'not_sent' });
+    const section = object(object(await runtime.call('threadSection/create', { name: 'Investigations', appearance: { icon: 'search', color: 'blue' } }, context)).section);
+    await runtime.call('thread/section/move', { threadId, sectionId: section.id! }, context); await runtime.call('threadSection/update', { sectionId: section.id!, name: 'Completed investigations', appearance: null }, context);
+    const attachment = { threadId, attachmentType: 'link', identityKey: 'https://example.invalid/local-fixture', payload: { title: 'Recorded metadata only' } };
+    expect(await runtime.call('thread/attachment/add', attachment, context)).toMatchObject({ outcome: 'created' }); expect(await runtime.call('thread/attachment/add', attachment, context)).toMatchObject({ outcome: 'existing' });
+    expect(object(await runtime.call('thread/attachmentOwner/list', { cwd: firstRoot, attachmentType: attachment.attachmentType, identityKey: attachment.identityKey }, context)).data).toMatchObject([{ threadId }]);
+    expect(object(await runtime.call('thread/attachmentOwner/list', { cwd: secondRoot, attachmentType: attachment.attachmentType, identityKey: attachment.identityKey }, context)).data).toEqual([]);
+    const imported = object(object(await runtime.call('nativeProject/import', { name: 'Imported organization', roots: [{ path: firstRoot }, { path: secondRoot }], threadIds: [threadId], idempotencyKey: randomUUID() }, context)).project);
+    await runtime.call('nativeProject/update', { nativeProjectId: imported.id!, name: 'Updated organization', metadata: {} }, context); await runtime.call('nativeProject/move', { nativeProjectId: imported.id!, beforeNativeProjectId: nativeProjectId }, context);
+    expect(await runtime.call('thread/session', { threadId }, context)).toMatchObject({ requiresResume: false });
+    await runtime.call('thread/memoryMode/set', { threadId, mode: 'disabled' }, context);
+    await runtime.close(); runtime = await RuntimeService.create({ bin, home, workerHome, cwd: firstRoot, env, dev: true }); pids.push(runtime.native.processId);
+    expect(object(await runtime.call('nativeProject/list', {}, context)).data).toEqual(expect.arrayContaining([expect.objectContaining({ id: imported.id, name: 'Updated organization' })]));
+    expect(object(await runtime.call('threadSection/list', {}, context)).data).toEqual(expect.arrayContaining([expect.objectContaining({ id: section.id, name: 'Completed investigations', appearance: null })]));
+    expect((object(await runtime.call('thread/attachment/list', { threadId }, context)).data as JsonValue[]).map(item => object(item).payload)).toContainEqual(attachment.payload);
+    const marker = path.join(firstRoot, 'preserved.txt'); writeFileSync(marker, 'Keep project files.');
+    await runtime.call('thread/attachment/remove', { threadId, attachmentType: attachment.attachmentType, identityKey: attachment.identityKey }, context); await runtime.call('threadSection/delete', { sectionId: section.id! }, context); await runtime.call('nativeProject/delete', { nativeProjectId: imported.id! }, context); await runtime.call('nativeProject/delete', { nativeProjectId }, context);
+    expect(object(object(await runtime.call('thread/read', { threadId }, context)).thread)).toMatchObject({ cwd: firstRoot, projectId: null, section: null }); expect(JSON.stringify(await runtime.call('thread/history', { threadId }, context))).toContain('Materialize isolated organization fixture.'); expect(readFileSync(marker, 'utf8')).toBe('Keep project files.');
+    expect(provider.calls()).toBe(1);
+  } finally { try { await runtime.close(); } finally { await provider.close(); } for (const pid of pids) if (pid) expect(() => process.kill(pid, 0)).toThrow(); }
+}, 30000);

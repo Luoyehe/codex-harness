@@ -1,0 +1,63 @@
+{
+  "reviewer": "permission_contract_review",
+  "status": "bounded static cross-review complete; no unresolved findings in the inspected scope; not a full-repository or runtime-enforcement pass",
+  "method": "Static source and generated-schema inspection only",
+  "files": [
+    "src/runtime/permission-grants.ts",
+    "src/runtime/validation.ts",
+    "tests/runtime/permission-validation.test.ts",
+    "tests/runtime/service.test.ts permission response cases",
+    "web/components/Prompts.tsx permission UI"
+  ],
+  "coreAssessment": "No additional counterexample identified for exact-selector positive support, all-deny preservation, read preservation whenever any write remains, and unchanged effective depth. Same-selector/access duplicates and reordering are handled as sets under the parent-verified precedence contract.",
+  "findings": [
+    {
+      "id": "empty-positive-is-not-necessarily-refusal",
+      "source": "Root identified; independently confirmed in static read",
+      "status": "Fixed and statically confirmed",
+      "detail": "The initial no-positive early return bypassed selector/depth checks for deny-only rules and depth-only hints. The final code treats only an effective empty rule set with no depth hint as refusal; nonempty deny/depth replies continue through comparison. Dedicated JSON-only regression cases were read."
+    },
+    {
+      "id": "unknown-request-fields-block-refusal",
+      "source": "Independent cross-review",
+      "status": "Fixed and statically confirmed",
+      "detail": "The comparison initially applied fixed keys to all requested nested structures before accepting an empty reply. The final code strictly interprets the granted profile first, but interprets requested network only for enabled:true and requested filesystem only for nonempty rules or a depth hint. Complete refusal remains available for schema-valid nested unknown request fields. Aggregate request profile top-level unknown fields remain schema-invalid."
+    },
+    {
+      "id": "unselected-unknown-network-blocks-filesystem-selection",
+      "source": "Independent follow-up cross-review",
+      "status": "Fixed and statically confirmed",
+      "detail": "An intermediate repair still parsed requested network unconditionally for a nonempty filesystem reply. The final conditional requested-network parse matches the parent's category independence requirement. Both category directions and explicit empty/false unselected categories now have pure-data regression cases."
+    }
+  ],
+  "testsRead": {
+    "positiveCoverage": [
+      "deny and read restrictions across literal/glob/special selectors",
+      "legacy entries precedence, including empty arrays and null fallback",
+      "structural selector comparison without path equivalence guesses",
+      "same-selector conflicts, duplicate rules, and order changes",
+      "depth option invariance and schema-invalid depth zero",
+      "network false/no-grant and explicit true support",
+      "unknown nested fields rejected conservatively",
+      "response JSON is not rewritten",
+      "fake-native invalid response remains pending, sends nothing, then accepts valid original reply"
+    ],
+    "confirmedAdditions": [
+      "deny-only and depth-only nonempty replies remain checked",
+      "scope omitted/session and strictAutoReview optional valid values",
+      "nested unknown request fields do not block exact empty refusal",
+      "known selected category is independent of schema-valid unknown fields in the unselected category",
+      "unknown granted fields are rejected even in false-network or empty-filesystem replies"
+    ],
+    "execution": "Reviewer did not run tests. Repair agent reported 31 dedicated permission tests plus 30 service tests plus 6 guardian tests (67 total) and server TypeScript checking passing; this reviewer only read the tests and source."
+  },
+  "compatibilityBoundary": "Fixed known-key checking is deliberately stricter than permissive nested generated schemas for actual granted content and selected requested categories. Known-field UI categories remain structurally unchanged when selected. Schema-valid unknown fields in unselected categories no longer prevent refusal or approving the other known category. Schema-invalid original requests remain rejected even for refusal, consistent with the parent's requirement that both schemas pass first.",
+  "reviewedSha256": {
+    "src/runtime/permission-grants.ts": "98FB19A78CD3C0255C8A11268E8267FA2DAB93B57A4D55FF315E1B741F13D8C6",
+    "src/runtime/validation.ts": "968A80D2E963B56C69A10CFF2A6F122A0B3D24E6284C8282538631DDB219F7DB",
+    "tests/runtime/permission-validation.test.ts": "56BF986C78E7D79D817DB9FFEE6054BAFEE587FD9539AE77CC6C5EE39407ABC2",
+    "tests/runtime/service.test.ts": "37A96D0E997742D3E144D3E9BEDFF3032FFE4709FB4CB912B0C72FCA2E3B3A56"
+  },
+  "prohibitedActionsPerformed": false,
+  "productFilesModifiedByReviewer": false
+}

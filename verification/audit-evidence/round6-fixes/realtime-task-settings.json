@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round6-fixes",
+  "reviewerId": "r6-interface",
+  "status": "complete",
+  "completedAt": "2026-10-25T09:16:09.240Z",
+  "auditEvidence": "verification/audit-evidence/round6/r6-interface.json",
+  "auditedDigest": "f17d130352406a43e6625b843024fb503113355f572009549580573891aeee2d",
+  "fixedFindings": [
+    "r6-interface-01",
+    "r6-interface-02",
+    "r6-interface-03"
+  ],
+  "sourceFiles": [
+    {
+      "file": "web/components/RealtimePanel.tsx",
+      "sha256": "5da7ee8c7ccc42275c2b8001206563a4227f7296fde86fe2785ba367bc7b4f89"
+    },
+    {
+      "file": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "28691f3cae6708865819296a0f4d5b45b7543ac61af986c16139366a67132572"
+    },
+    {
+      "file": "web/components/TaskPanel.tsx",
+      "sha256": "45e4ecaf4f44bcaa558949f584ba6cabcc7cebbd09f284cf134728f38d7fad95"
+    },
+    {
+      "file": "web/tests/realtime.test.tsx",
+      "sha256": "8cfff897f6f4e636b22a2462f06de73074b0c24ff79a01f314567bb1d1087177"
+    },
+    {
+      "file": "web/tests/execution-settings.test.tsx",
+      "sha256": "a8be51ea89d5843cc6c742b0ee331a112f20f19fa8772227f249d097c19c9c36"
+    },
+    {
+      "file": "web/tests/workflows.test.tsx",
+      "sha256": "50d957611cbeec46220b2cbf2b628da192be35b1d0dd508c032662f72d0432e1"
+    }
+  ],
+  "changes": [
+    {
+      "finding": "r6-interface-01",
+      "details": "Realtime input increments a local draft revision on every edit. A valid acknowledgement clears text only if the captured submitted revision is still current; A-to-B-to-A is preserved. Existing owner and input-blocking fences prevent late/invalid/failed acknowledgements from clearing a replacement draft or replaying a frame."
+    },
+    {
+      "finding": "r6-interface-02",
+      "details": "ExecutionForm wraps submitted controls in disabled submission-fields while busy and uses a synchronous submit latch. Errors unlock the fields and retain selections; keyed turn/scope ownership prevents an old response from modifying a new editor."
+    },
+    {
+      "finding": "r6-interface-03",
+      "details": "Queue and goal editors lock their submitted fields and cancel action while pending, reject synchronous duplicate submit, and retain text on failure. Queue failure uses real Api unknown-operation behavior in regression tests: text unlocks while mutation controls remain fenced. Goal begin/cancel cannot replace the pending snapshot."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "id": "round6-fixes-queue-refresh-draft",
+      "priority": 2,
+      "status": "fixed",
+      "title": "A delayed queue refresh unmounted unsaved sibling queue editors",
+      "discovery": "During TaskPanel fix verification, two queue rows were edited and only the first saved. Its success refreshed usePaged, which clears items while fetching. With a real asynchronous refresh gap, the second editor unmounted and its local draft disappeared. An immediately resolved stub masked the unmount through batching.",
+      "originalReproduction": {
+        "file": ".work/round6/queue-sibling-draft.test.tsx",
+        "command": "node node_modules/vitest/vitest.mjs run --config .work/round6/queue-sibling-draft.config.ts",
+        "startedAt": "2026-10-25T09:08:29Z",
+        "result": "1 test passed by asserting the existing draft loss before the additional fix"
+      },
+      "fix": "Moved queue draft ownership into QueuePanel without changing usePaged. The cache is scoped by a keyed thread/epoch owner, capped at 32 drafts, 1,000,000 aggregate characters and 100,000 per draft. Draft object identity guards submitted cleanup. While the current directory is unavailable or no longer contains a drafted entry, its text remains visible in an explicit retained-draft section without stale operation controls. Saving remains gated on a fresh successful list. Cache size/character bounds and cross-owner isolation are tested.",
+      "regressionTests": [
+        "retains an unsaved sibling queue draft across a delayed post-save directory refresh",
+        "keeps an explicit queue draft without stale mutation controls when refresh is failed",
+        "keeps an explicit queue draft without stale mutation controls when refresh is missing",
+        "isolates retained queue drafts and delayed reads when the thread owner changes",
+        "isolates retained queue drafts and delayed reads when the epoch owner changes",
+        "bounds retained queue drafts at 32 for count/size 33/1",
+        "bounds retained queue drafts at 10 for count/size 11/100000"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/realtime.test.tsx web/tests/execution-settings.test.tsx web/tests/workflows.test.tsx",
+      "startedAt": "2026-10-25T09:05:19Z",
+      "status": "passed",
+      "tests": 44,
+      "report": ".work/test-results/run-K89fbO/vitest.json",
+      "note": "Realtime 13 and execution-settings 10 were unchanged after this run; workflows was subsequently expanded and rerun."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/workflows.test.tsx",
+      "startedAt": "2026-10-25T09:07:52Z",
+      "status": "passed",
+      "tests": 21,
+      "report": ".work/test-results/run-XayKnz/vitest.json",
+      "note": "Verified unlock after real Api unknown response, before the additional queue-refresh fix."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/workflows.test.tsx",
+      "startedAt": "2026-10-25T09:14:14Z",
+      "status": "passed",
+      "tests": 28,
+      "report": ".work/test-results/run-c6qIXh/vitest.json",
+      "note": "Final TaskPanel code including delayed refresh, missing entry, failed read, owner isolation and draft bounds."
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "status": "passed",
+      "exitCode": 0,
+      "note": "Executed immediately after the final 28-test workflow run."
+    }
+  ],
+  "latestTestsByFile": {
+    "web/tests/realtime.test.tsx": 13,
+    "web/tests/execution-settings.test.tsx": 10,
+    "web/tests/workflows.test.tsx": 28
+  },
+  "testDevelopmentNotes": [
+    "The first additional queue-cache limit fixture duplicated 100,000-character strings in both text and native input, hitting the existing directory response bound before editing. The fixture was corrected to load short rows and grow drafts through UI edits; final tests pass.",
+    "An earlier tsc run encountered the concurrently edited modal-mutations test exact option; it was fixed by its owning agent, and final tsc passes."
+  ],
+  "coordination": "Only the six listed source/test files were changed by this agent. Parent owns the shared fieldset.submission-fields CSS reset. Historical round6 audit evidence and coverage were not updated. No global source snapshot or audit gate was refreshed during fixes.",
+  "limitations": [
+    "Tests used local jsdom and intercepted/stubbed service responses; no native/external service, personal credential or paid invocation.",
+    "No full suite, production build, deployment or migration was run; parent coordinates the final UI build after all agents stop writing.",
+    "Queue drafts are bounded in-memory state of the current queue panel owner; this fix does not add persistent storage across closing the panel or changing thread/epoch."
+  ]
+}

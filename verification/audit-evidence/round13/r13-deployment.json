@@ -1,0 +1,296 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round13",
+  "reviewerId": "r13-deployment",
+  "digest": "a630af3178fe351cadfc7a50b189cebd78c8a58ac7e927370bd123e19beb7c5c",
+  "complete": true,
+  "scopes": [
+    "deployment-release"
+  ],
+  "method": "Fresh independent manual full reading of all assigned implementation, tests, configuration, documentation and ordinary feature evidence, combined with exhaustive structured parsing of every lockfile entry and capability inventory record. Reviewed release, ownership, permission, resource, receipt, recovery, packaging, test validity and operator workflow semantics. Capability assessments and every method-to-group/workflow mapping were reviewed; repeated per-method assessments were checked for exact group parity. Historical referenced report bodies were not read: only existence and SHA-256 were checked. No old implementation, parent/sibling implementation or previous audit/fix conclusions informed this review. Only targeted portable tests and local read-only/temporary structural checks were executed.",
+  "startedAt": "2026-10-25T17:03:05.0824145Z",
+  "completedAt": "2026-10-25T17:13:56.324311Z",
+  "inspectedFiles": [
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "reference/PROTOCOL-CONTRACT.md",
+    "reference/PROVENANCE.json",
+    "scripts/release-audit.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ],
+  "findings": [],
+  "skipped": [],
+  "reviewedAreas": [
+    {
+      "area": "installation, identities and service ownership",
+      "assessment": "Reviewed fixed instance path and account validation, distinct gateway/control/native/build identities, exact managed unit/sudo recognition, preflight collision checks, source/control immutability, native launch authority, caller environment/FD closure, Linux process-tree cleanup and explicit project-versus-sandbox boundaries."
+    },
+    {
+      "area": "build, dependencies and archive import",
+      "assessment": "Reviewed pinned tool distribution validation, sanitized dependency inputs and approved overrides, separate bounded online fetch/offline candidate stages, copied store and registry-policy metadata, stopped-producer import, directory-descriptor verification, archive extension/decompression/member/byte bounds, complete runtime manifests and collision/reuse behavior."
+    },
+    {
+      "area": "receipts, restart, update and recovery",
+      "assessment": "Reviewed initial-install marker phases, previous/current selection rollback, strict stop/cgroup evidence, unknown outcome retention, independent management units, bounded spool admission and collection, executor revalidation, no replay from missing receipts, and recovery material preservation."
+    },
+    {
+      "area": "trusted control and provider layers",
+      "assessment": "Reviewed operator-only trusted checkout constraints, complete control generations, persistent start/launcher barriers, transient and escaped-process checks, original active/enabled service sets, rollback capability checks, host-policy fingerprints and separate root config-check namespace, immutable complete provider requirements and native user-layer retention."
+    },
+    {
+      "area": "providers and HTTPS",
+      "assessment": "Reviewed endpoint/key reuse scope, insecure private HTTP confirmation, Responses discovery caps/no redirect, gateway OAuth routing confirmation, fixed regional Bedrock bearer delivery, catalog default-versus-override semantics, paired identity/database recovery, TLS generations, validation before stop and retained recovery barriers."
+    },
+    {
+      "area": "workspace, Git and worktrees",
+      "assessment": "Reviewed descriptor-relative protected paths, revision and inode binding, single-link and no-replace publication, bounded retained records, explicit recovery/discard, config-free fixed Git command execution and child ownership, prepared ref/index transactions, raw staged-byte commits, supervisor binding requirements and whole-directory worktree archive preservation."
+    },
+    {
+      "area": "release tooling, tests and docs",
+      "assessment": "Reviewed unchanged-snapshot full-suite gate and file inventory exclusions, affected-test mapping including deletion/shared configuration, pinned CI actions and unprivileged/root fixture split, source packaging, meaningful failure injection and platform conditions. Operator docs distinguish mocks, historical source hashes, native local probes, actual Linux/root prerequisites and external business acceptance."
+    }
+  ],
+  "validations": [
+    {
+      "kind": "targeted-test-execution",
+      "status": "passed",
+      "command": "HARNESS_TEST_PYTHON=<HARNESS_TEST_PYTHON> node scripts/run-tests.mjs --targeted tests/deploy/test_dependency_lock.py tests/deploy/test_install_recovery.py tests/deploy/test_request_spool.py",
+      "platform": "Windows",
+      "nodeVersion": "v24.15.0",
+      "pythonVersion": "3.12.14",
+      "tests": 40,
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "durationSeconds": 1.781,
+      "evidence": {
+        "path": ".work/round13/deployment-targeted-public.log",
+        "sha256": "c9513d950cdfcbca61c0b35c2c188a18bf39267a9ac148c7cdae0741760e96ef"
+      },
+      "scope": "Portable bounded lock reading, first-install/release-pointer recovery and request spool fixtures. Service transitions and Windows pointer operations are substitutes, not real systemd or root isolation."
+    },
+    {
+      "kind": "complete-lock-structure",
+      "status": "passed",
+      "packages": 336,
+      "snapshots": 336,
+      "dependencyEdges": 623,
+      "reachableSnapshots": 336,
+      "integrityRecords": 336,
+      "bytes": 102240,
+      "evidence": {
+        "path": ".work/round13/deployment-lock-validation.json",
+        "sha256": "693c6620a9a7540e8142b76c572747c9926eb75378537fe4173ed5acef137056"
+      },
+      "scope": "All physical lock entries parsed with duplicate/unparsed-line rejection; exact v9 top-level sections, single importer/root pins, workspace override identity, registry integrity schema, every dependency edge and full reachability closure. Reviewed all field and engine constraint classes; no dependency install or advisory service was invoked."
+    },
+    {
+      "kind": "complete-capability-structure-and-semantics",
+      "status": "passed",
+      "typedMethods": 178,
+      "jsonMethods": 175,
+      "stableJsonMethods": 106,
+      "experimentalJsonMethods": 69,
+      "legacyMethods": 3,
+      "schemaPointers": 175,
+      "evidenceGroups": 50,
+      "additionalWorkflows": 15,
+      "referenceChecks": 674,
+      "uniqueReferencedPaths": 415,
+      "opaqueHistoricalReferenceChecks": 155,
+      "evidence": {
+        "path": ".work/round13/deployment-capability-validation.json",
+        "sha256": "05f27a968a3acb945561698bd36a47ea55250890ca21f35fe1c3b10fbadd93b2"
+      },
+      "scope": "Exact official generated TS/JSON/stable method sets and parameter types, valid JSON pointers, classification/status counts, one-to-one group closure, source line ranges and all recorded reference hashes. All group/workflow assessments and public aliases reviewed; repeated method assessments equal their reviewed group."
+    },
+    {
+      "kind": "ordinary-feature-evidence-reference-integrity",
+      "status": "passed-with-historical-drift",
+      "referenceChecks": 167,
+      "missing": 0,
+      "nonSourceHashMismatches": 0,
+      "historicalSourceHashDifferences": 29,
+      "evidence": {
+        "path": ".work/round13/deployment-evidence-pack-validation.json",
+        "sha256": "b34f4c584e4510db5d6f22616bd71f1d335624ea52fad32239d1f635286cd54e"
+      },
+      "scope": "Ordinary feature records were read in full. Referenced historic artifacts were hashed as opaque bytes, never accepted as this round execution. Older point-in-time source hashes differ in 29 references; the records explicitly state their moving-source boundary."
+    },
+    {
+      "kind": "fresh-source-package",
+      "status": "passed",
+      "command": "<HARNESS_TEST_PYTHON> -B -m deploy.cli pack-source --source . --output .work/round13/deployment-source.tgz",
+      "regularFiles": 1601,
+      "bytes": 1095182,
+      "archiveSha256": "bf7de6233f7c50f45a6a3ca3a280b122b89680a603e8e5d0d00142eea75f4515",
+      "evidence": {
+        "path": ".work/round13/deployment-pack-provenance-validation.json",
+        "sha256": "50fa19665610523d68107ad1a50748992d49777dd9abedc06cdfdce1973d83a5"
+      },
+      "scope": "Every archive entry is a regular file in the exact frozen allowed application subset; bytes match current source and owner/time/mode metadata are normalized. No dependencies/build output/private home/control tools were included. No extraction or candidate execution occurred."
+    },
+    {
+      "kind": "protocol-provenance-integrity",
+      "status": "passed",
+      "generatedJsonFiles": 458,
+      "generatedTypeScriptFiles": 904,
+      "bundleHashesMatched": 2,
+      "evidence": {
+        "path": ".work/round13/deployment-pack-provenance-validation.json",
+        "sha256": "50fa19665610523d68107ad1a50748992d49777dd9abedc06cdfdce1973d83a5"
+      },
+      "scope": "Local generated file counts and both recorded bundle SHA-256 values match PROVENANCE. This does not independently reauthenticate remote package provenance or rerun schema generation."
+    },
+    {
+      "kind": "audit-helper-attempts",
+      "status": "corrected-audit-harness-assumptions",
+      "observations": [
+        "The optional import yaml environment probe failed with ModuleNotFoundError; the complete restrictive standard-library lock parser was used instead.",
+        "The initial capability validator incorrectly removed nullable/undefined parameter unions before comparing the inventory. Four apparent mismatches disappeared after exact TS type comparison; the inventory retained the correct unions.",
+        "The initial evidence existence validator treated three referenced test directories as files. After recognizing directory existence, all 167 references were present."
+      ],
+      "retainedInitialArtifacts": [
+        {
+          "path": ".work/round13/deployment-capability-validation-initial.json",
+          "sha256": "4dd6b25100d3689d15d9b625de5e121207ee0d578b5b2ad9e02111be89f28e71"
+        },
+        {
+          "path": ".work/round13/deployment-evidence-pack-validation-initial.json",
+          "sha256": "5fdf1bc626d6451e1b5e16f36b6c7ca295c3383adf1e1ac41d2d9accdd16ca44"
+        }
+      ],
+      "scope": "These were audit-tool assumptions/environment availability, not product test failures. Actual product test run remained 40 passed, zero failed and zero skipped."
+    },
+    {
+      "kind": "whole-snapshot-unchanged",
+      "status": "passed",
+      "files": 1785,
+      "digest": "a630af3178fe351cadfc7a50b189cebd78c8a58ac7e927370bd123e19beb7c5c",
+      "checkedAt": "2026-10-25T17:13:56.324311Z",
+      "command": "node scripts/snapshot.mjs"
+    }
+  ],
+  "limitations": [
+    "No full or aggregate suite was run. All 115 assigned files were inspected; skipped is empty for review scope, not a claim that every test was executed.",
+    "Linux-only/root ownership tests, actual systemd/cgroup/mount/network-namespace behavior, root control migration, HTTPS issuance/login, host reboot recovery and real installed native launcher isolation were assessed statically in this Windows review. Existing records retain their own historical scope and cannot substitute for current acceptance.",
+    "No SSH, service mutation, production deployment, personal configuration/credentials, paid inference, external MCP, real authentication, account credit/email, Cloud task or remote sharing was used.",
+    "Current source/package checks do not establish external provider availability, TLS validity, account entitlement or absence of dependency advisories. Upstream URLs and pinned values were reviewed as recorded fixed-version inputs; no live supply-chain refresh was performed.",
+    "Historical feature records include failed CLI probe attempts and platform skips (including the Linux attachment Windows-only case and Windows POSIX cases); they remain historical limitations, not this round pass counts. Mock service/file fixtures do not prove complete deployed integration.",
+    "The capability inventory is workflow-level evidence. It does not promise every optional native parameter, unrestricted fs/Git access, exact recursive watchers, IAM/profile/GovCloud support or Windows production sandbox installation. Runtime/web implementation semantics outside the assigned deployment scope remain the other reviewers responsibility."
+  ],
+  "sourceEditsMade": false,
+  "testsEdited": false,
+  "coverageRegenerated": false,
+  "fullSuiteRun": false
+}

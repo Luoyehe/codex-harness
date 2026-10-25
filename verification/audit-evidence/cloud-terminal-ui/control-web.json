@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T23:03:00.714Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "cloud-terminal-ui",
+  "tests": 1,
+  "files": [
+    "web/components/TerminalPanel.tsx",
+    "web/lib/api.ts",
+    "web/components/Icon.tsx",
+    "web/App.tsx",
+    "web/tests/terminal.test.tsx"
+  ],
+  "contracts": [
+    "Cloud entry uses the fixed codex-cloud program contract with registered project and terminal dimensions only. It does not send arbitrary CLI flags or auto-create cloud tasks/apply patches.",
+    "Native account and cloud availability errors remain visible in the official PTY. Existing connection ownership, bounded terminal input/output, identity-only lost-response recovery and close-only handling remain active.",
+    "Native CLI close or exit requires explicit controlled service restart before further work; cloud acceptance is never described as task completion."
+  ],
+  "sourceHashes": {
+    "web/components/TerminalPanel.tsx": "ef9e2e7b6b06f9df2901957c1a880d56662b5bb390fe995644f65ff280781376",
+    "web/lib/api.ts": "1aaf6f9b9ef9769cb4da7836cb25704420e474a92380a9638418dafeac8daee1",
+    "web/components/Icon.tsx": "af1be6147ed51d55004912205d2ea52fa8386765d93b004c9ffb4b1efac667d6",
+    "web/App.tsx": "7f6244dfeb1518adf6d86da6559fe341276f3949934898ce76aae328503f643f",
+    "web/tests/terminal.test.tsx": "96f7c6b95d442976b372de76801b97e0bcf280b6159d843ee25aa1c527cd3075"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/prediction.test.tsx web/tests/loaded-threads.test.tsx web/tests/terminal.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 4,
+    "tests": 42,
+    "result": "passed",
+    "startedAtLocal": "2026-10-25T07:02:17+08:00",
+    "typecheck": "web TypeScript noEmit passed",
+    "build": "Vite production build passed: 377 modules; JS 1213.96 kB, gzip 343.64 kB; existing chunk size warning retained"
+  },
+  "limits": [
+    "Affected frontend tests only; no full suite, formal source audit, paid prediction or real cloud account operation.",
+    "Backend CLI/native validation belongs to runtime agent. No actual remote 120 browser actions by this agent.",
+    "Visual fixture acceptance and deployed integration remain separate. Terminal remains statically loaded to avoid the observed external-authentication CSS lazy-load failure."
+  ]
+}

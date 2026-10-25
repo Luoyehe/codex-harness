@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round8-fixes",
+  "reviewerId": "r8-runtime",
+  "phase": "authorized remediation after recorded round8",
+  "startedAt": "2026-10-25T10:21:03.549Z",
+  "completedAt": "2026-10-25T10:37:27.275Z",
+  "baseDigest": "492a6b22e554c92e91090eafb22cb95f571f0d2ef029f3e2daf542dcef3e0b8e",
+  "fixedFindingIds": [
+    "R8-RUNTIME-01"
+  ],
+  "complete": true,
+  "modifiedFiles": [
+    {
+      "path": "src/runtime/realtime.ts",
+      "sha256": "b8074f724c585636717fbb1905184be2c4339cd8b3f71474057560214ab91e4b",
+      "purpose": "Retain the expected native session ID, filter stale canonical/started identities, gate uncorrelated data until matching startup, wait for both stop acknowledgement and closed while retaining ownership/activity, and bound/revoke all cleanup waits."
+    },
+    {
+      "path": "tests/runtime/realtime.test.ts",
+      "sha256": "facf511de1e796e1c4b608104ca0050347a6d6be239f55a945f0381925226adf",
+      "purpose": "Correct the fixture to echo the requested session ID and model native closed separately; add 14 focused regressions for lifecycle races, ownership, cleanup and PCM limits."
+    }
+  ],
+  "otherProductFilesModified": [],
+  "officialProtocol": {
+    "tag": "rust-v0.164.0",
+    "commit": "6aaac694803004a63c6f393d153c96d22521a6b9",
+    "commitResolution": "https://api.github.com/repos/openai/codex/commits/rust-v0.164.0",
+    "sources": [
+      {
+        "file": "codex-rs/app-server/src/request_processors/turn_processor.rs",
+        "lines": [
+          1392,
+          1408
+        ],
+        "observation": "The stop handler submits RealtimeConversationClose and immediately returns the empty acknowledgement. This is not the transport-drained completion boundary.",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/app-server/src/request_processors/turn_processor.rs",
+        "download": {
+          "path": ".work/round8-fixes/runtime-upstream/codex-rs_app-server_src_request_processors_turn_processor.rs",
+          "sha256": "829219be3231b5a4f8bfae26b95dba1d58fae2a93a9d32b0de2d2b22fb01931d"
+        }
+      },
+      {
+        "file": "codex-rs/core/src/realtime_conversation.rs",
+        "lines": [
+          1269,
+          1284,
+          1293,
+          1322,
+          1756,
+          1785,
+          1786,
+          1876,
+          2048,
+          2070,
+          2824,
+          2840
+        ],
+        "observation": "Startup echoes the requested realtime session ID before SDP and fanout. A failed asynchronous startup can emit only error. Explicit detach awaits input/fanout shutdown before emitting closed, including when no active session exists. Natural completion publishes its terminal event before replacement startup; a concurrent queued explicit stop can add another close before the next matching started event.",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/core/src/realtime_conversation.rs",
+        "download": {
+          "path": ".work/round8-fixes/runtime-upstream/codex-rs_core_src_realtime_conversation.rs",
+          "sha256": "b2548eee613203508c4ee1b39f758d1a9d7e3c531a29f346be7a14562d6d24ab"
+        }
+      },
+      {
+        "file": "codex-rs/core/src/realtime_history.rs",
+        "lines": [
+          175,
+          204,
+          278,
+          294,
+          314,
+          334
+        ],
+        "observation": "Canonical timeline items retain the requested realtimeSessionId. Later backend-turn promotions may still identify an earlier realtime session; these must not be reassigned to its replacement.",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/core/src/realtime_history.rs",
+        "download": {
+          "path": ".work/round8-fixes/runtime-upstream/codex-rs_core_src_realtime_history.rs",
+          "sha256": "b8195c1b27caa58af63b9cb66d438ba36f3c4b642324825d2164a9a1ec61e36a"
+        }
+      },
+      {
+        "file": "codex-rs/core/src/session/realtime_history.rs",
+        "lines": [
+          11,
+          55
+        ],
+        "observation": "Canonical transcript/history effects are delivered with their retained item identities.",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/core/src/session/realtime_history.rs",
+        "download": {
+          "path": ".work/round8-fixes/runtime-upstream/codex-rs_core_src_session_realtime_history.rs",
+          "sha256": "1da2adeb9021aefc58f3f6a4e492285d5b6de56d8bfa1906676651f94c552f9c"
+        }
+      },
+      {
+        "file": "codex-rs/app-server/src/bespoke_event_handling.rs",
+        "lines": [
+          452,
+          505,
+          637,
+          646
+        ],
+        "observation": "The public started/canonical item notifications retain session identity, while SDP, audio and closed are thread-scoped without a session discriminator.",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/app-server/src/bespoke_event_handling.rs",
+        "download": {
+          "path": ".work/round8-fixes/runtime-upstream/codex-rs_app-server_src_bespoke_event_handling.rs",
+          "sha256": "3927fc3b68001df01898c1ee1eda3ea3be248d88fca4801049699cc95e497409"
+        }
+      },
+      {
+        "file": "codex-rs/app-server/tests/suite/v2/realtime_conversation.rs",
+        "lines": [
+          1745,
+          1868
+        ],
+        "observation": "The upstream stop integration awaits the stop response and then separately awaits closed; both signals belong to the supported lifecycle.",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/app-server/tests/suite/v2/realtime_conversation.rs",
+        "download": {
+          "path": ".work/round8-fixes/runtime-upstream/codex-rs_app-server_tests_suite_v2_realtime_conversation.rs",
+          "sha256": "f072577bd5fa005bc2407906a5172a4f3662c799487d2f04fa1a77fb709b9c22"
+        }
+      }
+    ],
+    "contractBoundary": "Once the exact requested started ID is observed, thread-only events rely on the pinned native ordered lifecycle: old fanout is drained before closed and replacement startup. Arbitrarily misordered thread-only data from a different or malicious native implementation is not distinguishable on this wire; no unsupported timestamp/quiescence heuristic or permanent per-thread ban was introduced."
+  },
+  "implementation": [
+    "A session stores its generated realtimeSessionId before the native write. Started and canonical item notifications must match that identity; late backend-turn promotions from older sessions are dropped from the current private stream while normal history invalidation remains intact.",
+    "SDP/audio/transcript and other uncorrelated data are suppressed until the expected started event. A prior duplicate closed notification before that boundary cannot close a newly admitted session. Error-only startup is still visible, and an explicit stop can terminate it without a started event.",
+    "Stop enters stopping immediately. Its owner and thread activity barrier remain until the native response and closed notification both settle, independent of their order. Final tail data remains routed to the old owner until closure; only one closed publication follows both signals.",
+    "A natural closure before the final stop write prevents that write, so a deferred cleanup cannot stop a future session. Definitively rejected startup can finish connection cleanup without closing unrelated work.",
+    "The entire cleanup wait has a ten-second bound, including outstanding startup/input/stop-response settlement. Runtime reset wakes the waiting cleanup. Missing closure or uncertain stop invokes shared whole-epoch cleanup; stopped true is returned only after that cleanup is positively confirmed, otherwise the stop rejects."
+  ],
+  "regressions": [
+    "stop response before closed; closed before response; held activity/private owner and final transcript through both boundaries",
+    "same-thread reuse with old started ID, old canonical transcript/promotion, old SDP/audio/transcript/closed before new matching started, and accepted new data after the matched boundary",
+    "accepted startup emitting error without started, explicit stop, complete-history refresh and restart",
+    "natural closure and closure immediately before stop write; no late native stop",
+    "missing closed deadline; delayed native process cleanup keeps stop pending; cleanup failure rejects instead of acknowledging stopped",
+    "epoch reset while waiting for startup, input, stop response or closed; no delayed cleanup writes or private event emissions",
+    "disconnect during definitively rejected startup preserves the usable native epoch",
+    "maximum valid 256 KiB PCM16 accepted; two-byte oversized frame rejected without consuming sequence or issuing a native write"
+  ],
+  "validation": [
+    {
+      "kind": "targeted-tests-initial",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/realtime.test.ts tests/runtime/service.test.ts tests/runtime/timeline-contract.test.ts",
+      "result": "passed",
+      "assertions": 51,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-ji1MB0/vitest.json",
+        "sha256": "ded01384db2f8b92d0087a63e8e1f4bca8b5c80f940446c1899ff8cfb97c124e"
+      },
+      "note": "Before the final delayed/failing whole-epoch cleanup assertions were added."
+    },
+    {
+      "kind": "targeted-tests-final",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/realtime.test.ts tests/runtime/service.test.ts tests/runtime/timeline-contract.test.ts web/tests/realtime.test.tsx",
+      "environment": {
+        "node": "v24.15.0",
+        "platform": "win32",
+        "HARNESS_TEST_CODEX_BIN": "reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe"
+      },
+      "result": "passed",
+      "files": 4,
+      "assertions": 65,
+      "skipped": 0,
+      "startedAt": "2026-10-25T10:34:54.648Z",
+      "perFile": [
+        {
+          "file": "tests/runtime/realtime.test.ts",
+          "passed": 21
+        },
+        {
+          "file": "tests/runtime/service.test.ts",
+          "passed": 29
+        },
+        {
+          "file": "tests/runtime/timeline-contract.test.ts",
+          "passed": 2
+        },
+        {
+          "file": "web/tests/realtime.test.tsx",
+          "passed": 13
+        }
+      ],
+      "evidence": {
+        "path": ".work/test-results/run-Ueub4T/vitest.json",
+        "sha256": "e56dbf6dd5e290282ff036e3bb12c4d3c1fc683c005e4ac7e3936cd88e7e7f56"
+      }
+    },
+    {
+      "kind": "typecheck",
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "result": "passed",
+      "exitCode": 0,
+      "diagnostics": 0,
+      "observedExecutionId": "09f7de",
+      "note": "Executed concurrently with the final focused run; no product source changes followed this check."
+    },
+    {
+      "kind": "audio-boundary-probe",
+      "result": "no reproduced overflow",
+      "evidence": {
+        "path": ".work/round8-fixes/audio-probe-before.json",
+        "sha256": "a39ef9cfd9e8a6beb126226c05936aa0756bc973b01ad052dddb5f433afc557a"
+      },
+      "helper": {
+        "path": ".work/round8-fixes/audio-probe-before.mjs",
+        "sha256": "f7b0dae7a9dbc03dc6824dc64f5e186a6e6e3148bbcc238fa2579e4686999a7f"
+      },
+      "observations": "Original round8 audio validation accepted both 128 KiB and maximum 256 KiB valid PCM16 on Node 24.15.0 (349528 Base64 characters for the maximum frame). No audio implementation change was justified; the maximum and oversized cases now have regression coverage."
+    }
+  ],
+  "newConfirmedFindings": [],
+  "repairPhaseObservations": [
+    "Official source review established that error-only accepted startup is legal and does not guarantee started/closed. The fix preserves error delivery and permits explicit stop to obtain its closure boundary.",
+    "The earlier test fixture used a constant native session ID rather than echoing the request; it now follows the fixed official contract.",
+    "A cleanup failure must remain a failed/unknown outcome even after a stop timeout. The regression verifies that an unconfirmed native-process close cannot produce a stopped receipt."
+  ],
+  "failedChecks": [],
+  "investigationCorrections": [
+    "One guessed official source path (codex_message_processor.rs) returned 404; the fixed-tag tree located request_processors/turn_processor.rs instead. No sibling or prior harness implementation was read.",
+    "The first two-size audio probe reused sequence 0, so the second request correctly returned sequence_conflict. The helper was corrected to increase its sequence and rerun; both valid sizes were accepted. This was probe setup, not a product failure."
+  ],
+  "skipped": [],
+  "limitations": [
+    "Only the named related tests and server TypeScript check ran. No full suite, SSH, deployment or online system mutation was performed.",
+    "Official fixed-tag source was read over HTTPS. No model, provider voice, external MCP, authentication or personal configuration was used.",
+    "Lifecycle regressions use deterministic native protocol substitutes. No successful live-provider audio session or platform process-controller acceptance is claimed.",
+    "Other agents are changing their authorized scopes concurrently. The source snapshot observed below is informational; final cross-scope snapshot/audit coordination belongs to the parent."
+  ],
+  "snapshotObservedAtFinish": {
+    "files": 1783,
+    "digest": "777b24b35f52454d68c7d38d4aa5ee6ebecee4cf4aab1d32ba548bccc5d09155"
+  }
+}

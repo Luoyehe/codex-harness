@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "phase": "organization-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:29:02.299Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/lib/organization.ts",
+    "web/lib/types.ts",
+    "web/styles-extensions.css",
+    "web/tests/organization.test.tsx",
+    "web/components/McpConfiguration.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "81fc0d01fd84a0d3cb36760b1567421ac5414b1d698488d0bd32ca9ca73e9349",
+    "web/components/Sidebar.tsx": "373d65c7cee76a82a2abb73926b7ec49d784bcc74f69a62fba3a28def620c87b",
+    "web/components/OrganizationPanel.tsx": "257744d770f3955e383208f9bd8a646e62a6b5dfbec12326dff78257594dda34",
+    "web/components/NativeProjects.tsx": "69d0b9cdcda4604cab100fb5bec8092311329bb2682f0e8674a2f537ad0c1dbd",
+    "web/components/ThreadOrganization.tsx": "1341aeb036f1c62f29f0be7a7cddacced45a4dffbf9abd5a0dde4fa91e331e94",
+    "web/components/ExtensionControls.tsx": "e1e7d4baa89b8404f9ea348b0001756558a4b0fe37696ce9221cb19fc0387567",
+    "web/lib/organization.ts": "03f8cc683203905570c0a69d49b893cdcb13421b33944fe47affcc8b635de250",
+    "web/lib/types.ts": "8ff544b1aff0998fc140970ec9cc2a64d6f285338e815af3e5bc793cf70048bc",
+    "web/styles-extensions.css": "c9f130c5139f0e1739a18136626df53050110457090744f4bad0266456c63eb9",
+    "web/tests/organization.test.tsx": "a2a32b124a47b97fb78a3ea372108cab1754a6fddbcf9275c3142dd06288dcc0",
+    "web/components/McpConfiguration.tsx": "b8176865b5d4578229d94cc988dd84efa95462d57991faee16d83b193973ae09"
+  },
+  "contracts": {
+    "projects": "Native project metadata is separate from registered workspace roots. CRUD/order use nativeProjectId/beforeNativeProjectId. Creation/import and explicit root replacement send only registered projectIds, never paths/cwd. Name-only edits omit roots/metadata to preserve unknown or unregistered metadata. Import supports current full-history-loaded thread only, requires global idle, and uses a stable per-form idempotencyKey.",
+    "sections": "Native section create/update/delete with persisted name/appearance; explicit deletion states association-only semantics. Current-thread move carries sectionId and beforeThreadId chosen from same registered cwd and selected section. Sidebar shows native section labels and supports recency or native section-position ordering.",
+    "thread": "Pure thread/read supplies native project/section and readState revision. Mark read/unread sends captured expectedRevision; stale updates never retry. Stop-subscribe does not claim process unload; permanent history deletion requires complete readiness,idle and explicit user confirmation. Memory-mode buttons report only this accepted action and do not invent a readback state.",
+    "attachments": "Purpose-built HTTP(S),pull-request and registered-project-relative file-description forms save native association metadata. No upload, checkout or external action. Removal confirms metadata-only intent. Owner search stays registered-project scoped and empty filtered pages retain pagination.",
+    "delivery": "Durable mutation/unknown-receipt workflow for all changes. Original IDs are queried; no automatic replay. Late accepted deletion returns to list. Unsent project/section selection survives unrelated metadata refresh; inputs are disabled during submitted form work to avoid discarding newer typing. Pending global operations block another organization write.",
+    "backendSemantics": "Runtime owner separately confirmed with official CLI that native project/section deletion removes organization/associations only and preserves thread history and workspace files. This UI report does not independently re-run that native probe."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/organization.test.tsx web/tests/app-lifecycle.test.tsx web/tests/workflows.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/mcp-ui.test.tsx web/tests/extensions.test.tsx web/tests/settings.test.tsx",
+    "testFiles": 8,
+    "tests": 77,
+    "organizationSpecificTests": 8,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle threshold warning remains",
+    "browser": "Fresh15-minute loopback-only read-only fixture port5114 sent to parent for CUA. Includes native project/section/readState/association metadata examples."
+  },
+  "limits": [
+    "No full suite or formal clean audit.",
+    "Frontend tests use controlled responses; not deployed/native integration proof.",
+    "Native project import currently offers current reviewed thread only, not bulk arbitrary-thread import.",
+    "Association forms cover links,PR links and file descriptions; no generic arbitrary payload RPC editor is exposed.",
+    "No fake current memoryMode state; native API has no readback field.",
+    "No paid inference,real external MCP,personal credentials,online deployment or120browser interaction.",
+    "Scheduler,composer references and workspace backup recovery UI remain next assigned batches."
+  ]
+}

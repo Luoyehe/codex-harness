@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-https-client-preparation",
+  "createdAt": "2026-10-25T17:19:59.779Z",
+  "acceptanceExecuted": false,
+  "instance": "crtest-rw-20261025",
+  "sourceDigest": "a630af3178fe351cadfc7a50b189cebd78c8a58ac7e927370bd123e19beb7c5c",
+  "artifacts": [
+    {
+      "path": ".work/final-https-acceptance.mjs",
+      "sha256": "6b047cc9de2d29d9db660bbb1809e0bb4efcc97cf747061f7ef7ac65810c6e84"
+    },
+    {
+      "path": ".work/FINAL-HTTPS-ACCEPTANCE-PLAN.md",
+      "sha256": "90556eacc147c2a24313fcc2865dba4aabe14af66ebfb9caf8ba7d0d7a0e8129"
+    }
+  ],
+  "review": {
+    "reviewer": "r13-runtime-supporting-review",
+    "scope": "Ignored future HTTPS acceptance script and current contracts; separate from source audit round",
+    "initialConcerns": [
+      "Cleanup lacked positive second-terminal startup proof and epoch comparison",
+      "HTTP timeout was inactivity-only and shorter than diagnostic allowance",
+      "Unknown mutation outcomes lost original operation identities",
+      "Terminal successful exit code was not asserted",
+      "Setup JSON parsing could expose invalid input in errors"
+    ]
+  },
+  "corrections": [
+    "Positive split-marker shell output and active-terminal check before disconnect; original runtime epoch required after reconnect",
+    "Absolute 20-second requests, bounded 90-second diagnostic and 15-second cleanup polling",
+    "Fsynced write-ahead operation identity journal; accepted/not_sent/unknown observations retained, no blind replay",
+    "PTY exitCode must equal zero",
+    "Generic configuration JSON errors; root-owned nonsymlink non-writable result ancestors"
+  ],
+  "validation": {
+    "syntaxCheck": "passed",
+    "execution": "not-performed",
+    "correctedIndependentRereview": "not-performed",
+    "rootReview": "completed against reported concerns and current gateway/runtime contracts"
+  },
+  "limitations": [
+    "The existing synthetic canonical native-owned Git project must be verified on120 before execution",
+    "No source tests, full tests, SSH, real authentication, deployed services or external model/MCP calls were performed by this preparation",
+    "Final controlled update, TLS/API/WS/native-helper checks and separate browser acceptance remain pending"
+  ]
+}

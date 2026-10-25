@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round2-fixes",
+  "reviewerId": "r2-deploy-release",
+  "findingIds": [
+    "R2-DEPLOY-001"
+  ],
+  "status": "fixed",
+  "completedAt": "2026-10-24T19:41:31.009Z",
+  "snapshotAtReport": {
+    "files": 1525,
+    "digest": "93726985da53b31a8b527fb363f8a48b3c1c1e0433c36d64398d73cf2f0eb282"
+  },
+  "summary": "Separated real Linux root-ownership transaction fixtures from unprivileged deployment checks. Affected CI preserves ordinary-user execution and runs only the selected root fixtures in an additional disposable hosted job, using the OS Python interpreter and a clean environment. No production deployment behavior or ownership rule was weakened.",
+  "changes": [
+    "Moved the real ownership-dependent control-update, HTTPS transaction, management-boundary and release-reuse classes into four tests/deploy/root/test_*.py files. Ordinary interface/rendering/preflight/installation checks remain in their original unprivileged group. The two HTTPS rendering tests moved from test_deployment.py to the ordinary test_https.py, preserving all test cases.",
+    "Added an explicit deploy-root impact group. Changes to either half of each split fixture select both identity groups; missing companions require coverage review. The all selection still includes both groups, and workflow changes select deployment identity regressions.",
+    "Added a separate ubuntu-24.04 CI job guarded by RUNNER_ENVIRONMENT=github-hosted. It receives only the exact selected root-file list from the impact plan, checks bounded unique ordinary paths, and executes those files with /usr/bin/sudo and OS-installed /usr/bin/python3 -I -B in an empty environment with an isolated temporary home. Checkout and all npm/pnpm installation remain unprivileged; the root job installs no dependencies.",
+    "Preserved nonzero missing-interpreter, empty-file and skipped-test results. Added regression checks proving nested root fixtures remain in targeted/full inventories and verifying identity-group selection. The full-audit gate was not changed; run-tests.mjs already supports the nested paths.",
+    "Updated deployment test instructions and qualified pre-split Windows counts as historical evidence."
+  ],
+  "changedFiles": [
+    ".github/workflows/affected.yml",
+    "scripts/select-tests.mjs",
+    "deploy/README.md",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/run-tests.test.ts"
+  ],
+  "fileSha256": {
+    ".github/workflows/affected.yml": "f2bdd5cf75795e0d1af7a56451784274001c794042a21f4373bfccb497e4a84f",
+    "scripts/select-tests.mjs": "ccebf82a2d343b68c7b57357facbf0e9da2e4f75df4c23d5282b88c85e8f94ae",
+    "deploy/README.md": "6ccf02434c35361b81fcf934513b1d1048bf538e96669a7f3c6f9b2d47a3a5fc",
+    "tests/deploy/test_control_update.py": "f11f23ac2cc6c4dcd431696e548f41b715646c703fbe157548135c5b032a91f4",
+    "tests/deploy/test_deployment.py": "38665528181b2891c71ede8b5df8df535e864cbfef13c5a931e957c8754d8956",
+    "tests/deploy/test_https.py": "60a638feea402901f513ad052ae7ff6ecb90c6accb1992cd3fe6caf03d6e5981",
+    "tests/deploy/test_install_recovery.py": "357eb53acca85c01f16e032cfbf2d2055d9a4b9d1465c69f67a64655f5f6945e",
+    "tests/deploy/test_management_boundaries.py": "b721a94ede9dbf89c7585b2ccaa0060c04ec082aa3992689586a8c65d347dce9",
+    "tests/deploy/root/test_control_update.py": "abf16eb30940adc10637b2a4d9c850b1b4ae3c43a1ff152ee5131985026e38b5",
+    "tests/deploy/root/test_https.py": "12e00e1bbc41e96fe4f445e79b6d820e8589906e32758cbf6f62372786c9d28e",
+    "tests/deploy/root/test_management_boundaries.py": "76cd164467af562aa714998a997351d3c8aad74a4b563da5a9c78bab7a48f65f",
+    "tests/deploy/root/test_release_reuse.py": "a058028019990a51f0273ea0315a02f24bf7d883e823bbd2c42c7f9cbb0f3e54",
+    "tests/tooling/select-tests.test.ts": "fd7412942356853b77db1a2a56e6cd7ff945eae7f1b624c12063d22792c548c9",
+    "tests/tooling/run-tests.test.ts": "f80bdb4c959e3474f5a781d10d6464ca896b99f17bb3c038d578a839c418f3af"
+  },
+  "validation": [
+    {
+      "kind": "targeted-tooling",
+      "platform": "Windows",
+      "files": [
+        "tests/tooling/select-tests.test.ts",
+        "tests/tooling/run-tests.test.ts"
+      ],
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": ".work/test-results/run-zT45yF/vitest.json"
+    },
+    {
+      "kind": "targeted-ordinary-deployment",
+      "platform": "Windows",
+      "files": [
+        "tests/deploy/test_control_update.py",
+        "tests/deploy/test_https.py",
+        "tests/deploy/test_install_recovery.py",
+        "tests/deploy/test_management_boundaries.py"
+      ],
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "unsupported-platform-negative-check",
+      "platform": "Windows",
+      "files": [
+        "tests/deploy/root/test_https.py"
+      ],
+      "passed": 0,
+      "skipped": 10,
+      "runnerStatus": "skipped",
+      "runnerExitCode": 3,
+      "purpose": "Verified that Linux/root absence remains a nonzero coverage gap rather than a pass."
+    },
+    {
+      "kind": "syntax",
+      "result": "All 12 deployment test files and the exact CI root Python heredoc compile without writing bytecode; scripts/select-tests.mjs passes node --check."
+    },
+    {
+      "kind": "source-security",
+      "files": 14,
+      "bytes": 186241,
+      "status": "clean",
+      "findings": [],
+      "artifacts": [],
+      "unreadable": [],
+      "skipped": []
+    },
+    {
+      "kind": "real-linux-identity-validation",
+      "evidence": "verification/audit-evidence/round2-fixes/linux-ci-identities.json",
+      "ordinary": {
+        "identity": "nobody",
+        "files": 8,
+        "passed": 67,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 8.005
+      },
+      "root": {
+        "identity": "root",
+        "files": 4,
+        "passed": 40,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 1.518
+      },
+      "serviceSafety": "Parent verified all six existing service PIDs and InvocationIDs were unchanged. The root driver was extracted verbatim from the workflow heredoc.",
+      "initialHarnessFailure": "The first isolated validation tar omitted package.json, pnpm-lock.yaml and pnpm-workspace.yaml, causing two source-input tests to error while the other 65 ordinary tests passed. Adding those three unchanged source inputs produced the final 67/67 result. The ignored packaging helper was corrected; no product/test code change was required for this harness error."
+    }
+  ],
+  "validationBundle": {
+    "path": ".work/r2-deploy-ci-validation.tar.gz",
+    "sha256": "b8de4cba1c801557c3f2149745cbbcfca2951e3b9310010602ecad301bdcd7db",
+    "manifest": ".work/r2-deploy-ci-validation-manifest.json"
+  },
+  "limits": [
+    "The actual GitHub hosted workflow was not dispatched. Its exact root Python driver and selected files were executed on the isolated Linux host; checkout/job-expression behavior remains a static workflow review.",
+    "The Linux execution and unchanged-service observations were performed and reported by the coordinating root agent, with the separate linked Linux evidence artifact.",
+    "No full repository suite was run, no online deployment/migration occurred, and no paid model or external MCP operation was performed.",
+    "This is a targeted fix/verification record for R2-DEPLOY-001, not an independent clean full-repository audit and not authorization to bypass the three-round gate."
+  ]
+}

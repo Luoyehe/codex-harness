@@ -1,0 +1,365 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T20:56:19.600Z",
+  "fullSuiteRun": false,
+  "kind": "isolated-linux-policy-probes",
+  "cli": "0.164.0",
+  "host": "192.168.1.120",
+  "cases": [
+    {
+      "transport": "http",
+      "mode": "api-denied",
+      "denied": true,
+      "error": {
+        "code": -32600,
+        "message": "API key login is disabled. Use ChatGPT login instead."
+      },
+      "seen": [
+        {
+          "port": 30313,
+          "method": "CONNECT",
+          "path": "github.com:443",
+          "authorizationPresent": false
+        }
+      ],
+      "exitCode": 0
+    },
+    {
+      "transport": "http",
+      "mode": "chatgpt",
+      "turnAccepted": true,
+      "seen": [
+        {
+          "port": 30313,
+          "method": "CONNECT",
+          "path": "github.com:443",
+          "authorizationPresent": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/codex/models?client_version=0.164.0",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/ps/plugins/suggested/codex?scope=GLOBAL",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/api/codex/ps/mcp",
+          "authorizationPresent": false
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/codex/analytics-events/events",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/codex/models?client_version=0.164.0",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/ps/plugins/suggested/codex?scope=GLOBAL",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30313,
+          "method": "CONNECT",
+          "path": "api.github.com:443",
+          "authorizationPresent": false
+        },
+        {
+          "port": 30313,
+          "method": "CONNECT",
+          "path": "chatgpt.com:443",
+          "authorizationPresent": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/api/codex/ps/mcp",
+          "authorizationPresent": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/api/codex/ps/mcp",
+          "authorizationPresent": false
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/api/codex/ps/mcp",
+          "authorizationPresent": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/settings/user",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/ps/plugins/suggested/codex?scope=GLOBAL",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/codex/responses",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/codex/analytics-events/events",
+          "authorizationPresent": true
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true
+        }
+      ],
+      "result": "/var/tmp/crtest-provider-boundary-3p9acwh2/chatgpt/result.json",
+      "exitCode": 0
+    },
+    {
+      "transport": "websocket",
+      "mode": "api-denied",
+      "denied": true,
+      "error": {
+        "code": -32600,
+        "message": "API key login is disabled. Use ChatGPT login instead."
+      },
+      "seen": [
+        {
+          "port": 30313,
+          "method": "CONNECT",
+          "path": "github.com:443",
+          "authorizationPresent": false,
+          "websocketUpgrade": false
+        }
+      ],
+      "exitCode": 0
+    },
+    {
+      "transport": "websocket",
+      "mode": "chatgpt",
+      "turnAccepted": true,
+      "seen": [
+        {
+          "port": 30313,
+          "method": "CONNECT",
+          "path": "github.com:443",
+          "authorizationPresent": false,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/codex/models?client_version=0.164.0",
+          "authorizationPresent": true,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/ps/plugins/suggested/codex?scope=GLOBAL",
+          "authorizationPresent": true,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/codex/responses",
+          "authorizationPresent": true,
+          "websocketUpgrade": true
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/api/codex/ps/mcp",
+          "authorizationPresent": false,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/codex/models?client_version=0.164.0",
+          "authorizationPresent": true,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "POST",
+          "path": "/managed/codex/analytics-events/events",
+          "authorizationPresent": true,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/ps/plugins/suggested/codex?scope=GLOBAL",
+          "authorizationPresent": true,
+          "websocketUpgrade": false
+        },
+        {
+          "port": 30312,
+          "method": "GET",
+          "path": "/managed/api/codex/accounts/check",
+          "authorizationPresent": true,
+          "websocketUpgrade": false
+        }
+      ],
+      "result": "/var/tmp/crtest-provider-boundary-jsojtvsp/chatgpt/result.json",
+      "exitCode": 0
+    }
+  ],
+  "hostCheck": {
+    "root": "/var/tmp/crtest-config-chain-lvdw9s7k",
+    "units": [
+      "crtest-config-chain-86e1c345ee61-check.service",
+      "crtest-config-chain-86e1c345ee61-worker.service"
+    ],
+    "passed": true,
+    "cleanupConfirmed": true,
+    "checks": [
+      {
+        "seen": "HOST",
+        "uid": 0
+      },
+      {
+        "seen": "HOST",
+        "uid": 0
+      },
+      {
+        "seen": "HOST-DRIFT",
+        "uid": 0
+      }
+    ],
+    "mains": [
+      {
+        "seen": "BOUND",
+        "uid": 65534
+      },
+      {
+        "seen": "BOUND",
+        "uid": 65534
+      }
+    ],
+    "driftStartExit": 1
+  },
+  "findingsResolvedInDesign": [
+    "ExecStartPre plus prefix sees bound config on target systemd; a separate root oneshot sees original host policy on every start/restart.",
+    "Built-in openai definitions cannot be overridden. Requiring openai plus chatgpt_base_url alone does not prevent user openai_base_url redirecting model discovery and inference.",
+    "Complete required harness_chatgpt definition and ChatGPT-only authentication pin model and service routes."
+  ],
+  "limits": [
+    "All credentials were synthetic. PrivateNetwork isolated every probe; the loopback proxy rejected CONNECT requests and external traffic could not leave its network namespace.",
+    "HTTP and WebSocket requests reached only the managed loopback endpoint. Deliberate 503 responses verify routing, not commercial model success.",
+    "The original combined probe exit code was 1 because its disproven plus-prefix premise was retained as a negative case; both provider cases exited 0. The replacement independent-check-unit probe passed.",
+    "No installed harness services or host /etc/codex policy were modified."
+  ],
+  "localEvidenceSha256": {
+    ".work/provider-boundary-result.json": "2b32155cd760c57f5d768ec5dbe445141979ea885525e108993aeba4a67c4b64",
+    ".work/provider-boundary-websocket-result.json": "d410254858113609e0fd3d0466064fb0ff092cccbe9d71ddc7a1fd698efa743e",
+    ".work/config-check-chain-result.json": "cf40c509450bd95c795b8a08583be09b54ccea7bbd8d970be8b0b0aa9adab344"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "phase": "input-context-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:46:09.430Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/components/Composer.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/lib/api.ts",
+    "web/lib/drafts.ts",
+    "web/lib/input-context.ts",
+    "web/hooks/useDraft.ts",
+    "web/styles-input-context.css",
+    "web/tests/input-context.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "4c540dba9b0aded2d9b55e8fcdb0818973f635871536634f0bfc03514490831c",
+    "web/components/Composer.tsx": "c66f8d81456d79f4e4646d5a66c406b4d2d97b678d7e489de8bdb18125ac7650",
+    "web/components/InputContextPicker.tsx": "f4b4032b1bda8a4749a09da1eb32bd0c8d869cd29bedf918573c5da987a2348e",
+    "web/components/FileEditor.tsx": "b6b4d97fe165bed07b4c3fc0842ceb243470e9061687f3a69afab60c00f47464",
+    "web/components/WorkspacePanel.tsx": "24623309ccd240bd11145ab86a0be130ece8750112edd430cde185dad1e46b3c",
+    "web/components/TaskPanel.tsx": "bae846e2040c26ce4d251be623e3c7b88e7b549a1cfc6161bfbbd8b7c4d433c0",
+    "web/components/DraftsSettings.tsx": "88197200f8acb46f540696febef2fac72dec42289eae0e82b8c17fcbd8982d73",
+    "web/lib/api.ts": "57efc5bf3f6716e88f13d1073f3450175ab4f56015303b0584d67013a0c8ae7b",
+    "web/lib/drafts.ts": "cc908e2875958c1953af543d5c7f6c24adbc5093379c070acfb93baae6dfb624",
+    "web/lib/input-context.ts": "49402b52a14fb3b8d946183cbfd3b2d754a961c476cbf6cdfe76dd06c2b70e5d",
+    "web/hooks/useDraft.ts": "2ba3313f80b8e09074425755ba0043e48870fc687802d3458ac855c27b5a9900",
+    "web/styles-input-context.css": "1db5965bfb3ba38c9cf6299625e6070ec0d9aa8a016dc7fd4bc7dd206663e3a1",
+    "web/tests/input-context.test.tsx": "9ab6e2c3a3984bc178f43a42916cb9f11deb69245f33cfa740981a1f07e91aca"
+  },
+  "contracts": {
+    "references": "Fresh current-project skills and installed callable Apps selected by opaque identity. File references come only from selected saved preview lines, captured SHA revision and registered project owner. At most24 references,8 notes,2000file lines. Backend rechecks fresh availability/file revision at dispatch. Display labels and browser project ownership never enter native references payload.",
+    "drafts": "References,notes and raw structured-output schema persist with per-project/thread draft revision and bounded sessionStorage. Metadata-only file references store no file text. Storage failure preserves current input and blocks dispatch. Accepted receipt can clear only the original matching text/attachments/references/notes/schema snapshot; newer edits survive.",
+    "send": "conversation/start,turn/start,turn/steer,thread/queue/add receive top-level references and extraContext. Empty text allowed when context exists. Normal send only accepts outputSchema object under options; queue/steer blocked until schema cleared or send mode changed. Schema size/depth/nodes and internal-only refs checked before dispatch; provider/backend remain authoritative.",
+    "queue": "Existing reference-only queue item can be edited without adding text. update omits references and attachmentIds, retaining opaque references and file/note source markers. UI explicitly says only main text changes.",
+    "trust": "Files and notes are contextual data; backend forces untrusted treatment. UI does not elevate instructions or execute HTML/remote schema refs."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/input-context.test.tsx web/tests/drafts.test.tsx web/tests/composer.test.tsx web/tests/operations.test.ts web/tests/workspace-ui.test.tsx web/tests/workflows.test.tsx web/tests/app-lifecycle.test.tsx web/tests/settings.test.tsx",
+    "testFiles": 8,
+    "tests": 72,
+    "inputSpecificTests": 8,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle threshold warning remains"
+  },
+  "limits": [
+    "No full suite or formal clean audit.",
+    "Controlled frontend tests and actual App RPC envelope test; not paid model/native inference proof.",
+    "Backend owns combined file plus notes byte budget and validates current file hash again.",
+    "No externalMCP,personal credentials or120online deployment/browser interaction.",
+    "New read-only visual fixture5116 supplied to parent for CUA.",
+    "Import and workspace recovery/worktree remain next batches; no feature acceptance boxes marked complete."
+  ]
+}

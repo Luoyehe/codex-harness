@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-25T07:39:42.866Z",
+  "cli": "0.164.0",
+  "sourceFrozen": false,
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "reports": [
+    {
+      "file": ".work/test-results/run-1wWw4f/vitest.json",
+      "sha256": "93a46a3efcf5bb54f6a884008130921a7aa751027080cab799dd2f05c030f8dd",
+      "passed": 57,
+      "failed": 0,
+      "skipped": 0,
+      "completePass": true,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-yOwE9d/vitest.json",
+      "sha256": "48047eb974098d06d03f79085d96060dfb550e4ac38c4cc1b9017b30f0361e10",
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "completePass": true,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-GVUuId/vitest.json",
+      "sha256": "99815e2b31ba1fe959d25b90262d8deac643207df0840bb6ec6bb2289d211304",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "completePass": true,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-EfCQ8r/vitest.json",
+      "sha256": "2256203cd3149d1ca87b4fc020a413ff2dfd26895b6bf7168e9c355e322c8009",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "completePass": true,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-sEFZJm/vitest.json",
+      "sha256": "11dad6f4c2da4f7615caebffe820bdc3eb9a65a2db0745ba1a68fa6df674ce4d",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 2,
+      "completePass": false,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-gH5eIJ/vitest.json",
+      "sha256": "3677b9d78af9fe97ff31c4f71bb6facaca31cd54cdba097aef384c47abee2695",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "completePass": true,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-9Jop64/vitest.json",
+      "sha256": "53c5c4117dc73293b1de34a26854a6e9bef2aae49f2f76c5e365c5e05d7bb7f6",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "completePass": true,
+      "overlappingRunsNotSummed": true
+    },
+    {
+      "file": ".work/test-results/run-VAzKaD/vitest.json",
+      "sha256": "9e7433e2ebf4c0b350605b94d08d1a5439b424bcd4055d234be5dcce4c5da64e",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "completePass": true,
+      "overlappingRunsNotSummed": true
+    }
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "src/runtime/device-login.ts": "9de0debd83ead4ec67fba35b8c00fd244f45493bac03d27f1a710995d69d0308",
+    "src/runtime/service.ts": "fa2db38f8c583e900a5eda5da04e4d5eecc309925e5c34e443ccb13c08481a8d",
+    "src/runtime/account-tools.ts": "002ba18612e76cfd53b667e7a09ca5747bca5bd9b7ee8d4657f9ec06355f85ec",
+    "src/gateway/receipt-result.ts": "0a7d800698388bfc40f39c8beccfbad493691e9a1603283514fce0754045bf26",
+    "web/components/ProviderSettings.tsx": "c1f765a8a1c6d5fb44d3003679c041fdb13bafcccf0c96c17c994a3c23d087ef",
+    "web/components/CreditNudge.tsx": "d9501973b22260730557b42816d10c09ad96220135b9c4b4d9e93c879ba0e5bb",
+    "web/components/CliDiagnosticsPanel.tsx": "123844e37278a82da484a07b3f4ef402737d35368c072ba1c38bd49e3c0c3aff",
+    "web/components/MessageMedia.tsx": "6f3881ef9d3f87a9bebb40493e062837e27d3389d065d5f1a22e28a8335b94ab",
+    "web/lib/media.ts": "fa8cb8151a230ec5c8bf2fcad3d162fa0acc2ede4b2630781042cad8d2d2a900"
+  },
+  "verified": [
+    "Device login receipts persist identity only. Codes and URLs belong to one client/channel and are revoked on cancellation, expiry or disconnect. Queued dispatch, late responses and early completion are covered; unknown outcome cannot safely start a second login.",
+    "Workspace owner email requires explicit reason and fresh account confirmation. Native cooldown is preserved; uncertain dispatch remains unknown. Tests use protocol substitutes only; no actual email was sent.",
+    "Provider forms preserve version-conflict and unknown-receipt recovery while separating Gateway HTTPS/OAuth and region-scoped Bedrock credentials. Neither browser storage nor public receipts contain those secrets.",
+    "Media preview is requested explicitly, bounds bytes and raster dimensions, forbids SVG/HTML preview and automatic remote loading. History attachments require exact retained thread/path; project fallback requires fresh metadata plus identical download revision. Empty ordinary files remain downloadable.",
+    "CLI diagnostics UI preserves actual report findings, reads private owner-bound output and resolves uncertain execution from the original receipt. Bounded timeout and truncated output display distinct fixed reasons, never a successful health check. The Linux native warning status is explicitly displayed as a completed check with reminders. Native execution evidence belongs to runtime-guardian-cli evidence.",
+    "Browser fixture at port 5123 visibly rendered image and native audio controls, provider form boundaries and credential confirmations. Screenshot reference/evidence/media-preview-browser.png. It is a read-only fixture and not deployed API acceptance."
+  ],
+  "limitations": [
+    "No paid inference, external MCP, real OAuth flow, actual email or credit redemption was performed.",
+    "The Windows attachment report run-sEFZJm has two platform skips, not a complete pass. Complementary Linux attachment verification is recorded separately in attachments-linux.json.",
+    "Latest isolated 120 instance deployment, unchanged-source independent audits and full suites remain pending."
+  ]
+}

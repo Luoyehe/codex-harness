@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:56:33.154Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedFrontendBatch": true,
+  "phase": "hook-events-ui",
+  "files": [
+    "web/components/HookEventsPanel.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/App.tsx",
+    "web/tests/hook-events.test.tsx"
+  ],
+  "tests": 4,
+  "contracts": [
+    "The workspace captures Hook notifications while settings is closed and exposes them under skills/hooks.",
+    "Current-connection memory is bounded to 100 records and 512 KiB, with per-run output truncation. Discarded/malformed/truncated states are visible, and the UI explicitly disclaims complete history.",
+    "Runs are merged by thread and native run identity, never downgraded by late start notifications. Outputs render as plain text and grant no execution authorization. Disconnect/owner replacement clears prior records."
+  ],
+  "sourceHashes": {
+    "web/components/HookEventsPanel.tsx": "24a86a726bd405ac7ce1374885c886d9392895e9726be983d812e3fd480abfd1",
+    "web/components/SkillSettings.tsx": "2f25d99289a59cc151aa1143374def5fa4287ea56562231b6ca64603760b4493",
+    "web/App.tsx": "a58a3e760302d09472d160a09c2e317aab93deb282c7fbe2ee27a6b18832ba79",
+    "web/tests/hook-events.test.tsx": "22ac945145612493a33831fdd1bad89c62d1e0414732b364c2dd1e109dd170f6"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/hook-events.test.tsx web/tests/memory-settings.test.tsx web/tests/device-login.test.tsx web/tests/extensions.test.tsx web/tests/app-lifecycle.test.tsx",
+    "testFiles": 5,
+    "tests": 38,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed"
+  },
+  "limits": [
+    "Affected frontend tests only, no full suite or formal frozen audit.",
+    "No real account authentication, reset credit consumption, paid inference or external Hook execution by this agent.",
+    "Hook prompt history rendering is implemented and validated separately by root.",
+    "No visual or deployed 120 acceptance claimed for this batch."
+  ]
+}

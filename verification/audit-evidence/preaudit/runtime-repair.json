@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "preaudit-repair-evidence",
+  "formalCleanRound": false,
+  "sourceFindings": "verification/audit-evidence/preaudit/runtime.json",
+  "repairedFindings": ["PRE-RUNTIME-01", "PRE-RUNTIME-02", "PRE-RUNTIME-03", "PRE-RUNTIME-04", "PRE-RUNTIME-05", "PRE-RUNTIME-06"],
+  "changes": [
+    "All paginated and legacy history turns must explicitly declare full items. A client/thread must complete a continuous traversal before turn or compaction admission, rechecked at the final native write. Creation provenance permits only known unmaterialized first turns.",
+    "History traversals are invalidated when a new first page begins, a client or gateway disconnects, or runtime closes. In-flight responses cannot reestablish an old proof. Disconnect releases capacity even if the client has no terminal.",
+    "Attachments use per-send in-memory reservation ownership backed by durable thread pins. Only a definitive not_sent releases the current send's uncommitted references; prior pins, overlapping accepted or uncertain references, and restart uncertainty remain retained. A failed rollback is conservative.",
+    "Read-only thread/resume no longer accepts options. A known rejected first turn preserves the partial creation receipt without inventing unknown live activity. A genuinely unknown first turn still blocks work.",
+    "Observed turn lifecycle or status-only activity invalidates fresh-thread provenance; a later rejected request cannot restore it.",
+    "MCP elicitation cancellation, decline, and URL confirmation preserve the official missing/null optional-content semantics. Non-null cancellation content remains invalid."
+  ],
+  "changedFiles": [
+    {"path":"src/runtime/service.ts","sha256":"2664ff8d5e7de45adace0df6f131b60ed8055aec548f798f6302f88ebe094a4c"},
+    {"path":"src/runtime/attachments.ts","sha256":"09196c2f81b37647b929d09a4eeb9d5d62cf34fc171902e6636e73bc0d37257e"},
+    {"path":"src/runtime/validation.ts","sha256":"1d4e60c04fc76356ba052b76a47b6bd07431faf5dd1bd72ca8ed99f3834bbe58"},
+    {"path":"tests/runtime/service.test.ts","sha256":"bf1a1853f01b10d9f1d8b3055f2faebf7f148321fcee24c503d9bf9c1bfd5242"},
+    {"path":"tests/runtime/attachments.test.ts","sha256":"271d162401ee62696a02dd34b4f94cfc55c57bacb1ce40f20c90f6516224ed05"},
+    {"path":"tests/runtime/approval-native.test.ts","sha256":"f39cb80858bd3cd6c02a9f644ad3d07571ba439de8a7ead9b764ae9351d8ea77"},
+    {"path":"tests/runtime/README.md","sha256":"08e5f8a5b6623b39050cc53055c64b2bf411e6e87364546599d9043b9f8a6ac8"}
+  ],
+  "checks": [
+    {"command":"node scripts/run-tests.mjs --targeted tests/runtime/service.test.ts", "result":"passed", "assertions":20, "report":".work/test-results/run-wj1D82/vitest.json", "snapshot":"final runtime source listed above"},
+    {"command":"node scripts/run-tests.mjs --targeted tests/runtime/service.test.ts tests/runtime/attachments.test.ts", "result":"skipped", "passed":27, "skipped":2, "report":".work/test-results/run-sKmlxf/vitest.json", "details":"The attachment file passed 9 assertions and explicitly skipped its two Linux-only tests. The service file then had 18 assertions; its later expanded 20-assertion result supersedes this service count. Counts must not be added."},
+    {"command":"HARNESS_TEST_CODEX_BIN=<independently verified official Windows 0.164.0 binary> node scripts/run-tests.mjs --targeted tests/runtime/gateway-native.test.ts tests/runtime/approval-native.test.ts", "result":"passed", "assertions":2, "report":".work/test-results/run-CdRjgh/vitest.json", "details":"Real gateway/worker/native plus loopback Responses, full native history, persistent receipt replay, interrupt, invalid/cancel/accept command approval and local marker execution. No commercial provider or external MCP."},
+    {"command":"HARNESS_TEST_CODEX_BIN=<independently verified official Windows 0.164.0 binary> node scripts/run-tests.mjs --targeted tests/runtime/native-smoke.test.ts", "result":"passed", "assertions":1, "report":".work/test-results/run-oGq8XU/vitest.json", "details":"Isolated real CLI, account read, fresh empty history, more than cache-capacity defaults probes with process-exit checks, unchanged config and loaded-thread baseline, interactive PTY. No model turns."},
+    {"command":"node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit", "result":"passed", "snapshot":"final runtime source listed above"}
+  ],
+  "limitations": [
+    "The native integration and smoke runs preceded the final small observed-activity/fresh-provenance race refinement. That refinement has focused service regressions and the final server typecheck; no unchanged native suite was repeated solely to inflate coverage.",
+    "The first integration-wrapper invocation explicitly skipped because HARNESS_TEST_CODEX_BIN was absent; the subsequent explicit-pinned-path run passed. The initial skip is not a passing run.",
+    "Two Linux-specific attachment tests were skipped on Windows. No 192.168.1.120 operation, systemd test or UID boundary test was performed in this repair.",
+    "No whole-repository suite or formal clean audit round was run. Other agents changed dependency and gateway/web/deployment files concurrently; final snapshot verification remains necessary.",
+    "Gateway restart recovery admission is owned by the parent reviewer. This change only separates known idle partial creation from unknown runtime activity.",
+    "At most 256 active client/thread history contexts are still retained by policy; they are released on disconnection. This repair does not add a navigation-specific lifecycle endpoint or eviction policy for a single continuously connected client that visits more than that bound."
+  ]
+}

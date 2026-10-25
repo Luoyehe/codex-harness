@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T21:56:42.886Z",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "kind": "targeted-feature-batches",
+  "reports": [
+    {
+      "file": ".work/test-results/run-kRgrDF/vitest.json",
+      "sha256": "a524ffd698ed2924431f2916ec66b0ef5b8460ebac2c8eaec784cee624d172dc",
+      "passed": 26,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-dQzTw6/vitest.json",
+      "sha256": "9a66c0587007551e10b07bc080d4b3c80658a06ce97ad260ab940a5f1cc71be6",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "file": ".work/test-results/run-5jDhLK/vitest.json",
+      "sha256": "c710001b1401e8ce8330276763ff7598efbcfad5963363ca576a7355ec7c0b00",
+      "passed": 17,
+      "failed": 0
+    }
+  ],
+  "verified": [
+    "Selected project and opt-in native home; fresh inventory hash, executable-item confirmation, no browser-crafted native migration items.",
+    "Waits for matching completion ID, including early events; partial failures retained; 90-second timeout and shutdown stay unknown without replay.",
+    "Actual isolated CLI imported a Git-project CLAUDE.md into AGENTS.md and exposed persisted import history without inference."
+  ],
+  "sourceHashesCapturedAtWriting": {
+    "src/runtime/imports.ts": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+    "tests/runtime/imports.test.ts": "cd5b2afb60f6924ca39d2a15edeea94c97329e7050e8d768c19c1feff7b34173"
+  },
+  "limitations": [
+    "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+    "Preview is current native migration inventory, not frozen source bytes. Imported MCP/configuration can activate under the existing project policy.",
+    "Hook content trust remains owned by official CLI; no undocumented trust store or bypass flag used."
+  ]
+}

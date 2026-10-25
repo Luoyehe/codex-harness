@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "instance": "crtest-rw-20261025",
+  "host": "192.168.1.120",
+  "applicationRelease": "35b3c4a1716395beb1fe7d4805be1198e61ca3356a777791c48b4acf913cbd89",
+  "sourceArchiveSha256": "bcc818a43bf8c9e3bcf9ae286332197fe86b05d4c0118c0a59cec8b5eb6d1c1a",
+  "protocolAcceptance": {
+    "passed": true,
+    "origin": "https://harness.crtest.localhost:18443",
+    "caPath": "/var/lib/codex-harness-instances/crtest-rw-20261025/caddy/.local/share/caddy/pki/authorities/local/root.crt",
+    "checks": [
+      {
+        "name": "anonymous-http-blocked",
+        "status": 401,
+        "redirectsToAuth": true
+      },
+      {
+        "name": "anonymous-websocket-blocked",
+        "status": 401
+      },
+      {
+        "name": "authelia-state",
+        "status": 200
+      },
+      {
+        "name": "real-authelia-firstfactor",
+        "status": 200,
+        "result": "OK"
+      },
+      {
+        "name": "gateway-token-still-required",
+        "status": 200,
+        "authenticated": false
+      },
+      {
+        "name": "authelia-only-websocket-blocked",
+        "status": 403
+      },
+      {
+        "name": "real-gateway-login",
+        "status": 200,
+        "authenticated": true
+      },
+      {
+        "name": "wrong-origin-websocket-blocked",
+        "status": 403
+      },
+      {
+        "name": "actual-gateway-websocket-upgraded",
+        "status": 101,
+        "event": "state",
+        "connected": true
+      },
+      {
+        "name": "read-only-rpc",
+        "method": "project/list",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "read-only-rpc",
+        "method": "system/status",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "native-project-resolution",
+        "passed": true
+      },
+      {
+        "name": "native-read",
+        "method": "account/read",
+        "passed": true
+      },
+      {
+        "name": "native-read",
+        "method": "model/list",
+        "passed": true
+      },
+      {
+        "name": "native-read",
+        "method": "defaults/read",
+        "passed": true
+      },
+      {
+        "name": "native-read",
+        "method": "prompt/list",
+        "passed": true
+      },
+      {
+        "name": "attachment-and-durable-replay",
+        "passed": true
+      },
+      {
+        "name": "real-native-pty-through-https",
+        "passed": true,
+        "uid": 990,
+        "exited": true
+      },
+      {
+        "name": "browser-owner-terminal-cleanup-and-reconnect",
+        "passed": true
+      },
+      {
+        "name": "gateway-health-through-edge",
+        "status": 200,
+        "ok": true
+      }
+    ],
+    "modelTurns": 0,
+    "mcpCalls": 0,
+    "trustScope": "Only this HTTPS/WS client supplied the instance CA; TLS verification remained enabled."
+  },
+  "nativeUidBoundary": {
+    "uid": 990,
+    "groups": [],
+    "tokenDenied": true,
+    "supervisorMemoryDenied": true,
+    "supervisorEnvironmentDenied": true,
+    "supervisorDescriptorsDenied": true,
+    "attachmentWriteDenied": true,
+    "supervisorHomeWriteDenied": true,
+    "attachmentReadable": true,
+    "controlSocketDenied": true,
+    "pidfdDuplicateDenied": true,
+    "processMemoryDenied": true,
+    "controlGroupsAbsent": true,
+    "fixedLauncherVersion": "codex-cli 0.164.0"
+  },
+  "releaseVerification": {
+    "files": 19881,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true
+  },
+  "services": {
+    "newGateway": "active",
+    "newWorker": "active",
+    "newCaddy": "active",
+    "newAuthelia": "active",
+    "unrelatedOriginalGatewayPid": 1639,
+    "unrelatedOriginalProxyPid": 1612,
+    "unrelatedServicesChanged": false
+  },
+  "limits": [
+    "No paid model turns or external MCP calls",
+    "Public DNS/ACME/firewall traversal not exercised",
+    "Browser expiry and terminal-layout failures documented separately; protocol tests do not claim browser acceptance"
+  ]
+}

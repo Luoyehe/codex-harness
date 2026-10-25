@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "kind": "linux-targeted-attachment-boundaries",
+  "createdAt": "2026-10-24T23:01:06.251937+00:00",
+  "sourceFrozen": false,
+  "formalAudit": false,
+  "independentCleanRounds": 0,
+  "fullSuiteRun": false,
+  "identity": "nobody",
+  "nodeVersion": "v24.22.1",
+  "sourceFiles": 1746,
+  "archive": {
+    "path": ".work/attachments-linux-current.tgz",
+    "sha256": "d80af1b88942bba01fff2b93138dcdf90a4c745173073ccbb0b3a7982e74e0ef"
+  },
+  "sourceManifestSha256": "88cd0bf71fe060ded023219140fbe5cc902cd8b44ff09231505bb340b97acdc2",
+  "sourceCriticalFiles": [
+    {
+      "path": "package.json",
+      "sha256": "038eec35eaecb8a11ea85042f7298ca6e92fc85bc4e62415bc99dbd2e5730b00"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63"
+    },
+    {
+      "path": "scripts/release-audit.mjs",
+      "sha256": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b"
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "bc4e41a12afd0901f90abd7aee4b927f47a9531b217ae533b0c7a0a31d4ab3f8"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "3446889a8f3957c706dd541ca181f49005ca8c54d889c028e28660b17f0e54e8"
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432"
+    },
+    {
+      "path": "src/runtime/attachments.ts",
+      "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+    },
+    {
+      "path": "src/runtime/types.ts",
+      "sha256": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0"
+    },
+    {
+      "path": "tests/runtime/attachments.test.ts",
+      "sha256": "96af9b29a2a6cfe2b468f67d3226c56d018dab52b19656d1089425072f4ae5c3"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "11e821eb2907e2c9b6e0465f5960d8f8fbe2df70c6c119801895f409f1d2cb9b"
+    }
+  ],
+  "command": "<NODE> scripts/run-tests.mjs --targeted tests/runtime/attachments.test.ts",
+  "result": {
+    "path": ".work/attachments-linux-result.json",
+    "sha256": "aab2e5f9b36f5ad2eb9f3cf12192f66d75ef17e82395be5cb3da9866d8d9a5cd"
+  },
+  "remoteResult": "/var/tmp/crtest-attachments-befx2why/result.json",
+  "runner": {
+    "path": ".work/run-attachments-linux.py",
+    "sha256": "1a7af283f9402fa53e8fa6d56925455700bb5b7f21384002422eabb64bd3996f"
+  },
+  "coverage": {
+    "passed": 16,
+    "failed": 0,
+    "skipped": 1,
+    "runnerExitCode": 3,
+    "runnerStatus": "skipped",
+    "reason": "The unchanged Windows-only real unlink-denial test is inapplicable on Linux. The runner correctly reports a coverage gap rather than all-pass."
+  },
+  "assertions": [
+    {
+      "title": "audio uses a fixed native-recognized suffix while opaque IDs, identity checks and retained history survive restart",
+      "status": "passed"
+    },
+    {
+      "title": "unsupported audio is refused and new audio rollback removes its exact suffixed storage",
+      "status": "passed"
+    },
+    {
+      "title": "legacy extensionless audio remains readable but must be reuploaded before native audio transmission",
+      "status": "passed"
+    },
+    {
+      "title": "history media reads only exact indexed paths retained by the requested thread",
+      "status": "passed"
+    },
+    {
+      "title": "uploads and restores the complete 4 MiB boundary with every Base64 padding length",
+      "status": "passed"
+    },
+    {
+      "title": "malformed, noncanonical and oversized Base64 never writes an attachment",
+      "status": "passed"
+    },
+    {
+      "title": "restart preserves file identity, digest and thread pins",
+      "status": "passed"
+    },
+    {
+      "title": "rejected reservations release only their own uncommitted thread references",
+      "status": "passed"
+    },
+    {
+      "title": "an overlapping accepted or unknown reservation prevents another rejection from unpinning it",
+      "status": "passed"
+    },
+    {
+      "title": "replaced regular files, hard links, modified bytes and oversized content are rejected before exposing content",
+      "status": "passed"
+    },
+    {
+      "title": "a pathname swapped after lstat is rejected by opened file identity",
+      "status": "passed"
+    },
+    {
+      "title": "read growth is bounded and a replaced directory is rejected",
+      "status": "passed"
+    },
+    {
+      "title": "orphans and pending files consume physical byte and count quotas across restart",
+      "status": "passed"
+    },
+    {
+      "title": "directory iteration fails at a fixed entry budget without materializing an unbounded listing",
+      "status": "passed"
+    },
+    {
+      "title": "symlink and FIFO substitutions never follow or block",
+      "status": "passed"
+    },
+    {
+      "title": "read-only native data group never gains metadata or directory write access",
+      "status": "passed"
+    },
+    {
+      "title": "real OS unlink denial leaves a durable tombstone and quota charge until restart can delete",
+      "status": "skipped"
+    }
+  ],
+  "boundaries": [
+    "Linux symlink and FIFO substitutions reject without follow or blocking.",
+    "The opened-descriptor check rejects a path swapped after lstat; growth and replaced directory are rejected.",
+    "Actual Linux attachment directory/data/index modes are 02750/0640/0600 with expected group.",
+    "Fixed supported audio suffix, restart retention and exact thread-owned history media reads pass.",
+    "Base64/4MiB/count/physical byte quotas and overlapping accepted/unknown attachment pins pass."
+  ],
+  "isolation": {
+    "source": "Fresh random /var/tmp directory, complete source/protocol/test runner, original test unchanged.",
+    "network": "unshare --net with no external interface; unprivileged runuser and clean environment.",
+    "dependencies": "Copied only third-party node_modules from existing staging into the new fixture. Every declared direct dependency version matched the new package.json; no previous application source was inspected.",
+    "production": "No systemd, online instance, fixed launcher or existing helper mutation; fixture materials retained."
+  },
+  "limits": [
+    "The Windows-only unlink-denial case was not executed in this Linux run; no combined cross-platform zero-skip claim is made.",
+    "These are targeted attachment file/identity tests, not a full gateway/native cross-UID media integration.",
+    "Critical source and test bytes matched the local files immediately after execution. Other agents may continue changing the repository."
+  ]
+}

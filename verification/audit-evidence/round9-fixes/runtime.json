@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round9-fixes",
+  "reviewerId": "r9-runtime",
+  "status": "passed",
+  "findingIds": [
+    "R9-RUNTIME-001"
+  ],
+  "startedAt": "2026-10-25T10:59:47.000Z",
+  "completedAt": "2026-10-25T11:02:53.499Z",
+  "authorization": "Parent explicitly authorized repairing the recorded round9 native-smoke context defect after the audit was recorded; product permission/receipt requirements must not be weakened.",
+  "changes": [
+    {
+      "file": "tests/runtime/native-smoke.test.ts",
+      "beforeSha256": "24598bd70ea7e1af7e104c0775885b94c2e112a790bf3b2bd3f51b59c760e031",
+      "afterSha256": "9773a5df375c3c45415c40f89a129e1a3dfe27a2efc562b412b9b2a345afe14f",
+      "description": "Use an on-disk Ledger in the isolated smoke home and a unique operation ID for account/logout. Reserve the operation as pending, dispatch synchronously from beforeWrite, assert exactly one boundary invocation and the dispatching state, then persist the accepted native response. Close this ledger in finally. Keep every later PTY and native cleanup assertion."
+    }
+  ],
+  "unchangedProductBoundary": {
+    "file": "src/runtime/service.ts",
+    "sha256": "fa2db38f8c583e900a5eda5da04e4d5eecc309925e5c34e443ccb13c08481a8d",
+    "guard": "configurationMutation still rejects a missing beforeWrite with operation_required."
+  },
+  "dependencyReadOnly": {
+    "file": "src/core/ledger.ts",
+    "sha256": "1b7a33aa8f428a77d8c6fb041860d84c8ee647b72a60ae05f058d71bd3216438",
+    "note": "Existing production Ledger used by the test; no dependency implementation changed."
+  },
+  "attempts": [
+    {
+      "phase": "original-round9-preflight",
+      "status": "skipped",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/native-smoke.test.ts",
+      "reason": "independent-official-cli-path-not-provided",
+      "logicalExitCode": 3,
+      "note": "Historical attempt from this same recorded round, preserved rather than erased by the fix."
+    },
+    {
+      "phase": "original-round9-reproduction",
+      "status": "failed",
+      "command": "HARNESS_TEST_CODEX_BIN=<verified-local-cli> node scripts/run-tests.mjs --targeted tests/runtime/native-smoke.test.ts",
+      "result": ".work/test-results/run-ErLyGW/vitest.json",
+      "resultSha256": "ed1d8328e8a0b786d927dab4b7f1816ba351670a876c2d332e76ffaaeb5f71b2",
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0,
+      "observed": "DeliveryError: Configuration changes require the durable operation boundary at native-smoke.test.ts:33; PTY section not reached."
+    },
+    {
+      "phase": "after-test-context-repair",
+      "status": "passed",
+      "command": "Set HARNESS_TEST_CODEX_BIN to the absolute resolved verified local CLI path; node scripts/run-tests.mjs --targeted tests/runtime/native-smoke.test.ts",
+      "runner": "scripts/run-tests.mjs --targeted",
+      "exitCode": 0,
+      "result": ".work/test-results/run-FuWJQl/vitest.json",
+      "resultSha256": "4cd0df0030c84d6521b3893ad1a9ef652b5d5e6576c1d24e3f68d186a3c3503a",
+      "startedAt": "2026-10-25T11:00:24.185Z",
+      "testFiles": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMs": 19918.9638,
+      "completedFlow": [
+        "Isolated account and empty thread directory reads.",
+        "More defaults probes than cache capacity, evicted-key reprobe, unchanged native main-thread baseline and unchanged configuration bytes.",
+        "Fresh thread creation/read/empty combined history, with no model turn.",
+        "Real durable pending→dispatching→accepted logout receipt and one final-write boundary.",
+        "Native MCP listing.",
+        "Real PTY open, resize, stdin write, expected stdout and terminal exit.",
+        "Main native process and at least 19 distinct probe root process exits verified by the close spy."
+      ]
+    }
+  ],
+  "durableReceiptValidation": {
+    "status": "passed",
+    "database": ".work/runtime-smoke/home-PAL5fw/logout.sqlite",
+    "method": "After the smoke process ended, reopened the SQLite file through an independent read-only connection and inspected the persisted row without executing logout again.",
+    "rows": [
+      {
+        "id": "bc683131-7f62-4442-9a2b-9cc02b10e819",
+        "method": "account/logout",
+        "scope": "runtime",
+        "state": "accepted",
+        "result": "{}",
+        "error": null
+      }
+    ]
+  },
+  "environment": {
+    "cli": "reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+    "cliVersion": "0.164.0",
+    "cliSha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+    "workerHome": ".work/runtime-smoke/home-PAL5fw",
+    "nativeHome": ".work/runtime-smoke/home-PAL5fw/codex",
+    "temporaryDirectory": ".work/runtime-smoke/home-PAL5fw/tmp",
+    "personalCredentialsRead": false,
+    "modelTurns": 0,
+    "paidInferenceCalls": 0,
+    "sshCalls": 0,
+    "onlineInstanceChanges": 0,
+    "fullSuiteRun": false
+  },
+  "originalAudit": {
+    "file": "verification/audit-evidence/round9/r9-runtime.json",
+    "sha256": "731d1358275d95a5b381e85d436f7bbdc366682230ebb50c3df9a09d623a58a6",
+    "note": "The recorded audit, its finding and its initial prerequisite skip remain unchanged."
+  },
+  "sourceSnapshotAtCompletion": {
+    "files": 1783,
+    "digest": "cad476cc71c954cc85cdfd32c947b629e3fad05a9b0b73a2f3780d5dd3d347dd"
+  },
+  "additionalFailures": [],
+  "toolingNotes": [
+    "Two exploratory dependency reads used nonexistent guessed filenames; the existing Ledger was then located in src/core/ledger.ts. No test was skipped or disabled to handle those harmless lookup errors.",
+    "startedAt is the first explicitly captured clock timestamp before the authorized source edit."
+  ],
+  "limitations": [
+    "Only the affected exact native smoke file was executed after the repair; no full suite was run.",
+    "This verifies a local official Windows CLI without inference and its real PTY/process cleanup. It does not establish Linux deployment behavior, paid-provider inference or real external account/MCP flows.",
+    "The source snapshot is informational at report time; other authorized round9 repairs may update the shared repository separately. The exact repaired file hash above identifies this change."
+  ]
+}

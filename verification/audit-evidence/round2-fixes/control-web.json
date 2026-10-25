@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round2-fixes",
+  "reviewerId": "r2-control-web",
+  "completedAt": "2026-10-24T19:43:13.132Z",
+  "changedFiles": [
+    "src/core/contracts.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/server.ts",
+    "tests/gateway/http.test.ts",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/components/Composer.tsx",
+    "web/components/Login.tsx",
+    "web/components/Messages.tsx",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/lib/api.ts",
+    "web/lib/drafts.ts",
+    "web/lib/history.ts",
+    "web/lib/types.ts",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/session.test.ts"
+  ],
+  "fileDigests": {
+    "src/core/contracts.ts": "3c69ba8e12048238a7ca7c11e28d14f31784c793bad52116cc79a7e17d8b370b",
+    "src/gateway/dispatch.ts": "1ef65b14760537256d4d72406a09e6d31a61458a0da867d34d59edea1a9987e8",
+    "src/gateway/server.ts": "65d69a635260e2301f683584170c046eac18b59aceb07cb552b9d6bc9c8e94ac",
+    "tests/gateway/http.test.ts": "42c720005d40a67f35d59cefd9e245c578540c43a7938b059cc2c2961cb2da8c",
+    "web/App.tsx": "64627c0f0cdb1b7eb3e91cae788987a3584f87f613338acf6ca0e184fdd9e24b",
+    "web/VERIFICATION.md": "3e77b9ccf173f455b2f529b9a631d38691b7841e82d2c6ccdc3ab6ffbfbe80bc",
+    "web/components/Composer.tsx": "21b8a2edc59b7f97caeacebe7e02c1ed14b022266d6126ab3653095cefbf985d",
+    "web/components/Login.tsx": "fdbd95a7660aa9910c9fb5c6264f3ebbbfdb7c6a25065aaac508ab2049e8285a",
+    "web/components/Messages.tsx": "f56bbc688e303d2c750f75ead05cb3afd7323af08176c95e492fd4151e8e1ce2",
+    "web/hooks/useConversation.ts": "86039e3942a47d3180d90b364652546de0655e97a2b137bc6ebe790bc6922490",
+    "web/hooks/useDraft.ts": "ceb8e095d8e40cba4b726c35558f9a3a7a99b67eedbbfd0600bcc48f81a79629",
+    "web/lib/api.ts": "7158eec14fd4f58de468ec5f779b2735f884a5c9720d28e2bfd59e793a969b07",
+    "web/lib/drafts.ts": "8f7da250b09f58c152fec0bd933ae0b8687a01f76895c542565002326508e4c4",
+    "web/lib/history.ts": "e9ce532ee9ffb2a12bbaf21a24fa00c1be71d4617be9de63e6a0a9b2a19bbe9b",
+    "web/lib/types.ts": "a9b1a24afecda4a37e856286206d14eb46cc722043b2610da1ca48bc5e31c544",
+    "web/tests/app-lifecycle.test.tsx": "3ea087689aed52c269d323a59c64700d9ef41eab7a1bed2fff3464bb26645ab6",
+    "web/tests/composer.test.tsx": "eec1d31aed3420a1a25c01b125fd15bc6a070f173dece8f652dc1eb20d2ad44e",
+    "web/tests/conversation.test.tsx": "cc815683e327fddef1c07761c10926dcf4d9e86109b43ed10587af8c69c04d96",
+    "web/tests/drafts.test.tsx": "9437e52a4b0f74fa58c437759421aac412d5e397103d63f30e30ccde5a3de578",
+    "web/tests/history.test.ts": "da9d93e49e022035f9f2e728837b5c8cb6abcbb7aa63d2d6c9d0aa63fd9bc001",
+    "web/tests/session.test.ts": "23b732ce5cce0e90226139422be502a051cfd96caef3c9e714bd7a8cc487ad58"
+  },
+  "resolvedFindings": [
+    {
+      "id": "R2-CW-01",
+      "change": "Attachment removal completion calls a closure bound to the original draft key, reads its current stored or in-memory content, removes only the deleted ID, and never publishes that state into another selected draft. Draft-change events carry a key, preserving an unrelated storage-denied draft. Regression tests retain edited A text/options, remove A attachment, leave B unchanged, and preserve unsaved B input."
+    },
+    {
+      "id": "R2-CW-02",
+      "change": "Snapshot item order supplies chronology; full live items remain authoritative. Text with no reliable snapshot/delta boundary is kept in separately labelled historySync sources, avoiding overlap guesses and silent truncation. Full item completion replaces the temporary view. Every turn completion performs a read-only refresh with cleared touched state, covering a missing item-completed event with or without an observed start. Same-thread/epoch diff and token usage survive the refresh. Tests cover repeated text, chronological prefix, full completion, missing completion, final readiness, display labels, and diff/usage retention."
+    },
+    {
+      "id": "R2-CW-03",
+      "change": "Dispatcher reserves/checks a durable mutation identity before invoking an internal requireConnection callback for new worker work. This preserves accepted/not_sent/unknown/pending/dispatching receipt facts and same-ID fingerprint conflicts without granting an absent or replaced browser owner any fresh worker dispatch. HTTP tests cover all five stored states, changed payloads, no-lease fresh requests, and zero worker calls."
+    },
+    {
+      "id": "R2-INTEGRATION-001",
+      "change": "All fetches explicitly send Accept application/json and X-Requested-With XMLHttpRequest. Standard gateway unauthorized envelopes remain distinct from outer authentication failures, including initial session GET. The retained login page offers only its current site URL in a new tab plus an explicit read-only session recheck; no arbitrary Location redirect, automatic mutation replay or page reload is used. Generation guards reject stale 401 invalidation after renewing the same gateway CSRF. Administrator-token rejection retains its specific message for both 400 and 401. The parent supplied the actual proxy behavior; this agent verified the fix with API/application fixtures only."
+    }
+  ],
+  "tests": [
+    {
+      "command": "pnpm exec vitest run web/tests/composer.test.tsx web/tests/drafts.test.tsx tests/gateway/http.test.ts tests/gateway/dispatch.test.ts",
+      "result": "passed",
+      "tests": 34,
+      "files": 4
+    },
+    {
+      "command": "pnpm exec vitest run web/tests/history.test.ts web/tests/conversation.test.tsx",
+      "result": "passed",
+      "tests": 9,
+      "files": 2,
+      "note": "Initial history regressions. The conversation file subsequently gained two cases and was rerun below."
+    },
+    {
+      "command": "pnpm exec vitest run web/tests/session.test.ts web/tests/app-lifecycle.test.tsx web/tests/operations.test.ts web/tests/events.test.tsx",
+      "result": "passed",
+      "tests": 23,
+      "files": 4,
+      "note": "Session gained two administrator-token cases and was rerun below."
+    },
+    {
+      "command": "pnpm exec vitest run web/tests/conversation.test.tsx web/tests/composer.test.tsx web/tests/drafts.test.tsx",
+      "result": "passed",
+      "tests": 15,
+      "files": 3,
+      "note": "Final conversation rendering/completion and draft failure-path regressions; overlaps previous runs."
+    },
+    {
+      "command": "pnpm exec vitest run web/tests/session.test.ts",
+      "result": "passed",
+      "tests": 7,
+      "files": 1,
+      "note": "Final auth error classification regressions; overlaps previous run."
+    }
+  ],
+  "distinctTargetedTests": 70,
+  "distinctTargetedFiles": 10,
+  "checks": [
+    {
+      "command": "pnpm exec tsc -p tsconfig.server.json --noEmit",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm exec tsc -p web/tsconfig.json --noEmit",
+      "result": "passed after final web implementation changes"
+    },
+    {
+      "command": "pnpm build:server",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm build:web",
+      "result": "passed after final web implementation changes"
+    }
+  ],
+  "review": "Re-read changed receipt admission, draft lifetime, API authentication/generation and history synchronization logic. Checked worker context serialization still omits internal callbacks. Reviewed final turn-completion behavior with the parent and added regressions for missing item completion and preserved diff/usage. Changed only the listed control/web files and ignored .work helpers; terminal changes belong to the parent and are not included in this report.",
+  "verificationIssues": [
+    "An initial new hook regression created a fresh Api object on every render, causing an effect loop in the test fixture. The targeted process was interrupted and its child processes were confirmed gone. The fixture was changed to use the application real lifetime (one stable Api object), then its targeted file passed. This was not represented as a passing run."
+  ],
+  "limits": [
+    "No full test suite was run.",
+    "No real-browser, OS IME, native screen-reader, mobile-device, commercial-model, external-MCP, personal-home or remote Linux/systemd execution was performed by this agent during this repair.",
+    "HTTP tests use bounded loopback servers, substituted workers and in-memory journals; browser interaction tests use jsdom.",
+    "Active text with no shared snapshot/delta watermark intentionally remains labelled as separate sources until authoritative completion. Final history read failures remain visible and retryable; no fabricated merged text is presented.",
+    "Other agents may still be changing their assigned source. Per-file digests bind this report to this agent current files and do not declare an unchanged full-repository clean-audit snapshot."
+  ]
+}

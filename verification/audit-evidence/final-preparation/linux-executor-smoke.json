@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T15:58:33.110Z",
+  "sourceSnapshot": {
+    "files": 1785,
+    "digest": "1f4f3724cdad1ccad3c8623bb947c25f6bdd6c41a03c4bdaa7376d07353003e7"
+  },
+  "script": {
+    "path": ".work/final-executor-smoke-r11.py",
+    "sha256": "36896abcd8bef400d3f0a688ab874dd57ba3c40327d40b5fc05852c09caae234"
+  },
+  "runner": {
+    "path": ".work/final-linux-run.py",
+    "sha256": "13bbc8349018e76b8c0ec768c4b19d359dd72779b698081463cf36a0aedfcf1e"
+  },
+  "remoteRoot": "/var/lib/crtest-final-executor-4db6olir",
+  "rawEvidence": {
+    "path": ".work/round11/final-executor-smoke-result.json",
+    "sha256": "b411661ef29e4c97e2a7b4686a2f3ee091a480dd1a00d347821ee78626742587"
+  },
+  "phases": [
+    {
+      "phase": "nobody",
+      "unit": "crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+      "description": "codex-harness-executor-smoke:39782eee16db47e9b23e68afc2c1316c:nobody",
+      "base": "/var/lib/crtest-final-executor-4db6olir/nobody",
+      "launchAttempted": true,
+      "preflightAbsent": true,
+      "preflight": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "Description": "crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "absent": true,
+          "confirmed": true
+        }
+      },
+      "exitCode": 0,
+      "logs": {
+        "stdout": {
+          "path": "/var/lib/crtest-final-executor-4db6olir/nobody/stdout.log",
+          "bytes": 317,
+          "sha256": "7a700e91ffb744a4e32ec38dc5814cb4c53a9cb68e591e8d9ededd2130311ffb"
+        },
+        "stderr": {
+          "path": "/var/lib/crtest-final-executor-4db6olir/nobody/stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "beforeStop": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "Description": "crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "stopAction": "none: collected unit already absent",
+      "stopProof": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "Description": "crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "owned": false,
+        "absent": true,
+        "cgroup": {
+          "path": "/system.slice/crtest-full-39782eee16db47e9b23e68afc2c1316c-nobody.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "observedIsolation": {
+        "uid": 65534,
+        "gid": 65534,
+        "cwd": "/var/lib/crtest-final-executor-4db6olir/nobody",
+        "entryReadable": true,
+        "privateNetwork": true,
+        "home": "/var/lib/crtest-final-executor-4db6olir/nobody/home",
+        "tmp": "/var/lib/crtest-final-executor-4db6olir/nobody/tmp",
+        "systemConfigEmpty": true,
+        "fixtureWritable": true,
+        "pid1SocketBlocked": true
+      }
+    },
+    {
+      "phase": "root",
+      "unit": "crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+      "description": "codex-harness-executor-smoke:2d723593b35b486a8ace013002a4c88b:root",
+      "base": "/var/lib/crtest-final-executor-4db6olir/root",
+      "launchAttempted": true,
+      "preflightAbsent": true,
+      "preflight": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "Description": "crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "absent": true,
+          "confirmed": true
+        }
+      },
+      "exitCode": 0,
+      "logs": {
+        "stdout": {
+          "path": "/var/lib/crtest-final-executor-4db6olir/root/stdout.log",
+          "bytes": 303,
+          "sha256": "f9148a4f6118490e8060674e6c42c67e91e00233c9b7d954db184af96351393d"
+        },
+        "stderr": {
+          "path": "/var/lib/crtest-final-executor-4db6olir/root/stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "beforeStop": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "Description": "crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "stopAction": "none: collected unit already absent",
+      "stopProof": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "Description": "crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "owned": false,
+        "absent": true,
+        "cgroup": {
+          "path": "/system.slice/crtest-full-2d723593b35b486a8ace013002a4c88b-root.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "observedIsolation": {
+        "uid": 0,
+        "gid": 0,
+        "cwd": "/var/lib/crtest-final-executor-4db6olir/root",
+        "entryReadable": true,
+        "privateNetwork": true,
+        "home": "/var/lib/crtest-final-executor-4db6olir/root/home",
+        "tmp": "/var/lib/crtest-final-executor-4db6olir/root/tmp",
+        "systemConfigEmpty": true,
+        "fixtureWritable": true,
+        "pid1SocketBlocked": true
+      }
+    }
+  ],
+  "baseline": {
+    "path": ".work/round11/instance-after-executor-smoke.json",
+    "sha256": "5f84468d4e1cac7899512a1ec4467f9ff0d7a7c5573e71cff7c48e598947d937"
+  },
+  "instance": {
+    "name": "crtest-rw-20261025",
+    "release": "releases/9eeda317f2def81284a0d67fa31736d45a2519d7140741c81fbdb64a5f042b6c",
+    "servicesActiveAndEnabled": true,
+    "invocationsAndPidsMatchEarlierBaseline": true,
+    "gatewayHealth": 200,
+    "workerHealth": 200,
+    "unknown": false
+  },
+  "limits": [
+    "Two inert Node processes only; this is namespace/executor validation, not project full-test or native-provider acceptance.",
+    "No Codex, model, MCP, real project mutation, persistent account/sudo/unit change or online update.",
+    "Both exact transient units and their cgroups are absent; fixture materials retained.",
+    "Root PID1 socket check compared mount-visible inode/device with the host identity without connecting or issuing control messages."
+  ]
+}

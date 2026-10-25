@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "kind": "v2-persistent-instance-deployment",
+  "createdAt": "2026-10-25T20:48:01.533Z",
+  "version": "2.0.0",
+  "sourceDigest": "96cde170ad50eb50753feb3229881ce609f6d3328691ffee5c479105803963d1",
+  "instance": "crtest-rw-20261025",
+  "host": "192.168.1.120",
+  "release": "57434193056c8166dc4786f3686564ae7ee0cff0566a5fb7d63be81bb24047a8",
+  "previous": "9eeda317f2def81284a0d67fa31736d45a2519d7140741c81fbdb64a5f042b6c",
+  "controlUpdate": {
+    "controlUpdated": true,
+    "transaction": "6c49e0bba1834e0e91bd6d7349dabce9",
+    "controlDigest": "7f02049dd8d1a83da466655a76c62525d1605571b49641650554436043ae456b",
+    "previousDigest": "b6f458069e02f8eb4fe2e1fa676125c43e7b347aefa45e3a4af6b4b86fe65996",
+    "rollbackOf": null
+  },
+  "configurationLayer": {
+    "providerConfigLayer": "system-v1",
+    "changed": true,
+    "providerRevision": "788d3c15861f4de5a208b86a44974d00",
+    "transaction": "5595a9f37ec44fa2bb91c8a1cc94bfdf",
+    "userConfigPreserved": true,
+    "nativeWorkspace": true
+  },
+  "integrity": {
+    "checkedFiles": 20131,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true
+  },
+  "metadata": {
+    "release": "57434193056c8166dc4786f3686564ae7ee0cff0566a5fb7d63be81bb24047a8",
+    "version": "2.0.0",
+    "cliVersion": "0.164.0",
+    "index": {
+      "bytes": 409,
+      "sha256": "f26325d45369a78b916063a662b95eb2e7f1c2d1e2130f12800365b24b088bb8"
+    },
+    "assets": [
+      {
+        "path": "/assets/index-BmUd3CnU.js",
+        "bytes": 1233134,
+        "sha256": "17896ebd2f891831b1e74d2f59e98ad1426cc42837b340ca3bec03905cd515bf"
+      },
+      {
+        "path": "/assets/index-CckmZxWR.css",
+        "bytes": 44852,
+        "sha256": "9af6700dfa2fa259e36a15f3276ee60dee177d569f4ec4670be6196581082327"
+      }
+    ],
+    "sourceArchive": {
+      "bytes": 1108455,
+      "sha256": "48f07208a3aa24ddee35f6ca5d1a2070fcb1f9c2b6c0eec7693ab9c49b044a7c"
+    }
+  },
+  "https": {
+    "checks": [
+      {
+        "name": "anonymous-http-blocked",
+        "passed": true,
+        "status": 401
+      },
+      {
+        "name": "anonymous-websocket-blocked",
+        "passed": true,
+        "status": 401
+      },
+      {
+        "name": "authelia-fixture-authentication",
+        "passed": true
+      },
+      {
+        "name": "gateway-credential-required",
+        "passed": true
+      },
+      {
+        "name": "authelia-only-websocket-blocked",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "gateway-fixture-authentication",
+        "passed": true
+      },
+      {
+        "name": "wrong-origin-websocket-blocked",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "real-edge-gateway-websocket",
+        "passed": true
+      },
+      {
+        "name": "native-or-management-read",
+        "passed": true,
+        "method": "system/status"
+      },
+      {
+        "name": "native-or-management-read",
+        "passed": true,
+        "method": "system/provider/read"
+      },
+      {
+        "name": "native-or-management-read",
+        "passed": true,
+        "method": "account/read"
+      },
+      {
+        "name": "native-or-management-read",
+        "passed": true,
+        "method": "model/list"
+      },
+      {
+        "name": "native-or-management-read",
+        "passed": true,
+        "method": "prompt/list"
+      },
+      {
+        "name": "native-or-management-read",
+        "passed": true,
+        "method": "defaults/read"
+      },
+      {
+        "name": "registered-project-file-and-git-helpers",
+        "passed": true
+      },
+      {
+        "name": "actual-bundled-cli-diagnostic",
+        "passed": true,
+        "models": 11
+      },
+      {
+        "name": "attachment-roundtrip-and-durable-replay",
+        "passed": true
+      },
+      {
+        "name": "actual-native-pty",
+        "passed": true,
+        "uid": 990,
+        "exited": true,
+        "exitCode": 0
+      },
+      {
+        "name": "cleanup-target-confirmed-running",
+        "passed": true
+      },
+      {
+        "name": "accepted-receipt-replay-after-disconnect",
+        "passed": true
+      },
+      {
+        "name": "native-owner-cleanup-and-reconnect",
+        "passed": true
+      },
+      {
+        "name": "final-edge-health",
+        "passed": true
+      }
+    ],
+    "modelTurns": 0,
+    "externalMcpCalls": 0,
+    "tlsVerification": true,
+    "sessionCookiesSaved": false
+  },
+  "services": {
+    "allFourActive": true,
+    "allFourEnabled": true,
+    "workerConnected": true,
+    "activeTasks": 0,
+    "terminals": 0,
+    "processes": 0,
+    "unknown": false,
+    "pendingTransactions": 0,
+    "remainRunning": true
+  },
+  "browser": {
+    "status": "blocked-on-user-certificate-handoff",
+    "url": "https://harness.crtest.localhost:18443/",
+    "reason": "The in-app browser does not trust this test CA. Browser security policy requires the user to handle the warning; no bypass was attempted.",
+    "protocolAcceptanceSeparate": true
+  },
+  "evidence": [
+    {
+      "path": ".work/user-directed-release/attempt3/before-deploy.json",
+      "sha256": "7c8efb8b23ffe3867b80ef505e68362e1b14146f69203e8f525038ca8122096f"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/control-update.stdout.json",
+      "sha256": "3929505e7ffdb4cdf00be0b38aeb50393479fbd5d119cc871073913b16da5e27"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/config-migrate.stdout.json",
+      "sha256": "7b70a1f9af89c59318733c9eb8f9e4f195b58cb4ece3363baa469472d64c6409"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/update.stdout.json",
+      "sha256": "fe24c7bb0f57c469b768a7b14fd6535e45c1c2d6ee7d2259a3f355e4cced5186"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/verify.stdout.json",
+      "sha256": "4a7c0d611746acae2f9482e3fa2eb23ed6de8987af74918b70d5dc74a036097a"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/fixture-git.json",
+      "sha256": "43719498f68e68808eb1655436518199f771afd0c0069348738f4d0b56be12d5"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/https-result.json",
+      "sha256": "ba3d462adb2ae8a91f7fc875c786444a8763f17155d026364210e4cab25484ba"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/https-result.json.operations.jsonl",
+      "sha256": "b0f8f33c63690ff8080603d8212a6c8416d061d0c2fb53ded5d3a761787889e8"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/deployed-metadata.json",
+      "sha256": "e1543de92528dfc7f1cc2004c195c0ef5dfe7e5a1d11f4f11342b884eff7b16f"
+    },
+    {
+      "path": ".work/user-directed-release/attempt3/final-service-state.json",
+      "sha256": "a15bf0c2ebda98cc858ba5d38e9c08cdf165289d016659720bb788bf65614a1c"
+    }
+  ],
+  "limits": [
+    "This deploys only the named 120 rewrite instance; retired 110 was not used.",
+    "Actual HTTPS uses the internal test CA. Public DNS/ACME, external firewall traversal and real commercial-provider/account business acceptance are outside this run.",
+    "Browser visual acceptance is pending the explicit user handoff, not inferred from protocol tests. GitHub Release creation still needs the requested browser sign-in."
+  ]
+}

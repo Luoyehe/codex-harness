@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "kind": "full-test-failure-repairs",
+  "createdAt": "2026-10-25T20:30:33.995Z",
+  "version": "2.0.0",
+  "sourceDigest": "41816690ad436ed6c333bd33bec231981bf97710b950fdd887e52789526bb8a7",
+  "sourceFiles": 1789,
+  "priorDigest": "1ff6d029fe901ec89f9dc44e9ff244239b3f6dbd0d578884f43ed1216c826e71",
+  "changes": [
+    {
+      "path": "src/runtime/processes.ts",
+      "sha256": "c063b69fa769ba90562a1b587856fd618da794a830a21a7302060fe2fe777db2"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "079b205d2c324be2110f9f31e7a280f6e9b443616f2f64d5cd6bdb276bcc1ebe"
+    },
+    {
+      "path": "src/runtime/windows-job.ts",
+      "sha256": "63f05288d2e59ef5cd38bed2ca094792d0b2df40f626053e9b8a3618cd59e198"
+    },
+    {
+      "path": "src/runtime/windows-process.ts",
+      "sha256": "18d6a2823777285e259daa9f9f61c78170ac6cc064f1fc80bae8905052520022"
+    },
+    {
+      "path": "tests/runtime/gateway-oauth-native.test.ts",
+      "sha256": "3b9a0954eecd2cb7b16a26e040250268aed2a42ee2d2f16e8e1dfd7c45eb3607"
+    },
+    {
+      "path": "tests/runtime/organization-native.test.ts",
+      "sha256": "7f7381e9bc6814d5a26165146d2e8d784d513b54b3e4a917349c3048e554aaf1"
+    },
+    {
+      "path": "tests/runtime/processes.test.ts",
+      "sha256": "7e2e906fc86d4244f96a76294070196ce5c022927489d2835716f81da9684dc1"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "2c13efe7662c73395f8769f2a9766768f486b9700d25556f07214bbedfcbacc0"
+    },
+    {
+      "path": "tests/runtime/windows-job.test.ts",
+      "sha256": "9c9778dfcb1986da3a90664d3315875f1e0f295079ccc17f5b341a248d9a3013"
+    },
+    {
+      "path": "tests/runtime/windows-process.test.ts",
+      "sha256": "1474983201cb93473f7c215c3ac345c136dffb5761cdffb09420ffaa9b98a2a9"
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "sha256": "cc6c9b858e3a3791a7ef93219bdf1d7c351dd915bf08e03da502e264f05ba222"
+    },
+    {
+      "path": "verification/feature-evidence/capability-coverage.json",
+      "sha256": "ba7a312aae4f9a7a531369daf225f11ecbbd8af18fcd1da02760436555026328"
+    },
+    {
+      "path": "web/components/ThreadOrganization.tsx",
+      "sha256": "38239a4ecc8d5e0ec21b67aa839d293e74a507a9a855b4e4c5affa75a06514a7"
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "sha256": "f62f4e0c7ee4adb45c885fe3564338dc64e332d92b0a01e60d81482bac7bd4b3"
+    }
+  ],
+  "repairReports": [
+    {
+      "path": "verification/audit-evidence/v2-full-fixes/organization.json",
+      "sha256": "8b7329875bd04d950fc90bba04c65f491d9023b2fc60b2bd70c10abcd6ee8526"
+    },
+    {
+      "path": "verification/audit-evidence/v2-full-fixes/windows-cache.json",
+      "sha256": "02a97164498ac7806da98ce2bc12fd3c845e6a931a5501f08ade361aec473a9f"
+    },
+    {
+      "path": "verification/audit-evidence/v2-full-fixes/runtime-cross-review.json",
+      "sha256": "3c7c26bb551a452d618546861b37c349146a1465b885ca24f48cab1dd4da6d69"
+    },
+    {
+      "path": "verification/audit-evidence/v2-full-fixes/windows-cross-review.json",
+      "sha256": "533305812483ff8a9bb4ade9cb4217778b8c81c143655ff6045055bc351b10f8"
+    },
+    {
+      "path": "verification/audit-evidence/v2-full-fixes/linux-regressions.json",
+      "sha256": "812a71d62f9e6486794d8625922e08decaaa4b2965f6ac9860f96cedb2871eb6"
+    }
+  ],
+  "firstFull": {
+    "path": "verification/audit-evidence/v2-full-fixes/first-full.json",
+    "sha256": "999b97fe09114a2bd5a34cf8ca803fc708045c6fff9439d4b984f0922aa4f151"
+  },
+  "rootReview": "Reviewed changes to activity admission, preserved turn ownership, Windows environment merge, project/section default derivation, native fixture isolation and explicit queue restart. Independent bounded cross-reviews retained. No new complete clean audit round is claimed.",
+  "build": {
+    "command": "pnpm build",
+    "exitCode": 0,
+    "log": {
+      "path": ".work/user-directed-release/build-attempt2.log",
+      "sha256": "b9d415dca3853d5b33d862b4529c23fb494fd7557045aee18f8cb2c52325db8a"
+    },
+    "modules": 378,
+    "warning": "Existing Web bundle size warning remains."
+  },
+  "typecheck": {
+    "command": "pnpm typecheck",
+    "exitCode": 0
+  },
+  "encoding": {
+    "utf8": true,
+    "crlfSourceFiles": 0
+  },
+  "docs": {
+    "review": {
+      "path": "verification/audit-evidence/v2-docs/review.json",
+      "sha256": "9977a27e24d582218d8a5e0dab3bee8d47354ccf45b51f41ebfd94386abbf427"
+    },
+    "note": "All 13 release Markdown files reviewed before the first freeze; current fixes require no new user workflow instruction. Capability inventory references refreshed; historical evidence remains unchanged."
+  },
+  "next": "Repeat complete Windows and Linux tests against this exact snapshot. Publication and live update remain blocked until verification completes."
+}

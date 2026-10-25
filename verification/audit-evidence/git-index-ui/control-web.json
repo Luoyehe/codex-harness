@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:21:44.854Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedBatch": true,
+  "phase": "git-index-ui",
+  "files": [
+    "web/lib/git-state.ts",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/tests/git-index-ui.test.tsx"
+  ],
+  "tests": 49,
+  "testFiles": 5,
+  "specificTests": 8,
+  "command": "node node_modules/vitest/vitest.mjs run web/tests/git-index-ui.test.tsx web/tests/workspace-management.test.tsx web/tests/workspace-ui.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx",
+  "contracts": "Stage uses selected file versions,explicit not_found deletions,HEAD/headRevision/indexRevision and expanded rename source/destination paths. Maximum32paths,8MiB/file,32MiBselected. Unstage only selected staged paths,never working-tree files. Both require explicit review/confirmation and complete stable state/diff. Index recovery is distinct from ordinary files,requires current state triple and explicit whole-index replacement,source slot/revision. Discard binds current manifest and completed/discardAllowed state. Local journal state never reconciles global receipts;unknown never replays.",
+  "sourceHashes": {
+    "web/lib/git-state.ts": "94fadaa09e3bb17ae949311cec89abe072c8fb45e2dd469f3e90288c7eabaf9d",
+    "web/components/WorkspaceIndex.tsx": "85a9963762ba23bb220ae59559330e72ef081af844f09368b915203ba48074a8",
+    "web/components/WorkspaceIndexRecovery.tsx": "9daf6155ffc4b405134b18c00969a539ea8bf87c9734c7a6c8851efce1d8e196",
+    "web/components/WorkspaceCommit.tsx": "e73b0b69396331e2c04b65fe4fcb1a2eb8eabefd3b71edfa463ee370885f36c5",
+    "web/components/WorkspaceGit.tsx": "d826cab706d8facd9d748be71abd84c6fee30324bf380f1acd5ad81abfa47a30",
+    "web/tests/git-index-ui.test.tsx": "ee52275bc635982b17f34950c3461e1f1b505ef575c9cf8f70bb8eadc0bc38d5"
+  },
+  "validation": {
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed;staticbundle warning remains"
+  },
+  "limits": [
+    "Affected controlled frontend tests only,no fullsuite.",
+    "Parent/deploy separately own actual native helper and gateway proof tests.",
+    "No realgitstaging,indexrestore,remoteexecution,paidinference,externalMCP,120deployment orproductionbrowser action by this agent.",
+    "Readonly5121fixture provided for CUA;notbackendacceptance."
+  ]
+}

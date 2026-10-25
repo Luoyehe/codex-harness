@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "kind": "focused-interface-fix",
+  "roundId": "round12-fixes",
+  "reviewerId": "fresh-r12-deployment",
+  "formalIndependentAudit": false,
+  "cleanAuditRoundsEarned": 0,
+  "startedAt": "2026-10-25T16:49:13.415920+00:00",
+  "completedAt": "2026-10-25T16:56:50.090723+00:00",
+  "status": "fixed-and-targeted-validated",
+  "finding": {
+    "id": "R12-FIX-CROSS-001",
+    "severity": "P2",
+    "status": "fixed",
+    "title": "Late MCP result reads could clear a newer resource request busy state",
+    "discovery": {
+      "path": ".work/round12-fixes/async-read-cross-review.json",
+      "sha256": "354e3606919b574d0b1cf50d18968a08ee135e507def17a4e293691facbe4c95"
+    },
+    "scope": "McpPanel shared read/start/recovery pending state only; an additional R12 fix-stage finding, not a revision to the sealed R12 audit conclusions."
+  },
+  "changedFiles": [
+    {
+      "file": "web/components/McpPanel.tsx",
+      "beforeSha256": "aea14b0ec9ea315af929c7a954144af5630ccd9a498cad1f4176a88c7a2b2459",
+      "afterSha256": "fdc3db7d28be6cb0c3f25b0cfac30182aaff7877884d1733793d4dfa46a694bf",
+      "beforeBytes": ".work/round12-fixes/web__components__McpPanel.tsx.before"
+    },
+    {
+      "file": "web/tests/mcp-ui.test.tsx",
+      "beforeSha256": "ebdf9465bf9115f3a1957a326115e3e974da9fdc9b813c62f4d84b26fe38bbf2",
+      "afterSha256": "e2a2fea93b50ecf16312ea246cb2c96f8ad949eeeaa3057911f6db1eec50a827",
+      "beforeBytes": ".work/round12-fixes/web__tests__mcp-ui.test.tsx.before"
+    }
+  ],
+  "implementation": [
+    "Every start, receipt recovery, result read/download and resource read acquires one request token synchronously. Busy rendering is bound to that token and the current scope visit; only its current owner can finish the pending slot.",
+    "The existing memoized scope creates distinct visits for service, thread, epoch, connection and lease changes, including A-to-B-to-A. Scope cleanup aborts pure reads. The ref admission check prevents synchronous duplicate reads before React rerenders.",
+    "Connected session identity and membership own retained call records separately from UI requests. Valid accepted identities and matching result bodies may still fill their original session record after a service selection changes. New UI errors, busy changes and download side effects require current ownership.",
+    "Already dispatched mutations are not passed the read cancellation signal. Their accepted or unknown outcome remains attached to the original operation, and no mutation is resent. An accepted result is not relabeled unknown/not_sent when its follow-up pure read is canceled.",
+    "Result reread and download share the same bounded reader. Unmount aborts the read and prevents late download triggers or writes to a reopened panel; an independently valid session result can remain retained."
+  ],
+  "validations": [
+    {
+      "id": "regression-before",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/mcp-ui.test.tsx",
+      "status": "failed-as-expected",
+      "exitCode": 1,
+      "selectedFiles": [
+        "web/tests/mcp-ui.test.tsx"
+      ],
+      "total": 24,
+      "passed": 20,
+      "failed": 4,
+      "skippedOrPending": 0,
+      "report": {
+        "path": ".work/test-results/run-3uEcOJ/vitest.json",
+        "sha256": "964fb0f99a6be088140796fd73ec659d82b18f6597390cda50dbb13f5c08758d"
+      },
+      "log": {
+        "path": ".work/round12-fixes/mcp-regression-before.log",
+        "sha256": "223896d5304f29d2e9b05ae11ca3513be52ef09872201b84d3d64a2ca95bb8a2"
+      },
+      "failedAssertions": [
+        "keeps the new resource read pending after a late 重新读取原结果 success",
+        "keeps the new resource read pending after a late 重新读取原结果 failure",
+        "keeps the new resource read pending after a late 下载原结果 JSON success",
+        "keeps the new resource read pending after a late 下载原结果 JSON failure"
+      ]
+    },
+    {
+      "id": "regression-after",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/mcp-ui.test.tsx",
+      "status": "passed",
+      "exitCode": 0,
+      "selectedFiles": [
+        "web/tests/mcp-ui.test.tsx"
+      ],
+      "total": 34,
+      "passed": 34,
+      "failed": 0,
+      "skippedOrPending": 0,
+      "report": {
+        "path": ".work/test-results/run-ph300j/vitest.json",
+        "sha256": "7e54e7f8ea632d6e781ec34c3b92cd18d2b311b66467aef831515b200974d8c1"
+      },
+      "log": {
+        "path": ".work/round12-fixes/mcp-regression-after-initial.log",
+        "sha256": "5f0d9c66a743c30b03f81dab6f1eab78de8090b4d2696d8eb0f3173bb3e56f02"
+      },
+      "failedAssertions": []
+    },
+    {
+      "id": "web-noemit",
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "status": "passed",
+      "exitCode": 0,
+      "log": {
+        "path": ".work/round12-fixes/mcp-web-noemit-initial.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "id": "whitespace-check",
+      "command": "git diff --check -- web/components/McpPanel.tsx web/tests/mcp-ui.test.tsx",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "id": "discovery-probe",
+      "command": "node node_modules/vitest/vitest.mjs run --config .work/round12-fixes/async-read-probe.config.mjs",
+      "status": "defect-observed",
+      "exitCode": 0,
+      "cases": 4,
+      "description": "The ignored probe asserted buggy behavior and all four observations succeeded before source repair. It is not an official passing product regression.",
+      "report": {
+        "path": ".work/round12-fixes/async-read-probe-result.json",
+        "sha256": "dd27adf18c82cec57ce48b7d8d8445b6f1a50072820a3de879a52e97a13720ba"
+      },
+      "log": {
+        "path": ".work/round12-fixes/async-read-probe.log",
+        "sha256": "a565750a2a2fbdfcf3edbe583dbdd29da72de60d1dfb7d4f81f8445d54a29651"
+      }
+    }
+  ],
+  "regressionCoverage": [
+    "Four official pre-fix failing regressions: old retained-result reread/download, each with late success or failure, while a newer resource request remains pending.",
+    "Accepted and unknown original mutations after service switching preserve their record and single dispatch while leaving the newer read pending.",
+    "Both initial start and receipt recovery follow-up body reads can populate their original accepted session record without releasing a newer UI request.",
+    "Service, thread, epoch, lease and connected-state A-to-B-to-A each abort the old pure read, reject its late error and preserve the newer pending read; repeated resource clicks dispatch once per visit.",
+    "Unmounted download completion never clicks a download or clears busy in a reopened panel. Accepted mutation state remains accepted.",
+    "All 20 existing MCP UI tests continue passing alongside the 14 new cases, for 34 total without skips."
+  ],
+  "limitations": [
+    "Only the two explicitly assigned source/test files were edited. No shared hook, configuration component, RemoteSettings file, existing sealed R12 report, feature-evidence file or capability inventory was edited.",
+    "Official targeted component tests use jsdom and controlled local fetch substitutes. They establish UI ownership, call counts, cancellation signals and retained-record behavior; they do not prove an actual browser/network/MCP-server integration.",
+    "The raw pre-fix result remains 20 passed and 4 failed, not converted into a pass. The post-fix result is 34 passed, 0 failed and 0 skipped/pending; overlapping runs are not summed.",
+    "No full suite, build, SSH, service mutation, real external MCP call or paid inference was run. Final combined build/source freeze and independent cross-review remain with the root task.",
+    "The earlier ignored diagnostic probe passes mean the defect was reproduced, not that the pre-fix product was correct.",
+    "The prior sealed deployment report was checksum-verified unchanged. This fix-stage artifact does not earn or amend an independent clean audit round."
+  ],
+  "remainingKnownIssuesInAssignedFix": []
+}

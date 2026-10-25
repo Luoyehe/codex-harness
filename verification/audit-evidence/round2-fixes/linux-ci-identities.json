@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "passed": true,
+  "completedAt": "2026-10-24T19:40:28.133Z",
+  "host": "192.168.1.120",
+  "directory": "/var/tmp/codex-harness-r2-ci-x5y72hro",
+  "method": "Exact selected deployment fixtures executed on the actual Linux host in a fresh separate directory. Ordinary tests used runuser nobody with env -i and Python -I -B. Root ownership fixtures used the exact workflow Python driver with env -i and Python -I -B. All tested service/account commands were substituted inside fixtures; no existing application deployment or real account was modified.",
+  "initialValidationArchiveSha256": "ee7eaf8365ff482545e3f020908af63977acb04c2360a0018fc11405fcc013f0",
+  "initialAttempt": {
+    "ordinary": {
+      "tests": 67,
+      "passed": 65,
+      "errors": 2,
+      "skipped": 0,
+      "reason": "Validation package omitted package.json, pnpm-lock.yaml and pnpm-workspace.yaml used by two tests; no product defect or ownership-check weakening."
+    },
+    "root": {
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "finalAttempt": {
+    "ordinary": {
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedSeconds": 8.005,
+      "log": "/var/tmp/codex-harness-r2-ci-x5y72hro/ordinary-rerun.log"
+    },
+    "root": {
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedSeconds": 1.518,
+      "log": "/var/tmp/codex-harness-r2-ci-x5y72hro/root.log"
+    }
+  },
+  "servicesUnchanged": true,
+  "serviceSnapshot": "MainPID=1639\nId=codex-harness.service\nActiveState=active\nInvocationID=f733c762cd164186ad9675f74ea8e8b8\n\nMainPID=1612\nId=codex-harness-proxy.service\nActiveState=active\nInvocationID=4aadfc2f85ef44aea79721af2cc0fe7d\n\nMainPID=803302\nId=codex-harness-crtest-rw-20261025-worker.service\nActiveState=active\nInvocationID=070c64b5d8cf4a5390ebc85019d4897c\n\nMainPID=803303\nId=codex-harness-crtest-rw-20261025-gateway.service\nActiveState=active\nInvocationID=cb45ce72b4ca47b58028c8e467c0de1d\n\nMainPID=798588\nId=codex-harness-crtest-rw-20261025-caddy.service\nActiveState=active\nInvocationID=05fc6519a4c840b6ae3008a1d94f79fb\n\nMainPID=798587\nId=codex-harness-crtest-rw-20261025-authelia.service\nActiveState=active\nInvocationID=691f6ccf882f480487b2b3731fe2fa04\n",
+  "limits": [
+    "The GitHub-hosted job itself has not run; this verifies the same identity separation and exact root driver on the allowed Linux host.",
+    "This is the affected deployment subset, not a full repository test run."
+  ]
+}

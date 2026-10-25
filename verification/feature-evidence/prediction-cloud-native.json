@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T23:03:20.008Z",
+  "kind": "targeted-feature-verification",
+  "cliVersion": "0.164.0",
+  "formalAudit": false,
+  "fullSuiteRun": false,
+  "prediction": {
+    "methods": [
+      "thread/prediction/request",
+      "thread/prediction/read"
+    ],
+    "source": "latest completed turn only; fresh native turns/list and complete unified history",
+    "ownership": "epoch/client/eventChannel; native source can only be assigned once per epoch",
+    "delivery": "durable receipt contains identity and requested:true only; text only in private event/read; unknown never resends",
+    "bounds": {
+      "pending": 8,
+      "retained": 64,
+      "sourceTombstones": 2048,
+      "resultTtlMs": 600000,
+      "completionTimeoutMs": 60000,
+      "textBytes": 16384
+    },
+    "concurrency": "thread lock through final native write; pending generation blocks global maintenance but explicit next input invalidates suggestion; timeout or malformed terminal notification marks global unknown",
+    "externalPredictionExecuted": false
+  },
+  "cloud": {
+    "program": "codex-cloud",
+    "argv": [
+      "<verified configured CLI>",
+      "cloud"
+    ],
+    "helpVerified": true,
+    "noAuthCommandExit": 1,
+    "noAuthMessage": "Not signed in. Please run codex login to sign in with ChatGPT, then re-run codex cloud.",
+    "realOwnedPtyTest": true,
+    "globalIdleThroughIndependentCleanup": true,
+    "explicitRestartAfterExit": true,
+    "modelRequests": 0,
+    "authenticatedCloudTaskUntested": true
+  },
+  "mcpLogout": {
+    "operatorOnly": true,
+    "usage": "codex mcp logout [OPTIONS] <NAME>",
+    "fixtureExit": 0,
+    "fixtureStdout": "No OAuth credentials stored for 'fixture'.\n",
+    "absentExit": 1,
+    "absentStderr": "Error: No MCP server named 'absent' found in configuration.\n",
+    "configUnchanged": true,
+    "credentials": "fresh isolated home, no stored credentials; disabled loopback fixture; outbound proxies point to closed loopback port",
+    "limits": "No real credentials, real OAuth revocation, external MCP, or native Linux cross-UID CLI PTY tested; disabling/removing configuration is not logout."
+  },
+  "checks": {
+    "serverTypecheck": "passed after final source edits",
+    "webTypecheck": "passed after final source edits",
+    "reports": [
+      {
+        "file": ".work/test-results/run-e7OTVt/vitest.json",
+        "sha256": "7fbf2285872cf5223ae49ee1b37114d972e00b3a9e7d4963790913c36ab67c21",
+        "success": true,
+        "passed": 40,
+        "failed": 0,
+        "pending": 0,
+        "files": [
+          "tests/runtime/cli-terminals.test.ts",
+          "tests/runtime/predictions.test.ts",
+          "tests/runtime/service.test.ts"
+        ]
+      },
+      {
+        "file": ".work/test-results/run-kxmlk6/vitest.json",
+        "sha256": "799ad30f2efb91ebd810988217bdec239827a1cfe54ee8441147e802e502e2da",
+        "success": true,
+        "passed": 38,
+        "failed": 0,
+        "pending": 0,
+        "files": [
+          "tests/gateway/http.test.ts",
+          "tests/gateway/receipt-result.test.ts",
+          "tests/runtime/guardian-native.test.ts",
+          "tests/runtime/predictions.test.ts"
+        ]
+      },
+      {
+        "file": ".work/test-results/run-8GIhs5/vitest.json",
+        "sha256": "10207a0b6b7adf443fe2bb79f9d177d5d6934057d1f16aef1e702554f482fa09",
+        "success": true,
+        "passed": 11,
+        "failed": 0,
+        "pending": 0,
+        "files": [
+          "tests/runtime/cli-terminals.test.ts",
+          "tests/runtime/predictions.test.ts"
+        ]
+      }
+    ]
+  },
+  "sourceHashes": [
+    {
+      "file": "src/runtime/predictions.ts",
+      "sha256": "017b6a449adc97efa67f5f696407e4d929e697fdde5a813459e87e0e3ab833c6"
+    },
+    {
+      "file": "src/runtime/cli-terminals.ts",
+      "sha256": "63c2aab9bd6138432b5c2f2088ef11b22cfd271cd57b1d912b1c3c7331b02d74"
+    },
+    {
+      "file": "src/runtime/service.ts",
+      "sha256": "1ef8010bd3ec3d91bf655adc234fb973666533e43c3592ba6ff2f5e9d82cfa3f"
+    },
+    {
+      "file": "src/runtime/types.ts",
+      "sha256": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0"
+    },
+    {
+      "file": "src/core/feature-methods.ts",
+      "sha256": "af8fce5eb9da1827def88ad39b4fb1bbab2226eef4a1261ee99780db9575ae04"
+    },
+    {
+      "file": "src/gateway/server.ts",
+      "sha256": "96e0d69bcb39637cde94a1c0aef57cec1afb6169915cf03e012317fc67840752"
+    },
+    {
+      "file": "src/gateway/receipt-result.ts",
+      "sha256": "0a7d800698388bfc40f39c8beccfbad493691e9a1603283514fce0754045bf26"
+    },
+    {
+      "file": "tests/runtime/predictions.test.ts",
+      "sha256": "373f664687e5b7c9f753fd596bc442e24fa243e76a64a595a8da904850ae442e"
+    },
+    {
+      "file": "tests/runtime/cli-terminals.test.ts",
+      "sha256": "f1c563369dbff002ab98742d2bc7bd18aaf4c60d3e76cbccad5c990fe78f2199"
+    },
+    {
+      "file": "tests/runtime/guardian-native.test.ts",
+      "sha256": "4b92f656746d883068849c0d09255c569b237543d1ec59fae7456ca63591229d"
+    },
+    {
+      "file": "tests/gateway/http.test.ts",
+      "sha256": "94fec22da945af32ef57dd37c815d7fc6216f6ccee889f1925340922df048076"
+    }
+  ],
+  "limits": [
+    "Snapshot still under parallel implementation; these hashes are point-in-time targeted evidence, not the frozen audit snapshot.",
+    "Paid or external prediction and authenticated cloud task submission/application were not exercised.",
+    "Result failure/null/eligibility is native-account/provider dependent.",
+    "No full suite or new formal audit performed."
+  ]
+}

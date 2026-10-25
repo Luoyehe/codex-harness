@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "bounded-repair-cross-review",
+  "reviewerId": "r12-runtime",
+  "complete": true,
+  "isIndependentFullRound": false,
+  "reviewedAt": "2026-10-25T16:58:34Z",
+  "conclusion": "No additional confirmed defect was found in the final MCP pending-request repair or its 14 new regression cases. The implementation separates current request UI ownership from retained original-session attempt/body ownership. This is a read-only repair cross-review, not a new full audit round or an independently rerun test result.",
+  "files": [
+    {
+      "path": "web/components/McpPanel.tsx",
+      "sha256": "fdc3db7d28be6cb0c3f25b0cfac30182aaff7877884d1733793d4dfa46a694bf",
+      "beforePath": ".work/round12-fixes/web__components__McpPanel.tsx.before",
+      "beforeSha256": "aea14b0ec9ea315af929c7a954144af5630ccd9a498cad1f4176a88c7a2b2459",
+      "review": "Read the complete final component and complete no-index diff against the supplied current-round before bytes. Traced start, receipt recovery, original-result reread, download, and resource reads through request admission and settlement, including scope cleanup and retained session records."
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "e2a2fea93b50ecf16312ea246cb2c96f8ad949eeeaa3057911f6db1eec50a827",
+      "beforePath": ".work/round12-fixes/web__tests__mcp-ui.test.tsx.before",
+      "beforeSha256": "ebdf9465bf9115f3a1957a326115e3e974da9fdc9b813c62f4d84b26fe38bbf2",
+      "review": "Read the complete final test file and complete no-index diff. The existing 20 cases are unchanged; all 14 new expanded cases and their controlled fetch, result-identity, signal and download assertions were reviewed."
+    }
+  ],
+  "method": "Waited until the author confirmed that the current-round MCP repair report was sealed and both files were no longer being written. Read both final files fully, reviewed git diff --no-index against the supplied .work snapshots without Git history, read the directly relevant current web/lib/mcp-session.ts helper, and applied the current Api/helper behavior already inspected in this task. Verified current/before/report SHA256 values and inspected the existing official targeted log and JSON totals. Did not modify source/tests or execute tests, browser checks, builds or native services.",
+  "reviewNotes": [
+    {
+      "topic": "Request UI ownership versus retained attempt ownership",
+      "references": ["web/components/McpPanel.tsx:44", "web/components/McpPanel.tsx:46", "web/components/McpPanel.tsx:58", "web/lib/mcp-session.ts:7", "web/lib/mcp-session.ts:18"],
+      "assessment": "current()/retained() require the same current session object, a connected owner, no external-authentication loss, and membership of the original attempt. owns() additionally requires a mounted panel, the current scope object, the exact active request object and an unaborted controller. This permits a valid original result to update its retained session record after selection change or panel closure while preventing that old request from changing the new UI request or triggering a download. acceptMcpIdentity and acceptMcpBody validate original thread/server/tool/result identity before accepting data; removal of the attempt or replacement of the session prevents adoption."
+    },
+    {
+      "topic": "Busy admission and old finally isolation",
+      "references": ["web/components/McpPanel.tsx:31", "web/components/McpPanel.tsx:47", "web/components/McpPanel.tsx:53", "web/components/McpPanel.tsx:79"],
+      "assessment": "begin() reserves activeRequest synchronously and rejects another read in the same scope before React rerenders. The displayed busy label applies only to pendingRequest.scope matching the current visit. finish() first compares the exact active request; an old finally cannot clear a newer request, even if a label or identifier is equal. The running mutation ref likewise clears only when it still equals the finishing request."
+    },
+    {
+      "topic": "Abort pure reads, preserve mutation outcome",
+      "references": ["web/components/McpPanel.tsx:42", "web/components/McpPanel.tsx:62", "web/components/McpPanel.tsx:73", "web/components/McpPanel.tsx:84", "web/components/McpPanel.tsx:95"],
+      "assessment": "The request controller is passed to operation/read, mcp/result/read and mcp/resource/read. It is not passed to api.beginMutation, so leaving a selection cancels the optional pure-read continuation without canceling or replaying an already dispatched tool/stream mutation. A valid late accepted/unknown outcome remains attached to its original retained attempt. readBody returns quietly on canceled-read rejection; an accepted mutation is not relabeled unknown/not_sent because that follow-up read was canceled. No new automatic mutation retry or resend path was introduced."
+    },
+    {
+      "topic": "Same-string ABA and lease replacement",
+      "references": ["web/components/McpPanel.tsx:27", "web/components/McpPanel.tsx:42", "web/components/McpPanel.tsx:46", "web/lib/mcp-session.ts:7", "web/tests/mcp-ui.test.tsx:208"],
+      "assessment": "streamScope is an object per rendered API/session/epoch/thread/service/connected visit, so A-to-B-to-A does not make the first visit current again. A changed lease creates a different mcpSession object even when the earlier lease string later returns. The old pure-read controller is aborted, old callbacks cannot satisfy owns(), and the five new ABA cases check new busy retention, absent stale errors and single dispatch per visit."
+    },
+    {
+      "topic": "Late success and failure after cancellation",
+      "references": ["web/components/McpPanel.tsx:59", "web/components/McpPanel.tsx:63", "web/components/McpPanel.tsx:77", "web/components/McpPanel.tsx:90", "web/components/McpPanel.tsx:105"],
+      "assessment": "Resource success/error UI writes require owns(). Canceled result-read failures do not create new alerts or overwrite the retained attempt with an Abort error. If a transport ignores cancellation and successfully returns a matching body, retained() allows it to fill the original still-valid record; that behavior is intentionally distinct from UI request ownership. Genuine mutation failure may remain visible on the original attempt record, while the new request's top-level error is protected by owns(). The added accepted-body and unknown-mutation tests explicitly cover these distinctions."
+    },
+    {
+      "topic": "Unmount and download side effects",
+      "references": ["web/components/McpPanel.tsx:41", "web/components/McpPanel.tsx:42", "web/components/McpPanel.tsx:98", "web/components/McpPanel.tsx:102", "web/tests/mcp-ui.test.tsx:234"],
+      "assessment": "Unmount clears mounted ownership and aborts the active pure read. readResult checks owns() after awaiting the body and before creating the object URL/clicking the download anchor. A late body may populate an existing session record but cannot download or release busy in a reopened panel. The dedicated unmount test checks the aborted signal, zero anchor clicks, preserved accepted record and a still-pending new resource request."
+    },
+    {
+      "topic": "Error and state cleanup",
+      "references": ["web/components/McpPanel.tsx:43", "web/components/McpPanel.tsx:51", "web/components/McpPanel.tsx:96", "web/components/McpPanel.tsx:108"],
+      "assessment": "New request admission clears the current top-level error, and service/scope changes clear stale presentation. Old resource errors require exact request ownership. Result/receipt errors are attached to their retained original attempt rather than an unrelated new resource alert. Successful current resource reads release only their own busy slot and retain the matching resource context."
+    }
+  ],
+  "newRegressionReview": [
+    {
+      "location": "web/tests/mcp-ui.test.tsx:143",
+      "expandedCases": 4,
+      "coverage": "Old retained-result reread/download crossed with late success/failure during a newer resource read. Asserts the newer button stays busy, another click cannot duplicate it, old error is absent and current resource completion restores readiness."
+    },
+    {
+      "location": "web/tests/mcp-ui.test.tsx:166",
+      "expandedCases": 2,
+      "coverage": "Old tool mutation resolves accepted or unknown after selecting another service. Its original record is retained, only one mutation is sent, no canceled follow-up body read starts, and the new resource read stays busy."
+    },
+    {
+      "location": "web/tests/mcp-ui.test.tsx:185",
+      "expandedCases": 2,
+      "coverage": "Initial call and receipt-recovery follow-up body reads may fill their accepted original record after selection changes, while the new resource request remains pending; original tool dispatch count remains one or zero respectively."
+    },
+    {
+      "location": "web/tests/mcp-ui.test.tsx:208",
+      "expandedCases": 5,
+      "coverage": "Service, thread, epoch, lease and connected-state A-B-A. Asserts old signal aborted, current signal live, late error ignored, new request remains busy, repeated clicks do not duplicate dispatch, and current success becomes visible."
+    },
+    {
+      "location": "web/tests/mcp-ui.test.tsx:234",
+      "expandedCases": 1,
+      "coverage": "Unmount during download, then reopen and issue a resource read. The old signal is aborted, ignored cancellation cannot cause an anchor click, accepted state survives, and old completion cannot release the new request."
+    }
+  ],
+  "existingValidationEvidenceInspected": {
+    "performedBy": "repair author; not rerun by this cross-reviewer",
+    "sealedReport": "verification/audit-evidence/round12-fixes/mcp-interface.json",
+    "sealedReportSha256": "0a07774558f6ba85a67fc5714050d02abc35ca98f22f02cad2b034c7232ca03d",
+    "targetedCommand": "node scripts/run-tests.mjs --targeted web/tests/mcp-ui.test.tsx",
+    "targetedLog": ".work/round12-fixes/mcp-regression-after-initial.log",
+    "targetedJson": ".work/test-results/run-ph300j/vitest.json",
+    "targetedJsonSha256": "7e54e7f8ea632d6e781ec34c3b92cd18d2b311b66467aef831515b200974d8c1",
+    "tests": 34,
+    "passed": 34,
+    "failed": 0,
+    "pending": 0,
+    "success": true,
+    "webTypecheck": "The sealed author report records node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit exit 0; its preserved log is empty. This cross-reviewer did not rerun it.",
+    "beforeResult": "The sealed report retains the original official 20-pass/4-fail regression result. This cross-review does not convert it to a pass or combine counts across runs."
+  },
+  "findings": [],
+  "limitations": [
+    "No targeted tests, full suite, build, actual browser, real MCP service, native runtime or deployment checks were executed by this cross-reviewer.",
+    "The 34-pass result is verified preserved author evidence, not an independent rerun. The tests use controlled fetch promises and jsdom, including deliberately ignored cancellation; they do not prove real transport cancellation or native MCP behavior.",
+    "The added cases cover the requested stale-result/busy/ownership paths, not every possible event interleaving. The reviewed test file has no explicit StrictMode wrapper; no separately executed StrictMode result is claimed.",
+    "Scope is limited to the final McpPanel and mcp-ui test repair plus the directly relevant current session helper and previously inspected API/helpers. Other product code and other agents' repairs were not newly audited here.",
+    "No source/test edits, mutation replays, browser fixture changes or old audit changes were made. This report is a limited repair cross-review and earns no independent full-round clean count."
+  ]
+}

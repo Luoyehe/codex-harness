@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round21-fixes",
+  "reviewerId": "r21-interface",
+  "complete": true,
+  "startedAt": "2026-10-25T19:51:40.220Z",
+  "completedAt": "2026-10-25T20:01:04.243Z",
+  "scope": [
+    "web/components/Prompts.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/McpArguments.tsx",
+    "web/lib/prompt-validation.ts",
+    "web/lib/form-values.ts",
+    "web/tests/prompts.test.tsx",
+    "web/tests/prompt-fields.test.tsx"
+  ],
+  "method": "Saved original bytes and hashes, wrote and ran behavior regressions before the structural repair, repeated red using complete legal protocol fixtures on original bytes, restored exact fixed staging, and ran affected tests plus Web TypeScript validation. This is bounded repair evidence, not a full repository audit.",
+  "changes": [
+    {
+      "path": "web/components/Prompts.tsx",
+      "beforeSha256": "9c5db1438f5e539291f27b256aea7a9c5e8b2a5210425940e8d940192e6a1839",
+      "afterSha256": "9c56b511a651823b03b7151fde7a49e9e817618db9b1517882eee1eb5f597610",
+      "backup": ".work/round21-fixes/before/web/components/Prompts.tsx",
+      "backupSha256": "9c5db1438f5e539291f27b256aea7a9c5e8b2a5210425940e8d940192e6a1839"
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "beforeSha256": "ad114cf75fb1bd492aa386afa96116d5a799ba7d708b42114680450654c4041c",
+      "afterSha256": "e65ac473d3e8c8101d08d0239664ecc3da9e6af84e1bdcc9189dac4c673647e5",
+      "backup": ".work/round21-fixes/before/web/components/PromptFields.tsx",
+      "backupSha256": "ad114cf75fb1bd492aa386afa96116d5a799ba7d708b42114680450654c4041c"
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "beforeSha256": "b216bfac69dda606000e91d2c652320776c1313d4ff50d280c4f4649f1ada0c1",
+      "afterSha256": "c7aa12a228483b37f02cba7969966872d1e581e4a6b3da707f2efe4aea560a0d",
+      "backup": ".work/round21-fixes/before/web/lib/prompt-validation.ts",
+      "backupSha256": "b216bfac69dda606000e91d2c652320776c1313d4ff50d280c4f4649f1ada0c1"
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "beforeSha256": "19e055649420655b21fa6bf6746bfe21593edad7e13b5b83601fe1b8a49b2046",
+      "afterSha256": "812ee7d6236feaaf12d2530668c5739cfdfd1628193b24a3e6854a0962023d15",
+      "backup": ".work/round21-fixes/before/web/tests/prompts.test.tsx",
+      "backupSha256": "19e055649420655b21fa6bf6746bfe21593edad7e13b5b83601fe1b8a49b2046"
+    },
+    {
+      "path": "web/tests/prompt-fields.test.tsx",
+      "beforeSha256": "a9263bdd34680a46a12d0925623bee09e2c735348bd37f2860a57b5c18c7374c",
+      "afterSha256": "a74e3f49e36f59803bc56cbea55cdf3535ebc180d871a2be5bf8972b7ecc1969",
+      "backup": ".work/round21-fixes/before/web/tests/prompt-fields.test.tsx",
+      "backupSha256": "a9263bdd34680a46a12d0925623bee09e2c735348bd37f2860a57b5c18c7374c"
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "beforeSha256": "21017e698728d9e39ab3dc4a61eda4ae8123151990c6dd255b40d04b60e52cf0",
+      "afterSha256": "0baec85d6a89faee8e9581a9c1f54096aafbf8c3d6b8fbbe76243d7fb8ee2768",
+      "backup": ".work/round21-fixes/before/web/components/McpArguments.tsx",
+      "backupSha256": "21017e698728d9e39ab3dc4a61eda4ae8123151990c6dd255b40d04b60e52cf0"
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "existedBefore": false,
+      "beforeSha256": null,
+      "afterSha256": "c09b847bb931cefcfe31deedb2d34a6298d7616d6d7522c339f69be1476e9942"
+    }
+  ],
+  "repairedFindings": [
+    {
+      "id": "R21-INTERFACE-001",
+      "result": "Question draft reads use ownField; response creation uses Object.fromEntries. __proto__ and constructor start unanswered, explicitly entered answers remain own keys and survive JSON serialization."
+    },
+    {
+      "id": "R21-INTERFACE-002",
+      "result": "Explicit none/option-index/other selection state is independent of text and otherText. Literal __other is preserved for offered options and free text. Custom drafts survive switching, and existing busy/single-flight/failure/collapse behavior remains covered."
+    }
+  ],
+  "relatedRepairs": [
+    "Elicitation, top-level MCP arguments and nested SchemaField values use own-property reads. Both prototype-named fields start absent and return to absent after clearing; supplying values preserves own keys through serialized responses.",
+    "Object schema validation checks whether properties owns the child name. Undeclared __proto__/constructor helper regressions are defense-in-depth, not independently demonstrated native-flow findings.",
+    "The shared computed-property withField writer is also used by permission selection; approval label lookup uses ownField. These are consistent handling of dynamic keys, not additional asserted native protocol findings."
+  ],
+  "contractReview": {
+    "method": "Static comparison of exact current generated JSON/TypeScript contracts and concrete new component fixtures; no runtime/validation import under jsdom.",
+    "sources": [
+      {
+        "path": "protocol/json/ToolRequestUserInputParams.json",
+        "sha256": "fda15b62e7446105b59c8ed85c908abed2a47db70653e57c92c47a2f204fa77a"
+      },
+      {
+        "path": "protocol/json/McpServerElicitationRequestParams.json",
+        "sha256": "225e9e9198019a71e1680172484b0863817d550f7089834b848f011904670f47"
+      },
+      {
+        "path": "protocol/json/v2/ListMcpServerStatusResponse.json",
+        "sha256": "c5a6c05092a9b1fa90c7cb3a319685a769a67c16e19048e8bbab5007b358be74"
+      },
+      {
+        "path": "protocol/ts/Tool.ts",
+        "sha256": "d5e9e622156040df012f8a0769258093132854b64e30b6ec45c8831c11231d92"
+      }
+    ],
+    "conclusions": [
+      "Question IDs and option labels are unconstrained strings. New question fixtures include threadId, turnId, itemId, isBlocking and option descriptions. The strings __proto__, constructor and __other are legal upstream values.",
+      "McpElicitationSchema.properties accepts arbitrary names with primitive schemas. New elicitation regressions provide serverName, threadId, mode, message and a legal requestedSchema, without the unsupported additionalProperties keyword used by the pre-existing generic helper.",
+      "Discovered Tool.inputSchema is arbitrary JSON; the tested top-level and nested object schemas are conventional JSON Schema supported by the UI. McpPanel passes the discovered descriptor to McpArguments and sends its supplied argument object through the confirmed mcp/tool/call action."
+    ]
+  },
+  "validations": [
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/prompts.test.tsx web/tests/prompt-fields.test.tsx",
+      "exitCode": 1,
+      "stdout": ".work/round21-fixes/forms-red.stdout.txt",
+      "stdoutSha256": "0942a850f414c996431c7316bc4b9103a2905197ba73f412b64a36255a2ee9db",
+      "raw": ".work/test-results/run-1W28wM/vitest.json",
+      "rawSha256": "4431b37e06009a1749e19ee3d83f293731ade84a1c85d1bd90379a067a55225c",
+      "passed": 17,
+      "failed": 14,
+      "total": 31,
+      "note": "Initial regression authoring run. Four MCP cases failed due to omitted it.each parameters, so those four failures are not product evidence. Remaining failures were assertions."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/prompts.test.tsx web/tests/prompt-fields.test.tsx",
+      "exitCode": 1,
+      "stdout": ".work/round21-fixes/forms-red-corrected.stdout.txt",
+      "stdoutSha256": "350e9ed2b00bc25b997274472dbc1003afb6e7f99e8594df5df17c48b763468c",
+      "raw": ".work/test-results/run-wBGoJx/vitest.json",
+      "rawSha256": "f77ef002c80e1493d9a61428c809ab7380d55658edff4f508943a7d4ee18c98f",
+      "passed": 17,
+      "failed": 14,
+      "total": 31,
+      "note": "Corrected regression callbacks: 14 assertion failures, 17 passes on original sources. New fixtures were subsequently completed against the exact protocol contract."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/prompts.test.tsx web/tests/prompt-fields.test.tsx",
+      "exitCode": 0,
+      "stdout": ".work/round21-fixes/forms-green.stdout.txt",
+      "stdoutSha256": "38201958bf39ab806c83219e00aed3d70e1dd62f59fb056c0e5bca9190eaba96",
+      "raw": ".work/test-results/run-XcbwWa/vitest.json",
+      "rawSha256": "80c4c71fc0a2576f225533387bbb47d4c320927ac2115c0715d2567896e5d852",
+      "passed": 31,
+      "failed": 0,
+      "total": 31,
+      "note": "Initial structural repair: 31 passes, before the final fixture-envelope corrections."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/prompts.test.tsx web/tests/prompt-fields.test.tsx",
+      "exitCode": 1,
+      "stdout": ".work/round21-fixes/forms-red-contract-valid.stdout.txt",
+      "stdoutSha256": "e3e9c30cb6ccbc05bbf67d8ce129d7cbc68e22f6dce926f126528bc694b84a0d",
+      "raw": ".work/test-results/run-B62Xp7/vitest.json",
+      "rawSha256": "9f16be4d6fa710c0e5157fa3b38b9cfd9ffecd7b39668f9f253ae26200bade8c",
+      "passed": 17,
+      "failed": 14,
+      "total": 31,
+      "note": "Definitive red: original source bytes restored from backups; complete legal new UI fixtures produce 14 assertion failures and 17 passes. The new unused helper is present but not imported by the originals."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/prompts.test.tsx web/tests/prompt-fields.test.tsx web/tests/mcp-ui.test.tsx",
+      "exitCode": 0,
+      "stdout": ".work/round21-fixes/forms-green-final.stdout.txt",
+      "stdoutSha256": "7ad0bf3421be6d546c8c7454e4ae801643e2b31f495ebc59aaa5a4c701733eac",
+      "raw": ".work/test-results/run-90VG2T/vitest.json",
+      "rawSha256": "935f23dbf8a00e88a2a9730c68e068b7f42dc3feae6320c9bf70f9b0a041e056",
+      "passed": 66,
+      "failed": 0,
+      "total": 66,
+      "note": "Definitive green after restoring byte-identical fixed staging: 66 passes across the two changed tests and existing MCP UI integration tests."
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json",
+      "exitCode": 0,
+      "stdout": ".work/round21-fixes/forms-web-tsc.stdout.txt",
+      "stdoutBytes": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json",
+      "exitCode": 0,
+      "stdout": ".work/round21-fixes/forms-web-tsc-final.stdout.txt",
+      "stdoutBytes": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "sourceRestoration": [
+    {
+      "path": "web/components/Prompts.tsx",
+      "staging": ".work/round21-fixes/fixed-staging/web/components/Prompts.tsx",
+      "sha256": "9c56b511a651823b03b7151fde7a49e9e817618db9b1517882eee1eb5f597610",
+      "matchesFixedStaging": true
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "staging": ".work/round21-fixes/fixed-staging/web/components/PromptFields.tsx",
+      "sha256": "e65ac473d3e8c8101d08d0239664ecc3da9e6af84e1bdcc9189dac4c673647e5",
+      "matchesFixedStaging": true
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "staging": ".work/round21-fixes/fixed-staging/web/components/McpArguments.tsx",
+      "sha256": "0baec85d6a89faee8e9581a9c1f54096aafbf8c3d6b8fbbe76243d7fb8ee2768",
+      "matchesFixedStaging": true
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "staging": ".work/round21-fixes/fixed-staging/web/lib/prompt-validation.ts",
+      "sha256": "c7aa12a228483b37f02cba7969966872d1e581e4a6b3da707f2efe4aea560a0d",
+      "matchesFixedStaging": true
+    }
+  ],
+  "unchangedSupportingTest": {
+    "path": "web/tests/mcp-ui.test.tsx",
+    "sha256": "71c2f195c135801252074fa26f7511f644f6a64b384db1b6c3d0a37e3d16e794",
+    "passed": 35
+  },
+  "sealedAudit": {
+    "path": "verification/audit-evidence/round21/r21-interface.json",
+    "sha256": "13cb60b6abf4129eec17996d844bf60fcd371c1bebbd444c1abc1b44ef76554b",
+    "unchanged": true
+  },
+  "crossReview": {
+    "status": "pending independent bounded review coordinated by root",
+    "plannedPath": "verification/audit-evidence/round21-fixes/forms-cross-review.json"
+  },
+  "limitations": [
+    "用户授权后续直接 full，实际本报告仅 targeted；正式 Round21 的历史 clean 0 不变。本报告不作为新的全仓 clean 轮。",
+    "No full suite, build, SSH, deployment, external model/MCP/account/microphone calls, or personal CODEX_HOME access was performed by this repair task. Build and later release/deployment are owned by root.",
+    "Local jsdom component tests and fetch stubs verify behavior at the UI boundary; no real upstream process or external MCP service was exercised.",
+    "The first TypeScript command returned exit 0 with no stdout; Tee-Object did not create an empty file and its following Get-FileHash reported a missing file. The truthful zero-byte stdout was then persisted. The final TypeScript command pre-created its stdout and also returned exit 0 without output."
+  ]
+}

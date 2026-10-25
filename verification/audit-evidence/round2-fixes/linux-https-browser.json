@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-isolated-linux-integration",
+  "createdAt": "2026-10-24T20:19:06.531Z",
+  "host": "192.168.1.120",
+  "instance": "crtest-rw-20261025",
+  "applicationRelease": "9eeda317f2def81284a0d67fa31736d45a2519d7140741c81fbdb64a5f042b6c",
+  "sourceArchiveSha256": "95371466cdab138bc3691379768f4243778af88d7f8a0cd0400f9d76028f69ce",
+  "protocolChecks": {
+    "passed": true,
+    "count": 21,
+    "names": [
+      "anonymous-http-blocked",
+      "anonymous-websocket-blocked",
+      "authelia-state",
+      "real-authelia-firstfactor",
+      "gateway-token-still-required",
+      "authelia-only-websocket-blocked",
+      "real-gateway-login",
+      "wrong-origin-websocket-blocked",
+      "actual-gateway-websocket-upgraded",
+      "read-only-rpc",
+      "read-only-rpc",
+      "native-project-resolution",
+      "native-read",
+      "native-read",
+      "native-read",
+      "native-read",
+      "attachment-and-durable-replay",
+      "real-native-pty-through-https",
+      "settled-receipt-replay-without-live-browser",
+      "browser-owner-terminal-cleanup-and-reconnect",
+      "gateway-health-through-edge"
+    ],
+    "sha256": "632443c4d824775d737c56b3120adf4cf6b165500abbdf32c7e9c384588ea472"
+  },
+  "attachments": {
+    "passed": 12,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Windows OS unlink-denial fixture; the two POSIX-only cases passed on this Linux host.",
+    "sha256": "2ee3089f690fb5399146379e2780aa2414e36bd294cd1704d4f96eb5fc891456"
+  },
+  "browser": {
+    "terminal": "Actual HTTPS browser opened an owned PTY, ran a marker and id -u, showed UID 990 and the final line, and reported exit 0.",
+    "screenshot": "reference/evidence/https-r2-browser-terminal.png",
+    "screenshotSha256": "7194d19e4f9d42f4e919172c35a54ef0d8c94d84a2679ff4dcb51f73069e177e",
+    "authRecovery": "Outer-auth logout detected; a hidden native dialog made Login inert until Escape. After dismissing it, renewal in a second tab and recheck restored the existing workspace. This finding is repaired separately; do not count pre-fix flow as passed."
+  },
+  "boundaries": [
+    "No model inference or external MCP tool calls.",
+    "Existing old services preserved; successful test instance left running.",
+    "Does not establish round3 repair or expanded-feature acceptance; those are not yet deployed."
+  ],
+  "fullSuiteRun": false
+}

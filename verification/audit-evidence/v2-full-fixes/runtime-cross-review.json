@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-cross-review",
+  "reviewerId": "r21-interface",
+  "status": "no-new-actionable-finding-in-reviewed-change",
+  "complete": true,
+  "startedAt": "2026-10-25T20:24:21.2943885Z",
+  "completedAt": "2026-10-25T20:26:49.3096199+00:00",
+  "method": "Compared only this repair original-byte backups against the current changed service and tests, traced known-turn state ownership through admission, notifications, revision checks, closure and fresh-epoch recovery, and independently verified source and red/green evidence hashes. No test or product code was changed.",
+  "scope": [
+    "src/runtime/service.ts changed guards plus surrounding activity/notification/newTurn/workflow/resume/close lifecycle",
+    "tests/runtime/service.test.ts added regressions and their FakeNative fixture, plus neighboring admission/recovery tests",
+    "tests/runtime/organization-native.test.ts complete test and exact backup diff"
+  ],
+  "comparisons": [
+    {
+      "path": "src/runtime/history.ts",
+      "before": ".work/organization-full-fix/before/src__runtime__history.ts",
+      "beforeSha256": "a7f5c37f0e653ddde63e80015e2483a5aaadf52d2d0dcf069789042e4a17cbe9",
+      "afterSha256": "a7f5c37f0e653ddde63e80015e2483a5aaadf52d2d0dcf069789042e4a17cbe9",
+      "matchesRepairReport": true,
+      "changed": false
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "before": ".work/organization-full-fix/before/src__runtime__service.ts",
+      "beforeSha256": "fa2db38f8c583e900a5eda5da04e4d5eecc309925e5c34e443ccb13c08481a8d",
+      "afterSha256": "079b205d2c324be2110f9f31e7a280f6e9b443616f2f64d5cd6bdb276bcc1ebe",
+      "matchesRepairReport": true,
+      "changed": true
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "before": ".work/organization-full-fix/before/tests__runtime__service.test.ts",
+      "beforeSha256": "37a96d0e997742d3e144d3e9bedff3032ffe4709fb4cb912b0c72fca2e3b3a56",
+      "afterSha256": "2c13efe7662c73395f8769f2a9766768f486b9700d25556f07214bbedfcbacc0",
+      "matchesRepairReport": true,
+      "changed": true
+    },
+    {
+      "path": "tests/runtime/organization-native.test.ts",
+      "before": ".work/organization-full-fix/before/tests__runtime__organization-native.test.ts",
+      "beforeSha256": "cceec180d101172dba425b814e57e28bc87eaceed23690bbae92fa4175031057",
+      "afterSha256": "7f7381e9bc6814d5a26165146d2e8d784d513b54b3e4a917349c3048e554aaf1",
+      "matchesRepairReport": true,
+      "changed": true
+    }
+  ],
+  "supportingReads": [
+    "src/runtime/history.ts history admission and observe callback",
+    "src/runtime/workflows.ts mutation mode declarations and unsubscribe mode",
+    "reference/PROTOCOL-CONTRACT.md thread viewing/resume and completion contract",
+    "protocol/ts/v2/ThreadStatus.ts",
+    "protocol/ts/v2/TurnCompletedNotification.ts"
+  ],
+  "reviewedReport": {
+    "path": "verification/audit-evidence/v2-full-fixes/organization.json",
+    "sha256": "8b7329875bd04d950fc90bba04c65f491d9023b2fc60b2bd70c10abcd6ee8526"
+  },
+  "findings": [],
+  "conclusions": [
+    "Known turnId is counted independently of idle thread metadata in all changed status, admission, organization import, configuration and workflow guards. This closes the demonstrated second-turn admission gap without replacing the separate unknown/pending/goal/queue checks.",
+    "Matching turn/completed still sets status idle and turnId null. A completion for another turn leaves the known turn intact. Thread closed/deleted explicitly clears turn ownership. Interrupt remains available through its existing control path while work is active; resume keeps mode any.",
+    "Existing revision comparisons prevent an RPC response captured before a newer notification from re-applying old activity. An idle notification before matching completion no longer releases the turn. Completion before a later idle notification leaves turnId null. No additional permanent-busy path was found in these reviewed changes.",
+    "Unknown outcomes are intentionally retained after metadata or completion. Closing the old RuntimeService makes it unavailable; a fresh instance owns a new epoch and empty activity map, with complete-history admission still required. The added fixture demonstrates this recovery boundary rather than silently clearing unknown.",
+    "The native organization test subscribes to runtime events before conversation creation and waits for the exact thread/turn terminal notification with status completed. Existing idle status, metadata persistence, execution-root separation, history, one-provider-call and PID-death assertions are retained.",
+    "The definitive red records two second-turn promises resolving instead of rejecting; the final recorded targeted run has 62 passes including both idle cases, unknown/epoch recovery, and the native organization test. Source and raw hashes match organization.json."
+  ],
+  "validations": [
+    {
+      "path": ".work/test-results/run-z10bCq/vitest.json",
+      "sha256": "6dfa047e773dd6dfc8a02fa850263300f2c5812e07e8a3e21b7b3e6e7c22fa7f",
+      "passed": 31,
+      "failed": 2,
+      "total": 33,
+      "rerunByReviewer": false
+    },
+    {
+      "path": ".work/test-results/run-lb5GGR/vitest.json",
+      "sha256": "59f101ae003b7ccfd0dbbedc33e7cba30a90cda45ee3e8e03fe33d2c2bc6db56",
+      "passed": 62,
+      "failed": 0,
+      "total": 62,
+      "rerunByReviewer": false
+    }
+  ],
+  "limitations": [
+    "This is a bounded review of one repair, not a complete repository audit or a new clean audit round. No full suite, targeted rerun, build, SSH, real model/MCP/account workflow or personal CODEX_HOME access was performed by this reviewer.",
+    "The reviewed lifecycle relies on the fixed contract terminal notifications and existing revision ordering. A lost completion intentionally leaves the current epoch conservative until recovery; this review does not claim a formal liveness proof or test every possible upstream event ordering.",
+    "The fresh-epoch regression uses a deterministic local fixture. The existing recorded native targeted test was inspected but not rerun independently.",
+    "The original uncaught list_turns full-run symptom was not independently reproduced by this reviewer, and organization.json explicitly retains that causal limitation. A full rerun remains parent-owned under the user-authorized exception."
+  ]
+}

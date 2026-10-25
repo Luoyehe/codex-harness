@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "official-cli-offline-configuration-probe",
+  "createdAt": "2026-10-24T20:30:01.930Z",
+  "cli": "0.164.0",
+  "host": "192.168.1.120",
+  "identity": "nobody",
+  "unit": "crtest-managed-layer-1792872912",
+  "runtimeMilliseconds": 165,
+  "checks": {
+    "requirementsProvider": "harness_responses",
+    "providerDefinitionReplacedWithoutUserHeaders": true,
+    "userConfigWriteStatus": "ok",
+    "userEffortReadback": "high",
+    "explicitThreadOverrideStillUsesRequiredProvider": "harness_responses"
+  },
+  "resultSha256": "61d3e702c5b22574c076e65afdcbabe11640859d5a23b5d7c9828dc9fb0e2c82",
+  "scripts": {
+    "client": "67136106eda055f600e6440f157e231a9d8cca53c94ac35f83aca9ee3fbf17a7",
+    "runner": "5c6303342ae5684c51bde415b3e79d754b56fb9fb0ba850b562de6a4e8b19e3a"
+  },
+  "limits": [
+    "No turn/start or paid inference; ephemeral thread creation only.",
+    "Private systemd mount namespace; did not write host /etc/codex.",
+    "Production deployment migration/host-policy preservation is still to be implemented and tested.",
+    "Windows ProgramData environment substitution did not load requirements; no Windows system-policy files changed.",
+    "The separate -c probe demonstrated nested user header retention, so CLI field overrides are not used as a provider policy boundary."
+  ],
+  "fullSuiteRun": false
+}
