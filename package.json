@@ -1,32 +1,47 @@
 {
   "name": "codex-harness",
+  "version": "2.0.0",
   "private": true,
-  "version": "1.2.1",
-  "description": "Self-hosted WebUI for the open-source Codex harness (codex app-server), with provider presets for OpenAI and Zhipu Coding Plan.",
-  "license": "MIT",
-  "packageManager": "pnpm@11.22.0",
+  "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=24.15.0 <25"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Luoyehe/codex-harness.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Luoyehe/codex-harness/issues"
-  },
-  "keywords": ["codex", "openai", "webui", "self-hosted", "agent", "zhipu", "glm"],
+  "packageManager": "pnpm@11.22.0",
+  "codexVersion": "0.164.0",
   "scripts": {
-    "dev": "concurrently -n gateway,web -c blue,magenta \"pnpm --filter @codex-harness/gateway dev\" \"pnpm --filter @codex-harness/web dev\"",
-    "build": "pnpm --filter @codex-harness/web build && pnpm --filter @codex-harness/gateway build",
-    "test:smoke": "node scripts/gateway-smoke.mjs",
-    "test:defaults": "node scripts/defaults-integration.mjs",
-    "test:mcp-context": "node scripts/mcp-config-integration.mjs",
-    "test": "pnpm --filter @codex-harness/gateway test && pnpm --filter @codex-harness/web test && node --test scripts/*.test.mjs",
-    "typecheck": "pnpm -r typecheck && pnpm --filter @codex-harness/gateway exec tsc -p ../../protocol/tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters"
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:web": "vite build --config web/vite.config.ts",
+    "build": "pnpm build:server && pnpm build:web",
+    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "test:targeted": "node scripts/run-tests.mjs --targeted",
+    "test:full": "node scripts/run-tests.mjs --full",
+    "snapshot": "node scripts/snapshot.mjs",
+    "dev:web": "vite --config web/vite.config.ts --host 127.0.0.1",
+    "start": "node dist/src/gateway/main.js"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "@z_ai/mcp-server": "0.1.5",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
+    "ws": "8.22.0"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "ws": "8.21.3"
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/ws": "8.18.2",
+    "@vitejs/plugin-react": "6.1.2",
+    "jsdom": "30.1.3",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
   }
 }

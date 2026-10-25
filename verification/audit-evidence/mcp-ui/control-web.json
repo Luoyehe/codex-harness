@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "phase": "mcp-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T21:20:35.146Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/components/Settings.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpContent.tsx",
+    "web/lib/mcp-session.ts",
+    "web/lib/api.ts",
+    "web/styles-extensions.css",
+    "web/tests/mcp-ui.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "1f56c56b4c91febaad87a4e45540ab6772ff588514299f234bec689905122d57",
+    "web/components/Settings.tsx": "71a9204577ebc37c4864caf6b1c8a4d0eeae9e6500b118fcd415c65f72458072",
+    "web/components/McpPanel.tsx": "3f7e57d92b99fabfafdf6d6251c9c0e25f45c2b1babc571565cf1a1ba9d602e8",
+    "web/components/McpConfiguration.tsx": "7cd8c003e8e61d097a0a63917a6a7cf9a71ff763f09a20cd9e1b97f29425f8b5",
+    "web/components/McpArguments.tsx": "21017e698728d9e39ab3dc4a61eda4ae8123151990c6dd255b40d04b60e52cf0",
+    "web/components/McpContent.tsx": "44a968523f96f7b9b5caa5730ac5d250fc550d7251d14b9c1513bb15c321b5b7",
+    "web/lib/mcp-session.ts": "7ee44964cc6cd8eac39399cc6ce2519a54866b72f267ea0362e8a111968182b5",
+    "web/lib/api.ts": "efccbbe77bd541b89b2682c833ec661d0c3f03602a6239c08532c7edf05b2cea",
+    "web/styles-extensions.css": "71fb1e277e915e2897d84ac4a0820360b72ae316f025ba99d4bb17835790c429",
+    "web/tests/mcp-ui.test.tsx": "74cd1633021ea13a01d731c47997209f87669a4f8c4c93f1068aefb34ca91377"
+  },
+  "contracts": {
+    "catalog": "Native paged full MCP discovery, runtime/auth/plugin/origin identity. Loaded-thread catalog only when an explicit session and full history are present; browsing never calls resume. Tools are selected from discovered map and descriptor identity must match.",
+    "arguments": "Small supported schema uses named native fields. Complex schemas have a tool-specific JSON editor with displayed discovered schema; no arbitrary method dispatch. Explicit tool invocation confirmation and bounded256KiB input; runtime fresh discovery and isolated schema validation remain authoritative.",
+    "receipts": "Each tool/stream start captures durable original operationId before await. In-document session cache binds Api client plus connection lease. Accepted HTTP or original receipt result must match thread/server/tool and stable resultId/subscriptionId. Unknown calls never replay. Same-lease modal reopen retains identities; lease replacement discards them and ignores late results.",
+    "results": "Tool result body is separately read by resultId, validates complete identity, preserves isError. Up to8 attempts,2MiB displayed body each. Larger results remain explicitly downloadable as original JSON without automatic call. Temporary native result expiry is surfaced, not replayed; known absent results can be cleared. No result or arguments stored in browser persistent storage.",
+    "resources": "Discovered static URIs and templates read with explicit loaded-thread/server scope. Tool resource links still pass through backend origin/discovery checks. Stale thread/navigation reads cannot replace newer selection. HTML resources display as text, not executable content. Resource preview is bounded2MiB.",
+    "subscriptions": "Explicit service-specific name/JSON params because native catalog has no event-name schema. Native owned stream/list is authoritative, explicit stop uses subscriptionId. Closing panel preserves stream; connection loss relies on backend cleanup. Always-mounted owner bridge keeps bounded100-event256KiB log with truncation counts. No full event history claim.",
+    "configuration": "mcp/config/read safe user-layer descriptors; narrow mcp/config/write expectedVersion and selected name only. stdio program/argv/env and HTTP URL/header/env-token fields have dedicated controls. Secret groups omitted by default; replace/empty/clearSecrets are explicit. No masked secret echo, no whole-map browser merge. Configuration changes require idle state and explicit process/network implication confirmation. Conflict preserves input until explicit comparison. Save and reload are separate actions.",
+    "authentication": "OAuth initiated only by explicit action; returned http/https URL is shown only if original server and lease are still selected. No external authorization navigation happens automatically."
+  },
+  "validation": {
+    "targetedCommand": "node node_modules/vitest/vitest.mjs run web/tests/mcp-ui.test.tsx web/tests/extensions.test.tsx web/tests/events.test.tsx web/tests/settings.test.tsx web/tests/app-lifecycle.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/prompts.test.tsx web/tests/terminal.test.tsx",
+    "testFiles": 9,
+    "tests": 74,
+    "result": "passed",
+    "mcpSpecificTests": 12,
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle >500KiB warning remains",
+    "browser": "New15-minute loopback-only read-only fixture port5113 sent to parent for CUA. No deployed integration asserted."
+  },
+  "limits": [
+    "No full repository suite or formal clean audit.",
+    "Controlled frontend responses are not proof of native MCP/plugin operation. No real external MCP or paid inference used.",
+    "Native event discovery has no name/schema metadata; the advanced event form requires service-defined name/JSON parameters and does not claim discovered event schema.",
+    "Rich HTML MCP Apps are shown as inert resource text; this batch does not execute remote HTML applications.",
+    "Argument edits are local to the form; completed/unknown operation identity survives modal close, not cross-lease result ownership.",
+    "Organization/scheduler/composer-reference UI remain subsequent assigned batches.",
+    "No personal credentials, online deployment,120browser or external messages used by this agent."
+  ]
+}

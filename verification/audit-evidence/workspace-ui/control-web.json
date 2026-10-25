@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "phase": "workspace-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T20:59:08.650Z",
+  "implementationCompleteForAssignedBatch": true,
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/lib/api.ts",
+    "web/lib/workspace.ts",
+    "web/lib/file-drafts.ts",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/Recovery.tsx",
+    "web/styles-workspace.css",
+    "web/tests/workspace-ui.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "9b4d149df8c95f266931c1e3afc4e630ef9f680236c0d26adb4e9678bedd4259",
+    "web/lib/api.ts": "75f1ee88c082bb9eb81acf5e1f45b3aaf3a092e9ab5ee5d9331f99a536103c39",
+    "web/lib/workspace.ts": "ac65178f7ace2834e40b2958ffff44c0b99b58286965919a64047867345d75f5",
+    "web/lib/file-drafts.ts": "0cfd9cd16502db0bbb83972b89a498c9c42a389f2d0eacce2e74bc20b6a2a91c",
+    "web/components/WorkspacePanel.tsx": "79597d6271d0a798f8ffb457346d48795fb40cf3e9e40282f60ac6a25d648990",
+    "web/components/FileEditor.tsx": "a825d066404bfae007a1ced26acc1633e278d26a7798f04a0a4ffcce146244b6",
+    "web/components/WorkspaceGit.tsx": "5cdfafa828e17b9de50913a38254cbb8eb75c507b0c1a6e49cd6048a072cc11f",
+    "web/components/HistoryTools.tsx": "2da4727f41af7e6618c7aefdc7e926f58080a575dbce4adfac86c75bea33b178",
+    "web/components/Recovery.tsx": "5cdda58b2428ab72e7ff1d143c4cca0bae0008c1dcb09944f48437bed5de538e",
+    "web/styles-workspace.css": "106ac844afc9347816f1d5913e85a35abd1d2eb7aa4bebc7810a0f3aec9d74f0",
+    "web/tests/workspace-ui.test.tsx": "a13f8782f1424a6dd2ec303b1732a3e45213e014bbeab451d39c3212fe5e6e29"
+  },
+  "contracts": {
+    "scope": "Browser supplies only registered projectId and relative paths; no native root/cwd. Bounded directory browser and direct path navigation. Unsupported entries, binary/non-UTF8 files, >512 KiB text and truncated directory/ref results are explicit.",
+    "editor": "File drafts bind projectId/path/baseRevision. Existing file writes carry captured SHA-256 expectedRevision; creation uses null. A conflicting new version preserves original text plus draft, requires explicit compare/rebase, and a separate save. UTF-8 512 KiB limit and bounded 10-draft/8 MiB session storage.",
+    "delivery": "Api.beginMutation exposes durable identity and synchronous prepare callback before dispatch. Pending file intent must persist before network write. Storage failure stops dispatch. Unknown saves retain submitted revision/text and query only original global operation/read; accepted proof is followed by project/path readback. New edits during save are preserved. Unmount/navigation preserves pending intent and never causes duplicate write.",
+    "recovery": "No native helper journal is promoted to accepted in UI. Global receipt witness recovery remains gateway responsibility. Missing or unknown receipt does not grant retry permission. Accepted-but-different readback preserves conflict draft. Confirmed not_sent permits deliberate later save.",
+    "operations": "mkdir/copy/remove use durable mutations. Copy captures source revision and destination must not exist. Delete requires exact relative-path confirmation, confirm:true and recursive:false. No unsupported restore or recursive deletion control.",
+    "git": "Read-only status and staged/unstaged diff; refs are visible metadata and explicit review base targets. No checkout, commit, Git index mutation or arbitrary argv. AGENTS.md follows ordinary file read/conflict-safe write.",
+    "ownership": "Late project/path reads cannot take over newer navigation. File draft identity includes project. Workspace remains mounted to retain drafts on auth loss; root modal auth-loss cleanup remains in effect."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/workspace-ui.test.tsx web/tests/workflows.test.tsx web/tests/composer.test.tsx web/tests/app-lifecycle.test.tsx web/tests/resume.test.tsx web/tests/defaults.test.tsx web/tests/drafts.test.tsx web/tests/history.test.ts web/tests/conversation.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/terminal.test.tsx web/tests/dialog.test.tsx web/tests/settings.test.tsx",
+    "testFiles": 14,
+    "tests": 100,
+    "result": "passed",
+    "workspaceSpecificTests": 12,
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle >500 kB warning remains",
+    "browser": "A new 15-minute loopback-only read-only visual fixture is available to parent CUA at port5110. No production browser or remote deployment tested by this agent."
+  },
+  "limits": [
+    "No full repository suite or formal clean audit; gate remains required.",
+    "Frontend controlled API tests do not prove native Linux workspace behavior; helper/gateway owners provide separate integration evidence.",
+    "No paid inference, real external MCP, personal credentials, external messages or online deployment used.",
+    "Workspace browsing uses bounded directory drill-down and breadcrumbs rather than an unbounded expanded tree.",
+    "Native workspace restore/commit/checkout are not implemented in this UI batch because their backend contracts are not yet available.",
+    "Files are under concurrent development; these hashes identify this handoff, not a frozen repository snapshot."
+  ]
+}

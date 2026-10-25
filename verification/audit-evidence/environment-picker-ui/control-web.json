@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:21:44.857Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedBatch": true,
+  "phase": "environment-picker-ui",
+  "files": [
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/Composer.tsx",
+    "web/App.tsx",
+    "web/lib/types.ts",
+    "web/lib/drafts.ts",
+    "web/styles-input-context.css",
+    "web/tests/environment-picker.test.tsx"
+  ],
+  "tests": 30,
+  "testFiles": 5,
+  "specificTests": 3,
+  "command": "node node_modules/vitest/vitest.mjs run web/tests/environment-picker.test.tsx web/tests/defaults.test.tsx web/tests/input-context.test.tsx web/tests/drafts.test.ts web/tests/app-lifecycle.test.tsx",
+  "contracts": "No automatic remote selection;only registered selectionReady IDs can be selected. Explicit draft controls inherit/local-or-no-remote/selected remote arrays. Up to8IDs persist with draft;stale epoch IDs or failed catalog prevent ordinary send instead of switching to another remote. No remote URL,cwd,token or connection call supplied by picker. Environments are stripped from unrelated defaults/read; normal executionOptions carries explicit IDs.",
+  "sourceHashes": {
+    "web/components/EnvironmentPicker.tsx": "bc644d2f00d67091584b65f0cd8a07d17d3509bbe26e90abff15532a903c4e23",
+    "web/components/Composer.tsx": "f4705b60528d5d24b4c2ad462fc66039a11431c70c4ad30d87bb17dc223e654f",
+    "web/App.tsx": "d0d6f3594642ffc4762276ea687fa9691d6c82198bc3678c75fc9c41f991d58b",
+    "web/lib/types.ts": "2239268b2b3f38e0f3bb1fad7556858ec80ecc6a34ca9737384209133fb01dae",
+    "web/lib/drafts.ts": "e8664fa223cf67dab716ddacb9044e4fb11404be0c3758a3e02c5307c43f9c6f",
+    "web/styles-input-context.css": "36591ae820afbf75c55c8da4dc83ef7ef05a06fa1543ee98737eae23c929bf0c",
+    "web/tests/environment-picker.test.tsx": "3352f7a8d4d74fc96eb166fd7294cdb78285ed72da716e9b7a70e98b462562e0"
+  },
+  "validation": {
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed;staticbundle warning remains"
+  },
+  "limits": [
+    "Affected controlled frontend tests only,no fullsuite.",
+    "Parent/deploy separately own actual native helper and gateway proof tests.",
+    "No realgitstaging,indexrestore,remoteexecution,paidinference,externalMCP,120deployment orproductionbrowser action by this agent.",
+    "Readonly5121fixture provided for CUA;notbackendacceptance."
+  ]
+}

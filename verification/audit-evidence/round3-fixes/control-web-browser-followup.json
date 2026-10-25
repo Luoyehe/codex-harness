@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "phase": "round3-browser-followup",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T20:16:36.0522957Z",
+  "complete": true,
+  "finding": "Native modal under retained hidden Workspace makes reauthentication UI inert",
+  "files": [
+    "web/App.tsx",
+    "web/tests/app-lifecycle.test.tsx"
+  ],
+  "changes": [
+    "Render modal subtree only while Workspace active; clear modal and mobile navigation state on authentication loss.",
+    "Preserve mounted workspace draft and operation recovery state; renewing login never reopens the former dialog."
+  ],
+  "validation": {
+    "browser": {
+      "completedAt": "2026-10-24T20:16:15.052Z",
+      "browser": "Chrome/155.0.8059.85",
+      "before": {
+        "modal": 1,
+        "open": 1
+      },
+      "recovery": {
+        "dialogs": 0,
+        "modal": 0,
+        "focused": true,
+        "x": 374.5,
+        "y": 369.671875
+      },
+      "axRecoveryButtonPresent": true,
+      "after": {
+        "dialogs": 0,
+        "draft": "browser draft retained",
+        "writeCalls": []
+      },
+      "limitations": "Real native dialog/focus/AX and mouse input against actual App; API transport is a local substitute, no remote deployment or inference."
+    },
+    "targeted": "app-lifecycle.test.tsx + dialog.test.tsx: 2 files, 9 tests passed",
+    "typecheck": "web TypeScript noEmit passed"
+  },
+  "limits": [
+    "Browser transport used a local protocol substitute; native Chrome dialog, accessibility tree, focus and mouse input were real.",
+    "No remote service, real user browser, inference, external MCP or full suite touched."
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "phase": "owned-tools-integration",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:23:53.510Z",
+  "formalCleanAudit": false,
+  "files": [
+    "web/App.tsx",
+    "web/components/Settings.tsx",
+    "web/tests/app-lifecycle.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "415fcc28432dbfd79747616981ab240c13ac4a9715352f923eaffd0bb8af1d07",
+    "web/components/Settings.tsx": "86b0f769909d5e6dff2eedcee3cc27b9680b9b8a4fbbd909f99af51c35a5c65c",
+    "web/tests/app-lifecycle.test.tsx": "e0dfa3495f6dbbd58cbd9005deaa57ab7a7163c8eb55ca7053c850b4319aa6ec"
+  },
+  "changes": [
+    "Parent AccountToolsPanel appended to model account settings.",
+    "Separated actual runtime epoch from ordinary config/resource revision for RemoteSettings and AccountToolsPanel so accepted OAuth handoff or pairing is not lost when onChanged refreshes configuration. Actual browser connection UUID and runtime epoch still remount owner state.",
+    "Process and Realtime already use actual runtime epoch; Realtime remains mounted on panel switch and releases on connection/thread replacement."
+  ],
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/app-lifecycle.test.tsx web/tests/account-tools.test.tsx web/tests/process-remote.test.tsx web/tests/events.test.tsx",
+    "testFiles": 4,
+    "tests": 27,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed"
+  },
+  "limits": [
+    "No external OAuth/reset-credit redemption/voice or remote command performed.",
+    "Tests use isolated controlled frontend responses, not production or browser proof.",
+    "Parent owns AccountToolsPanel component/backend testing; this report covers integration.",
+    "No full suite/formal audit."
+  ]
+}

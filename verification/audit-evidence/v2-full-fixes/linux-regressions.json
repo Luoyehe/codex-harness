@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-full-test-failure-fix",
+  "reviewerId": "forms-review-linux-regressions",
+  "complete": true,
+  "status": "affected-targeted-validation-passed-full-rerun-owned-by-root",
+  "startedAt": "2026-10-25T20:15:42.0731916Z",
+  "completedAt": "2026-10-25T20:30:16.9097877+00:00",
+  "timestampNote": "startedAt records the first preserved source snapshot, after initial log/source inspection began.",
+  "fullRepositoryAudit": false,
+  "countsAsCleanAuditRound": false,
+  "sourceFreezeOwner": "root",
+  "method": "Inspected the three actual Linux full failures and current bounded sources. Preserved original bytes and SHA-256 before repair. Reproduced the UI race locally, requested a root-owned fresh isolated Linux diagnostic for the two platform-specific native failures, and checked pinned official 0.164.0 source before choosing minimal product and fixture corrections. Ran exact affected Windows tests and no-emit checks; independently read root-provided Linux results and checked overlay hashes. No full suite or SSH was run by this agent.",
+  "changes": [
+    {
+      "path": "tests/runtime/gateway-oauth-native.test.ts",
+      "beforeSha256": "05de2a89ae55fa2aa1bbfe9a067cc037aff79400b4b51b4172303a8316ffeae4",
+      "backup": ".work\\v2-full-fixes\\linux-regressions\\before\\tests\\runtime\\gateway-oauth-native.test.ts",
+      "afterSha256": "3b9a0954eecd2cb7b16a26e040250268aed2a42ee2d2f16e8e1dfd7c45eb3607"
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "beforeSha256": "df419959eb09908ff9175287e07d14a6824a2373c1a0360aa8856b9baf7ae6b4",
+      "backup": ".work\\v2-full-fixes\\linux-regressions\\before\\tests\\runtime\\workflows-native.test.ts",
+      "afterSha256": "cc6c9b858e3a3791a7ef93219bdf1d7c351dd915bf08e03da502e264f05ba222"
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "beforeSha256": "a2a32b124a47b97fb78a3ea372108cab1754a6fddbcf9275c3142dd06288dcc0",
+      "backup": ".work\\v2-full-fixes\\linux-regressions\\before\\web\\tests\\organization.test.tsx",
+      "afterSha256": "f62f4e0c7ee4adb45c885fe3564338dc64e332d92b0a01e60d81482bac7bd4b3"
+    },
+    {
+      "path": "web/components/ThreadOrganization.tsx",
+      "beforeSha256": "1341aeb036f1c62f29f0be7a7cddacced45a4dffbf9abd5a0dde4fa91e331e94",
+      "backup": ".work\\v2-full-fixes\\linux-regressions\\before\\web\\components\\ThreadOrganization.tsx",
+      "afterSha256": "38239a4ecc8d5e0ec21b67aa839d293e74a507a9a855b4e4c5affa75a06514a7"
+    }
+  ],
+  "findings": [
+    {
+      "id": "organization-unedited-selection-race",
+      "category": "product-state-race",
+      "confirmed": true,
+      "trigger": "web/tests/organization.test.tsx expected nativeProjectId native-folder but received null",
+      "rootCause": "Thread metadata and choices could be rendered and saved while nativeProjectId/sectionId still held their initial empty strings. A later passive useEffect copied the loaded defaults, so the first interactive render could submit an unintended removal.",
+      "fix": "Represent only explicit project/section edits as local state. Derive untouched selections directly from current thread.data during rendering. Nullish fallback retains explicit empty strings; successful saves clear edit state, failed saves retain it, and changing section still clears ordering.",
+      "validation": "The original project assertion failed locally against the original product. Final exact organization file passes 10/10, including the unchanged project assertion, unedited section preservation, and deliberate empty project/section values. Web TypeScript passed.",
+      "boundary": "UI validation ran in local Windows jsdom, not a new Linux browser session. The broader full rerun belongs to root."
+    },
+    {
+      "id": "gateway-fixture-unrelated-plugin-startup",
+      "category": "test-isolation-correction",
+      "confirmed": true,
+      "trigger": "gateway-oauth-native allowlist rejected CONNECT github.com:443 on Linux",
+      "rootCause": "The pinned CLI enables plugins by default. Curated plugin startup selects a trusted system Git executable and tries github.com/openai/plugins.git before the already-accounted GitHub API fallback. The Linux denial proxy recorded this extra CONNECT; it returned 503 and did not establish an external tunnel. The assertion was coupling gateway readiness to unrelated plugin startup transport availability.",
+      "fix": "Only the isolated account-readiness fixture sets features.plugins=false. The original CONNECT allowlist and request cap remain unchanged; the proxy still denies every request. Add a direct assertion that no configured responses.invalid or login.invalid endpoint is contacted and use the existing nativeTestEnvironment helper for isolated homes and system-key inheritance.",
+      "validation": "The root-owned Linux diagnostic retained the original allowlist and reproduced the exact unexpected CONNECT. After the fixture correction, exact gateway/workflows tests pass 2/2 on both Windows and fresh Linux with fixed CLI 0.164.0. Gateway remains required/notReady with error null for three reads and emits no automatic authorization-start notification.",
+      "boundary": "This does not disable plugins in product configuration, authorize external requests, prove actual OAuth login, or exercise a real gateway account. The test proxy rejects all traffic and Linux runs used PrivateNetwork."
+    },
+    {
+      "id": "workflow-interrupted-queue-resume",
+      "category": "test-lifecycle-correction",
+      "confirmed": true,
+      "trigger": "workflows-native waited for an automatic turn/started after resume, but no such event arrived",
+      "rootCause": "The original fixture closed a process while a turn was held, then assumed the recovered queue would automatically start. Linux diagnostics showed two provider requests, a loaded idle thread, one preserved queued item, and no auto-start. The pinned upstream test and queue service explicitly preserve interrupted queues across cold resume until a selected queued item is started; process-shutdown timing made the previous fixture platform-dependent.",
+      "fix": "Explicitly interrupt the held turn and wait for its matching turn/completed with interrupted status before closing. After restart, verify queue/goal persistence and session resume, rehydrate history, explicitly call thread/queue/start with the saved item id, require the returned turn id in turn/started and completed status, and require the queue to become empty. Completion checks now assert completed versus interrupted as appropriate; original fork/revert/history/steer/review and cleanup assertions remain.",
+      "validation": "Original Linux diagnostic reproduced the stuck auto-start expectation. Revised exact tests pass 2/2 on Windows and Linux; the Linux overlay includes the separate service.ts activity fix and matches current hashes.",
+      "boundary": "The revised test proves explicit interruption, durable queue/goal state, and explicit queued continuation. It does not claim automatic continuation after abrupt process death, and no production queue-start behavior was changed."
+    }
+  ],
+  "officialSource": {
+    "repository": "openai/codex",
+    "tag": "rust-v0.164.0",
+    "commit": "6aaac694803004a63c6f393d153c96d22521a6b9",
+    "refEvidence": ".work/v2-full-fixes/linux-regressions/official-tag-0.164.0.json",
+    "annotatedTagEvidence": ".work/v2-full-fixes/linux-regressions/official-tag-object-0.164.0.json",
+    "sources": [
+      {
+        "path": "codex-rs/core-plugins/src/startup_sync.rs",
+        "lines": "23-30,77-164",
+        "purpose": "The curated plugin sync tries trusted git against github.com/openai/plugins.git before GitHub HTTP and backup archive fallback.",
+        "localPath": ".work\\v2-full-fixes\\linux-regressions\\official-0.164.0\\codex-rs\\core-plugins\\src\\startup_sync.rs",
+        "sha256": "57b3a9295919060467a976b70ea18dc0ebfd824f0e788c0c491df4038fe37641",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/core-plugins/src/startup_sync.rs"
+      },
+      {
+        "path": "codex-rs/core-plugins/src/manager.rs",
+        "lines": "757-774,2823-2836",
+        "purpose": "Plugin startup and curated synchronization are gated by plugins_enabled.",
+        "localPath": ".work\\v2-full-fixes\\linux-regressions\\official-0.164.0\\codex-rs\\core-plugins\\src\\manager.rs",
+        "sha256": "8b8555475ac5efa3f4efc9755137096ba043cfb99b27fbeff0c9745767cc1501",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/core-plugins/src/manager.rs"
+      },
+      {
+        "path": "codex-rs/features/src/lib.rs",
+        "lines": "1675-1680",
+        "purpose": "The stable plugins feature is enabled by default and has the config key plugins.",
+        "localPath": ".work\\v2-full-fixes\\linux-regressions\\official-0.164.0\\codex-rs\\features\\src\\lib.rs",
+        "sha256": "53c99aa1176c0f4f8763cbf960f11eb574f63fb33214f2bcd3bf699ebb361337",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/features/src/lib.rs"
+      },
+      {
+        "path": "codex-rs/app-server/tests/suite/v2/thread_queue.rs",
+        "lines": "560-691",
+        "purpose": "The upstream regression preserves queued messages after interruption and cold resume, then explicitly starts a selected queued item.",
+        "localPath": ".work\\v2-full-fixes\\linux-regressions\\official-0.164.0\\codex-rs\\app-server\\tests\\suite\\v2\\thread_queue.rs",
+        "sha256": "de9303abb134ae2bb6a8ed8f2afec5807748a4cda238706d336fbab5ca21eff2",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/app-server/tests/suite/v2/thread_queue.rs"
+      },
+      {
+        "path": "codex-rs/ext/queue/src/service.rs",
+        "lines": "368-402,478-490,550-565",
+        "purpose": "Explicit queue start selects an item; automatic idle dispatch excludes interrupted state.",
+        "localPath": ".work\\v2-full-fixes\\linux-regressions\\official-0.164.0\\codex-rs\\ext\\queue\\src\\service.rs",
+        "sha256": "110253b6c2b74de1ad8610b347ac331479d4f09873a1c8f9793a6921438d6ae1",
+        "url": "https://github.com/openai/codex/blob/6aaac694803004a63c6f393d153c96d22521a6b9/codex-rs/ext/queue/src/service.rs"
+      }
+    ],
+    "note": "Read-only primary upstream reference downloaded inside the current workspace; no previous harness implementation was consulted."
+  },
+  "validations": [
+    {
+      "kind": "original-linux-full-trigger",
+      "raw": ".work/user-directed-release/first-linux/nobody/vitest.json",
+      "selectedFailures": 3,
+      "runBy": "root",
+      "note": "The three assigned failures are preserved in the original full raw/stdout/stderr."
+    },
+    {
+      "kind": "local-ui-red",
+      "raw": ".work/test-results/run-YdCtRy/vitest.json",
+      "passed": 4,
+      "failed": 5,
+      "note": "The unchanged original project assertion reproduced nativeProjectId null. A temporary Profiler commit-click experiment also failed and caused three subsequent test-harness interaction failures; that experiment was removed and those extra failures are not claimed as product evidence."
+    },
+    {
+      "kind": "windows-native-diagnostic-before-fixture-fix",
+      "raw": ".work/test-results/run-y8aUjT/vitest.json",
+      "passed": 2,
+      "failed": 0,
+      "note": "Original native assertions with failure-only diagnostics passed on Windows, requiring Linux-specific investigation."
+    },
+    {
+      "kind": "linux-native-diagnostic",
+      "raw": ".work/user-directed-release/linux-two-native/vitest.json",
+      "result": ".work/user-directed-release/linux-two-native/result.json",
+      "passed": 0,
+      "failed": 2,
+      "stopConfirmed": true,
+      "runBy": "root",
+      "note": "Fresh owned non-root PrivateNetwork probe, original snapshot plus only diagnostic test overlays. Captured CONNECT github.com and the preserved idle queue; no allowance or extra wait was added."
+    },
+    {
+      "kind": "windows-ui-final",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/organization.test.tsx",
+      "raw": ".work/test-results/run-UpsYq9/vitest.json",
+      "passed": 10,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "kind": "windows-native-final",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/gateway-oauth-native.test.ts tests/runtime/workflows-native.test.ts",
+      "raw": ".work/test-results/run-2UAUjT/vitest.json",
+      "passed": 2,
+      "failed": 0,
+      "exitCode": 0,
+      "cliVersion": "0.164.0"
+    },
+    {
+      "kind": "linux-native-final",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/gateway-oauth-native.test.ts tests/runtime/workflows-native.test.ts",
+      "raw": ".work/user-directed-release/linux-two-native-fixed/vitest.json",
+      "result": ".work/user-directed-release/linux-two-native-fixed/result.json",
+      "passed": 2,
+      "failed": 0,
+      "exitCode": 0,
+      "stopConfirmed": true,
+      "overlays": [
+        {
+          "sha256": "3b9a0954eecd2cb7b16a26e040250268aed2a42ee2d2f16e8e1dfd7c45eb3607",
+          "path": "tests/runtime/gateway-oauth-native.test.ts"
+        },
+        {
+          "sha256": "cc6c9b858e3a3791a7ef93219bdf1d7c351dd915bf08e03da502e264f05ba222",
+          "path": "tests/runtime/workflows-native.test.ts"
+        },
+        {
+          "sha256": "079b205d2c324be2110f9f31e7a280f6e9b443616f2f64d5cd6bdb276bcc1ebe",
+          "path": "src/runtime/service.ts"
+        }
+      ],
+      "runBy": "root",
+      "note": "Fresh owned non-root PrivateNetwork probe; current test and service.ts overlay hashes independently matched by this reviewer."
+    },
+    {
+      "kind": "web-typecheck",
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json",
+      "exitCode": 0,
+      "stdout": ".work/v2-full-fixes/linux-regressions/web-tsc.log"
+    },
+    {
+      "kind": "server-typecheck",
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "stdout": ".work/v2-full-fixes/linux-regressions/server-tsc-final.log"
+    }
+  ],
+  "independentBoundedReview": {
+    "reviewer": "organization_ui_review",
+    "sourceEditing": false,
+    "testsRun": false,
+    "findings": [],
+    "conclusions": [
+      "Default-value race is removed; explicit empty selection, edit retention and section ordering behavior are preserved.",
+      "Native fixture repairs are consistent with fixed upstream code and preserve the original network assertions and workflow outcomes.",
+      "The new workflow evidence must not be described as sudden-process-death automatic continuation."
+    ],
+    "note": "Independent static review only, not a new full audit round. Linux execution evidence was provided by root and read by the repair agent."
+  },
+  "evidenceHashes": [
+    {
+      "path": ".work/user-directed-release/first-linux/nobody/vitest.json",
+      "sha256": "8b72f23eb7c8463c7904828351f0c42d14aa3abbf24dc379b3c98d64e61f7016"
+    },
+    {
+      "path": ".work/user-directed-release/first-linux/nobody/stderr.log",
+      "sha256": "20b031ce6de5c44f520045e290ac7ca076af59c204967fc65ced43e9a0c5d03e"
+    },
+    {
+      "path": ".work/user-directed-release/first-linux/nobody/stdout.log",
+      "sha256": "e11bff659862c1dff539480dd203a94055b9b49b6b206f1c162b5e91d1f0c48c"
+    },
+    {
+      "path": ".work/test-results/run-YdCtRy/vitest.json",
+      "sha256": "95d4a2fd1718bfac5dd79cba7d21f8af2de3bebb8bbf2a8a83676a520572fc2d"
+    },
+    {
+      "path": ".work/test-results/run-UpsYq9/vitest.json",
+      "sha256": "2d3a0121d058b651faaa5efe3601b2df1cdd67b9bee82173182b1a0bedc2b762"
+    },
+    {
+      "path": ".work/test-results/run-y8aUjT/vitest.json",
+      "sha256": "6fc2fa7e31b476e2038c12a5fa870107aa79cadc6a1c290d88c9c3493b84f012"
+    },
+    {
+      "path": ".work/test-results/run-2UAUjT/vitest.json",
+      "sha256": "09473d0380702e79593bb42996a6137e4290d3059fc0101846c34074e2b90735"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native/result.json",
+      "sha256": "3364a833d3855fa66251676941951365362a54d016c23f81eea2bc8509c3c85d"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native/stdout.log",
+      "sha256": "2dcc22663387d879ca00de2dbbadae80b7e2459501a5a7f9b16072552ec7fa92"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native/stderr.log",
+      "sha256": "9d9bb9599dd38ff9d0fea76046eac0a36ce8418a06ea7f635fb68d5af279b9ab"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native/vitest.json",
+      "sha256": "a407f18254cc75f367e1d6525d6801425cef77b041495e907e72aad2baf3c4a3"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native-fixed/result.json",
+      "sha256": "b12f6293a4a011568bb5e2f3998529be1ae1ec2cbc34f6109c526b18087b0aeb"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native-fixed/stdout.log",
+      "sha256": "fef9dae59d73b2c0e03d3afe458738a0e5151c63fb804bc215d39d4a75d5f950"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native-fixed/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/user-directed-release/linux-two-native-fixed/vitest.json",
+      "sha256": "870419f8e5366134216f830832b4897cab48677e13c364eaafc9d969b32e9222"
+    },
+    {
+      "path": ".work/v2-full-fixes/linux-regressions/organization-green-final.log",
+      "sha256": "c72a85a1452f86bf5eda614eb5a62a0647f259fbea526d099d18550cf7864eb4"
+    },
+    {
+      "path": ".work/v2-full-fixes/linux-regressions/native-fixed-windows.log",
+      "sha256": "13b5638ba66094034de06573779c4ee482430bc26efeaba3f06f2ebc4a611995"
+    },
+    {
+      "path": ".work/v2-full-fixes/linux-regressions/web-tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v2-full-fixes/linux-regressions/server-tsc-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v2-full-fixes/linux-regressions/official-tree-0.164.0.json",
+      "sha256": "2e66fe21aedd2e3f90fc49c8c279d5be23927185959852d3b5f76fb027078a01"
+    },
+    {
+      "path": ".work/v2-full-fixes/linux-regressions/official-tag-0.164.0.json",
+      "sha256": "ad8234e0ab7434e80f4bf2572d4c4d3c128c3d3f975b413776338131bb817288"
+    },
+    {
+      "path": ".work/v2-full-fixes/linux-regressions/official-tag-object-0.164.0.json",
+      "sha256": "5a5247fe11472845caad5ae8e0baed50af7a376a1ec4a1fbc887204499a5e926"
+    }
+  ],
+  "limitations": [
+    "No full suite, deployment, SSH, production account, external model, real OAuth login or external MCP call was performed by this agent. Root owns final freeze, full validation, release and deployment.",
+    "No extra three-round audit gate is required by this report; the user explicitly authorized this release workflow.",
+    "The product changes here are limited to ThreadOrganization.tsx. service.ts was separately fixed by the runtime agent and included in native validation; organization.ts, history.ts and organization-native.test.ts were not edited here.",
+    "Official source references establish plugin-startup and interrupted-queue contracts. Denial-proxy observations alone do not identify every upstream HTTP path behind CONNECT, and no successful external connection was allowed.",
+    "A temporary Profiler test was discarded because it dispatched inside a React commit and interfered with later tests. Initial tsc --noEmit without a project printed help and exited 1; the corrected explicit server-project check passed.",
+    "Original full and first Linux diagnostic evidence remain untouched. The report does not claim the final full run has passed."
+  ]
+}

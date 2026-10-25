@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round17-fixes",
+  "kind": "targeted-runtime-permission-validation-repair",
+  "owner": "permission_validation_repair",
+  "startedAt": "2026-10-26T02:25:20.0404021+08:00",
+  "completedAt": "2026-10-26T02:33:32.2418864+08:00",
+  "scope": [
+    "src/runtime/validation.ts",
+    "src/runtime/permission-grants.ts",
+    "tests/runtime/permission-validation.test.ts",
+    "tests/runtime/service.test.ts"
+  ],
+  "files": [
+    {
+      "path": "src/runtime/validation.ts",
+      "originalBackup": ".work/round17-fixes/runtime-before/src/runtime/validation.ts",
+      "beforeSha256": "f1b32efc1a91d0a798515bfcea4758babb86fd150bc7a5941231ab5304dec6ca",
+      "afterSha256": "968a80d2e963b56c69a10cff2a6f122a0b3d24e6284c8282538631ddb219f7db"
+    },
+    {
+      "path": "src/runtime/permission-grants.ts",
+      "originalBackup": null,
+      "beforeSha256": null,
+      "afterSha256": "98fb19a78cd3c0255c8a11268e8267fa2dab93b57a4d55ff315e1b741f13d8c6"
+    },
+    {
+      "path": "tests/runtime/permission-validation.test.ts",
+      "originalBackup": null,
+      "beforeSha256": null,
+      "afterSha256": "56bf986c78e7d79d817db9ffee6054bafee587fd9539ae77cc6c5ee39407abc2"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "originalBackup": ".work/round17-fixes/runtime-before/tests/runtime/service.test.ts",
+      "beforeSha256": "c7052a761f4da484e9f942fe538911ec4a835317d65455b81432472a67c7ce96",
+      "afterSha256": "37a96d0e997742d3e144d3e9bedff3032ffe4709fb4cb912b0c72fca2e3b3a56"
+    }
+  ],
+  "behavior": [
+    "Replace generic recursive subset comparison with fixed permission-category comparison using selector/access Maps and Sets.",
+    "Validate both response and request against pinned official JSON schemas before comparing grants.",
+    "Non-null entries arrays, including empty arrays, override legacy read/write projections; null and omission use legacy rules. Normalize only for comparison and preserve the original response object for native dispatch.",
+    "Require exact structural selector matches and nonincreasing positive access; retain every requested deny, and retain every requested read or a deny at that selector while any write remains. Equivalent duplicate rules and reordering are accepted.",
+    "Only an effective empty filesystem with no scan-depth Option value is a filesystem refusal. Deny-only, depth-only, and positive responses retain selector/restriction/depth checks. Null and omitted Option depths are equal; any retained nonempty filesystem response must keep the requested effective depth.",
+    "Interpret requested network only when network=true is granted and requested filesystem only when a nonempty filesystem response is retained. Complete or per-category refusals remain possible for schema-valid unknown fields in unselected request categories.",
+    "Reject unknown fields in every granted permission category and in selected requested categories; do not guess path aliases, glob subsets or cross-platform path equivalence.",
+    "Fake-native service regression verifies invalid restriction omissions cause zero respond calls and preserve the pending prompt; a subsequent valid response is forwarded unchanged."
+  ],
+  "compatibilityChanges": [
+    "The old service assertion accepting an unrequested globScanMaxDepth=1 for literal legacy reads now expects rejection. Matching depths and null/omitted depth equivalence remain accepted.",
+    "Additional unknown permission fields allowed by broad official schemas are rejected when granted or when interpreting a selected requested category; unselected request categories remain declinable.",
+    "Scope omission, session scope, and strictAutoReview true/false/null remain schema-compatible."
+  ],
+  "tests": [
+    {
+      "phase": "before-first-fix",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/permission-validation.test.ts",
+      "exitCode": 1,
+      "total": 24,
+      "passed": 6,
+      "failed": 18,
+      "note": "Initial regression revision before later review tightened depth and category handling.",
+      "log": ".work/round17-fixes/runtime-before-regression.log",
+      "report": ".work/test-results/run-fUBKuR/vitest.json"
+    },
+    {
+      "phase": "before-deny-depth-refusal-fix",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/permission-validation.test.ts",
+      "exitCode": 1,
+      "total": 30,
+      "passed": 28,
+      "failed": 2,
+      "log": ".work/round17-fixes/runtime-depth-before-regression.log",
+      "report": ".work/test-results/run-tWAJUu/vitest.json"
+    },
+    {
+      "phase": "before-category-independence-fix",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/permission-validation.test.ts",
+      "exitCode": 1,
+      "total": 31,
+      "passed": 30,
+      "failed": 1,
+      "log": ".work/round17-fixes/runtime-category-before-regression.log",
+      "report": ".work/test-results/run-UGKHlv/vitest.json"
+    },
+    {
+      "phase": "final",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/permission-validation.test.ts tests/runtime/service.test.ts tests/runtime/guardian.test.ts",
+      "exitCode": 0,
+      "files": 3,
+      "total": 67,
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "log": ".work/round17-fixes/runtime-final-tests.log",
+      "report": ".work/test-results/run-jGbsmW/vitest.json"
+    },
+    {
+      "phase": "final-server-typecheck",
+      "command": "pnpm exec tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "log": ".work/round17-fixes/runtime-typecheck.log"
+    }
+  ],
+  "retainedEvidence": [
+    {
+      "path": ".work/round17-fixes/runtime-before-regression.log",
+      "sha256": "e50b678e31d0769974a6bc087d1a49643ec68891193d9a325a192d8cbd2575a3"
+    },
+    {
+      "path": ".work/round17-fixes/runtime-depth-before-regression.log",
+      "sha256": "cc07da590d09d1f500d56d01fdddf15cabefe61853727b88bd3519c0df76434d"
+    },
+    {
+      "path": ".work/round17-fixes/runtime-category-before-regression.log",
+      "sha256": "83ca8f884bcd3d1dcfeb76e856755655c1fed0c05251e384ca2e1e0b36544487"
+    },
+    {
+      "path": ".work/round17-fixes/runtime-final-tests.log",
+      "sha256": "414669d636a2b47ac0accbb751faee1476116154c6294c02c186fa0656d15c7b"
+    },
+    {
+      "path": ".work/round17-fixes/runtime-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/test-results/run-fUBKuR/vitest.json",
+      "sha256": "ae458ccdc1fb73f5eee4de362d3a68a755ece7dedbe8be3bec4440d04b77c3f2"
+    },
+    {
+      "path": ".work/test-results/run-tWAJUu/vitest.json",
+      "sha256": "afdcb9f44af77cec45dc8ff860dc73d09e35a2faa525cefd7fe24df65788324e"
+    },
+    {
+      "path": ".work/test-results/run-UGKHlv/vitest.json",
+      "sha256": "2fa9d4d2d4a6f528c3de406752c5a484822c1d6dadd8516e05428563e39f919b"
+    },
+    {
+      "path": ".work/test-results/run-jGbsmW/vitest.json",
+      "sha256": "da46775476d3c0565bccc5ce8d95136f554eb9af317f4097dae13d0e9c487753"
+    }
+  ],
+  "notExecuted": [
+    "Full test suite",
+    "Native CLI tests, including guardian-native and real approval execution",
+    "Restricted-file access or permission-escape demonstrations",
+    "External source investigations, SSH, deployment, migration or changes to online services",
+    "Downstream final permission-policy behavior on a real host",
+    "Web tests/builds or deployment tests"
+  ],
+  "nativeExecutionPerformed": false,
+  "downstreamFinalPermissionAcceptance": "Not performed; evidence is pure JSON validation, fake-native service/guardian tests and server type checking."
+}

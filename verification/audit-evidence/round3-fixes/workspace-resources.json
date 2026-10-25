@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-native-skill-plugin-and-download-resources",
+  "sourceFrozen": false,
+  "completedAt": "2026-10-24T21:49:06.481334+00:00",
+  "status": "helper-targeted-validation-passed",
+  "changes": [
+    "Fresh-catalog-selected SKILL.md is read as native UID only from the registered project or fixed user/CODEX_HOME/plugin/admin skill roots. All path components reject symlinks; files are regular, single-link, stable UTF-8 without NUL and at most 512 KiB.",
+    "Project-relative directory resolution uses descriptor containment. Plugin preview hashes paths/content/modes, inventories up to 512 files/1024 directories/depth16/16MiB total/2MiB per file and rejects nested Git metadata, links and special files.",
+    "Version-checked binary downloads remain project scoped and read only, at most 8MiB bytes and 12MiB serialized output. Metadata exposes revisions up to that bound without expanding the text-edit budget.",
+    "Internal TypeScript adapters validate result identities/byte counts/hashes. No generic shell, arbitrary global filesystem RPC or new sudo verb was introduced.",
+    "Project skill creation/import composes existing durable mkdir/create-only write operations; each step has its own receipt and existing filenames are not silently overwritten."
+  ],
+  "tests": [
+    {
+      "environment": "Windows",
+      "command": "<PYTHON> -B -m unittest tests.deploy.test_workspace_resources.ResourceValidationTests tests.deploy.test_workspace.WorkspaceValidationTests tests.deploy.test_workspace_recovery.RecoveryValidationTests tests.deploy.test_workspace_worktrees.WorktreeValidationTests -q",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "Windows",
+      "command": "HARNESS_TEST_PYTHON=<PYTHON> node scripts/run-tests.mjs --targeted tests/runtime/skill-resources.test.ts tests/runtime/workspace.test.ts tests/tooling/select-tests.test.ts",
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "isolated Linux nobody",
+      "command": "<PYTHON> -B -m unittest test_workspace test_workspace_recovery test_workspace_worktrees test_workspace_resources -v",
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "environment": "isolated Linux root relocated fixture",
+      "command": "<PYTHON> -B -m unittest test_config_layer -v",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "linuxEvidence": {
+    "path": ".work/resources-linux-result.json",
+    "sourceArchiveSha256": "59f36eaaacdbb259e595b6e1fce08f0b37ce44bae29fecdb5090eb13f803c371",
+    "resultSha256": "b77a5bda2afa78f25694161ae7b1c2807733f8d2793f9534af5be9153962a792"
+  },
+  "testCorrections": [
+    "An initial portable validation asserted Windows Path string separators as POSIX; the assertion now uses as_posix. The rerun passed. A concurrent plugin-sharing type error was repaired by its owner; later server typecheck passed."
+  ],
+  "hooksResearch": {
+    "protocol": "Pinned generated 0.164 only exposes hooks/list; no hooks/trust or hooks/config/write RPC.",
+    "sources": [
+      "https://learn.chatgpt.com/docs/hooks",
+      "https://learn.chatgpt.com/docs/build-skills"
+    ],
+    "conclusion": "Exact-definition hash trust and non-managed disable belong to CLI /hooks. Plugin install does not trust hooks. No undocumented trust store modification or bypass flag is implemented."
+  },
+  "limits": [
+    "Native path preflight and later native marketplace/share reads are not atomic; concurrent writes by the same native UID remain outside the isolation guarantee.",
+    "This helper does not expose a public arbitrary skill path. The extension owner integrates fresh catalog and registered-project identity; that integration has separate evidence.",
+    "The official CLI can discover symlinked skills; this stricter helper rejects them and reports unavailable rather than following a new scope.",
+    "No online instance changes, external sharing, external MCP, paid inference or full suite. Source is unfrozen; the archive digest identifies the exact Linux-tested snapshot."
+  ]
+}

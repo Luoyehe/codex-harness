@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round11",
+  "kind": "independent-browser-reproduction",
+  "completedAt": "2026-10-25T16:06:11.944Z",
+  "source": {
+    "files": 1785,
+    "digest": "1f4f3724cdad1ccad3c8623bb947c25f6bdd6c41a03c4bdaa7376d07353003e7"
+  },
+  "fixture": {
+    "path": ".work/r11-modal-preview.mjs",
+    "sha256": "47f3640091e30e0f8c022f4d998a5fa6c3bf98ece86ef5101123ee3811c9f151"
+  },
+  "buildAsset": {
+    "path": "web/dist/assets/index-DP7tQrtu.js",
+    "sha256": "dfd34b2a4ec16f4df785eac0d619a5e1d936740042b29ccc92a80bf0dfef94cb"
+  },
+  "steps": [
+    "Open production-built UI on isolated loopback 5131.",
+    "Upload a 59-byte locally-created text fixture through the actual file chooser; synthetic RPC stores it only in memory.",
+    "Click the draft attachment preview.",
+    "Fixture closes WebSocket after four seconds and reports authenticated=false to the session check.",
+    "Observe visible login page, empty accessibility content and attempt to focus the visible password input."
+  ],
+  "observed": {
+    "loginVisuallyPresent": true,
+    "accessibilityTreeOnlyRoot": true,
+    "activeElementAfterPasswordClick": "BODY",
+    "passwordInputCount": 1,
+    "dialogs": [
+      {
+        "open": true,
+        "modalSelectorMatched": true,
+        "hiddenAncestor": true
+      }
+    ]
+  },
+  "screenshot": {
+    "path": "reference/evidence/attachment-modal-login-blocked-r11.jpg",
+    "sha256": "f89033f68916481d9af06cfe9497ff10a5af240c1fa2af9f9ad4e546b19cfaac"
+  },
+  "cleanup": {
+    "tabId": "14",
+    "tabClosed": true,
+    "pid": 19704,
+    "exactExecutableAndCommandVerified": true,
+    "processStopped": true,
+    "port": 5131,
+    "listeningAfterStop": false,
+    "sessionExit": 1,
+    "exitReason": "Intentional stop after reproduction"
+  },
+  "limits": [
+    "This confirms actual browser modal interference, not a real authentication provider outage.",
+    "Only in-memory attachment/session responses were used; no model request, external MCP, personal credential or online instance operation.",
+    "Screenshot API returned JPEG bytes. Correct .jpg aliases preserve the exact original bytes; no pixels were edited."
+  ],
+  "screenshotAliases": [
+    {
+      "original": {
+        "path": "reference/evidence/automation-receipt-draft-fixed.png",
+        "sha256": "1f714072debe1b8918a7925412c91d0942315c0a8bac41bb5eb17e3c10a56d32"
+      },
+      "display": {
+        "path": "reference/evidence/automation-receipt-draft-fixed.jpg",
+        "sha256": "1f714072debe1b8918a7925412c91d0942315c0a8bac41bb5eb17e3c10a56d32"
+      }
+    },
+    {
+      "original": {
+        "path": "reference/evidence/automation-receipt-saved-fixed.png",
+        "sha256": "05816842b88f188a109894db6bd08b0c53226b78cb4c89fcbf642a98f7be0995"
+      },
+      "display": {
+        "path": "reference/evidence/automation-receipt-saved-fixed.jpg",
+        "sha256": "05816842b88f188a109894db6bd08b0c53226b78cb4c89fcbf642a98f7be0995"
+      }
+    },
+    {
+      "original": {
+        "path": "reference/evidence/attachment-modal-login-blocked-r11.png",
+        "sha256": "f89033f68916481d9af06cfe9497ff10a5af240c1fa2af9f9ad4e546b19cfaac"
+      },
+      "display": {
+        "path": "reference/evidence/attachment-modal-login-blocked-r11.jpg",
+        "sha256": "f89033f68916481d9af06cfe9497ff10a5af240c1fa2af9f9ad4e546b19cfaac"
+      }
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round21-fixes",
+  "reviewerId": "r21-forms-cross-review",
+  "reviewType": "independent bounded cross-review",
+  "complete": true,
+  "fullRepositoryAudit": false,
+  "countsAsCleanAuditRound": false,
+  "timestamps": {
+    "firstRecordedDuringReviewAt": "2026-10-25T20:02:04.1747004Z",
+    "completedAt": "2026-10-25T20:03:58.8240584+00:00",
+    "note": "The first timestamp was recorded after source review began; no earlier start time is asserted."
+  },
+  "scope": [
+    "web/components/Prompts.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/McpArguments.tsx",
+    "web/lib/prompt-validation.ts",
+    "web/lib/form-values.ts",
+    "web/tests/prompts.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "verification/audit-evidence/round21-fixes/forms.json"
+  ],
+  "method": "Read current bounded product sources, both changed test files and the existing MCP UI test file. Independently checked source hashes against repair evidence; checked all referenced validation artifact hashes; read final green stdout/raw results and definitive contract-fixture red raw assertion failures. No tests were rerun and no product files were edited.",
+  "sourceHashes": [
+    {
+      "path": "web/components/Prompts.tsx",
+      "sha256": "9c56b511a651823b03b7151fde7a49e9e817618db9b1517882eee1eb5f597610",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "sha256": "e65ac473d3e8c8101d08d0239664ecc3da9e6af84e1bdcc9189dac4c673647e5",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "sha256": "c7aa12a228483b37f02cba7969966872d1e581e4a6b3da707f2efe4aea560a0d",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "sha256": "812ee7d6236feaaf12d2530668c5739cfdfd1628193b24a3e6854a0962023d15",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": "web/tests/prompt-fields.test.tsx",
+      "sha256": "a74e3f49e36f59803bc56cbea55cdf3535ebc180d871a2be5bf8972b7ecc1969",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "sha256": "0baec85d6a89faee8e9581a9c1f54096aafbf8c3d6b8fbbe76243d7fb8ee2768",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "sha256": "c09b847bb931cefcfe31deedb2d34a6298d7616d6d7522c339f69be1476e9942",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "71c2f195c135801252074fa26f7511f644f6a64b384db1b6c3d0a37e3d16e794",
+      "matchesRepairEvidence": true
+    }
+  ],
+  "repairEvidence": {
+    "path": "verification/audit-evidence/round21-fixes/forms.json",
+    "sha256": "ebbb25d97cfc4568a3c5dea40203b62701ac953976243f09e83c95a3da6eb99d"
+  },
+  "checkedEvidenceArtifacts": [
+    {
+      "path": ".work/round21-fixes/forms-red.stdout.txt",
+      "sha256": "0942a850f414c996431c7316bc4b9103a2905197ba73f412b64a36255a2ee9db",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/test-results/run-1W28wM/vitest.json",
+      "sha256": "4431b37e06009a1749e19ee3d83f293731ade84a1c85d1bd90379a067a55225c",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/round21-fixes/forms-red-corrected.stdout.txt",
+      "sha256": "350e9ed2b00bc25b997274472dbc1003afb6e7f99e8594df5df17c48b763468c",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/test-results/run-wBGoJx/vitest.json",
+      "sha256": "f77ef002c80e1493d9a61428c809ab7380d55658edff4f508943a7d4ee18c98f",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/round21-fixes/forms-green.stdout.txt",
+      "sha256": "38201958bf39ab806c83219e00aed3d70e1dd62f59fb056c0e5bca9190eaba96",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/test-results/run-XcbwWa/vitest.json",
+      "sha256": "80c4c71fc0a2576f225533387bbb47d4c320927ac2115c0715d2567896e5d852",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/round21-fixes/forms-red-contract-valid.stdout.txt",
+      "sha256": "e3e9c30cb6ccbc05bbf67d8ce129d7cbc68e22f6dce926f126528bc694b84a0d",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/test-results/run-B62Xp7/vitest.json",
+      "sha256": "9f16be4d6fa710c0e5157fa3b38b9cfd9ffecd7b39668f9f253ae26200bade8c",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/round21-fixes/forms-green-final.stdout.txt",
+      "sha256": "7ad0bf3421be6d546c8c7454e4ae801643e2b31f495ebc59aaa5a4c701733eac",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/test-results/run-90VG2T/vitest.json",
+      "sha256": "935f23dbf8a00e88a2a9730c68e068b7f42dc3feae6320c9bf70f9b0a041e056",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/round21-fixes/forms-web-tsc.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "matchesRepairEvidence": true
+    },
+    {
+      "path": ".work/round21-fixes/forms-web-tsc-final.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "matchesRepairEvidence": true
+    }
+  ],
+  "observations": [
+    {
+      "area": "Opaque keys and JSON output",
+      "result": "ownField reads only own properties; withField uses computed property creation and deletes only from a cloned record. Question drafts, top-level elicitation values, top-level MCP arguments and nested SchemaField values consistently use those helpers. Object.fromEntries builds answer maps without invoking the legacy __proto__ setter. Current tests verify __proto__ and constructor start absent, require explicit answers where applicable, remain own keys and survive JSON stringify/parse."
+    },
+    {
+      "area": "Schema validation and adjacent dictionary operations",
+      "result": "Object schema validation first checks Object.hasOwn(properties,key), so undeclared prototype names follow additionalProperties policy and declared names receive their actual schemas. Required checks also guard ownership. Permission checkbox writes use withField; approval labels use ownField with fallback. These adjacent changes are consistent defensive handling, not new independently established protocol-flow findings."
+    },
+    {
+      "area": "Selection state and free text",
+      "result": "The none/option-index/other union is separate from text and otherText. DOM option tokens contain indices or a mode token; submitted labels are obtained from the selected option. Literal __other is preserved both as an option and as free text. Other mode is accepted and displayed only when isOther is true. Empty input remains rejected; whitespace is not trimmed. Distinct option indices also avoid label collisions with mode tokens."
+    },
+    {
+      "area": "Draft and pending state",
+      "result": "Functional draft updates preserve sibling fields and question ids. Switching away from other mode retains otherText; extraction into a top-level UserInputForm does not introduce a new render-time component identity. Parent fieldset disabled state and the sending ref remain responsible for busy controls and single-flight sends. Existing tests cover failure unlocking with retained secret other input, collapse/expand retention and duplicate-submit prevention; the new switch-mode test preserves custom whitespace and password/autocomplete behavior."
+    },
+    {
+      "area": "Reusable MCP parameter form",
+      "result": "McpArguments uses the same safe helper for root fields and shared SchemaField recursion for nested fields. Parameter mutations still reset explicit confirmation. Existing omission/null/false/zero/empty-value tests remain, and new top-level/nested special-name tests assert own JSON keys and removal. Existing MCP integration tests exercise ordinary discovered arguments through explicit confirmation and assert one mcp/tool/call payload."
+    },
+    {
+      "area": "Recorded validation",
+      "result": "Current seven changed-file hashes and the unchanged MCP UI hash match forms.json. All 12 referenced stdout/raw artifact hashes match. Definitive red raw results contain 14 assertion failures and 17 passes. Final raw results and stdout agree on 66 passes, zero failures and zero pending: prompts 19, prompt-fields 12, mcp-ui 35. The reported final TypeScript stdout is empty and its hash matches; TypeScript was not rerun."
+    }
+  ],
+  "findings": [],
+  "conclusion": "No new actionable issue found within this bounded cross-review. The repaired key-handling and selection-state paths are consistent with the inspected tests and recorded validation.",
+  "limits": [
+    "This is bounded repair cross-review evidence, not a full-repository audit and not an additional clean audit round. It imposes no extra audit-round gate on the user-authorized release workflow.",
+    "No full or targeted test rerun, build, browser session, SSH, release or deployment operation was performed by this reviewer. Root owns full validation and release/deployment.",
+    "No previous checkout, Git history, historical audit report, personal CODEX_HOME, credentials, live model, external account or external MCP service was read or exercised.",
+    "Accepted evidence is local jsdom/component and fetch-stub behavior. Special-name MCP arguments are exercised at the McpArguments component boundary; the existing panel integration fixture uses an ordinary text field. This review does not claim a new live native-process integration run.",
+    "Permission special-name writes and unknown approval-label fallback were reviewed statically; no new dedicated execution result is claimed for them.",
+    "The repair report contract-review narrative was inspected, but upstream contract generation and original-byte restoration were not independently repeated in this bounded review.",
+    "An initial evidence-writing command had a PowerShell parser error before execution and wrote no file. The corrected command created only this cross-review evidence file."
+  ]
+}

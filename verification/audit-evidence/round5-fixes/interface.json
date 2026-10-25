@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round5-fixes",
+  "reviewerId": "r5-interface",
+  "findingId": "r5-interface-001",
+  "originalSnapshotDigest": "a7818c2e6337f8a499d777a25cb46eda6fb2dbb2021aed7f69e23e218b6eb7cb",
+  "status": "fixed",
+  "changes": [
+    "Composer assigns distinct environment: and input-context: key namespaces to the coexisting picker siblings, so navigation removes the old instances.",
+    "useDraft creates a distinct visit object for each key transition; a layout-effect cleanup invalidates it before a different visit or unmount can accept events. Ordinary setters refuse an inactive visit or a mismatched current draft instead of falling back to emptyDraft. Returning A to B to A cannot reactivate callbacks captured on the first A visit. insertTextIfEmpty propagates refused admission. Loading through an old visit is also refused.",
+    "The original-draft removeAttachment path has separate mounted-instance ownership: if this hook instance remains mounted and currently shows the original key, deletion merges current in-memory content even after A to B to A navigation. After unmount it reads the latest stored original draft, merges only attachment removal, and broadcasts draftChanged without setting state on the old instance. Ordinary writes still update memory before persistence, preserving unsaved input when storage fails.",
+    "Added six meaningful regression cases in the existing composer.test.tsx and drafts.test.tsx files: real Composer plus useDraft navigation and delayed environment result; all ordinary setter ownership through A to B to A; empty-draft insert ownership; unmount admission plus allowed original-draft attachment cleanup; unmount then remount/edit followed by the old deletion; A to B to A late deletion with a quota-failed current in-memory draft. Existing storage-failure and late attachment tests remain passing."
+  ],
+  "fileHashes": [
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "817d3f6d8404615902f34483b78b6d003a663fe62129854a9ee2ca965039639f",
+      "bytes": 14361
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "sha256": "59309e72bf5f3e3f2e9d8e1731e24ac1055a84d4515baa5d27f7152c0d61195f",
+      "bytes": 3533
+    },
+    {
+      "path": "web/tests/composer.test.tsx",
+      "sha256": "9d714058115494cb5f3cae4a2af61dbd6a722b3708ecff8b736e3c7e6cee5890",
+      "bytes": 7940
+    },
+    {
+      "path": "web/tests/drafts.test.tsx",
+      "sha256": "e5efa1e4a4c38657f33848ab2ec91595f61b56df7a1ce028cf3d0153942507b8",
+      "bytes": 9002
+    }
+  ],
+  "verification": {
+    "beforeFix": {
+      "report": ".work/test-results/run-MOLPsC/vitest.json",
+      "files": 2,
+      "tests": 14,
+      "passed": 10,
+      "failed": 4,
+      "startedAt": "2026-10-25T08:33:49.950Z",
+      "lastTestCompletedAt": "2026-10-25T08:33:51.187Z",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/composer.test.tsx web/tests/drafts.test.tsx",
+      "log": ".work/round5/r5-interface-fix-before.log",
+      "meaning": "All four newly added regression cases failed on unfixed production code; the ten existing tests passed."
+    },
+    "afterFix": {
+      "report": ".work/test-results/run-ZtIMa4/vitest.json",
+      "files": 7,
+      "tests": 52,
+      "passed": 52,
+      "failed": 0,
+      "startedAt": "2026-10-25T08:37:49.283Z",
+      "lastTestCompletedAt": "2026-10-25T08:37:53.528Z",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/composer.test.tsx web/tests/drafts.test.tsx web/tests/environment-picker.test.tsx web/tests/input-context.test.tsx web/tests/app-lifecycle.test.tsx web/tests/attachments.test.tsx web/tests/prediction.test.tsx",
+      "log": ".work/round5/r5-interface-fix-final-targeted.log"
+    },
+    "originalAuditReproductionBefore": {
+      "report": ".work/round5/r5-composer-context-result.json",
+      "files": 1,
+      "tests": 2,
+      "passed": 0,
+      "failed": 2,
+      "startedAt": "2026-10-25T08:29:26.421Z",
+      "lastTestCompletedAt": "2026-10-25T08:29:27.350Z"
+    },
+    "originalAuditReproductionAfter": {
+      "report": ".work/round5/r5-composer-context-fixed-result.json",
+      "files": 1,
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "startedAt": "2026-10-25T08:35:07.329Z",
+      "lastTestCompletedAt": "2026-10-25T08:35:08.289Z",
+      "command": "node node_modules/vitest/vitest.mjs run --config .work/round5/r5-interface-vitest.config.ts --reporter=default --reporter=json --outputFile=.work/round5/r5-composer-context-fixed-result.json",
+      "log": ".work/round5/r5-composer-context-fixed.log",
+      "observed": {
+        "pickerCounts": [
+          1,
+          1,
+          1
+        ],
+        "invokedOptions": {
+          "model": "model-c"
+        },
+        "storedDraftA": "unsent A",
+        "storedDraftB": "unsent B",
+        "displayedText": "unsent B"
+      },
+      "stage": "Passed after the initial picker/visit fix; the final expanded 52-case repository run additionally validates the mounted-instance attachment cleanup correction."
+    },
+    "typecheck": {
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "log": ".work/round5/r5-interface-fix-final-typecheck.log"
+    },
+    "build": {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "log": ".work/round5/r5-interface-fix-final-build.log"
+    },
+    "encoding": "All four modified source/test files are UTF-8 without BOM and contain only LF newlines.",
+    "warnings": [
+      "The targeted jsdom run reported the existing unavailable HTMLCanvasElement.getContext implementation; all assertions passed.",
+      "Vite reported the existing production chunk size warning above 500 kB; the production build completed successfully."
+    ],
+    "restrictions": "No full suite, paid inference, real external MCP, personal credential access, deployment, protocol regeneration or coverage refresh was performed. Generated build output is ignored. Existing audit failure logs and JSON were preserved under their original paths.",
+    "initialAfterFix": {
+      "report": ".work/test-results/run-CYbsjb/vitest.json",
+      "files": 7,
+      "tests": 50,
+      "passed": 50,
+      "failed": 0,
+      "startedAt": "2026-10-25T08:34:36.053Z",
+      "lastTestCompletedAt": "2026-10-25T08:34:41.295Z",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/composer.test.tsx web/tests/drafts.test.tsx web/tests/environment-picker.test.tsx web/tests/input-context.test.tsx web/tests/app-lifecycle.test.tsx web/tests/attachments.test.tsx web/tests/prediction.test.tsx",
+      "log": ".work/round5/r5-interface-fix-targeted.log"
+    },
+    "remountRegressionBeforeFix": {
+      "report": ".work/test-results/run-gkUFhy/vitest.json",
+      "files": 1,
+      "tests": 11,
+      "passed": 10,
+      "failed": 1,
+      "startedAt": "2026-10-25T08:37:20.010Z",
+      "lastTestCompletedAt": "2026-10-25T08:37:20.923Z",
+      "command": "node scripts/run-tests.mjs --targeted web/tests/drafts.test.tsx",
+      "log": ".work/round5/r5-interface-remount-before.log",
+      "meaning": "The new unmount/remount regression failed: a late removal replaced new A after reopening with old A. The complementary same-instance A to B to A quota-failure regression already passed and continues passing."
+    }
+  },
+  "analogousKeyReview": {
+    "reviewer": "/root/fresh_r5_interface/sibling_key_scan",
+    "method": "Read-only review of key expressions in web/App.tsx, web/main.tsx and the other web/components/*.tsx files (69 files excluding Composer). Checked repeated expressions against their JSX parents and mutual-exclusion conditions; also checked message row keys against timeline construction.",
+    "inspectedCases": [
+      "web/App.tsx:192-194",
+      "web/components/ExtensionsPanel.tsx:16",
+      "web/components/WorkspacePanel.tsx:87-92",
+      "web/components/AutomationsPanel.tsx:21",
+      "web/components/McpPanel.tsx:77-80",
+      "web/components/OrganizationPanel.tsx:9",
+      "web/components/ThreadOrganization.tsx:25",
+      "web/components/RuntimeInsights.tsx:18-24",
+      "web/components/Messages.tsx:38-41",
+      "web/lib/timeline.ts:45-53"
+    ],
+    "findings": [],
+    "result": "No additional coexisting sibling key collision was established. No unrelated refactor was made."
+  },
+  "sourceWritesStopped": true,
+  "sourceWritesStoppedAt": "2026-10-25T08:38:42.498Z",
+  "handoff": "All authorized code changes and verification are complete. This reviewer and the read-only helper have stopped writing. Root should recompute final source coverage and start fresh independent audit rounds; this fix artifact is not a clean audit or a full-suite authorization.",
+  "followUp": {
+    "reason": "Root identified a remaining hook-level late deletion boundary after unmount/remount. Reproduced before editing and corrected within the same draft data-loss fix. This hook boundary was tested directly; no assertion is made that normal App authentication unmounts Workspace.",
+    "previousSourceWritesStoppedAt": "2026-10-25T08:36:25.968Z"
+  }
+}

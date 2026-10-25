@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "phase": "skill-tools-ui",
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-24T22:16:14.547Z",
+  "formalCleanAudit": false,
+  "implementationCompleteForAssignedBatch": true,
+  "files": [
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/App.tsx",
+    "web/components/Settings.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/Prompts.tsx",
+    "web/hooks/useEvents.ts",
+    "web/hooks/useConversation.ts",
+    "web/styles.css",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/timeline-history.test.tsx"
+  ],
+  "sourceHashes": {
+    "web/components/SkillLibraryTools.tsx": "354c5889cd7a550a74d211185073a8596f5c83eaf1acb0fbaf7174e5822ddb81",
+    "web/components/SkillSettings.tsx": "63c5c335a77b5730ff0b0e3791cb1e750ce03f9c9421b9bd5bca5d99a078a8ed",
+    "web/components/ExtensionsPanel.tsx": "c08ae236dad70af7ea664226bad4b073a7d454522b618a90635d8358b0162e6c",
+    "web/App.tsx": "a50eb8719bf21295c4be54c071883c9d1ec3808531bad460854963a0448419d8",
+    "web/components/Settings.tsx": "ec042436a85137e8e313596f4b4953b8e235f0eb3d369b3edf265127239b08f8",
+    "web/components/WorkspacePanel.tsx": "6c8643a44ed83d4442a1e7d1064cc63ca9e4680f8f6d1a1c81814194e03e92bf",
+    "web/components/Prompts.tsx": "d74c60fd49a0ba61a475de7f77da76d2af69471d6c7760008ea4e5f231c6ed01",
+    "web/hooks/useEvents.ts": "2f574b3b32c531a78de3f38500298f67eedfbce172e17ff2daf6652917396c6c",
+    "web/hooks/useConversation.ts": "aa7d0d932febfd38255add419689f0a66f389ef403ba8ca83bf275091e032735",
+    "web/styles.css": "bcc02501ea9e16e85186e9fc8c32455996490fcf4f97e60a099ba6db35188883",
+    "web/tests/skill-library.test.tsx": "11f764f063feae2c85ef8dabf009cc5725e138dbb9ed5abfe6fa5d393ae98a8f",
+    "web/tests/prompts.test.tsx": "0b835a0863685d78e598b52628f93e5d596a5ac29852f0dbdb9ed4c4d3bfccf5",
+    "web/tests/events.test.tsx": "d94959cc3409a76406dd2e9a6cdb91a508779321f63facf37ab63698f5dd71e8",
+    "web/tests/app-lifecycle.test.tsx": "7c2beef7d5e30ae4b7c83d03c353b837372fa86be292c827a8b3adc897605abf",
+    "web/tests/timeline-history.test.tsx": "7a1f123b8960fd222ae1b415c59aa094b1c07da44b0b77bd797da053b6aa76a9"
+  },
+  "contracts": {
+    "skills": "Discovered skillId-only actual SKILL.md read; plain escaped preview. Extra roots explicitly replace selected registered project IDs, current runtime only, no arbitrary roots. Project skill creator/importer persists file draft before mutation; checks parents and target, treats only explicit read not_found/not_sent as missing; one mkdir per user action then expectedRevision:null file create. Unknown step queries original receipt, no chain replay; existing target never overwritten. Final forceReload skill catalog read distinguishes file present from native discovery.",
+    "integration": "Parent ProcessPanel/RemoteSettings/WorkspaceSearch and bounded WorkspaceWatch integrated. Per-successful socket/runtime browser UUID changes owner component identity independently of config revision; actual server lease remains authoritative. Process/voice panels remain mounted when hidden, connected=false triggers cleanup. Voice component callbacks revoke/restore history independently of lifecycle notifications. All workspace views retain visible approval requests.",
+    "layout": "Pending request strip always visible, content collapsible with answer state preserved. Prompt scrolling can shrink while history retains220px minimum; small viewports may scroll overall workspace. Parent CUA had reported50px history before fix; new5120 fixture awaits recheck."
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/skill-library.test.tsx web/tests/extensions.test.tsx web/tests/prompts.test.tsx web/tests/events.test.tsx web/tests/workspace-ui.test.tsx web/tests/process-remote.test.tsx web/tests/realtime.test.tsx web/tests/app-lifecycle.test.tsx web/tests/timeline-history.test.tsx web/tests/workspace-search.test.tsx web/tests/workspace-watch.test.tsx",
+    "testFiles": 11,
+    "tests": 81,
+    "skillSpecificTests": 9,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "productionBuild": "Vite production build passed; static bundle threshold warning remains"
+  },
+  "limits": [
+    "No full suite or formal audit.",
+    "Native .agents/skills discovery/read/toggle separately confirmed by parent actualCLI tests.",
+    "Process/remote/search/watch/realtime components implemented by parent/runtime; this report covers integration and rerun only.",
+    "Controlled frontend interactions only; no paid inference,realvoice,microphone,externalMCP,remoteexecution,120deployment or production browser action by this agent.",
+    "Remote environment selection in composer remains next subtask."
+  ]
+}

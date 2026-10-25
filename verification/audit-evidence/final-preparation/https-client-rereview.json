@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "supporting-static-rereview",
+  "reviewerId": "r14-runtime-supporting",
+  "at": "2026-10-25T17:27:33.882Z",
+  "artifacts": [
+    {
+      "path": ".work/final-https-acceptance.mjs",
+      "sha256": "6b047cc9de2d29d9db660bbb1809e0bb4efcc97cf747061f7ef7ac65810c6e84"
+    },
+    {
+      "path": ".work/FINAL-HTTPS-ACCEPTANCE-PLAN.md",
+      "sha256": "90556eacc147c2a24313fcc2865dba4aabe14af66ebfb9caf8ba7d0d7a0e8129"
+    }
+  ],
+  "sourceAuditRoundCredit": false,
+  "sourceEdits": false,
+  "execution": false,
+  "credentialReads": false,
+  "findings": [],
+  "method": "Complete bounded static review of corrected future acceptance client and plan against current gateway/runtime/deploy contracts; positive PTY startup, zero exit, epoch-preserving cleanup, absolute deadlines, generic setup errors, write-ahead mutation identity recovery and disconnected accepted-receipt semantics checked.",
+  "limitations": [
+    "No actual HTTPS, WS, authentication, PTY, helper or model integration executed",
+    "Synthetic fixture identity and current server state remain final execution prerequisites",
+    "This does not create or satisfy a clean application audit round"
+  ]
+}

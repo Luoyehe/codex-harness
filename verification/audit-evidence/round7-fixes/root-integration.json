@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T09:58:22.160Z",
+  "sourceEditsStopped": true,
+  "sourceFiles": [
+    {
+      "file": "src/runtime/dev-resources.ts",
+      "sha256": "c53d5f7d4d81aa6c944974e9bd15941e7f56c7e72a1191a61c7112d7603d0a59"
+    },
+    {
+      "file": "tests/runtime/dev-resources.test.ts",
+      "sha256": "bb3e69200e92d0202921d6a688be9e818b1884c47fe2063d5e57ec2a5719d042"
+    },
+    {
+      "file": "tests/runtime/dev-resources-special-file-fixture.mjs",
+      "sha256": "16c2b8a6d6b9c850ff7cedf0c12fa371e7c6c1b72757e0e927a12a234cfb34b3"
+    },
+    {
+      "file": "web/components/ProcessPanel.tsx",
+      "sha256": "b354aa64dd1a3627c62e2de428d0d634fe6f197484bb05c82463bc0514b57c11"
+    },
+    {
+      "file": "web/tests/process-remote.test.tsx",
+      "sha256": "9671339dd426af495a7f05d06973cbb02dc07ac2903e22ee1266292f8ef3d561"
+    },
+    {
+      "file": "deploy/safe_fs.py",
+      "sha256": "81f3fedce8f11509d313457c68e6c1f54ee675c6211b95614e2e684393101eca"
+    },
+    {
+      "file": "tests/deploy/test_deployment.py",
+      "sha256": "1a1e21ce837d04ea45c25eca4f54bd6681ad8d9ea5661894ecfe98132d82a1ac"
+    },
+    {
+      "file": "deploy/README.md",
+      "sha256": "368d4595fd9e88b0276e53059d1e09945bc49ea95ac2ab51dec03e1ccbe26cb6"
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "warning": "Existing single-bundle size warning remains."
+    },
+    {
+      "command": "node .work/check-source-encoding.mjs",
+      "files": 1782,
+      "findings": []
+    },
+    {
+      "command": "node scripts/release-audit.mjs --source",
+      "status": "clean",
+      "findings": [],
+      "skipped": []
+    }
+  ],
+  "browser": {
+    "kind": "Production-built UI against bounded loopback synthetic process RPC fixture, no real process/command/model/backend executed.",
+    "fixture": ".work/process-input-preview.mjs",
+    "fixtureSha256": "8f0f05d09f0ceeb8b1656abf452008ae522280b55f18daa71e3ad89a5be5aa2c",
+    "builtIndexSha256": "97b966b82b344c5245357164036f448e8d627e80a3235aa53e0dc009ff8545a1",
+    "observations": [
+      "Unsent text remains after acknowledged synthetic Ctrl+C.",
+      "Unsent text remains after acknowledged synthetic closeStdin.",
+      "Send from synthetic process A, choose B and type the same text, then receive the original delayed success: B selection and text both remain."
+    ],
+    "screenshot": "reference/evidence/process-draft-owner-fixed.png",
+    "screenshotSha256": "20456ab4ae351408483cdc5d23e49a71a9a3c81e4715c6e75786f6c61bf07e42",
+    "cleanup": {
+      "tabClosed": true,
+      "ownedProcessId": 29396,
+      "exactExecutableAndCommandVerified": true,
+      "noListenerOn5128": true,
+      "exitCode": 1,
+      "exitMeaning": "Intentional owned fixture termination, not a test failure or graceful-exit claim."
+    }
+  },
+  "limits": [
+    "No full suite, real model, live account/MCP or online instance update.",
+    "These targeted integration checks do not count as an independent clean audit."
+  ]
+}

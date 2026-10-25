@@ -1,0 +1,41 @@
+{
+  "verifiedAt": "2026-10-25",
+  "package": "@openai/codex",
+  "latestStable": "0.164.0",
+  "platformPackageVersion": "0.164.0-win32-x64",
+  "binaryVersion": "codex-cli 0.164.0",
+  "registry": "https://registry.npmjs.org/@openai/codex/latest",
+  "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.164.0-win32-x64.tgz",
+  "npmIntegrity": "sha512-urWPhwh9YavuoAPIkmVYKBTtd5OtGVL4Ki0Fb28dhK/Mz6Pt4LSy+gbRrZFz5+RXrw9ubvXuXDCcd8beYcWhDg==",
+  "integrityVerified": true,
+  "documentation": "https://learn.chatgpt.com/docs/app-server",
+  "generation": {
+    "cwd": "rewrite-20261025",
+    "isolatedCodexHome": "reference/runtime/codex-0.164.0/generation-home",
+    "commands": [
+      "codex.exe app-server generate-json-schema --experimental --out protocol/json",
+      "codex.exe app-server generate-ts --experimental --out protocol/ts"
+    ]
+  },
+  "generated": {
+    "jsonFileCount": 458,
+    "typescriptFileCount": 904,
+    "bundleSha256": {
+      "codex_app_server_protocol.schemas.json": "92fe055424a3709999a05baae615be9e1e1e0b127e033cace6849b2ea785ea07",
+      "codex_app_server_protocol.v2.schemas.json": "72b1afcdb14b4880cff9faccdfca1f73f7288ff3a0cb80b7a4bd400a5c4e574c"
+    }
+  },
+  "smoke": {
+    "isolatedHome": true,
+    "realUserCodexHomeRead": false,
+    "modelInferenceCalled": false,
+    "passed": [
+      "initialize/initialized",
+      "account/read unauthenticated",
+      "thread/list empty",
+      "project/list empty",
+      "command/exec streamed echo",
+      "command/exec PTY + resize + stdin + successful exit"
+    ]
+  }
+}

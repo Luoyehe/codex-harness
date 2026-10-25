@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "kind": "failed-full-verification",
+  "createdAt": "2026-10-25T20:15:50.655Z",
+  "sourceDigest": "1ff6d029fe901ec89f9dc44e9ff244239b3f6dbd0d578884f43ed1216c826e71",
+  "sourceFiles": 1789,
+  "selectedFiles": 148,
+  "status": "failed",
+  "publicationAllowed": false,
+  "windows": {
+    "wrapper": {
+      "path": ".work/final-windows-acsY3X/result.json",
+      "sha256": "1ccc42f50fec17e6bfa527547b7259c214c570623067c312cc339e1adbdd92f6"
+    },
+    "logs": [
+      {
+        "path": ".work/final-windows-acsY3X/stdout.log",
+        "sha256": "1ab744bfc09cc2b02bc453571b44b5783bc9f5509bb340ffc22dfdf5b5a6fd7a"
+      },
+      {
+        "path": ".work/final-windows-acsY3X/stderr.log",
+        "sha256": "30fe142927f777a4a19c27711b869d7d67b9c12a3f29491bdeeb7133b2286ce9"
+      }
+    ],
+    "exitCode": 1,
+    "stopProof": {
+      "confirmed": true,
+      "exitCode": 1
+    },
+    "javascript": {
+      "total": 1032,
+      "passed": 1029,
+      "failed": 1,
+      "skipped": 2,
+      "failures": [
+        {
+          "file": "tests/runtime/organization-native.test.ts",
+          "title": "official CLI persists projects, sections and thread attachment metadata separately from execution roots"
+        }
+      ],
+      "raw": {
+        "path": ".work/test-results/run-JFx9QR/vitest.json",
+        "sha256": "bdfeaad07dd77d18f2c250587c51c612959c34b917b5d64088e9cbe2a7f32c34"
+      }
+    },
+    "python": {
+      "total": 298,
+      "passed": 147,
+      "skipped": 151,
+      "failures": 0
+    },
+    "sourceDrift": {
+      "original1789FileBytesAndModesUnchanged": true,
+      "extraFile": {
+        "path": "Microsoft/Windows/PowerShell/ModuleAnalysisCache",
+        "sha256": "534db3b927631e9393d5824db4637bfb447142a6923158cf4cedde2b7b73cbd7",
+        "bytes": 8246,
+        "createdAt": "2026-10-25T20:06:23.3772076Z",
+        "preservedAs": ".work/user-directed-release/failed-first-windows-cache.bin"
+      },
+      "resultDigest": "01b1c2b34c64eceff1dd850d4d91315654c791ed3340e7e917e2ea77cc6d1cf9",
+      "action": "Moved only the verified generated cache file to ignored evidence; did not delete it or modify existing source."
+    }
+  },
+  "linux": {
+    "remoteRoot": "/var/lib/crtest-final-full-n0klsqog",
+    "aggregate": {
+      "path": ".work/user-directed-release/first-linux/result.json",
+      "sha256": "07896403fa884bdf6b46b1a0cb0919f7b1317bd852a95b7c1e9c8c4f639fcaa8"
+    },
+    "phase": {
+      "path": ".work/user-directed-release/first-linux/nobody/result.json",
+      "sha256": "6f999cdcade925e8b170fd5cf3178b43c8cd767ec65d4ad10f47329054925819"
+    },
+    "logs": [
+      {
+        "path": ".work/user-directed-release/first-linux/nobody/stdout.log",
+        "sha256": "e11bff659862c1dff539480dd203a94055b9b49b6b206f1c162b5e91d1f0c48c"
+      },
+      {
+        "path": ".work/user-directed-release/first-linux/nobody/stderr.log",
+        "sha256": "20b031ce6de5c44f520045e290ac7ca076af59c204967fc65ced43e9a0c5d03e"
+      }
+    ],
+    "exitCode": 1,
+    "stopConfirmed": true,
+    "javascript": {
+      "total": 1032,
+      "passed": 1021,
+      "failed": 3,
+      "skipped": 8,
+      "failures": [
+        {
+          "file": "tests/runtime/gateway-oauth-native.test.ts",
+          "title": "a configured gateway remains notReady until explicit login and emits no automatic authorization handoff"
+        },
+        {
+          "file": "tests/runtime/workflows-native.test.ts",
+          "title": "official CLI persists queues and goals, steers active turns, forks/reverts history and starts inline reviews using loopback only"
+        },
+        {
+          "file": "web/tests/organization.test.tsx",
+          "title": "offers only native projects that include current cwd and never changes the thread working directory"
+        }
+      ],
+      "raw": {
+        "path": ".work/user-directed-release/first-linux/nobody/vitest.json",
+        "sha256": "8b72f23eb7c8463c7904828351f0c42d14aa3abbf24dc379b3c98d64e61f7016"
+      }
+    },
+    "python": {
+      "total": 298,
+      "passed": 229,
+      "skipped": 69,
+      "failures": 0
+    },
+    "rootPhase": "not started because nobody full failed",
+    "sourceUnchanged": true
+  },
+  "limitations": [
+    "These are failed runs retained for repair; passing individual assertions do not establish release acceptance.",
+    "All native provider traffic used isolated local protocol fixtures or a denying proxy. No external account/model/MCP business acceptance.",
+    "The user waived additional audit rounds, not verification of actual full-test failures."
+  ]
+}

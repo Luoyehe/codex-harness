@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "roundId": "round7-fixes",
+  "reviewerId": "r7-runtime-fix",
+  "status": "fixed-and-validated",
+  "baseAuditDigest": "3a355d650d3f4cdb8cd6952bebf1c8f039df1c2f4f61a1ffdc77ccb325dbe5b8",
+  "fixedFindings": [
+    {
+      "id": "R7-RUNTIME-001",
+      "file": "src/runtime/dev-resources.ts",
+      "description": "Open resource descriptors with O_NONBLOCK where available before ordinary-file checks, so FIFO replacement cannot wait for a writer. Existing O_NOFOLLOW, fstat type/nlink/size, post-read identity and byte/hash checks remain.",
+      "beforeEvidence": ".work/round7/runtime-fifo-result.json",
+      "afterEvidence": ".work/round7/runtime-fifo-fixed-result.json"
+    }
+  ],
+  "additionalFindings": [
+    {
+      "id": "R7-FIX-RUNTIME-002",
+      "priority": 2,
+      "status": "fixed",
+      "file": "src/runtime/dev-resources.ts",
+      "originalLine": 45,
+      "title": "Plugin preview enumerated a whole directory before applying resource limits",
+      "trigger": "An authenticated development plugin preview points to a wide real directory. Before this change readdir materialized and sorted the entire names array before the first file-count check.",
+      "impact": "The nominal 512-file/1024-directory budget did not bound directory-list allocation or sorting work. Small-resource reproduction observed a real 2048-entry returned array before capacity rejection; no out-of-memory result is claimed.",
+      "evidence": {
+        "baselineSourceSha256": "d81709a2640a354737abc0fe0231e5cbcd93c7ce48f4cbdf3e244a4d4a686396",
+        "realEmptyFiles": 2048,
+        "observedNamesArrayLength": 2048,
+        "failedRegression": ".work/test-results/run-UERjBv/vitest.json",
+        "assertion": "expected 2048 to be less than or equal to 1536"
+      },
+      "fix": "Use opendir with a 32-entry internal buffer, count actual entries across the whole tree before retaining names, reject the first entry beyond 1535, close handles in finally, and sort only bounded names to preserve traversal order and hash behavior. Original round7 evidence was not changed."
+    }
+  ],
+  "modifiedFiles": [
+    {
+      "file": "src/runtime/dev-resources.ts",
+      "sha256": "c53d5f7d4d81aa6c944974e9bd15941e7f56c7e72a1191a61c7112d7603d0a59"
+    },
+    {
+      "file": "tests/runtime/dev-resources.test.ts",
+      "sha256": "bb3e69200e92d0202921d6a688be9e818b1884c47fe2063d5e57ec2a5719d042"
+    },
+    {
+      "file": "tests/runtime/dev-resources-special-file-fixture.mjs",
+      "sha256": "16c2b8a6d6b9c850ff7cedf0c12fa371e7c6c1b72757e0e927a12a234cfb34b3"
+    }
+  ],
+  "limits": {
+    "skillBytes": 524288,
+    "pluginFileBytes": 2097152,
+    "pluginAggregateBytes": 16777216,
+    "pluginFiles": 512,
+    "pluginDirectoriesIncludingRoot": 1024,
+    "maxDirectoryDepth": 16,
+    "maxRetainedEnumeratedEntriesAcrossTree": 1535,
+    "rejectionOnEntry": 1536,
+    "opendirBufferSize": 32,
+    "isolatedSpecialFileRegressionTimeoutMs": 3000,
+    "linuxProbeParentTimeoutMs": 5000
+  },
+  "validation": [
+    {
+      "kind": "pre-fix-targeted-regression",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/dev-resources.test.ts",
+      "status": "expected-failure",
+      "passed": 2,
+      "failed": 2,
+      "report": ".work/test-results/run-UERjBv/vitest.json",
+      "note": "Wide-directory bounded-enumeration assertion failed against a real 2048-file tree; the new injected opendir-failure/cleanup regression also failed because the old code used readdir."
+    },
+    {
+      "kind": "pre-fix-real-linux-fifo",
+      "status": "defect-reproduced",
+      "sourceSha256": "d81709a2640a354737abc0fe0231e5cbcd93c7ce48f4cbdf3e244a4d4a686396",
+      "result": {
+        "checkedAt": "2026-10-25T09:38:40.694109+00:00",
+        "root": "/opt/codex-harness-rewrite-20261025/r7-runtime-18a1522e-c9ad-4d12-baf6-fa8860536c84",
+        "pid": 2448911,
+        "exitCode": -9,
+        "stdout": "{\"uid\":65534,\"node\":\"v24.22.1\",\"baseline\":\"bounded-regular-control\",\"fifoCalls\":4,\"fifoCallsSettled\":0,\"unrelatedReadSettled\":false,\"timerTicks\":11,\"errors\":[]}\n",
+        "stderr": "",
+        "processReaped": true,
+        "forcedTimeoutCleanup": true
+      },
+      "observed": {
+        "uid": 65534,
+        "node": "v24.22.1",
+        "baseline": "bounded-regular-control",
+        "fifoCalls": 4,
+        "fifoCallsSettled": 0,
+        "unrelatedReadSettled": false,
+        "timerTicks": 11,
+        "errors": []
+      },
+      "note": "This failing native Linux probe preceded the source fix. Four pending FIFO opens starved unrelated filesystem work while JS timers continued; the bounded watchdog killed and reaped the isolated process."
+    },
+    {
+      "kind": "post-fix-related-targeted-tests",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/dev-resources.test.ts tests/runtime/skill-resources.test.ts tests/runtime/sharing-feedback.test.ts tests/runtime/extensions.test.ts",
+      "status": "passed",
+      "testFiles": 4,
+      "tests": 19,
+      "report": ".work/test-results/run-CKOD0y/vitest.json",
+      "note": "This run preceded addition of the isolated special-file test; runtime implementation has not changed since."
+    },
+    {
+      "kind": "post-fix-final-helper-regressions",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/dev-resources.test.ts",
+      "status": "passed",
+      "tests": 5,
+      "report": ".work/test-results/run-uEAR4P/vitest.json",
+      "note": "Windows exercises non-regular directories in the disposable child; the POSIX branch creates real FIFOs. No platform skips were used."
+    },
+    {
+      "kind": "post-fix-real-linux",
+      "status": "passed",
+      "authorization": "Parent assigned exclusive bounded scratch use of the existing Linux test host after the deployment agent released it. Endpoint released immediately after these probes.",
+      "sourceHashes": {
+        "src/runtime/types.ts": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0",
+        "src/runtime/dev-resources.ts": "c53d5f7d4d81aa6c944974e9bd15941e7f56c7e72a1191a61c7112d7603d0a59",
+        "tests/runtime/dev-resources-special-file-fixture.mjs": "16c2b8a6d6b9c850ff7cedf0c12fa371e7c6c1b72757e0e927a12a234cfb34b3"
+      },
+      "artifact": ".work/round7/runtime-fifo-fixed-result.json",
+      "result": {
+        "checkedAt": "2026-10-25T09:54:04.130202+00:00",
+        "root": "/opt/codex-harness-rewrite-20261025/r7-runtime-fix-fef51fcb-363c-49c1-837b-2b10b6501821",
+        "uid": 65534,
+        "results": [
+          {
+            "probe": "probe.mjs",
+            "pid": 2470551,
+            "exitCode": 0,
+            "stdout": "{\"baseline\":\"ordinary skill\",\"reads\":[{\"rejected\":true,\"code\":\"resource_scope\"},{\"rejected\":true,\"code\":\"resource_scope\"},{\"rejected\":true,\"code\":\"resource_scope\"},{\"rejected\":true,\"code\":\"resource_scope\"}],\"unrelatedFile\":\"responsive\"}\n",
+            "stderr": "",
+            "processReaped": true,
+            "forcedTimeoutCleanup": false
+          },
+          {
+            "probe": "preview.mjs",
+            "pid": 2470564,
+            "exitCode": 0,
+            "stdout": "{\"runs\":[{\"code\":\"capacity\",\"entries\":1536,\"liveHandles\":0},{\"code\":\"capacity\",\"entries\":1536,\"liveHandles\":0},{\"code\":\"capacity\",\"entries\":1536,\"liveHandles\":0}],\"buffers\":[32,32,32],\"fdBefore\":21,\"fdAfter\":21}\n",
+            "stderr": "",
+            "processReaped": true,
+            "forcedTimeoutCleanup": false
+          }
+        ]
+      },
+      "observations": [
+        {
+          "probe": "probe.mjs",
+          "result": {
+            "baseline": "ordinary skill",
+            "reads": [
+              {
+                "rejected": true,
+                "code": "resource_scope"
+              },
+              {
+                "rejected": true,
+                "code": "resource_scope"
+              },
+              {
+                "rejected": true,
+                "code": "resource_scope"
+              },
+              {
+                "rejected": true,
+                "code": "resource_scope"
+              }
+            ],
+            "unrelatedFile": "responsive"
+          }
+        },
+        {
+          "probe": "preview.mjs",
+          "result": {
+            "runs": [
+              {
+                "code": "capacity",
+                "entries": 1536,
+                "liveHandles": 0
+              },
+              {
+                "code": "capacity",
+                "entries": 1536,
+                "liveHandles": 0
+              },
+              {
+                "code": "capacity",
+                "entries": 1536,
+                "liveHandles": 0
+              }
+            ],
+            "buffers": [
+              32,
+              32,
+              32
+            ],
+            "fdBefore": 21,
+            "fdAfter": 21
+          }
+        }
+      ],
+      "note": "Current helper/types source was transformed by Node stripTypeScriptTypes without behavioral edits. The exact tracked special-file fixture ran as UID65534, returned four resource_scope errors, preserved ordinary and unrelated reads, and exited normally. Three real wide-directory attempts each read exactly1536 entries, retained zero live directory handles, used buffer32, and kept /proc/self/fd at21. All owned child processes were reaped; no watchdog forced cleanup was needed."
+    },
+    {
+      "kind": "preview-hash-preservation",
+      "status": "passed",
+      "artifact": ".work/round7/runtime-preview-preservation.json",
+      "baselineEvidence": ".work/test-results/run-UERjBv/vitest.json",
+      "identicalRevision": true,
+      "revision": "1ad1032b5e10f23761f3d06bd7c7c68808a9f0cd8df59b8d294cc79118403511",
+      "note": "Ran the new helper against the same real directory retained by the pre-fix regression. Revision, file ordering, bytes and hashes match the old implementation."
+    }
+  ],
+  "constraints": {
+    "sourceAndTestsOnly": [
+      "src/runtime/dev-resources.ts",
+      "tests/runtime/dev-resources.test.ts",
+      "tests/runtime/dev-resources-special-file-fixture.mjs"
+    ],
+    "productionHelperChanged": false,
+    "round7AuditChanged": false,
+    "fullSuiteRun": false,
+    "buildRun": false,
+    "coverageRun": false,
+    "personalHomeRead": false,
+    "externalInferenceOrMcp": false,
+    "accountsOrServicesChanged": false,
+    "sourceWritesStopped": true,
+    "sshReleased": true
+  },
+  "completedAt": "2026-10-25T09:55:48.053Z"
+}

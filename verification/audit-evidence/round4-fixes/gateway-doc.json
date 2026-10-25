@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-25T08:07:06.309Z",
+  "resolved": [
+    "r4-interface-001",
+    "R4-RUNTIME-001"
+  ],
+  "changes": [
+    "Gateway document policy permits only same-origin microphone permission requests. Camera/geolocation remain denied and frame-ancestors remains none. Browser consent is still required.",
+    "Runtime resource policy now describes thread/resume as an explicit durable mutation that can resume saved work; history reads never do so."
+  ],
+  "sources": {
+    "src/gateway/server.ts": "abedc3f3e1c4d154fdafe22f4b2a73fe02bbdc75ddda907b6ae5681e26ec7dc3",
+    "tests/gateway/http.test.ts": "282bddc68a5953d29289930c6649e58de3774762a7cb9d77d94cb931a0e09167",
+    "tests/runtime/README.md": "68d4939f5933087a0b8d6ddefb45bb73af9b88d4005dbdb97651d6c11baf54ed"
+  },
+  "test": {
+    "report": ".work/test-results/run-LzGarC/vitest.json",
+    "sha256": "707c29db571c6ee34e2bde2134f7e82c7b0fe32a273e8045aa9fe8f75d05536d",
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "realGatewayHeaders": true,
+    "fixtureUrl": "http://127.0.0.1:5131/",
+    "microphonePolicyAllowed": true,
+    "cameraPolicyAllowed": false,
+    "geolocationPolicyAllowed": false,
+    "devicesRequested": false,
+    "externalInference": false,
+    "screenshot": "reference/evidence/microphone-policy-fixed.png"
+  },
+  "limits": [
+    "Policy admission is not an actual microphone permission grant or external voice acceptance.",
+    "No full suite or clean formal audit round claimed."
+  ]
+}

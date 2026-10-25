@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T20:56:19.602Z",
+  "fullSuiteRun": false,
+  "kind": "targeted-native-and-contract-verification",
+  "cli": "0.164.0",
+  "checks": [
+    "Actual native user config write and stale-version conflict.",
+    "Current skill discovery and persisted disable/readback.",
+    "Local marketplace registration, plugin preview/install/readback/uninstall and marketplace removal without ChatGPT authentication.",
+    "Feature, memory, requirements, hook and diagnostic response contracts.",
+    "No inference requests; temporary home, controlled denying network proxy; process exit confirmed."
+  ],
+  "reports": [
+    {
+      "path": ".work/test-results/run-n9tsSe/vitest.json",
+      "passed": 37
+    },
+    {
+      "path": ".work/test-results/run-RupPU7/vitest.json",
+      "passed": 15
+    }
+  ],
+  "files": {
+    "src/runtime/extensions.ts": "495eca09fd58b92113087dec26de7c80cc16c064732faf07a7ef5fe3e5943800",
+    "src/core/extension-methods.ts": "12254903ed952341ba0b235d4a120ebbd96839dfb92f11dc60ecb81638750a80",
+    "tests/runtime/extensions.test.ts": "44d994bae5c784599b3f4bf341fe5dcc8674cd863cd8af8215b1cd613258bd02",
+    "tests/runtime/extensions-native.test.ts": "6ecf19f950cd20afb32ba533f7dbb08a285f2f2ccfa547402ba24128d7c1aabb"
+  },
+  "incomplete": [
+    "Extension browser flows are still being implemented.",
+    "Global skill resource reading/creation, hook trust, sharing/import workflows and external account eligibility are not accepted by this foundation evidence.",
+    "Managed user configuration migration requires the separate Linux deployment tests."
+  ]
+}

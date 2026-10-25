@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "phase": "final-preparation",
+  "kind": "publication-tree-check",
+  "createdAt": "2026-10-25T18:28:01.623Z",
+  "scripts": [
+    {
+      "path": ".work/verify-publication-bytes.mjs",
+      "sha256": "f97290f6f010add703ce77d3cdc2c704d77f6c7720972e100e433cd832f2281d"
+    },
+    {
+      "path": ".work/probe-publication-git-semantics.mjs",
+      "sha256": "a94fe13fd0c42db97f7691975f94da4f9651acc5812fb0498a55843dd07bda3c"
+    }
+  ],
+  "staticReviews": {
+    "reviewer": "r16-interface",
+    "initialFindings": [
+      "intent-to-add is not a committed file",
+      "Git replace objects must be disabled",
+      "release evidence and tree identity need final recheck"
+    ],
+    "secondFinding": "name-only diff loses modification versus deletion for an intent-to-add replacement",
+    "resolved": true,
+    "finalConfirmation": "raw diff with complete object ids distinguishes the witnessed index states"
+  },
+  "isolatedGitProbe": {
+    "fixture": ".work/publication-git-probe-pvHRjv",
+    "assertions": 7,
+    "passed": 7,
+    "failed": 0,
+    "projectTests": false
+  },
+  "limits": [
+    "No staging, commit or push of the product repository has occurred.",
+    "Actual index and HEAD verification remains pending final acceptance.",
+    "Stop concurrent source and evidence writers before running this point-in-time check.",
+    "Privacy and secret scans are separate release requirements."
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-24T20:56:19.603Z",
+  "fullSuiteRun": false,
+  "kind": "targeted-recovery-verification",
+  "reports": [
+    {
+      "path": ".work/test-results/run-82iPGN/vitest.json",
+      "passed": 63
+    },
+    {
+      "path": ".work/test-results/run-4IBIle/vitest.json",
+      "passed": 42
+    }
+  ],
+  "checks": [
+    "Supervisor-only durable positive acknowledgement, no file contents retained.",
+    "Operation, project, original gateway digest and helper request digest binding.",
+    "No promotion from native-owned recovery material or absent/incomplete witness.",
+    "Acknowledged path/operation/byte count checks.",
+    "Recovering one operation preserves other unresolved outcomes.",
+    "Shutdown waits for pending workspace helpers before closing the witness database."
+  ],
+  "files": {
+    "src/runtime/workspace-witness.ts": "4676172f284dd54048d71b249492599a62e385bda830d954289e4de6df849b8c",
+    "src/gateway/dispatch.ts": "9745346ecf6f9af173e885cf2ae73033527ce72f535450fa766f1f5c7e9d32cb",
+    "src/core/ledger.ts": "f77f662d62900d9e07c593416805dcce0867fb132732700ecd75d5aebdb60a58",
+    "tests/runtime/workspace-witness.test.ts": "52fb799595462e7e92653b2cc599393f98dc55dae35f253c6955f2076a65237a"
+  },
+  "incomplete": [
+    "New witness end-to-end Linux service and browser deployment has not been performed."
+  ]
+}

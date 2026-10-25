@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-deployment-fix-verification",
+  "roundId": "round9-fixes",
+  "findingId": "R9-DEP-01",
+  "createdAt": "2026-10-25T11:10:54.934623+00:00",
+  "status": "fixed-targeted-regressions-passed",
+  "frozenAuditDigestBeforeFix": "74b12821a3ced3d379a9b6c2c816468962c11488e7a92f4f536eef007ea05234",
+  "independentCleanRounds": 0,
+  "fullSuiteRun": false,
+  "onlineServiceChanges": false,
+  "changedFiles": [
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "beforeSha256": "abc60acef375132df45ca2f31730c6266bc5197247f5136c023bf7dd9662b811",
+      "sha256": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d"
+    },
+    {
+      "path": "tests/deploy/test_workspace_worktrees.py",
+      "beforeSha256": "359ad77b568bd89a0cf486d3ebea61423c9dfdeacf0069685fd809677de4d2a3",
+      "sha256": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7"
+    }
+  ],
+  "change": [
+    "checkout_data validates the number of parent directory components against a shared MAX_TREE_DEPTH=32 used by the post-materialization tree inspector.",
+    "Each new implicit parent is reserved incrementally together with the current file before storing that prefix. A set deduplicates shared parents; files plus all unique directory prefixes must fit the unchanged 10000-entry limit.",
+    "All previous mode, symlink/submodule, relative-path, per-blob, total-content and Git stream checks remain in place. No limit was enlarged.",
+    "The preflight still completes before the per-operation retained holder, checkout directory, git worktree add and materialization. Ordinary durable operation receipts and fixed storage/lock infrastructure remain intentional; zero-write assertions concern checkout payload, per-worktree holder and Git registration.",
+    "Existing create-failure preservation and archive/restore logic was not changed."
+  ],
+  "originalFailure": {
+    "auditReport": "verification/audit-evidence/round9/r9-deployment.json",
+    "productionFunctionReproduction": ".work/round9/deployment-worktree-repro.py",
+    "observedBeforeFix": [
+      "5001 dN/file empty blobs passed preflight and materialized 5001 directories plus 5001 files; post-inspection rejected 10002 entries.",
+      "One empty blob under 33 directories passed preflight and materialized 34 entries; post-inspection rejected depth 33."
+    ],
+    "newRegressionBeforeProductionFix": {
+      "platform": "Windows",
+      "command": "HARNESS_TEST_PYTHON=<HARNESS_TEST_PYTHON> node scripts/run-tests.mjs --targeted tests/deploy/test_workspace_worktrees.py",
+      "selectedTests": 16,
+      "passedCases": 5,
+      "failedCases": 1,
+      "failedSubtests": 2,
+      "skipped": 10,
+      "runnerStatus": "failed",
+      "runnerExitCode": 1,
+      "failedTest": "test_checkout_rejects_implicit_directory_entries_and_depth_before_reading_blobs",
+      "failure": "DeployError not raised for files=5001 and files=1 depth-33 subtests.",
+      "source": "Observed official targeted-runner output before changing production source; no historical suite result is counted as current verification."
+    }
+  },
+  "windowsAfterFix": {
+    "command": "HARNESS_TEST_PYTHON=<HARNESS_TEST_PYTHON> node scripts/run-tests.mjs --targeted tests/deploy/test_workspace_worktrees.py",
+    "pythonVersion": "3.12.14",
+    "selectedTests": 16,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 10,
+    "runnerStatus": "skipped",
+    "runnerExitCode": 3,
+    "skippedTests": [
+      "test_archive_restore_preserve_dirty_staged_untracked_and_ignored_bytes_and_index",
+      "test_attach_requires_prior_binding_and_matching_current_revision",
+      "test_create_failure_and_retention_budget_preserve_all_partial_material",
+      "test_create_is_detached_scoped_and_materializes_raw_blobs_without_filters_or_hooks",
+      "test_exact_entry_and_depth_boundaries_create_readable_real_worktrees",
+      "test_interruption_after_archive_move_keeps_whole_tree_and_explicit_restore_repairs_backlink",
+      "test_over_budget_commit_creates_no_checkout_retention_holder_or_git_registration",
+      "test_restore_never_overwrites_an_occupied_active_uuid_and_forged_journal_is_not_authority",
+      "test_unsupported_tracked_symlink_is_rejected_before_git_worktree_creation",
+      "test_user_lock_nested_repository_and_shared_directory_are_not_archived"
+    ],
+    "reason": "Requires real Linux Git, descriptor paths and renameat2",
+    "notACompletePass": true
+  },
+  "linuxCompletion": {
+    "hostAlias": "root-192-168-1-120",
+    "sshOptions": [
+      "BatchMode=yes",
+      "StrictHostKeyChecking=yes"
+    ],
+    "selectedTests": [
+      "tests/deploy/test_workspace_worktrees.py"
+    ],
+    "inventoryOnly": [
+      "tests/deploy/test_workspace.py"
+    ],
+    "command": "<PINNED_NODE_24.22.1> scripts/run-tests.mjs --targeted tests/deploy/test_workspace_worktrees.py",
+    "nodeSha256": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+    "pythonVersion": "3.12.3",
+    "identity": "nobody",
+    "uid": 65534,
+    "gid": 65534,
+    "startedAt": "2026-10-25T11:09:00Z",
+    "completedAt": "2026-10-25T11:09:06Z",
+    "durationSeconds": 5.671,
+    "total": 16,
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0,
+    "runnerStatus": "passed",
+    "exitCode": 0,
+    "tests": [
+      {
+        "name": "test_archive_restore_preserve_dirty_staged_untracked_and_ignored_bytes_and_index",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_attach_requires_prior_binding_and_matching_current_revision",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_create_failure_and_retention_budget_preserve_all_partial_material",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_create_is_detached_scoped_and_materializes_raw_blobs_without_filters_or_hooks",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_exact_entry_and_depth_boundaries_create_readable_real_worktrees",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_interruption_after_archive_move_keeps_whole_tree_and_explicit_restore_repairs_backlink",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_over_budget_commit_creates_no_checkout_retention_holder_or_git_registration",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_restore_never_overwrites_an_occupied_active_uuid_and_forged_journal_is_not_authority",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_unsupported_tracked_symlink_is_rejected_before_git_worktree_creation",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_user_lock_nested_repository_and_shared_directory_are_not_archived",
+        "class": "WorktreeFilesystemTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_checkout_accepts_file_in_exactly_32_parent_directories",
+        "class": "WorktreeValidationTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_checkout_exact_entry_budget_counts_shared_parents_once",
+        "class": "WorktreeValidationTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_checkout_rejects_implicit_directory_entries_and_depth_before_reading_blobs",
+        "class": "WorktreeValidationTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_create_id_is_the_durable_operation_and_never_accepts_destination_or_binding",
+        "class": "WorktreeValidationTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_existing_worktrees_require_complete_trusted_binding_not_native_record_paths",
+        "class": "WorktreeValidationTests",
+        "status": "passed"
+      },
+      {
+        "name": "test_refs_cannot_be_options_revspec_programs_or_arbitrary_paths",
+        "class": "WorktreeValidationTests",
+        "status": "passed"
+      }
+    ],
+    "newBoundaryEvidence": [
+      "Real local Git commits made using hash-object/mktree/commit-tree; no external repository or model service involved.",
+      "A 10002-entry commit and a depth-33 commit fail before materialize or git worktree add; the UUID checkout, retention holder and .git/worktrees registration remain absent.",
+      "A shared/nested tree with 9998 files plus 2 directories (exactly 10000 entries) creates successfully and its post-inspection revision reads back unchanged.",
+      "A file below exactly 32 parent directories creates and reads successfully.",
+      "Existing tests pass for raw blobs without filters/hooks, binding checks, interrupted create retention, dirty/staged/untracked/ignored archive and restore, interrupted move repair, lock/nested/shared refusal and no-overwrite restore."
+    ],
+    "isolation": {
+      "uid": 65534,
+      "gid": 65534,
+      "privateNetworkObserved": true,
+      "internetSocketDenied": true,
+      "sourceWriteDenied": true,
+      "cgroup": "0::/system.slice/crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service\n"
+    },
+    "kernelControls": {
+      "PrivateNetwork": true,
+      "ProtectSystem": "strict",
+      "ProtectHome": true,
+      "PrivateDevices": true,
+      "NoNewPrivileges": true,
+      "RestrictAddressFamilies": [
+        "AF_UNIX"
+      ],
+      "ReadWritePaths": [
+        "/var/tmp/crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1/work"
+      ],
+      "RuntimeMaxSec": 120,
+      "TimeoutStopSec": 10,
+      "MemoryMax": "1G",
+      "TasksMax": 128,
+      "KillMode": "control-group",
+      "LimitNOFILE": 512,
+      "UMask": "0077"
+    },
+    "mountObservation": "Recorded mountinfo shows root mount read-only and only the new fixture work directory bind-mounted read-write among the fixture paths.",
+    "environment": "Clean env -i with explicit PATH/HOME/TMPDIR and GIT_CONFIG_NOSYSTEM=1 plus system/global Git configuration disabled; no personal homes, credentials or node_modules needed.",
+    "materialsRetainedAt": "/var/tmp/crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1",
+    "rawRemoteReport": "/var/tmp/crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1/result.json",
+    "unit": "crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service",
+    "preflight": {
+      "MainPID": "0",
+      "ControlPID": "0",
+      "ControlGroup": "",
+      "Description": "crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "finalState": {
+      "MainPID": "0",
+      "ControlPID": "0",
+      "ControlGroup": "",
+      "Description": "crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "finalShowExitCode": 0,
+    "stopExitCode": null,
+    "stopNotNeeded": "Exact transient unit already unloaded; final state and cgroup proof still required",
+    "cgroupCleanup": {
+      "path": "/sys/fs/cgroup/system.slice/crtest-r9-worktrees-a10905b9fb4d48b796bea84de10d8ef1.service",
+      "exists": false
+    },
+    "cleanupErrors": [],
+    "stopConfirmed": true,
+    "sourceUnchangedDuringExecution": true,
+    "sshLeaseReleased": true
+  },
+  "artifacts": [
+    {
+      "path": ".work/round9-fixes/deployment-linux-raw-stdout.json",
+      "sha256": "9451db06841a2415d1fd204dcc4719a76dcfc70867a26f63c96ecc6c88ef10b1"
+    },
+    {
+      "path": ".work/round9-fixes/deployment-linux-raw-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/round9-fixes/deployment-remote.py",
+      "sha256": "656410e67d2d631c6bd14a56643012260b9845d3c3fbd67841f5467270c0690d"
+    },
+    {
+      "path": ".work/round9-fixes/deployment-send.py",
+      "sha256": "a61c91a0d573431937feeeea820860c648b81be8f99cd2c17bc356dc4fc159d6"
+    }
+  ],
+  "limitations": [
+    "Only the selected worktree test file was executed; the inventory companion test_workspace.py was copied so the unmodified official targeted runner retained a non-complete inventory, and was not executed.",
+    "Windows platform skips are explicitly listed and were supplemented by the same exact test file under Linux/nobody with zero skips. Counts from the two platforms are not added into a larger independent-test total.",
+    "No full test suite, online harness deployment/update, persistent account or sudo change, host-110 access, personal credential use, external service call or paid inference occurred.",
+    "The stopped disposable service validates this targeted helper/Git filesystem workflow; it is not whole-product Linux deployment acceptance or a new clean audit round.",
+    "Only the two listed product/test files were modified for this fix. Separate parallel fixes may change the wider repository; these results bind the precise source hashes copied into this retained fixture."
+  ]
+}

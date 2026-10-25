@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-full-test-failure-fix",
+  "reviewerId": "r21-runtime",
+  "startedAt": "2026-10-25T20:32:27Z",
+  "completedAt": "2026-10-25T20:38:05.488Z",
+  "complete": true,
+  "sourceDigestBefore": "41816690ad436ed6c333bd33bec231981bf97710b950fdd887e52789526bb8a7",
+  "sourceDigestAfter": null,
+  "status": "targeted-passed-parent-freeze-and-full-required",
+  "notFullRepositoryAudit": true,
+  "cleanAuditRoundsAdded": 0,
+  "scope": [
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/native-fixture.mjs"
+  ],
+  "productionSourceEdited": false,
+  "rootCause": "The existing filesystem readiness poll inherited Vitest 5.0.5 default timeout 1000 ms. In the failed full run the held thread/start fixture wrote its PID 1000.8759765625 ms after its isolated directory was created. The marker exists and that PID was dead at diagnosis, so the failure occurred at readiness waiting rather than the later lifecycle assertions. The default startup deadline was shorter than a legitimate PowerShell Job startup, not evidence that RuntimeService.close omitted the defaults child.",
+  "originalTiming": {
+    "capturedAt": "2026-10-25T20:36:19.004Z",
+    "sourceRaw": ".work/test-results/run-eMzMH4/vitest.json",
+    "records": [
+      {
+        "directory": ".work/defaults-lifecycle/run-f8uymi",
+        "createdAt": "2026-10-25T20:31:24.456Z",
+        "markerExists": true,
+        "markerCreatedAt": "2026-10-25T20:31:25.319Z",
+        "elapsedMs": 862.73388671875,
+        "pid": 47600,
+        "aliveAtInspection": false
+      },
+      {
+        "directory": ".work/defaults-lifecycle/run-yiNu3r",
+        "createdAt": "2026-10-25T20:31:25.725Z",
+        "markerExists": true,
+        "markerCreatedAt": "2026-10-25T20:31:26.726Z",
+        "elapsedMs": 1000.8759765625,
+        "pid": 17376,
+        "aliveAtInspection": false
+      },
+      {
+        "directory": ".work/defaults-lifecycle/run-Y7A9bo",
+        "createdAt": "2026-10-25T20:31:27.254Z",
+        "markerExists": false
+      }
+    ]
+  },
+  "changes": [
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "backup": ".work/v2-full-fixes/defaults-lifecycle/before/tests__runtime__defaults-lifecycle.test.ts",
+      "bytes": 2810,
+      "sha256": "3b1853c647923ec0d25793ba57e65b1fcd9b2424e6e636b6b9d4e64b51a75e35",
+      "after": {
+        "path": "tests/runtime/defaults-lifecycle.test.ts",
+        "bytes": 4842,
+        "sha256": "c5dcc0a9b761d48b094f8b0c642f1e28ed3d2fc7e6ff0a6ee96e46d333a8d30c"
+      }
+    },
+    {
+      "path": "tests/runtime/native-fixture.mjs",
+      "backup": ".work/v2-full-fixes/defaults-lifecycle/before/tests__runtime__native-fixture.mjs",
+      "bytes": 1425,
+      "sha256": "e8d6b7b8ab420c18e7c8318c9cbea379b2af3f11f115f9d67ebcf0ec9723be67",
+      "after": {
+        "path": "tests/runtime/native-fixture.mjs",
+        "bytes": 1424,
+        "sha256": "d34e23f65716ad112ac9f6847bb93ebf203197da0caa2e91abd49c3be757251a"
+      }
+    }
+  ],
+  "changeSummary": [
+    "Replace the 1-second marker-existence poll with a local filesystem readiness promise. It accepts only a complete newline-terminated positive safe-integer PID record, immediately reports an early defaults outcome, and closes its watcher and timer in finally.",
+    "Use the existing real Windows controller startup budget of 10000 ms from tests/runtime/windows-job.test.ts. The outer test timeout and production lifecycle implementation are unchanged.",
+    "Frame the existing hold marker with a trailing newline so incomplete records are not mistaken for a PID. This marker is used only by defaults-lifecycle.test.ts.",
+    "Add one 1200 ms controlled Node fixture startup case that still uses the real NativeRpc/Windows Job and retains every original liveness, close identity, child-death, main-disconnect, unknown-outcome and post-close rejection assertion.",
+    "Add one local helper case proving early-failure diagnostics and refusal of an incomplete PID record."
+  ],
+  "evidence": [
+    {
+      "kind": "original-full",
+      "raw": {
+        "path": ".work/test-results/run-eMzMH4/vitest.json",
+        "bytes": 379074,
+        "sha256": "ece15391f59360cc7eb37b8f3d0a3025eac69ce5a5055a2f92b7362d92719123"
+      },
+      "note": "1043 cases, 1040 passed, one readiness failure and two platform skips. This subagent did not rerun full."
+    },
+    {
+      "kind": "controlled-red",
+      "raw": {
+        "path": ".work/test-results/run-4tePD8/vitest.json",
+        "bytes": 3713,
+        "sha256": "166dc4ecfeea70c8c7a37f487ab71d9aff6a0069c3519fa60f16266f0a0ef047"
+      },
+      "passed": 3,
+      "failed": 1,
+      "note": "Before changing the readiness helper, the new 1200 ms startup case failed at the old 1000 ms existence poll. Existing three cases passed."
+    },
+    {
+      "kind": "final-targeted",
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/defaults-lifecycle.test.ts tests/runtime/native.test.ts",
+      "raw": {
+        "path": ".work/test-results/run-NE0nDh/vitest.json",
+        "bytes": 4975,
+        "sha256": "f22095b08c1a9038eedd1a1a51a9a9df22619da5733c7aad3b304cd10e491879"
+      },
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "execution": {
+        "path": ".work/v2-full-fixes/defaults-lifecycle/execution-7vIqfB/result.json",
+        "bytes": 177,
+        "sha256": "c6e96940561a5696bf5c24b9adf5e1bb78dfc83a4a0b9f1f25b8ea038b0fec34"
+      },
+      "note": "The delayed real fixture completed in about 2011 ms, including startup and cleanup; all original lifecycle assertions passed. Denial proxy request count was zero."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/before.json",
+      "bytes": 529,
+      "sha256": "e0c06f23532a39d94b9c4ec609c5dafa2fcd5035c017aec83d4381cd30c9230b"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/original-timing.json",
+      "bytes": 848,
+      "sha256": "8fac3305223f2762519eaca74b7215e7b4a22468ccec8d860c554e6446a8c34a"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/execute.mjs",
+      "bytes": 2918,
+      "sha256": "60a1bf0ed488a5d40e6b031a7bdd52ce4c6e16872c529a9289d0b64cd7d935e0"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/execution-PzDsqj/stdout.log",
+      "bytes": 1070,
+      "sha256": "8b528618e11894a032c319581487ee7633d67058528ee5301c7ee2bf27225ceb"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/execution-PzDsqj/stderr.log",
+      "bytes": 1002,
+      "sha256": "6453d6d26eecc0b87941890e7d379debc50f199893c42c1630d95d0533dd8d64"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/execution-PzDsqj/result.json",
+      "bytes": 177,
+      "sha256": "dde1e705fd99fa7d35b7f1b63365def99ee50042f6d8f042f6bc15d899dd5ddc"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/execution-7vIqfB/stdout.log",
+      "bytes": 1053,
+      "sha256": "44c236fcb67fbb1bce17765ea477eb25879e8e799062dc897312cb5ce9e81685"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/execution-7vIqfB/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v2-full-fixes/defaults-lifecycle/execution-7vIqfB/result.json",
+      "bytes": 177,
+      "sha256": "c6e96940561a5696bf5c24b9adf5e1bb78dfc83a4a0b9f1f25b8ea038b0fec34"
+    }
+  ],
+  "method": "Read the precise failing raw and current fixture/defaults/close paths; correlate its exact full-run interval with three isolated fixture directory and PID marker timestamps; inspect the installed Vitest poll default; prove the timing failure using one controlled delayed fixture; replace test readiness only and run the two exact affected test files.",
+  "crossReview": "Parent-arranged bounded cross review; not claimed completed by this author.",
+  "limitations": [
+    "No full suite, SSH, real CLI model/MCP/account request, personal environment read or production lifecycle source change was performed. The child in this task is the local Node protocol fixture, owned by the existing Windows Job wrapper.",
+    "The original full-run marker directory match is based on its timestamp alignment with the assertion sequence and directory creation times. The raw does not embed fixture directory names.",
+    "No sealed audit, prior repair report, authorization or source manifest was changed. The parent owns the next source freeze, authorization rebinding and full run."
+  ]
+}

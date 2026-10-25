@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-25T15:52:54.983Z",
+  "sourceEditsStopped": true,
+  "sourceSnapshotBeforeCoverageRefresh": {
+    "files": 1785,
+    "digest": "162b8542a5e9d3b944baaea3454e0a59cbfed620c8709633a9224188fdd43298"
+  },
+  "sourceFiles": [
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "sha256": "34f50debdce357ed6347c7fa70c39b6a85de05c63a732150f83fbf50df74abe3"
+    },
+    {
+      "path": "web/components/AutomationsPanel.tsx",
+      "sha256": "b06228c51b2bc40cbf948ad959150e5e3ba07c572b397912bf54ee24559aa2d4"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "fb9fd8a84604aa117bed8d739d13a4be94ac6f8499a427350e86b33f5e6b397e"
+    },
+    {
+      "path": "tests/fixtures/native-env.ts",
+      "sha256": "3f2e70c6a85bf7e780ff3013e1d0844cb9118273f79c31551c03c9ad9cbf3c31"
+    },
+    {
+      "path": "tests/runtime/approval-native.test.ts",
+      "sha256": "a1856582e532e55d69a89d81d45aff4e022f8c5ecf0d6645cbfd3d8c21990337"
+    },
+    {
+      "path": "tests/runtime/automation-native.test.ts",
+      "sha256": "a7137f4826eff2403ef09ba3cbf0c8227543f24bf0a4cc7d4a328025d19f09c8"
+    },
+    {
+      "path": "tests/runtime/gateway-native.test.ts",
+      "sha256": "d11c5c80ab6a11f94c76d427e270dc411829600628c7952401c98daee19f44e8"
+    },
+    {
+      "path": "tests/runtime/input-native.test.ts",
+      "sha256": "6f94f1ff654ad4a80082107a46d141ccf70737f9390120dfa7824f30aa378700"
+    },
+    {
+      "path": "tests/runtime/mcp-native.test.ts",
+      "sha256": "5f20fbc808ff46d6a5294ef50d6b6ab509569209b5e8162cf0b3fa2efce9faf9"
+    },
+    {
+      "path": "tests/runtime/native-env.test.ts",
+      "sha256": "d9ac65de937c7e4afe9b223e849d9989d5f43a53ed46db89fb65f59c9a1249e7"
+    },
+    {
+      "path": "tests/runtime/native-smoke.test.ts",
+      "sha256": "d0e9fce49ad46d71f9cb149cc735d7803a63a2ff7fffdc391da5ad5120b120c6"
+    },
+    {
+      "path": "tests/runtime/organization-native.test.ts",
+      "sha256": "cceec180d101172dba425b814e57e28bc87eaceed23690bbae92fa4175031057"
+    },
+    {
+      "path": "tests/runtime/process-native.test.ts",
+      "sha256": "a9f92e81d23140fe42927d2436ecba5cba703bc98b7d34ce50792720129b0599"
+    },
+    {
+      "path": "tests/runtime/remote-native.test.ts",
+      "sha256": "6d7253e77c65cc2ba11dc0f3720f4337fbc92360fb7a633cf35709f2f4153796"
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "sha256": "df419959eb09908ff9175287e07d14a6824a2373c1a0360aa8856b9baf7ae6b4"
+    }
+  ],
+  "reports": [
+    {
+      "path": "verification/audit-evidence/round10-fixes/interface.json",
+      "sha256": "e92276fa758222f8fee481bc2e915ba2d8eaacf7a538e30302ff7baac2a8709a"
+    },
+    {
+      "path": "verification/audit-evidence/round10-fixes/native-test-isolation.json",
+      "sha256": "6aa73c1f9989364c7f1a8373585ad8a038d62066e14a4a806fdb9eb3d06a6862"
+    },
+    {
+      "path": "verification/audit-evidence/round10-fixes/final-linux-review.json",
+      "sha256": "e5c1ee24779cfd2ba02e628a10433ec80e4bfaca09b1d7dae4d478963d1ef4b5"
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "webAsset": "web/dist/assets/index-DP7tQrtu.js",
+      "warning": "Existing bundle-size warning remains; minified JavaScript is 1226.44 kB."
+    },
+    {
+      "command": "node .work/check-source-encoding.mjs",
+      "files": 1785,
+      "findings": []
+    }
+  ],
+  "browser": {
+    "fixture": {
+      "path": ".work/r10-automation-preview.mjs",
+      "sha256": "5972cebb9d89c88e98a0596f3afa685492cd70e7eb5863baf4c5498ae02205d4"
+    },
+    "logs": {
+      "path": ".work/round10-fixes/browser-fixture-output.jsonl",
+      "sha256": "753f591e2e31614bb861b9cf02d2126a255867d7c66cfcdf088e17809fa1599e"
+    },
+    "tabClosed": true,
+    "ownedProcess": {
+      "pid": 24172,
+      "exactExecutableAndCommandVerified": true,
+      "stopped": true,
+      "port": 5130,
+      "listeningAfterStop": false,
+      "sessionExit": 1,
+      "exitReason": "Intentional stop after bounded visual checks"
+    },
+    "assertions": [
+      "Synthetic create was accepted in memory but returned unknown delivery.",
+      "Editing while unknown survived exact original accepted receipt recovery.",
+      "Returning to list and reopening the created plan preserved unsent draft.",
+      "Explicit re-preview and reconfirmation updated the same plan from revision 1 to 2, with one create and one update total.",
+      "Reopening after save displayed the newly saved text."
+    ],
+    "screenshots": [
+      {
+        "path": "reference/evidence/automation-receipt-draft-fixed.png",
+        "sha256": "1f714072debe1b8918a7925412c91d0942315c0a8bac41bb5eb17e3c10a56d32"
+      },
+      {
+        "path": "reference/evidence/automation-receipt-saved-fixed.png",
+        "sha256": "05816842b88f188a109894db6bd08b0c53226b78cb4c89fcbf642a98f7be0995"
+      }
+    ],
+    "limitations": [
+      "Production-built UI with in-memory synthetic RPC only; no scheduler, model, MCP, real project, account or host service operation.",
+      "The reused visual fixture had an unrelated run record bound to its original static plan; the UI rejected that mismatched record. Automation run-history behavior is not claimed as new browser acceptance.",
+      "One initial offscreen confirmation click had no effect; after scrolling the visible checkbox was selected and the submitted state verified."
+    ]
+  },
+  "limits": [
+    "No full suite or online update was run.",
+    "Native test environment repair has 14 passing assertions before the final TMPDIR key addition and 3 helper assertions afterward; these are separate targeted executions.",
+    "Linux full-run wrapper passed syntax checks and 9 local executor simulations; real systemd/namespace/full execution is still pending.",
+    "Repair validation earns no independent clean audit. Capability evidence must be refreshed once before the next source freeze."
+  ]
+}

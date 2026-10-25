@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "phase": "round18-fixes",
+  "completedAt": "2026-10-25T18:56:34.297Z",
+  "formerDigest": "c652892011ba0e69531d6ed79f859accb209390f6deaf4985de37ff7e506ac0e",
+  "currentDigest": "165e4eb91755092833f6a68339d007e3c1ac4c071dfef151361bb016ee1cf7c2",
+  "sourceFileCount": 1788,
+  "finding": "R18-INTERFACE-001",
+  "consecutiveClean": 0,
+  "rootReview": "Read both complete implementation modules and both affected test files, verified four before/after source hashes and twelve retained evidence hashes, inspected both original failed probes and final official targeted raw JSON. Independent scoped cross-review is separate and does not earn a complete clean round.",
+  "sourceFiles": [
+    {
+      "path": "web/hooks/useConversation.ts",
+      "sha256": "ba39851bc3c28e8f67c5d41eefc57c435be37fb866c89ee8d355c2c33486f719"
+    },
+    {
+      "path": "web/components/RealtimePanel.tsx",
+      "sha256": "5073b81e9600c8f49f3ea57c37b4ce35adbff15705a558f69aa4db7ece356055"
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "sha256": "a3e1e1352fef41e5d8531c47906c5d03ad8b200e52e6ffb616f7c39865c684aa"
+    },
+    {
+      "path": "web/tests/realtime.test.tsx",
+      "sha256": "742ad39b53566db33c8193197268218b4009bcfb16a0020a47bf806ad6446148"
+    },
+    {
+      "path": "verification/feature-evidence/capability-coverage.json",
+      "sha256": "49a472d019c4256ed065bb0da478e3f13cc0946b0e022fc7e7297806bcee32ed"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "verification/audit-evidence/round18-fixes/realtime.json",
+      "sha256": "34ec7aba2da8f62800d20a4908606411cd0de25cabe24b7e4e347b1ee8d0f5a5"
+    },
+    {
+      "path": "verification/audit-evidence/round18-fixes/cross-review.json",
+      "sha256": "424dd301054f33b182dd5159942844bac0a345cad1c905828747c8c448e470be"
+    }
+  ],
+  "validation": {
+    "targeted": {
+      "files": 2,
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0,
+      "rawReport": ".work/test-results/run-Z4j8KZ/vitest.json",
+      "sha256": "785b09ca2cd659079c761580b21a24e6ece1dc8e06ee89b64bb487334ec69c35"
+    },
+    "webTypecheck": "Repair agent web noEmit exit 0; raw metadata and empty diagnostics retained in repair report.",
+    "webBuild": {
+      "command": "pnpm build:web",
+      "exitCode": 0,
+      "modules": 377,
+      "javascript": "index-CBsP66zn.js",
+      "sha256": "92d6a4ef87d638557e71183572693b2d40b8e60f2232ff61b58acef27302b2cc",
+      "warning": "Existing chunk larger than 500 kB warning retained."
+    },
+    "encoding": "All 1788 source files decode as UTF-8 without BOM or CRLF.",
+    "sourcePrivacyBeforeThisRecord": {
+      "status": "clean",
+      "files": 1970,
+      "bytes": 12104787,
+      "findings": 0,
+      "artifacts": 0,
+      "unreadable": 0,
+      "skipped": 0
+    }
+  },
+  "limits": [
+    "No full suite, online update, commit or push in this repair.",
+    "Local jsdom/fetch/media substitutes do not establish actual microphone, WebRTC or account/provider acceptance.",
+    "Three new complete independent clean audit rounds on unchanged source are required."
+  ]
+}

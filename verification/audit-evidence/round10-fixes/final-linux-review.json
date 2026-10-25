@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-linux-preparation-review",
+  "reviewerId": "r10-deployment",
+  "completedAt": "2026-10-25T15:50:32.166168+00:00",
+  "status": "reviewed-and-authorized-preparation-fixes-complete",
+  "formalAuditRoundsEarned": 0,
+  "inspectedFiles": [
+    {
+      "path": ".work/final-linux-package.mjs",
+      "sha256": "6e4b9c501d93b381db1bd0cca0f778e24517154f44e0278670bc43c86252eac4"
+    },
+    {
+      "path": ".work/final-linux-entry.mjs",
+      "sha256": "d9e8a8260d5a878dc2dbf896cf0c1e75bb19ec1bd6e533ca14ca5f6d436158c4"
+    },
+    {
+      "path": ".work/final-linux-run.py",
+      "sha256": "13bbc8349018e76b8c0ec768c4b19d359dd72779b698081463cf36a0aedfcf1e"
+    },
+    {
+      "path": ".work/FINAL-LINUX-AND-UPDATE-PLAN.md",
+      "sha256": "6ab26a5eb2655e5e5a1866f1e99f31cb54044ab97b30b3c60aa7c7379ffeb35c"
+    }
+  ],
+  "changedFiles": [
+    ".work/final-linux-run.py",
+    ".work/FINAL-LINUX-AND-UPDATE-PLAN.md"
+  ],
+  "diff": ".work/round10-fixes/final-linux-review.diff",
+  "diffSha256": "87dd4b1992974e8f71fa8cf12c379e49cabedd310cfc8cd9e5b697edf87122bf",
+  "resolvedIssues": [
+    {
+      "id": "FINAL-LINUX-PRIVATE-TMP",
+      "file": ".work/final-linux-run.py",
+      "trigger": "The former fixture directory, entry script and WorkingDirectory were under host /var/tmp while PrivateTmp=yes masked /var/tmp. ReadWritePaths does not re-expose that host tree.",
+      "impact": "Namespace setup or entering the working directory could fail before the official runner starts.",
+      "fix": "Use a fresh retained mkdtemp below trusted(/var/lib); keep PrivateTmp, PrivateNetwork and every existing inaccessible instance path.",
+      "basis": [
+        "https://www.freedesktop.org/software/systemd/man/254/systemd.exec.html",
+        "https://raw.githubusercontent.com/systemd/systemd/v255/src/core/namespace.c"
+      ]
+    }
+  ],
+  "additionalHardening": [
+    "Full UUID unit name and Description bind the exact phase/digest; exact absent-unit plus absent-cgroup preflight precedes launch.",
+    "Only matching Id, Description, transient=yes and exact transient fragment authorize stop. Collected units are observed but not stopped; foreign or malformed state blocks cleanup and acceptance.",
+    "Explicit system.slice/control-group/SIGKILL; final exact stopped states, zero PIDs and absent or populated=0 cgroup evidence are mandatory. Missing event data and stop failures remain failures.",
+    "Launch-attempt state survives later log finalization exceptions; stdout/stderr are retained on launch error or local subprocess timeout. Exit 3 remains 3.",
+    "Plan distinguishes already-satisfied freeze prerequisites, static review, new simulated executor checks and deferred real Linux acceptance."
+  ],
+  "checks": {
+    "inputCompleteness": "Full Git working-tree/index bundle includes source, tests, configs, feature and audit evidence with per-file size/mode/hash. Receiver verifies archive membership and bytes, creates a fresh Git repository, then the real snapshot and validateAuditRecord gate run before tests. Official runner discovers the full inventory; no raw Vitest bypass.",
+    "inventoryReadOnly": {
+      "testFiles": 146,
+      "requiredNativeTestFiles": 14,
+      "exactRootFixtureFiles": 8
+    },
+    "isolatedPhases": "Independent nobody/root copies, clean HOME/CODEX_HOME, pinned official Linux x64 CLI integrity, protected host paths and network namespace remain. Root phase selects only current tests/deploy/root/test_*.py through the official targeted runner.",
+    "updateSequence": "Current CLI/manager/control/config-layer implementation supports reviewed-checkout control-update -> config-layer-migrate -> application update -> verify/status. Preconditions include resolved unfinished transactions and exact intended instance. Recovery directions and legacy-capability downgrade ordering match the current implementation.",
+    "sourceMutationGuard": "final-linux-entry.mjs requires matching Linux bytes/executable bits/count before the gate and unchanged source digest after the child test runner."
+  },
+  "validations": [
+    {
+      "kind": "syntax-only",
+      "commands": [
+        "node --check .work/final-linux-package.mjs",
+        "node --check .work/final-linux-entry.mjs",
+        "<HARNESS_TEST_PYTHON> -B: compile current final-linux-run.py text without module execution"
+      ],
+      "status": "passed"
+    },
+    {
+      "kind": "new-local-simulated-executor-fixture",
+      "script": ".work/round10-fixes/final-linux-owned-unit-test.py",
+      "scriptSha256": "de03a0276de856fcef8bf77574958cd424734079c2a246bea509617829230931",
+      "log": ".work/round10-fixes/final-linux-owned-unit-test.log",
+      "logSha256": "54d79c399bde6ceb92b45e86350f42d39f65061e590d49f44fed83e6c437a05d",
+      "summary": ".work/round10-fixes/final-linux-executor-zeff1zzs/summary.json",
+      "summarySha256": "4442203a097e41a21832c87416e8fcbe3453ebc7260af1aa7f95c3912906a326",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "actualExecutions": "Two bounded local Python children: ordinary stdout/stderr and a 0.5-second timeout of a sleeping process. Every systemctl/cgroup observation was simulated; actual host-control command calls were guarded against. No old fixture rerun."
+    }
+  ],
+  "sourceSnapshotObserved": {
+    "files": 1785,
+    "digest": "162b8542a5e9d3b944baaea3454e0a59cbfed620c8709633a9224188fdd43298"
+  },
+  "historicalR10": {
+    "files": 1783,
+    "digest": "0ea68b543586c9a511e9a3b222275964538bc86edc94bf793fceaf7187f5ef55",
+    "note": "Preserved unchanged. Parent confirmed current source changes belong to two separately authorized repair domains; ignored preparation edits do not change the source digest."
+  },
+  "executionPrerequisites": [
+    "Use the eventual frozen digest with three valid complete clean rounds; current post-repair source cannot reuse R10 history as current acceptance.",
+    "Retain exact approved source archive, preparation-script and toolchain hashes; preserve exact lock/workspace and full transitive dependency provenance. Direct version checks alone are insufficient.",
+    "Actual Linux systemd unit metadata, namespace startup, cgroup cleanup and full/privileged case execution remain unexecuted; all skips must remain explicit.",
+    "No SSH, full suite, real systemd command, personal credentials, paid inference, external MCP or online deployment was performed in this review."
+  ]
+}

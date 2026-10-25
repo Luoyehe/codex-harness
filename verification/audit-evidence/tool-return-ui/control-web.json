@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "control-web",
+  "completedAt": "2026-10-25T07:32:32.464Z",
+  "formalCleanAudit": false,
+  "trigger": "Reported missing explicit return action for standalone process/cloud/native terminal and file panels when no approval strip is present.",
+  "changes": [
+    "Every non-chat tool view has one common always-present return-to-chat navigation control outside its scrolling content.",
+    "Redundant local return buttons are omitted in prediction, native background terminal, realtime and diff views. The pending-request action is separately labeled 处理待答请求.",
+    "Returning changes only the active panel; owner components remain mounted and no process kill, terminal close or realtime stop is sent. The composer receives focus and drafts stay intact.",
+    "Navigation wraps on narrow displays and explains that already-started terminal, process and voice sessions continue."
+  ],
+  "sourceHashes": {
+    "web/App.tsx": "58eb9a786ed5a2b111ae97a55dfe63b80fe763c794ebc33e589fe45e71af4d23",
+    "web/components/Prompts.tsx": "e69aa47ac5026cc2b44c8e97df6df42fc584d0fb22aa5ce82d14b560cf51902f",
+    "web/components/PredictionPanel.tsx": "ece10b2c98d874db27197b860aeac1ec0d3586abaa5e27a45a9ce07be38877bf",
+    "web/components/ThreadTerminals.tsx": "feed2cc07aca88ac398559e4f84a3563cd7c06fb884cde50d9d25d9a9fb0e253",
+    "web/styles-workflows.css": "a4fd5f22cc7a1805eba01889cd9e76aef2135e4965f9603eef89ded9f2d20fb3",
+    "web/tests/app-lifecycle.test.tsx": "a0ffe0f8a27d8c41c02ccf98557c8f7d961c96148356c033eae899a0f6f6f881"
+  },
+  "validation": {
+    "command": "node node_modules/vitest/vitest.mjs run web/tests/app-lifecycle.test.tsx web/tests/prompts.test.tsx web/tests/prediction.test.tsx web/tests/thread-terminals.test.tsx web/tests/terminal.test.tsx",
+    "testFiles": 5,
+    "tests": 53,
+    "result": "passed",
+    "typecheck": "web TypeScript noEmit passed",
+    "build": "Vite passed: 377 modules; CSS44.78kB; JS1215.86kB/gzip344.48kB; existing chunk warning"
+  },
+  "limits": [
+    "Actual browser desktop and 390x844 mobile geometry verified using the read-only fixture; jsdom proves live component identity preservation and absence of stop calls. This does not prove deployed runtime integration.",
+    "No real cloud, voice, process or paid invocation was started. No full suite or formal independent audit."
+  ],
+  "fixture": {
+    "url": "http://127.0.0.1:5126",
+    "durationMinutes": 15,
+    "default": "No pending approvals",
+    "pendingApprovals": "Add ?pending=1 to show the simulated approval strip",
+    "readonly": true
+  },
+  "browserVerification": {
+    "checkedAt": "2026-10-25T07:34:41.792Z",
+    "fixtureOnly": true,
+    "noExternalOrRuntimeAction": true,
+    "pendingApprovals": 0,
+    "checks": [
+      "Process panel exposes a common return control without pending approvals.",
+      "Return restores conversation and focuses its composer.",
+      "Cloud panel exposes the same control without automatically starting the CLI.",
+      "390 by 844 viewport shows the control and cloud actions, with document scrollWidth equal to 390.",
+      "Mobile return restores chat; temporary viewport override was reset."
+    ],
+    "screenshots": [
+      "reference/evidence/tool-return-fixed.png",
+      "reference/evidence/tool-return-mobile.png"
+    ]
+  }
+}
