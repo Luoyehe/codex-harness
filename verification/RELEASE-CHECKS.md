@@ -2,6 +2,8 @@
 
 > Public copy. Private deployment details have been omitted.
 
+
+
 These tools were written for the clean-room repository. No archived source, test,
 build file or Git history was used. They do not establish release readiness by
 themselves. The authoritative acceptance catalogue remains
@@ -183,6 +185,8 @@ reviewer/scope/order violations, source changes and executable files under
 `verification`. Python negative fixtures prove zero-collection rejection and
 nonzero skip handling. They are independent test data in `.work`.
 
+The following implementation-phase record is historical (2026-10-25), not the current v2.0.1 test or GitHub Actions status.
+
 The implementation run executes only `tests/tooling/release-audit.test.ts`,
 `tests/tooling/select-tests.test.ts` and `tests/tooling/run-tests.test.ts`, plus
 source scanning and safe CLI/prerequisite checks. It does not execute the full
@@ -214,3 +218,17 @@ Frozen source `96cde170ad50eb50753feb3229881ce609f6d3328691ffee5c479105803963d1`
 
 
 [Deployment evidence](audit-evidence/v2-release/deployment.json) retains exact results. Browser visual acceptance is separately pending user handling of the internal-CA warning. Real commercial providers, public DNS/ACME and external firewall access were not exercised. GitHub publication is recorded separately.
+
+### 2026-10-26 — v2.0.1 complete platform verification
+
+Frozen source `aaf648ede72d410cbebd6b66e11020024d7affc4f82d1cbe47929fa05f734803`, tested at commit `historical-commit-081`, passed the third complete platform reconciliation: **167 test files, 1,465 distinct cases, zero failing cases and zero coverage gaps**. All three raw reports bind the same source digest before and after execution. The source-bound closeout authorization covers 1,836 source files; it does not manufacture three clean audit rounds.
+
+| Target | Files | Passed observations | Skipped observations | Original exit |
+| --- | ---: | ---: | ---: | ---: |
+| Windows | 158 | 1,299 | 93 | 3 |
+| Linux ordinary user | 158 | 1,378 | 14 | 3 |
+| Linux root fixtures | 9 | 73 | 0 | 0 |
+
+These are 2,857 observations across the three targets, not 2,857 independent cases. Every one of the 107 skipped observations has an exact file/case match that passed on an applicable platform at the same source digest. Original skips, group results and exit codes remain unchanged. [The machine-readable summary](audit-evidence/v201-release/full-summary.json) retains all skipped identities and their passing targets, SHA-256 hashes of the original platform reports, the reconciliation result, test plan and authorization reference. Earlier failing attempts remain historical evidence and are not counted as this successful run.
+
+
