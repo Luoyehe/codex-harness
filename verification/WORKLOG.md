@@ -4,6 +4,8 @@
 
 
 
+
+
 ## 范围
 
 2026-10-25 用户授权整个程序重写，只参考历史问题，不参考旧源码。旧开发快照已保存为 Git 提交 `fe54926eec22faf370a70a6ed853dd1d75ec0de6`，归档分支与 `archive/pre-rewrite-20261025` 标签已推送 GitHub，旧稳定分支未改动。本地另有源码 ZIP、完整 Git bundle、校验清单。归档未经最终验收，具体限制见该标签的 ARCHIVE-STATUS.md。使用仓库专用 SSH Deploy key 推送，因此没有冒称已创建 GitHub Release 说明页。
