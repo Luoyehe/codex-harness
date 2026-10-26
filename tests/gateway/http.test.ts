@@ -82,8 +82,14 @@ describe('real HTTP and WebSocket authorization boundary', () => {
       expect(unfinished.length).toBeGreaterThan(0);
       expect(unfinished.reduce((bytes, res) => bytes + res.writableLength, 0)).toBeLessThanOrEqual(LIMITS.retainedResponseBytes + 8192);
       expect(responses.some(res => res.statusCode === 400)).toBe(true);
-      for (const socket of sockets) socket.destroy();
-      await expect.poll(() => responses.filter(res => !res.writableFinished && !res.destroyed).length).toBe(0);
+      // A paused client has unread TCP data. A normal destroy may leave a FIN
+      // behind that data until the server's separate write deadline expires.
+      // Explicitly reset these aborted connections and observe server cleanup;
+      // the preceding test independently checks the graceful write deadline.
+      const closed = unfinished.map(res => new Promise<void>(resolve => res.once('close', resolve)));
+      for (const socket of sockets) if (!socket.destroyed) socket.resetAndDestroy();
+      await Promise.all(closed);
+      expect(responses.filter(res => !res.writableFinished && !res.destroyed).length).toBe(0);
       const response = await f.post('/api/rpc', { method: 'thread/read', params: { threadId: 'after-close' } }, f.headers);
       expect(response.status).toBe(200); expect((await response.text()).length).toBeGreaterThan(6 * 1024 * 1024);
     } finally { for (const socket of sockets) socket.destroy(); await f.close(); }

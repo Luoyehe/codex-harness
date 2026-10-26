@@ -1,6 +1,6 @@
 # Release checks and test orchestration
 
-Current checkpoint (2026-10-26, v2.0.1): the frozen source has passed complete local Windows/Linux/root case reconciliation, with **167 test files, 1,465 distinct cases and zero coverage gaps**. Final hosted GitHub Actions acceptance and the v2.0.1 deployment on 120 are still in progress at this checkpoint; publication is not claimed here. See [the current full-test summary](audit-evidence/v201-release/full-summary.json) and the dated v2.0.1 section below. Statements about tests or CI not yet run in the implementation-phase paragraphs refer only to their historical snapshots.
+Full-test checkpoint (2026-10-26, v2.0.1): source digest `aaf648ede72d410cbebd6b66e11020024d7affc4f82d1cbe47929fa05f734803` passed complete local Windows/Linux/root case reconciliation, with **167 test files, 1,465 distinct cases and zero coverage gaps**. A subsequent CI archive-extraction portability repair changes the source digest; this full-run evidence does not automatically accept that later snapshot. Final hosted GitHub Actions acceptance and the v2.0.1 deployment closeout are recorded separately and are not declared complete here. See [the full-test summary](audit-evidence/v201-release/full-summary.json) and the dated v2.0.1 section below. Statements about tests or CI not yet run in the implementation-phase paragraphs refer only to their historical snapshots.
 
 These tools were written for the clean-room repository. No archived source, test,
 build file or Git history was used. They do not establish release readiness by

@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "version": "2.0.1",
+  "target": "120",
+  "instance": "crtest-rw-20261025",
+  "sourceDigest": "aaf648ede72d410cbebd6b66e11020024d7affc4f82d1cbe47929fa05f734803",
+  "sourceParity": {
+    "applicationAndControlUnchangedThroughCommit": "9a2e43e70105d82276de3cb085eb8c18de8fa8b8",
+    "paths": [
+      "src",
+      "web",
+      "protocol",
+      "deploy",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "tsconfig.server.json",
+      "tsconfig.base.json"
+    ]
+  },
+  "control": {
+    "controlUpdated": true,
+    "transaction": "48863724d0f74d29bf3fd32ca10223b4",
+    "controlDigest": "33444ddb27e99e8d171bc08a15f457c4ef4a45f9137e703e5e6938a8c02188d0",
+    "previousDigest": "7f02049dd8d1a83da466655a76c62525d1605571b49641650554436043ae456b",
+    "rollbackOf": null
+  },
+  "update": {
+    "release": "e021e417927cad10c0b94fbe2af0b723ba0437cefa0e830a10e1634ec11e8077",
+    "previous": "57434193056c8166dc4786f3686564ae7ee0cff0566a5fb7d63be81bb24047a8",
+    "changed": true
+  },
+  "restart": {
+    "restarted": true,
+    "release": "e021e417927cad10c0b94fbe2af0b723ba0437cefa0e830a10e1634ec11e8077"
+  },
+  "verification": {
+    "files": 20165,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "providerRevisionUnchanged": true
+  },
+  "https": {
+    "beforeRestart": {
+      "passed": true,
+      "checks": 22
+    },
+    "afterRestart": {
+      "passed": true,
+      "checks": 24,
+      "acceptedReceiptsPreserved": 5,
+      "archiveChecksumVerified": true
+    },
+    "tlsVerification": true,
+    "modelTurns": 0,
+    "externalMcpCalls": 0
+  },
+  "services": {
+    "gateway": "active/enabled",
+    "worker": "active/enabled",
+    "caddy": "active/enabled",
+    "authelia": "active/enabled"
+  },
+  "serviceStateCheckedAt": "2026-10-26T09:52:00.171Z",
+  "browser": {
+    "status": "pending-user-certificate-interstitial"
+  },
+  "evidence": [
+    {
+      "name": "control-update-result.json",
+      "sha256": "dee9ce77c8215efc1feb4bc1a0608d658633c06a9726ba7613fbe6dcfb11710c"
+    },
+    {
+      "name": "application-update-result.json",
+      "sha256": "9dbe705c735340d41273a182263a1e5278ce2a637a609b71dd4b93305f877ef9"
+    },
+    {
+      "name": "restart-result.json",
+      "sha256": "bb7b9e22a0dba7b4ad693beef63f695ed4e1bede9bbd1382bf75eb01fcca9702"
+    },
+    {
+      "name": "verify-before-restart.json",
+      "sha256": "14119c0960f2701e65a1d29812bbbc7a84f48ef59ff05a3d0e6c15a803dd0ce0"
+    },
+    {
+      "name": "verify-after-restart.json",
+      "sha256": "a00378ba6b58a134be2f49309656ddec1ce1d3cf46eee1e5270e9fa9631f8476"
+    },
+    {
+      "name": "https-before-restart.json",
+      "sha256": "67cb07e380c889340997d76f8446ba5c317051723abde5a1b8150a53993867a1"
+    },
+    {
+      "name": "https-after-restart.json",
+      "sha256": "ba3e343db9cf815e23d186385a3da22b4c8b62ddd56b79396dc83132dc2b5bc3"
+    }
+  ],
+  "limits": [
+    "No commercial model inference or external MCP task was run.",
+    "No public DNS, ACME issuance or external firewall traversal was exercised."
+  ]
+}

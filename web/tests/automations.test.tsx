@@ -115,8 +115,9 @@ async function prepareForm() {
   fireEvent.change(screen.getByRole('textbox', { name: '自动执行的指令' }), {
     target: { value: 'Review my project' },
   });
+  const timeZone = (screen.getByRole('combobox', { name: '时区' }) as HTMLInputElement).value;
   fireEvent.click(screen.getByRole('button', { name: '预览接下来五次执行时间' }));
-  await screen.findByText('执行时间 · Asia/Shanghai').catch(() => screen.findByText(/执行时间 ·/));
+  await screen.findByText(`执行时间 · ${timeZone}`);
 }
 beforeEach(() => {
   localStorage.clear();
@@ -160,27 +161,43 @@ it('requires preview and consent, creates explicitly paused with registered proj
   });
   expect(params).not.toHaveProperty('cwd');
 });
-it('invalidates preview after schedule changes and ignores a late response for the old zone', async () => {
-  let resolve!: (value: unknown) => void;
-  const { api, calls } = setup((call) =>
-    call.method === 'automation/preview'
-      ? new Promise((done) => {
-          resolve = done;
-        })
-      : undefined,
-  );
-  render(<AutomationForm {...formProps(api)} />);
-  fireEvent.click(screen.getByRole('button', { name: '预览接下来五次执行时间' }));
-  await waitFor(() => expect(resolve).toBeTypeOf('function'));
-  fireEvent.change(screen.getByRole('combobox', { name: '时区' }), { target: { value: 'UTC' } });
-  await act(async () => resolve({ next: [future] }));
-  expect(screen.queryByText(/执行时间 ·/)).toBeNull();
-  fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  expect(
-    (screen.getByRole('button', { name: '创建暂停的计划' }) as HTMLButtonElement).disabled,
-  ).toBe(true);
-  expect(calls.filter((call) => call.method === 'automation/create')).toHaveLength(0);
-});
+it.each([
+  ['Asia/Shanghai', 'UTC'],
+  ['UTC', 'Asia/Shanghai'],
+])(
+  'invalidates preview after schedule changes and ignores a late response for the old zone (%s → %s)',
+  async (oldZone, newZone) => {
+    let resolve!: (value: unknown) => void;
+    const { api, calls } = setup((call) =>
+      call.method === 'automation/preview'
+        ? new Promise((done) => {
+            resolve = done;
+          })
+        : undefined,
+    );
+    render(<AutomationForm {...formProps(api)} />);
+    // The browser default is deliberately host-dependent. Establish two distinct
+    // schedule identities so UTC runners exercise the same late-response race.
+    const timeZone = screen.getByRole('combobox', { name: '时区' }) as HTMLInputElement;
+    fireEvent.change(timeZone, { target: { value: oldZone } });
+    expect(timeZone.value).toBe(oldZone);
+    expect(oldZone).not.toBe(newZone);
+    fireEvent.click(screen.getByRole('button', { name: '预览接下来五次执行时间' }));
+    await waitFor(() => expect(resolve).toBeTypeOf('function'));
+    expect(
+      calls.find((call) => call.method === 'automation/preview')?.params.schedule,
+    ).toMatchObject({ timeZone: oldZone });
+    fireEvent.change(timeZone, { target: { value: newZone } });
+    expect(timeZone.value).toBe(newZone);
+    await act(async () => resolve({ next: [future] }));
+    expect(screen.queryByText(/执行时间 ·/)).toBeNull();
+    fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
+    expect(
+      (screen.getByRole('button', { name: '创建暂停的计划' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(calls.filter((call) => call.method === 'automation/create')).toHaveLength(0);
+  },
+);
 it('preserves unedited native options and requires explicit rebase after a conflicting version', async () => {
   let reject = true;
   const { api, calls } = setup((call) =>

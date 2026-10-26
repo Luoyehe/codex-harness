@@ -101,6 +101,18 @@ test('CI entrypoints select exact changes and reconcile real identities without 
   const rootJob = workflow.split('\n  root_deploy:\n')[1].split('\n  coverage:\n')[0];
   expect(rootJob).toContain('runs-on: ubuntu-24.04');
   expect(rootJob).toContain('test "$RUNNER_ENVIRONMENT" = github-hosted');
+  expect(rootJob).toContain('test "$(id -u)" -ne 0');
+  expect(rootJob).toContain('test "$source_root" = "$(realpath "$GITHUB_WORKSPACE")"');
+  expect(rootJob).toContain('mktemp -d /tmp/harness-ci-root-source.XXXXXX');
+  expect(rootJob).toContain('/usr/bin/chown 0:0 "$root_checkout"');
+  expect(rootJob).toContain('/usr/bin/chmod 0755 "$root_checkout"');
+  expect(rootJob).toContain('git -C "$source_root" archive --format=tar HEAD');
+  expect(rootJob).toContain('for entry in .git node_modules dist; do');
+  expect(rootJob).toContain('/usr/bin/cp -a --no-preserve=ownership --');
+  expect(rootJob).toContain('cd "$root_checkout"');
+  expect(rootJob).toContain('/usr/bin/install -m 0644 "$root_checkout/.work/result-linux-root.json" "$source_root/.work/result-linux-root.json"');
+  expect(rootJob).not.toContain('safe.directory');
+  expect(rootJob).not.toContain('SUDO_UID=');
   expect(rootJob).toContain('/usr/bin/sudo -n -- /usr/bin/env -i');
   expect(rootJob).toContain('HARNESS_TEST_NODE=');
   expect(rootJob).toContain('scripts/ci-checks.mjs linux-root');

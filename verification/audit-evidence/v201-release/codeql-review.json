@@ -1,0 +1,554 @@
+{
+  "schemaVersion": 1,
+  "artifact": "v2.0.1 CodeQL alert manual review",
+  "reviewedAt": "2026-10-26T10:04:26.126Z",
+  "repository": "Luoyehe/codex-harness",
+  "reviewedHead": "9a2e43e70105d82276de3cb085eb8c18de8fa8b8",
+  "codeqlAnalysisCommit": null,
+  "provenance": {
+    "alerts": "Alert numbers, locations and exact rules supplied by the coordinating agent from GitHub CodeQL alert details; current local source independently inspected.",
+    "confirmedRules": {
+      "5": "py/clear-text-logging-sensitive-data",
+      "6": "js/bad-code-sanitization",
+      "7-12": "js/insufficient-password-hash (exact rule confirmed from alert 12; same rule title reported for the other five)"
+    },
+    "analysisCommitNote": "The CodeQL analysis commit was not independently retrieved in this child review; reviewedHead and file hashes identify the source actually assessed.",
+    "allEightAlertFilesMatchReviewedHead": true,
+    "oldImplementationRead": false
+  },
+  "summary": {
+    "currentSourceAlertsReviewed": 8,
+    "passwordHashCategory": 6,
+    "credentialStdoutCategory": 1,
+    "testCodeConstructionCategory": 1,
+    "demonstratedVulnerabilitiesOfReportedKinds": 0,
+    "recommendedFalsePositives": 8,
+    "productSourceChanges": 0,
+    "remoteDismissals": 0,
+    "releaseWording": "CodeQL jobs succeeded. Eight alerts on current source were manually reviewed and assessed as false positives in their present usage; the alert records and individual reasons are retained. Job success does not mean zero alerts.",
+    "limitations": "This is a review of the eight specified findings, not a proof that the repository has no vulnerabilities or that future callers preserve these boundaries. No remote alert was dismissed or marked fixed by this review."
+  },
+  "alerts": [
+    {
+      "number": 5,
+      "ruleId": "py/clear-text-logging-sensitive-data",
+      "title": "Clear-text logging of sensitive data",
+      "location": {
+        "path": "deploy/native_launcher.py",
+        "startLine": 176,
+        "endLine": 176
+      },
+      "fileSha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Return a managed AWS Bedrock bearer token to the native provider's fixed credential-command protocol.",
+      "dataFlow": [
+        "Root-managed providers/current/native-env.json supplies AWS_BEARER_TOKEN_BEDROCK.",
+        "The exact bedrock-token invocation validates the token and writes token plus newline to its caller's stdout.",
+        "deploy/provider_bedrock.py installs this fixed native-launch command as provider auth.command; this branch does not call a logging API."
+      ],
+      "boundary": [
+        "Launcher enforces configured non-root real/effective UID and GID, restricted supplementary groups, zero process capabilities and no_new_privs.",
+        "Credential environment must be a regular root-owned file, owned by the native GID, with mode 0640.",
+        "The control-user sudo allowlist permits version/app-server/resolve-project/workspace, not bedrock-token; the credential command is intended for the already credential-authorized native identity.",
+        "Native RPC launch uses separate pipes; native stderr is drained without retaining or relaying it. The launcher prints only a fixed diagnostic on exceptions."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "The value is intentionally sensitive, but the reported stdout sink is the machine-readable credential return channel, not application logging. It does not disclose the token to an identity that lacked access to the managed native credentials. Suppressing the output or hashing it would break authentication. This conclusion depends on keeping the fixed credential consumer and restrictive identity/file policy; it does not claim arbitrary token printing is safe.",
+      "supportingLocations": [
+        {
+          "path": "deploy/native_launcher.py",
+          "startLine": 146,
+          "endLine": 188
+        },
+        {
+          "path": "deploy/provider_bedrock.py",
+          "startLine": 25,
+          "endLine": 36
+        },
+        {
+          "path": "deploy/provider.py",
+          "startLine": 270,
+          "endLine": 278
+        },
+        {
+          "path": "deploy/units.py",
+          "startLine": 151,
+          "endLine": 157
+        },
+        {
+          "path": "src/runtime/native.ts",
+          "startLine": 37,
+          "endLine": 47
+        },
+        {
+          "path": "tests/deploy/root/test_provider_extended.py",
+          "startLine": 45,
+          "endLine": 63
+        }
+      ],
+      "reportedMessage": "This expression logs sensitive data (secret) as clear text.",
+      "sensitiveDataPresent": true,
+      "existingCoverage": "Source inspection found real native-UID fixture tests for the exact stdout result and rejection of root, unsupported verbs and a foreign-owned credential file. These tests were not rerun in this manual review.",
+      "upstreamBoundary": "The fixed provider auth.command configuration was verified locally; this review did not independently inspect the pinned Codex credential-command implementation or run a commercial Bedrock request."
+    },
+    {
+      "number": 6,
+      "ruleId": "js/bad-code-sanitization",
+      "title": "Improper code sanitization",
+      "location": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "startLine": 16,
+        "endLine": 16
+      },
+      "fileSha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Generate a standalone Node .cjs preload that rejects network calls in a no-tool MCP compatibility probe.",
+      "dataFlow": [
+        "home is created by fs.mkdtempSync(path.join(os.tmpdir(), 'harness-vision-home-')).",
+        "attempts is path.join(home, 'network-attempts.txt'), and JSON.stringify(attempts) is inserted as a complete quoted JavaScript string literal in the generated .cjs source.",
+        "spawn(process.execPath, ['--require', guard, entry]) loads that standalone file directly; the generated source does not enter a shell, HTML document or script element."
+      ],
+      "boundary": [
+        "Interpolated value is a string path, not raw source code or a caller-supplied JavaScript object with custom serialization.",
+        "JSON string encoding escapes quotation marks, backslashes and control characters for this standalone modern Node string-literal context.",
+        "The child receives only an allowlist of inherited environment keys and fixture credentials, and the script requests initialize/tools-list plus schema inspection, not a tool invocation."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "The rule's unsafe code-construction concern does not materialize here: JSON.stringify supplies a complete string literal to standalone Node source. HTML-specific closing-script escaping is irrelevant because no HTML boundary exists. In-memory checks on Node v24.15.0 retained all eight representative payloads as literal data without executing injected code. This does not establish the monkey-patched network guard as a general security sandbox.",
+      "supportingLocations": [
+        {
+          "path": "tests/deploy/vision_stdio_probe.mjs",
+          "startLine": 7,
+          "endLine": 19
+        },
+        {
+          "path": "tests/deploy/vision_stdio_probe.mjs",
+          "startLine": 24,
+          "endLine": 39
+        }
+      ],
+      "reportedMessage": "Code construction depends on an improperly sanitized value.",
+      "environmentValueTrust": "os.tmpdir may be influenced by the local test runner environment, so the conclusion does not rely solely on the path being trusted; the quoted-literal encoding was also checked."
+    },
+    {
+      "number": 7,
+      "ruleId": "js/insufficient-password-hash",
+      "title": "Use of password hash with insufficient computational effort",
+      "location": {
+        "path": "src/core/validation.ts",
+        "startLine": 40,
+        "endLine": 40
+      },
+      "fileSha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Stable canonical JSON fingerprints for operation identity and workspace acknowledgement consistency.",
+      "dataFlow": [
+        "Ledger.reserve hashes {method, params}, stores the digest with operation ID and scope, and rejects reuse of that ID for different contents.",
+        "Gateway workspace acknowledgement compares request/result fingerprints in addition to the operation, method and project scope."
+      ],
+      "boundary": [
+        "This is an equality/collision-resistance requirement, not verification of a user-selected password.",
+        "The normal public receipt projection returns operation identity/state/result/error but does not return the internal digest.",
+        "Request contents may include sensitive fields; the fingerprint is not advertised as encryption, a password KDF or a substitute for storage access controls."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "SHA-256 is being used for deterministic request/result identity. None of the inspected callers uses this function as a password verifier. A salted expensive password KDF would change the equality semantics and is not required to satisfy this use.",
+      "supportingLocations": [
+        {
+          "path": "src/core/ledger.ts",
+          "startLine": 14,
+          "endLine": 20
+        },
+        {
+          "path": "src/core/ledger.ts",
+          "startLine": 80,
+          "endLine": 98
+        },
+        {
+          "path": "src/gateway/dispatch.ts",
+          "startLine": 147,
+          "endLine": 157
+        },
+        {
+          "path": "src/gateway/workspace-ack.ts",
+          "startLine": 23,
+          "endLine": 27
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "ruleId": "js/insufficient-password-hash",
+      "title": "Use of password hash with insufficient computational effort",
+      "location": {
+        "path": "src/runtime/attachments.ts",
+        "startLine": 126,
+        "endLine": 126
+      },
+      "fileSha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Verify immutable attachment bytes against the supervisor-private metadata index.",
+      "dataFlow": [
+        "Upload decodes the bounded canonical base64 payload and computes SHA-256 over its bytes.",
+        "Each read recomputes the byte digest and rejects a mismatch against expected.sha256, alongside file identity/size checks."
+      ],
+      "boundary": [
+        "The index is supervisor-private; only immutable data files are readable by the native UID.",
+        "Public attachment metadata contains ID, name, MIME type and size, not the stored checksum.",
+        "No password is extracted from the upload or compared with the checksum to authenticate a user."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "This is a content-integrity checksum. Even if an attachment happens to contain credential text, hashing the complete file for integrity is not password storage or verification.",
+      "supportingLocations": [
+        {
+          "path": "src/runtime/attachments.ts",
+          "startLine": 23,
+          "endLine": 47
+        },
+        {
+          "path": "src/runtime/attachments.ts",
+          "startLine": 58,
+          "endLine": 76
+        },
+        {
+          "path": "src/runtime/attachments.ts",
+          "startLine": 108,
+          "endLine": 126
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "ruleId": "js/insufficient-password-hash",
+      "title": "Use of password hash with insufficient computational effort",
+      "location": {
+        "path": "src/runtime/imports.ts",
+        "startLine": 6,
+        "endLine": 6
+      },
+      "fileSha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Bind an import confirmation to the freshly detected inventory and selected item identities.",
+      "dataFlow": [
+        "preview hashes {scope, item} into itemId and {scope, items} into previewHash.",
+        "apply repeats detection, compares the preview hash, checks each selected item ID, and separately requires confirmation for executable configuration."
+      ],
+      "boundary": [
+        "The hash describes native migration metadata; it is not a frozen file-byte snapshot, password verifier or authorization secret.",
+        "Executable-import confirmation is checked explicitly and is not inferred from knowing a hash."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "The hash is an optimistic consistency token and item identity. The cost requirements for storing user passwords do not apply to this metadata fingerprint.",
+      "supportingLocations": [
+        {
+          "path": "src/runtime/imports.ts",
+          "startLine": 28,
+          "endLine": 39
+        },
+        {
+          "path": "src/runtime/imports.ts",
+          "startLine": 41,
+          "endLine": 53
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "ruleId": "js/insufficient-password-hash",
+      "title": "Use of password hash with insufficient computational effort",
+      "location": {
+        "path": "src/runtime/input-context.ts",
+        "startLine": 22,
+        "endLine": 22
+      },
+      "fileSha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Create a bounded deterministic marker for a selected context source.",
+      "dataFlow": [
+        "The hashed source is either canonical {cwd, relative, revision, start, end} or user-note:index:label.",
+        "The digest becomes a harness-context key and queued-input placeholder; context text is carried separately as explicitly untrusted content."
+      ],
+      "boundary": [
+        "The source hash is not computed over a login password and is not used to authenticate or authorize anything.",
+        "File revision matching and bounded source loading are performed independently before constructing the marker."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "This is namespacing and duplicate-source detection. No password-verification operation exists along the inspected path.",
+      "supportingLocations": [
+        {
+          "path": "src/runtime/input-context.ts",
+          "startLine": 20,
+          "endLine": 28
+        },
+        {
+          "path": "src/runtime/input-context.ts",
+          "startLine": 51,
+          "endLine": 66
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "ruleId": "js/insufficient-password-hash",
+      "title": "Use of password hash with insufficient computational effort",
+      "location": {
+        "path": "src/runtime/workspace-witness.ts",
+        "startLine": 74,
+        "endLine": 74
+      },
+      "fileSha256": "26f7102b6d666506cc1f8a0c287630e31516411d1b53bbf2d80725e9e3c55149",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Check that a Git index mutation acknowledgement covers exactly the selected ordered path list.",
+      "dataFlow": [
+        "The native helper returns pathsDigest=digest(selected) and selectedCount.",
+        "The runtime compares the returned count and SHA-256 of canonical(paths), alongside operation ID and expected Git index/head identities, before recording the witness result."
+      ],
+      "boundary": [
+        "The hash input is a list of selected repository paths, not passwords.",
+        "The hash supplements explicit operation/project/helper bindings and does not grant standalone authority."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "This is a cross-process acknowledgement-integrity check. A deterministic fast collision-resistant digest is appropriate; password stretching has no role.",
+      "supportingLocations": [
+        {
+          "path": "deploy/workspace_index.py",
+          "startLine": 197,
+          "endLine": 202
+        },
+        {
+          "path": "src/runtime/workspace-witness.ts",
+          "startLine": 46,
+          "endLine": 58
+        },
+        {
+          "path": "src/runtime/workspace-witness.ts",
+          "startLine": 60,
+          "endLine": 90
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "ruleId": "js/insufficient-password-hash",
+      "title": "Use of password hash with insufficient computational effort",
+      "location": {
+        "path": "src/runtime/service.ts",
+        "startLine": 563,
+        "endLine": 563
+      },
+      "fileSha256": "6bc7a74ec0a8f6166b8618688c65928ed2d4baf59040e6a33710d75c9db9abba",
+      "sourceMatchesReviewedHead": true,
+      "purpose": "Key an in-memory cache of effective native thread defaults.",
+      "dataFlow": [
+        "The cache key is SHA-256 of canonical {cwd, selected, config: config.config} returned by config/read.",
+        "The Map uses the key only to reuse a bounded default-options probe result; on miss a new isolated native process probes thread/start and is closed."
+      ],
+      "boundary": [
+        "The digest stays an in-memory Map key, capped at 16 entries, and is not returned in the defaults response.",
+        "Configuration may contain sensitive strings, but the hash is neither a stored password verifier nor a login comparison.",
+        "Relevant account/config/runtime changes clear this cache."
+      ],
+      "conclusion": "false_positive_recommended",
+      "rationale": "The tainted 'password' label comes from the configuration dataflow; the sink's actual purpose is cache invalidation/equality. Replacing the cache key with a password KDF would not improve password storage because this code does not perform it.",
+      "supportingLocations": [
+        {
+          "path": "src/runtime/service.ts",
+          "startLine": 65,
+          "endLine": 65
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "startLine": 124,
+          "endLine": 124
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "startLine": 202,
+          "endLine": 202
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "startLine": 454,
+          "endLine": 454
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "startLine": 559,
+          "endLine": 578
+        }
+      ],
+      "reportedMessage": "Password from a call to checked is hashed insecurely."
+    }
+  ],
+  "crossCheck": {
+    "actualAdministratorPasswordStorage": {
+      "path": "deploy/https.py",
+      "startLine": 366,
+      "endLine": 378
+    },
+    "observation": "The separately inspected Authelia administrator password setup invokes caddy hash-password --algorithm argon2id and verifies the returned Argon2id format; the six reported SHA-256 sinks are not that password-storage flow."
+  },
+  "verification": {
+    "kind": "Static call/use-boundary inspection plus an in-memory JavaScript literal check; no suite rerun",
+    "commandRuntime": "v24.15.0",
+    "literalCheck": {
+      "cases": 8,
+      "allCapturedVerbatim": true,
+      "injectedCodeExecuted": false,
+      "categories": [
+        "double quote breakout",
+        "single quote breakout",
+        "backtick breakout",
+        "HTML closing-script sequence",
+        "backslash escape sequence",
+        "U+2028/U+2029",
+        "literal CR/LF",
+        "template interpolation"
+      ]
+    },
+    "newProductionOrTestSourceEdits": 0,
+    "commercialModelCalls": 0,
+    "externalMcpToolCalls": 0,
+    "sshCalls": 0,
+    "remoteAlertMutations": 0,
+    "sourceAndSupportingFileHashes": [
+      {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+        "headSha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+        "matchesHead": true
+      },
+      {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+        "headSha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+        "matchesHead": true
+      },
+      {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+        "headSha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+        "matchesHead": true
+      },
+      {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+        "headSha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+        "matchesHead": true
+      },
+      {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "26f7102b6d666506cc1f8a0c287630e31516411d1b53bbf2d80725e9e3c55149",
+        "headSha256": "26f7102b6d666506cc1f8a0c287630e31516411d1b53bbf2d80725e9e3c55149",
+        "matchesHead": true
+      },
+      {
+        "path": "src/runtime/service.ts",
+        "sha256": "6bc7a74ec0a8f6166b8618688c65928ed2d4baf59040e6a33710d75c9db9abba",
+        "headSha256": "6bc7a74ec0a8f6166b8618688c65928ed2d4baf59040e6a33710d75c9db9abba",
+        "matchesHead": true
+      },
+      {
+        "path": "deploy/native_launcher.py",
+        "sha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff",
+        "headSha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff",
+        "matchesHead": true
+      },
+      {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "headSha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "matchesHead": true
+      },
+      {
+        "path": "src/core/ledger.ts",
+        "sha256": "3d49e9af4cf1608e741adc9b7048e36b5b940fcb33ccf3dacfe51d02970b228c",
+        "headSha256": "3d49e9af4cf1608e741adc9b7048e36b5b940fcb33ccf3dacfe51d02970b228c",
+        "matchesHead": true
+      },
+      {
+        "path": "src/gateway/dispatch.ts",
+        "sha256": "501234ec4d1aae1881ab935c6f8b97f8a3b32cdea3c8645f3b88c8acdf551903",
+        "headSha256": "501234ec4d1aae1881ab935c6f8b97f8a3b32cdea3c8645f3b88c8acdf551903",
+        "matchesHead": true
+      },
+      {
+        "path": "src/gateway/workspace-ack.ts",
+        "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+        "headSha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+        "matchesHead": true
+      },
+      {
+        "path": "deploy/workspace_index.py",
+        "sha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+        "headSha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+        "matchesHead": true
+      },
+      {
+        "path": "deploy/provider_bedrock.py",
+        "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+        "headSha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+        "matchesHead": true
+      },
+      {
+        "path": "deploy/provider.py",
+        "sha256": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+        "headSha256": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+        "matchesHead": true
+      },
+      {
+        "path": "deploy/install.py",
+        "sha256": "52b5f54cfcbad4e2b971a5ee728e4fccfe8aa57ff27de9035467053a0e013084",
+        "headSha256": "52b5f54cfcbad4e2b971a5ee728e4fccfe8aa57ff27de9035467053a0e013084",
+        "matchesHead": true
+      },
+      {
+        "path": "deploy/units.py",
+        "sha256": "53ed4b2f26519657c42229b3b94635508b633bc28b3483dc6068802929ac0850",
+        "headSha256": "53ed4b2f26519657c42229b3b94635508b633bc28b3483dc6068802929ac0850",
+        "matchesHead": true
+      },
+      {
+        "path": "src/runtime/native.ts",
+        "sha256": "7551a5dcf42c0466564152f5912156ed5e7fff61515f8653e76c1739a9fdae3c",
+        "headSha256": "7551a5dcf42c0466564152f5912156ed5e7fff61515f8653e76c1739a9fdae3c",
+        "matchesHead": true
+      },
+      {
+        "path": "src/runtime/native-launch.ts",
+        "sha256": "0e4258e88431d659f533c828a672566f70e49aee17083e4beda5cdf0304a52f0",
+        "headSha256": "0e4258e88431d659f533c828a672566f70e49aee17083e4beda5cdf0304a52f0",
+        "matchesHead": true
+      },
+      {
+        "path": "tests/deploy/root/test_provider_extended.py",
+        "sha256": "be08a560c1f44730755a0305bf702093d6deb059f76396a4c868f2d866628c49",
+        "headSha256": "c39851af071ed9b33a34efffb2a2dd99879e9a9efceab95a7425b011023d0168",
+        "matchesHead": false
+      },
+      {
+        "path": "deploy/https.py",
+        "sha256": "ebda93b513b455ad1fcb241fd723ac78dd8125015c835d4a78372f58e0bb7faa",
+        "headSha256": "ebda93b513b455ad1fcb241fd723ac78dd8125015c835d4a78372f58e0bb7faa",
+        "matchesHead": true
+      }
+    ],
+    "supportingTestWorktreeNote": "tests/deploy/root/test_provider_extended.py had an independently owned worktree change during this review; its current and HEAD hashes are both recorded. All eight alert source files matched reviewedHead."
+  },
+  "historicalAlerts": {
+    "countReportedByCoordinator": 3,
+    "category": "Previous implementation paths, including apps/*",
+    "currentTreeCheck": {
+      "path": "apps",
+      "exists": false
+    },
+    "oldImplementationInspected": false,
+    "conclusion": "Historical findings are outside this current-source assessment. Their continued visibility is not evidence that the absent paths exist in this checkout, and absence does not imply that GitHub automatically closed them.",
+    "exactIdsAndPaths": "Not supplied to this child review; no IDs invented and no remote disposition changed."
+  },
+  "publicationState": {
+    "codeqlJobs": "Succeeded according to coordinator; success is distinct from zero alerts.",
+    "remoteAlerts": "No remote dismissal, fix or closure performed by this review.",
+    "ciReleaseAndDeployment": "Not asserted complete by this evidence file."
+  }
+}
