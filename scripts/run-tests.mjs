@@ -8,6 +8,7 @@ import { root, snapshot, evidencePath } from './snapshot.mjs';
 import { nativePrerequisite, nativeTestFiles, pythonPrerequisite, runPythonTests, testInventory } from './select-tests.mjs';
 import { validateRelative } from './release-audit.mjs';
 import { releaseAuthorization } from './release-authorization.mjs';
+import { isolatedTestEnvironment, isolateTestProcess } from './test-environment.mjs';
 
 const requiredScopes = ['gateway-core', 'runtime-protocol', 'web-ux', 'deployment-release'];
 const scopeAreas = {
@@ -88,7 +89,7 @@ export function prepareRun(mode, args, base = root) {
   return { mode, files, ...(auditRounds ? { auditRounds } : {}), ...(authorization ? { authorization } : {}) };
 }
 
-export function runVitest(files, base = root, env = process.env) {
+export function runVitest(files, base = root, env = isolatedTestEnvironment(base)) {
   const require = createRequire(path.join(base, 'package.json'));
   const entry = path.join(path.dirname(require.resolve('vitest/package.json')), 'vitest.mjs');
   const reports = path.join(base, '.work/test-results'); mkdirSync(reports, { recursive: true });
@@ -113,25 +114,26 @@ export function runVitest(files, base = root, env = process.env) {
   } catch { return { status: 'failed', exitCode: 1, tests: files, reason: 'missing-or-invalid-test-evidence' }; }
 }
 
-export function executePlan(plan, base = root, dependencies = {}) {
+export function executePlan(plan, base = root, dependencies = {}, env = isolatedTestEnvironment(base)) {
   const js = plan.files.filter(name => jsTest.test(name)); const python = plan.files.filter(name => pyTest.test(name));
-  const hasNative = js.some(name => nativeNames.has(name)); const env = { ...process.env }; const prerequisites = [];
+  const hasNative = js.some(name => nativeNames.has(name)); const prerequisites = [];
   if (hasNative) {
-    const native = (dependencies.nativePrerequisite ?? nativePrerequisite)(base); prerequisites.push({ group: 'native', ...native });
+    const native = (dependencies.nativePrerequisite ?? nativePrerequisite)(base, env.HARNESS_TEST_CODEX_BIN, env); prerequisites.push({ group: 'native', ...native });
     if (native.status === 'ready') env.HARNESS_TEST_CODEX_BIN = native.binary;
   }
-  if (python.length) prerequisites.push({ group: 'deploy', ...(dependencies.pythonPrerequisite ?? pythonPrerequisite)() });
+  if (python.length) prerequisites.push({ group: 'deploy', ...(dependencies.pythonPrerequisite ?? pythonPrerequisite)(env) });
   if (prerequisites.some(item => item.status !== 'ready')) return { status: prerequisites.some(item => item.status === 'failed') ? 'failed' : 'skipped', exitCode: prerequisites.some(item => item.status === 'failed') ? 1 : 3, prerequisites, results: [] };
   const results = [];
   if (js.length) results.push({ group: 'javascript', ...(dependencies.runVitest ?? runVitest)(js, base, env) });
-  if (python.length) results.push({ group: 'deploy', ...(dependencies.runPythonTests ?? runPythonTests)(python, base) });
+  if (python.length) results.push({ group: 'deploy', ...(dependencies.runPythonTests ?? runPythonTests)(python, base, env) });
   const exitCode = results.some(result => result.exitCode === 1) ? 1 : results.some(result => result.exitCode) ? 3 : 0;
   return { status: exitCode === 0 ? 'passed' : exitCode === 3 ? 'skipped' : 'failed', exitCode, prerequisites, results };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
+    const env = isolateTestProcess(root);
     const [mode, ...args] = process.argv.slice(2); const plan = prepareRun(mode, args);
-    const result = executePlan(plan); process.stdout.write(JSON.stringify(result, null, 2) + '\n'); process.exitCode = result.exitCode;
+    const result = executePlan(plan, root, {}, env); process.stdout.write(JSON.stringify(result, null, 2) + '\n'); process.exitCode = result.exitCode;
   } catch (error) { process.stderr.write(`Tests not started: ${error.message}\n`); process.exitCode = 1; }
 }

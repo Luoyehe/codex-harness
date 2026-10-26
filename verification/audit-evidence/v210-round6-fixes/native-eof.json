@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "status": "implemented-awaiting-isolated-linux-verification",
+  "scope": "Round 6 native supervisor EOF shutdown finding only",
+  "files": [
+    "deploy/native_launcher.py",
+    "src/runtime/native.ts",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_deployment.py",
+    "tests/runtime/native.test.ts"
+  ],
+  "changes": [
+    "The launcher observes POLLHUP/POLLRDHUP independently of its bounded input selector registration, including an 8 MiB saturated bridge with unread kernel bytes.",
+    "The two-second streaming shutdown deadline begins on actual upstream closure or observed EOF and is never reset by deferred child-stdin closure. Pending bytes may drain during that grace period.",
+    "NativeRpc destroys launcher stdin only after fail() classifies sent work as unknown and queued work as not_sent, so a buffered write cannot prevent EOF from reaching the launcher.",
+    "The existing clean_children descendant verification and nonzero cleanup-failure acknowledgement remain mandatory; no UID, sudo, environment, signal permission or inherited-descriptor policy changed.",
+    "Real Linux pipe and socket half-close tests cover buffered EOF, full bridge/kernel buffers, detached descendants and unconfirmed cleanup; runtime integration covers the actual Node socket to Python bridge to non-reading child and idempotent write-error failure handling.",
+    "The large-frame hash regression now pauses its consumer for three seconds while the upstream remains open, proving ordinary backpressure does not start the two-second closure deadline."
+  ],
+  "localVerification": [
+    {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "status": "passed"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --noEmit --target ES2024 --module NodeNext --moduleResolution NodeNext --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes --verbatimModuleSyntax --esModuleInterop --skipLibCheck --types node tests/runtime/native.test.ts",
+      "status": "passed",
+      "note": "The first ad hoc invocation omitted --types node and was invalid for the pinned compiler defaults; the corrected exact command passed."
+    },
+    {
+      "command": "Bundled Python -I with ast.parse on deploy/native_launcher.py, tests/deploy/test_native_shutdown.py and tests/deploy/test_deployment.py",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check -- deploy/native_launcher.py src/runtime/native.ts tests/deploy/test_native_shutdown.py tests/deploy/test_deployment.py tests/runtime/native.test.ts",
+      "status": "passed"
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/native.test.ts",
+      "platform": "win32",
+      "status": "skipped",
+      "passedCases": 7,
+      "skippedCases": 2,
+      "runnerExitCode": 3,
+      "report": ".work/test-results/run-69c2Fb/vitest.json",
+      "note": "Both new integration cases require actual Linux poll/subreaper behavior; skipped cases are not claimed as passes."
+    }
+  ],
+  "requiredLinuxVerification": {
+    "host": "192.168.1.120",
+    "phase": "nobody",
+    "status": "pending-parent-execution",
+    "exactExistingRunnerSelection": "node scripts/run-tests.mjs --targeted tests/deploy/test_native_shutdown.py tests/deploy/test_deployment.py tests/runtime/native.test.ts",
+    "focusedPythonCases": [
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_service_signal_acknowledges_confirmed_cleanup",
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_eof_acknowledges_cleanup_even_when_native_ignores_eof_and_term",
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_eof_with_pending_bytes_still_stops_native_and_detached_descendant",
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_pipe_hangup_stops_native_even_when_bridge_and_kernel_buffers_are_full",
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_socket_half_close_stops_native_even_when_bridge_and_kernel_buffers_are_full",
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_unrequested_native_crash_preserves_failure",
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_unconfirmed_cleanup_cannot_acknowledge_success",
+      "tests.deploy.test_native_shutdown.NativeShutdownTests.test_buffered_eof_cannot_acknowledge_unconfirmed_cleanup",
+      "tests.deploy.test_deployment.NativeLauncherTests.test_native_bridge_backpressures_without_losing_large_protocol_frames",
+      "tests.deploy.test_deployment.NativeLauncherTests.test_native_supervision_reaps_descendant_that_escaped_its_process_group"
+    ],
+    "focusedRuntimeCases": [
+      "bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (true)",
+      "bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (false)"
+    ]
+  },
+  "limitations": [
+    "The new NativeRpc integration substitutes only fixed launcher command selection, and does not establish a new sudo or cross-UID permission result.",
+    "Once the upstream really closes, remaining input has at most the existing two-second streaming grace period; unconsumed work is never asserted delivered.",
+    "Linux execution remains pending in this report until the parent supplies isolated host evidence.",
+    "No full suite, deployment, live service change, retired 110 host, personal CODEX_HOME, real model call or commit was performed."
+  ]
+}

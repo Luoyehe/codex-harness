@@ -1,0 +1,63 @@
+{
+  "status": "passed",
+  "exitCode": 0,
+  "prerequisites": [],
+  "results": [
+    {
+      "group": "javascript",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": [
+        "tests/tooling/ci-checks.test.ts"
+      ],
+      "cases": [
+        {
+          "id": "tests/tooling/ci-checks.test.ts::root fixtures have a traversable disposable temp outside their private home",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::a root-only change does not launch empty standard jobs",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::build metadata requires explicit current-source authorization, never an implicit full run",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::authorization requires matching bytes, source, version, user instruction and no unresolved blocker",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::zero-base new refs require an explicit reviewed ancestor, rather than HEAD~1",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::a PR uses the shared ancestor when its target branch advanced independently",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::coverage reconciles exact per-case platform complements and rejects failures, gaps and stale reports",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::documentation-only CI explicitly reports that no tests ran",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/ci-checks.test.ts::hosted root work is scoped and every matrix result is reconciled before the coverage gate passes",
+          "file": "tests/tooling/ci-checks.test.ts",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "digest": "bc995b764007152a4c8546b59d0980f44bdb5d53105cbcf195620eba703fdffa"
+}

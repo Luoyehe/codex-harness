@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { LIMITS, type JsonObject, type JsonValue, type Receipt } from './contracts.js';
+import { LIMITS, type ErrorBody, type JsonObject, type JsonValue, type Receipt } from './contracts.js';
 import { HarnessError } from './errors.js';
+import { mcpOauthError, mcpOauthReceipt } from './mcp-oauth-receipt.js';
 
 const MAX_GENERATION = 0xffffffffffff;
 const MAX_EXPORT_BYTES = 80 * 1024 * 1024;
@@ -70,8 +71,8 @@ export class OperationRetention {
       ...row,
       // Export structured JSON rather than JSON-inside-a-string: worst-case
       // escaping must not double the 64 MiB live journal beyond export capacity.
-      result: typeof row.result === 'string' ? JSON.parse(row.result) as JsonValue : null,
-      error: typeof row.error === 'string' ? JSON.parse(row.error) as JsonValue : null,
+      result: typeof row.result === 'string' ? mcpOauthReceipt(String(row.method), JSON.parse(row.result) as JsonValue) : null,
+      error: typeof row.error === 'string' ? mcpOauthError(String(row.method), JSON.parse(row.error) as ErrorBody) : null,
     }));
     const retiredOperations = this.db.prepare('SELECT * FROM retired_operations ORDER BY id').all();
     const data = Buffer.from(JSON.stringify({ format: 1, generation: this.generation(), receipts, retiredOperations }), 'utf8');

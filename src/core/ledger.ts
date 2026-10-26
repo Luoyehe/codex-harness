@@ -9,14 +9,22 @@ import { digest, identifier, validText } from './validation.js';
 import { Automations } from './automations.js';
 import { Worktrees } from './worktrees.js';
 import { OperationRetention, operationId } from './operation-retention.js';
+import { mcpOauthError, mcpOauthReceipt } from './mcp-oauth-receipt.js';
 
 type Row = Record<string, unknown>;
+const workspaceConfirmations = new Set(['workspace/write', 'workspace/mkdir', 'workspace/copy', 'workspace/remove', 'workspace/recovery/restore', 'workspace/recovery/discard', 'workspace/worktree/create', 'workspace/worktree/attach', 'workspace/worktree/archive', 'workspace/worktree/restore', 'workspace/git/commit', 'workspace/git/stage', 'workspace/git/unstage', 'workspace/git/index/recovery/restore', 'workspace/git/index/recovery/discard']);
+const payloadBytes = "length(CAST(coalesce(result,'') AS BLOB)) + length(CAST(coalesce(error,'') AS BLOB))";
+const recoverable = `method LIKE 'system/%' OR method IN (${[...workspaceConfirmations].map(method => `'${method}'`).join(',')})`;
 function receipt(row: Row): Receipt {
+  const state = row.state as ReceiptState;
+  const error = typeof row.error === 'string' ? mcpOauthError(String(row.method), JSON.parse(row.error) as ErrorBody) : undefined;
   return {
     operationId: String(row.id), method: String(row.method), scope: String(row.scope),
-    state: row.state as ReceiptState, createdAt: Number(row.created_at), updatedAt: Number(row.updated_at),
-    ...(typeof row.result === 'string' ? { result: JSON.parse(row.result) as JsonValue } : {}),
-    ...(typeof row.error === 'string' ? { error: JSON.parse(row.error) as ErrorBody } : {}),
+    state, createdAt: Number(row.created_at), updatedAt: Number(row.updated_at),
+    // A legacy full journal may retain its old payload when only the state can
+    // be persisted. That payload is evidence, never an accepted response.
+    ...(state === 'accepted' && typeof row.result === 'string' ? { result: mcpOauthReceipt(String(row.method), JSON.parse(row.result) as JsonValue) } : {}),
+    ...(state !== 'accepted' && error ? { error: { ...error, ...(['unknown', 'not_sent'].includes(state) ? { delivery: state as 'unknown' | 'not_sent' } : {}) } } : {}),
   };
 }
 
@@ -40,6 +48,9 @@ export class Ledger {
       CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE, name TEXT NOT NULL) STRICT;
       CREATE TABLE IF NOT EXISTS retired_operations(id TEXT PRIMARY KEY, created_at INTEGER NOT NULL) STRICT;
       CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;`);
+    // Older recover() calls wrote errors without charging them. Repair only
+    // accounting; never discard legacy receipts, even when already over quota.
+    this.#db.exec(`UPDATE receipts SET bytes=${payloadBytes} WHERE bytes<>(${payloadBytes})`);
     this.retention = new OperationRetention(this.#db, now);
     this.automations = new Automations(this.#db, now, () => this.newOperationId());
     this.worktrees = new Worktrees(this.#db, now);
@@ -67,15 +78,27 @@ export class Ledger {
   }
   recover(): { unknown: number; notSent: number } {
     return this.transaction(() => {
-      const t = this.now();
-      const notSent = Number(this.#db.prepare(`UPDATE receipts SET state='not_sent',updated_at=?,error=? WHERE state='pending'`)
-        .run(t, JSON.stringify({ code: 'interrupted_before_dispatch', message: '服务在发送前中断，此操作未发出。', delivery: 'not_sent' })).changes);
-      const unknown = Number(this.#db.prepare(`UPDATE receipts SET state='unknown',updated_at=?,error=? WHERE state='dispatching'`)
-        .run(t, JSON.stringify({ code: 'interrupted_after_dispatch', message: '服务在操作完成确认前中断，请检查历史；不要重复发送。', delivery: 'unknown' })).changes);
-      if (unknown) this.setMeta('activityUncertain', 'true');
+      let unknown = 0, notSent = 0;
+      for (const row of this.#db.prepare("SELECT id,state FROM receipts WHERE state IN ('pending','dispatching') ORDER BY id").all()) {
+        const dispatched = row.state === 'dispatching';
+        this.settle(String(row.id), { ok: false, error: dispatched
+          ? { code: 'interrupted_after_dispatch', message: '服务在操作完成确认前中断，请检查历史；不要重复发送。', delivery: 'unknown' }
+          : { code: 'interrupted_before_dispatch', message: '服务在发送前中断，此操作未发出。', delivery: 'not_sent' } });
+        if (dispatched) unknown++; else notSent++;
+      }
       this.automations.recover();
       return { unknown, notSent };
     });
+  }
+  private capacity(excludeId = ''): { count: number; bytes: number; pending: number; recovery: number } {
+    // This gateway is the sole live journal writer. Offline manager recovery
+    // stops both services; the next constructor repairs its legacy counters.
+    // Every write below maintains bytes, so admission need not reread payloads.
+    const row = this.#db.prepare(`SELECT count(*) AS count,coalesce(sum(actual),0) AS bytes,
+      coalesce(sum(CASE WHEN state IN ('pending','dispatching') THEN max(0,${LIMITS.receiptBytes}-actual) ELSE 0 END),0) AS pending,
+      coalesce(sum(CASE WHEN state='unknown' AND (${recoverable}) THEN max(0,${LIMITS.receiptBytes}-actual) ELSE 0 END),0) AS recovery
+      FROM (SELECT state,method,bytes AS actual FROM receipts WHERE id<>?)`).get(excludeId)!;
+    return { count: Number(row.count), bytes: Number(row.bytes), pending: Number(row.pending), recovery: Number(row.recovery) };
   }
   reserve(id: string, method: string, params: JsonValue, scope: string): { created: boolean; receipt: Receipt } {
     const fingerprint = digest({ method, params });
@@ -88,10 +111,11 @@ export class Ledger {
         return { created: false, receipt: receipt(prior) };
       }
       this.retention.assertCurrent(id);
-      const totals = this.#db.prepare(`SELECT count(*) AS count,coalesce(sum(bytes),0) AS bytes,
-        coalesce(sum(CASE WHEN state IN ('pending','dispatching') THEN 1 ELSE 0 END),0) AS pending FROM receipts`).get()!;
+      const totals = this.capacity();
       const retired = Number(this.#db.prepare('SELECT count(*) AS count FROM retired_operations').get()!.count);
-      if (Number(totals.count) + retired >= LIMITS.receiptCount || Number(totals.bytes) + (Number(totals.pending) + 1) * LIMITS.receiptBytes > LIMITS.receiptStorageBytes)
+      // An unknown recoverable operation still owns its eventual positive
+      // receipt's capacity. Settling a lost acknowledgement must not release it.
+      if (totals.count + retired >= LIMITS.receiptCount || totals.bytes + totals.pending + totals.recovery + LIMITS.receiptBytes > LIMITS.receiptStorageBytes)
         throw new HarnessError('journal_capacity', '操作日志已达容量上限；请备份并由管理员处理，未执行新操作。');
       const t = this.now();
       this.#db.prepare(`INSERT INTO receipts(id,method,scope,digest,state,created_at,updated_at) VALUES(?,?,?,?,'pending',?,?)`)
@@ -105,18 +129,34 @@ export class Ledger {
   }
   settle(id: string, result: { ok: true; value: JsonValue } | { ok: false; error: ErrorBody }): Receipt {
     return this.transaction(() => {
-      const prior = this.read(id);
-      if (!prior || !['pending', 'dispatching'].includes(prior.state)) throw new HarnessError('operation_state', '不能覆盖已保存的操作结果。');
+      const prior = this.#db.prepare('SELECT * FROM receipts WHERE id=?').get(id);
+      if (!prior || !['pending', 'dispatching'].includes(String(prior.state))) throw new HarnessError('operation_state', '不能覆盖已保存的操作结果。');
       let state: ReceiptState = result.ok ? 'accepted' : result.error.delivery === 'not_sent' ? 'not_sent' : 'unknown';
-      let value = result.ok ? JSON.stringify(result.value) : null;
-      let error = result.ok ? null : JSON.stringify(result.error);
+      let value = result.ok ? JSON.stringify(mcpOauthReceipt(String(prior.method), result.value)) : null;
+      let error = result.ok ? null : JSON.stringify(mcpOauthError(String(prior.method), result.error));
       if (value !== null && Buffer.byteLength(value) > LIMITS.receiptBytes) {
         state = 'unknown'; value = null;
         error = JSON.stringify({ code: 'result_capacity', message: '操作可能已执行，但结果超过保存上限，请检查历史。', delivery: 'unknown' });
       }
-      const bytes = Buffer.byteLength(value ?? '') + Buffer.byteLength(error ?? '');
-      this.#db.prepare(`UPDATE receipts SET state=?,result=?,error=?,bytes=?,updated_at=? WHERE id=?`)
-        .run(state, value, error, bytes, this.now(), id);
+      if (error !== null && Buffer.byteLength(error) > LIMITS.receiptBytes)
+        error = JSON.stringify({ code: 'error_capacity', message: '操作错误详情超过保存上限，请核对操作状态。', delivery: state === 'not_sent' ? 'not_sent' : 'unknown' });
+      let bytes = Buffer.byteLength(value ?? '') + Buffer.byteLength(error ?? '');
+      const totals = this.capacity(id);
+      if (totals.bytes + totals.pending + bytes > LIMITS.receiptStorageBytes) {
+        // Only legacy journals can lack an admitted operation's promised room.
+        // Do not claim acceptance when its result cannot be retained. Settling
+        // inherited pending work may reduce overcommitment, but cannot grow an
+        // already full physical payload budget, even for a short diagnostic.
+        state = state === 'not_sent' ? 'not_sent' : 'unknown'; value = null;
+        error = JSON.stringify({ code: 'journal_capacity', message: '操作日志没有足够空间保存结果，请核对原操作；不要重复发送。', delivery: state });
+        bytes = Buffer.byteLength(error);
+      }
+      if (totals.bytes + bytes <= LIMITS.receiptStorageBytes) {
+        this.#db.prepare(`UPDATE receipts SET state=?,result=?,error=?,bytes=?,updated_at=? WHERE id=?`)
+          .run(state, value, error, bytes, this.now(), id);
+      } else {
+        this.#db.prepare(`UPDATE receipts SET state=?,bytes=${payloadBytes},updated_at=? WHERE id=?`).run(state, this.now(), id);
+      }
       if (state === 'unknown') this.setMeta('activityUncertain', 'true');
       return this.read(id)!;
     });
@@ -145,25 +185,46 @@ export class Ledger {
   confirm(id: string, result: JsonValue): Receipt {
     const value = JSON.stringify(result);
     if (Buffer.byteLength(value) > LIMITS.receiptBytes) throw new HarnessError('capacity', '管理回执过大。');
-    this.#db.prepare(`UPDATE receipts SET state='accepted',result=?,error=NULL,bytes=?,updated_at=? WHERE id=? AND state='unknown' AND method LIKE 'system/%'`)
-      .run(value, Buffer.byteLength(value), this.now(), id);
-    const stored = this.read(id);
-    if (!stored) throw new HarnessError('operation_missing', '操作记录不存在。');
-    return stored;
+    return this.transaction(() => {
+      const prior = this.read(id);
+      if (!prior) throw new HarnessError('operation_missing', '操作记录不存在。');
+      if (prior.state !== 'unknown' || !prior.method.startsWith('system/')) return prior;
+      this.confirmationCapacity(id, Buffer.byteLength(value));
+      this.#db.prepare(`UPDATE receipts SET state='accepted',result=?,error=NULL,bytes=?,updated_at=? WHERE id=?`)
+        .run(value, Buffer.byteLength(value), this.now(), id);
+      this.confirmed(); return this.read(id)!;
+    });
+  }
+  private confirmationCapacity(id: string, bytes: number): void {
+    const totals = this.capacity(id);
+    const previous = Number(this.#db.prepare('SELECT bytes FROM receipts WHERE id=?').get(id)!.bytes);
+    // Keep actual outstanding dispatch promises, but do not demand that every
+    // other legacy unknown's previously unreserved maximum fit before making
+    // progress on a positive proof that does fit.
+    // Already oversized legacy evidence may converge one truthful proof at a
+    // time. Only a strict payload reduction can retain an inherited excess;
+    // outstanding dispatch promises stay unchanged and no new bytes are added.
+    const reducesLegacyExcess = totals.bytes + previous > LIMITS.receiptStorageBytes && bytes < previous;
+    if (totals.bytes + totals.pending + bytes > LIMITS.receiptStorageBytes && !reducesLegacyExcess)
+      throw new HarnessError('journal_capacity', '操作日志没有足够空间保存核对回执，原记录保持未知。', 'unknown');
+  }
+  private confirmed(): void {
+    if (!this.#db.prepare("SELECT 1 FROM receipts WHERE state='unknown' LIMIT 1").get()) this.setMeta('activityUncertain', 'false');
   }
   /** Only a supervisor-private positive witness, bound to this exact gateway request, can resolve file writes. */
   confirmWorkspace(id: string, method: string, scope: string, fingerprint: string, result: JsonValue): Receipt {
-    if (!['workspace/write', 'workspace/mkdir', 'workspace/copy', 'workspace/remove', 'workspace/recovery/restore', 'workspace/recovery/discard', 'workspace/worktree/create', 'workspace/worktree/attach', 'workspace/worktree/archive', 'workspace/worktree/restore', 'workspace/git/commit', 'workspace/git/stage', 'workspace/git/unstage', 'workspace/git/index/recovery/restore', 'workspace/git/index/recovery/discard'].includes(method)) throw new HarnessError('operation_state', '此操作不是可核对的文件操作。');
+    if (!workspaceConfirmations.has(method)) throw new HarnessError('operation_state', '此操作不是可核对的文件操作。');
     const value = JSON.stringify(result);
     if (Buffer.byteLength(value) > LIMITS.receiptBytes) throw new HarnessError('capacity', '文件操作回执过大。');
     return this.transaction(() => {
       const pending = this.read(id);
-      if (pending?.state === 'unknown' && pending.method === method && pending.scope === scope && this.matchesDigest(id, fingerprint) && method.startsWith('workspace/worktree/')) this.worktrees.apply(method, scope.slice(8), id, result);
-      this.#db.prepare(`UPDATE receipts SET state='accepted',result=?,error=NULL,bytes=?,updated_at=? WHERE id=? AND state='unknown' AND method=? AND scope=? AND digest=?`)
-        .run(value, Buffer.byteLength(value), this.now(), id, method, scope, fingerprint);
-      const stored = this.read(id); if (!stored) throw new HarnessError('operation_missing', '操作记录不存在。');
-      if (!Number(this.#db.prepare(`SELECT count(*) AS count FROM receipts WHERE state='unknown'`).get()!.count)) this.setMeta('activityUncertain', 'false');
-      return stored;
+      if (!pending) throw new HarnessError('operation_missing', '操作记录不存在。');
+      if (pending.state !== 'unknown' || pending.method !== method || pending.scope !== scope || !this.matchesDigest(id, fingerprint)) return pending;
+      this.confirmationCapacity(id, Buffer.byteLength(value));
+      if (method.startsWith('workspace/worktree/')) this.worktrees.apply(method, scope.slice(8), id, result);
+      this.#db.prepare(`UPDATE receipts SET state='accepted',result=?,error=NULL,bytes=?,updated_at=? WHERE id=?`)
+        .run(value, Buffer.byteLength(value), this.now(), id);
+      this.confirmed(); return this.read(id)!;
     });
   }
   getMeta(key: string): string | null {

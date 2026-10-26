@@ -1,6 +1,6 @@
 {
   "name": "codex-harness",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,6 +8,7 @@
   },
   "packageManager": "pnpm@11.22.0",
   "codexVersion": "0.164.0",
+  "harnessAuthentication": "account-v1",
   "scripts": {
     "build:server": "tsc -p tsconfig.server.json",
     "build:web": "vite build --config web/vite.config.ts",

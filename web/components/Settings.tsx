@@ -13,6 +13,7 @@ import { ExtensionsPanel } from './ExtensionsPanel';
 import { RemoteSettings } from './RemoteSettings';
 import { McpPanel } from './McpPanel';
 import { CliDiagnosticsPanel } from './CliDiagnosticsPanel';
+import { SecuritySettings } from './SecuritySettings';
 export function Settings({
   api,
   epoch,
@@ -66,6 +67,7 @@ export function Settings({
     [busy, setBusy] = useState('');
   const tabs = [
     ['general', '通用'],
+    ['security', '账号与安全'],
     ['provider', '模型供应商'],
     ['account', '模型账户'],
     ['extensions', '扩展与配置'],
@@ -146,6 +148,7 @@ export function Settings({
               )}
             </section>
           )}
+          {tab === 'security' && <SecuritySettings key={api.csrf} api={api} authenticated={Boolean(api.csrf)} />}
           {tab === 'provider' && (
             <ProviderSettings
               enabled={configurationReady && connected}
@@ -190,6 +193,7 @@ export function Settings({
           )}{' '}
           {tab === 'mcp' && (
             <McpPanel
+              runtimeEpoch={runtimeEpoch}
               projectId={projectId ?? ''}
               api={api}
               events={events}

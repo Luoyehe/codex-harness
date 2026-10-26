@@ -79,7 +79,13 @@ export function Workspace({
 }) {
   const events = useMemo(() => new Events(), []),
     navigation = useRef(0);
-  const [projectId, setProjectId] = useState(() => sessionStorage.getItem('harness.project') ?? ''),
+  const [projectId, setProjectId] = useState(() => {
+      try {
+        return sessionStorage.getItem('harness.project') ?? '';
+      } catch {
+        return '';
+      }
+    }),
     [threadId, setThreadId] = useState(
       () => new URL(location.href).searchParams.get('thread') ?? '',
     );

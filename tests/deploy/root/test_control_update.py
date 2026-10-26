@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy.cli import parser
-from deploy.common import DeployError, Layout, atomic_write, mkdir, read_json, write_json
+from deploy.common import DeployError, Layout, atomic_write, digest, mkdir, read_json, write_json
 from deploy.control_update import BLOCKER, ControlSystem, ControlUpdater, ROLES, require_no_pending_control, tree_manifest
 from deploy.install import stage_control, write_control_launchers
 from deploy.safe_fs import inspect_tree
@@ -130,7 +130,8 @@ class ControlUpdateTests(unittest.TestCase):
         mkdir(destination / "deploy")
         for name in ("manage", "native-launch", "deploy/cli.py", "deploy/native_launcher.py"):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
-        write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1}, mode=0o644)
+        write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
+                                                      "authenticationGuard": "account-v1"}, mode=0o644)
 
     def current(self):
         return (self.layout.control / "manage").read_bytes()
@@ -347,6 +348,205 @@ class ControlUpdateTests(unittest.TestCase):
         self.assertEqual((self.layout.control / "edge/authelia/authelia").read_bytes(), b"later verified edge")
         self.assertEqual(rollback["rollbackOf"], result["transaction"])
         self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def add_application(self, *, accounts=True):
+        staging = self.layout.app / "releases/staged-fixture"
+        mkdir(staging / "app")
+        package = {"name": "opaque-current-source-fixture"}
+        if accounts:
+            package["harnessAuthentication"] = "account-v1"
+        write_json(staging / "app/package.json", package, mode=0o644)
+        manifest = inspect_tree(staging, root_owned=True)
+        identity = digest(manifest)
+        target = staging.parent / identity
+        staging.rename(target)
+        mkdir(self.layout.config / "manifests")
+        write_json(self.layout.config / "manifests" / (identity + ".json"), manifest)
+        (self.layout.app / "current").symlink_to("releases/" + identity)
+        return target
+
+    def assert_account_rollback_rejected(self, transaction, code="authentication_downgrade"):
+        before = inspect_tree(self.layout.control, root_owned=True)
+        records = inspect_tree(self.updater.records, root_owned=True)
+        pointer = self.layout.app / "current"
+        selected = os.readlink(pointer) if pointer.is_symlink() else None
+        active, enabled = set(self.system.active), dict(self.system.enabled)
+        self.system.events.clear()
+        with self.assertRaises(DeployError) as caught:
+            self.updater.update(transaction)
+        self.assertEqual(caught.exception.code, code)
+        self.assertEqual(self.system.events, [])
+        self.assertEqual(inspect_tree(self.layout.control, root_owned=True), before)
+        self.assertEqual(inspect_tree(self.updater.records, root_owned=True), records)
+        self.assertEqual(os.readlink(pointer) if pointer.is_symlink() else None, selected)
+        self.assertEqual(self.system.active, active)
+        self.assertEqual(self.system.enabled, enabled)
+
+    def test_root_account_bootstrap_blocks_control_guard_downgrade_before_any_mutation(self):
+        result = self.updater.update()
+        atomic_write(self.layout.config / "auth-bootstrap.json", b"opaque account bootstrap fixture")
+        self.assert_account_rollback_rejected(result["transaction"])
+
+    def test_builtin_https_blocks_control_guard_downgrade_before_any_mutation(self):
+        result = self.updater.update()
+        write_json(self.layout.config / "https.json", {"authentication": "builtin"})
+        self.assert_account_rollback_rejected(result["transaction"])
+
+    def test_browser_initialized_application_blocks_control_guard_downgrade_without_database_reads(self):
+        result = self.updater.update()
+        self.add_application()
+        self.assertFalse((self.layout.config / "auth-bootstrap.json").exists())
+        self.assertFalse((self.layout.state / "gateway/auth.sqlite").exists())
+        self.assert_account_rollback_rejected(result["transaction"])
+
+    def test_changed_application_declaration_cannot_hide_account_guard_requirement(self):
+        result = self.updater.update()
+        target = self.add_application()
+        write_json(target / "app/package.json", {"name": "tampered-fixture"}, mode=0o644)
+        self.assert_account_rollback_rejected(result["transaction"], "integrity")
+
+    def test_account_compatible_control_rollback_succeeds_with_account_and_edge_markers(self):
+        path = self.layout.control / "capabilities.json"
+        write_json(path, {**read_json(path), "authenticationGuard": "account-v1"}, mode=0o644)
+        result = self.updater.update()
+        atomic_write(self.layout.config / "auth-bootstrap.json", b"opaque account bootstrap fixture")
+        write_json(self.layout.config / "https.json", {"authentication": "builtin"})
+        self.add_application()
+        rollback = self.updater.update(result["transaction"])
+        self.assertEqual(rollback["rollbackOf"], result["transaction"])
+        self.assertEqual(read_json(self.layout.control / "capabilities.json")["authenticationGuard"], "account-v1")
+        self.assertEqual((self.layout.control / "deploy/cli.py").read_bytes(), b"old deploy/cli.py")
+        self.assertEqual((self.layout.config / "auth-bootstrap.json").read_bytes(), b"opaque account bootstrap fixture")
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_legacy_application_without_account_dependencies_allows_legacy_control_rollback(self):
+        result = self.updater.update()
+        self.add_application(accounts=False)
+        rollback = self.updater.update(result["transaction"])
+        self.assertEqual(rollback["rollbackOf"], result["transaction"])
+        self.assertNotIn("authenticationGuard", read_json(self.layout.control / "capabilities.json"))
+        self.assertEqual((self.layout.control / "deploy/cli.py").read_bytes(), b"old deploy/cli.py")
+
+    def interrupted_control_upgrade(self):
+        original = self.updater.save
+        def save(path, state, phase):
+            original(path, state, phase)
+            if phase == "installed":
+                raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=save), self.assertRaises(PowerLoss):
+            self.updater.update()
+        return self.transaction()
+
+    def test_control_recover_cannot_restore_legacy_guard_for_account_dependent_instance(self):
+        self.add_application()
+        transaction = self.interrupted_control_upgrade()
+        before = inspect_tree(self.layout.control, root_owned=True)
+        records = inspect_tree(self.updater.records, root_owned=True)
+        self.system.events.clear()
+        with self.assertRaises(DeployError) as caught:
+            self.updater.recover()
+        self.assertEqual(caught.exception.code, "authentication_downgrade")
+        self.assertEqual(self.system.events, [])
+        self.assertEqual(inspect_tree(self.layout.control, root_owned=True), before)
+        self.assertEqual(inspect_tree(self.updater.records, root_owned=True), records)
+        self.assertEqual(read_json(transaction / "state.json")["phase"], "installed")
+        self.assertEqual(self.system.active, set())
+
+    def test_automatic_control_recovery_does_not_restore_account_incompatible_guard(self):
+        self.add_application()
+        self.system.failure = "start"
+        with self.assertRaises(DeployError) as caught:
+            self.updater.update()
+        self.assertEqual(caught.exception.code, "authentication_downgrade")
+        self.assertEqual((self.layout.control / "deploy/cli.py").read_bytes(), b"new deploy/cli.py")
+        self.assertEqual(read_json(self.transaction() / "state.json")["phase"], "installed")
+
+    def test_compatible_control_recovery_restores_prior_generation_with_accounts(self):
+        path = self.layout.control / "capabilities.json"
+        write_json(path, {**read_json(path), "authenticationGuard": "account-v1"}, mode=0o644)
+        self.add_application()
+        self.interrupted_control_upgrade()
+        result = self.updater.recover()
+        self.assertTrue(result["controlRecovered"])
+        self.assertEqual((self.layout.control / "deploy/cli.py").read_bytes(), b"old deploy/cli.py")
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_initial_legacy_control_upgrade_failure_still_recovers(self):
+        self.add_application(accounts=False)
+        self.system.failure = "start"
+        with self.assertRaises(DeployError) as caught:
+            self.updater.update()
+        self.assertEqual(caught.exception.code, "injected")
+        self.assertEqual((self.layout.control / "deploy/cli.py").read_bytes(), b"old deploy/cli.py")
+        self.assertEqual(read_json(self.transaction() / "state.json")["phase"], "recovered")
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_explicit_candidate_recovery_finishes_each_original_interruption_phase(self):
+        self.add_application()
+        for point in ("prepared", "stopped", "old_moved", "installed"):
+            with self.subTest(point=point):
+                original = self.updater.save
+                def save(path, state, phase):
+                    original(path, state, phase)
+                    if phase == point:
+                        raise PowerLoss()
+                with patch.object(self.updater, "save", side_effect=save), self.assertRaises(PowerLoss):
+                    self.updater.update()
+                path, state = self.updater.pending()[0]
+                result = self.updater.recover(target="candidate")
+                self.assertEqual(result["target"], "candidate")
+                self.assertEqual(read_json(path / "state.json")["phase"], "committed")
+                self.assertEqual(self.updater.pending(), [])
+                self.assertEqual(self.system.active, {"worker", "caddy"})
+                self.updater.verify_generation(self.layout.control, state["candidate"])
+                self.updater.verify_generation(path / "old", state["old"])
+
+    def test_candidate_recovery_interrupted_between_renames_can_repeat(self):
+        self.add_application()
+        original_save = self.updater.save
+        def save(path, state, phase):
+            original_save(path, state, phase)
+            if phase == "prepared":
+                raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=save), self.assertRaises(PowerLoss):
+            self.updater.update()
+        original_rename = self.updater.rename
+        def rename(source, target):
+            original_rename(source, target)
+            if target.name == "old":
+                raise PowerLoss()
+        with patch.object(self.updater, "rename", side_effect=rename), self.assertRaises(PowerLoss):
+            self.updater.recover(target="candidate")
+        self.assertFalse(self.layout.control.exists())
+        result = self.updater.recover(target="candidate")
+        self.assertEqual(result["target"], "candidate")
+        self.assertEqual(self.updater.pending(), [])
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_candidate_health_failure_keeps_guard_and_can_repeat_after_prerequisite_repair(self):
+        self.system.active = {"worker", "gateway"}
+        self.add_application()
+        path = self.interrupted_control_upgrade()
+        self.system.failure = "health"
+        with self.assertRaises(DeployError):
+            self.updater.recover(target="candidate")
+        self.assertEqual(read_json(path / "state.json")["phase"], "installed")
+        self.assertEqual(self.system.active, set())
+        self.assertEqual({entry.name for entry in self.updater.barriers.iterdir()}, set(ROLES))
+        result = self.updater.recover(target="candidate")
+        self.assertEqual(result["target"], "candidate")
+        self.assertEqual(self.system.active, {"worker", "gateway"})
+
+    def test_incomplete_candidate_is_rejected_before_mutating_recovery_state(self):
+        self.add_application()
+        path = self.interrupted_control_upgrade()
+        (self.layout.control / "deploy/cli.py").unlink()
+        before = (path / "state.json").read_bytes()
+        self.system.events.clear()
+        with self.assertRaises(DeployError):
+            self.updater.recover(target="candidate")
+        self.assertEqual((path / "state.json").read_bytes(), before)
+        self.assertEqual(self.system.events, [])
 
     def test_old_control_rollback_requires_legacy_namespace_and_sudo_first(self):
         (self.layout.control / "capabilities.json").unlink()

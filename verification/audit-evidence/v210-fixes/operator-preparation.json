@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-operator-helper-review",
+  "reviewer": "v210_audit2_deploy_tooling",
+  "completedAt": "2026-10-26T16:55:37.114Z",
+  "status": "prepared-and-offline-validated",
+  "countsAsCleanAuditRound": false,
+  "files": [
+    ".work/v210-prepare-deploy.py",
+    ".work/v210-deploy.py",
+    ".work/v210-account-acceptance.mjs"
+  ],
+  "sha256": {
+    ".work/v210-prepare-deploy.py": "4ac44121cff8043b78826205a4ba53740e46bfba82ca8134165fc99cc195a5b6",
+    ".work/v210-deploy.py": "397995c756e6b3027b0fb6e380dab8df2a168da216d24364910e4f725d8696da",
+    ".work/v210-account-acceptance.mjs": "cf22332c86ea1d7eb775de5da883f48b8060b8e9253ae8805cef84553486ac61"
+  },
+  "methods": [
+    "Read all three operator helpers and current deploy.cli, manager, HTTPS, account APIs, auth implementation, ledger export/receipt maintenance and CI result schemas.",
+    "Only the three assigned ignored helpers were edited; no production source was edited by this review.",
+    "Syntax checks and in-memory mocked evidence/process, SQLite and JavaScript VM fixtures only."
+  ],
+  "changes": [
+    {
+      "id": "operator-01",
+      "severity": "P2",
+      "file": ".work/v210-deploy.py",
+      "functions": [
+        "receipt_rows",
+        "capture_receipts",
+        "verify_receipts"
+      ],
+      "problem": "Post-deployment account before/after tests did not establish preservation across the application/authentication migration itself.",
+      "resolution": "Before control-update, fixed-path mode=ro/query_only SQLite transaction captures every accepted non-system/non-operation business row as operation ID plus SHA256, bound to source identity. Root-private create-only baseline is persisted before the first update. Final services compares every original row and the generation without invoking receipt recovery RPCs.",
+      "evidence": "Offline in-memory SQLite fixture checks accepted filtering, full-row equality, tolerated new rows, changed-row rejection and no baseline overwrite."
+    },
+    {
+      "id": "operator-02",
+      "severity": "P2",
+      "files": [
+        ".work/v210-deploy.py",
+        ".work/v210-account-acceptance.mjs"
+      ],
+      "functions": [
+        "acceptance",
+        "main"
+      ],
+      "problem": "The deployment stage chain could declare services complete independently of account before/after acceptance and without proving matching source/release.",
+      "resolution": "restart requires successful before summary; verify-restart requires the identical before proof; after requires completed bound restart and verify-restart; services requires successful after and the original before summary. All use one acceptance directory, exact source binding, release, preparation SHA and acceptance script SHA.",
+      "evidence": "Offline source/release/script match accepted; failed, different-release and different-source summaries rejected. Static control flow confirms verify-restart before after and after before services."
+    },
+    {
+      "id": "operator-03",
+      "severity": "P2",
+      "file": ".work/v210-account-acceptance.mjs",
+      "functions": [
+        "gatewayIdle",
+        "idle",
+        "main"
+      ],
+      "problem": "runtime/status returns worker state, so absence of the gateway-only activityUncertain field could be treated as an idle gateway. The acceptance runner did not independently check host 120.",
+      "resolution": "Check fresh gateway WebSocket state for explicit false activityUncertain/maintenance/unknown and zero work, in addition to worker status; require local IPv4 192.168.1.120 before writes or connections.",
+      "evidence": "Offline VM accepts explicit idle state and rejects gateway uncertainty and maintenance."
+    },
+    {
+      "id": "operator-04",
+      "severity": "P2",
+      "file": ".work/v210-account-acceptance.mjs",
+      "functions": [
+        "request"
+      ],
+      "problem": "ClientRequest close without response end/error cleared its timer and removed tracking but did not settle the promise.",
+      "resolution": "Premature close explicitly rejects with http_closed_before_end; successful completed response remains successful.",
+      "evidence": "Synthetic EventEmitter transport verifies both premature-close rejection and complete-response success without network."
+    },
+    {
+      "id": "operator-05",
+      "severity": "P2",
+      "file": ".work/v210-prepare-deploy.py",
+      "functions": [
+        "run"
+      ],
+      "problem": "subprocess.run timeout kills only the direct CLI; descendant pipe holders can keep final output collection blocked.",
+      "resolution": "Launch a new owned process session; on timeout kill that group and bound final communicate/wait. Keep dispatch outcome unknown and retain restricted diagnostics; never infer that separately started systemd units stopped.",
+      "evidence": "Mocked timeout verifies start_new_session, owned group signal, five-second drain and unknown result; no actual process was launched by this fixture."
+    },
+    {
+      "id": "operator-06",
+      "severity": "P2",
+      "file": ".work/v210-prepare-deploy.py",
+      "functions": [
+        "evidence"
+      ],
+      "problem": "Local-equivalent evidence could bypass the current requirement for an independently verified GitHub CI run; one platform could omit a case passed only in the other platform.",
+      "resolution": "Require GitHub run provenance and exact same standard case ID inventory for Linux and Windows, retaining complete three-platform source/head binding, raw/aggregate consistency and every-skip passing counterpart.",
+      "evidence": "Offline complete evidence accepted; local-equivalent, omitted case despite counterpart pass, post-test source drift and raw/aggregate mismatch rejected."
+    }
+  ],
+  "contractChecks": {
+    "cliCommands": [
+      "pack-source",
+      "control-update",
+      "update",
+      "account-setup",
+      "https",
+      "verify",
+      "restart"
+    ],
+    "cliResultFieldsMatched": true,
+    "accountCookieAndExpiryMatched": true,
+    "totpAndRecoveryShapesMatched": true,
+    "passwordAndMfaRestorePreserved": true,
+    "rememberSessionAcrossRestartProofPreserved": true,
+    "finalRememberedSessionLogoutPreserved": true,
+    "legacyAutheliaUnitRemovalAndBuiltinHttpsMatched": true,
+    "servicesRemainEnabledAndRunningRequired": true,
+    "structuredLedgerExportMatched": true
+  },
+  "validation": {
+    "syntax": {
+      "pythonScripts": 2,
+      "nodeScripts": 1,
+      "status": "passed"
+    },
+    "offlineChecks": {
+      "total": 20,
+      "sqliteMemory": 5,
+      "javascriptVm": 5,
+      "evidenceProcessAndAcceptanceMocks": 10,
+      "status": "passed"
+    },
+    "fixtureCorrections": [
+      "Windows offline Path fixture needed an absolute synthetic drive path to exercise Linux-only URI logic.",
+      "The offline sqlite.connect stub first used uri as both a positional and keyword parameter; corrected the stub. These were fixture construction errors, not production script failures."
+    ],
+    "realJournalOpened": false,
+    "actualAccountWrites": false,
+    "ssh": false,
+    "deploymentExecuted": false,
+    "fullSuiteRun": false,
+    "externalNetwork": false
+  },
+  "executionSequence": [
+    "Main reviewer independently verifies the exact GitHub Actions run and all five artifacts; pin its manifest SHA.",
+    "Copy all three reviewed scripts, including the account acceptance .mjs, to the fixed root-owned BASE directory.",
+    "Run prepare with exact tested source/archive/head/evidence identities.",
+    "Run control-update (captures the pre-migration receipt baseline), app-update, account-setup, https and verify in order.",
+    "Run account acceptance before with a fresh allowed acceptance directory.",
+    "Run restart then verify-restart, each with --acceptance-directory pointing to that same directory.",
+    "Run account acceptance after; it proves the same remembered session survived both service restarts and then logs out that test session.",
+    "Run services with the same --acceptance-directory; this checks successful after evidence, all pre-migration accepted business receipts, selected running gateway/worker executables, enabled active Caddy and removal of legacy Authelia."
+  ],
+  "limitations": [
+    "No claim of actual host, systemd, TLS, account migration or restart acceptance; those steps remain unexecuted.",
+    "Read-only journal inspection uses normal SQLite read transactions and may participate in ordinary WAL read locking; it issues no data mutation or recovery RPC.",
+    "Any started or stopped stage remains inspect-only. No stage retry, automatic rollback, reset, journal rotation or log cleanup was added.",
+    "No new production-source defect was established in this helper review.",
+    "The scripts assume the retained authorized synthetic instance and credentials paths; root reviewer must retain those exact inputs and perform the CI verification before execution."
+  ],
+  "productionFindings": [],
+  "unresolvedHelperFindings": []
+}

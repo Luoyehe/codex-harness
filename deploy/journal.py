@@ -10,6 +10,9 @@ from pathlib import Path
 from .common import DeployError, require
 from .journal_schema import validate_schema
 
+MAX_RECEIPT_BYTES = 64 * 1024 * 1024
+PAYLOAD_BYTES = "length(CAST(coalesce(result,'') AS BLOB)) + length(CAST(coalesce(error,'') AS BLOB))"
+
 
 def recover_journal(path: Path, *, services_stopped: bool) -> dict:
     require(services_stopped, "Both services must be confirmed stopped", "stop_unknown")
@@ -30,10 +33,30 @@ def recover_journal(path: Path, *, services_stopped: bool) -> dict:
                     "Journal retirement budget exceeded", "budget")
         db.execute("BEGIN IMMEDIATE")
         now = int(time.time() * 1000)
-        not_sent = db.execute("UPDATE receipts SET state='not_sent',updated_at=?,error=? WHERE state='pending'", (now, json.dumps({
-            "code": "interrupted_before_dispatch", "message": "Service stopped before dispatch", "delivery": "not_sent"}))).rowcount
-        unknown = db.execute("UPDATE receipts SET state='unknown',updated_at=?,error=? WHERE state='dispatching'", (now, json.dumps({
-            "code": "interrupted_after_dispatch", "message": "Service stopped after dispatch; inspect history", "delivery": "unknown"}))).rowcount
+        # The offline writer shares the gateway's payload budget. Correct old
+        # accounting without removing evidence, even for an overfull legacy DB.
+        db.execute(f"UPDATE receipts SET bytes={PAYLOAD_BYTES} WHERE bytes<>({PAYLOAD_BYTES})")
+        total = db.execute("SELECT coalesce(sum(bytes),0) FROM receipts").fetchone()[0]
+        not_sent = unknown = 0
+        pending = db.execute("SELECT id,state,bytes,length(CAST(coalesce(error,'') AS BLOB)) FROM receipts WHERE state IN ('pending','dispatching') ORDER BY id").fetchall()
+        for operation_id, prior_state, prior_bytes, prior_error_bytes in pending:
+            dispatched = prior_state == 'dispatching'
+            state = 'unknown' if dispatched else 'not_sent'
+            error = json.dumps({
+                "code": "interrupted_after_dispatch" if dispatched else "interrupted_before_dispatch",
+                "message": "Service stopped after dispatch; inspect history" if dispatched else "Service stopped before dispatch",
+                "delivery": state,
+            })
+            size = prior_bytes - prior_error_bytes + len(error.encode('utf-8'))
+            if total - prior_bytes + size <= MAX_RECEIPT_BYTES or size <= prior_bytes:
+                db.execute("UPDATE receipts SET state=?,updated_at=?,error=?,bytes=? WHERE id=?", (state, now, error, size, operation_id))
+                total += size - prior_bytes
+            else:
+                # A new error cannot justify growing a full legacy payload.
+                # Keep its old bytes as evidence and persist only the outcome.
+                db.execute("UPDATE receipts SET state=?,updated_at=? WHERE id=?", (state, now, operation_id))
+            if dispatched: unknown += 1
+            else: not_sent += 1
         db.execute("INSERT INTO metadata(key,value) VALUES('activityUncertain','false') ON CONFLICT(key) DO UPDATE SET value='false'")
         db.commit()
         return {"notSent": not_sent, "unknown": unknown}

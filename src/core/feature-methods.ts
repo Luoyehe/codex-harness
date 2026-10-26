@@ -29,6 +29,7 @@ const methods: Readonly<Record<string, FeatureMethod>> = Object.freeze({
   'permissionProfile/list': projectRead,
   'attachment/history/read': read,
   'account/login/handoff': read,
+  'mcp/oauth/handoff': read,
   'mcp/tool/call': idle,
   'mcp/resource/read': read,
   'mcp/stream/start': continuation,

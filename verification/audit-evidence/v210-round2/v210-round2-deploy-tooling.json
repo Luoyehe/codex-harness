@@ -1,0 +1,5219 @@
+{
+  "schemaVersion": 1,
+  "round": "v210-round2",
+  "reviewer": "v210_audit2_deploy_tooling",
+  "scope": "deployment and tooling_docs",
+  "complete": true,
+  "status": "no-new-findings-in-assigned-scope",
+  "completedAt": "2026-10-26T16:36:00.818Z",
+  "root": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025",
+  "startDigest": "862331f89cfb1e65c9b52d1e2869f1a1472ef4be1835a3ab3d59a39dc71e9f46",
+  "endDigest": "862331f89cfb1e65c9b52d1e2869f1a1472ef4be1835a3ab3d59a39dc71e9f46",
+  "startVerification": {
+    "files": 1850,
+    "checkedHashes": 1850,
+    "mismatches": [],
+    "snapshotAlgorithmReviewed": true,
+    "independentlyRecomputed": true
+  },
+  "endVerification": {
+    "files": 1850,
+    "checkedHashes": 1850,
+    "mismatches": [],
+    "independentlyRecomputed": true
+  },
+  "snapshotAlgorithm": "Sorted unique current Git cached plus nonignored untracked paths, minus deleted; reject unsafe paths/symlinks/nonregular files; omit only explicit evidence paths; SHA256(JSON.stringify([relativePath, mode & 0o111, SHA256(fileBytes)] tuples)). No Git history was opened.",
+  "groups": {
+    "deployment": [
+      "deploy/README.md",
+      "deploy/__init__.py",
+      "deploy/accounts.py",
+      "deploy/archive.py",
+      "deploy/build.py",
+      "deploy/candidate_probe.py",
+      "deploy/catalog.py",
+      "deploy/cli.py",
+      "deploy/common.py",
+      "deploy/config_layer.py",
+      "deploy/control_update.py",
+      "deploy/https.py",
+      "deploy/install.py",
+      "deploy/install.sh",
+      "deploy/journal.py",
+      "deploy/journal_schema.py",
+      "deploy/manager.py",
+      "deploy/native_launcher.py",
+      "deploy/ownership.py",
+      "deploy/provider.py",
+      "deploy/provider_bedrock.py",
+      "deploy/provider_gateway.py",
+      "deploy/provider_layers.py",
+      "deploy/provider_lifecycle.py",
+      "deploy/requests.py",
+      "deploy/safe_fs.py",
+      "deploy/sandbox.py",
+      "deploy/system.py",
+      "deploy/transactions.py",
+      "deploy/units.py",
+      "deploy/workspace.py",
+      "deploy/workspace_commit.py",
+      "deploy/workspace_git.py",
+      "deploy/workspace_git_transaction.py",
+      "deploy/workspace_git_view.py",
+      "deploy/workspace_index.py",
+      "deploy/workspace_index_store.py",
+      "deploy/workspace_paths.py",
+      "deploy/workspace_recovery.py",
+      "deploy/workspace_resources.py",
+      "deploy/workspace_search.py",
+      "deploy/workspace_store.py",
+      "deploy/workspace_worktrees.py",
+      "tests/deploy/linux_isolation.py",
+      "tests/deploy/linux_native_boundary.py",
+      "tests/deploy/root/test_account_recovery.py",
+      "tests/deploy/root/test_accounts.py",
+      "tests/deploy/root/test_config_layer.py",
+      "tests/deploy/root/test_control_update.py",
+      "tests/deploy/root/test_https.py",
+      "tests/deploy/root/test_journal_recovery.py",
+      "tests/deploy/root/test_management_boundaries.py",
+      "tests/deploy/root/test_provider_extended.py",
+      "tests/deploy/root/test_provider_layers.py",
+      "tests/deploy/root/test_release_reuse.py",
+      "tests/deploy/root/test_request_spool.py",
+      "tests/deploy/test_accounts.py",
+      "tests/deploy/test_control_update.py",
+      "tests/deploy/test_dependency_lock.py",
+      "tests/deploy/test_deployment.py",
+      "tests/deploy/test_https.py",
+      "tests/deploy/test_install_recovery.py",
+      "tests/deploy/test_journal_schema.py",
+      "tests/deploy/test_management_boundaries.py",
+      "tests/deploy/test_native_shutdown.py",
+      "tests/deploy/test_origins.py",
+      "tests/deploy/test_provider_bedrock.py",
+      "tests/deploy/test_provider_gateway.py",
+      "tests/deploy/test_provider_layers.py",
+      "tests/deploy/test_provider_lifecycle.py",
+      "tests/deploy/test_request_spool.py",
+      "tests/deploy/test_sandbox.py",
+      "tests/deploy/test_workspace.py",
+      "tests/deploy/test_workspace_ack.py",
+      "tests/deploy/test_workspace_commit.py",
+      "tests/deploy/test_workspace_index.py",
+      "tests/deploy/test_workspace_recovery.py",
+      "tests/deploy/test_workspace_resources.py",
+      "tests/deploy/test_workspace_search.py",
+      "tests/deploy/test_workspace_worktrees.py",
+      "tests/deploy/vision_stdio_probe.mjs"
+    ],
+    "tooling_docs": [
+      ".gitattributes",
+      ".github/workflows/affected.yml",
+      ".github/workflows/compatibility.yml",
+      ".github/workflows/security.yml",
+      ".gitignore",
+      "AGENTS.md",
+      "ARCHITECTURE.md",
+      "FEATURES.md",
+      "LICENSE",
+      "NOTICE.md",
+      "PROBLEM-ACCEPTANCE.md",
+      "README.md",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "scripts/ci-checks.mjs",
+      "scripts/compatibility-watch.mjs",
+      "scripts/prepare-ci-native.mjs",
+      "scripts/python-tests.py",
+      "scripts/release-audit.mjs",
+      "scripts/release-authorization.mjs",
+      "scripts/reviewed-history.mjs",
+      "scripts/run-tests.mjs",
+      "scripts/select-tests.mjs",
+      "scripts/snapshot.mjs",
+      "scripts/windows-controller-preflight.mjs",
+      "tests/fixtures/native-env.ts",
+      "tests/tooling/ci-checks.test.ts",
+      "tests/tooling/compatibility-watch.test.ts",
+      "tests/tooling/prepare-ci-native.test.ts",
+      "tests/tooling/release-audit.test.ts",
+      "tests/tooling/reviewed-history.test.ts",
+      "tests/tooling/run-tests.test.ts",
+      "tests/tooling/select-tests.test.ts",
+      "tests/tooling/windows-controller-preflight.test.ts",
+      "tsconfig.server.json",
+      "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+      "verification/feature-evidence/account-watch-index-boundaries.json",
+      "verification/feature-evidence/attachments-linux.json",
+      "verification/feature-evidence/automation-scheduler.json",
+      "verification/feature-evidence/capability-coverage.json",
+      "verification/feature-evidence/extensions-foundation.json",
+      "verification/feature-evidence/linux-cli-crossuid.json",
+      "verification/feature-evidence/mcp-configuration.json",
+      "verification/feature-evidence/migration-imports.json",
+      "verification/feature-evidence/native-managed-config-probe.json",
+      "verification/feature-evidence/prediction-cloud-native.json",
+      "verification/feature-evidence/private-account-media.json",
+      "verification/feature-evidence/process-remote-search-ui.json",
+      "verification/feature-evidence/provider-boundary-and-host-check.json",
+      "verification/feature-evidence/runtime-guardian-cli-audio.json",
+      "verification/feature-evidence/sharing-feedback-and-trust.json",
+      "verification/feature-evidence/timeline-wire-contract.json",
+      "verification/feature-evidence/workspace-foundation-linux.json",
+      "verification/feature-evidence/workspace-positive-witness.json",
+      "verification/feature-evidence/worktree-registration.json",
+      "vitest.config.ts"
+    ]
+  },
+  "inspectedFiles": [
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/accounts.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/journal_schema.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/provider_lifecycle.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/sandbox.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/test_accounts.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_provider_lifecycle.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_sandbox.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_ack.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/security.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "scripts/ci-checks.mjs",
+    "scripts/compatibility-watch.mjs",
+    "scripts/prepare-ci-native.mjs",
+    "scripts/python-tests.py",
+    "scripts/release-audit.mjs",
+    "scripts/release-authorization.mjs",
+    "scripts/reviewed-history.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "scripts/windows-controller-preflight.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ],
+  "fileReviews": [
+    {
+      "path": "deploy/README.md",
+      "sha256": "ed12754928dc28ecec3f3913a897444c2e3b3d086f469284b3c6c922ce082f56",
+      "bytes": 70301,
+      "lines": 324,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/__init__.py",
+      "sha256": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+      "bytes": 78,
+      "lines": 1,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/accounts.py",
+      "sha256": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+      "bytes": 11018,
+      "lines": 191,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/archive.py",
+      "sha256": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+      "bytes": 7375,
+      "lines": 161,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "b3c46ce876ec8798f134e4959f1114a259df5518ebca3052aa7877993f1fe8be",
+      "bytes": 19992,
+      "lines": 334,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "chown_tree",
+        "os.chmod",
+        "os.chown",
+        "self.system.isolated"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/candidate_probe.py",
+      "sha256": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+      "bytes": 5420,
+      "lines": 115,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "socket.socket",
+        "subprocess.Popen",
+        "subprocess.run"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/catalog.py",
+      "sha256": "7cb1c1d833e28de8f21c5aa4d97e7994913affd4c3370327f30db3cbf0149240",
+      "bytes": 4746,
+      "lines": 99,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "b5f0e99e20f4db505c041fa31e6a7f515f8e5e6f998b1a6abcf32b27a870f341",
+      "bytes": 17888,
+      "lines": 278,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/common.py",
+      "sha256": "385390b52a232b1e0f212194dc2788894e0fc1e0ca342c73710e6604d5c420d2",
+      "bytes": 4195,
+      "lines": 121,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.chmod",
+        "os.chown",
+        "os.fchmod",
+        "os.fchown"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "sha256": "645aa4ceab94ce52580692c91d1313f44eda5ddeaab4256930f21c172b7cebef",
+      "bytes": 15260,
+      "lines": 299,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "manager.system.reload",
+        "manager.system.start",
+        "manager.system.state",
+        "manager.system.stop"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "0b508493e522cdaf2d555572262c56042a257acea29ad3d921563f68b538f51e",
+      "bytes": 31720,
+      "lines": 548,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "self.system.control_healthy",
+        "self.system.enabled_state",
+        "self.system.instance_units",
+        "self.system.no_instance_processes",
+        "self.system.reload",
+        "self.system.start",
+        "self.system.state",
+        "self.system.stop"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/https.py",
+      "sha256": "f627883449df3361cd2a07ebd2f9f3e8d98d3081fd5c1aca5bcb199235ec1e49",
+      "bytes": 24874,
+      "lines": 462,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "manager.system.enable",
+        "manager.system.reload",
+        "manager.system.start",
+        "manager.system.state",
+        "manager.system.stop"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "b36f20326f6fe5893e80fe525cd8f8d61f765881ce25d5254f22a452c2d6102d",
+      "bytes": 11661,
+      "lines": 215,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "manager.system.reload",
+        "manager.system.stop"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/install.sh",
+      "sha256": "5360324dca9dc76ad4cef7ba25245a2dc32ece30ccde18be8ae5406325cde5ca",
+      "bytes": 106,
+      "lines": 4,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/journal.py",
+      "sha256": "2b520d2c6facac5992d763d26664ee3bdce418cc8d4d44b87105d3a2490482b5",
+      "bytes": 2845,
+      "lines": 59,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "db.execute",
+        "db.execute('SELECT count(*) FROM receipts').fetchone",
+        "db.execute('SELECT count(*) FROM retired_operations').fetchone"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/journal_schema.py",
+      "sha256": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+      "bytes": 4158,
+      "lines": 75,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "db.execute",
+        "db.execute(\"SELECT type,name,sql FROM sqlite_schema WHERE substr(name,1,7) != 'sqlite_'\").fetchall",
+        "db.execute('PRAGMA index_list(' + quoted + ')').fetchall",
+        "db.execute('PRAGMA index_xinfo(' + index_name + ')').fetchall",
+        "db.execute('PRAGMA table_xinfo(' + quoted + ')').fetchall",
+        "db.execute('PRAGMA user_version').fetchone",
+        "reference.executescript"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "ea95f30ce900ee2fcbf9ebe5d0ef3a3c5f739b5ca56025114682b9dec2510082",
+      "bytes": 35110,
+      "lines": 620,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "self.system.enable",
+        "self.system.logs",
+        "self.system.reload",
+        "self.system.start",
+        "self.system.state",
+        "self.system.stop",
+        "socket.socket"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff",
+      "bytes": 9746,
+      "lines": 189,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "subprocess.Popen"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "e4a87196c44769bc66be0d82735080c2a57e76b8b366939f86cf61809e627aa5",
+      "bytes": 5313,
+      "lines": 90,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "system.state"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+      "bytes": 18674,
+      "lines": 286,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/provider_bedrock.py",
+      "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+      "bytes": 1997,
+      "lines": 36,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/provider_gateway.py",
+      "sha256": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+      "bytes": 3428,
+      "lines": 53,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "sha256": "9dadcd6a8ab1a779a784c24c018cdf5c2a751d197667a791156e163811178d61",
+      "bytes": 14905,
+      "lines": 272,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.chmod",
+        "os.fchmod"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/provider_lifecycle.py",
+      "sha256": "6e73a0128f2ec608bbfefb9ce8c9b7dcc2631beacfe12a3cf0672eaac0d96021",
+      "bytes": 9384,
+      "lines": 179,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/requests.py",
+      "sha256": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+      "bytes": 8432,
+      "lines": 165,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.chmod",
+        "self.system.state",
+        "self.system.stop"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/safe_fs.py",
+      "sha256": "81f3fedce8f11509d313457c68e6c1f54ee675c6211b95614e2e684393101eca",
+      "bytes": 12446,
+      "lines": 264,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.chmod"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/sandbox.py",
+      "sha256": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+      "bytes": 3137,
+      "lines": 55,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "system.stop"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/system.py",
+      "sha256": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+      "bytes": 8225,
+      "lines": 136,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "subprocess.run"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/transactions.py",
+      "sha256": "69128bcef9d995eaa700981fbc0013a101071192361c97d4ed62c27b179a063c",
+      "bytes": 1493,
+      "lines": 22,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "437b39b40a9f89ead08844bd834a5a7379baade1fdd9c388ee7caddfe8d08d53",
+      "bytes": 9770,
+      "lines": 182,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace.py",
+      "sha256": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+      "bytes": 19312,
+      "lines": 334,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_commit.py",
+      "sha256": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+      "bytes": 11168,
+      "lines": 197,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "sha256": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+      "bytes": 9409,
+      "lines": 166,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "subprocess.Popen"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_git_transaction.py",
+      "sha256": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+      "bytes": 4076,
+      "lines": 75,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "subprocess.Popen"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_git_view.py",
+      "sha256": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+      "bytes": 3427,
+      "lines": 74,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.chmod"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_index.py",
+      "sha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+      "bytes": 14592,
+      "lines": 244,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_index_store.py",
+      "sha256": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+      "bytes": 8062,
+      "lines": 155,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_paths.py",
+      "sha256": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+      "bytes": 7126,
+      "lines": 156,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_recovery.py",
+      "sha256": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+      "bytes": 7673,
+      "lines": 163,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.fchmod"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_resources.py",
+      "sha256": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+      "bytes": 6876,
+      "lines": 139,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_search.py",
+      "sha256": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+      "bytes": 6156,
+      "lines": 129,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_store.py",
+      "sha256": "b5a884f99582848ea2d14841615c479af69d0a247af64408c71441f1e688534e",
+      "bytes": 15022,
+      "lines": 303,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.fchmod"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "sha256": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+      "bytes": 20252,
+      "lines": 339,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Authentication migration, authority, crash/recovery, process and filesystem boundary cross-check"
+      ]
+    },
+    {
+      "path": "tests/deploy/linux_isolation.py",
+      "sha256": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+      "bytes": 4092,
+      "lines": 98,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "os.chmod",
+        "socket.socket",
+        "system.isolated"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/linux_native_boundary.py",
+      "sha256": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+      "bytes": 5330,
+      "lines": 104,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "sha256": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+      "bytes": 8559,
+      "lines": 159,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore",
+          "line": 53,
+          "assertions": 9
+        },
+        {
+          "name": "test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate",
+          "line": 67,
+          "assertions": 7
+        },
+        {
+          "name": "test_compatible_account_candidate_failure_restores_prior_account_release",
+          "line": 81,
+          "assertions": 5
+        },
+        {
+          "name": "test_compatible_account_repair_restores_prior_account_release",
+          "line": 91,
+          "assertions": 5
+        },
+        {
+          "name": "test_explicit_candidate_repair_finishes_blocked_legacy_to_account_upgrade",
+          "line": 102,
+          "assertions": 6
+        },
+        {
+          "name": "test_candidate_repair_health_failure_stops_and_retries_same_candidate_only",
+          "line": 114,
+          "assertions": 7
+        },
+        {
+          "name": "test_candidate_repair_can_resume_after_selection_record_interruption",
+          "line": 128,
+          "assertions": 5
+        },
+        {
+          "name": "test_missing_candidate_file_rejects_candidate_repair_before_stop",
+          "line": 144,
+          "assertions": 4
+        }
+      ],
+      "externalBoundaryCalls": [
+        "self.system.events.clear"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root ownership fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_accounts.py",
+      "sha256": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+      "bytes": 3669,
+      "lines": 71,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_setup_publishes_private_hash_and_existing_account_is_not_overwritten",
+          "line": 26,
+          "assertions": 7
+        },
+        {
+          "name": "test_unconfirmed_reset_keeps_new_revision_and_reports_pending_without_automatic_retry",
+          "line": 41,
+          "assertions": 4
+        },
+        {
+          "name": "test_bootstrap_symlink_or_wrong_owner_never_gets_replaced",
+          "line": 52,
+          "assertions": 4
+        }
+      ],
+      "externalBoundaryCalls": [
+        "target.chmod"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root ownership fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "sha256": "9ca7d80b94f8a3a482fd7683dee8e634c9952557ccada4c7eac97654b27fa669",
+      "bytes": 22540,
+      "lines": 387,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_advanced_rollback_rejects_before_any_material_or_service_change",
+          "line": 139,
+          "assertions": 5
+        },
+        {
+          "name": "test_old_unsafe_candidates_reject_without_changes_and_old_recovery_still_works",
+          "line": 152,
+          "assertions": 12
+        },
+        {
+          "name": "test_candidate_checks_its_generation_instead_of_the_current_pointer",
+          "line": 175,
+          "assertions": 5
+        },
+        {
+          "name": "test_old_completed_unsafe_downgrade_is_not_accepted_as_a_legacy_noop",
+          "line": 191,
+          "assertions": 5
+        },
+        {
+          "name": "test_candidate_publication_rechecks_policy_and_generation_identity",
+          "line": 210,
+          "assertions": 7
+        },
+        {
+          "name": "test_migrate_and_rollback_preserve_user_and_host_bytes_and_old_generation",
+          "line": 228,
+          "assertions": 12
+        },
+        {
+          "name": "test_gateway_only_and_stopped_activity_are_preserved",
+          "line": 249,
+          "assertions": 2
+        },
+        {
+          "name": "test_prior_unit_without_native_home_is_recognized_and_migrated_after_stop",
+          "line": 257,
+          "assertions": 2
+        },
+        {
+          "name": "test_unknown_stop_never_publishes_pointer_config_units_or_sudo",
+          "line": 265,
+          "assertions": 8
+        },
+        {
+          "name": "test_host_conflict_rejects_before_stop_or_missing_target_creation",
+          "line": 280,
+          "assertions": 5
+        },
+        {
+          "name": "test_start_failure_restores_original_files_pointer_and_activity",
+          "line": 291,
+          "assertions": 5
+        },
+        {
+          "name": "test_power_loss_journal_phases_are_recoverable",
+          "line": 301,
+          "assertions": 5
+        },
+        {
+          "name": "test_power_loss_between_file_publications_can_finish_candidate",
+          "line": 317,
+          "assertions": 5
+        },
+        {
+          "name": "test_host_drift_blocks_check_and_explicit_refresh_rebuilds_new_generation",
+          "line": 331,
+          "assertions": 5
+        },
+        {
+          "name": "test_generated_layer_tamper_blocks_check_and_is_not_silently_refreshed",
+          "line": 343,
+          "assertions": 3
+        },
+        {
+          "name": "test_user_symlink_fifo_hardlink_and_parent_link_fail_without_follow_or_block",
+          "line": 353,
+          "assertions": 2
+        },
+        {
+          "name": "test_user_config_change_after_stop_is_retained_and_invalid_bytes_abort",
+          "line": 374,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [
+        "self.system.events.append",
+        "self.system.events.clear",
+        "self.system.stop",
+        "subprocess.CompletedProcess"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root configuration-layer fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "9cb37b6fb61c38317f8169087d9922ce872237de72e0fb8b46386d38af600545",
+      "bytes": 32488,
+      "lines": 601,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_update_preserves_independent_active_and_enabled_sets_and_old_tree",
+          "line": 146,
+          "assertions": 10
+        },
+        {
+          "name": "test_gateway_only_restoration_does_not_start_previously_stopped_worker",
+          "line": 161,
+          "assertions": 2
+        },
+        {
+          "name": "test_initialized_instance_without_application_release_stays_stopped",
+          "line": 167,
+          "assertions": 2
+        },
+        {
+          "name": "test_probe_failure_never_stops_services_or_replaces_control",
+          "line": 173,
+          "assertions": 4
+        },
+        {
+          "name": "test_unknown_stop_retains_trees_and_persistent_start_barriers",
+          "line": 181,
+          "assertions": 10
+        },
+        {
+          "name": "test_escaped_account_process_prevents_any_control_directory_rename",
+          "line": 200,
+          "assertions": 4
+        },
+        {
+          "name": "test_start_failure_restores_old_code_and_exact_activity",
+          "line": 208,
+          "assertions": 6
+        },
+        {
+          "name": "test_health_failure_restores_old_code",
+          "line": 219,
+          "assertions": 3
+        },
+        {
+          "name": "test_reload_failure_restores_old_activity_without_changing_code",
+          "line": 227,
+          "assertions": 3
+        },
+        {
+          "name": "test_crashes_before_and_between_directory_renames_recover",
+          "line": 234,
+          "assertions": 4
+        },
+        {
+          "name": "test_crash_after_rename_before_phase_write_is_recovered_from_files",
+          "line": 249,
+          "assertions": 3
+        },
+        {
+          "name": "test_old_helper_cache_written_during_stop_is_sealed_without_changing_source",
+          "line": 261,
+          "assertions": 2
+        },
+        {
+          "name": "test_launchers_are_durably_blocked_before_any_control_directory_rename",
+          "line": 273,
+          "assertions": 4
+        },
+        {
+          "name": "test_new_fixed_bootstrap_rejects_pending_transaction_before_importing_legacy_modules",
+          "line": 288,
+          "assertions": 4
+        },
+        {
+          "name": "test_dropin_collision_does_not_install_entrypoint_or_service_barriers",
+          "line": 301,
+          "assertions": 5
+        },
+        {
+          "name": "test_tampered_old_generation_blocks_recovery_and_leaves_every_service_stopped",
+          "line": 313,
+          "assertions": 7
+        },
+        {
+          "name": "test_update_preserves_edge_binary_and_config_binding",
+          "line": 335,
+          "assertions": 2
+        },
+        {
+          "name": "test_rollback_restores_code_but_preserves_edge_installed_after_original_update",
+          "line": 342,
+          "assertions": 5
+        },
+        {
+          "name": "test_root_account_bootstrap_blocks_control_guard_downgrade_before_any_mutation",
+          "line": 385,
+          "assertions": 1
+        },
+        {
+          "name": "test_builtin_https_blocks_control_guard_downgrade_before_any_mutation",
+          "line": 390,
+          "assertions": 1
+        },
+        {
+          "name": "test_browser_initialized_application_blocks_control_guard_downgrade_without_database_reads",
+          "line": 395,
+          "assertions": 3
+        },
+        {
+          "name": "test_changed_application_declaration_cannot_hide_account_guard_requirement",
+          "line": 402,
+          "assertions": 1
+        },
+        {
+          "name": "test_account_compatible_control_rollback_succeeds_with_account_and_edge_markers",
+          "line": 408,
+          "assertions": 5
+        },
+        {
+          "name": "test_legacy_application_without_account_dependencies_allows_legacy_control_rollback",
+          "line": 422,
+          "assertions": 3
+        },
+        {
+          "name": "test_control_recover_cannot_restore_legacy_guard_for_account_dependent_instance",
+          "line": 440,
+          "assertions": 7
+        },
+        {
+          "name": "test_automatic_control_recovery_does_not_restore_account_incompatible_guard",
+          "line": 455,
+          "assertions": 4
+        },
+        {
+          "name": "test_compatible_control_recovery_restores_prior_generation_with_accounts",
+          "line": 464,
+          "assertions": 3
+        },
+        {
+          "name": "test_initial_legacy_control_upgrade_failure_still_recovers",
+          "line": 474,
+          "assertions": 5
+        },
+        {
+          "name": "test_explicit_candidate_recovery_finishes_each_original_interruption_phase",
+          "line": 484,
+          "assertions": 5
+        },
+        {
+          "name": "test_candidate_recovery_interrupted_between_renames_can_repeat",
+          "line": 504,
+          "assertions": 6
+        },
+        {
+          "name": "test_candidate_health_failure_keeps_guard_and_can_repeat_after_prerequisite_repair",
+          "line": 526,
+          "assertions": 6
+        },
+        {
+          "name": "test_incomplete_candidate_is_rejected_before_mutating_recovery_state",
+          "line": 540,
+          "assertions": 3
+        },
+        {
+          "name": "test_old_control_rollback_requires_legacy_namespace_and_sudo_first",
+          "line": 551,
+          "assertions": 4
+        },
+        {
+          "name": "test_old_control_without_layer_support_is_rejected_before_any_stop",
+          "line": 564,
+          "assertions": 3
+        },
+        {
+          "name": "test_mismatched_edge_hash_aborts_before_services_stop",
+          "line": 577,
+          "assertions": 4
+        },
+        {
+          "name": "test_enablement_change_cannot_be_silently_committed",
+          "line": 586,
+          "assertions": 5
+        }
+      ],
+      "externalBoundaryCalls": [
+        "self.system.active.clear",
+        "self.system.events.clear",
+        "self.system.events.count",
+        "shutil.copytree",
+        "subprocess.CompletedProcess",
+        "subprocess.run"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root ownership fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_https.py",
+      "sha256": "6ca663c3bbf15f23076a6e825c2ba4ae1215a6f5124440baa0a06120334cfb51",
+      "bytes": 20290,
+      "lines": 364,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_provided_pair_rotation_is_validated_and_selected_together",
+          "line": 175,
+          "assertions": 15
+        },
+        {
+          "name": "test_unverified_account_cannot_remove_external_authentication",
+          "line": 195,
+          "assertions": 3
+        },
+        {
+          "name": "test_account_support_lost_during_restart_restores_external_authentication",
+          "line": 202,
+          "assertions": 2
+        },
+        {
+          "name": "test_first_builtin_setup_creates_no_authelia_unit_or_identity",
+          "line": 208,
+          "assertions": 4
+        },
+        {
+          "name": "test_candidate_validation_failure_does_not_stop_or_replace_the_old_pair",
+          "line": 221,
+          "assertions": 4
+        },
+        {
+          "name": "test_unit_write_reload_start_health_and_enable_failures_restore_previous_state",
+          "line": 229,
+          "assertions": 2
+        },
+        {
+          "name": "test_unknown_recovery_stop_preserves_selected_material_and_repair_restores_it",
+          "line": 254,
+          "assertions": 8
+        },
+        {
+          "name": "test_process_interruption_after_snapshot_is_recoverable_by_repair",
+          "line": 274,
+          "assertions": 4
+        },
+        {
+          "name": "test_unchanged_explicit_pair_is_reused_and_partial_pair_is_rejected",
+          "line": 289,
+          "assertions": 4
+        },
+        {
+          "name": "test_failed_first_edge_activation_restores_absent_units_and_http_origin",
+          "line": 298,
+          "assertions": 8
+        },
+        {
+          "name": "test_prior_stopped_edge_services_are_not_started_by_recovery",
+          "line": 323,
+          "assertions": 5
+        },
+        {
+          "name": "test_gateway_only_recovery_does_not_follow_wants_to_stopped_worker",
+          "line": 333,
+          "assertions": 5
+        },
+        {
+          "name": "test_gateway_only_repair_preserves_control_maintenance_dropin",
+          "line": 344,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [
+        "self.system.enabled.difference_update",
+        "self.system.events.append",
+        "self.system.events.clear",
+        "self.system.fault",
+        "self.system.role",
+        "subprocess.CompletedProcess"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root ownership fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_journal_recovery.py",
+      "sha256": "b33754c2548160b3d275aa7b94215a881238ebef2a2d0ef50c6cde91cf594018",
+      "bytes": 5671,
+      "lines": 111,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_restart_drops_gateway_uid_recovers_real_schema_then_reopens",
+          "line": 82,
+          "assertions": 2
+        },
+        {
+          "name": "test_activation_recovers_before_candidate_start_and_preserves_previous",
+          "line": 87,
+          "assertions": 4
+        },
+        {
+          "name": "test_control_update_restore_recovers_before_original_services_resume",
+          "line": 94,
+          "assertions": 1
+        },
+        {
+          "name": "test_rejected_schema_leaves_services_stopped_and_receipts_unmodified",
+          "line": 102,
+          "assertions": 4
+        }
+      ],
+      "externalBoundaryCalls": [
+        "db.execute",
+        "db.execute(\"SELECT value FROM metadata WHERE key='activityUncertain'\").fetchone",
+        "db.execute('SELECT * FROM retired_operations').fetchall",
+        "db.execute('SELECT name FROM projects').fetchall",
+        "db.execute('SELECT name FROM worktree_projects').fetchall",
+        "db.execute('SELECT state FROM automations').fetchall",
+        "os.chmod",
+        "os.chown",
+        "self.system.stop"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root and native owner fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_management_boundaries.py",
+      "sha256": "5f50a91af7b350861464230280e6d52c761c4dc3f6c5c904b1780b53f4dd5e69",
+      "bytes": 10995,
+      "lines": 202,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_pending_transactions_block_all_new_write_entrypoints_without_new_receipts",
+          "line": 78,
+          "assertions": 9
+        },
+        {
+          "name": "test_completed_receipt_remains_queryable_during_pending_recovery",
+          "line": 104,
+          "assertions": 3
+        },
+        {
+          "name": "test_pending_nonrelease_transaction_does_not_create_legacy_installation_marker",
+          "line": 117,
+          "assertions": 2
+        },
+        {
+          "name": "test_https_requires_verified_account_before_edge_preparation",
+          "line": 126,
+          "assertions": 4
+        },
+        {
+          "name": "test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database",
+          "line": 135,
+          "assertions": 4
+        },
+        {
+          "name": "test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old",
+          "line": 145,
+          "assertions": 3
+        },
+        {
+          "name": "test_builtin_account_candidate_is_allowed_and_does_not_require_mutable_database_reads",
+          "line": 152,
+          "assertions": 1
+        },
+        {
+          "name": "test_uninstall_and_resume_reject_unowned_service_before_stop_or_delete",
+          "line": 160,
+          "assertions": 6
+        },
+        {
+          "name": "test_known_control_dropins_are_preserved_but_unknown_overrides_are_rejected",
+          "line": 174,
+          "assertions": 3
+        },
+        {
+          "name": "test_recognized_runtime_group_unit_migrates_only_after_stop_and_reloads_on_retry",
+          "line": 187,
+          "assertions": 5
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root ownership fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "be08a560c1f44730755a0305bf702093d6deb059f76396a4c868f2d866628c49",
+      "bytes": 4638,
+      "lines": 66,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_generation_separates_bearer_from_config_and_clears_it_when_leaving_bedrock",
+          "line": 33,
+          "assertions": 6
+        },
+        {
+          "name": "test_fixed_native_token_verb_returns_only_managed_token_and_root_is_denied",
+          "line": 55,
+          "assertions": 6
+        },
+        {
+          "name": "test_foreign_owned_environment_cannot_feed_token_command",
+          "line": 61,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [
+        "os.chmod",
+        "os.chown",
+        "subprocess.run"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root and native UID boundary')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_provider_layers.py",
+      "sha256": "f404366494d4b3d5f09db864d4132b622fac672407418b52bcc64eb1fafc0015",
+      "bytes": 4328,
+      "lines": 95,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_missing_mount_targets_create_only_empty_files_and_keep_other_host_content",
+          "line": 20,
+          "assertions": 4
+        },
+        {
+          "name": "test_existing_files_never_overwritten_and_content_drift_changes_manifest",
+          "line": 33,
+          "assertions": 2
+        },
+        {
+          "name": "test_target_appearing_after_preflight_is_not_replaced",
+          "line": 46,
+          "assertions": 2
+        },
+        {
+          "name": "test_root_private_policy_is_not_copied_into_native_readable_generation",
+          "line": 55,
+          "assertions": 3
+        },
+        {
+          "name": "test_symlink_hardlink_and_native_writable_policy_are_rejected",
+          "line": 67,
+          "assertions": 1
+        }
+      ],
+      "externalBoundaryCalls": [
+        "existing.chmod",
+        "os.chown",
+        "path.chmod"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root host-policy fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_release_reuse.py",
+      "sha256": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+      "bytes": 3386,
+      "lines": 71,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_identical_release_is_reused_without_replacing_it",
+          "line": 28,
+          "assertions": 4
+        },
+        {
+          "name": "test_rename_before_manifest_interruption_is_recoverable",
+          "line": 39,
+          "assertions": 2
+        },
+        {
+          "name": "test_changed_existing_tree_or_manifest_is_not_overwritten",
+          "line": 47,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root ownership fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/root/test_request_spool.py",
+      "sha256": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+      "bytes": 3239,
+      "lines": 81,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_root_private_files_use_real_independent_nonblocking_locks",
+          "line": 32,
+          "assertions": 7
+        },
+        {
+          "name": "test_foreign_owner_open_mode_links_and_symlinks_are_not_collectable",
+          "line": 47,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [
+        "os.chown",
+        "path.chmod"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux' and os.geteuid() == 0, 'Real Linux root ownership fixture')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_accounts.py",
+      "sha256": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+      "bytes": 10142,
+      "lines": 179,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_scrypt_bootstrap_uses_independent_salts_and_preserves_password_spaces",
+          "line": 19,
+          "assertions": 5
+        },
+        {
+          "name": "test_password_validation_uses_unicode_codepoints_and_rejects_invalid_text",
+          "line": 31,
+          "assertions": 2
+        },
+        {
+          "name": "test_password_stdin_is_bounded_single_line_and_never_strips_spaces",
+          "line": 40,
+          "assertions": 2
+        },
+        {
+          "name": "test_new_https_parser_needs_no_auth_domain_or_email",
+          "line": 47,
+          "assertions": 5
+        },
+        {
+          "name": "test_login_probe_revokes_its_session_and_preserves_second_factor",
+          "line": 61,
+          "assertions": 2
+        },
+        {
+          "name": "test_legacy_or_uninitialized_gateway_never_receives_password",
+          "line": 70,
+          "assertions": 2
+        },
+        {
+          "name": "test_requests_are_fixed_loopback_with_exact_origin_and_no_redirects",
+          "line": 76,
+          "assertions": 5
+        },
+        {
+          "name": "test_oversized_or_nonobject_probe_output_cannot_confirm_authentication",
+          "line": 92,
+          "assertions": 1
+        },
+        {
+          "name": "test_correct_proof_and_password_share_the_same_tcp_connection",
+          "line": 154,
+          "assertions": 5
+        },
+        {
+          "name": "test_forged_replayed_or_closed_proof_sends_no_password",
+          "line": 163,
+          "assertions": 2
+        },
+        {
+          "name": "test_forged_listener_cannot_supply_initialization_status",
+          "line": 171,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "b193999aadb76c6f93266599271b658565cc42806882f7e4b45a965889a631aa",
+      "bytes": 3125,
+      "lines": 55,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_operator_control_commands_have_no_candidate_archive_argument",
+          "line": 15,
+          "assertions": 6
+        },
+        {
+          "name": "test_instance_prefix_does_not_stop_another_instance_with_longer_name",
+          "line": 24,
+          "assertions": 2
+        },
+        {
+          "name": "test_stage_has_fixed_real_paths_and_excludes_checkout_bytecode",
+          "line": 38,
+          "assertions": 7
+        }
+      ],
+      "externalBoundaryCalls": [
+        "subprocess.CompletedProcess"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_dependency_lock.py",
+      "sha256": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+      "bytes": 7487,
+      "lines": 164,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_utf8_lock_at_and_below_byte_limit_is_accepted_without_unbounded_read",
+          "line": 76,
+          "assertions": 3
+        },
+        {
+          "name": "test_cap_plus_one_rejects_before_utf8_decoding_and_closes_file",
+          "line": 87,
+          "assertions": 5
+        },
+        {
+          "name": "test_growth_after_initial_fstat_is_still_read_only_to_cap_plus_one",
+          "line": 97,
+          "assertions": 4
+        },
+        {
+          "name": "test_invalid_utf8_is_an_explicit_input_error",
+          "line": 107,
+          "assertions": 4
+        },
+        {
+          "name": "test_crlf_and_cr_newlines_keep_the_existing_normalized_contract",
+          "line": 117,
+          "assertions": 1
+        },
+        {
+          "name": "test_same_size_change_during_read_is_not_accepted",
+          "line": 124,
+          "assertions": 3
+        },
+        {
+          "name": "test_replacement_before_open_or_after_read_cannot_select_different_file",
+          "line": 135,
+          "assertions": 3
+        },
+        {
+          "name": "test_read_error_closes_the_descriptor_without_returning_partial_input",
+          "line": 155,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "760a41d47e969df352789192b18fbf29f8bc2ac428e2e5518ed4ae2b992cc662",
+      "bytes": 47886,
+      "lines": 809,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_loaded_stopped_and_collected_have_consistent_evidence",
+          "line": 40,
+          "assertions": 3
+        },
+        {
+          "name": "test_empty_duplicate_failed_and_contradictory_queries_do_not_authorize_cleanup",
+          "line": 45,
+          "assertions": 3
+        },
+        {
+          "name": "test_default_without_override_is_legal_and_repeat_catalog_is_noop",
+          "line": 58,
+          "assertions": 2
+        },
+        {
+          "name": "test_non_default_override_rejected_and_stale_revision_rejected",
+          "line": 65,
+          "assertions": 2
+        },
+        {
+          "name": "test_new_endpoint_never_inherits_old_key",
+          "line": 73,
+          "assertions": 2
+        },
+        {
+          "name": "test_empty_key_means_no_auth_and_literal_empty_is_not_a_sentinel",
+          "line": 79,
+          "assertions": 4
+        },
+        {
+          "name": "test_public_http_is_rejected_even_when_insecure_is_confirmed",
+          "line": 90,
+          "assertions": 2
+        },
+        {
+          "name": "test_confirmed_catalog_is_selected_by_the_native_configuration",
+          "line": 96,
+          "assertions": 4
+        },
+        {
+          "name": "test_secrets_are_not_in_native_config_or_read_response",
+          "line": 104,
+          "assertions": 3
+        },
+        {
+          "name": "test_zhipu_uses_official_responses_and_four_mcp_entries",
+          "line": 109,
+          "assertions": 4
+        },
+        {
+          "name": "test_urls_and_secret_control_characters_are_rejected",
+          "line": 118,
+          "assertions": 2
+        },
+        {
+          "name": "test_inspection_caps_enumeration_before_collecting_a_wide_directory",
+          "line": 158,
+          "assertions": 3
+        },
+        {
+          "name": "test_inspection_reserves_pending_siblings_before_descending",
+          "line": 168,
+          "assertions": 3
+        },
+        {
+          "name": "test_snapshot_bounds_fd_enumeration_and_reserves_pending_siblings",
+          "line": 181,
+          "assertions": 3
+        },
+        {
+          "name": "test_implicit_directories_are_reserved_with_the_member_before_creation",
+          "line": 199,
+          "assertions": 4
+        },
+        {
+          "name": "test_strip_and_late_explicit_directory_share_one_actual_entry_budget",
+          "line": 209,
+          "assertions": 1
+        },
+        {
+          "name": "test_files_and_delayed_links_cannot_replace_an_implicit_directory",
+          "line": 217,
+          "assertions": 3
+        },
+        {
+          "name": "test_delayed_links_consume_entry_budget_before_parent_creation",
+          "line": 228,
+          "assertions": 4
+        },
+        {
+          "name": "test_extensions_are_rejected_before_their_declared_payload_is_read",
+          "line": 240,
+          "assertions": 3
+        },
+        {
+          "name": "test_small_compressed_pax_payload_cannot_escape_metadata_budget",
+          "line": 256,
+          "assertions": 4
+        },
+        {
+          "name": "test_pax_and_gnu_long_names_survive_all_supported_compression_formats",
+          "line": 270,
+          "assertions": 1
+        },
+        {
+          "name": "test_long_link_and_global_pax_metadata_remain_parseable",
+          "line": 286,
+          "assertions": 3
+        },
+        {
+          "name": "test_metadata_total_physical_headers_and_extension_chain_are_bounded",
+          "line": 303,
+          "assertions": 6
+        },
+        {
+          "name": "test_effective_pax_size_and_sparse_maps_do_not_bypass_admission",
+          "line": 325,
+          "assertions": 2
+        },
+        {
+          "name": "test_skipped_payload_still_consumes_decompressed_stream_budget",
+          "line": 339,
+          "assertions": 3
+        },
+        {
+          "name": "test_compressed_input_and_xz_decoder_memory_are_bounded",
+          "line": 356,
+          "assertions": 3
+        },
+        {
+          "name": "test_concatenated_compressed_streams_and_legacy_lzma_are_supported",
+          "line": 370,
+          "assertions": 2
+        },
+        {
+          "name": "test_global_pax_state_cannot_accumulate_across_small_headers",
+          "line": 385,
+          "assertions": 3
+        },
+        {
+          "name": "test_empty_xz_streams_do_not_accumulate_output_buffers",
+          "line": 398,
+          "assertions": 3
+        },
+        {
+          "name": "test_traversal_hardlink_duplicate_and_special_file_rejected",
+          "line": 417,
+          "assertions": 2
+        },
+        {
+          "name": "test_root_metadata_is_part_of_the_full_runtime_manifest",
+          "line": 427,
+          "assertions": 2
+        },
+        {
+          "name": "test_symlink_relative_scope",
+          "line": 443,
+          "assertions": 2
+        },
+        {
+          "name": "test_stopped_snapshot_preserves_full_tree_and_rejects_hardlinks",
+          "line": 450,
+          "assertions": 3
+        },
+        {
+          "name": "test_umask_077_does_not_hide_published_input",
+          "line": 468,
+          "assertions": 1
+        },
+        {
+          "name": "test_unknown_receipts_survive_control_barrier_reset",
+          "line": 494,
+          "assertions": 4
+        },
+        {
+          "name": "test_unknown_schema_or_trigger_is_rejected_before_mutation",
+          "line": 506,
+          "assertions": 1
+        },
+        {
+          "name": "test_validation_failure_never_stops_the_old_service",
+          "line": 550,
+          "assertions": 2
+        },
+        {
+          "name": "test_unconfirmed_stop_never_changes_pointer_or_recovery_barrier",
+          "line": 556,
+          "assertions": 4
+        },
+        {
+          "name": "test_health_failure_confirms_stop_before_restoring_old_release",
+          "line": 563,
+          "assertions": 3
+        },
+        {
+          "name": "test_unknown_recovery_stop_preserves_candidate_and_transaction",
+          "line": 574,
+          "assertions": 3
+        },
+        {
+          "name": "test_root_receipt_replays_without_running_mutation_twice",
+          "line": 584,
+          "assertions": 5
+        },
+        {
+          "name": "test_unexpected_interruption_keeps_running_receipt_unknown",
+          "line": 598,
+          "assertions": 3
+        },
+        {
+          "name": "test_invalid_mutation_has_no_durable_unknown_receipt",
+          "line": 608,
+          "assertions": 2
+        },
+        {
+          "name": "test_actual_dependency_command_disables_ancestor_workspace_and_hooks",
+          "line": 616,
+          "assertions": 7
+        },
+        {
+          "name": "test_units_have_distinct_worker_token_and_ipc_groups",
+          "line": 627,
+          "assertions": 14
+        },
+        {
+          "name": "test_real_current_dependency_inputs_pass_and_hook_resolution_fails",
+          "line": 647,
+          "assertions": 4
+        },
+        {
+          "name": "test_workspace_rejects_hooks_catalogs_external_paths_and_unreviewed_overrides",
+          "line": 660,
+          "assertions": 3
+        },
+        {
+          "name": "test_lock_overrides_cannot_diverge_from_the_reviewed_workspace",
+          "line": 684,
+          "assertions": 1
+        },
+        {
+          "name": "test_source_archive_includes_the_reviewed_workspace",
+          "line": 697,
+          "assertions": 2
+        },
+        {
+          "name": "test_gateway_http_success_cannot_mask_disconnected_worker",
+          "line": 712,
+          "assertions": 1
+        },
+        {
+          "name": "test_native_bridge_backpressures_without_losing_large_protocol_frames",
+          "line": 735,
+          "assertions": 2
+        },
+        {
+          "name": "test_project_resolution_is_bounded_and_checks_directory_as_caller",
+          "line": 749,
+          "assertions": 3
+        },
+        {
+          "name": "test_native_supervision_reaps_descendant_that_escaped_its_process_group",
+          "line": 760,
+          "assertions": 2
+        },
+        {
+          "name": "test_ids_do_not_inherit_unverified_capabilities",
+          "line": 776,
+          "assertions": 2
+        },
+        {
+          "name": "test_local_no_auth_discovery_and_redirect_rejection",
+          "line": 782,
+          "assertions": 5
+        }
+      ],
+      "externalBoundaryCalls": [
+        "db.execute",
+        "db.execute(\"SELECT value FROM metadata WHERE key='activityUncertain'\").fetchone",
+        "db.executescript",
+        "os.chmod",
+        "self.system.events.append",
+        "subprocess.run"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Descriptor-safe import requires Linux')",
+        "unittest.skipUnless(os.name == 'posix', 'Real archive symlinks require Linux')",
+        "unittest.skipUnless(os.name == 'posix', 'Descriptor-safe import requires Linux')",
+        "unittest.skipUnless(os.name == 'posix', 'Linux permissions')",
+        "unittest.skipUnless(sys.platform == 'linux', 'Linux pipe backpressure and subreaper')",
+        "unittest.skipUnless(sys.platform == 'linux', 'Linux subreaper/process groups')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_https.py",
+      "sha256": "37ab6082172b1ba7249d2b3fb84725a55f4c1a2a61fa650f7e17c618418d2c09",
+      "bytes": 2250,
+      "lines": 43,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_legacy_renderer_remains_available_for_exact_recovery_validation",
+          "line": 10,
+          "assertions": 3
+        },
+        {
+          "name": "test_builtin_https_requires_only_application_hostname_and_no_identity_service",
+          "line": 16,
+          "assertions": 8
+        },
+        {
+          "name": "test_internal_and_provided_tls_use_explicit_ports_and_paths",
+          "line": 29,
+          "assertions": 6
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "sha256": "9a79524cf294a9d15c4c4a57d542595cf15c88627b30df2bd567f7fd91376877",
+      "bytes": 13736,
+      "lines": 275,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_prepare_retry_completes_enable_then_preserves_later_disabled_state",
+          "line": 77,
+          "assertions": 5
+        },
+        {
+          "name": "test_failed_first_start_clears_current_and_never_becomes_previous",
+          "line": 90,
+          "assertions": 8
+        },
+        {
+          "name": "test_unknown_stop_retains_pointer_until_a_confirmed_retry",
+          "line": 105,
+          "assertions": 5
+        },
+        {
+          "name": "test_legacy_failed_current_same_candidate_is_started_and_enabled",
+          "line": 121,
+          "assertions": 4
+        },
+        {
+          "name": "test_legacy_successful_disabled_installation_is_not_reenabled",
+          "line": 130,
+          "assertions": 3
+        },
+        {
+          "name": "test_partial_enable_failure_retains_healthy_commit_and_retries",
+          "line": 138,
+          "assertions": 7
+        },
+        {
+          "name": "test_completion_record_write_failure_can_retry_after_successful_enable",
+          "line": 152,
+          "assertions": 4
+        },
+        {
+          "name": "test_restart_of_interrupted_initial_candidate_retires_old_transaction",
+          "line": 166,
+          "assertions": 2
+        },
+        {
+          "name": "test_corrupt_marker_fails_before_any_service_mutation",
+          "line": 174,
+          "assertions": 2
+        },
+        {
+          "name": "test_interrupted_upgrade_after_failed_enable_requires_recovery",
+          "line": 204,
+          "assertions": 0
+        },
+        {
+          "name": "test_interrupted_upgrade_of_completed_install_requires_recovery",
+          "line": 207,
+          "assertions": 0
+        },
+        {
+          "name": "test_unfinished_other_management_transaction_cannot_be_bypassed",
+          "line": 210,
+          "assertions": 3
+        },
+        {
+          "name": "test_commit_failure_restores_both_release_pointers",
+          "line": 238,
+          "assertions": 0
+        },
+        {
+          "name": "test_interrupted_commit_repair_restores_both_release_pointers",
+          "line": 241,
+          "assertions": 0
+        },
+        {
+          "name": "test_outer_cli_failures_do_not_claim_a_mutation_was_unsent",
+          "line": 246,
+          "assertions": 5
+        },
+        {
+          "name": "test_rpc_error_envelopes_retain_their_delivery_contract",
+          "line": 268,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [
+        "self.system.enabled.clear",
+        "self.system.events.append",
+        "self.system.events.count"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_journal_schema.py",
+      "sha256": "c565650454d602dd6da92f1606737a1f09fd8f1e06ee54c844f9c518bb79ca1f",
+      "bytes": 6377,
+      "lines": 105,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_stopped_recovery_accepts_current_gateway_schema_and_preserves_fences",
+          "line": 42,
+          "assertions": 9
+        },
+        {
+          "name": "test_unexpected_schema_still_refuses_recovery_without_mutating_receipts",
+          "line": 57,
+          "assertions": 2
+        },
+        {
+          "name": "test_explicit_legacy_schemas_remain_recoverable",
+          "line": 68,
+          "assertions": 1
+        },
+        {
+          "name": "test_schema_formatting_normalization_does_not_erase_literal_changes",
+          "line": 77,
+          "assertions": 1
+        },
+        {
+          "name": "test_current_schema_rejects_changed_indexes_views_columns_and_hidden_prefix",
+          "line": 85,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [
+        "db.execute",
+        "db.execute(\"SELECT state FROM receipts WHERE id='pending'\").fetchone",
+        "db.execute(\"SELECT value FROM metadata WHERE key='activityUncertain'\").fetchone",
+        "db.execute('SELECT * FROM retired_operations').fetchall",
+        "db.execute('SELECT name FROM projects').fetchall",
+        "db.execute('SELECT name FROM worktree_projects').fetchall",
+        "db.execute('SELECT state FROM automation_runs').fetchall",
+        "db.execute('SELECT state FROM automations').fetchall",
+        "db.executescript",
+        "shutil.which",
+        "subprocess.run"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_management_boundaries.py",
+      "sha256": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+      "bytes": 3286,
+      "lines": 71,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_every_service_policy_and_instance_collision_precedes_initialization",
+          "line": 42,
+          "assertions": 7
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_native_shutdown.py",
+      "sha256": "7b25d9c0ae55ebc66786fdf2570125b7bae6b8b893d098a09f98ad95c413c1af",
+      "bytes": 5212,
+      "lines": 96,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_service_signal_acknowledges_confirmed_cleanup",
+          "line": 82,
+          "assertions": 1
+        },
+        {
+          "name": "test_eof_acknowledges_cleanup_even_when_native_ignores_eof_and_term",
+          "line": 85,
+          "assertions": 1
+        },
+        {
+          "name": "test_unrequested_native_crash_preserves_failure",
+          "line": 88,
+          "assertions": 1
+        },
+        {
+          "name": "test_unconfirmed_cleanup_cannot_acknowledge_success",
+          "line": 91,
+          "assertions": 1
+        }
+      ],
+      "externalBoundaryCalls": [
+        "subprocess.Popen"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(sys.platform == 'linux', 'Linux subreaper and service signals')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_origins.py",
+      "sha256": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+      "bytes": 1411,
+      "lines": 31,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_browser_canonical_origin_is_used_for_default_ports_and_ipv6",
+          "line": 8,
+          "assertions": 1
+        },
+        {
+          "name": "test_unsupported_plain_http_and_ambiguous_origins_fail_before_install",
+          "line": 20,
+          "assertions": 1
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_provider_bedrock.py",
+      "sha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+      "bytes": 5643,
+      "lines": 79,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_only_same_kind_and_region_can_reuse_bearer",
+          "line": 21,
+          "assertions": 3
+        },
+        {
+          "name": "test_uncontrolled_endpoints_profiles_commands_and_noncommercial_partitions_rejected",
+          "line": 29,
+          "assertions": 3
+        },
+        {
+          "name": "test_complete_builtin_policy_pins_endpoint_and_fixed_native_bearer_command",
+          "line": 37,
+          "assertions": 11
+        },
+        {
+          "name": "test_host_policy_cannot_be_silently_weakened_by_complete_provider",
+          "line": 56,
+          "assertions": 1
+        },
+        {
+          "name": "test_legacy_layer_rejected_before_generation_material_created",
+          "line": 62,
+          "assertions": 3
+        },
+        {
+          "name": "test_native_catalog_refresh_uses_no_root_aws_network_call",
+          "line": 70,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_provider_gateway.py",
+      "sha256": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+      "bytes": 6530,
+      "lines": 87,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_new_or_changed_targets_require_explicit_credential_confirmation",
+          "line": 22,
+          "assertions": 4
+        },
+        {
+          "name": "test_https_cookie_and_port_contract_rejects_unreviewed_extensions",
+          "line": 38,
+          "assertions": 3
+        },
+        {
+          "name": "test_complete_required_policy_contains_no_previous_credentials",
+          "line": 49,
+          "assertions": 10
+        },
+        {
+          "name": "test_switch_clears_credentials_and_gateway_fields_cannot_leak_to_other_kinds",
+          "line": 66,
+          "assertions": 3
+        },
+        {
+          "name": "test_native_catalog_refresh_never_makes_a_root_gateway_request",
+          "line": 78,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_provider_layers.py",
+      "sha256": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+      "bytes": 9537,
+      "lines": 138,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_unrelated_host_tables_and_relative_references_survive_semantic_roundtrip",
+          "line": 24,
+          "assertions": 5
+        },
+        {
+          "name": "test_host_provider_selection_and_full_definition_conflicts_are_explicit",
+          "line": 38,
+          "assertions": 2
+        },
+        {
+          "name": "test_host_catalog_constraints_and_managed_defaults_are_not_weakened",
+          "line": 47,
+          "assertions": 1
+        },
+        {
+          "name": "test_matching_constraints_are_idempotent_and_inputs_unchanged",
+          "line": 55,
+          "assertions": 2
+        },
+        {
+          "name": "test_toml_scalar_array_table_types_roundtrip_without_relocating_paths",
+          "line": 62,
+          "assertions": 1
+        },
+        {
+          "name": "test_complete_provider_definition_is_mandatory",
+          "line": 69,
+          "assertions": 1
+        },
+        {
+          "name": "test_chatgpt_complete_custom_provider_pins_auth_and_websocket_route",
+          "line": 74,
+          "assertions": 5
+        },
+        {
+          "name": "test_required_provider_contains_only_credential_environment_name",
+          "line": 84,
+          "assertions": 2
+        },
+        {
+          "name": "test_layered_units_preserve_host_directory_and_invoke_separate_fixed_check",
+          "line": 91,
+          "assertions": 12
+        },
+        {
+          "name": "test_operator_layer_commands_expose_only_fixed_modes",
+          "line": 110,
+          "assertions": 4
+        },
+        {
+          "name": "test_all_managed_kinds_require_their_compatible_configuration_layer",
+          "line": 117,
+          "assertions": 2
+        },
+        {
+          "name": "test_advanced_legacy_preparation_never_creates_a_generation",
+          "line": 127,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_provider_lifecycle.py",
+      "sha256": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+      "bytes": 8343,
+      "lines": 149,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_profile_restores_entire_bound_endpoint_without_exposing_key",
+          "line": 24,
+          "assertions": 7
+        },
+        {
+          "name": "test_profile_names_are_immutable_and_capacity_can_be_released_explicitly",
+          "line": 39,
+          "assertions": 4
+        },
+        {
+          "name": "test_profile_actions_recheck_current_revision",
+          "line": 54,
+          "assertions": 2
+        },
+        {
+          "name": "test_profile_names_allow_64_unicode_characters_without_crossing_byte_budget",
+          "line": 62,
+          "assertions": 2
+        },
+        {
+          "name": "test_profile_save_and_delete_do_not_restart_services_or_change_current_provider",
+          "line": 69,
+          "assertions": 4
+        },
+        {
+          "name": "test_public_settings_and_logs_exclude_saved_credentials_and_unreviewed_fields",
+          "line": 83,
+          "assertions": 2
+        },
+        {
+          "name": "test_current_pending_recovery_and_recent_generations_are_retained",
+          "line": 101,
+          "assertions": 3
+        },
+        {
+          "name": "test_unexpected_material_refuses_cleanup_and_retired_cleanup_can_resume",
+          "line": 121,
+          "assertions": 4
+        }
+      ],
+      "externalBoundaryCalls": [
+        "system.start.assert_not_called",
+        "system.stop.assert_not_called"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Real Linux symlink generation pointers')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_request_spool.py",
+      "sha256": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+      "bytes": 17047,
+      "lines": 335,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_invalid_envelope_and_mutation_are_rejected_without_staging_or_launch",
+          "line": 110,
+          "assertions": 5
+        },
+        {
+          "name": "test_receipt_budget_and_recovery_reject_before_any_spool_write",
+          "line": 128,
+          "assertions": 5
+        },
+        {
+          "name": "test_receipt_replay_never_stages_even_with_blocked_spool",
+          "line": 139,
+          "assertions": 5
+        },
+        {
+          "name": "test_active_executor_preserves_input_and_output_and_blocks_new_admission",
+          "line": 158,
+          "assertions": 7
+        },
+        {
+          "name": "test_uncertain_state_or_stop_retains_all_material_and_blocks_growth",
+          "line": 174,
+          "assertions": 4
+        },
+        {
+          "name": "test_waiter_disconnect_allows_publish_then_confirmed_collection_without_receipt_change",
+          "line": 188,
+          "assertions": 6
+        },
+        {
+          "name": "test_admission_lease_blocks_second_waiter_but_executor_file_gate_remains_available",
+          "line": 207,
+          "assertions": 4
+        },
+        {
+          "name": "test_failed_launch_with_confirmed_stop_is_bounded_and_still_unknown",
+          "line": 217,
+          "assertions": 4
+        },
+        {
+          "name": "test_failed_wait_with_live_unit_retains_request_and_reports_unknown",
+          "line": 225,
+          "assertions": 7
+        },
+        {
+          "name": "test_result_after_failed_wait_can_be_returned_only_after_confirmed_stop",
+          "line": 240,
+          "assertions": 2
+        },
+        {
+          "name": "test_executor_rechecks_admission_after_staging_and_keeps_input_until_collection",
+          "line": 249,
+          "assertions": 5
+        },
+        {
+          "name": "test_result_overflow_preserves_receipt_and_never_publishes_partial_output",
+          "line": 263,
+          "assertions": 5
+        },
+        {
+          "name": "test_input_and_reserved_result_bytes_checked_before_directory_creation",
+          "line": 281,
+          "assertions": 3
+        },
+        {
+          "name": "test_retained_count_and_aggregate_bytes_fail_closed_before_unit_commands",
+          "line": 289,
+          "assertions": 4
+        },
+        {
+          "name": "test_legacy_files_collect_only_after_every_unit_confirms_stopped",
+          "line": 301,
+          "assertions": 3
+        },
+        {
+          "name": "test_unknown_storage_and_duplicate_results_are_retained",
+          "line": 317,
+          "assertions": 5
+        }
+      ],
+      "externalBoundaryCalls": [
+        "self.system.active.add",
+        "self.system.active.clear"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_sandbox.py",
+      "sha256": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+      "bytes": 2709,
+      "lines": 43,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_actual_uid_sterile_home_and_no_privilege_or_network_relaxation",
+          "line": 12,
+          "assertions": 10
+        },
+        {
+          "name": "test_probe_failure_and_timeout_stop_before_reporting_prerequisite",
+          "line": 26,
+          "assertions": 3
+        },
+        {
+          "name": "test_unknown_stop_is_not_reclassified_as_prerequisite_and_missing_bwrap_does_not_launch",
+          "line": 34,
+          "assertions": 5
+        }
+      ],
+      "externalBoundaryCalls": [
+        "subprocess.TimeoutExpired",
+        "system.stop.assert_called_once"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "sha256": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+      "bytes": 20576,
+      "lines": 347,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_missing_resource_code_never_reclassifies_a_dispatched_mutation",
+          "line": 17,
+          "assertions": 1
+        },
+        {
+          "name": "test_explicit_errors_preserve_their_code_and_generic_failures_hide_internal_paths",
+          "line": 22,
+          "assertions": 2
+        },
+        {
+          "name": "test_paths_reject_escapes_metadata_controls_and_oversized_components",
+          "line": 33,
+          "assertions": 3
+        },
+        {
+          "name": "test_write_requires_explicit_revision_and_canonical_operation",
+          "line": 40,
+          "assertions": 2
+        },
+        {
+          "name": "test_delete_never_defaults_to_recursive_or_forced",
+          "line": 48,
+          "assertions": 1
+        },
+        {
+          "name": "test_unknown_methods_fields_root_overrides_and_read_receipts_are_rejected",
+          "line": 55,
+          "assertions": 1
+        },
+        {
+          "name": "test_binary_and_large_edits_and_stale_copy_contract_rejected",
+          "line": 63,
+          "assertions": 2
+        },
+        {
+          "name": "test_git_queries_cannot_enable_hooks_programs_network_or_recursive_submodules",
+          "line": 70,
+          "assertions": 8
+        },
+        {
+          "name": "test_all_control_and_native_config_paths_are_explicitly_excluded",
+          "line": 83,
+          "assertions": 5
+        },
+        {
+          "name": "test_binary_download_requires_scoped_path_and_current_revision",
+          "line": 92,
+          "assertions": 1
+        },
+        {
+          "name": "test_execute_only_ancestors_allow_scoped_read_write_without_listing_parent",
+          "line": 120,
+          "assertions": 5
+        },
+        {
+          "name": "test_unresolvable_protected_boundary_is_not_silently_omitted",
+          "line": 146,
+          "assertions": 2
+        },
+        {
+          "name": "test_binary_download_is_exact_bounded_and_requires_current_bytes",
+          "line": 159,
+          "assertions": 6
+        },
+        {
+          "name": "test_download_rejects_large_and_linked_files_without_receipts",
+          "line": 175,
+          "assertions": 4
+        },
+        {
+          "name": "test_text_create_edit_readback_and_replay_preserve_before_image",
+          "line": 187,
+          "assertions": 5
+        },
+        {
+          "name": "test_revision_conflict_preserves_current_file",
+          "line": 198,
+          "assertions": 3
+        },
+        {
+          "name": "test_collision_between_capture_and_publish_preserves_both_versions",
+          "line": 206,
+          "assertions": 4
+        },
+        {
+          "name": "test_copy_and_delete_are_explicit_and_recoverable",
+          "line": 220,
+          "assertions": 3
+        },
+        {
+          "name": "test_only_empty_directories_can_be_removed",
+          "line": 229,
+          "assertions": 3
+        },
+        {
+          "name": "test_symlink_hardlink_and_special_file_previews_are_rejected",
+          "line": 241,
+          "assertions": 1
+        },
+        {
+          "name": "test_directory_symlink_swap_does_not_follow_outside_root",
+          "line": 250,
+          "assertions": 2
+        },
+        {
+          "name": "test_protected_root_and_reserved_metadata_roots_rejected",
+          "line": 258,
+          "assertions": 1
+        },
+        {
+          "name": "test_binary_large_preview_and_listing_budget_are_explicit",
+          "line": 267,
+          "assertions": 4
+        },
+        {
+          "name": "test_retained_receipt_budget_blocks_new_writes",
+          "line": 277,
+          "assertions": 2
+        },
+        {
+          "name": "test_real_git_status_diff_refs_disable_repository_programs",
+          "line": 283,
+          "assertions": 5
+        },
+        {
+          "name": "test_git_view_preserves_staged_unstaged_and_unborn_index_semantics",
+          "line": 316,
+          "assertions": 4
+        },
+        {
+          "name": "test_edit_preserves_executable_mode_and_git_metadata_symlinks_are_rejected",
+          "line": 334,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [
+        "(self.path / 'script').chmod",
+        "ancestor.chmod",
+        "filter_hook.chmod",
+        "hook.chmod",
+        "subprocess.run"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires real Linux descriptor paths and renameat2')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace_ack.py",
+      "sha256": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+      "bytes": 6764,
+      "lines": 116,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_fixed_internal_shape_rejects_digest_overrides_and_mutation_identity",
+          "line": 16,
+          "assertions": 1
+        },
+        {
+          "name": "test_many_accepted_payload_free_operations_do_not_exhaust_lifetime_budget",
+          "line": 47,
+          "assertions": 3
+        },
+        {
+          "name": "test_mismatched_and_unknown_receipts_cannot_be_acknowledged",
+          "line": 58,
+          "assertions": 3
+        },
+        {
+          "name": "test_retained_payload_survives_ack_and_full_budget_allows_one_discard",
+          "line": 69,
+          "assertions": 4
+        },
+        {
+          "name": "test_failed_discard_consumes_the_single_reserved_slot",
+          "line": 83,
+          "assertions": 4
+        },
+        {
+          "name": "test_external_index_recovery_preserves_receipt_until_explicit_discard",
+          "line": 95,
+          "assertions": 3
+        },
+        {
+          "name": "test_ack_retries_empty_directory_left_after_metadata_unlink",
+          "line": 110,
+          "assertions": 2
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires Linux descriptor paths and renameat2')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace_commit.py",
+      "sha256": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+      "bytes": 12458,
+      "lines": 226,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_explicit_head_index_author_and_message_are_required",
+          "line": 22,
+          "assertions": 1
+        },
+        {
+          "name": "test_commit_is_a_durable_mutation_without_arbitrary_git_arguments",
+          "line": 31,
+          "assertions": 1
+        },
+        {
+          "name": "test_commit_only_staged_bytes_preserves_original_index_and_replays_once",
+          "line": 74,
+          "assertions": 7
+        },
+        {
+          "name": "test_callbacks_signing_and_filters_do_not_execute",
+          "line": 89,
+          "assertions": 2
+        },
+        {
+          "name": "test_unborn_and_detached_heads_commit_without_changing_mode",
+          "line": 106,
+          "assertions": 4
+        },
+        {
+          "name": "test_head_and_index_version_conflicts_do_not_publish_or_overwrite",
+          "line": 118,
+          "assertions": 5
+        },
+        {
+          "name": "test_empty_in_progress_and_unmerged_indexes_are_rejected",
+          "line": 132,
+          "assertions": 3
+        },
+        {
+          "name": "test_foreign_index_lock_and_symlinked_refs_are_not_modified",
+          "line": 144,
+          "assertions": 4
+        },
+        {
+          "name": "test_prepared_transaction_rechecks_index_and_aborts_without_overwriting_external_change",
+          "line": 160,
+          "assertions": 6
+        },
+        {
+          "name": "test_lost_publication_result_stays_unknown_with_candidate_and_no_resend",
+          "line": 181,
+          "assertions": 5
+        },
+        {
+          "name": "test_unknown_shutdown_retains_owned_lock_and_lock_replacement_is_never_unlinked",
+          "line": 199,
+          "assertions": 4
+        },
+        {
+          "name": "test_query_refuses_existing_child_without_reaping_or_starting_a_sibling",
+          "line": 216,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [
+        "program.chmod",
+        "subprocess.Popen",
+        "subprocess.run",
+        "target.chmod"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires Linux descriptors and Git ref transactions')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace_index.py",
+      "sha256": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+      "bytes": 17931,
+      "lines": 305,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_stage_is_an_explicit_bounded_versioned_file_selection",
+          "line": 23,
+          "assertions": 1
+        },
+        {
+          "name": "test_unstage_and_recovery_cannot_select_commands_roots_or_unversioned_snapshots",
+          "line": 30,
+          "assertions": 2
+        },
+        {
+          "name": "test_stage_unstage_and_commit_only_selected_paths_preserve_worktree_and_other_index_entries",
+          "line": 91,
+          "assertions": 9
+        },
+        {
+          "name": "test_raw_staging_never_runs_filters_hooks_or_signing_and_binds_file_mode",
+          "line": 108,
+          "assertions": 4
+        },
+        {
+          "name": "test_deletions_are_explicit_and_symlink_hardlink_directory_selections_fail",
+          "line": 126,
+          "assertions": 3
+        },
+        {
+          "name": "test_unborn_sha1_sha256_and_absent_original_index_restore",
+          "line": 141,
+          "assertions": 3
+        },
+        {
+          "name": "test_stale_head_index_and_file_versions_never_publish",
+          "line": 151,
+          "assertions": 4
+        },
+        {
+          "name": "test_prepared_fence_blocks_real_head_changes_and_git_add_before_index_publication",
+          "line": 166,
+          "assertions": 4
+        },
+        {
+          "name": "test_file_change_inside_prepared_fence_aborts_without_index_change",
+          "line": 180,
+          "assertions": 3
+        },
+        {
+          "name": "test_publish_collision_preserves_old_external_and_candidate_indexes_and_explicit_restore",
+          "line": 194,
+          "assertions": 6
+        },
+        {
+          "name": "test_split_index_snapshot_survives_original_shared_index_removal",
+          "line": 214,
+          "assertions": 1
+        },
+        {
+          "name": "test_recovery_revision_conflicts_and_record_paths_cannot_redirect_index_restore",
+          "line": 223,
+          "assertions": 3
+        },
+        {
+          "name": "test_discard_requires_completed_current_manifest_and_frees_retention_slot",
+          "line": 239,
+          "assertions": 4
+        },
+        {
+          "name": "test_replayed_stage_does_not_apply_again_or_recreate_discarded_material",
+          "line": 255,
+          "assertions": 4
+        },
+        {
+          "name": "test_foreign_primary_git_pointer_cannot_authorize_status_stage_or_commit",
+          "line": 268,
+          "assertions": 6
+        },
+        {
+          "name": "test_real_linked_worktree_backlinks_allow_scoped_stage_and_commit",
+          "line": 289,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [
+        "hook.chmod",
+        "script.chmod",
+        "subprocess.run",
+        "target.chmod"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires native Linux Git and descriptor transactions')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace_recovery.py",
+      "sha256": "3daea7f9266219bbab897a333d6036ab8db8c26b5138b6c305f2bb3b7950d7ac",
+      "bytes": 11375,
+      "lines": 182,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_restore_requires_explicit_target_source_slot_and_both_revisions",
+          "line": 20,
+          "assertions": 2
+        },
+        {
+          "name": "test_discard_requires_current_manifest_confirmation_and_no_path",
+          "line": 30,
+          "assertions": 2
+        },
+        {
+          "name": "test_restore_preserves_source_backup_captures_current_target_and_replays_once",
+          "line": 64,
+          "assertions": 6
+        },
+        {
+          "name": "test_removed_file_and_empty_directory_restore_to_explicit_absent_destinations",
+          "line": 77,
+          "assertions": 3
+        },
+        {
+          "name": "test_stale_source_destination_and_injected_record_path_never_redirect_restore",
+          "line": 91,
+          "assertions": 4
+        },
+        {
+          "name": "test_publish_collision_retains_target_backup_source_and_new_content",
+          "line": 106,
+          "assertions": 5
+        },
+        {
+          "name": "test_discard_releases_payload_and_retains_receipt_replay_even_under_byte_pressure",
+          "line": 121,
+          "assertions": 6
+        },
+        {
+          "name": "test_discard_refuses_stale_manifest_and_unknown_or_failed_receipts",
+          "line": 136,
+          "assertions": 4
+        },
+        {
+          "name": "test_discard_capture_race_keeps_every_payload_and_reports_unknown",
+          "line": 151,
+          "assertions": 4
+        },
+        {
+          "name": "test_recovery_inventory_is_bounded_and_cross_project_sources_are_absent",
+          "line": 167,
+          "assertions": 3
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires real Linux descriptor paths and renameat2')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace_resources.py",
+      "sha256": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+      "bytes": 8985,
+      "lines": 166,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_only_catalog_absolute_skill_files_are_accepted",
+          "line": 15,
+          "assertions": 2
+        },
+        {
+          "name": "test_resources_never_accept_operation_binding_or_arbitrary_root_lists",
+          "line": 21,
+          "assertions": 2
+        },
+        {
+          "name": "test_fixed_skill_scopes_read_without_opening_general_codex_home",
+          "line": 56,
+          "assertions": 5
+        },
+        {
+          "name": "test_control_secret_and_nonallowlisted_global_locations_are_rejected",
+          "line": 69,
+          "assertions": 1
+        },
+        {
+          "name": "test_symlink_hardlink_fifo_and_ancestor_links_are_refused",
+          "line": 74,
+          "assertions": 2
+        },
+        {
+          "name": "test_binary_invalid_utf8_and_byte_overflow_are_bounded",
+          "line": 90,
+          "assertions": 1
+        },
+        {
+          "name": "test_directory_preflight_returns_pinned_project_identity_and_rejects_links",
+          "line": 97,
+          "assertions": 3
+        },
+        {
+          "name": "test_skill_parent_moved_after_open_is_conflict_not_success",
+          "line": 109,
+          "assertions": 2
+        },
+        {
+          "name": "test_plugin_preview_hashes_relative_bytes_modes_and_empty_directories",
+          "line": 120,
+          "assertions": 6
+        },
+        {
+          "name": "test_plugin_preview_refuses_git_links_hardlinks_and_special_files",
+          "line": 135,
+          "assertions": 1
+        },
+        {
+          "name": "test_plugin_file_count_depth_and_byte_budgets_are_explicit",
+          "line": 148,
+          "assertions": 4
+        }
+      ],
+      "externalBoundaryCalls": [
+        "target.chmod"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires Linux descriptors and procfs')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace_search.py",
+      "sha256": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+      "bytes": 4335,
+      "lines": 82,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_search_is_literal_and_scoped_with_bounded_inputs",
+          "line": 14,
+          "assertions": 1
+        },
+        {
+          "name": "test_path_and_literal_text_search_report_matching_lines",
+          "line": 34,
+          "assertions": 5
+        },
+        {
+          "name": "test_links_metadata_fifo_and_binary_are_never_traversed_as_text",
+          "line": 47,
+          "assertions": 3
+        },
+        {
+          "name": "test_result_entry_byte_depth_and_time_budgets_report_incomplete",
+          "line": 64,
+          "assertions": 4
+        },
+        {
+          "name": "test_moved_root_or_scope_cannot_return_outside_results",
+          "line": 78,
+          "assertions": 1
+        }
+      ],
+      "externalBoundaryCalls": [],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires Linux descriptors and procfs')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/test_workspace_worktrees.py",
+      "sha256": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+      "bytes": 17010,
+      "lines": 291,
+      "syntax": "valid",
+      "tests": [
+        {
+          "name": "test_checkout_rejects_implicit_directory_entries_and_depth_before_reading_blobs",
+          "line": 25,
+          "assertions": 3
+        },
+        {
+          "name": "test_checkout_exact_entry_budget_counts_shared_parents_once",
+          "line": 35,
+          "assertions": 3
+        },
+        {
+          "name": "test_checkout_accepts_file_in_exactly_32_parent_directories",
+          "line": 44,
+          "assertions": 1
+        },
+        {
+          "name": "test_refs_cannot_be_options_revspec_programs_or_arbitrary_paths",
+          "line": 50,
+          "assertions": 2
+        },
+        {
+          "name": "test_existing_worktrees_require_complete_trusted_binding_not_native_record_paths",
+          "line": 57,
+          "assertions": 3
+        },
+        {
+          "name": "test_create_id_is_the_durable_operation_and_never_accepts_destination_or_binding",
+          "line": 67,
+          "assertions": 1
+        },
+        {
+          "name": "test_create_is_detached_scoped_and_materializes_raw_blobs_without_filters_or_hooks",
+          "line": 133,
+          "assertions": 7
+        },
+        {
+          "name": "test_over_budget_commit_creates_no_checkout_retention_holder_or_git_registration",
+          "line": 157,
+          "assertions": 8
+        },
+        {
+          "name": "test_exact_entry_and_depth_boundaries_create_readable_real_worktrees",
+          "line": 176,
+          "assertions": 4
+        },
+        {
+          "name": "test_archive_restore_preserve_dirty_staged_untracked_and_ignored_bytes_and_index",
+          "line": 190,
+          "assertions": 8
+        },
+        {
+          "name": "test_attach_requires_prior_binding_and_matching_current_revision",
+          "line": 210,
+          "assertions": 5
+        },
+        {
+          "name": "test_user_lock_nested_repository_and_shared_directory_are_not_archived",
+          "line": 224,
+          "assertions": 7
+        },
+        {
+          "name": "test_interruption_after_archive_move_keeps_whole_tree_and_explicit_restore_repairs_backlink",
+          "line": 242,
+          "assertions": 4
+        },
+        {
+          "name": "test_restore_never_overwrites_an_occupied_active_uuid_and_forged_journal_is_not_authority",
+          "line": 257,
+          "assertions": 4
+        },
+        {
+          "name": "test_create_failure_and_retention_budget_preserve_all_partial_material",
+          "line": 269,
+          "assertions": 5
+        },
+        {
+          "name": "test_unsupported_tracked_symlink_is_rejected_before_git_worktree_creation",
+          "line": 279,
+          "assertions": 4
+        }
+      ],
+      "externalBoundaryCalls": [
+        "(self.path / '.git/hooks/post-checkout').chmod",
+        "hook.chmod",
+        "subprocess.run",
+        "target.chmod"
+      ],
+      "skipDecorators": [
+        "unittest.skipUnless(os.name == 'posix', 'Requires real Linux Git, descriptor paths and renameat2')"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Whole-file Python AST inspection; all test scenarios, assertions, privileged/child-process calls and platform skip decorators inventoried",
+        "Cross-check test scenarios and boundary coverage against manually reviewed deployment implementation"
+      ]
+    },
+    {
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "bytes": 7686,
+      "lines": 43,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of fixture setup, cases and assertions against deployment behavior"
+      ]
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "1bf09ac7aa77483d2a6007d105e24ed6b9db15c6515fb5b0b7e15899e92f71aa",
+      "bytes": 60,
+      "lines": 4,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "6d79cb4e93c8a178cfdd4ed4c807abcfe44e4cebbaa4358666cfc852922e4695",
+      "bytes": 9565,
+      "lines": 229,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": ".github/workflows/compatibility.yml",
+      "sha256": "cb55e41310593ecb6cd473fffb85fcd8d6949ad106f21439b483baf46c79a339",
+      "bytes": 782,
+      "lines": 26,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "7a4735508518d42ee7b1baf9eb3a0ed6880a0914847a920e07d3fd028656d947",
+      "bytes": 1601,
+      "lines": 50,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "c24ba9f44fb5ac5c39af31bc2dbb5d4e8ca92bd777d9f2184d32c316c8ab480c",
+      "bytes": 214,
+      "lines": 16,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+      "bytes": 1968,
+      "lines": 11,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "c1f43cdbbf5fce26d091195b7afa1a4a5d84b0e3db8446fe762d9d096868749b",
+      "bytes": 12696,
+      "lines": 72,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "FEATURES.md",
+      "sha256": "bf11f572f04343b18e9c5af025cbc35727b52fd73bf78f8d71f75c43a54cae07",
+      "bytes": 7645,
+      "lines": 48,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "98e0ca7419f338882af4a463a8e92d58b95da2f808c6084bd1715bcaaf640e7d",
+      "bytes": 1064,
+      "lines": 21,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "403b29c9250ac716e123f8164a7f187049a278afd9f9d940b3f8e0cb686a5faa",
+      "bytes": 809,
+      "lines": 7,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "PROBLEM-ACCEPTANCE.md",
+      "sha256": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e",
+      "bytes": 38888,
+      "lines": 330,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "README.md",
+      "sha256": "9135c8275cfa9a2fef3069e466a1a543e6bc3ea552aaaa1afd1e3d658c3e4260",
+      "bytes": 5949,
+      "lines": 93,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "package.json",
+      "sha256": "e3d28a3f128782368e9d0bdde0797f45c06befe926336784fbf91055f7ef5357",
+      "bytes": 1457,
+      "lines": 48,
+      "syntax": "valid",
+      "topLevel": [
+        "name",
+        "version",
+        "private",
+        "type",
+        "engines",
+        "packageManager",
+        "codexVersion",
+        "harnessAuthentication",
+        "scripts",
+        "dependencies",
+        "devDependencies"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63",
+      "bytes": 102240,
+      "lines": 3111,
+      "status": "reviewed",
+      "methods": [
+        "Whole-file restricted-lock validation using deployment dependency_input",
+        "All 336 package/snapshot identities, SHA512 resolutions and direct importer exact pins checked"
+      ]
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "acef6f475d96438e25719bb19304e5b8eb05822e3dc70f4a1cb708a051066c16",
+      "bytes": 275,
+      "lines": 12,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "16ce8c0c0f8fa79d956cac1d7d1d2bdc182e5ab564ac3e472dd65c22138f42b9",
+      "bytes": 12013,
+      "lines": 155,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/compatibility-watch.mjs",
+      "sha256": "a474298e01e90fd87f364327e99f336e77f33d2398faaca9c2744ef98aa3bf6f",
+      "bytes": 2146,
+      "lines": 25,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/prepare-ci-native.mjs",
+      "sha256": "330ac0475fde81efd586d525127e74b3e2f833980df53e3089ae58fcc323925d",
+      "bytes": 3292,
+      "lines": 52,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/python-tests.py",
+      "sha256": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab",
+      "bytes": 4511,
+      "lines": 104,
+      "syntax": "valid",
+      "tests": [],
+      "externalBoundaryCalls": [
+        "spec.loader.exec_module"
+      ],
+      "skipDecorators": [],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/release-audit.mjs",
+      "sha256": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b",
+      "bytes": 12356,
+      "lines": 198,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/release-authorization.mjs",
+      "sha256": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e",
+      "bytes": 2431,
+      "lines": 27,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/reviewed-history.mjs",
+      "sha256": "a7f5201a2ece3bbf15b526f8e6c60cc288e8c7a066fa87af5504979efc31a4e2",
+      "bytes": 5594,
+      "lines": 62,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "3c19e9a65abb7fd03e72457a582318a175590505a3be300327a8988fce01c30f",
+      "bytes": 12536,
+      "lines": 137,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "c8c5470bc544960265a262a74bc9b72ab9d7b25dd431218432844377aabb4e72",
+      "bytes": 18388,
+      "lines": 204,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432",
+      "bytes": 2681,
+      "lines": 38,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d",
+      "bytes": 13256,
+      "lines": 150,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/fixtures/native-env.ts",
+      "sha256": "3f2e70c6a85bf7e780ff3013e1d0844cb9118273f79c31551c03c9ad9cbf3c31",
+      "bytes": 2060,
+      "lines": 31,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "2fa398365b287ee7eaf3292682c7c17df86aa8527ca7800a33c9a8061ee2b909",
+      "bytes": 10282,
+      "lines": 141,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/compatibility-watch.test.ts",
+      "sha256": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89",
+      "bytes": 785,
+      "lines": 9,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/prepare-ci-native.test.ts",
+      "sha256": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371",
+      "bytes": 4075,
+      "lines": 55,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/release-audit.test.ts",
+      "sha256": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+      "bytes": 12373,
+      "lines": 175,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/reviewed-history.test.ts",
+      "sha256": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5",
+      "bytes": 1942,
+      "lines": 18,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/run-tests.test.ts",
+      "sha256": "560f41f999eb7a63864744cd050d893c4160ac20d6514b4f3d0873db40da4c63",
+      "bytes": 10631,
+      "lines": 115,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "2fd376fbeeee28bced8fcc57db7cf6da7f755d3e439342c4e97deec2d38a0f99",
+      "bytes": 10559,
+      "lines": 121,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tests/tooling/windows-controller-preflight.test.ts",
+      "sha256": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e",
+      "bytes": 2158,
+      "lines": 30,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "Admission, test-selection, evidence authorization, process/environment and failure-status cross-check"
+      ]
+    },
+    {
+      "path": "tsconfig.server.json",
+      "sha256": "848ce47eaea990c9cda7bf3efecd3aa561c31035fbf4936cfbbee11f4b71c558",
+      "bytes": 435,
+      "lines": 10,
+      "syntax": "valid",
+      "topLevel": [
+        "compilerOptions",
+        "include",
+        "exclude"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+      "sha256": "2cd452d823265035bdfd2a8bbb63b5878b65301662d15e346d704e488a03cd19",
+      "bytes": 6013,
+      "lines": 42,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/account-watch-index-boundaries.json",
+      "sha256": "2f948165437a7b6b9e0b80843e6773aca62c7821b48486540164786a83ed518d",
+      "bytes": 3699,
+      "lines": 56,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "reports",
+        "sourceHashesCapturedAtWriting",
+        "verified",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/attachments-linux.json",
+      "sha256": "c082938f0e33b6edc80622db13295fad255bfc03079501e17ec336f310730360",
+      "bytes": 6547,
+      "lines": 165,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "kind",
+        "createdAt",
+        "sourceFrozen",
+        "formalAudit",
+        "independentCleanRounds",
+        "fullSuiteRun",
+        "identity",
+        "nodeVersion",
+        "sourceFiles",
+        "archive",
+        "sourceManifestSha256",
+        "sourceCriticalFiles",
+        "command",
+        "result",
+        "remoteResult",
+        "runner",
+        "coverage",
+        "assertions",
+        "boundaries",
+        "isolation",
+        "limits"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/automation-scheduler.json",
+      "sha256": "fccf009866fd7e09300d29d6a5c08bac0856b3662967f7e52289f7a6fff7e5de",
+      "bytes": 2113,
+      "lines": 44,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "kind",
+        "reports",
+        "verified",
+        "sourceHashesCapturedAtWriting",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/capability-coverage.json",
+      "sha256": "f6ffcf29b4e1a1c16f0cd997789d0ede5196260bc2b9d9d5f63e0646eaafef98",
+      "bytes": 326262,
+      "lines": 7635,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "kind",
+        "createdAt",
+        "cliVersion",
+        "sourceFrozen",
+        "formalAudit",
+        "independentCleanRounds",
+        "fullSuiteRun",
+        "newRuntimeCalls",
+        "methodology",
+        "classificationLegend",
+        "counts",
+        "contractSources",
+        "commonRouting",
+        "commonToolNavigation",
+        "primaryWebSources",
+        "methods",
+        "evidenceGroups",
+        "additionalWorkflows",
+        "pendingSummary",
+        "remainingAcceptance",
+        "limits"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance",
+        "Exact complete typed/JSON method set and classification count comparison against formal generated contracts; evidence-group membership and referenced file/line validation"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/extensions-foundation.json",
+      "sha256": "59fade19360d539eecb7a88ccc31a85f10e1b11ee4aae84b9bffab871852cfc3",
+      "bytes": 1617,
+      "lines": 35,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "fullSuiteRun",
+        "kind",
+        "cli",
+        "checks",
+        "reports",
+        "files",
+        "incomplete"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/linux-cli-crossuid.json",
+      "sha256": "00ad2f8976dc0ec547d38d7e8bf9e059f96ffc0566e139bca2d9eb10b8c301e8",
+      "bytes": 23449,
+      "lines": 815,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "kind",
+        "formalAudit",
+        "fullSuiteRun",
+        "passed",
+        "execution",
+        "checks",
+        "epochs",
+        "cleanup",
+        "healthRequests",
+        "modelPostRequests",
+        "corrections",
+        "limitedProcessObservation",
+        "tests",
+        "attempts",
+        "provenance",
+        "limits"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/mcp-configuration.json",
+      "sha256": "c8b34bda9090a2b0a64cb39899768f886e8f7bf058dcd0ca3d6e34f4f814a3ec",
+      "bytes": 1479,
+      "lines": 35,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "kind",
+        "reports",
+        "verified",
+        "sourceHashesCapturedAtWriting",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/migration-imports.json",
+      "sha256": "0efcf1987db43c0ba5525290ac3542f6605bce733151cbebf2fc5f8354eae327",
+      "bytes": 1864,
+      "lines": 42,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "kind",
+        "reports",
+        "verified",
+        "sourceHashesCapturedAtWriting",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/native-managed-config-probe.json",
+      "sha256": "f37043fede87a402f4e15a11ddd46e9c4f8c185c14581d33761fc5f022681e68",
+      "bytes": 1354,
+      "lines": 30,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "kind",
+        "createdAt",
+        "cli",
+        "host",
+        "identity",
+        "unit",
+        "runtimeMilliseconds",
+        "checks",
+        "resultSha256",
+        "scripts",
+        "limits",
+        "fullSuiteRun"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/prediction-cloud-native.json",
+      "sha256": "2aa2ade9a3f11c16fbc935e3cec41b06b5769fd9a51de955a5eecc6f801cb9f7",
+      "bytes": 5563,
+      "lines": 150,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "kind",
+        "cliVersion",
+        "formalAudit",
+        "fullSuiteRun",
+        "prediction",
+        "cloud",
+        "mcpLogout",
+        "checks",
+        "sourceHashes",
+        "limits"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/private-account-media.json",
+      "sha256": "904643ba575d6cdf88a18bc37d8e16b5e4a6a17fbec14e52adc72bd43fbc333e",
+      "bytes": 5564,
+      "lines": 106,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "sourceFrozen",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "reports",
+        "sourceHashesCapturedAtWriting",
+        "verified",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/process-remote-search-ui.json",
+      "sha256": "d9161855872476f9f58769a2b210d087ac72b936d437351d2823d2ddaff78739",
+      "bytes": 3023,
+      "lines": 52,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "reports",
+        "linuxSearch",
+        "verified",
+        "sourceHashesCapturedAtWriting",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/provider-boundary-and-host-check.json",
+      "sha256": "b4b0bb77f7c52c0f9186373c4a72e686444410920f7ed8b3abd4f365b34b3edf",
+      "bytes": 10714,
+      "lines": 365,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "fullSuiteRun",
+        "kind",
+        "cli",
+        "host",
+        "cases",
+        "hostCheck",
+        "findingsResolvedInDesign",
+        "limits",
+        "localEvidenceSha256"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/runtime-guardian-cli-audio.json",
+      "sha256": "a996da07fc37936341316032e16062903d6c926651123b73209ad812412157a9",
+      "bytes": 8604,
+      "lines": 159,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "kind",
+        "cliVersion",
+        "fullSuiteRun",
+        "formalAudit",
+        "features",
+        "reports",
+        "limits",
+        "moduleHashes"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/sharing-feedback-and-trust.json",
+      "sha256": "f392937d40772657aeb05b0544c4d2a28343bc31eeee8fc0f365d02e2277f6fb",
+      "bytes": 3201,
+      "lines": 57,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "kind",
+        "reports",
+        "verified",
+        "sourceHashesCapturedAtWriting",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/timeline-wire-contract.json",
+      "sha256": "93a76c298224852aafeecabb0df59a629195e1023a742da78543a677806d3bca",
+      "bytes": 3382,
+      "lines": 63,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "method",
+        "probe",
+        "isolatedSource",
+        "actualWireMinimal",
+        "generatedJsonVariant",
+        "typescriptSource",
+        "generatedSha256",
+        "resolution",
+        "relatedObservedLimits",
+        "reports",
+        "pagination"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/workspace-foundation-linux.json",
+      "sha256": "46bdb5fa5c92230b17189f966264c75e8f00fe7e54d6bd2c558ed067ae558ac9",
+      "bytes": 8083,
+      "lines": 41,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "kind",
+        "createdAt",
+        "host",
+        "root",
+        "sourceSha256",
+        "results",
+        "boundaries",
+        "fullSuiteRun"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/workspace-positive-witness.json",
+      "sha256": "2bd493a00e26a41c2a693db310b85def2d14fb60d7e944e81bc1ba6f4b6429a1",
+      "bytes": 1370,
+      "lines": 33,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "fullSuiteRun",
+        "kind",
+        "reports",
+        "checks",
+        "files",
+        "incomplete"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "verification/feature-evidence/worktree-registration.json",
+      "sha256": "26b024802688c5a142ce579155dd2f43ff038095a31082d3b67b10a4223a0d69",
+      "bytes": 1971,
+      "lines": 38,
+      "syntax": "valid",
+      "topLevel": [
+        "schemaVersion",
+        "createdAt",
+        "cli",
+        "fullSuiteRun",
+        "independentCleanRounds",
+        "kind",
+        "reports",
+        "verified",
+        "sourceHashesCapturedAtWriting",
+        "limitations"
+      ],
+      "status": "reviewed",
+      "methods": [
+        "Full JSON parse and recursive structural/source-reference inspection",
+        "Claim/limitation and historical provenance review; historical results are not current acceptance"
+      ]
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "11e821eb2907e2c9b6e0465f5960d8f8fbe2df70c6c119801895f409f1d2cb9b",
+      "bytes": 283,
+      "lines": 6,
+      "status": "reviewed",
+      "methods": [
+        "Complete-byte hash verification",
+        "Manual semantic review of full source or document",
+        "User-visible statement and configuration consistency cross-check"
+      ]
+    }
+  ],
+  "reviewMethods": [
+    "Read AGENTS.md first; two clean complete rounds for this user-authorized release supersede the repository default three.",
+    "Independently read deployment implementation, CLI/install/account/HTTPS and recovery transitions, pinned build/runtime, root/native/gateway ownership, operation publication and workspace helpers.",
+    "Read all scripts, CI jobs, tooling tests, root documentation and deployment guide; inspect command examples and compatibility/rollback qualifications.",
+    "Parse every scoped Python file and enumerate all 366 test cases, assertions, platform skips and external/privileged boundaries. Manually review critical account/HTTPS/recovery fixtures; cross-check remaining fixture coverage against implementation.",
+    "Parse all historical feature-evidence JSON; validate source references, count and method relationships, read claims and limits. Preserve stale source-hash evidence as historical, never as a current test result.",
+    "Check lockfile and package/workspace pins offline, without dependency installation or network calls.",
+    "No prior audit conclusion used to establish correctness. Parent-reported findings outside this scope are not classified by this report."
+  ],
+  "focusedBoundaryReview": [
+    "Single admin bootstrap salted scrypt/hash-only publication, root/gateway permissions, password input handling and recovery pending semantics.",
+    "Account login verification through loopback with declared origin, cookie handling, proof recheck and invalid password/redirect/error rejection.",
+    "Built-in HTTPS account prerequisites, strict legacy ownership, transaction backup/restore, removal of old identity service only after account verification.",
+    "Application and control authentication downgrade guards; failed legacy-to-account upgrade remains stopped and repair --target candidate revalidates the retained account release.",
+    "Pinned runtime/dependency staging and isolated build boundaries; root-owned release manifests and bounded no-link archive/export behavior.",
+    "Management requests and journals preserve delivery uncertainty, exact identity and recovery barriers.",
+    "Workspace paths, data/index backup recovery, Git lock publication, acknowledgement/witness authority and retained managed worktrees.",
+    "Full-test gate remains default-three unless a separate concrete explicit authorization record applies; skipped/incomplete tests are not full passes.",
+    "CI selection, stable report completeness, isolated native environment and fail-closed result handling."
+  ],
+  "structuredChecks": {
+    "lock": {
+      "packages": 336,
+      "snapshots": 336,
+      "allRegistrySha512": true,
+      "directPinsMatch": true,
+      "reviewedWorkspaceMatch": true,
+      "noRemoteCalls": true
+    },
+    "capabilityInventory": {
+      "typedMethods": 178,
+      "jsonMethods": 175,
+      "evidenceGroups": 50,
+      "extraWorkflows": 15,
+      "methodCoverageExact": true,
+      "classificationCountsMatch": true,
+      "noNewExternalAcceptanceClaim": true
+    },
+    "evidence": [
+      {
+        "path": "verification/feature-evidence/account-watch-index-boundaries.json",
+        "sourceReferences": 8,
+        "sourceHashClaims": 8,
+        "currentHashMatches": 0,
+        "historicalHashDifferences": 8,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T22:29:44.375Z",
+          "fullSuiteRun": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "No real credit redemption, outbound email, external OAuth login, microphone session, native biometric enrollment/signature, paid inference or external MCP call was performed.",
+            "Browser component tests are not actual deployed API/WebSocket integration. Full cross-UID integration, latest isolated-instance deployment and final audit gate remain pending.",
+            "Point-in-time source hashes describe this batch, not a frozen final repository snapshot."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/attachments-linux.json",
+        "sourceReferences": 7,
+        "sourceHashClaims": 7,
+        "currentHashMatches": 5,
+        "historicalHashDifferences": 2,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T23:01:06.251937+00:00",
+          "fullSuiteRun": false,
+          "formalAudit": false,
+          "sourceFrozen": false,
+          "independentCleanRounds": 0,
+          "limits": [
+            "The Windows-only unlink-denial case was not executed in this Linux run; no combined cross-platform zero-skip claim is made.",
+            "These are targeted attachment file/identity tests, not a full gateway/native cross-UID media integration.",
+            "Critical source and test bytes matched the local files immediately after execution. Other agents may continue changing the repository."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/automation-scheduler.json",
+        "sourceReferences": 4,
+        "sourceHashClaims": 4,
+        "currentHashMatches": 1,
+        "historicalHashDifferences": 3,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T21:56:42.884Z",
+          "fullSuiteRun": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+            "No paid provider inference. Browser UI evidence is recorded separately; current online 120 instance has not received these feature batches."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/capability-coverage.json",
+        "sourceReferences": 355,
+        "sourceHashClaims": 501,
+        "currentHashMatches": 285,
+        "historicalHashDifferences": 216,
+        "claimBoundary": {
+          "createdAt": "2026-10-25T20:37:58.332258+00:00",
+          "fullSuiteRun": false,
+          "formalAudit": false,
+          "sourceFrozen": false,
+          "independentCleanRounds": 0,
+          "limits": [
+            "This is a read-only capability trace of moving source, not a complete security audit or acceptance of all optional fields.",
+            "No real ChatGPT login, paid model, external voice, AWS account, cloud submission, remote marketplace sharing, OAuth logout or workspace-owner email was performed.",
+            "Existing local-native fixtures prove their bounded protocol and process paths; mock UI tests prove interaction and payload construction, not live service access.",
+            "Production helper paths are Linux native UID boundaries. The separate Linux fixed CLI/diagnostics cross-UID fixture passed 40 checks at production TasksMax=256/MemoryMax=3GiB, with observed peak112/max-events0 and confirmed UID cleanup. Its bounded terminal client emulated xterm query responses; this is not browser screenshot acceptance or full Linux /hooks trust interaction. It used no real credentials or external business service. Windows development fallbacks do not certify Windows sandbox setup.",
+            "Unknown operations remain unknown without independent proof; feature coverage never authorizes replay or converts helper-owned journals into positive acceptance."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/extensions-foundation.json",
+        "sourceReferences": 4,
+        "sourceHashClaims": 4,
+        "currentHashMatches": 0,
+        "historicalHashDifferences": 4,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T20:56:19.602Z",
+          "fullSuiteRun": false,
+          "incomplete": [
+            "Extension browser flows are still being implemented.",
+            "Global skill resource reading/creation, hook trust, sharing/import workflows and external account eligibility are not accepted by this foundation evidence.",
+            "Managed user configuration migration requires the separate Linux deployment tests."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/linux-cli-crossuid.json",
+        "sourceReferences": 9,
+        "sourceHashClaims": 9,
+        "currentHashMatches": 6,
+        "historicalHashDifferences": 3,
+        "claimBoundary": {
+          "createdAt": "2026-10-25T07:39:08.634Z",
+          "fullSuiteRun": false,
+          "formalAudit": false,
+          "limits": [
+            "No personal homes/credentials, paid inference, external MCP, authenticated cloud submission or diff application.",
+            "The terminal transport used a bounded protocol probe emulating standard xterm query responses, not a real browser/Xterm screenshot acceptance. Native Linux CLI first-screen output and process lifecycle were verified; full Linux /hooks trust interaction was not exercised.",
+            "The only HTTP requests were local rejected health probes HEAD /v1/responses and GET /v1/models; these were not model inference requests.",
+            "Earlier source hashes remain point-in-time evidence. Root may normalize CRLF to LF before the frozen audit snapshot. No full suite or formal clean audit performed."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/mcp-configuration.json",
+        "sourceReferences": 2,
+        "sourceHashClaims": 2,
+        "currentHashMatches": 1,
+        "historicalHashDifferences": 1,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T21:56:42.886Z",
+          "fullSuiteRun": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+            "This does not establish external MCP credentials or business-tool success."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/migration-imports.json",
+        "sourceReferences": 2,
+        "sourceHashClaims": 2,
+        "currentHashMatches": 2,
+        "historicalHashDifferences": 0,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T21:56:42.886Z",
+          "fullSuiteRun": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+            "Preview is current native migration inventory, not frozen source bytes. Imported MCP/configuration can activate under the existing project policy.",
+            "Hook content trust remains owned by official CLI; no undocumented trust store or bypass flag used."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/native-managed-config-probe.json",
+        "sourceReferences": 0,
+        "sourceHashClaims": 0,
+        "currentHashMatches": 0,
+        "historicalHashDifferences": 0,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T20:30:01.930Z",
+          "fullSuiteRun": false,
+          "limits": [
+            "No turn/start or paid inference; ephemeral thread creation only.",
+            "Private systemd mount namespace; did not write host /etc/codex.",
+            "Production deployment migration/host-policy preservation is still to be implemented and tested.",
+            "Windows ProgramData environment substitution did not load requirements; no Windows system-policy files changed.",
+            "The separate -c probe demonstrated nested user header retention, so CLI field overrides are not used as a provider policy boundary."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/prediction-cloud-native.json",
+        "sourceReferences": 11,
+        "sourceHashClaims": 11,
+        "currentHashMatches": 6,
+        "historicalHashDifferences": 5,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T23:03:20.008Z",
+          "fullSuiteRun": false,
+          "formalAudit": false,
+          "limits": [
+            "Snapshot still under parallel implementation; these hashes are point-in-time targeted evidence, not the frozen audit snapshot.",
+            "Paid or external prediction and authenticated cloud task submission/application were not exercised.",
+            "Result failure/null/eligibility is native-account/provider dependent.",
+            "No full suite or new formal audit performed."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/private-account-media.json",
+        "sourceReferences": 9,
+        "sourceHashClaims": 9,
+        "currentHashMatches": 2,
+        "historicalHashDifferences": 7,
+        "claimBoundary": {
+          "createdAt": "2026-10-25T07:39:42.866Z",
+          "fullSuiteRun": false,
+          "sourceFrozen": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "No paid inference, external MCP, real OAuth flow, actual email or credit redemption was performed.",
+            "The Windows attachment report run-sEFZJm has two platform skips, not a complete pass. Complementary Linux attachment verification is recorded separately in attachments-linux.json.",
+            "Latest isolated 120 instance deployment, unchanged-source independent audits and full suites remain pending."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/process-remote-search-ui.json",
+        "sourceReferences": 5,
+        "sourceHashClaims": 5,
+        "currentHashMatches": 1,
+        "historicalHashDifferences": 4,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T22:10:01.040Z",
+          "fullSuiteRun": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "UI unit tests and read-only browser fixtures do not establish actual paid model, external exec-server, account pairing, or microphone service acceptance.",
+            "Linux search uses nobody under a fresh /var/tmp fixture; online services were not modified.",
+            "Cross-identity full-service feature integration and final independent full-repository audit gate remain pending."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/provider-boundary-and-host-check.json",
+        "sourceReferences": 0,
+        "sourceHashClaims": 0,
+        "currentHashMatches": 0,
+        "historicalHashDifferences": 0,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T20:56:19.600Z",
+          "fullSuiteRun": false,
+          "limits": [
+            "All credentials were synthetic. PrivateNetwork isolated every probe; the loopback proxy rejected CONNECT requests and external traffic could not leave its network namespace.",
+            "HTTP and WebSocket requests reached only the managed loopback endpoint. Deliberate 503 responses verify routing, not commercial model success.",
+            "The original combined probe exit code was 1 because its disproven plus-prefix premise was retained as a negative case; both provider cases exited 0. The replacement independent-check-unit probe passed.",
+            "No installed harness services or host /etc/codex policy were modified."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/runtime-guardian-cli-audio.json",
+        "sourceReferences": 11,
+        "sourceHashClaims": 11,
+        "currentHashMatches": 6,
+        "historicalHashDifferences": 5,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T22:54:00.538Z",
+          "fullSuiteRun": false,
+          "formalAudit": false,
+          "limits": [
+            "No commercial inference, personal home or credential use, external MCP calls, or real external account login/pairing.",
+            "Real provider WebRTC audio, external remote pairing and native background-terminal termination with a running external task remain separate integrations.",
+            "Windows local attachments tests skip POSIX symlink/FIFO substitution and native read-only group permissions; cross-UID Linux acceptance is owned by the root reviewer.",
+            "Linux owned-process helper cases were run separately by root as nobody on isolated host 120; this evidence does not substitute those results or claim Linux CLI PTY acceptance.",
+            "Prior failed fixtures were corrected: permission marker expectation omitted native network:null; provider test awaited stale idle before the first local request; tooling Python default was a WindowsApps stub. Corrected targeted reports are recorded above."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/sharing-feedback-and-trust.json",
+        "sourceReferences": 7,
+        "sourceHashClaims": 7,
+        "currentHashMatches": 3,
+        "historicalHashDifferences": 4,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T21:56:42.889Z",
+          "fullSuiteRun": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+            "No remote plugin publication, feedback upload, paid inference, or external MCP execution occurred.",
+            "Native feedback archives are not claimed to be fully redacted. Directory preflight is not isolation from malicious concurrent writes by the same native UID.",
+            "A saved project trust preference applies on subsequent project loads and does not approve changed Hook hashes."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/timeline-wire-contract.json",
+        "sourceReferences": 0,
+        "sourceHashClaims": 0,
+        "currentHashMatches": 0,
+        "historicalHashDifferences": 0,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T21:58:05.737Z",
+          "fullSuiteRun": false
+        }
+      },
+      {
+        "path": "verification/feature-evidence/workspace-foundation-linux.json",
+        "sourceReferences": 0,
+        "sourceHashClaims": 0,
+        "currentHashMatches": 0,
+        "historicalHashDifferences": 0,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T20:30:01.927Z",
+          "fullSuiteRun": false
+        }
+      },
+      {
+        "path": "verification/feature-evidence/workspace-positive-witness.json",
+        "sourceReferences": 4,
+        "sourceHashClaims": 4,
+        "currentHashMatches": 0,
+        "historicalHashDifferences": 4,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T20:56:19.603Z",
+          "fullSuiteRun": false,
+          "incomplete": [
+            "New witness end-to-end Linux service and browser deployment has not been performed."
+          ]
+        }
+      },
+      {
+        "path": "verification/feature-evidence/worktree-registration.json",
+        "sourceReferences": 4,
+        "sourceHashClaims": 4,
+        "currentHashMatches": 2,
+        "historicalHashDifferences": 2,
+        "claimBoundary": {
+          "createdAt": "2026-10-24T21:56:42.887Z",
+          "fullSuiteRun": false,
+          "independentCleanRounds": 0,
+          "limitations": [
+            "Feature implementation continues; these results are not a frozen full-repository acceptance snapshot.",
+            "Linux filesystem preservation evidence is separately recorded in workspace-worktrees.json. Full service/helper/CLI cross-identity integration remains pending."
+          ]
+        }
+      }
+    ]
+  },
+  "syntaxInspection": {
+    "pythonFiles": 79,
+    "valid": true,
+    "testCases": 366
+  },
+  "supplementalFormalContracts": [
+    "protocol/ts/ClientRequest.ts",
+    "protocol/json/ClientRequest.json"
+  ],
+  "findings": [],
+  "skippedFiles": [],
+  "testsExecutedThisReview": [],
+  "limitations": [
+    "This is the assigned 138-file scope, not a declaration that the whole repository is clean.",
+    "No full suite, deployment, real systemd/TLS operation, remote-host execution, external provider or paid model call performed.",
+    "Historical evidence retains its original date/hash/platform/service limitations; source drift is disclosed and does not establish a new test pass.",
+    "Formal protocol contracts were used as contracts only. No old sibling implementation, Git history, personal home or credentials inspected.",
+    "Read-only audit of frozen source. Only ignored .work audit scripts and results were written."
+  ],
+  "supportingFiles": [
+    ".work/v210-round2-deploy-file-analysis.json",
+    ".work/v210-round2-deploy-structured-analysis.json",
+    ".work/v210-round2-deploy-inspection.py",
+    ".work/v210-round2-deploy-structured.py"
+  ],
+  "roundId": "v210-round2",
+  "reviewerId": "v210-round2-deploy-tooling",
+  "digest": "862331f89cfb1e65c9b52d1e2869f1a1472ef4be1835a3ab3d59a39dc71e9f46",
+  "startedAt": "2026-10-26T16:13:54.707Z",
+  "startedAtBasis": "Frozen inventory creation timestamp is the lower bound of this complete round; not represented as reviewer assignment time.",
+  "originalScopeLabels": "deployment and tooling_docs",
+  "scopes": [
+    "deployment-release"
+  ],
+  "skipped": [],
+  "method": "[\"Read AGENTS.md first; two clean complete rounds for this user-authorized release supersede the repository default three.\",\"Independently read deployment implementation, CLI/install/account/HTTPS and recovery transitions, pinned build/runtime, root/native/gateway ownership, operation publication and workspace helpers.\",\"Read all scripts, CI jobs, tooling tests, root documentation and deployment guide; inspect command examples and compatibility/rollback qualifications.\",\"Parse every scoped Python file and enumerate all 366 test cases, assertions, platform skips and external/privileged boundaries. Manually review critical account/HTTPS/recovery fixtures; cross-check remaining fixture coverage against implementation.\",\"Parse all historical feature-evidence JSON; validate source references, count and method relationships, read claims and limits. Preserve stale source-hash evidence as historical, never as a current test result.\",\"Check lockfile and package/workspace pins offline, without dependency installation or network calls.\",\"No prior audit conclusion used to establish correctness. Parent-reported findings outside this scope are not classified by this report.\"]",
+  "methodDetails": [
+    "Read AGENTS.md first; two clean complete rounds for this user-authorized release supersede the repository default three.",
+    "Independently read deployment implementation, CLI/install/account/HTTPS and recovery transitions, pinned build/runtime, root/native/gateway ownership, operation publication and workspace helpers.",
+    "Read all scripts, CI jobs, tooling tests, root documentation and deployment guide; inspect command examples and compatibility/rollback qualifications.",
+    "Parse every scoped Python file and enumerate all 366 test cases, assertions, platform skips and external/privileged boundaries. Manually review critical account/HTTPS/recovery fixtures; cross-check remaining fixture coverage against implementation.",
+    "Parse all historical feature-evidence JSON; validate source references, count and method relationships, read claims and limits. Preserve stale source-hash evidence as historical, never as a current test result.",
+    "Check lockfile and package/workspace pins offline, without dependency installation or network calls.",
+    "No prior audit conclusion used to establish correctness. Parent-reported findings outside this scope are not classified by this report."
+  ],
+  "inspectionDetails": [
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/accounts.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/journal_schema.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/provider_lifecycle.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/sandbox.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/test_accounts.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_provider_lifecycle.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_sandbox.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_ack.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/security.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "scripts/ci-checks.mjs",
+    "scripts/compatibility-watch.mjs",
+    "scripts/prepare-ci-native.mjs",
+    "scripts/python-tests.py",
+    "scripts/release-audit.mjs",
+    "scripts/release-authorization.mjs",
+    "scripts/reviewed-history.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "scripts/windows-controller-preflight.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ]
+}

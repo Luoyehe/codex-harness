@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "fix": "v210-ledger-capacity",
+  "completedAt": "2026-10-26T16:52:03.686Z",
+  "status": "complete",
+  "sourceFiles": [
+    "src/core/ledger.ts",
+    "tests/core/ledger-capacity.test.ts"
+  ],
+  "sha256": {
+    "src/core/ledger.ts": "053497362ae5dfe9190ed774bad1d96b912befe2b607021ba946aa39cd834adc",
+    "tests/core/ledger-capacity.test.ts": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d"
+  },
+  "invariants": [
+    "New admission reserves 2MiB for each pending, dispatching, and recoverable unknown receipt without double-charging its actual payload.",
+    "Management and workspace confirmations validate in one transaction against physical payload bytes and other pending promises; worktree metadata changes only after matching identity and capacity.",
+    "Only already oversized legacy journals may retain an over-limit total during strict payload-reducing trusted confirmation; equal or increasing confirmations remain blocked.",
+    "Constructor repairs UTF-8 payload accounting without deleting receipts; each active writer maintains bytes.",
+    "Successful and failed settlement remains individually bounded. A full legacy journal can retain its original payload and change only state rather than grow or fabricate acceptance.",
+    "Unknown readback never exposes retained legacy result as accepted and error delivery agrees with persisted state.",
+    "All-confirmed journals can export and rotate; old operation IDs remain fenced."
+  ],
+  "tests": {
+    "command": "node scripts/run-tests.mjs --targeted tests/core/ledger-capacity.test.ts tests/core/ledger.test.ts tests/core/operation-retention.test.ts tests/core/automation-retention.test.ts tests/gateway/dispatch.test.ts tests/gateway/worktrees.test.ts tests/gateway/workspace-ack.test.ts tests/gateway/receipt-maintenance.test.ts tests/gateway/automation-scheduler.test.ts",
+    "evidence": ".work/test-results/run-vwXSal/vitest.json",
+    "success": true,
+    "total": 81,
+    "passed": 81,
+    "failed": 0,
+    "files": 9,
+    "newCapacityRegressions": 16
+  },
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+    "exitCode": 0
+  },
+  "boundary": [
+    "No full suite, live deployment, paid inference or external MCP was run.",
+    "Root reviewer owns the companion offline deployment-journal recovery update; this agent did not modify deploy files.",
+    "Previously oversized accepted evidence is never deleted or rewritten to force capacity. If no fitting or strictly smaller positive proof exists, its uncertainty and actual overage remain visible.",
+    "This fix invalidates the previous audit snapshot; a fresh audit gate is still required."
+  ]
+}

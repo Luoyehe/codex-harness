@@ -1,15 +1,12 @@
-"""Optional, isolated Caddy + Authelia edge with persistent identity/key pairing."""
+"""Caddy HTTPS for built-in accounts, with reversible legacy identity migration."""
 from __future__ import annotations
 
-import getpass
 import base64
 import hashlib
 import json
 import os
 import re
-import secrets
 import stat
-import sys
 import urllib.request
 import uuid
 from pathlib import Path
@@ -21,14 +18,12 @@ from .safe_fs import extract_tar, stable_identity
 from .system import run
 from .units import render_units, render_edge_units
 from .ownership import require_owned, regular, present
+from .accounts import verify_account_login
 
 CADDY_VERSION = "2.11.7"
-AUTHELIA_VERSION = "4.39.28"
 EDGE_HASHES = {
     ("caddy", "amd64"): "727b91701a392de6ebc5027509f548bf39979e5216340d0faed8fa5e69c84f8b",
     ("caddy", "arm64"): "d8fc6d179a5d283028a472a5618564f6ad8a86fed513e64f032b3b0b7cc45e42",
-    ("authelia", "amd64"): "e8ad9ff965cbf3b93138945e13cb4b7874c999c254772b2bb77952863177699c",
-    ("authelia", "arm64"): "089f3f8bdcba962024e15283811256cea28032d1cdccc56cf4e4c1b284022faa",
 }
 
 
@@ -43,10 +38,12 @@ def site_origin(host: str, port: int) -> str:
     return "https://" + host + (":" + str(port) if port != 443 else "")
 
 
-def render_caddy(host: str, auth_host: str, gateway_port: int, auth_port: int, *, tls: str = "acme",
+def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port: int, *, tls: str = "acme",
                  http_port: int = 80, https_port: int = 443, certificate: str | None = None, private_key: str | None = None) -> str:
     domain_name(host)
-    domain_name(auth_host)
+    if auth_host is not None:
+        domain_name(auth_host)
+    require(type(gateway_port) is int and 1024 <= gateway_port <= 65535, "Invalid gateway port")
     require(tls in ("acme", "internal", "provided"), "Unknown TLS mode")
     require(type(http_port) is int and 1 <= http_port <= 65535 and http_port != https_port, "Invalid HTTP port")
     tls_line = ""
@@ -57,6 +54,22 @@ def render_caddy(host: str, auth_host: str, gateway_port: int, auth_port: int, *
                 all(re.fullmatch(r"/[a-zA-Z0-9/_.-]+", path) for path in (certificate, private_key)), "Invalid managed TLS paths")
         tls_line = f"    tls {certificate} {private_key}\n"
     trust_line = "    skip_install_trust\n" if tls == "internal" else ""
+    if auth_host is None:
+        return f"""{{
+    admin off
+    http_port {http_port}
+    https_port {https_port}
+{trust_line}}}
+{site_origin(host, https_port)} {{
+{tls_line}    route {{
+        request_header -Remote-User
+        request_header -Remote-Groups
+        request_header -Remote-Email
+        request_header -Remote-Name
+        reverse_proxy 127.0.0.1:{gateway_port}
+    }}
+}}
+"""
     return f"""{{
     admin off
     http_port {http_port}
@@ -82,7 +95,7 @@ def render_caddy(host: str, auth_host: str, gateway_port: int, auth_port: int, *
 
 
 def edge_binary(layout: Layout, kind: str) -> Path:
-    require(kind in ("caddy", "authelia"), "Unknown edge binary")
+    require(kind == "caddy", "Only Caddy is provisioned for built-in account authentication")
     arch = "amd64" if architecture() == "x64" else "arm64"
     root = layout.control / "edge" / kind
     target = root / kind
@@ -92,9 +105,9 @@ def edge_binary(layout: Layout, kind: str) -> Path:
                 "Unsafe edge binary", "integrity")
         require(hashlib.sha256(target.read_bytes()).hexdigest() == read_json(manifest_path)["sha256"], "Edge binary changed", "integrity")
         return target
-    version = CADDY_VERSION if kind == "caddy" else AUTHELIA_VERSION
-    asset = f"caddy_{version}_linux_{arch}.tar.gz" if kind == "caddy" else f"authelia-v{version}-linux-{arch}.tar.gz"
-    repository = "caddyserver/caddy" if kind == "caddy" else "authelia/authelia"
+    version = CADDY_VERSION
+    asset = f"caddy_{version}_linux_{arch}.tar.gz"
+    repository = "caddyserver/caddy"
     url = f"https://github.com/{repository}/releases/download/v{version}/{asset}"
     archive = layout.work / asset
     require(not archive.exists() and not root.exists(), "Partial edge preparation retained; inspect before retry", "recovery_required")
@@ -114,21 +127,6 @@ def edge_binary(layout: Layout, kind: str) -> Path:
     require(target.is_file() and not target.is_symlink(), "Expected edge executable absent", "integrity")
     write_json(manifest_path, {"version": version, "sha256": hashlib.sha256(target.read_bytes()).hexdigest()})
     return target
-
-
-def identity_configuration(layout: Layout, host: str, auth_host: str, domain: str, auth_port: int, secrets_value: dict, https_port: int = 443) -> dict:
-    data = layout.state / "identity"
-    return {
-        "server": {"address": f"tcp://127.0.0.1:{auth_port}/"},
-        "log": {"level": "info"},
-        "identity_validation": {"reset_password": {"jwt_secret": secrets_value["jwt"]}},
-        "authentication_backend": {"password_reset": {"disable": True}, "file": {"path": str(data / "users.json")}},
-        "access_control": {"default_policy": "deny", "rules": [{"domain": host, "policy": "one_factor"}]},
-        "session": {"secret": secrets_value["session"], "cookies": [{"domain": domain, "authelia_url": site_origin(auth_host, https_port),
-                     "default_redirection_url": site_origin(host, https_port)}], "same_site": "lax", "expiration": "1h", "inactivity": "5m"},
-        "storage": {"encryption_key": secrets_value["storage"], "local": {"path": str(data / "db.sqlite3")}},
-        "notifier": {"filesystem": {"filename": str(data / "notifications.txt")}},
-    }
 
 
 def read_pem(path: Path, *, private: bool) -> bytes:
@@ -324,65 +322,52 @@ def stage_tls(layout: Layout, certificate: bytes, private_key: bytes, gid: int) 
             "privateKeySha256": hashlib.sha256(private_key).hexdigest()}
 
 
-def setup_https(manager, *, host: str, auth_host: str, domain: str, username: str, email: str, auth_port: int,
+def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str | None = None,
+                username: str = "admin", email: str | None = None, auth_port: int | None = None,
+                password: str | None = None, otp: str | None = None,
                 tls: str = "acme", certificate: Path | None = None, private_key: Path | None = None,
                 http_port: int = 80, https_port: int = 443) -> dict:
     layout = manager.layout
     manager.require_recovered_transactions(None)
     manager.require_service_ownership()
-    for value in (host, auth_host, domain):
-        domain_name(value)
-    require(host != auth_host and all(value == domain or value.endswith("." + domain) for value in (host, auth_host)),
-            "HTTPS and authentication hosts must be distinct and share the cookie domain")
-    require(type(auth_port) is int and 1024 <= auth_port <= 65535 and auth_port != manager.config["port"], "Invalid authentication port")
+    domain_name(host)
     require(tls in ("acme", "internal", "provided"), "Unknown TLS mode")
     require(type(http_port) is int and type(https_port) is int and 1 <= http_port <= 65535 and 1 <= https_port <= 65535 and
-            len({http_port, https_port, auth_port, manager.config["port"]}) == 4, "Edge and backend ports must be distinct")
-    require(bool(re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", username)), "Invalid administrator username")
-    require(bool(re.fullmatch(r"[^\s@]{1,64}@[^\s@]{1,253}", email)), "Invalid administrator email")
+            len({http_port, https_port, manager.config["port"]}) == 3, "Edge and backend ports must be distinct")
     metadata_path = layout.config / "https.json"
-    identity = layout.config / "identity"
-    data = layout.state / "identity"
-    wanted = {"host": host, "authHost": auth_host, "domain": domain, "authPort": auth_port, "tls": tls, "httpPort": http_port, "httpsPort": https_port}
+    wanted = {"host": host, "tls": tls, "httpPort": http_port, "httpsPort": https_port}
+    reused = metadata_path.exists()
+    metadata = read_json(metadata_path) if reused else {**wanted, "authentication": "builtin", "phase": "prepared"}
+    require(all(metadata.get(key) == value for key, value in wanted.items()),
+            "Existing HTTPS address is preserved; address changes require an explicit migration", "identity_conflict")
+    require(metadata.get("authentication") in (None, "builtin"), "Unknown HTTPS authentication mode", "integrity")
+    legacy = reused and metadata.get("authentication") != "builtin"
+    # Old CLI arguments may be supplied during migration, but may not point at a
+    # different retained identity. No new Authelia identity is ever provisioned.
+    if reused and metadata.get("authHost") is not None:
+        require((auth_host is None or auth_host == metadata.get("authHost")) and
+                (domain is None or domain == metadata.get("domain")) and
+                (auth_port is None or auth_port == metadata.get("authPort")),
+                "Legacy identity arguments differ from the retained identity", "identity_conflict")
+    else:
+        require(auth_host is None and domain is None and email is None and auth_port is None,
+                "Built-in HTTPS needs only --host; legacy identity options are for migration only")
     cert_data = key_data = None
     if tls == "provided":
         require((certificate is None) == (private_key is None), "Supply both --certificate and --private-key")
-        require(metadata_path.exists() or certificate is not None, "Provided TLS requires --certificate and --private-key")
+        require(reused or certificate is not None, "Provided TLS requires --certificate and --private-key")
         if certificate is not None:
             cert_data, key_data = read_pem(certificate, private=False), read_pem(private_key, private=True)
     else:
         require(certificate is None and private_key is None, "Certificate paths are only valid with --tls provided")
+    # A ready endpoint alone is insufficient: prove that the operator can log in
+    # before removing the external gate, then revoke that temporary session.
+    require(password is not None, "Account password verification is required before HTTPS activation", "account_required")
+    verify_account_login(manager, username, password, otp)
     caddy = edge_binary(layout, "caddy")
-    authelia = edge_binary(layout, "authelia")
-    reused = metadata_path.exists()
-    if reused:
-        metadata = read_json(metadata_path)
-        require(all(metadata.get(key) == value for key, value in wanted.items()),
-                "Existing identity configuration is preserved; domain changes require an explicit migration", "identity_conflict")
-        require((identity / "secrets.json").is_file() and (identity / "configuration.json").is_file() and (data / "users.json").is_file(),
-                "Identity/key pair incomplete; restore together", "recovery_required")
-    else:
-        require(not identity.exists() and not data.exists(), "Unpaired identity material found; restore before retry", "recovery_required")
-        require(sys.stdin.isatty(), "First HTTPS setup requires an interactive terminal for the administrator password")
-        password = getpass.getpass("New Authelia administrator password: ")
-        require(len(password) >= 14 and password == getpass.getpass("Confirm password: "), "Passwords differ or are shorter than 14 characters")
-        # Caddy accepts stdin, avoiding secret argv/environment exposure.
-        hashed = run([str(caddy), "hash-password", "--algorithm", "argon2id"], input=password + "\n", timeout=30).stdout.strip()
-        require(hashed.startswith("$argon2id$"), "Password hasher returned an unsupported format", "prerequisite")
-        password = ""
-        auth_uid, auth_gid = ensure_account(layout.prefix + "-auth", data)
-        mkdir(identity, 0o750, 0, auth_gid)
-        mkdir(data, 0o700, auth_uid, auth_gid)
-        value = {"identityId": secrets.token_hex(16), **{key: secrets.token_urlsafe(48) for key in ("session", "storage", "jwt")}}
-        write_json(identity / "secrets.json", value, mode=0o600)
-        write_json(data / "users.json", {"users": {username: {"disabled": False, "displayname": "Administrator", "password": hashed,
-                                                          "email": email, "groups": ["admins"]}}}, mode=0o600, uid=auth_uid, gid=auth_gid)
-        write_json(identity / "configuration.json", identity_configuration(layout, host, auth_host, domain, auth_port, value, https_port), mode=0o640, uid=0, gid=auth_gid)
-        metadata = {**wanted, "identityId": value["identityId"], "phase": "prepared"}
-    auth_uid, auth_gid = ensure_account(layout.prefix + "-auth", data)
     caddy_uid, caddy_gid = ensure_account(layout.prefix + "-edge", layout.state / "caddy")
     mkdir(layout.state / "caddy", 0o700, caddy_uid, caddy_gid)
-    selected_metadata = dict(metadata)
+    selected_metadata = {**metadata, "authentication": "builtin"}
     if tls == "provided":
         if reused:
             old_cert, old_key = tls_paths(layout, metadata)
@@ -393,13 +378,14 @@ def setup_https(manager, *, host: str, auth_host: str, domain: str, username: st
                                                     hashlib.sha256(key_data).hexdigest() != metadata["privateKeySha256"]):
             selected_metadata.update(stage_tls(layout, cert_data, key_data, caddy_gid))
     if not reused:
-        # Retain a newly prepared identity and its immutable certificate pair even
-        # if validation or first startup fails. They never get regenerated on retry.
+        # Persist first-setup TLS selection before validators create any state.
         metadata = dict(selected_metadata)
         write_json(metadata_path, metadata)
     def caddy_configuration(selected):
         certificate_path, key_path = tls_paths(layout, selected) if tls == "provided" else (None, None)
-        return render_caddy(host, auth_host, manager.config["port"], auth_port, tls=tls, http_port=http_port, https_port=https_port,
+        identity_host = selected.get("authHost") if selected.get("authentication") != "builtin" else None
+        return render_caddy(host, identity_host, manager.config["port"], selected.get("authPort", 9091), tls=tls,
+                            http_port=http_port, https_port=https_port,
                             certificate=str(certificate_path) if certificate_path else None,
                             private_key=str(key_path) if key_path else None)
     rendered = caddy_configuration(selected_metadata)
@@ -409,16 +395,12 @@ def setup_https(manager, *, host: str, auth_host: str, domain: str, username: st
                 "Existing HTTPS configuration differs; inspect before replacing", "identity_conflict")
     pending_caddy = layout.config / "Caddyfile.pending"
     atomic_write(pending_caddy, rendered.encode(), 0o644)
-    # Validators may provision local state (including Caddy's internal CA). Keep
-    # that state with the eventual service identity, never root's home.
-    def validate_as(uid, gid, home, arguments):
-        run(["/usr/bin/setpriv", "--reuid", str(uid), "--regid", str(gid), "--clear-groups", "--no-new-privs",
-             "/usr/bin/env", "-i", "HOME=" + str(home), "PATH=/usr/bin:/bin", *arguments])
-    validate_as(auth_uid, auth_gid, data, [str(authelia), "config", "validate", "--config", str(identity / "configuration.json")])
-    validate_as(caddy_uid, caddy_gid, layout.state / "caddy", [str(caddy), "validate", "--config", str(pending_caddy), "--adapter", "caddyfile"])
+    run(["/usr/bin/setpriv", "--reuid", str(caddy_uid), "--regid", str(caddy_gid), "--clear-groups", "--no-new-privs",
+         "/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin",
+         str(caddy), "validate", "--config", str(pending_caddy), "--adapter", "caddyfile"])
     old_config = dict(manager.config)
     new_config = {**old_config, "origin": site_origin(host, https_port)}
-    edge_units = render_edge_units(layout)
+    edge_units = render_edge_units(layout, builtin=True)
     active, enabled = prior_service_state(manager)
     before = snapshot_configuration(layout)
     transaction = layout.state / "transactions" / uuid.uuid4().hex
@@ -426,12 +408,20 @@ def setup_https(manager, *, host: str, auth_host: str, domain: str, username: st
     journal_path = transaction / "state.json"
     journal = {"kind": "https", "phase": "prepared", "before": before, "active": active, "enabled": enabled, "candidateConfig": new_config}
     write_json(journal_path, journal)
-    units = [layout.unit(role) for role in EDGE_ROLES]
+    stop_units = [layout.unit(role) for role in EDGE_ROLES]
+    active_roles = ["worker", "gateway", "caddy"]
+    units = [layout.unit(role) for role in active_roles]
     try:
-        manager.system.stop(units)
+        manager.system.stop(stop_units)
         manager.recover_control()
         journal["phase"] = "stopped"
         write_json(journal_path, journal)
+        # Disable before removing the old unit so systemd removes enablement links.
+        old_auth_unit = layout.units / layout.unit("authelia")
+        if old_auth_unit.exists():
+            run(["/usr/bin/systemctl", "disable", layout.unit("authelia")])
+            old_auth_unit.unlink()
+            fsync_directory(layout.units)
         for name, content in render_units(layout, new_config, old_config["codexRelative"]).items():
             atomic_write(layout.units / name, content.encode(), 0o644)
         for name, content in edge_units.items():
@@ -445,7 +435,12 @@ def setup_https(manager, *, host: str, auth_host: str, domain: str, username: st
         manager.system.reload()
         manager.system.start(units)
         manager.config = new_config
-        confirm_service_state(manager, list(EDGE_ROLES))
+        confirm_service_state(manager, active_roles)
+        # Verify account support again after the gateway and its origin changed.
+        from .accounts import account_request
+        status, _ = account_request(manager, "GET")
+        require(status.get("authenticationMode") == "account" and status.get("initialized") is True,
+                "Built-in account was not restored after HTTPS activation", "account_required")
         manager.system.enable(units)
         selected_metadata["phase"] = "active"
         write_json(metadata_path, selected_metadata)
@@ -457,8 +452,9 @@ def setup_https(manager, *, host: str, auth_host: str, domain: str, username: st
         except Exception as recovery:
             raise DeployError("recovery_required", "HTTPS recovery is unconfirmed; configuration, identity and TLS pairs are retained. Run repair.") from recovery
         raise
-    return {"origin": new_config["origin"], "identityReused": reused, "identityPreserved": True,
-            "login": "Authelia login is followed by the Harness administrator token. Existing identity credentials are preserved.",
+    return {"origin": new_config["origin"], "authentication": "builtin", "autheliaStopped": True,
+            "identityPreserved": True, "migratedFromAuthelia": legacy,
+            "login": "Sign in directly with the Harness administrator account. Model account authorization remains separate.",
             "tlsMode": tls, "certificateChanged": tls == "provided" and (not reused or
                 selected_metadata.get("certificateSha256") != metadata.get("certificateSha256") or
                 selected_metadata.get("privateKeySha256") != metadata.get("privateKeySha256")),

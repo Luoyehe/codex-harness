@@ -25,8 +25,11 @@ describe('provider configuration intent', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '发现模型' }));
     fireEvent.change(screen.getByLabelText('默认模型 ID'), { target: { value: 'unsaved-model' } });
-    await act(async () => finish({ source: 'native' }));
-    await waitFor(() => expect(call).toHaveBeenCalledTimes(2));
+    await act(async () => finish({
+      source: 'native', kind: 'chatgpt', revision: 'r', applied: false, requiresConfirmation: false,
+    }));
+    await screen.findByText('当前使用原生模型目录，无需应用自定义目录。');
+    expect(call).toHaveBeenCalledTimes(1);
     expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('unsaved-model');
   });
   it('preserves a dirty draft on external revision change and requires explicit reload', async () => {
@@ -55,10 +58,13 @@ describe('provider configuration intent', () => {
     const mutate = vi
       .fn()
       .mockResolvedValueOnce({
+        kind: 'responses', revision: 'r', source: 'provider', applied: false,
         models: [{ id: 'model-x', defaultEffort: null, efforts: [] }],
         requiresConfirmation: true,
       })
-      .mockResolvedValue({});
+      .mockResolvedValue({
+        kind: 'responses', revision: 'r2', applied: true, requiresConfirmation: false,
+      });
     render(
       <ModelCatalog
         api={{ mutate } as unknown as Api}

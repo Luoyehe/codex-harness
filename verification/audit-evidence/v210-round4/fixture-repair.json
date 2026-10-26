@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-fixture-repair",
+  "sourceDigest": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458",
+  "change": "Construct the same artificial URL using URL username/password properties. Production source and security scanner are unchanged.",
+  "tests": {
+    "file": "tests/runtime/mcp-oauth.test.ts",
+    "passed": 17,
+    "failed": 0,
+    "rawReport": ".work/test-results/run-VdWgeM/vitest.json",
+    "sha256": "c4f376670a1fc1df73cb4e1fdbb8446e42513bac4792b2d42acb896fc781a510"
+  },
+  "sourceScan": {
+    "mode": "source",
+    "status": "clean",
+    "scannedFiles": 2114,
+    "scannedBytes": 15256988,
+    "findings": [],
+    "artifacts": [],
+    "unreadable": [],
+    "skipped": []
+  },
+  "countsAsCleanAudit": false
+}

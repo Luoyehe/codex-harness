@@ -335,10 +335,31 @@ class ControlUpdater:
     def recover_transaction(self, path: Path, state: dict) -> dict:
         self.validate_state(state)
         require_owned(self.layout, self.config)
+        old = path / "old"
+        source = old if old.exists() else self.layout.control
+        # Recovery is a control selection too. Check the complete retained tree
+        # before any guard, stop or journal write, including pre-rename crashes.
+        try:
+            self.verify_generation(source, state["old"], blocked=True, legacy_cache=not old.exists())
+        except Exception:
+            # Corrupt recovery material retains the existing fail-closed contract:
+            # inhibit all launchers and prove stop, without selecting any tree.
+            self.guard(state)
+            self.stop_all()
+            raise
+        capability_file = source / "capabilities.json"
+        capabilities = read_json(capability_file, 4096) if capability_file.exists() else {}
+        try:
+            self.require_account_guard(capabilities)
+        except DeployError as error:
+            if error.code != "authentication_downgrade":
+                raise
+            raise DeployError("authentication_downgrade",
+                              "Previous control tools lack the account guard; recovery has not changed services or selected code. "
+                              "Correct any runtime prerequisite, then run control-recover --target candidate to validate and resume the original candidate.") from error
         self.guard(state)
         self.stop_all()
         self.save(path, state, "recovering")
-        old = path / "old"
         if old.exists():
             self.verify_generation(old, state["old"], blocked=True)
             self.restore_launchers(old, state, "old")
@@ -362,11 +383,80 @@ class ControlUpdater:
         self.save(path, state, "recovered")
         return {"controlRecovered": True, "transaction": path.name, "controlDigest": digest(state["old"])}
 
-    def recover(self) -> dict:
+    def recover_candidate(self, path: Path, state: dict) -> dict:
+        """Resume only the sealed candidate already named by one pending journal."""
+        self.validate_state(state)
+        require_owned(self.layout, self.config)
+        staged, failed, old = path / "candidate", path / "failed", path / "old"
+        if staged.exists():
+            require(not failed.exists(), "Ambiguous retained control candidates", "recovery_required")
+            candidate = staged
+        elif failed.exists():
+            candidate = failed
+        else:
+            candidate = self.layout.control
+        require(candidate.exists(), "Original control candidate is unavailable", "recovery_required")
+        if candidate == self.layout.control:
+            require(old.exists(), "Original control recovery pair is incomplete", "recovery_required")
+            previous = old
+        elif self.layout.control.exists():
+            require(not old.exists(), "Ambiguous retained control generations", "recovery_required")
+            previous = self.layout.control
+        else:
+            require(old.exists(), "Original control recovery pair is incomplete", "recovery_required")
+            previous = old
+        self.verify_generation(candidate, state["candidate"], blocked=True)
+        self.verify_generation(previous, state["old"], blocked=True, legacy_cache=previous == self.layout.control)
+        capabilities = candidate / "capabilities.json"
+        self.require_account_guard(read_json(capabilities, 4096) if capabilities.exists() else {})
+        self.guard(state)
+        self.stop_all()
+        self.verify_generation(candidate, state["candidate"], blocked=True)
+        state["old"] = self.verify_generation(previous, state["old"], blocked=True, legacy_cache=previous == self.layout.control)
+        self.save(path, state, "recovering_candidate")
+        try:
+            if candidate != self.layout.control:
+                if previous == self.layout.control:
+                    self.rename(self.layout.control, old)
+                self.rename(candidate, self.layout.control)
+            self.restore_launchers(old, state, "old")
+            self.restore_launchers(self.layout.control, state, "candidate")
+            durable_tree(self.layout.control)
+            self.save(path, state, "installed")
+            self.restore_services(state)
+            self.save(path, state, "committed")
+        except Exception:
+            self.guard(state)
+            self.stop_all()
+            raise
+        return {"controlRecovered": True, "target": "candidate", "transaction": path.name,
+                "controlDigest": digest(state["candidate"])}
+
+    def recover(self, *, target: str = "old") -> dict:
+        require(target in ("old", "candidate"), "Invalid control recovery target")
         self.prepare_paths()
         pending = self.pending()
         require(len(pending) == 1, "Expected one unfinished control transaction; inspect retained records", "recovery_required")
-        return self.recover_transaction(*pending[0])
+        return self.recover_candidate(*pending[0]) if target == "candidate" else self.recover_transaction(*pending[0])
+
+    def require_account_guard(self, capabilities: dict) -> None:
+        """Retained legacy control must not remove the application's downgrade gate."""
+        require(isinstance(capabilities, dict), "Invalid retained control capabilities", "integrity")
+        if capabilities.get("authenticationGuard") == "account-v1":
+            return
+        bootstrap = self.layout.config / "auth-bootstrap.json"
+        require(not bootstrap.exists() and not bootstrap.is_symlink(),
+                "Rollback target lacks the built-in account downgrade guard", "authentication_downgrade")
+        from .manager import Manager
+        manager = Manager(self.layout, self.system, worker_gid=self.config["workerGid"])
+        require(not manager.builtin_edge(), "Rollback target lacks the built-in account downgrade guard", "authentication_downgrade")
+        selected = manager.selected()
+        if selected is not None:
+            # Browser initialization may create no root bootstrap. Read only the
+            # verified root-owned release declaration, never the gateway's DB.
+            manager.verify_release(selected)
+            require(not manager.release_accounts(selected),
+                    "Rollback target lacks the built-in account downgrade guard", "authentication_downgrade")
 
     def update(self, rollback: str | None = None) -> dict:
         require_recovered(self.layout)
@@ -385,6 +475,7 @@ class ControlUpdater:
             self.verify_generation(retained / "old", saved["old"])
             capability_file = retained / "old/capabilities.json"
             capabilities = read_json(capability_file, 4096) if capability_file.exists() else {}
+            self.require_account_guard(capabilities)
             require(self.config.get("providerConfigLayer") is None or capabilities.get("providerConfigLayer") == "system-v1",
                     "Rollback target predates system provider layers; roll back the configuration layer first", "configuration_conflict")
             require(capabilities.get("nativeWorkspace") == 1 or
@@ -445,11 +536,11 @@ class ControlUpdater:
                 "previousDigest": digest(old_manifest), "rollbackOf": rollback}
 
 
-def control_command(layout: Layout, command: str, transaction: str | None = None) -> dict:
+def control_command(layout: Layout, command: str, transaction: str | None = None, *, target: str = "old") -> dict:
     assert_reviewed_checkout(layout)
     updater = ControlUpdater(layout)
     if command == "control-recover":
-        return updater.recover()
+        return updater.recover(target=target)
     return updater.update(transaction if command == "control-rollback" else None)
 
 

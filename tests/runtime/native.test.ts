@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mkdtempSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { NativeRpc } from '../../src/runtime/native.js';
 import { DeliveryError } from '../../src/runtime/types.js';
 import { validateOfficial } from '../../src/runtime/validation.js';
+import * as nativeLaunch from '../../src/runtime/native-launch.js';
 
 const roots = path.resolve('.work/runtime-tests'); mkdirSync(roots, { recursive: true });
 const natives: NativeRpc[] = [];
@@ -40,6 +41,41 @@ describe('bounded native delivery', () => {
     expect(rpc.budget.retainedBytes).toBeGreaterThan(10 * 1024 * 1024); expect(rpc.connected).toBe(true);
     await rpc.close(); expect(await caught).toMatchObject({ delivery: 'unknown' }); expect(rpc.budget.retainedBytes).toBe(0);
   });
+  test.runIf(process.platform === 'linux').each([true, false])('launcher shutdown closes saturated stdin and requires cleanup acknowledgement (%s)', async confirmed => {
+    const cwd = mkdtempSync(path.join(roots, 'launcher-'));
+    const python = process.env.HARNESS_TEST_PYTHON ?? '/usr/bin/python3';
+    const driver = [
+      'from deploy import native_launcher as n',
+      'import os,signal,sys,threading',
+      'n.security_process()',
+      // A failed assertion must not strand the isolated fixture tree.
+      'watchdog=threading.Timer(12,lambda:os.kill(os.getpid(),signal.SIGTERM)); watchdog.daemon=True; watchdog.start()',
+      ...(confirmed ? [] : ['original=n.clean_children', 'n.clean_children=lambda child,deadline:(original(child,deadline) and False)']),
+      "raise SystemExit(n.supervise([sys.argv[1],sys.argv[2]],{'PATH':'/usr/bin:/bin'},sys.argv[3],streaming=True))",
+    ].join('\n');
+    let bin = python, args = ['-c', driver, process.execPath, path.resolve('tests/runtime/native-fixture.mjs'), cwd];
+    if (process.getuid?.() === 0) { bin = '/usr/bin/setpriv'; args = ['--bounding-set=-all', '--inh-caps=-all', '--ambient-caps=-all', python, ...args]; }
+    // Substitute only fixed-launcher selection: the Node socket, Python bridge,
+    // kernel backpressure and native child are real. UID policy has separate tests.
+    const command = vi.spyOn(nativeLaunch, 'nativeCommand').mockReturnValue({ bin, args, cwd: path.resolve('.'), env: { PATH: '/usr/bin:/bin', PYTHONPATH: path.resolve('.') } });
+    const rpc = new NativeRpc({ bin: '/unused', home: cwd, cwd, env: {}, launcher: { path: '/unused', user: 'ch-fixture-worker' } });
+    let fatal = 0, cleanupUnknown = 0, written = false;
+    rpc.on('fatal', () => fatal++); rpc.on('cleanup-unknown', () => cleanupUnknown++);
+    try {
+      await rpc.initialize(); await rpc.call('pause', {});
+      const sent = rpc.call('hold', { text: 'x'.repeat(10 * 1024 * 1024) }, { timeoutMs: 0, onWritten: () => { written = true; } }).catch(error => error);
+      const queued = rpc.call('echo', {}, { timeoutMs: 0 }).catch(error => error);
+      await new Promise(resolve => setTimeout(resolve, 250));
+      expect(written).toBe(false); expect(rpc.budget.pending).toBe(2); expect(rpc.connected).toBe(true);
+      const closed = rpc.close(); expect(rpc.close()).toBe(closed);
+      expect(await sent).toMatchObject({ delivery: 'unknown' }); expect(await queued).toMatchObject({ delivery: 'not_sent' });
+      if (confirmed) await closed;
+      else await expect(closed).rejects.toThrow('without confirming cleanup');
+      expect(fatal).toBe(1); expect(cleanupUnknown).toBe(confirmed ? 0 : 1);
+      expect(written).toBe(false); expect(rpc.budget).toEqual({ pending: 0, retainedBytes: 0 });
+      expect(() => process.kill(rpc.processId!, 0)).toThrow();
+    } finally { command.mockRestore(); await rpc.close().catch(() => {}); }
+  }, 15000);
   test('preserves upstream error code/data and server request id type', async () => {
     const rpc = await native(); await expect(rpc.call('error', {})).rejects.toMatchObject({ code: 'native_error', delivery: 'not_sent', data: { code: -32000, data: { kind: 'fixture' } } });
     let id: unknown; rpc.on('request', request => { id = request.id; }); await rpc.call('prompt', {}); expect(id).toBe('original-string-id');

@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-26T17:19:37.145049+00:00",
+  "reproRoot": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v210-round3-git-isolation-ml05xokm",
+  "invocation": "Exact init/add/commit forms used by tests/tooling/ci-checks.test.ts fixture, with an isolated artificial HOME and artificial global config only. No application tests or existing repositories executed.",
+  "fakeGlobalHookExecuted": true,
+  "marker": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v210-round3-git-isolation-ml05xokm\\hook-invoked.txt",
+  "outsideFakeHomeConfigRead": false
+}

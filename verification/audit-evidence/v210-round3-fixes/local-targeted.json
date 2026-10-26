@@ -1,0 +1,28 @@
+{
+  "startedAt": "2026-10-26T17:34:50.217Z",
+  "completedAt": "2026-10-26T17:34:59.536Z",
+  "command": "pnpm test:targeted tests/tooling/ci-checks.test.ts tests/tooling/compatibility-watch.test.ts tests/tooling/prepare-ci-native.test.ts tests/tooling/release-audit.test.ts tests/tooling/reviewed-history.test.ts tests/tooling/run-tests.test.ts tests/tooling/select-tests.test.ts tests/tooling/test-environment.test.ts tests/tooling/windows-controller-preflight.test.ts",
+  "pnpmVersion": "11.22.0",
+  "pnpmConfigVerifyDepsBeforeRun": "warn (isolated store differs; no dependency installation authorized)",
+  "exitCode": 3,
+  "error": null,
+  "files": [
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/test-environment.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts"
+  ],
+  "passed": 68,
+  "failed": 0,
+  "pending": 1,
+  "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-auXgsH/vitest.json",
+  "stdout": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v210-local-targeted-cdbm7f\\stdout.txt",
+  "stderr": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v210-local-targeted-cdbm7f\\stderr.txt",
+  "fakeGlobalOrInjectedHookExecuted": false,
+  "personalEnvironmentUsed": false
+}

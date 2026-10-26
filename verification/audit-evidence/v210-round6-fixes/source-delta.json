@@ -1,0 +1,26 @@
+{
+  "kind": "targeted-fix-followup",
+  "before": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458",
+  "after": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+  "files": 1862,
+  "changed": [
+    "deploy/native_launcher.py",
+    "src/runtime/native.ts",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/runtime/native.test.ts",
+    "web/Workspace.tsx",
+    "web/lib/api.ts",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/operations.test.ts"
+  ],
+  "linux": {
+    "status": "passed",
+    "cases": 72,
+    "skipped": 0,
+    "phase": "nobody",
+    "stopConfirmed": true
+  },
+  "fullSuiteExecuted": false,
+  "countsAsCleanAuditRound": false
+}

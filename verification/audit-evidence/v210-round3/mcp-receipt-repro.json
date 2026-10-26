@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-26T17:20:23.710Z",
+  "fixture": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v210-round3-mcp-receipt-8N2UW2",
+  "inputIsArtificial": true,
+  "actualSourceModules": [
+    "src/gateway/receipt-result.ts",
+    "src/core/ledger.ts",
+    "src/core/operation-retention.ts"
+  ],
+  "projectionPreservesAuthorizationUrl": true,
+  "reopenedReceiptPreservesAuthorizationUrl": true,
+  "archivePreservesAuthorizationUrl": true,
+  "loginIdPreserved": false,
+  "externalCalls": false
+}

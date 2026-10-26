@@ -76,6 +76,49 @@ class Manager:
         require(actual == expected and digest(actual) == release, "Release content or permissions changed", "integrity")
         return {"release": release, "files": len(actual), "integrity": True}
 
+    def release_accounts(self, release: str | None) -> bool:
+        """Compatibility declaration from the already verified root-owned release."""
+        if release is None:
+            return False
+        require(bool(re.fullmatch(r"[0-9a-f]{64}", release)), "Invalid release id")
+        path = self.layout.app / "releases" / release / "app/package.json"
+        if not path.exists() and not path.is_symlink():
+            return False
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 1024 * 1024 and
+                (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+                "Unsafe release compatibility metadata", "integrity")
+        value = read_json(path)
+        return isinstance(value, dict) and value.get("harnessAuthentication") == "account-v1"
+
+    def builtin_edge(self) -> bool:
+        path = self.layout.config / "https.json"
+        return path.exists() and read_json(path).get("authentication") == "builtin"
+
+    def require_account_compatibility(self, candidate: str) -> None:
+        # The selected application's declaration also covers accounts initialized
+        # in the browser without a bootstrap file; never open its writable DB as root.
+        required = ((self.layout.config / "auth-bootstrap.json").exists() or self.builtin_edge() or
+                    self.release_accounts(self.selected()))
+        require(not required or self.release_accounts(candidate),
+                "This instance uses built-in accounts. A legacy token-only release requires an explicit complete authentication rollback.",
+                "authentication_downgrade")
+
+    def require_account_recovery(self, release: str) -> None:
+        """A failed candidate must not make token-only recovery an auth bypass."""
+        self.verify_release(release)
+        current = self.selected()
+        if current is not None:
+            self.verify_release(current)
+        try:
+            self.require_account_compatibility(release)
+        except DeployError as error:
+            if error.code != "authentication_downgrade":
+                raise
+            raise DeployError("authentication_downgrade",
+                              "Legacy authentication recovery is blocked. Services remain stopped; the candidate and transaction are retained. "
+                              "Correct any runtime prerequisite, then run repair --target candidate to validate and restart the original account-v1 candidate.") from error
+
     def initial_installation(self, *, persist: bool = True) -> dict | None:
         path = self.layout.config / "installation.json"
         if path.exists():
@@ -202,6 +245,13 @@ class Manager:
                             "Native runtime is not connected", "health")
                 finally:
                     worker.close()
+                if self.builtin_edge() or self.release_accounts(self.selected()):
+                    from .accounts import account_request
+                    account, _ = account_request(self, "GET", timeout=2)
+                    require(account.get("authenticationMode") == "account" and isinstance(account.get("initialized"), bool),
+                            "Gateway account authentication is unavailable", "health")
+                    if self.builtin_edge() or (self.layout.config / "auth-bootstrap.json").exists():
+                        require(account["initialized"] is True, "Administrator account was not initialized", "health")
                 return
             except (DeployError, OSError, ValueError) as exc:
                 last_error = exc
@@ -229,6 +279,8 @@ class Manager:
         details = token.lstat()
         require(stat.S_ISREG(details.st_mode) and details.st_uid == 0 and details.st_gid == self.config["gatewayGid"] and
                 stat.S_IMODE(details.st_mode) == 0o640, "Administrator token ownership/permissions changed", "integrity")
+        from .accounts import verify_bootstrap
+        account_bootstrap = verify_bootstrap(self.layout, self.config)
         for role in ("gateway", "worker", "supervisor"):
             path = self.layout.state / role
             details = path.lstat()
@@ -252,7 +304,8 @@ class Manager:
         if self.config.get("providerConfigLayer") == "system-v1":
             from .provider_layers import verify_system_layers
             verify_system_layers(self.layout)
-        return {**result, "permissions": True, "managedUnits": True, "providerRevision": settings["revision"], "services": self.status()["services"]}
+        return {**result, "permissions": True, "managedUnits": True, "accountBootstrap": account_bootstrap,
+                "providerRevision": settings["revision"], "services": self.status()["services"]}
 
     def activate(self, candidate: str, transaction_id: str | None = None) -> dict:
         installation = self.require_update_ready()
@@ -268,6 +321,7 @@ class Manager:
             return {"release": candidate, "changed": False}
         if old:
             self.verify_release(old)
+        self.require_account_compatibility(candidate)
         txid = transaction_id or uuid.uuid4().hex
         tx = self.layout.state / "transactions" / txid
         mkdir(tx, 0o700)
@@ -294,7 +348,7 @@ class Manager:
             # If stop cannot be established, leave every byte and pointer in place.
             self.system.stop(self.service_units)
             if old:
-                self.verify_release(old)
+                self.require_account_recovery(old)
                 self.select(old)
                 self.restore_previous(journal)
                 self.system.start(list(reversed(self.service_units)))
@@ -391,13 +445,51 @@ class Manager:
         self.complete_initial_installation(current)
         return {"restarted": True, "release": current}
 
-    def repair(self) -> dict:
+    def repair_candidate(self, path: Path, state: dict) -> dict:
+        require(state.get("kind") == "release", "Candidate recovery applies only to the original pending application release", "recovery_required")
+        candidate, old = state.get("candidate"), state.get("old")
+        require(isinstance(candidate, str) and (old is None or isinstance(old, str)), "Invalid release recovery record", "corrupt_state")
+        self.require_service_ownership()
+        self.verify_release(candidate)
+        current = self.selected()
+        require(current in (candidate, old), "Current release differs from the pending transaction", "recovery_required")
+        if current is not None:
+            self.verify_release(current)
+        if old is not None:
+            self.verify_release(old)
+        self.require_account_compatibility(candidate)
+        self.system.stop(self.service_units)
+        self.recover_control()
+        self.refresh_worker_unit()
+        self.verify_release(candidate)
+        try:
+            if self.selected() != candidate:
+                self.select(candidate)
+            state["phase"] = "selected"
+            write_json(path, state)
+            self.system.start(list(reversed(self.service_units)))
+            self.healthy()
+            if old:
+                self.select(old, "previous")
+            state["phase"] = "committed"
+            write_json(path, state)
+        except Exception:
+            self.system.stop(self.service_units)
+            raise
+        self.complete_initial_installation(candidate)
+        return {"repaired": True, "recoveredTransactions": 1, "target": "candidate", "release": candidate}
+
+    def repair(self, *, target: str = "old") -> dict:
+        require(target in ("old", "candidate"), "Invalid recovery target")
         pending = []
         for path in sorted((self.layout.state / "transactions").glob("*/state.json")):
             state = read_json(path)
             if state.get("phase") not in ("committed", "recovered", "failed_first_start"):
                 pending.append((path, state))
         require(len(pending) <= 1, "Multiple unfinished transactions require operator inspection", "recovery_required")
+        if target == "candidate":
+            require(len(pending) == 1, "Candidate recovery requires one unfinished application transaction", "recovery_required")
+            return self.repair_candidate(*pending[0])
         if pending:
             path, state = pending[0]
             if state.get("kind") == "https":
@@ -413,7 +505,7 @@ class Manager:
             self.refresh_worker_unit()
             if state["kind"] == "release":
                 require(state.get("old"), "First install failed; retained candidate needs explicit update", "recovery_required")
-                self.verify_release(state["old"])
+                self.require_account_recovery(state["old"])
                 self.select(state["old"])
                 self.restore_previous(state)
             elif state["kind"] == "provider":

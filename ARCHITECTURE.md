@@ -1,6 +1,6 @@
 # 重写边界与实现契约
 
-本文描述 2.0.1 的实现边界；交付验证状态以 `verification/WORKLOG.md` 为准。本目录从空项目开始，测试也重新编写，固定上游协议为 Codex CLI 0.164.0。
+本文描述 2.1.0 的实现边界；交付验证状态以 `verification/WORKLOG.md` 为准。本目录从空项目开始，测试也重新编写，固定上游协议为 Codex CLI 0.164.0。
 
 ## 产品范围
 
@@ -12,7 +12,7 @@
 
 - `src/core`: 不依赖 HTTP/UI/进程的校验、错误类型、SQLite 操作回执、任务准入与资源预算。提交结果只有 accepted / not_sent / unknown；未知不是可重试的失败。
 - `src/runtime`: 独立 control 身份运行 supervisor，管理官方 CLI 的 stdio、模型/线程/审批/附件/终端。只接受固定 RPC 方法；通过固定 launcher 以另一个 native 身份启动 CLI、检查目录或执行受控文件操作，不获得 root 管理权限。native 身份不能连接控制 socket、读取 supervisor 进程资源或修改附件索引与受保护的成功记录。
-- `src/gateway`: gateway 身份下运行，持有登录令牌、会话、持久化操作日志和项目注册；验证网页请求，控制操作准入，通过私有 Unix socket 调用 worker；管理调用交给固定 root 管理入口。
+- `src/gateway`: gateway 身份下运行，持有单管理员账号、登录会话、持久化操作日志和项目注册；验证网页请求，控制操作准入，通过私有 Unix socket 调用 worker；管理调用交给固定 root 管理入口。
 - `web`: React 页面，各资源独立状态及代际号。操作意图先以每条操作独立存储项落盘，再发送，断线只查询回执。网络状态与页面导航分离。远端内容作为不可信数据呈现。
 - `deploy`: Python 标准库的安装与管理事务。源码/运行时不可由服务账号修改。依赖准备与候选执行分离，候选以隔离非 root 身份验证。停机确认前不切换发布目录；恢复不确定时保留材料并失败。
 
@@ -22,9 +22,13 @@
 
 Node 24 LTS；TypeScript、React；服务端只引入必要的 WebSocket、协议校验和配置解析依赖。持久化使用 Node 自带 SQLite（WAL、synchronous=FULL、约束与事务）。操作回执只存恢复所需的身份与状态，不存对话正文、API Key、授权链接或任意环境变量；用户明确保存的自动化配置另存任务提示和执行设置。原生 CLI 是固定独立运行时，不从 PATH 猜测。
 
+自 2.1.0 起，MCP 的临时 OAuth 授权链接也通过绑定发起连接和运行时的有界易失交接提供，不进入新回执。历史 MCP 回执在对外读取和新导出时隐藏该链接，保留原有操作身份及接受状态；升级不会安全擦除旧数据库、WAL 或已导出的备份。此处的授权链接是临时登录交接地址，不包括用户明确保存的 OAuth 端点配置或主动创建的共享链接。
+
 ## 服务间接口
 
-浏览器：`POST /api/session` 登录；`DELETE /api/session` 退出；`GET /api/session` 得到登录状态/CSRF；`POST /api/rpc` 收发 JSON；`GET /api/events` 升级只接收事件的 WebSocket。所有变更请求检查 Origin 与 `X-Harness-CSRF`，WS 验证 Origin/Host/cookie。登录密钥绝不写 localStorage 或交给 worker。
+浏览器：`POST /api/session` 使用工作台账号登录；`DELETE /api/session` 退出；`GET /api/session` 得到初始化状态与登录状态/CSRF；`POST /api/rpc` 收发 JSON；`GET /api/events` 升级只接收事件的 WebSocket。登录与初始化检查 Origin，已登录的变更请求同时检查 `X-Harness-CSRF`，WS 验证 Origin/Host/cookie。密码、验证器密钥和恢复码绝不写 localStorage 或交给 worker。
+
+工作台使用内置单管理员身份，Caddy 只负责 TLS 与反向代理。账号和会话在 gateway 私有 SQLite 中持久化；密码使用独立随机盐的 scrypt，密码推导有并发和资源上限。服务器上的 root 管理命令通过带版本的账号初始化文件建立或重置身份；相同版本不能覆盖网页修改后的密码。旧管理令牌只可在账号尚未建立时用于一次性初始化，已初始化后不再授予网页登录权限。修改密码、会话撤销和两步验证变更在服务端生效；相关 WebSocket 随会话撤销关闭。身份认证持久化不改变操作回执与连接资源的所有权，也不把进程重启前的终端当作仍在运行。
 
 RPC 请求 `{method,params,operationId?}`；成功 `{ok:true,result}`；失败 `{ok:false,error:{code,message,delivery?,operationId?}}`。需持久回执的业务变更必须使用 UUID operationId；回执轮换使用绑定导出身份、摘要与下一代际的专用事务，实时输入使用连接所有权和单调序号，不写入普通操作回执。普通操作结果按 operationId 查询，`not_received` 只表示此刻没有记录。重用 ID 且内容不同必须拒绝；不自动重放已越过写入边界的操作。
 
@@ -55,3 +59,16 @@ HTTP 同时限制连接数、处理中的请求数及实际保留的响应字节
 ## 审计与迁移
 
 见 PROBLEM-ACCEPTANCE.md 的逐项回归条件，以及 FEATURES.md 的支持与验收边界。独立实例验证与生产数据迁移分别记录；安装器不会自动迁移旧实例。迁移须先备份并验证数据、保留可恢复旧实例，再明确切换，不把在线目录当作测试夹具。
+
+## 开发与验证
+
+开发机需要 Node 24 LTS（24.15+）和 pnpm 11.22.0，测试只使用隔离的 Codex 配置目录。安装依赖与常用检查：
+
+```sh
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm typecheck
+pnpm build
+pnpm test:targeted tests/core/ledger.test.ts tests/gateway/http.test.ts
+```
+
+代码修改期间运行受影响的定向测试。全量测试在完整审计通过后执行；本次 2.1.0 发布按维护者明确指定的连续两轮无新增问题标准收尾，审计与授权记录绑定实际源码摘要。平台跳过项须由适用平台补足，不能计作测试通过。CI 同时提供 CodeQL、依赖漏洞和固定上游版本检查；真实供应商、公网证书及外部服务需另有实测证据。具体证据与完整测试入口见 [验证说明](verification/RELEASE-CHECKS.md)。

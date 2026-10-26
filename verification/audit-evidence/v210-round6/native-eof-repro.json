@@ -1,0 +1,31 @@
+{
+  "kind": "offline-current-function-control-flow-probe",
+  "source": "deploy/native_launcher.py",
+  "sourceSha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff",
+  "createdAt": "2026-10-26T18:20:56.691151+00:00",
+  "method": "AST extract of current supervise function, deterministic selector/child/clock mocks; native process permanently live and not reading; max 100 select steps. No OS child, network, external configuration, or suite execution.",
+  "results": {
+    "noPendingBytes": {
+      "elapsed": 2.1000000000000005,
+      "selects": 21,
+      "eofObserved": true,
+      "stdinClosedAt": 0.1,
+      "cleanupAt": 2.1000000000000005,
+      "eofAt": 0.1,
+      "returned": 0,
+      "pendingBytesIntroduced": 0,
+      "cleanupInitiatedOnlyByProbeAbort": false
+    },
+    "nonReadingChildWithPendingBytes": {
+      "elapsed": 10.09999999999998,
+      "selects": 101,
+      "eofObserved": true,
+      "stdinClosedAt": 10.09999999999998,
+      "cleanupAt": 10.09999999999998,
+      "eofAt": 0.2,
+      "probeLimit": "No cleanup after 10 seconds of observed EOF",
+      "pendingBytesIntroduced": 65536,
+      "cleanupInitiatedOnlyByProbeAbort": true
+    }
+  }
+}

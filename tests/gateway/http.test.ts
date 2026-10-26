@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import net from 'node:net';
 import type { ServerResponse } from 'node:http';
 import WebSocket from 'ws';
 import { Authentication } from '../../src/gateway/auth.js';
+import { totp } from '../../src/gateway/auth-crypto.js';
 import { GatewayServer } from '../../src/gateway/server.js';
 import { Dispatcher } from '../../src/gateway/dispatch.js';
 import { Ledger } from '../../src/core/ledger.js';
@@ -26,14 +27,111 @@ async function fixture(now: () => number = Date.now, openBrowser = true, staticD
   const server = new GatewayServer(auth, dispatcher, backend as unknown as WorkerClient, staticDir);
   const port = await server.listen(0); auth.origin.port = String(port); const origin = auth.origin.origin;
   const post = (pathname: string, data: unknown, headers: Record<string, string> = {}) => fetch(origin + pathname, { method: 'POST', headers: { origin, 'content-type': 'application/json', ...headers }, body: JSON.stringify(data) });
-  const loginResponse = await post('/api/session', { token });
+  const loginResponse = await post('/api/account/setup', { token, username: 'admin', password: 'isolated-test-password' });
   const login = await loginResponse.json() as { csrf: string };
   const cookie = loginResponse.headers.get('set-cookie')!.split(';')[0]!; const clientId = randomUUID();
   const headers = { cookie, 'x-harness-csrf': login.csrf, 'x-harness-client': clientId };
   if (openBrowser) { const ws = new WebSocket(origin.replace('http:', 'ws:') + '/api/events?clientId=' + clientId, { headers: { origin, cookie } }); await once(ws, 'open'); }
-  return { auth, server, backend, ledger, dispatcher, origin, post, headers, cookie, clientId, owners, get forwarded() { return forwarded; }, get disconnected() { return disconnected; }, close: async () => { await server.close(); ledger.close(); } };
+  return { token, auth, server, backend, ledger, dispatcher, origin, post, headers, cookie, clientId, owners, get forwarded() { return forwarded; }, get disconnected() { return disconnected; }, close: async () => { await server.close(); ledger.close(); auth.close(); } };
 }
 describe('real HTTP and WebSocket authorization boundary', () => {
+  it('protects account settings, keeps wrong-password failures local, and revokes live sockets on password change', async () => {
+    const f = await fixture(Date.now, false); let socket: WebSocket | undefined;
+    try {
+      expect(await (await fetch(f.origin + '/api/session')).json()).toMatchObject({ authenticated: false, initialized: true, setupRequired: false, authenticationMode: 'account' });
+      expect((await fetch(f.origin + '/api/account')).status).toBe(401);
+      expect((await f.post('/api/session', { token: randomBytes(32).toString('hex') })).status).toBe(401);
+      const security = await (await fetch(f.origin + '/api/account', { headers: f.headers })).json() as { revision: string; sessions: { current: boolean }[] };
+      expect(security.sessions).toHaveLength(1); expect(security.sessions[0]!.current).toBe(true);
+      const changedPassword = randomBytes(24).toString('base64url');
+      const payload = { expectedRevision: security.revision, currentPassword: 'isolated-test-password', password: changedPassword };
+      expect((await f.post('/api/account/password', payload, { cookie: f.cookie })).status).toBe(403);
+      const wrong = await f.post('/api/account/password', { ...payload, currentPassword: 'wrong' }, f.headers);
+      expect(wrong.status).toBe(400); expect(await wrong.json()).toMatchObject({ error: { code: 'credential_invalid' } });
+      expect((await f.post('/api/account/password', { ...payload, expectedRevision: randomUUID() }, f.headers)).status).toBe(400);
+      socket = new WebSocket(f.origin.replace('http:', 'ws:') + '/api/events?clientId=' + f.clientId, { headers: { origin: f.origin, cookie: f.cookie } });
+      await once(socket, 'open'); const closed = once(socket, 'close');
+      const response = await f.post('/api/account/password', payload, f.headers);
+      expect(await response.json()).toEqual({ authenticated: false }); expect(response.headers.get('set-cookie')).toContain('Max-Age=0');
+      expect((await closed)[0]).toBe(4001);
+      expect((await fetch(f.origin + '/api/account', { headers: f.headers })).status).toBe(401);
+      const login = await f.post('/api/session', { username: 'admin', password: changedPassword });
+      expect(login.status).toBe(200); expect(await login.json()).toMatchObject({ authenticated: true, username: 'admin' });
+      await expect.poll(() => f.disconnected).toBe(1); expect(f.forwarded).toBe(0);
+    } finally { socket?.terminate(); await f.close(); }
+  });
+  it('revokes only the selected device and clears its current cookie when requested', async () => {
+    const f = await fixture(Date.now, false);
+    try {
+      const login = await f.post('/api/session', { username: 'admin', password: 'isolated-test-password' }), secondCookie = login.headers.get('set-cookie')!.split(';')[0]!;
+      const security = await (await fetch(f.origin + '/api/account', { headers: f.headers })).json() as { revision: string; sessions: { id: string; current: boolean }[] };
+      const other = security.sessions.find(row => !row.current)!;
+      expect(await (await f.post('/api/account/sessions/revoke', { expectedRevision: security.revision, sessionId: other.id }, f.headers)).json()).toEqual({ authenticated: true });
+      expect(await (await fetch(f.origin + '/api/session', { headers: { cookie: secondCookie } })).json()).toMatchObject({ authenticated: false });
+      const current = security.sessions.find(row => row.current)!;
+      const response = await f.post('/api/account/sessions/revoke', { expectedRevision: security.revision, sessionId: current.id }, f.headers);
+      expect(await response.json()).toEqual({ authenticated: false }); expect(response.headers.get('set-cookie')).toContain('Max-Age=0');
+    } finally { await f.close(); }
+  });
+  it('reports an uncertain authentication mutation honestly when failure follows a committed revocation', async () => {
+    const f = await fixture(Date.now, false);
+    try {
+      const security = await (await fetch(f.origin + '/api/account', { headers: f.headers })).json() as { revision: string; sessions: { id: string }[] };
+      const revoke = f.auth.revoke.bind(f.auth);
+      f.auth.revoke = (session, input) => { revoke(session, input); throw new Error('Injected post-commit failure'); };
+      const response = await f.post('/api/account/sessions/revoke', { expectedRevision: security.revision, sessionId: security.sessions[0]!.id }, f.headers);
+      expect(await response.json()).toMatchObject({ error: { delivery: 'unknown' } });
+      expect(await (await fetch(f.origin + '/api/session', { headers: f.headers })).json()).toMatchObject({ authenticated: false });
+    } finally { await f.close(); }
+  });
+  it('provides a public nonce-bound server proof while rejecting malformed, duplicate, and cross-origin probes', async () => {
+    const f = await fixture(Date.now, false);
+    try {
+      const nonce = randomBytes(32).toString('hex'), result = await fetch(f.origin + '/api/account/proof?nonce=' + nonce);
+      const expected = createHmac('sha256', createHash('sha256').update(f.token).digest()).update('codex-harness-account-proof-v1\0' + f.origin + '\0' + nonce).digest('hex');
+      expect(result.status).toBe(200); expect(await result.json()).toEqual({ nonce, proof: expected }); expect(result.headers.get('set-cookie')).toBeNull();
+      expect((await fetch(f.origin + '/api/account/proof?nonce=bad')).status).toBe(400);
+      expect((await fetch(f.origin + '/api/account/proof?nonce=' + nonce + '&nonce=' + nonce)).status).toBe(400);
+      expect((await fetch(f.origin + '/api/account/proof?nonce=' + nonce, { headers: { origin: 'https://attacker.example' } })).status).toBe(403);
+      const next = randomBytes(32).toString('hex'), nextResult = await (await fetch(f.origin + '/api/account/proof?nonce=' + next)).json() as { proof: string };
+      expect(nextResult.proof).not.toBe(expected); expect(f.forwarded).toBe(0);
+    } finally { await f.close(); }
+  });
+  it('exposes TOTP enrollment only through authenticated CSRF-protected requests and uses login second factors', async () => {
+    let now = 1_800_000; const f = await fixture(() => now, false);
+    try {
+      const read = async () => await (await fetch(f.origin + '/api/account', { headers: f.headers })).json() as { revision: string; mfaEnabled: boolean; recoveryCodesRemaining: number };
+      const before = await read(), start = { password: 'isolated-test-password', expectedRevision: before.revision };
+      expect((await f.post('/api/account/totp/start', start, { cookie: f.cookie })).status).toBe(403);
+      const pending = await (await f.post('/api/account/totp/start', start, f.headers)).json() as { enrollmentId: string; secret: string; uri: string };
+      expect(pending.uri).toContain('otpauth://totp/');
+      const confirm = await f.post('/api/account/totp/confirm', { enrollmentId: pending.enrollmentId, code: totp(pending.secret, now / 30_000), expectedRevision: before.revision }, f.headers);
+      const enabled = await confirm.json() as { mfaEnabled: boolean; recoveryCodes: string[] }; expect(enabled.mfaEnabled).toBe(true); expect(enabled.recoveryCodes).toHaveLength(10);
+      const credentials = { username: 'admin', password: 'isolated-test-password' };
+      const missing = await f.post('/api/session', credentials); expect(missing.status).toBe(401); expect(await missing.json()).toMatchObject({ error: { code: 'mfa_required' } });
+      now += 30_000;
+      const login = await f.post('/api/session', { ...credentials, otp: totp(pending.secret, now / 30_000) }); expect(login.status).toBe(200);
+      const current = await read(); expect(current.mfaEnabled).toBe(true);
+      const recovery = await f.post('/api/account/totp/recovery', { expectedRevision: current.revision, password: credentials.password, otp: enabled.recoveryCodes[0] }, f.headers);
+      const newCodes = await recovery.json() as { recoveryCodes: string[] }; expect(newCodes.recoveryCodes).toHaveLength(10);
+      const latest = await read(); const disabled = await f.post('/api/account/totp/disable', { expectedRevision: latest.revision, password: credentials.password, otp: newCodes.recoveryCodes[0] }, f.headers);
+      expect(await disabled.json()).toEqual({ mfaEnabled: false }); expect((await read()).recoveryCodesRemaining).toBe(0);
+    } finally { await f.close(); }
+  });
+  it('revalidates authorization after receiving a slow request body across revocation', async () => {
+    const f = await fixture(Date.now, false); let socket: net.Socket | undefined;
+    try {
+      const payload = JSON.stringify({ method: 'thread/read', params: { threadId: 'slow-auth-body' } });
+      socket = net.createConnection({ host: '127.0.0.1', port: Number(new URL(f.origin).port) }); await once(socket, 'connect');
+      const chunks: Buffer[] = []; socket.on('data', chunk => chunks.push(chunk));
+      const request = ['POST /api/rpc HTTP/1.1', `Host: ${new URL(f.origin).host}`, `Origin: ${f.origin}`, ...Object.entries(f.headers).map(([name, value]) => `${name}: ${value}`), 'Content-Type: application/json', `Content-Length: ${Buffer.byteLength(payload)}`, 'Connection: close', '', ''].join('\r\n');
+      const receiving = once(f.server.server, 'request'); socket.write(request + payload.slice(0, 10));
+      // Once a request event is observed its handler has already checked the initial session and is waiting for bytes.
+      await receiving;
+      f.auth.logout(f.cookie); const ended = once(socket, 'close'); socket.write(payload.slice(10)); await ended;
+      expect(Buffer.concat(chunks).toString()).toContain('401 Unauthorized'); expect(f.forwarded).toBe(0);
+    } finally { socket?.destroy(); await f.close(); }
+  });
   it('permits the application document to request microphone access while denying unrelated devices', async () => {
     const f = await fixture(Date.now, false, 'web');
     try {

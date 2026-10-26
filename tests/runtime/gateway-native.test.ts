@@ -53,7 +53,7 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
       res.write(`event: response.created\ndata: ${JSON.stringify({ type: 'response.created', sequence_number: 0, response: { id: 'resp_fixture_interrupted', object: 'response', created_at: Math.floor(Date.now() / 1000), status: 'in_progress', model: 'harness-loopback-fixture', output: [] } })}\n\n`);
     } else streamResponse(res, providerRequests);
   })().catch(error => { providerErrors.push(String(error)); res.destroy(); }); });
-  let runtime: RuntimeService | undefined; let workerHandle: Awaited<ReturnType<typeof startWorkerServer>> | undefined; let worker: WorkerClient | undefined; let gateway: GatewayServer | undefined; let ledger: Ledger | undefined; let browser: WebSocket | undefined;
+  let runtime: RuntimeService | undefined; let workerHandle: Awaited<ReturnType<typeof startWorkerServer>> | undefined; let worker: WorkerClient | undefined; let gateway: GatewayServer | undefined; let ledger: Ledger | undefined; let browser: WebSocket | undefined; let auth: Authentication | undefined;
   try {
     await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve)); const providerPort = (provider.address() as AddressInfo).port;
     const catalog = path.join(root, 'models.json'); writeFileSync(catalog, readFileSync(path.resolve('tests/runtime/fixture-model-catalog.json')));
@@ -69,8 +69,11 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
     worker.on('event', event => dispatcher.event(event)); worker.on('disconnect', () => dispatcher.disconnected()); worker.connect();
     await expect.poll(() => object(dispatcher.status()).connected, { timeout: 10000 }).toBe(true);
     await expect.poll(() => object(object(dispatcher.status()).activity).unknown, { timeout: 10000 }).toBe(false);
-    const adminToken = randomBytes(32).toString('hex'); const auth = new Authentication(adminToken, 'http://127.0.0.1:0'); gateway = new GatewayServer(auth, dispatcher, worker); const gatewayPort = await gateway.listen(0); auth.origin.port = String(gatewayPort); const origin = auth.origin.origin;
-    const loginResponse = await fetch(`${origin}/api/session`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify({ token: adminToken }) }); expect(loginResponse.status).toBe(200); const login = object(await loginResponse.json()); const cookie = loginResponse.headers.get('set-cookie')!.split(';')[0]!; const tabId = randomUUID();
+    const adminToken = randomBytes(32).toString('hex'); auth = new Authentication(adminToken, 'http://127.0.0.1:0'); gateway = new GatewayServer(auth, dispatcher, worker); const gatewayPort = await gateway.listen(0); auth.origin.port = String(gatewayPort); const origin = auth.origin.origin;
+    const credentials = { username: 'fixture-admin', password: randomBytes(32).toString('hex') };
+    const setupResponse = await fetch(`${origin}/api/account/setup`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify({ token: adminToken, ...credentials }) });
+    expect(setupResponse.status).toBe(200); await setupResponse.arrayBuffer();
+    const loginResponse = await fetch(`${origin}/api/session`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify(credentials) }); expect(loginResponse.status).toBe(200); const login = object(await loginResponse.json()); const cookie = loginResponse.headers.get('set-cookie')!.split(';')[0]!; const tabId = randomUUID();
     const rpc = async (method: string, params: JsonObject, operationId?: string): Promise<JsonObject> => { const response = await fetch(`${origin}/api/rpc`, { method: 'POST', headers: { origin, cookie, 'content-type': 'application/json', 'x-harness-csrf': String(login.csrf), 'x-harness-client': tabId }, body: JSON.stringify({ method, params, ...(operationId ? { operationId } : {}) }) }); const envelope = object(await response.json()); if (envelope.ok !== true) throw new Error(`${method}: ${JSON.stringify(envelope.error)}`); return object(envelope.result); };
     browser = new WebSocket(`${origin.replace('http:', 'ws:')}/api/events?clientId=${tabId}`, { headers: { origin, cookie } }); const events: RuntimeEvent[] = []; browser.on('message', data => events.push(JSON.parse(data.toString()) as RuntimeEvent)); await once(browser, 'open');
     const models = await rpc('model/list', {}); expect(models.data).toHaveLength(1); expect(object((models.data as JsonValue[])[0])).toMatchObject({ id: 'harness-loopback-fixture', isDefault: true, defaultReasoningEffort: 'low', supportedReasoningEfforts: [{ reasoningEffort: 'low', description: 'Local protocol fixture' }], inputModalities: ['text'] });
@@ -96,7 +99,7 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
     for (const response of held) response.end(); await expect.poll(() => held.size, { timeout: 5000 }).toBe(0); expect(providerRequests).toBe(3);
   } finally {
     const cleanupErrors: unknown[] = []; browser?.terminate();
-    for (const close of [async () => gateway?.close(), async () => worker?.close(), async () => workerHandle?.close(), async () => runtime?.close(), async () => ledger?.close()]) { try { await close(); } catch (error) { cleanupErrors.push(error); } }
+    for (const close of [async () => gateway?.close(), async () => worker?.close(), async () => workerHandle?.close(), async () => runtime?.close(), async () => ledger?.close(), async () => auth?.close()]) { try { await close(); } catch (error) { cleanupErrors.push(error); } }
     for (const response of held) response.destroy();
     await new Promise<void>(resolve => { provider.close(() => resolve()); provider.closeAllConnections(); });
     if (runtime?.native.processId !== undefined) expect(() => process.kill(runtime!.native.processId!, 0)).toThrow();

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
 import { PluginSharing } from '../components/PluginSharing';
@@ -225,4 +227,120 @@ it('project trust requires current version and explicit scoped confirmation', as
     trustLevel: 'trusted',
     confirm: true,
   });
+});
+
+function TrustSettingsWithRefresh({ api }: { api: Api }) {
+  // Workspace changes the configuration epoch; ExtensionsPanel keys this form by that epoch.
+  const [epoch, setEpoch] = useState(0);
+  return (
+    <ProjectTrustSettings
+      {...base}
+      key={project.id + ':' + epoch}
+      api={api}
+      epoch={String(epoch)}
+      onChanged={() => setEpoch((value) => value + 1)}
+    />
+  );
+}
+
+it('freezes the submitted trust choice until a delayed save remounts the form with its new epoch', async () => {
+  let finish!: (value: unknown) => void;
+  const pending = new Promise((resolve) => {
+    finish = resolve;
+  });
+  let saved = false;
+  const { api, calls } = routed((call) => {
+    if (call.method === 'project/trust/read')
+      return {
+        userVersion: saved ? 'v2' : 'v1',
+        configuredTrust: saved ? 'trusted' : null,
+        cwd: project.cwd,
+        projectLayers: [],
+      };
+    return pending;
+  });
+  render(<TrustSettingsWithRefresh api={api} />);
+  const choice = (await screen.findByRole('combobox', {
+    name: '新的项目信任选择',
+  })) as HTMLSelectElement;
+  const confirmation = screen.getByRole('checkbox', {
+    name: '我已审阅所选项目的配置并确认此次变更',
+  }) as HTMLInputElement;
+  fireEvent.change(choice, { target: { value: 'trusted' } });
+  fireEvent.click(confirmation);
+  fireEvent.click(screen.getByRole('button', { name: '保存项目信任' }));
+  await waitFor(() => expect(calls.some((call) => call.method === 'project/trust/write')).toBe(true));
+  expect(choice.disabled).toBe(true);
+  expect(confirmation.disabled).toBe(true);
+  const user = userEvent.setup();
+  await user.selectOptions(choice, 'untrusted');
+  await user.click(confirmation);
+  expect(choice.value).toBe('trusted');
+  expect(confirmation.checked).toBe(true);
+  await act(async () => {
+    saved = true;
+    finish({ status: 'ok', version: 'v2' });
+  });
+  await screen.findByText('此路径的用户配置：信任');
+  const current = screen.getByRole('combobox', {
+    name: '新的项目信任选择',
+  }) as HTMLSelectElement;
+  expect(current).not.toBe(choice);
+  expect(current.disabled).toBe(false);
+  expect(current.value).toBe('');
+  fireEvent.change(current, { target: { value: 'untrusted' } });
+  expect(current.value).toBe('untrusted');
+  expect(calls.filter((call) => call.method === 'project/trust/write')).toHaveLength(1);
+  expect(calls.find((call) => call.method === 'project/trust/write')!.params.trustLevel).toBe('trusted');
+});
+
+it('keeps a trust choice frozen while its outcome is unknown and only queries the original receipt', async () => {
+  let id = '',
+    saved = false;
+  const { api, calls } = routed((call) => {
+    if (call.method === 'project/trust/read')
+      return {
+        userVersion: saved ? 'v2' : 'v1',
+        configuredTrust: saved ? 'trusted' : null,
+        cwd: project.cwd,
+        projectLayers: [],
+      };
+    if (call.method === 'project/trust/write') {
+      id = call.operationId!;
+      throw new Error('lost response');
+    }
+    if (call.method === 'operation/read') {
+      saved = true;
+      return {
+        operationId: id,
+        method: 'project/trust/write',
+        state: 'accepted',
+        result: { status: 'ok', version: 'v2' },
+      };
+    }
+    return {};
+  });
+  render(<TrustSettingsWithRefresh api={api} />);
+  const choice = (await screen.findByRole('combobox', {
+    name: '新的项目信任选择',
+  })) as HTMLSelectElement;
+  const confirmation = screen.getByRole('checkbox', {
+    name: '我已审阅所选项目的配置并确认此次变更',
+  }) as HTMLInputElement;
+  fireEvent.change(choice, { target: { value: 'trusted' } });
+  fireEvent.click(confirmation);
+  fireEvent.click(screen.getByRole('button', { name: '保存项目信任' }));
+  const recover = await screen.findByRole('button', { name: '查询原扩展操作回执' });
+  expect(choice.disabled).toBe(true);
+  expect(confirmation.disabled).toBe(true);
+  expect(choice.value).toBe('trusted');
+  fireEvent.click(recover);
+  await screen.findByText('此路径的用户配置：信任');
+  const current = screen.getByRole('combobox', {
+    name: '新的项目信任选择',
+  }) as HTMLSelectElement;
+  expect(current).not.toBe(choice);
+  expect(current.disabled).toBe(false);
+  expect(calls.filter((call) => call.method === 'project/trust/write')).toHaveLength(1);
+  expect(calls.find((call) => call.method === 'operation/read')!.params).toEqual({ operationId: id });
 });

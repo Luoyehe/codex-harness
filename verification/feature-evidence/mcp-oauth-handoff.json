@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-26T17:42:31.770Z",
+  "finding": "V210-R3-GATEWAY-MCP-OAUTH-RETENTION",
+  "status": "fixed-targeted-verification-only",
+  "cli": "0.164.0",
+  "fullSuiteRun": false,
+  "independentCleanRounds": 0,
+  "files": [
+    "src/runtime/mcp-oauth.ts",
+    "src/runtime/service.ts",
+    "src/core/mcp-oauth-receipt.ts",
+    "src/core/feature-methods.ts",
+    "src/core/ledger.ts",
+    "src/core/operation-retention.ts",
+    "src/gateway/receipt-result.ts",
+    "web/components/McpAuthorization.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/Settings.tsx",
+    "web/lib/mcp-session.ts",
+    "tests/runtime/mcp-oauth.test.ts",
+    "tests/runtime/mcp-oauth-fixture.mjs",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "web/tests/mcp-oauth.test.tsx",
+    "verification/feature-evidence/mcp-oauth-handoff.json"
+  ],
+  "design": [
+    "MCP OAuth uses validated official request, response and completion schemas. Native login is sent once; no invented native cancel RPC exists.",
+    "Runtime creates non-secret handoffId/epoch/name/threadId receipt identity. Read-only mcp/oauth/handoff binds the runtime epoch, gateway eventChannelId and initiating browser clientId.",
+    "At most 32 retained targets; URLs at most 8192 UTF-8 bytes, native envelopes and request params at most 16384 bytes, each early completion map at most 16 entries. Handoffs expire after at most 10 minutes, shortened by an explicit timeoutSecs.",
+    "Completion, owner/gateway disconnect, expiry and runtime close revoke externally readable URLs. Pending or unknown reservations survive revocation until correlated completion or explicit runtime restart. Only correlated terminal attempts with native loginId can be evicted for capacity.",
+    "Official optional/null loginId is supported. Legacy attempts without loginId cannot be replaced within the epoch, including after a name/thread completion, preventing stale legacy notifications from completing a later attempt.",
+    "Completion is projected into an owner-routed mcp event; name, threadId and native loginId must correlate. Error text never enters the durable OAuth result or completion event. Late handoff reads cannot revive URLs after completion or owner replacement.",
+    "HTTP and HTTPS OAuth pages remain supported, with embedded URL credentials and non-web schemes rejected.",
+    "Web UI keeps URLs only in the mounted owner component; the bounded session cache and browser operation storage retain identities only. Lost responses recover through operation/read then handoff read, never automatic resubmission.",
+    "Gateway projection and Ledger settle whitelist new OAuth results. Historical Ledger reads, accepted replay and newly generated exports project OAuth result and error payloads without changing receipt identity or acceptance/unknown state."
+  ],
+  "verified": [
+    "Actual RuntimeService -> Dispatcher -> SQLite Ledger -> reopen/read/replay/export paths omit OAuth URL and state/challenge parameters; URL stays available through the read-only owner handoff.",
+    "Real NativeRpc local child-process pipe verifies owner guard refusal is not_sent, never writes the login, releases the reservation and allows exactly one later explicit login and official completion.",
+    "Owner/channel/epoch isolation, early/late completion, mismatched loginId/name/thread, client/gateway/native disconnect, TTL, unsafe/oversized responses, unknown results and bounded capacity.",
+    "McpPanel browser flow, runtime epoch distinct from resource refresh epoch, original receipt recovery, historical unavailable identities, completion races, connection/selection/thread replacement, HTTP URL support and expiry.",
+    "Existing Ledger capacity, Ledger/retention, gateway dispatch/receipt, runtime service, MCP UI and account device-login regressions."
+  ],
+  "testEnvironment": {
+    "home": ".work/mcp-oauth-check-home",
+    "gitGlobalAndSystem": "explicit empty config",
+    "gitConfigNoSystem": true,
+    "inheritedGitVariablesCleared": true,
+    "codexHome": "isolated .work path; no personal CODEX_HOME read",
+    "native": "Node local protocol fixture only"
+  },
+  "reports": [
+    {
+      "file": ".work/test-results/run-ge4ceH/vitest.json",
+      "sha256": "cdf5835a2038a9827464dba25b79a47ba69f3d20063332f60361314b9fac56e2",
+      "success": true,
+      "passed": 183,
+      "failed": 0,
+      "tests": [
+        {
+          "file": "tests/core/ledger-capacity.test.ts",
+          "assertions": 16,
+          "allPassed": true
+        },
+        {
+          "file": "tests/core/ledger.test.ts",
+          "assertions": 9,
+          "allPassed": true
+        },
+        {
+          "file": "tests/core/operation-retention.test.ts",
+          "assertions": 10,
+          "allPassed": true
+        },
+        {
+          "file": "tests/gateway/dispatch.test.ts",
+          "assertions": 20,
+          "allPassed": true
+        },
+        {
+          "file": "tests/gateway/mcp-oauth.test.ts",
+          "assertions": 7,
+          "allPassed": true
+        },
+        {
+          "file": "tests/gateway/receipt-result.test.ts",
+          "assertions": 16,
+          "allPassed": true
+        },
+        {
+          "file": "tests/runtime/mcp-oauth.test.ts",
+          "assertions": 17,
+          "allPassed": true
+        },
+        {
+          "file": "tests/runtime/service.test.ts",
+          "assertions": 39,
+          "allPassed": true
+        },
+        {
+          "file": "web/tests/mcp-oauth.test.tsx",
+          "assertions": 14,
+          "allPassed": true
+        },
+        {
+          "file": "web/tests/mcp-ui.test.tsx",
+          "assertions": 35,
+          "allPassed": true
+        }
+      ]
+    },
+    {
+      "file": ".work/test-results/run-pdXRJB/vitest.json",
+      "sha256": "8a84646a4381bcabd0a4163f5ffa0517923e60562ae06f48ea01486acaf13dd7",
+      "success": true,
+      "passed": 30,
+      "failed": 0,
+      "tests": [
+        {
+          "file": "tests/gateway/mcp-oauth.test.ts",
+          "assertions": 8,
+          "allPassed": true
+        },
+        {
+          "file": "web/tests/device-login.test.tsx",
+          "assertions": 8,
+          "allPassed": true
+        },
+        {
+          "file": "web/tests/mcp-oauth.test.tsx",
+          "assertions": 14,
+          "allPassed": true
+        }
+      ]
+    }
+  ],
+  "latestPassingCoverage": {
+    "files": 11,
+    "assertions": 192
+  },
+  "typecheck": {
+    "server": {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "log": ".work/mcp-oauth-typecheck-server.log"
+    },
+    "web": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "log": ".work/mcp-oauth-typecheck-web.log"
+    }
+  },
+  "initialFailedRun": {
+    "file": ".work/test-results/run-EAgfyb/vitest.json",
+    "passed": 63,
+    "failed": 1,
+    "cause": "New historical test fixture used scope global while real Dispatcher uses mcp/oauth. Fixture corrected; later original receipt replay assertion passed."
+  },
+  "sourceHashesCapturedAtWriting": {
+    "src/runtime/mcp-oauth.ts": "c2f36b1fce17f526e96783d56dedd6852f00f7e4d4c01d94e8b23119baaf5de3",
+    "src/runtime/service.ts": "c70f91b485a3479c35842775c246624b6741c0f6e055998d1cb9c756dd8c53df",
+    "src/core/mcp-oauth-receipt.ts": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+    "src/core/feature-methods.ts": "fe23d36edf07ae235fad8ca695d0b58f1e3f96dcd3fa203fe05f78432ac638b9",
+    "src/core/ledger.ts": "8cc405820a94cc53c6518bef0db5ae9e3ded6fab13d4e3b54c07238e1950fa49",
+    "src/core/operation-retention.ts": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b",
+    "src/gateway/receipt-result.ts": "aecabb62da54774baa8f8d88e9ea346f5042c9e0284a7f9eca7fa68907b7381f",
+    "web/components/McpAuthorization.tsx": "9bcbddec467a80cfc31d2e5b9d6939b240470054316592d97d3644fd0a63f5a5",
+    "web/components/McpPanel.tsx": "9f66fa89834a311ffadfdf582f2f424f82c1dbf7d7c816459c7f6eef71d650c9",
+    "web/components/Settings.tsx": "81851886bc042c17a59634a77bd7a6bc446b4cf294772d2ec7aff0221b1d2319",
+    "web/lib/mcp-session.ts": "2203ce64e5844d5cd53c97563a0a95b2783b11e5da87a88aef66cd7e3ff6aad6",
+    "tests/runtime/mcp-oauth.test.ts": "8d0ed75480652d34a31ac0dcea26db20dc121022fd1100c059b75ab88c4b64db",
+    "tests/runtime/mcp-oauth-fixture.mjs": "17f5857d8ca6ac0495150aab3a74e1d34363e6b76594a763126f20abe84910bb",
+    "tests/gateway/mcp-oauth.test.ts": "83c0d7951907e9676dd4c89dacff63a691cb7770e31767bc66bdb113fa942a34",
+    "tests/gateway/receipt-result.test.ts": "ad79681d8b7aa03d955d28979fd94baa272cb1dc264523463a54fd39818e602a",
+    "web/tests/mcp-oauth.test.tsx": "8be5624e9343ddc7823ae905eed2d9fe979a05f55e51657a2a297cf7c35af99b"
+  },
+  "boundaries": [
+    "This is a targeted fix and targeted review, not a complete audit or a full-suite pass. The earlier completed round-three audit remains failed; changes reset the unchanged-source clean-round count.",
+    "Historical SQLite/WAL/journal pages and previously created archives or backups are not erased or rewritten. New reads/exports omit old URL payloads while original rows preserve evidence and replay fences.",
+    "Revoking the externally readable handoff does not cancel the provider login. No native cancellation interface is advertised by the pinned protocol. Correlated completion or explicit runtime restart is needed before retrying an unresolved target.",
+    "The shared diagnostic redactor retains a bounded in-memory secret index (including prior authorization URLs) until runtime disposal, so late diagnostic text remains redacted. No claim of secure process-memory erasure is made.",
+    "No live deployment, online migration, real external MCP/provider OAuth login, paid model inference, previous implementation/test import or Git-history reference was used."
+  ]
+}

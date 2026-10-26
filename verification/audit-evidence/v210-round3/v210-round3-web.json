@@ -1,0 +1,859 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v210-round3",
+  "reviewerId": "v210-round3-web",
+  "digest": "db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781",
+  "sourceDigestAfter": "db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781",
+  "startedAt": "2026-10-26T16:54:00.892Z",
+  "completedAt": "2026-10-26T17:07:41.932Z",
+  "complete": true,
+  "scopes": [
+    "web-ux"
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "Read-only static audit of all 191 frozen Web files: full implementation/component/hook/library/CSS/config source reading (20 components delegated to the documented supplementary reviewer), full-text lexical scanning of every test and helper file, systematic test/expectation catalog inspection, and manual implementation-to-assertion checks for the listed critical tests. No tests were executed. All 1852 source hashes and the repository snapshot aggregate were verified before and after review.",
+  "methodDetails": {
+    "scope": {
+      "assignedFiles": 191,
+      "scannedFiles": 191,
+      "bytes": 1861451,
+      "lines": 50610,
+      "nonTestFiles": 127,
+      "testAndFixtureFiles": 64,
+      "unreviewedFiles": 0
+    },
+    "implementationReading": {
+      "method": "Complete manual source reading, with large files split into bounded sections; CSS read in compact whitespace form in addition to full-text scan.",
+      "primaryNonTestFiles": 107,
+      "supplementaryNonTestFiles": 20,
+      "additionalManuallyReadFixture": "web/tests/preview-server.mjs",
+      "supplementaryReport": ".work/v210-round3-web-component-review.json",
+      "supplementaryReviewer": "v210-round3-web-component-review"
+    },
+    "systematicScan": {
+      "artifact": ".work/v210-round3-web-scan.json",
+      "script": ".work/v210-round3-web-scan.mjs",
+      "method": "Full-file lexical scan, not AST parsing or dynamic execution; imports, RPC/mutation sites, lifecycle guards, persistent storage, network/DOM sinks, test/expectation declarations and skip/TODO markers.",
+      "lexicalTestDeclarationsIncludingEach": 517,
+      "lexicalAssertionMatches": 2138,
+      "testCountNote": "Declaration counts include parameterized declarations once; they are not executed test counts. The original scan tests array also matches some RegExp.test calls; this report uses anchored declaration matching instead.",
+      "skippedOrExclusiveTestMarkers": [],
+      "testCatalog": [
+        {
+          "file": "web/tests/account-app.test.tsx",
+          "lexicalDeclarations": 1,
+          "lexicalAssertions": 3
+        },
+        {
+          "file": "web/tests/account-tools.test.tsx",
+          "lexicalDeclarations": 4,
+          "lexicalAssertions": 12
+        },
+        {
+          "file": "web/tests/app-lifecycle.test.tsx",
+          "lexicalDeclarations": 16,
+          "lexicalAssertions": 121
+        },
+        {
+          "file": "web/tests/attachments.test.tsx",
+          "lexicalDeclarations": 9,
+          "lexicalAssertions": 35
+        },
+        {
+          "file": "web/tests/automations.test.tsx",
+          "lexicalDeclarations": 16,
+          "lexicalAssertions": 79
+        },
+        {
+          "file": "web/tests/builtin-auth.test.tsx",
+          "lexicalDeclarations": 20,
+          "lexicalAssertions": 55
+        },
+        {
+          "file": "web/tests/cli-diagnostics.test.tsx",
+          "lexicalDeclarations": 5,
+          "lexicalAssertions": 13
+        },
+        {
+          "file": "web/tests/compact-threshold.test.tsx",
+          "lexicalDeclarations": 2,
+          "lexicalAssertions": 5
+        },
+        {
+          "file": "web/tests/composer.test.tsx",
+          "lexicalDeclarations": 5,
+          "lexicalAssertions": 23
+        },
+        {
+          "file": "web/tests/conversation.test.tsx",
+          "lexicalDeclarations": 9,
+          "lexicalAssertions": 51
+        },
+        {
+          "file": "web/tests/credit-nudge.test.tsx",
+          "lexicalDeclarations": 2,
+          "lexicalAssertions": 5
+        },
+        {
+          "file": "web/tests/defaults.test.tsx",
+          "lexicalDeclarations": 2,
+          "lexicalAssertions": 15
+        },
+        {
+          "file": "web/tests/device-login.test.tsx",
+          "lexicalDeclarations": 8,
+          "lexicalAssertions": 28
+        },
+        {
+          "file": "web/tests/dialog.test.tsx",
+          "lexicalDeclarations": 6,
+          "lexicalAssertions": 27
+        },
+        {
+          "file": "web/tests/drafts.test.tsx",
+          "lexicalDeclarations": 11,
+          "lexicalAssertions": 36
+        },
+        {
+          "file": "web/tests/environment-picker.test.tsx",
+          "lexicalDeclarations": 3,
+          "lexicalAssertions": 11
+        },
+        {
+          "file": "web/tests/events.test.tsx",
+          "lexicalDeclarations": 5,
+          "lexicalAssertions": 23
+        },
+        {
+          "file": "web/tests/execution-settings.test.tsx",
+          "lexicalDeclarations": 9,
+          "lexicalAssertions": 33
+        },
+        {
+          "file": "web/tests/extensions.test.tsx",
+          "lexicalDeclarations": 9,
+          "lexicalAssertions": 37
+        },
+        {
+          "file": "web/tests/git-index-ui.test.tsx",
+          "lexicalDeclarations": 8,
+          "lexicalAssertions": 18
+        },
+        {
+          "file": "web/tests/guardian-review.test.tsx",
+          "lexicalDeclarations": 6,
+          "lexicalAssertions": 19
+        },
+        {
+          "file": "web/tests/history.test.ts",
+          "lexicalDeclarations": 7,
+          "lexicalAssertions": 20
+        },
+        {
+          "file": "web/tests/hook-events.test.tsx",
+          "lexicalDeclarations": 4,
+          "lexicalAssertions": 22
+        },
+        {
+          "file": "web/tests/import-ui.test.tsx",
+          "lexicalDeclarations": 8,
+          "lexicalAssertions": 26
+        },
+        {
+          "file": "web/tests/input-context.test.tsx",
+          "lexicalDeclarations": 8,
+          "lexicalAssertions": 32
+        },
+        {
+          "file": "web/tests/input-modalities.test.tsx",
+          "lexicalDeclarations": 7,
+          "lexicalAssertions": 28
+        },
+        {
+          "file": "web/tests/input-preference.test.tsx",
+          "lexicalDeclarations": 2,
+          "lexicalAssertions": 10
+        },
+        {
+          "file": "web/tests/loaded-threads.test.tsx",
+          "lexicalDeclarations": 4,
+          "lexicalAssertions": 12
+        },
+        {
+          "file": "web/tests/mcp-media.test.tsx",
+          "lexicalDeclarations": 12,
+          "lexicalAssertions": 65
+        },
+        {
+          "file": "web/tests/mcp-ui.test.tsx",
+          "lexicalDeclarations": 22,
+          "lexicalAssertions": 95
+        },
+        {
+          "file": "web/tests/memory-settings.test.tsx",
+          "lexicalDeclarations": 4,
+          "lexicalAssertions": 17
+        },
+        {
+          "file": "web/tests/message-media.test.tsx",
+          "lexicalDeclarations": 7,
+          "lexicalAssertions": 26
+        },
+        {
+          "file": "web/tests/modal-mutations.test.tsx",
+          "lexicalDeclarations": 14,
+          "lexicalAssertions": 66
+        },
+        {
+          "file": "web/tests/operation-generation.test.ts",
+          "lexicalDeclarations": 3,
+          "lexicalAssertions": 12
+        },
+        {
+          "file": "web/tests/operations.test.ts",
+          "lexicalDeclarations": 13,
+          "lexicalAssertions": 37
+        },
+        {
+          "file": "web/tests/organization.test.tsx",
+          "lexicalDeclarations": 10,
+          "lexicalAssertions": 36
+        },
+        {
+          "file": "web/tests/prediction.test.tsx",
+          "lexicalDeclarations": 8,
+          "lexicalAssertions": 29
+        },
+        {
+          "file": "web/tests/preview-server.mjs",
+          "lexicalDeclarations": 0,
+          "lexicalAssertions": 0
+        },
+        {
+          "file": "web/tests/process-remote.test.tsx",
+          "lexicalDeclarations": 19,
+          "lexicalAssertions": 82
+        },
+        {
+          "file": "web/tests/prompt-fields.test.tsx",
+          "lexicalDeclarations": 8,
+          "lexicalAssertions": 40
+        },
+        {
+          "file": "web/tests/prompts.test.tsx",
+          "lexicalDeclarations": 15,
+          "lexicalAssertions": 56
+        },
+        {
+          "file": "web/tests/provider-advanced.test.tsx",
+          "lexicalDeclarations": 4,
+          "lexicalAssertions": 20
+        },
+        {
+          "file": "web/tests/provider-catalog.test.tsx",
+          "lexicalDeclarations": 10,
+          "lexicalAssertions": 64
+        },
+        {
+          "file": "web/tests/provider-profiles.test.tsx",
+          "lexicalDeclarations": 3,
+          "lexicalAssertions": 13
+        },
+        {
+          "file": "web/tests/provider.test.tsx",
+          "lexicalDeclarations": 4,
+          "lexicalAssertions": 12
+        },
+        {
+          "file": "web/tests/realtime.test.tsx",
+          "lexicalDeclarations": 13,
+          "lexicalAssertions": 86
+        },
+        {
+          "file": "web/tests/receipt-maintenance.test.tsx",
+          "lexicalDeclarations": 6,
+          "lexicalAssertions": 18
+        },
+        {
+          "file": "web/tests/recovery.test.tsx",
+          "lexicalDeclarations": 5,
+          "lexicalAssertions": 22
+        },
+        {
+          "file": "web/tests/render-budget.test.tsx",
+          "lexicalDeclarations": 8,
+          "lexicalAssertions": 31
+        },
+        {
+          "file": "web/tests/resources.test.tsx",
+          "lexicalDeclarations": 3,
+          "lexicalAssertions": 7
+        },
+        {
+          "file": "web/tests/resume.test.tsx",
+          "lexicalDeclarations": 2,
+          "lexicalAssertions": 11
+        },
+        {
+          "file": "web/tests/session.test.ts",
+          "lexicalDeclarations": 6,
+          "lexicalAssertions": 24
+        },
+        {
+          "file": "web/tests/settings.test.tsx",
+          "lexicalDeclarations": 4,
+          "lexicalAssertions": 21
+        },
+        {
+          "file": "web/tests/sharing-diagnostics.test.tsx",
+          "lexicalDeclarations": 9,
+          "lexicalAssertions": 39
+        },
+        {
+          "file": "web/tests/skill-library.test.tsx",
+          "lexicalDeclarations": 11,
+          "lexicalAssertions": 32
+        },
+        {
+          "file": "web/tests/stream-items.test.ts",
+          "lexicalDeclarations": 3,
+          "lexicalAssertions": 9
+        },
+        {
+          "file": "web/tests/terminal.test.tsx",
+          "lexicalDeclarations": 17,
+          "lexicalAssertions": 63
+        },
+        {
+          "file": "web/tests/thread-terminals.test.tsx",
+          "lexicalDeclarations": 12,
+          "lexicalAssertions": 52
+        },
+        {
+          "file": "web/tests/timeline-history.test.tsx",
+          "lexicalDeclarations": 11,
+          "lexicalAssertions": 45
+        },
+        {
+          "file": "web/tests/workflows.test.tsx",
+          "lexicalDeclarations": 24,
+          "lexicalAssertions": 96
+        },
+        {
+          "file": "web/tests/workspace-management.test.tsx",
+          "lexicalDeclarations": 15,
+          "lexicalAssertions": 49
+        },
+        {
+          "file": "web/tests/workspace-search.test.tsx",
+          "lexicalDeclarations": 2,
+          "lexicalAssertions": 6
+        },
+        {
+          "file": "web/tests/workspace-ui.test.tsx",
+          "lexicalDeclarations": 12,
+          "lexicalAssertions": 49
+        },
+        {
+          "file": "web/tests/workspace-watch.test.tsx",
+          "lexicalDeclarations": 2,
+          "lexicalAssertions": 9
+        }
+      ]
+    },
+    "manualTestAssertionChecks": [
+      {
+        "file": "web/tests/account-app.test.tsx",
+        "ranges": [
+          "entire file"
+        ],
+        "focus": "Initial setup followed by normal login/logout"
+      },
+      {
+        "file": "web/tests/builtin-auth.test.tsx",
+        "ranges": [
+          "entire file"
+        ],
+        "focus": "MFA, secret clearing and volatile storage, unknown security mutations, account revision, stale responses, worker-independent account management"
+      },
+      {
+        "file": "web/tests/session.test.ts",
+        "ranges": [
+          "entire file"
+        ],
+        "focus": "Authoritative authentication loss, stale unauthorized responses, JSON negotiation, retained migration authentication"
+      },
+      {
+        "file": "web/tests/drafts.test.tsx",
+        "ranges": [
+          "entire file"
+        ],
+        "focus": "Draft visit ownership, stale acknowledgement and attachment removal, storage failure, capacity bounds"
+      },
+      {
+        "file": "web/tests/render-budget.test.tsx",
+        "ranges": [
+          "entire file"
+        ],
+        "focus": "Bounded Markdown/DOM, Unicode paging, no automatic remote media loads, accessible search focus"
+      },
+      {
+        "file": "web/tests/workspace-ui.test.tsx",
+        "ranges": [
+          "86-274"
+        ],
+        "focus": "Expected-revision rebase, concurrent edits, original-operation recovery, missing receipt uncertainty, durable intent failure"
+      },
+      {
+        "file": "web/tests/operations.test.ts",
+        "ranges": [
+          "1-150"
+        ],
+        "focus": "Monotonic receipts, metadata-only persistence, unknown fencing, late success after stopped recovery"
+      },
+      {
+        "file": "web/tests/terminal.test.tsx",
+        "ranges": [
+          "329-446"
+        ],
+        "focus": "HTTP/WS receipt ordering, original terminal identity, connection replacement, close recovery, no repeated creation"
+      },
+      {
+        "file": "web/tests/app-lifecycle.test.tsx",
+        "ranges": [
+          "399-578"
+        ],
+        "focus": "Authentication renewal, memory-only draft retention, modal ownership and attachment suspension, no implicit write replay"
+      }
+    ],
+    "focus": [
+      "Built-in administrator setup/login/MFA/security/session revocation and retained migration fallback",
+      "Authentication/epoch/client/connection/thread/project ownership and late responses",
+      "Unknown operation receipts, monotonic recovery and no automatic repeat dispatch",
+      "Draft revisions, concurrent edits and failed browser persistence",
+      "Approval preview/decision scope, explicit execution and mutation consent",
+      "File path/revision identity, editor rebase and worktree/index recovery",
+      "Terminal/process/realtime lifetimes and bounded buffers",
+      "Safe Markdown, escaped untrusted content, deliberate media previews and object URL cleanup",
+      "Settings/provider/MCP/automation/remote controls, secret lifetime and capability/readiness gates",
+      "Responsive layout, dialog focus, navigation, IME controls and visible error/recovery paths"
+    ],
+    "initialHashVerification": {
+      "verifiedAt": "2026-10-26T16:54:26.949Z",
+      "files": 1852,
+      "mismatches": 0,
+      "snapshotFiles": 1852,
+      "snapshotDigest": "db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781"
+    },
+    "finalHashVerification": {
+      "verifiedAt": "2026-10-26T17:07:41.929Z",
+      "files": 1852,
+      "mismatches": 0,
+      "snapshotFiles": 1852,
+      "snapshotDigest": "db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781"
+    },
+    "historicalEvidence": "No old audit reports, sibling source checkouts or Git history were used. Historical verification notes present inside the assigned current web/VERIFICATION.md were not counted as current evidence.",
+    "executedChecks": [
+      "Offline SHA256 comparison for all inventory entries at start and end",
+      "Repository scripts/snapshot.mjs aggregate at start and end",
+      "Read-only full-file lexical scanner and report coverage consistency checks"
+    ],
+    "executedTests": [],
+    "sourceEdits": []
+  },
+  "limitations": [
+    "Static source audit only. No full or partial test suite, build or typecheck was executed; inspected assertions are evidence of intended coverage, not a claim that tests passed.",
+    "Test files received complete programmatic scanning and systematic catalog review; manual assertion-body review is limited to the explicitly listed files/ranges rather than every assertion.",
+    "No live/online browser, real gateway/worker, PTY, microphone/WebRTC, external identity/MCP/provider/remote service or paid inference was exercised.",
+    "CSS, focus and interaction behavior were assessed from source; no screenshots, native IME or cross-browser visual run were performed.",
+    "No personal CODEX_HOME or retired host 110 was accessed. Temporary audit artifacts only were written under .work."
+  ],
+  "inspectedFiles": [
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx",
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "originalInspectedFiles": [
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\App.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\VERIFICATION.md",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\Workspace.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\AccountSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\AccountToolsPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\AdminSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ArchiveActions.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\AttachmentButton.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\AutomationForm.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\AutomationsPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\CliDiagnosticsPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\CompactThreshold.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Composer.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ComposerOptions.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ConfigSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\CreditNudge.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\DiagnosticsPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Dialog.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\DraftsSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\EnvironmentPicker.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ExtensionControls.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ExtensionsPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\FileEditor.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\GuardianReviewPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\HistoryTools.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\HookEventsPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Icon.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ImportPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\InputContextPicker.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\InputPreferences.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\LoadedThreadsPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Login.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\McpArguments.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\McpConfiguration.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\McpContent.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\McpPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\MemorySettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\MessageItem.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\MessageMedia.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Messages.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ModelCatalog.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\NativeProjects.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\OrganizationPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\PluginSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\PluginSharing.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\PredictionPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ProcessPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ProjectDialog.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ProjectTrustSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\PromptFields.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Prompts.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ProviderProfiles.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ProviderSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\RealtimePanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ReceiptMaintenance.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Recovery.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\RemoteSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\RenameDialog.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\RuntimeInsights.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\SafeMarkdown.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\SecuritySettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Settings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Sidebar.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\SkillLibraryTools.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\SkillSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\TaskPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\TerminalPanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ThreadExecutionSettings.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ThreadOrganization.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\ThreadTerminals.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\Welcome.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceCommit.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceDownload.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceGit.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceIndex.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceIndexRecovery.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspacePanel.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceRecovery.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceSearch.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\components\\WorkspaceWorktrees.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useAutomationRuns.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useConversation.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useDraft.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useEvents.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\usePaged.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\usePrompts.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useResource.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useResume.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useWorkflow.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\hooks\\useWorkspaceWatch.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\index.html",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\api.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\automations.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\download.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\drafts.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\events.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\file-drafts.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\form-values.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\git-state.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\history.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\ids.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\imports.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\input-context.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\input-modalities.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\input-preference.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\mcp-session.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\media.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\operations.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\organization.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\prompt-validation.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\realtime-media.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\receipt-archive.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\stream-items.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\timeline.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\types.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\workflows.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\lib\\workspace.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\main.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\styles-automations.css",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\styles-extensions.css",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\styles-input-context.css",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\styles-responsive.css",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\styles-workflows.css",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\styles-workspace.css",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\styles.css",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\account-app.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\account-tools.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\app-lifecycle.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\attachments.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\automations.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\builtin-auth.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\cli-diagnostics.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\compact-threshold.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\composer.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\conversation.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\credit-nudge.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\defaults.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\device-login.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\dialog.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\drafts.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\environment-picker.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\events.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\execution-settings.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\extensions.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\git-index-ui.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\guardian-review.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\history.test.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\hook-events.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\import-ui.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\input-context.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\input-modalities.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\input-preference.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\loaded-threads.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\mcp-media.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\mcp-ui.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\memory-settings.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\message-media.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\modal-mutations.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\operation-generation.test.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\operations.test.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\organization.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\prediction.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\preview-server.mjs",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\process-remote.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\prompt-fields.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\prompts.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\provider-advanced.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\provider-catalog.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\provider-profiles.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\provider.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\realtime.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\receipt-maintenance.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\recovery.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\render-budget.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\resources.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\resume.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\session.test.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\settings.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\sharing-diagnostics.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\skill-library.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\stream-items.test.ts",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\terminal.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\thread-terminals.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\timeline-history.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\workflows.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\workspace-management.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\workspace-search.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\workspace-ui.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tests\\workspace-watch.test.tsx",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\tsconfig.json",
+    "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\web\\vite.config.ts"
+  ],
+  "pathNormalization": "Absolute paths verified inside the current repository and normalized to inventory-relative paths; original paths retained."
+}

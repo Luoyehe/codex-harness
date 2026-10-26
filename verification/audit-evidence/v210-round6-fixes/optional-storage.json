@@ -1,0 +1,128 @@
+{
+  "task": "v210-optional-storage-fix",
+  "status": "complete",
+  "scope": "Current rewrite only; two optional browser-storage production changes and regressions in existing Web test files.",
+  "productionChanges": [
+    {
+      "file": "web/lib/api.ts",
+      "change": "Removed the unused harness.client sessionStorage write. Every Api still creates its own UUID, including when a browser duplicates a document. No identity is restored from copied storage."
+    },
+    {
+      "file": "web/Workspace.tsx",
+      "change": "Caught sessionStorage accessor/getItem exceptions while initializing the optional project selection and returned an empty selection for the existing project-resolution logic. Existing project-selection persistence warning remains."
+    }
+  ],
+  "testFilesChanged": [
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/operations.test.ts"
+  ],
+  "storageReview": [
+    {
+      "path": "Api constructor: harness.client",
+      "classification": "Unused optional write",
+      "result": "Removed; no reader was found in the current Web source."
+    },
+    {
+      "path": "Workspace: harness.project",
+      "classification": "Optional navigation preference",
+      "result": "Initialization now falls back; existing write failure remains a visible, nonfatal warning."
+    },
+    {
+      "path": "Workspace: harness.theme",
+      "classification": "Optional appearance preference",
+      "result": "Existing accessor/read/write catch blocks already contain failures; no production change."
+    },
+    {
+      "path": "web/lib/input-preference.ts: harness.enter-behavior",
+      "classification": "Optional input preference",
+      "result": "Existing guarded reads and writes retain an in-memory preference; no production change."
+    },
+    {
+      "path": "web/lib/drafts.ts and web/lib/file-drafts.ts",
+      "classification": "Draft recovery and retained edit intent",
+      "result": "Kept strict read/write validation and error propagation. Existing useDraft handling retains visible in-memory input and reports recovery/persistence failures. No blanket storage fallback introduced."
+    },
+    {
+      "path": "web/lib/operations.ts and Api.beginMutation/openTerminal",
+      "classification": "Required pre-dispatch operation identity and durable recovery proofs",
+      "result": "Unchanged. Getter/read/write/readback failures stop dispatch. No mutation is sent without persisted operation identity."
+    },
+    {
+      "path": "web/lib/receipt-archive.ts and web/components/ReceiptMaintenance.tsx",
+      "classification": "Required receipt rotation recovery intent",
+      "result": "Unchanged. Recovery read errors mark storageIssue, and rotation writes plus readback precede the rotation RPC."
+    }
+  ],
+  "regressionCoverage": [
+    "Real App with sessionStorage getter, getItem, or setItem throwing still reaches credential login and authenticated read-only workspace navigation.",
+    "Real App with localStorage getter, getItem, or setItem throwing still reaches credential login and read-only thread refresh. No business operation ID is sent in these read-only flows.",
+    "Independent Api instances ignore copied harness.client storage and retain distinct IDs and request headers under available storage and getter/read/write failures.",
+    "Business mutation and terminal open both produce fetch=0 under localStorage getter/read/write failures or silently discarded writes; restoring storage does not replay either call.",
+    "Real App explicit send reaches the failing operation journal write once, produces fetch delta=0, retains the unsent draft, and does not replay after storage restoration or read-only refresh."
+  ],
+  "testRuns": [
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/app-lifecycle.test.tsx web/tests/operations.test.ts web/tests/session.test.ts web/tests/input-preference.test.tsx",
+      "exitCode": 1,
+      "total": 53,
+      "passed": 52,
+      "failed": 1,
+      "log": ".work/v210-optional-storage-targeted.log",
+      "report": ".work/test-results/run-qrJePK/vitest.json",
+      "failureClassification": "New test assertion mismatch, not a production failure",
+      "failureDetails": "The new real-App operation-persistence test expected the DOMException's custom text. The existing message() helper presented its generic fallback in the jsdom Error realm. The test was corrected to accept the existing generic error and explicitly assert that the faulting setItem was invoked once. No production message handling was changed."
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/app-lifecycle.test.tsx",
+      "exitCode": 0,
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "log": ".work/v210-optional-storage-app-recheck.log",
+      "report": ".work/test-results/run-hcF2LU/vitest.json"
+    }
+  ],
+  "latestAffectedFileResults": [
+    {
+      "file": "web/tests/app-lifecycle.test.tsx",
+      "passed": 24,
+      "failed": 0,
+      "report": ".work/test-results/run-hcF2LU/vitest.json"
+    },
+    {
+      "file": "web/tests/operations.test.ts",
+      "passed": 20,
+      "failed": 0,
+      "report": ".work/test-results/run-qrJePK/vitest.json"
+    },
+    {
+      "file": "web/tests/session.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "report": ".work/test-results/run-qrJePK/vitest.json"
+    },
+    {
+      "file": "web/tests/input-preference.test.tsx",
+      "passed": 2,
+      "failed": 0,
+      "report": ".work/test-results/run-qrJePK/vitest.json"
+    }
+  ],
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+    "execution": "Spawned with isolatedTestEnvironment(process.cwd()) from scripts/test-environment.mjs; repeated after the final test assertion edit.",
+    "exitCode": 0,
+    "log": ".work/v210-optional-storage-typecheck.log"
+  },
+  "checks": {
+    "gitDiffCheck": "passed for the four edited Web files",
+    "lineEndings": "All four edited Web files retain LF; zero CRLF sequences."
+  },
+  "boundaries": [
+    "Only affected tests were run; no full suite, deployment, online instance, real model inference, or external MCP integration.",
+    "All test processes used the repository's isolated environment and local fetch/WebSocket substitutes; no personal HOME or credentials were read.",
+    "No changes to operation journals, draft persistence, receipt rotation, automatic recovery/replay, docs, feature-evidence, or native launcher files.",
+    "Existing uncommitted authentication changes present before this task were preserved; the task's own production changes are only the two listed above.",
+    "The final 53 passing affected assertions are established by per-file latest results across two runs, not by a new full or single all-green 53-case rerun."
+  ]
+}

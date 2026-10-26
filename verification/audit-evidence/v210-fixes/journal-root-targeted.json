@@ -1,0 +1,127 @@
+{
+  "status": "passed",
+  "exitCode": 0,
+  "prerequisites": [
+    {
+      "group": "deploy",
+      "status": "ready",
+      "binary": "/usr/bin/python3",
+      "version": "Python 3.12.3"
+    }
+  ],
+  "results": [
+    {
+      "group": "deploy",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": [
+        "tests/deploy/root/test_account_recovery.py",
+        "tests/deploy/root/test_journal_recovery.py",
+        "tests/deploy/test_journal_schema.py"
+      ],
+      "cases": [
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_can_resume_after_selection_record_interruption",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_health_failure_stops_and_retries_same_candidate_only",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_candidate_failure_restores_prior_account_release",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_repair_restores_prior_account_release",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_explicit_candidate_repair_finishes_blocked_legacy_to_account_upgrade",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_missing_candidate_file_rejects_candidate_repair_before_stop",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_activation_recovers_before_candidate_start_and_preserves_previous",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_control_update_restore_recovers_before_original_services_resume",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_rejected_schema_leaves_services_stopped_and_receipts_unmodified",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_restart_drops_gateway_uid_recovers_real_schema_then_reopens",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_current_schema_rejects_changed_indexes_views_columns_and_hidden_prefix",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_explicit_legacy_schemas_remain_recoverable",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_full_legacy_payload_keeps_evidence_and_never_expands_for_a_recovery_error",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_overfull_legacy_error_can_shrink_without_losing_unrelated_receipts",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_recovery_corrects_utf8_accounting_without_changing_accepted_evidence",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_schema_formatting_normalization_does_not_erase_literal_changes",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_stopped_recovery_accepts_current_gateway_schema_and_preserves_fences",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_journal_schema.py::CurrentJournalCompatibilityTests.test_unexpected_schema_still_refuses_recovery_without_mutating_receipts",
+          "file": "tests/deploy/test_journal_schema.py",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "digest": "db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781"
+}

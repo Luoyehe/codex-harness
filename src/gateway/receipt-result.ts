@@ -297,11 +297,12 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     return result;
   }
   if (method === 'project/add') { object(input); return { id: identifier(input.id), name: validText(input.name, 128), path: validText(input.path, 4096) }; }
-  if (['attachment/upload', 'mcp/oauth'].includes(method)) {
+  if (method === 'mcp/oauth') {
+    object(input); return { handoffId: identifier(input.handoffId), epoch: identifier(input.epoch), name: identifier(input.name), threadId: input.threadId === null ? null : identifier(input.threadId) };
+  }
+  if (method === 'attachment/upload') {
     object(input); const output: JsonObject = {};
-    const allowed = method === 'attachment/upload'
-      ? ['attachmentId', 'id', 'name', 'mimeType', 'size', 'kind']
-      : ['authorizationUrl'];
+    const allowed = ['attachmentId', 'id', 'name', 'mimeType', 'size', 'kind'];
     for (const key of allowed) if (Object.hasOwn(input, key)) output[key] = input[key]!;
     return output;
   }

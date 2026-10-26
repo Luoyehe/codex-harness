@@ -1,5 +1,7 @@
 # 独立重写执行记录
 
+当前进度（2026-10-27，v2.1.0，发布验证中）：内置单管理员账号、密码与两步验证、设备撤销及 Authelia 迁移已实现。所有已确认问题均完成定向修复，浏览器可选存储与原生进程饱和输入退出的补充回归已通过。最终源码 `69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589` 已连续通过第 7、8 两轮完整独立审计：每轮覆盖 1,862 文件，首尾哈希一致，无新问题或跳过项，见 [审计记录](audits.json)。按用户要求进入 182 个测试文件的全量验证；本段尚不声明全量测试、正式 Release 或在线迁移完成。120 仍运行 v2.0.1。下方旧版本结果及早期阶段说明保留其原始时间与范围。
+
 浏览器补充验收（2026-10-26）：用户处理测试证书提示后，已完成双层登录、工作台与设置、文件/Git、回执预览、真实 Shell 输入输出、草稿和输入偏好刷新恢复、访问认证失效后的原页恢复及自动化空列表检查。未发现需修改代码的问题；120 四项服务仍运行并已启用开机启动。仅补充验收证据，v2.0.1 标签与部署源码不变；桌面验收范围和未执行项见[浏览器记录](audit-evidence/v201-release/browser.json)。
 
 发布验收完成（2026-10-26，v2.0.1）：提交 `0466fb96a7b389e3631c060572cd0761db213f6d`、源码摘要 `4ad01fbc1f966f25e9bfa6ede3c03ceefa1ef60d316dc256d9fca951e13cc289` 已通过 GitHub 托管 Windows、Linux 普通身份与 Linux root 的完整逐用例核对，共 **170 个测试文件、1,478 个独立用例，零覆盖缺口**。平台跳过保留原始状态，由适用平台的同一用例补足。安全检查通过；当前源码的 8 条 CodeQL 告警另有逐条人工复核，不声称零告警。120 已部署本次源码并实际重启，重启前后分别通过 22/24 项 HTTPS 验收，四项服务均保持运行及开机启动。详见[托管 CI 证据](audit-evidence/v201-release/hosted-ci.json)、[部署证据](audit-evidence/v201-release/deployment.json)和 [CodeQL 复核](audit-evidence/v201-release/codeql-review.json)。下方各阶段及[早期本地全量摘要](audit-evidence/v201-release/full-summary.json)保留其当时日期和源码范围，不代表当前总状态。
@@ -209,3 +211,43 @@ The reviewed control update, provider-layer migration and application update com
 合并后共 **167 个文件、1,465 个独立用例**；2,857 是跨平台观测次数，不作为独立用例数。107 次跳过都在同一源码的适用平台上找到完全相同文件与用例标识的通过结果，覆盖缺口为 0，失败为 0；原始跳过和退出码未改写。[摘要 JSON](audit-evidence/v201-release/full-summary.json)记录三平台明细、所有跳过对应关系、原始报告 SHA-256、核对结果与授权引用。先前失败和定向修复证据继续保留，不计入本次通过结果。
 
 真实固定 Codex CLI 使用隔离目录及本地 loopback 协议替身，未调用商业模型或执行真实外部 MCP 业务任务；不据此声称真实账号、OAuth、语音、云任务或供应商业务验收通过。浏览器/操作系统输入法、公网 DNS/ACME、外部防火墙及第三方认证部署属于各自独立证据。本检查点只完成上述全量测试核对，最终 GitHub Actions 验收、120 的 v2.0.1 更新与正式 Release 仍待后续记录；上方 v2.0.0 部署结果不能替代本版部署验收。
+
+### 2026-10-27 — v2.1.0 内置账号与完整审计（进行中）
+
+用户确认发布版本为 **v2.1.0**，并要求修改完成后连续 **两轮** 完整审计无问题，再做全量测试、发布及 120 部署。本次以该明确要求覆盖 AGENTS 默认的三轮要求；不会把授权例外、定向复查或历史报告算作无问题审计。
+
+内置单管理员账号已接入登录页和账号安全设置，提供密码登录、TOTP、一次性恢复码、设备撤销与重启会话持久化。安装与恢复工具使用根身份维护的初始化配置，并通过同一回环连接上的随机挑战核验网关，随后才提交凭据。HTTPS 迁移先验证内置账号，再切换 Caddy 并停用 Authelia。README 已围绕用户用途、部署与使用重写。
+
+第一轮完整范围为 1,848 个源文件，摘要 `cf716085707487af4abf397bcb4e1f96172580c1c602e9630d08ff17accf40ba`。发现并修复已删除计划定义无限保留、目标与模型状态响应竞态、项目信任操作期间的编辑丢失，以及控制工具回滚的账号保护缺失；后续定向检查补充了控制恢复和应用失败恢复两条同类保护分支。[首轮证据](audit-evidence/v210-round1/v210-audit1-gateway.json)及[恢复分支补充](audit-evidence/v210-round1/recovery-followup.json)保留原发现，不计为通过。恢复相关的 6 个测试文件在 120 独立命名空间完成 69/69 用例；线上实例未被这组测试更改。
+
+第二轮完整范围为 1,850 个源文件，开始和结束摘要均为 `862331f89cfb1e65c9b52d1e2869f1a1472ef4be1835a3ab3d59a39dc71e9f46`。发现两项问题：未知回执恢复绕过日志总容量预算；模型发现成功后父页面刷新导致待确认列表丢失。两者均有本地复现，正在修复。运行时、部署与工具/文档范围没有确认新增问题。所有范围及方法见 [审计索引](audits.json)；协议生成核对、程序化全文扫描与人工审查在各报告中明确区分。
+
+此检查点的连续无问题轮数仍为 **0**。尚未执行本版全量测试、推送发布或更新线上实例；已准备的部署与验收脚本也不算执行结果。
+### 2026-10-27 — v2.1.0 fixes complete; clean-audit gate in progress
+
+The second audit's receipt-capacity and provider-discovery findings are repaired on frozen source `db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781` (1,852 files). Receipt admission, settlement, positive recovery and stopped-service recovery now maintain UTF-8 payload accounting without discarding accepted evidence or replaying unknown operations. Provider discovery retains its pending catalog until explicit application; editing is locked while a result is pending or unknown.
+
+Targeted validation passed: 81 gateway/core cases, 25 provider UI cases, server/web type checks, and 8 local offline-journal cases. The current-source isolated Linux root run on 120 passed 20/20 account/journal recovery cases with no skips and confirmed fixture-controller stop. These overlap and are not presented as a unique full-suite total. Evidence is retained under `audit-evidence/v210-fixes/`.
+
+The deployment and account-acceptance operator scripts were independently reviewed with 20 offline checks; this is preparation evidence, not a claim of actual migration. The retained online instance remains unchanged at this checkpoint. Complete audit round 3 is underway; no full test, publication, account migration or service switch has been performed for v2.1.0 yet. The user's required gate remains two consecutive clean, complete audits of the unchanged final source.
+
+
+### 2026-10-27 — third complete audit; two additional repairs
+
+Round 3 covered all 1,852 frozen files at unchanged digest `db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781`. Runtime and Web reviews reported no new issue. The gateway/deployment/tooling review confirmed two P2 findings: temporary MCP OAuth authorization URLs persisted in receipts and archives; local targeted Git fixtures inherited host global configuration and could run personal hooks. The latter does not affect the already isolated GitHub CI entry point. Both have narrow artificial offline reproductions retained with the round evidence.
+
+This is a failed complete audit, not a clean round. The two repairs are now proceeding in separate code areas; the clean count remains zero and full testing/publication/deployment have not started.
+
+### 2026-10-27 — third-round repairs and fresh audit boundary
+
+Both third-round findings are fixed. MCP OAuth now uses an owner/channel/runtime-bound volatile handoff, and its durable receipts and historical read/export projection omit temporary URLs. Existing database/WAL pages and prior backups are retained, not claimed securely erased. The local test entry point now isolates planning, prerequisites and both JS/Python test engines using the shared CI environment allowlist.
+
+MCP affected validation passed 192 assertions across 11 files plus an independent 25-case backend cross-review (overlapping cases, not a summed total). Server/web type checks passed. The actual pnpm targeted tooling entry passed 68 cases with one declared Windows platform skip. On isolated host 120, four environment tests and 12 account/journal root-recovery cases passed on source `f481ba6038f34ddef312d748d000504d833948aea01161927755b9c14f6f479d`; only the new MCP feature-evidence JSON was added/updated afterward. The final-source CI-path subset passed 9/9, including the exact previously skipped POSIX case. Both root fixture controllers confirmed stop; online services were unchanged.
+
+Fresh audit round 4 now covers 1,862 source files at `bc995b764007152a4c8546b59d0980f44bdb5d53105cbcf195620eba703fdffa`. Repair/cross-review records in `audit-evidence/v210-round3-fixes/` are targeted evidence, not clean full audits. The required two-clean-round gate is still pending.
+
+### 2026-10-27 — release scan fixture correction; incomplete round retained
+
+Round 4 was deliberately stopped before completion when the source scanner rejected the new artificial embedded-credential URL fixture. This was a synthetic test string, not a discovered real credential. The URL is now built through its username/password properties; the rejection assertion and scanner remain intact. All 17 cases in that test file passed again, and the full current source scan returned clean. Partial audit records remain `complete:false` and never count as a clean round. Historical feature-evidence hashes retain their capture time; the fixture-only follow-up is recorded separately.
+
+Round 5 starts fresh on 1,862 files at `e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458`. Production code is unchanged from the preceding targeted MCP/tooling and Linux recovery validation. Full testing, publication and online migration are still pending.

@@ -58,7 +58,7 @@ it('does not invalidate a renewed session with an old RPC rejection or stale ses
   const request = api.call('thread/read', {}),
     check = api.session();
   const rejected = expect(request).rejects.toMatchObject({ code: 'unauthorized' });
-  await api.session('fixture-token');
+  await api.session({ username: 'admin', password: 'fixture-password' });
   rejectOld({
     status: 401,
     ok: false,
@@ -79,7 +79,7 @@ it('negotiates JSON for session checks, login, logout and RPC to prevent proxy l
   vi.stubGlobal('fetch', fetch);
   const api = new Api();
   await api.session();
-  await api.session('fixture');
+  await api.session({ username: 'admin', password: 'fixture-password' });
   await api.call('project/list');
   await api.logout();
   expect(fetch).toHaveBeenCalledTimes(4);
@@ -89,7 +89,7 @@ it('negotiates JSON for session checks, login, logout and RPC to prevent proxy l
       'X-Requested-With': 'XMLHttpRequest',
     });
 });
-it('recognizes an outer authentication 401 during the initial session read without blaming the admin token', async () => {
+it('recognizes an outer authentication 401 during the initial session read without blaming account credentials', async () => {
   const api = new Api(),
     lost = vi.fn();
   api.onAuthenticationLost(lost);
@@ -108,7 +108,7 @@ it('recognizes an outer authentication 401 during the initial session read witho
   expect(fetch).toHaveBeenCalledOnce();
 });
 it.each([400, 401])(
-  'keeps a rejected administrator token distinct from outer authentication failure (status %s)',
+  'keeps a rejected administrator credentials distinct from outer authentication failure (status %s)',
   async (status) => {
     const api = new Api();
     vi.stubGlobal(
@@ -119,7 +119,7 @@ it.each([400, 401])(
         json: async () => ({ ok: false, error: { code: 'unauthorized' } }),
       }),
     );
-    await expect(api.session('wrong-fixture-token')).rejects.toThrow('管理员密钥不正确。');
+    await expect(api.session({ username: 'admin', password: 'wrong-fixture-password' })).rejects.toThrow('登录信息不正确，请核对后重试。');
     expect(api.externalAuthenticationRequired).toBe(false);
   },
 );

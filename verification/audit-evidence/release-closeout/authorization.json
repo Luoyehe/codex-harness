@@ -2,17 +2,62 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "4ad01fbc1f966f25e9bfa6ede3c03ceefa1ef60d316dc256d9fca951e13cc289",
-  "sourceFiles": 1841,
-  "baseCommit": "2672e97bfe1d088961ad6910c9b85ee86f726c5e",
-  "version": "2.0.1",
-  "approvedAt": "2026-10-26T10:43:43.779Z",
-  "userInstruction": "对比较中发现的所有问题进行修复和完善，包括重启恢复和 CI 问题。验证通过后再创建正式 Release，并更新120上的部署，保持服务运行。",
-  "auditWaiverInstruction": "本次修复之后就直接进入全量测试与发布，以及在120上进行生产环境部署吧，不用重新开始下三轮了。",
+  "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+  "sourceFiles": 1862,
+  "baseCommit": "0a861daa3a2745c7f1d7e896fd02da000df8b514",
+  "version": "2.1.0",
+  "approvedAt": "2026-10-26T18:59:55.054Z",
+  "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。",
+  "auditWaiverInstruction": "用户明确要求连续两轮完整审计无问题后全量测试，此要求覆盖 AGENTS.md 默认三轮；仅不要求额外第三轮，两轮要求已按真实完整证据满足。",
   "repairsReviewed": true,
   "unresolvedBlockers": [],
   "scopes": [
     "full-tests"
   ],
-  "note": "Revalidated for the final comparison-fix source. This authorizes complete verification and is not a claim of three clean audit rounds."
+  "requiredCleanAuditRounds": 2,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v210-round7",
+      "sequence": 28,
+      "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+      "completedAt": "2026-10-26T18:47:20.293Z",
+      "files": 1862,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/v210-round7/v210-round7-runtime-gateway.json",
+          "sha256": "55cfccdedd7aeef4a70014b8057d6929b238bc8e294298c70d9f207965381446"
+        },
+        {
+          "evidence": "verification/audit-evidence/v210-round7/v210-round7-deploy-tooling.json",
+          "sha256": "518daef1da160eab4b68ea6da5d7e1e35a9111530b1cac2186401268e77a8373"
+        },
+        {
+          "evidence": "verification/audit-evidence/v210-round7/v210-round7-web.json",
+          "sha256": "404e3473a70047b162d24e97fe34a9c1891a7015141bb9255ea80d84288d4efb"
+        }
+      ]
+    },
+    {
+      "roundId": "v210-round8",
+      "sequence": 29,
+      "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+      "completedAt": "2026-10-26T18:59:33.251Z",
+      "files": 1862,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/v210-round8/v210-round8-runtime-gateway.json",
+          "sha256": "1e4076c27c44df92114c90ec4eee99905392dbb02ad50229c2e832c71a4b11b0"
+        },
+        {
+          "evidence": "verification/audit-evidence/v210-round8/v210-round8-deploy-tooling.json",
+          "sha256": "22afd974152e9a3890b446a5dd27f01639fb7f5e294c8b4cca9f5f800518e741"
+        },
+        {
+          "evidence": "verification/audit-evidence/v210-round8/v210-round8-web.json",
+          "sha256": "99de4248af0dfc85fd7f4839c17ef826cf3b0070614e277084c9148e3c96cfb3"
+        }
+      ]
+    }
+  ],
+  "note": "No audit is invented or skipped. The compatibility authorization bypasses only the tooling default of three rounds after the user-required two complete independent clean rounds have actually finished on this exact source."
 }

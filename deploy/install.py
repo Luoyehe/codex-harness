@@ -63,7 +63,8 @@ def stage_control(layout: Layout, destination: Path) -> None:
         compile(data, str(path), "exec")
         atomic_write(destination / "deploy" / path.name, data, 0o644)
     write_control_launchers(layout, destination)
-    write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1}, mode=0o644)
+    write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
+                                                  "authenticationGuard": "account-v1"}, mode=0o644)
 
 
 def write_control_launchers(layout: Layout, destination: Path) -> None:
@@ -97,7 +98,7 @@ def install_control(layout: Layout) -> None:
     stage_control(layout, layout.control)
 
 
-def initialize(layout: Layout, *, origin: str, port: int) -> tuple[int, int]:
+def initialize(layout: Layout, *, origin: str, port: int, account: dict | None = None) -> tuple[int, int]:
     require_linux()
     origin = validate_origin(origin)
     require(type(port) is int and 1024 <= port <= 65535, "Invalid listening port")
@@ -152,6 +153,9 @@ def initialize(layout: Layout, *, origin: str, port: int) -> tuple[int, int]:
               "supervisorUid": supervisor_uid, "supervisorGid": supervisor_gid,
               "buildUid": build_uid, "buildGid": build_gid, "providerConfigLayer": LAYER_MODE}
     write_json(layout.config / "instance.json", config)
+    if account is not None:
+        from .accounts import write_bootstrap
+        write_bootstrap(layout, config, account)
     write_json(layout.config / "installation.json", {"format": 1, "phase": "pending", "release": None})
     install_control(layout)
     sudo_path = layout.root / "etc/sudoers.d" / ("codex-harness-" + layout.instance)
@@ -175,8 +179,9 @@ def initialize(layout: Layout, *, origin: str, port: int) -> tuple[int, int]:
     return build_uid, build_gid
 
 
-def install(layout: Layout, archive: Path, *, origin: str, port: int) -> dict:
-    uid, gid = initialize(layout, origin=origin, port=port)
+def install(layout: Layout, archive: Path, *, origin: str, port: int, account: dict | None = None) -> dict:
+    require(account is not None, "An initial administrator account is required")
+    uid, gid = initialize(layout, origin=origin, port=port, account=account)
     # Failed installations deliberately keep identity, secrets and all recovery
     # records. Re-running install refuses replacement; update/repair resumes.
     with exclusive(layout.config / "management.lock"):
@@ -185,8 +190,8 @@ def install(layout: Layout, archive: Path, *, origin: str, port: int) -> dict:
         require((layout.app / "releases" / release / "codex" / manager.config["codexRelative"]).is_file(),
                 "Pinned Codex platform binary is absent", "integrity")
         result = manager.activate(release)
-        return {**result, "origin": origin, "tokenFile": str(layout.config / "gateway-token"),
-                "login": "Open origin in a browser and use the administrator token. SSH forwarding still requires the token."}
+        return {**result, "origin": origin, "authentication": "builtin",
+                "login": "Open origin and sign in with the administrator username and password selected during installation."}
 
 
 def uninstall(layout: Layout) -> dict:

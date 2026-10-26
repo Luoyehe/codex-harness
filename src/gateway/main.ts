@@ -16,7 +16,9 @@ async function main(): Promise<void> {
   const tokenFile = required('HARNESS_TOKEN_FILE'); const tokenInfo = lstatSync(tokenFile);
   if (!tokenInfo.isFile() || tokenInfo.isSymbolicLink() || tokenInfo.size > 4096 || (!dev && (tokenInfo.mode & 0o007) !== 0)) throw new Error('Invalid gateway token file');
   const token = readFileSync(tokenFile, 'utf8').trim();
-  const state = required('HARNESS_STATE_DIR'); const auth = new Authentication(token, required('HARNESS_ORIGIN'));
+  const state = required('HARNESS_STATE_DIR');
+  const auth = new Authentication({ database: path.join(state, 'auth.sqlite'), bootstrapToken: token,
+    bootstrapFile: process.env.HARNESS_AUTH_BOOTSTRAP_FILE ?? path.join(path.dirname(tokenFile), 'auth-bootstrap.json'), strictFiles: !dev }, required('HARNESS_ORIGIN'));
   const worker = new WorkerClient(dev ? { port: Number(process.env.HARNESS_WORKER_PORT ?? 4318), token: required('HARNESS_WORKER_TOKEN') } : { socketPath: required('HARNESS_WORKER_SOCKET') });
   const ledger = new Ledger(path.join(state, 'journal.sqlite')); ledger.recover();
   const dispatcher = new Dispatcher(ledger, worker, new ManagerClient(process.env.HARNESS_MANAGE_COMMAND));
@@ -31,7 +33,7 @@ async function main(): Promise<void> {
   const close = () => {
     if (closing) return; closing = true;
     const timer = setTimeout(() => process.exit(1), 15000); timer.unref();
-    const finished = (code: number) => { worker.close(); ledger.close(); clearTimeout(timer); process.exit(code); };
+    const finished = (code: number) => { worker.close(); ledger.close(); auth.close(); clearTimeout(timer); process.exit(code); };
     void Promise.all([server.close(), scheduler.close()]).then(() => finished(0), () => finished(1));
   };
   process.on('SIGTERM', close); process.on('SIGINT', close);

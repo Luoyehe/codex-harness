@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "reviewType": "targeted independent MCP OAuth backend fix cross-review",
+  "fullRepositoryAudit": false,
+  "eligibleForCleanAuditRound": false,
+  "status": "no remaining confirmed actionable issue in reviewed backend scope",
+  "finishedAt": "2026-10-26T17:41:35.890Z",
+  "repository": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025",
+  "sourceSnapshot": {
+    "algorithm": "sha256",
+    "aggregateSha256": "f841018b6f1414fd2624ab3cfd677ee60d18884ed8389e3ba75d816749a32660",
+    "aggregateEncoding": "UTF-8 JSON.stringify of lexically sorted relative-path to SHA-256 mapping",
+    "files": {
+      "src/core/feature-methods.ts": "fe23d36edf07ae235fad8ca695d0b58f1e3f96dcd3fa203fe05f78432ac638b9",
+      "src/core/ledger.ts": "8cc405820a94cc53c6518bef0db5ae9e3ded6fab13d4e3b54c07238e1950fa49",
+      "src/core/mcp-oauth-receipt.ts": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+      "src/core/operation-retention.ts": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b",
+      "src/gateway/dispatch.ts": "501234ec4d1aae1881ab935c6f8b97f8a3b32cdea3c8645f3b88c8acdf551903",
+      "src/gateway/receipt-result.ts": "aecabb62da54774baa8f8d88e9ea346f5042c9e0284a7f9eca7fa68907b7381f",
+      "src/gateway/server.ts": "29e19f2831abb11f9600fc841b35205eabb9e02e3f6362f9bcd91ad625d6a274",
+      "src/gateway/worker-client.ts": "afe63e8e92c2d3a0f301f92d3be795510cdfe6dfe13a45da77f20140fabfe01c",
+      "src/runtime/main.ts": "e77f57f2aede3e8089e1d09feb996c807dfb407f9ec44fb72dbc1b485a02659f",
+      "src/runtime/mcp-oauth.ts": "c2f36b1fce17f526e96783d56dedd6852f00f7e4d4c01d94e8b23119baaf5de3",
+      "src/runtime/native.ts": "7551a5dcf42c0466564152f5912156ed5e7fff61515f8653e76c1739a9fdae3c",
+      "src/runtime/redaction.ts": "38342ce9b58efce9ca36b64ab107944cdfb02d7ce8f9ea444432109c789a195a",
+      "src/runtime/service.ts": "c70f91b485a3479c35842775c246624b6741c0f6e055998d1cb9c756dd8c53df",
+      "src/runtime/types.ts": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0"
+    }
+  },
+  "supportingFileHashes": {
+    ".work/v210-mcp-cross-review-probe-results.json": "29412692c0fd14d74b9b55d77fc14100711da76fe41a2e832fc0019f65e81744",
+    ".work/v210-mcp-cross-review-probe.mjs": "602e9638281749dc9003962266ef2804db0bbd09c288e00051fbcc39361d9dd1",
+    "protocol/json/v2/McpServerOauthLoginCompletedNotification.json": "6bddb335e7a9a6bb1bde6a32532a903a8968aaf7854afc37857c641b723302cc",
+    "protocol/json/v2/McpServerOauthLoginParams.json": "83446fb61e04a361691f84fe236a51fff2ee4fb12a8f58e2e828a32cf6f6cc75",
+    "protocol/json/v2/McpServerOauthLoginResponse.json": "dd17c57725bfda17c1f4ab7319a3bfd78aa084ec0191fa0fcf0d17b4106bc597",
+    "tests/gateway/mcp-oauth.test.ts": "83c0d7951907e9676dd4c89dacff63a691cb7770e31767bc66bdb113fa942a34",
+    "tests/runtime/mcp-oauth-fixture.mjs": "17f5857d8ca6ac0495150aab3a74e1d34363e6b76594a763126f20abe84910bb",
+    "tests/runtime/mcp-oauth.test.ts": "8d0ed75480652d34a31ac0dcea26db20dc121022fd1100c059b75ab88c4b64db"
+  },
+  "reviewedBoundaries": [
+    "Authentication admission, owner/client/event-channel/epoch binding and private completion event routing",
+    "Name/thread/loginId notification correlation, early completion and stale completion",
+    "Disconnect/native close/TTL revocation and late response non-resurrection",
+    "Concurrent duplicate prevention, bounded unresolved reservations and safe terminal-record reclamation",
+    "Known not_sent owner guard versus unknown dispatched outcome",
+    "New receipt projection, historical accepted receipt read/replay/export and historical free-form error projection"
+  ],
+  "addressedFindings": [
+    {
+      "id": "nullable-login-id",
+      "status": "fixed and independently verified",
+      "evidence": "Official response schema permits null; null now yields usable handoff while retaining conservative legacy reservation rules."
+    },
+    {
+      "id": "completed-reservation-capacity",
+      "status": "fixed and independently verified",
+      "evidence": "Thirty-two correlated terminal records no longer block a new distinct target; unresolved records remain non-evictable."
+    },
+    {
+      "id": "historical-error-payload",
+      "status": "fixed and independently verified",
+      "evidence": "Legacy message/data containing a synthetic authorization URL is absent from public read/export while original unknown state and database evidence remain."
+    },
+    {
+      "id": "before-write-owner-rejection",
+      "status": "fixed and independently verified",
+      "evidence": "RuntimeService owner guard precedes MCP dispatched flag. Both independent probe and real NativeRpc pipe regression preserve not_sent and allow later valid dispatch."
+    }
+  ],
+  "openFindings": [],
+  "methods": [
+    "Read AGENTS.md and current rewritten source only; no implementation use of archived sibling source or Git history.",
+    "Static trace from GatewayServer authentication and dispatcher method classification through WorkerClient/main owner lease, RuntimeService and NativeRpc beforeWrite boundary.",
+    "Static trace of result/error projection at receipt persistence, read/replay and operation archive.",
+    "Independent synthetic .work probe imports current TypeScript using Node stripTypeScriptTypes and isolatedTestProcess; no production runtime or external service.",
+    "Independent exact targeted runner invocation for the two MCP backend test files, including a real local NativeRpc child-process pipe fixture."
+  ],
+  "executedChecks": [
+    {
+      "command": "node .work/v210-mcp-cross-review-probe.mjs",
+      "exitCode": 0,
+      "result": {
+        "scope": "targeted synthetic MCP OAuth backend probes; not a full audit",
+        "outcomes": {
+          "nullLoginId": {
+            "accepted": true,
+            "available": true
+          },
+          "completedCapacity": {
+            "thirtyThirdAccepted": true
+          },
+          "ownershipAndCorrelation": {
+            "foreignOwnerChannelEpochDenied": true,
+            "wrongCompletionIgnored": true,
+            "duplicateStartBlocked": true,
+            "completedUrlRevoked": true,
+            "privateCompletionHasNoNativeError": true,
+            "staleCompletionIgnored": true
+          },
+          "earlyCompletion": {
+            "completedWithoutPublishingUrl": true,
+            "omittedThreadIdMatchesNullScope": true
+          },
+          "lateAfterDisconnect": {
+            "urlNotResurrected": true,
+            "uncertainReservationPreserved": true
+          },
+          "ttl": {
+            "urlRevoked": true,
+            "reservationPreserved": true
+          },
+          "knownNotSent": {
+            "code": "gateway_disconnected",
+            "delivery": "not_sent",
+            "reservation": "released"
+          },
+          "legacyError": {
+            "publicReadExposesSecret": false,
+            "publicExportExposesSecret": false,
+            "state": "unknown"
+          }
+        }
+      }
+    },
+    {
+      "command": "node scripts/run-tests.mjs --targeted tests/runtime/mcp-oauth.test.ts tests/gateway/mcp-oauth.test.ts",
+      "exitCode": 0,
+      "report": ".work/test-results/run-8XMzfu/vitest.json",
+      "totalTests": 25,
+      "passedTests": 25,
+      "failedTests": 0,
+      "skippedTests": 0
+    }
+  ],
+  "notExecuted": [
+    "Not a new full audit; no complete repository test suite and no audit clean-round increment.",
+    "No independent web UI/browser execution or review of unrelated account/deployment/provider changes.",
+    "No real external MCP OAuth endpoint, credential exchange, paid model call, deployment, migration or online service change.",
+    "No independent server/web typecheck rerun; fix author reports these passed separately.",
+    "No personal HOME/CODEX_HOME content access or global Git configuration modification for probes/tests.",
+    "No secure erasure claim for historical database/WAL/backups or bounded diagnostic secret index in runtime memory."
+  ],
+  "reviewerChanges": "Only ignored .work probe, result and review evidence files; no source or repository test edits."
+}

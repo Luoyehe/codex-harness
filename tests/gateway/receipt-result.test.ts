@@ -64,6 +64,8 @@ describe('durable receipt data minimization', () => {
     expect(receiptResult('thread/attachment/add', { outcome: 'created', attachment: { id: 'a', attachmentType: 'link', identityKey: 'key', createdAt: 1, payload: { secret: 'private' } } })).toEqual({ outcome: 'created', attachment: { id: 'a', attachmentType: 'link', identityKey: 'key', createdAt: 1 } });
   });
   it('MCP receipts retain recovery identity and native errors without storing tool bodies', () => {
+    expect(receiptResult('mcp/oauth', { handoffId: 'handoff', epoch: 'runtime', name: 'server', threadId: null, authorizationUrl: 'https://private.test/?state=private' })).toEqual({ handoffId: 'handoff', epoch: 'runtime', name: 'server', threadId: null });
+    expect(() => receiptResult('mcp/oauth', { authorizationUrl: 'https://private.test/?state=private' })).toThrow(expect.objectContaining({ delivery: 'unknown' }));
     expect(receiptResult('mcp/tool/call', { resultId: 'r', threadId: 't', server: 's', tool: 'echo', isError: true, content: [{ text: 'private' }] })).toEqual({ resultId: 'r', threadId: 't', server: 's', tool: 'echo', isError: true });
     expect(() => receiptResult('mcp/tool/call', { resultId: 'r', threadId: 't', server: 's', tool: 'echo' })).toThrow(expect.objectContaining({ delivery: 'unknown' }));
     expect(receiptResult('mcp/stream/start', { subscriptionId: 'sub', threadId: 't', server: 's', name: 'watch', arguments: { secret: 'no' } })).toEqual({ subscriptionId: 'sub', threadId: 't', server: 's', name: 'watch' });
