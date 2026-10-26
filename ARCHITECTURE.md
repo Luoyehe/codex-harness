@@ -26,7 +26,7 @@ Node 24 LTS；TypeScript、React；服务端只引入必要的 WebSocket、协�
 
 浏览器：`POST /api/session` 登录；`DELETE /api/session` 退出；`GET /api/session` 得到登录状态/CSRF；`POST /api/rpc` 收发 JSON；`GET /api/events` 升级只接收事件的 WebSocket。所有变更请求检查 Origin 与 `X-Harness-CSRF`，WS 验证 Origin/Host/cookie。登录密钥绝不写 localStorage 或交给 worker。
 
-RPC 请求 `{method,params,operationId?}`；成功 `{ok:true,result}`；失败 `{ok:false,error:{code,message,delivery?,operationId?}}`。会创建/发送/更改内容的请求必须使用 UUID operationId。结果按 operationId 查询，`not_received` 只表示此刻没有记录。重用 ID 且内容不同必须拒绝；不自动重放已越过写入边界的操作。
+RPC 请求 `{method,params,operationId?}`；成功 `{ok:true,result}`；失败 `{ok:false,error:{code,message,delivery?,operationId?}}`。需持久回执的业务变更必须使用 UUID operationId；回执轮换使用绑定导出身份、摘要与下一代际的专用事务，实时输入使用连接所有权和单调序号，不写入普通操作回执。普通操作结果按 operationId 查询，`not_received` 只表示此刻没有记录。重用 ID 且内容不同必须拒绝；不自动重放已越过写入边界的操作。
 
 事件 `{type,data}` 包含状态、通知、审批、回执及终端/进程/MCP/语音/预测等专用类型。所有权事件绑定服务端确认的 clientId 与连接代际，不向其他连接广播。事件有大小限制；慢客户端断开后明确要求重新同步，不能静默丢事件。连接断开不取消普通模型任务，但撤销临时授权交接、私有结果与连接拥有的执行资源。
 

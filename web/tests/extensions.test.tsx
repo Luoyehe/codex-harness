@@ -241,28 +241,74 @@ it('writes only explicitly changed settings with the captured version and no mas
     true,
   );
 });
-it('preserves config edits through a version change and requires explicit comparison before rebase', async () => {
-  let version = 'v1';
-  const { api, calls } = routed((call) =>
-    configRoute(call, version, version === 'v1' ? 'native-model' : 'server-model'),
-  );
-  render(<ConfigSettings {...props(api)} project={{ ...project, id: 'config-conflict' }} />);
-  const model = await screen.findByRole('textbox', { name: /默认模型/ });
-  await waitFor(() => expect((model as HTMLInputElement).value).toBe('native-model'));
-  fireEvent.change(model, { target: { value: 'mine' } });
-  version = 'v2';
-  fireEvent.click(screen.getByRole('button', { name: '重新读取配置' }));
-  await screen.findByText('配置版本已变化');
-  expect(
-    (screen.getByRole('button', { name: '保存 1 项配置' }) as HTMLButtonElement).disabled,
-  ).toBe(true);
-  expect((model as HTMLInputElement).value).toBe('mine');
-  fireEvent.click(screen.getByRole('checkbox', { name: /我已核对变化/ }));
-  fireEvent.click(screen.getByRole('button', { name: '采用当前配置版本' }));
-  fireEvent.click(screen.getByRole('button', { name: '保存 1 项配置' }));
-  await waitFor(() => expect(calls.some((call) => call.method === 'settings/write')).toBe(true));
-  expect(calls.find((call) => call.method === 'settings/write')?.params.expectedVersion).toBe('v2');
-});
+it.each(['settings-first', 'requirements-first'])(
+  'preserves config edits through a version change and requires explicit comparison before rebase (%s)',
+  async (order) => {
+    let version = 'v1';
+    let resolveSettings!: (value: unknown) => void;
+    let resolveRequirements!: (value: unknown) => void;
+    const refreshedSettings = new Promise((resolve) => {
+      resolveSettings = resolve;
+    });
+    const refreshedRequirements = new Promise((resolve) => {
+      resolveRequirements = resolve;
+    });
+    const requirements = configRoute({ method: 'configRequirements/read', params: {} });
+    const { api, calls } = routed((call) => {
+      if (version === 'v2' && call.method === 'settings/read') return refreshedSettings;
+      if (version === 'v2' && call.method === 'configRequirements/read')
+        return refreshedRequirements;
+      return configRoute(call);
+    });
+    render(
+      <ConfigSettings {...props(api)} project={{ ...project, id: `config-conflict-${order}` }} />,
+    );
+    const model = await screen.findByRole('textbox', { name: /默认模型/ });
+    await waitFor(() => expect((model as HTMLInputElement).value).toBe('native-model'));
+    fireEvent.change(model, { target: { value: 'mine' } });
+    version = 'v2';
+    fireEvent.click(screen.getByRole('button', { name: '重新读取配置' }));
+    if (order === 'requirements-first') {
+      await act(async () => {
+        resolveRequirements(requirements);
+      });
+    }
+    await act(async () => {
+      resolveSettings(settings('v2', 'server-model'));
+    });
+    await screen.findByText('配置版本已变化');
+    const save = screen.getByRole('button', { name: '保存 1 项配置' }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect((model as HTMLInputElement).value).toBe('mine');
+    expect(
+      (screen.getByRole('button', { name: '采用当前配置版本' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox', { name: /我已核对变化/ }));
+    fireEvent.click(screen.getByRole('button', { name: '采用当前配置版本' }));
+    expect(screen.queryByText('配置版本已变化')).toBeNull();
+    if (order === 'settings-first') {
+      // Adopting the new version does not complete the independent policy read.
+      expect(save.disabled).toBe(true);
+      fireEvent.click(save);
+      expect(calls.filter((call) => call.method === 'settings/write')).toHaveLength(0);
+      await act(async () => {
+        resolveRequirements(requirements);
+      });
+    }
+    await waitFor(() => expect(save.disabled).toBe(false));
+    expect((model as HTMLInputElement).value).toBe('mine');
+    // Finishing either read must not replay the earlier click or save automatically.
+    expect(calls.filter((call) => call.method === 'settings/write')).toHaveLength(0);
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(calls.filter((call) => call.method === 'settings/write')).toHaveLength(1),
+    );
+    expect(calls.find((call) => call.method === 'settings/write')?.params).toEqual({
+      expectedVersion: 'v2',
+      changes: [{ key: 'model', value: 'mine' }],
+    });
+  },
+);
 it('keeps unsent config drafts through modal unmount and refuses masked writeback', async () => {
   const { api, calls } = routed((call) => configRoute(call)),
     p = { ...props(api), project: { ...project, id: 'config-draft' } };
