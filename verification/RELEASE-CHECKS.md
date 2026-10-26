@@ -47,7 +47,7 @@ the remedy for a fixture finding.
 ## Affected selection and CI
 
 Current source must pass the unchanged scanner with zero findings. The full Git
-object scan also retains v1.2.1 history. Twelve findings in eight immutable old
+object scan also retains all pre-rewrite branches/tags. Thirty-two findings in immutable old
 blobs were inspected individually: synthetic rejection-test URLs/tokens, generic
 path placeholders and one variable-based runtime path, not real credentials.
 `scripts/reviewed-history.mjs` classifies only those exact blob/line/rule tuples,

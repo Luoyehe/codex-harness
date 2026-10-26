@@ -4,10 +4,27 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { auditGitObjects, auditSource } from './release-audit.mjs';
 
-// Immutable v1.2.1 objects reviewed on 2026-10-26. These contain synthetic
+// Immutable pre-rewrite objects reviewed on 2026-10-26, including every remote
+// branch/tag from a complete non-shallow fetch. These contain synthetic
 // negative-test inputs, generic UI placeholders, or a variable-based path.
 // The raw scanner is unchanged. No exception applies to the current tree.
 const reviewed = [
+  ['34f712d10da2d49ded5792f88334fa3e88dd7f35', 148, 'url-credentials', 'synthetic URL rejection fixture'],
+  ...[33, 36, 37, 48, 52].map(line => ['36e534c51f01c64088874bb1c2b6b41b651b3687', line, 'unix-private-home', 'synthetic ownership-path fixture']),
+  ['3be2ce24dd43a73555c2b10d07111a1fe82c9454', 164, 'unix-private-home', 'generic isolated directory comment'],
+  ['3be2ce24dd43a73555c2b10d07111a1fe82c9454', 187, 'unix-private-home', 'variable-based isolated runtime path'],
+  ['4ab3f14b36439cb963a08830a035fb23a4b42d3f', 105, 'url-credentials', 'synthetic URL rejection fixture'],
+  ['52a2424cf24886407113d0ae0e4aea295cf03b42', 192, 'url-credentials', 'synthetic URL rejection fixture'],
+  ['631e00e606de5966bde41fe3628331217baf2010', 262, 'unix-private-home', 'generic project placeholder'],
+  ['742ca49323da9d7b208c49345eb7d13c899fa8d4', 267, 'unix-private-home', 'generic project placeholder'],
+  ['8ee502f6dbd4d9499002cb51e4b7dadac6867ecf', 9, 'url-credentials', 'synthetic URL rejection fixture'],
+  ['a4ae37460e0e222db1a980f6edaffbfa73ed1c53', 468, 'unix-private-home', 'generic project placeholder'],
+  ['ac2d27c7cc90c3e88f879518be4e3f2997cb0a2f', 9, 'url-credentials', 'synthetic URL rejection fixture'],
+  ['c25e5f88bccdcc6eadff10fd1936423232b8052b', 324, 'unix-private-home', 'variable-based isolated runtime path'],
+  ['c847c1840ebf092445a327d61731182b8bec20dc', 528, 'unix-private-home', 'generic project placeholder'],
+  ['eb45e31df7703e3815d8fc9ac1beabd291dd1850', 105, 'url-credentials', 'synthetic URL rejection fixture'],
+  ['fe572dd7a7b81c4a35aac7fb6b0d385e8b332a91', 36, 'literal-secret', 'explicit synthetic initial-password fixture'],
+  ['feb18044be44394add8a284895502eea4065a73b', 267, 'unix-private-home', 'generic project placeholder'],
   ['0c26890096122d2fc01f62bbaa6c249add4c47c1', 100, 'url-credentials', 'synthetic URL rejection fixture'],
   ['117e20bd2f83d6abe680c2b893afb3be18a72f7b', 468, 'unix-private-home', 'generic project placeholder'],
   ['2ddd22ff19df38edbd242b7022d984d5e6e31829', 186, 'url-credentials', 'synthetic URL rejection fixture'],
