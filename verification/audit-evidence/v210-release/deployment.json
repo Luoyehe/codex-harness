@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "kind": "v210-sanitized-deployment-evidence",
+  "collectedAt": "2026-10-26T19:31:17.903733+00:00",
+  "status": "success",
+  "failures": [],
+  "evidenceScope": "Recorded deployment and acceptance results; no live system recheck",
+  "expectedBinding": {
+    "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+    "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+    "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+    "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+  },
+  "preparationBinding": {
+    "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+    "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+    "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+    "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+  },
+  "preparationSha256": "e6fd9a3c5830ce585aedf83e9bdb4f1a776d5c972aef91903029141e823bb3ae",
+  "applicationSha256": "a81e4937a015ba0bcf2a5ce5958f35596af348843f632cdcb03b703365e31876",
+  "stages": [
+    {
+      "stage": "prepare",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:13:08.913618+00:00",
+      "completedAt": "2026-10-26T19:13:10.168560+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "276160b799c1ab241a031d7c6c03ad3e1e3ee3209a399a85e82e8e1cff530b47"
+    },
+    {
+      "stage": "control-update",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:20:36.096657+00:00",
+      "completedAt": "2026-10-26T19:20:39.543850+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "cb0b36feaab6bfaf3fe29ae154d5042c065a2067d3e083d3f605c9614ef577bc"
+    },
+    {
+      "stage": "app-update",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:25:51.407581+00:00",
+      "completedAt": "2026-10-26T19:26:36.910430+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "203a728180be0ce80f406149f10e2ba0373f202f3ddaae9c1a94a3f449041311"
+    },
+    {
+      "stage": "account-setup",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:26:47.282369+00:00",
+      "completedAt": "2026-10-26T19:26:47.819806+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "f34d58aaacbcf54c4e85cd4977fc916286b67652397ca29b3c8efdd141665c87"
+    },
+    {
+      "stage": "https",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:30:10.365002+00:00",
+      "completedAt": "2026-10-26T19:30:13.844413+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "a574c5cf6b1a79ce593002092dba6648f0694e29d110acacce9b0f3eaff17811"
+    },
+    {
+      "stage": "verify",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:30:17.639972+00:00",
+      "completedAt": "2026-10-26T19:30:19.638458+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "321db83e3f2195109e8fea0f42476e4deef4f2540dc3419d4dd4044180424368"
+    },
+    {
+      "stage": "restart",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:30:36.141616+00:00",
+      "completedAt": "2026-10-26T19:30:40.547061+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "f10bf9fd9ea6422d27b71f11f91ecce92e62de543f84782de73831f2f84d7788"
+    },
+    {
+      "stage": "verify-restart",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:30:45.188001+00:00",
+      "completedAt": "2026-10-26T19:30:47.171552+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "ca0272b7496c0fec0b61bd19c820755beb45dfba109d0ae8d0066e2f65fb892a"
+    },
+    {
+      "stage": "services",
+      "status": "completed",
+      "startedAt": "2026-10-26T19:30:56.214969+00:00",
+      "completedAt": "2026-10-26T19:30:58.215863+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "recordSha256": "e6156343683d523df03862ada99da56bdf948a6c1e74db32a4541b3e912c5b64"
+    }
+  ],
+  "final": {
+    "release": "19facc8be3db045118dd79bf8c4310fd4e1f1226a173a833bbb568f60190181c",
+    "verification": {
+      "verify": {
+        "integrity": true,
+        "permissions": true,
+        "managedUnits": true,
+        "accountBootstrap": true
+      },
+      "verify-restart": {
+        "integrity": true,
+        "permissions": true,
+        "managedUnits": true,
+        "accountBootstrap": true
+      }
+    },
+    "runningApplicationEntriesConfirmed": true,
+    "services": {
+      "gateway": {
+        "active": true,
+        "enabled": true
+      },
+      "worker": {
+        "active": true,
+        "enabled": true
+      },
+      "caddy": {
+        "active": true,
+        "enabled": true
+      },
+      "authelia": {
+        "removed": true
+      }
+    },
+    "receiptMigration": {
+      "baselineCount": 36,
+      "checkedCount": 36,
+      "generation": "0",
+      "allPreMigrationAcceptedBusinessReceiptsPreserved": true
+    }
+  },
+  "acceptance": {
+    "before": {
+      "phase": "before",
+      "passed": true,
+      "startedAt": "2026-10-26T19:30:23.759000+00:00",
+      "completedAt": "2026-10-26T19:30:31.952000+00:00",
+      "summarySha256": "64789d81b858811e93868e599b6b3ae9f9371e1a055b7aee8b2f13b43c51720d",
+      "sourceBinding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "applicationRelease": "19facc8be3db045118dd79bf8c4310fd4e1f1226a173a833bbb568f60190181c",
+      "preparationSha256": "e6fd9a3c5830ce585aedf83e9bdb4f1a776d5c972aef91903029141e823bb3ae",
+      "scriptSha256": "cf22332c86ea1d7eb775de5da883f48b8060b8e9253ae8805cef84553486ac61",
+      "checks": [
+        {
+          "name": "strict-ca-hostname-and-instance-proof",
+          "passed": true
+        },
+        {
+          "name": "anonymous-page-session-api-and-ws-boundary",
+          "passed": true
+        },
+        {
+          "name": "origin-and-legacy-token-rejected",
+          "passed": true
+        },
+        {
+          "name": "account-csrf-and-origin-boundary",
+          "passed": true
+        },
+        {
+          "name": "direct-account-login-and-real-gateway-ws",
+          "passed": true
+        },
+        {
+          "name": "old-accepted-business-receipts-baseline",
+          "passed": true,
+          "count": 36
+        },
+        {
+          "name": "other-device-revocation-closes-owned-ws",
+          "passed": true
+        },
+        {
+          "name": "totp-login-and-single-use-recovery-code",
+          "passed": true
+        },
+        {
+          "name": "password-change-revokes-all-old-sessions-and-ws",
+          "passed": true
+        },
+        {
+          "name": "original-fixture-password-restored-and-test-mfa-disabled",
+          "passed": true
+        },
+        {
+          "name": "old-accepted-business-receipts-preserved",
+          "passed": true,
+          "allArchivedReceiptsChecked": 36,
+          "apiReceiptSample": 16
+        },
+        {
+          "name": "remember-session-persisted-for-independent-restart",
+          "passed": true,
+          "maxAgeSeconds": 2592000
+        }
+      ],
+      "modelTurns": 0,
+      "externalMcpCalls": 0,
+      "projectFileWrites": 0,
+      "externalAuthenticationRequests": 0,
+      "tlsVerification": true
+    },
+    "after": {
+      "phase": "after",
+      "passed": true,
+      "startedAt": "2026-10-26T19:30:51.533000+00:00",
+      "completedAt": "2026-10-26T19:30:51.758000+00:00",
+      "summarySha256": "59696847e59033479aa163e87267e05f27f8cb47c45c8b2ce3aca183a9a58b6d",
+      "sourceBinding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "applicationRelease": "19facc8be3db045118dd79bf8c4310fd4e1f1226a173a833bbb568f60190181c",
+      "preparationSha256": "e6fd9a3c5830ce585aedf83e9bdb4f1a776d5c972aef91903029141e823bb3ae",
+      "scriptSha256": "cf22332c86ea1d7eb775de5da883f48b8060b8e9253ae8805cef84553486ac61",
+      "checks": [
+        {
+          "name": "strict-ca-hostname-and-instance-proof",
+          "passed": true
+        },
+        {
+          "name": "same-remember-session-survives-gateway-and-worker-restart",
+          "passed": true,
+          "gatewayPidChanged": true,
+          "workerPidChanged": true,
+          "runtimeEpochChanged": true
+        },
+        {
+          "name": "old-accepted-business-receipts-preserved",
+          "passed": true,
+          "allArchivedReceiptsChecked": 36,
+          "apiReceiptSample": 16
+        },
+        {
+          "name": "remembered-session-logout-invalidates-api-and-ws",
+          "passed": true
+        }
+      ],
+      "modelTurns": 0,
+      "externalMcpCalls": 0,
+      "projectFileWrites": 0,
+      "externalAuthenticationRequests": 0,
+      "tlsVerification": true
+    }
+  },
+  "acceptanceSideEffectBoundary": {
+    "modelTurns": 0,
+    "externalMcpCalls": 0,
+    "projectFileWrites": 0,
+    "externalAuthenticationRequests": 0
+  },
+  "collectorActions": {
+    "remoteCalls": 0,
+    "fileWrites": 0,
+    "tests": 0
+  },
+  "candidateBudgetRecovery": {
+    "evidenceSha256": null,
+    "referenceOnly": true,
+    "contentsRead": false,
+    "verified": false,
+    "completion": "not-assessed"
+  }
+}

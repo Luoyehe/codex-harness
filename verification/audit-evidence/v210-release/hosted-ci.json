@@ -1,0 +1,794 @@
+{
+  "schemaVersion": 1,
+  "kind": "v210-hosted-ci-closeout",
+  "version": "2.1.0",
+  "repository": "Luoyehe/codex-harness",
+  "recordedAt": "2026-10-26T19:23:42.210Z",
+  "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+  "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+  "sourceFiles": 1862,
+  "authorization": {
+    "path": "verification/audit-evidence/release-closeout/authorization.json",
+    "sha256": "de926934590da850c8107fc111e2c2893ce1c70d2b625774a9884d13f460d927",
+    "mode": "authorized-full"
+  },
+  "run": {
+    "id": 40382884810,
+    "name": "Reviewed checks",
+    "path": ".github/workflows/affected.yml",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "head_branch": "Luoyehe/builtin-account-auth",
+    "head_sha": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+    "run_attempt": 1,
+    "created_at": "2026-10-26T19:00:53Z",
+    "updated_at": "2026-10-26T19:05:57Z",
+    "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40382884810",
+    "check_suite_id": 109453646590
+  },
+  "runMetadataProvenance": {
+    "evidenceSource": "Unauthenticated read-only GitHub REST API",
+    "observedAt": "2026-10-26T19:07:47.7184817Z"
+  },
+  "totalJobs": 5,
+  "jobs": [
+    {
+      "id": 121783475213,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:00:56Z",
+      "completed_at": "2026-10-26T19:01:21Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40382884810/job/121783475213",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121783475213",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:00:57Z",
+          "completed_at": "2026-10-26T19:00:58Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:00:58Z",
+          "completed_at": "2026-10-26T19:01:00Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:01:00Z",
+          "completed_at": "2026-10-26T19:01:05Z"
+        },
+        {
+          "name": "Scan source and complete Git objects",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:01:05Z",
+          "completed_at": "2026-10-26T19:01:16Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-26T19:01:16Z",
+          "completed_at": "2026-10-26T19:01:17Z"
+        },
+        {
+          "name": "Select reviewed changes or source-bound full closeout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:01:17Z",
+          "completed_at": "2026-10-26T19:01:18Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-26T19:01:18Z",
+          "completed_at": "2026-10-26T19:01:19Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-26T19:01:19Z",
+          "completed_at": "2026-10-26T19:01:19Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-26T19:01:19Z",
+          "completed_at": "2026-10-26T19:01:19Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-26T19:01:19Z",
+          "completed_at": "2026-10-26T19:01:19Z"
+        }
+      ]
+    },
+    {
+      "id": 121783728894,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:01:24Z",
+      "completed_at": "2026-10-26T19:01:58Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40382884810/job/121783728894",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121783728894",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:01:25Z",
+          "completed_at": "2026-10-26T19:01:28Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:01:28Z",
+          "completed_at": "2026-10-26T19:01:30Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:01:30Z",
+          "completed_at": "2026-10-26T19:01:35Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:01:35Z",
+          "completed_at": "2026-10-26T19:01:36Z"
+        },
+        {
+          "name": "Build actual Ledger as the unprivileged runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-26T19:01:36Z",
+          "completed_at": "2026-10-26T19:01:42Z"
+        },
+        {
+          "name": "Run root fixtures only on the disposable hosted runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:01:42Z",
+          "completed_at": "2026-10-26T19:01:53Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-26T19:01:53Z",
+          "completed_at": "2026-10-26T19:01:55Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-26T19:01:55Z",
+          "completed_at": "2026-10-26T19:01:55Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-26T19:01:55Z",
+          "completed_at": "2026-10-26T19:01:55Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-26T19:01:55Z",
+          "completed_at": "2026-10-26T19:01:55Z"
+        }
+      ]
+    },
+    {
+      "id": 121783729012,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:01:24Z",
+      "completed_at": "2026-10-26T19:04:07Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40382884810/job/121783729012",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121783729012",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:01:25Z",
+          "completed_at": "2026-10-26T19:01:27Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:01:27Z",
+          "completed_at": "2026-10-26T19:01:29Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:01:29Z",
+          "completed_at": "2026-10-26T19:01:34Z"
+        },
+        {
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:01:34Z",
+          "completed_at": "2026-10-26T19:01:43Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-26T19:01:43Z",
+          "completed_at": "2026-10-26T19:01:44Z"
+        },
+        {
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:01:44Z",
+          "completed_at": "2026-10-26T19:01:55Z"
+        },
+        {
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-26T19:01:55Z",
+          "completed_at": "2026-10-26T19:02:02Z"
+        },
+        {
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-26T19:02:02Z",
+          "completed_at": "2026-10-26T19:02:02Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-26T19:02:02Z",
+          "completed_at": "2026-10-26T19:02:02Z"
+        },
+        {
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-26T19:02:02Z",
+          "completed_at": "2026-10-26T19:04:03Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-26T19:04:03Z",
+          "completed_at": "2026-10-26T19:04:04Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-26T19:04:04Z",
+          "completed_at": "2026-10-26T19:04:04Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-26T19:04:04Z",
+          "completed_at": "2026-10-26T19:04:04Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-26T19:04:04Z",
+          "completed_at": "2026-10-26T19:04:04Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-26T19:04:04Z",
+          "completed_at": "2026-10-26T19:04:04Z"
+        }
+      ]
+    },
+    {
+      "id": 121783729178,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:01:24Z",
+      "completed_at": "2026-10-26T19:05:39Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40382884810/job/121783729178",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121783729178",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:01:25Z",
+          "completed_at": "2026-10-26T19:01:27Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:01:27Z",
+          "completed_at": "2026-10-26T19:01:37Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:01:37Z",
+          "completed_at": "2026-10-26T19:01:46Z"
+        },
+        {
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:01:46Z",
+          "completed_at": "2026-10-26T19:01:46Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-26T19:01:46Z",
+          "completed_at": "2026-10-26T19:01:47Z"
+        },
+        {
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:01:47Z",
+          "completed_at": "2026-10-26T19:02:19Z"
+        },
+        {
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-26T19:02:19Z",
+          "completed_at": "2026-10-26T19:02:27Z"
+        },
+        {
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-26T19:02:27Z",
+          "completed_at": "2026-10-26T19:02:52Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-26T19:02:52Z",
+          "completed_at": "2026-10-26T19:02:53Z"
+        },
+        {
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-26T19:02:53Z",
+          "completed_at": "2026-10-26T19:05:33Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-26T19:05:33Z",
+          "completed_at": "2026-10-26T19:05:34Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-26T19:05:34Z",
+          "completed_at": "2026-10-26T19:05:34Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-26T19:05:34Z",
+          "completed_at": "2026-10-26T19:05:35Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-26T19:05:35Z",
+          "completed_at": "2026-10-26T19:05:37Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-26T19:05:37Z",
+          "completed_at": "2026-10-26T19:05:37Z"
+        }
+      ]
+    },
+    {
+      "id": 121785932720,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:05:42Z",
+      "completed_at": "2026-10-26T19:05:56Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40382884810/job/121785932720",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121785932720",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:05:42Z",
+          "completed_at": "2026-10-26T19:05:45Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:05:45Z",
+          "completed_at": "2026-10-26T19:05:47Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:05:47Z",
+          "completed_at": "2026-10-26T19:05:52Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:05:52Z",
+          "completed_at": "2026-10-26T19:05:52Z"
+        },
+        {
+          "name": "Require all identities and complement every skipped case",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-26T19:05:52Z",
+          "completed_at": "2026-10-26T19:05:53Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:05:53Z",
+          "completed_at": "2026-10-26T19:05:54Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-26T19:05:54Z",
+          "completed_at": "2026-10-26T19:05:54Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-26T19:05:54Z",
+          "completed_at": "2026-10-26T19:05:54Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-26T19:05:54Z",
+          "completed_at": "2026-10-26T19:05:54Z"
+        }
+      ]
+    }
+  ],
+  "inventory": {
+    "files": 182,
+    "standardFiles": 171,
+    "rootFiles": 11,
+    "javascriptFiles": 147,
+    "pythonFiles": 35
+  },
+  "platforms": {
+    "linux": {
+      "files": 171,
+      "total": 1573,
+      "passed": 1558,
+      "skipped": 15,
+      "other": 0,
+      "exitCode": 3,
+      "groups": [
+        {
+          "kind": "javascript",
+          "files": 147,
+          "total": 1304,
+          "passed": 1289,
+          "skipped": 15,
+          "other": 0,
+          "status": "skipped",
+          "exitCode": 3
+        },
+        {
+          "kind": "python",
+          "files": 24,
+          "total": 269,
+          "passed": 269,
+          "skipped": 0,
+          "other": 0,
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    "windows": {
+      "files": 171,
+      "total": 1573,
+      "passed": 1474,
+      "skipped": 99,
+      "other": 0,
+      "exitCode": 3,
+      "groups": [
+        {
+          "kind": "javascript",
+          "files": 147,
+          "total": 1304,
+          "passed": 1299,
+          "skipped": 5,
+          "other": 0,
+          "status": "skipped",
+          "exitCode": 3
+        },
+        {
+          "kind": "python",
+          "files": 24,
+          "total": 269,
+          "passed": 175,
+          "skipped": 94,
+          "other": 0,
+          "status": "skipped",
+          "exitCode": 3
+        }
+      ]
+    },
+    "linux-root": {
+      "files": 11,
+      "total": 104,
+      "passed": 104,
+      "skipped": 0,
+      "other": 0,
+      "exitCode": 0,
+      "groups": [
+        {
+          "kind": "python",
+          "files": 11,
+          "total": 104,
+          "passed": 104,
+          "skipped": 0,
+          "other": 0,
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    }
+  },
+  "coverage": {
+    "uniqueCases": 1677,
+    "totalCaseObservations": 3250,
+    "passedObservations": 3136,
+    "skippedObservations": 114,
+    "sameStandardCaseEnumeration": true,
+    "pythonStaticCases": 373,
+    "coverageGaps": []
+  },
+  "verification": {
+    "status": "passed",
+    "allExpectedJobsCompletedSuccessfully": true,
+    "completeTestInventoryVerified": true,
+    "allThreeExecutionIdentitiesPresent": true,
+    "normalizedResultLayersEqual": true,
+    "linuxWindowsCaseEnumerationEqual": true,
+    "sourceDigestBeforeAndAfterMatches": true,
+    "duplicateCaseIds": 0,
+    "coverageGaps": [],
+    "everyPlatformSkipHasSameIdPassOnApplicablePlatform": true,
+    "sourceConditionsForSkipsReviewed": true,
+    "pythonStaticCaseDefinitionsMatch": true,
+    "independentAssertionCount": 4222
+  },
+  "artifactProvenance": [
+    {
+      "artifactName": "ci-plan",
+      "artifactId": 12678543792,
+      "zipSha256": "611783bcfdf20dde600e28cf168d97df652aa2e137e07215458978d2a76af4a7",
+      "zipBytes": 7002,
+      "member": "ci-plan.json",
+      "memberSha256": "aeffd886a6689c4a879372b5193564a846a27daeeb3bcfa8509444baed5ce915",
+      "memberBytes": 140433,
+      "officialDigestMatches": true,
+      "officialDigest": "sha256:611783bcfdf20dde600e28cf168d97df652aa2e137e07215458978d2a76af4a7",
+      "archiveDownloadUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12678543792/zip"
+    },
+    {
+      "artifactName": "cases-linux",
+      "artifactId": 12678969070,
+      "zipSha256": "bf952d922b4c002b36768922c02735d97ed0f1f1e092ed8b6899cbf84e379b3d",
+      "zipBytes": 98057,
+      "member": "result-linux.json",
+      "memberSha256": "75e1cf9153da096f75e293cf174981cdc47287f5bee5d71fdfcd78c5fccbe188",
+      "memberBytes": 770494,
+      "officialDigestMatches": true,
+      "officialDigest": "sha256:bf952d922b4c002b36768922c02735d97ed0f1f1e092ed8b6899cbf84e379b3d",
+      "archiveDownloadUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12678969070/zip"
+    },
+    {
+      "artifactName": "cases-windows",
+      "artifactId": 12680031162,
+      "zipSha256": "8b3589ea6c5d1c51d672b09d16b6ca91e68ee394ca906c194becbfdaa015ed9f",
+      "zipBytes": 98679,
+      "member": "result-windows.json",
+      "memberSha256": "f79cbd4b8e9fdfe1786d8f0bc8526b6229d746baf80516c048eade01cc97e642",
+      "memberBytes": 783505,
+      "officialDigestMatches": true,
+      "officialDigest": "sha256:8b3589ea6c5d1c51d672b09d16b6ca91e68ee394ca906c194becbfdaa015ed9f",
+      "archiveDownloadUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12680031162/zip"
+    },
+    {
+      "artifactName": "cases-linux-root",
+      "artifactId": 12677739109,
+      "zipSha256": "7e09764a7d4a4ffd073695547236e976b37288c3a871afe5bfe0e9618ad44fc6",
+      "zipBytes": 4263,
+      "member": "result-linux-root.json",
+      "memberSha256": "6bfd79248967a98256670011a654f9975b212aa3a232a8f557452b809c55031f",
+      "memberBytes": 54243,
+      "officialDigestMatches": true,
+      "officialDigest": "sha256:7e09764a7d4a4ffd073695547236e976b37288c3a871afe5bfe0e9618ad44fc6",
+      "archiveDownloadUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12677739109/zip"
+    },
+    {
+      "artifactName": "verified-coverage",
+      "artifactId": 12680031214,
+      "zipSha256": "93c94d03ce07bfb697b36dfb13bd078cb9dd8670be185181d0bc89a93c7a3309",
+      "zipBytes": 371,
+      "member": "reconciled.json",
+      "memberSha256": "4b4cf713b407d8ebf32f5b46a692cef7be5e0d480dfc9002fab683808b82eb45",
+      "memberBytes": 321,
+      "officialDigestMatches": true,
+      "officialDigest": "sha256:93c94d03ce07bfb697b36dfb13bd078cb9dd8670be185181d0bc89a93c7a3309",
+      "archiveDownloadUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12680031214/zip"
+    }
+  ],
+  "evidence": [
+    {
+      "file": "ci-plan.json",
+      "sha256": "aeffd886a6689c4a879372b5193564a846a27daeeb3bcfa8509444baed5ce915",
+      "bytes": 140433
+    },
+    {
+      "file": "result-linux.json",
+      "sha256": "75e1cf9153da096f75e293cf174981cdc47287f5bee5d71fdfcd78c5fccbe188",
+      "bytes": 770494
+    },
+    {
+      "file": "result-windows.json",
+      "sha256": "f79cbd4b8e9fdfe1786d8f0bc8526b6229d746baf80516c048eade01cc97e642",
+      "bytes": 783505
+    },
+    {
+      "file": "result-linux-root.json",
+      "sha256": "6bfd79248967a98256670011a654f9975b212aa3a232a8f557452b809c55031f",
+      "bytes": 54243
+    },
+    {
+      "file": "reconciled.json",
+      "sha256": "4b4cf713b407d8ebf32f5b46a692cef7be5e0d480dfc9002fab683808b82eb45",
+      "bytes": 321
+    },
+    {
+      "file": "artifact-review.json",
+      "sha256": "f85aa484e048753dd9df41ba516de297625aa8569958ae52ba108b52295d1f3d",
+      "bytes": 602244
+    },
+    {
+      "file": "codeql-review.json",
+      "sha256": "1264969ce0862e528714b1f8a261a82829eef5bf79d04011e9da0cc0293b99bc",
+      "bytes": 21324
+    },
+    {
+      "file": "security-ci.json",
+      "sha256": "6a31edf3e1ca5b5bbac1d26a4e51e6288c1b5b5ff45ea849567cfc498cca61b6",
+      "bytes": 14654
+    }
+  ],
+  "boundaries": [
+    "These five CI artifacts contain the exact plan, normalized per-case results and reconciliation; they do not contain complete Vitest/unittest stdout or original runner JSON.",
+    "Linux retains 15 platform skips, Windows retains 99 platform skips and Linux root retains none. All 114 skips have the same case ID passed on the applicable other platform.",
+    "There are 1677 unique case IDs across 3250 platform observations: 3136 passed observations and 114 skipped observations. No failures or coverage gaps were observed.",
+    "Execution identity is enforced by the reviewed runCi platform/uid checks and hosted workflow; normalized reports do not separately retain uid/platform fields.",
+    "Successful security jobs and zero Actions annotations are not a claim of zero CodeQL alerts. Eight open alerts were separately reviewed in codeql-review.json with no required source changes.",
+    "This evidence publication did not run tests, deploy an instance, invoke paid inference or external MCP services, or dispatch another CI workflow."
+  ]
+}

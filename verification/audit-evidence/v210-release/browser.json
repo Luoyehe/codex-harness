@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-26T19:34:55.169Z",
+  "version": "2.1.0",
+  "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+  "applicationRelease": "19facc8be3db045118dd79bf8c4310fd4e1f1226a173a833bbb568f60190181c",
+  "origin": "https://harness.crtest.localhost:18443",
+  "method": "Real in-app browser UI through existing certificate-approved tab",
+  "status": "passed",
+  "checks": [
+    "Reloaded the previously open page into the built-in username/password login without an external authentication redirect.",
+    "Existing synthetic credentials entered the connected workbench directly.",
+    "Account and security displayed administrator identity, current device, session expiry, password controls and disabled-until-verified TOTP setup.",
+    "Reload preserved the authenticated workbench; its real-time connection and model defaults settled automatically.",
+    "Project files read and service management status displayed the selected release and active gateway/worker.",
+    "Logout returned to the built-in login page; signing in again restored the original workbench and account settings."
+  ],
+  "initialConnectionObservation": "The immediate navigation snapshot showed connection-in-progress read errors. Subsequent UI snapshots confirmed they cleared automatically when the live connection became ready; no manual recovery or product edit was needed.",
+  "finalState": "Signed in on the account and security page for the user. No browser password-store save was requested.",
+  "scopeLimits": [
+    "No model turn, project edit, terminal execution or external MCP call in this browser pass.",
+    "Password changes, TOTP and recovery-code operations were tested by the strict HTTPS acceptance client; browser credential-change submission was not performed.",
+    "Desktop browser pass, not a new exhaustive responsive-layout or accessibility audit."
+  ],
+  "screenshot": {
+    "name": "v210-account-settings.png",
+    "sha256": "b14760449ecc620699949ae12bf91d4963eb4a242f031c7592089cb1a2a7c3be",
+    "storage": "Retained as a local ignored operator artifact, outside Git and the frozen source inventory."
+  }
+}

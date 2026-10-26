@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+  "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+  "files": 182,
+  "cases": 1677,
+  "coverageGaps": [],
+  "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+}

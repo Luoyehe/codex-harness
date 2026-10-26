@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-operator-only-https-port-review",
+  "reviewedAt": "2026-10-26T19:31:06.007179+00:00",
+  "status": "passed",
+  "blockingFindings": [],
+  "scope": "Only the operator helper port correction and the known HTTPS identity guard refusal; not a full audit round or deployment acceptance.",
+  "sourceSnapshot": {
+    "files": 1862,
+    "digest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589"
+  },
+  "helper": {
+    "file": ".work/v210-deploy.py",
+    "sha256": "2d645c3b387002ef05433b50cb35a157b4dfbcd81c4d2851b18cb3b2d3cbef01",
+    "previousReviewedSha256": "397995c756e6b3027b0fb6e380dab8df2a168da216d24364910e4f725d8696da",
+    "reverseOnlyTwoPortSubstitutionsSha256": "397995c756e6b3027b0fb6e380dab8df2a168da216d24364910e4f725d8696da",
+    "intendedRemoteFile": "v210-deploy-port18081.py",
+    "originalRemoteHelperPreserved": true,
+    "originalRemoteHelperPreservedEvidence": "Parent execution plan; this reviewer did not inspect or modify either remote helper.",
+    "changes": [
+      {
+        "line": 225,
+        "purpose": "Final services httpPort assertion",
+        "from": 18080,
+        "to": 18081
+      },
+      {
+        "line": 274,
+        "purpose": "HTTPS CLI --http-port argument",
+        "from": "18080",
+        "to": "18081"
+      }
+    ]
+  },
+  "independentRemoteConfigurationRead": {
+    "transport": "SSH BatchMode=yes StrictHostKeyChecking=yes",
+    "hostAlias": "root-192-168-1-120",
+    "operation": "Single read of /etc/codex-harness/crtest-rw-20261025/https.json, projecting only host, tls, httpPort and httpsPort",
+    "result": {
+      "host": "harness.crtest.localhost",
+      "tls": "internal",
+      "httpPort": 18081,
+      "httpsPort": 18443
+    },
+    "exitCode": 0,
+    "remoteMutations": false,
+    "timingBoundary": "Read completed before parent reported executing reconciliation; no later state is inferred."
+  },
+  "failedAttempt": {
+    "observedStderrSha256": "7209361123e10a182aaa70df2c1d437cd4a9dd30ba629a97f18f81d65e9d3f3b",
+    "observedStderrBytes": 151,
+    "observedExitCode": 1,
+    "observationSource": "Parent-provided retained diagnostic metadata; source-output hash independently reconstructed here without replaying the command.",
+    "currentSourceStaticRequireCandidates": 763,
+    "exactHashMatches": [
+      {
+        "file": "deploy/https.py",
+        "line": 341,
+        "messageLine": 342,
+        "code": "identity_conflict",
+        "message": "Existing HTTPS address is preserved; address changes require an explicit migration",
+        "bytes": 151
+      }
+    ],
+    "setupHttpsSourceSha256": "f627883449df3361cd2a07ebd2f9f3e8d98d3081fd5c1aca5bcb199235ec1e49",
+    "accountVerificationLine": 366,
+    "firstDirectMutation": {
+      "call": "ensure_account",
+      "line": 368
+    },
+    "directHttpsMutationCalls": [
+      {
+        "call": "ensure_account",
+        "line": 368
+      },
+      {
+        "call": "mkdir",
+        "line": 369
+      },
+      {
+        "call": "stage_tls",
+        "line": 379
+      },
+      {
+        "call": "write_json",
+        "line": 383
+      },
+      {
+        "call": "atomic_write",
+        "line": 397
+      },
+      {
+        "call": "mkdir",
+        "line": 407
+      },
+      {
+        "call": "write_json",
+        "line": 410
+      },
+      {
+        "call": "write_json",
+        "line": 418
+      },
+      {
+        "call": "atomic_write",
+        "line": 426
+      },
+      {
+        "call": "atomic_write",
+        "line": 428
+      },
+      {
+        "call": "atomic_write",
+        "line": 429
+      },
+      {
+        "call": "write_json",
+        "line": 430
+      },
+      {
+        "call": "write_json",
+        "line": 432
+      },
+      {
+        "call": "write_json",
+        "line": 434
+      },
+      {
+        "call": "write_json",
+        "line": 446
+      },
+      {
+        "call": "write_json",
+        "line": 448
+      }
+    ],
+    "conclusion": "The matched address-equality require raises before account login verification, account provisioning, TLS staging, HTTPS metadata/Caddyfile writes and HTTPS transaction creation. Existing HTTP port 18081 must be retained.",
+    "boundary": "The operator helper diagnostics/stage journal and the CLI management lock may already have been created or updated. This is not a claim that the entire failed invocation performed no filesystem writes."
+  },
+  "reconciliationHelper": {
+    "file": ".work/v210-reconcile-https-port.py",
+    "sha256": "4d2dbc615cc4f8895bfc3e684593f9aa9a27e8f424b51ed7927e3d7b2b128e6b",
+    "syntax": "valid Python AST",
+    "review": "No obvious blocking misoperation found: fixed instance/base, exclusive nonblocking stage and management locks, exact known failure digest/size/exit, retained metadata equality, selected release check, no new HTTPS transaction, exact five named root-owned single-link mode-0600 files, new create-only archive, per-file hashes retained and verified after rename, directory fsync. No service operation, HTTPS configuration write, deletion, or automatic retry is present.",
+    "operatorBoundary": "A process interruption between renames still requires manual inspection; this reviewer did not run reconciliation or modify remote state."
+  },
+  "checks": {
+    "exactly_two_port_substitutions": true,
+    "https_cli_port": true,
+    "final_service_guard": true,
+    "exact_static_error_hash": true,
+    "guard_precedes_account_login_and_all_direct_https_mutations": true,
+    "reconcile_binds_new_helper_name_and_hash": true,
+    "reconcile_exact_failure_hash": true,
+    "product_snapshot_unchanged": true
+  },
+  "mutationsByReviewer": [
+    "Wrote this local ignored review JSON only"
+  ],
+  "testsRun": [],
+  "remoteCommandsByReviewer": 1,
+  "fullSuiteRun": false,
+  "commitCreated": false
+}

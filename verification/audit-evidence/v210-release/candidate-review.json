@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "task": "Read-only single completed candidate archival review",
+  "instance": "crtest-rw-20261025",
+  "host": "root-192-168-1-120",
+  "observedAt": "2026-10-26T19:23:08.556968+00:00",
+  "currentHead": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+  "sourceEvidence": [
+    {
+      "file": "deploy/build.py",
+      "lines": "248-268",
+      "finding": "require_host and toolchain inspection precede the eight-candidate guard; UUID, candidate mkdir, source extraction and input transaction are after it."
+    },
+    {
+      "file": "deploy/build.py",
+      "lines": "325-334",
+      "finding": "Published release and root prepared.json precede successful unmount and image unlink. Build workspaces remain retained after successful preparation."
+    },
+    {
+      "file": "deploy/cli.py",
+      "lines": "193-221",
+      "finding": "Management lock covers update; update readiness check then Builder.prepare, and only a returned release reaches Manager.activate."
+    },
+    {
+      "file": "deploy/system.py",
+      "lines": "79-118",
+      "finding": "Build producers use named transient units and explicit stop/cgroup confirmation."
+    },
+    {
+      "file": "deploy/common.py",
+      "lines": "91-100",
+      "finding": "Build cache, immutable releases and persistent transaction state are separate layout roots."
+    }
+  ],
+  "builderSha256LocalAndInstalled": "b3c46ce876ec8798f134e4959f1114a259df5518ebca3052aa7877993f1fe8be",
+  "budgetFailureConclusion": {
+    "codeDefectFound": false,
+    "candidateCount": 8,
+    "requestedAttemptStartedCandidateBuild": false,
+    "activationReached": false,
+    "basis": "Parent supplied exact budget stderr/exit 1/empty stdout. The installed builder hash matches inspected current source and the guard throws before UUID or directory/transaction creation. Remote inventory confirms eight retained old candidates, newest mtime 2026-10-26T10:52:39Z. require_host/toolchain checks may have run before rejection; no candidate build or activation follows this guard failure."
+  },
+  "chosen": {
+    "source": "/var/cache/codex-harness/crtest-rw-20261025/candidate-e1709a5c15064fea9a52011eb4898207",
+    "destination": "/var/cache/codex-harness/crtest-rw-20261025/.completed-candidates/candidate-e1709a5c15064fea9a52011eb4898207",
+    "archiveParentMode": "0700",
+    "uid": 0,
+    "gid": 0,
+    "sourceMode": "0755",
+    "device": 64512,
+    "inode": 7349676,
+    "release": "35b3c4a1716395beb1fe7d4805be1198e61ca3356a777791c48b4acf913cbd89",
+    "preparedPath": "/var/lib/codex-harness-instances/crtest-rw-20261025/transactions/e1709a5c15064fea9a52011eb4898207/prepared.json",
+    "preparedSha256": "0d8a4ef0f788b52f4b3e2465fa4caedbb1496f278833c5af29a73e0ca9ac8618",
+    "activationPath": "/var/lib/codex-harness-instances/crtest-rw-20261025/transactions/b3653615a2984d208d05ba61f7efce56/state.json",
+    "activationSha256": "ae36df2b20c1650e0543d54ed45a5268b9002d6d8e60e205ae229901dd8a6f7a",
+    "activationPhase": "committed",
+    "publishedReleaseAndManifestExist": true,
+    "currentOrPrevious": false,
+    "ext4ImagesPresent": false,
+    "fetchEntries": 0,
+    "buildEntries": 0,
+    "allEightNamedStageUnits": "not-found/inactive/dead; MainPID=ControlPID=0; empty ControlGroup",
+    "processCwdRootExeFdMapsReferences": [],
+    "mountNamespaceReferences": [],
+    "loopDeviceReferences": [],
+    "processReadErrors": [],
+    "readonlyChecksPassed": true
+  },
+  "preserveUnfinished": {
+    "path": "/var/cache/codex-harness/crtest-rw-20261025/candidate-5f747aa705b64fccb2f9a4fd1ce5fbfb",
+    "preparedExists": false,
+    "transactionFiles": [
+      "input.json"
+    ],
+    "retainedMounts": [
+      "fetch on /dev/loop4",
+      "build on /dev/loop7"
+    ],
+    "disposition": "Leave this directory, both images, mounts and related transaction/failed-unit evidence untouched."
+  },
+  "minimalAction": "Under the existing management lock, rerun the chosen-directory guards, create/verify root-owned 0700 archive parent on the same filesystem and atomically rename the exact chosen directory with no overwrite. This reduces candidate-* count from eight to seven while retaining all bytes and all transaction records. Do not delete, unmount, change services, alter release pointers or touch the other seven candidates.",
+  "script": {
+    "path": ".work/v210-archive-completed-candidate.py",
+    "sha256": "ec4b8721dc751a078c133c606764d0d9637ec0ba83e774c2ff9f6440c1ed1c7e",
+    "default": "read-only guards",
+    "apply": "--apply; operator-reviewed, one fixed candidate only",
+    "executed": false
+  },
+  "failedAttemptEvidence": "This script does not modify the failed app-update staging directory, logs or stdout/stderr. Parent operator must retain the failed attempt unchanged, hash its evidence in a separate attempt directory, and explicitly restore the chosen staging name before retrying; exact staging paths were not supplied to this reviewer.",
+  "changesPerformed": {
+    "remoteFiles": false,
+    "remoteServices": false,
+    "remoteMounts": false,
+    "sourceFiles": false,
+    "tests": false,
+    "localEvidenceOnly": true
+  },
+  "limitations": "Occupancy checks are a point-in-time observation. Execution must recheck them under the same management lock and stop on any mismatch; unrelated root operators must not concurrently mutate the candidate."
+}

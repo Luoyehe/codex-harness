@@ -1,0 +1,381 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-10-26T19:12:56.515473Z",
+  "evidence_source": "Unauthenticated read-only GitHub REST API",
+  "repository": "Luoyehe/codex-harness",
+  "expected": {
+    "head_branch": "Luoyehe/builtin-account-auth",
+    "workflow_path": ".github/workflows/security.yml",
+    "event": "workflow_dispatch",
+    "head_sha": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+    "run_id": 40384232599
+  },
+  "verification": {
+    "branch_matches": true,
+    "workflow_path_matches": true,
+    "run_id_matches": true,
+    "head_sha_matches": true,
+    "event_matches": true,
+    "missing_job_names": [],
+    "unexpected_job_names": [],
+    "all_jobs_completed_success": true,
+    "no_unexpected_jobs": true,
+    "run_completed_success": true,
+    "all_expected_jobs_present": true
+  },
+  "run": {
+    "id": 40384232599,
+    "name": "Security checks",
+    "path": ".github/workflows/security.yml",
+    "event": "workflow_dispatch",
+    "status": "completed",
+    "conclusion": "success",
+    "head_branch": "Luoyehe/builtin-account-auth",
+    "head_sha": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+    "run_attempt": 1,
+    "created_at": "2026-10-26T19:09:44Z",
+    "updated_at": "2026-10-26T19:11:34Z",
+    "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599",
+    "check_suite_id": 109457410099
+  },
+  "total_jobs": 3,
+  "jobs": [
+    {
+      "id": 121788143275,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:09:48Z",
+      "completed_at": "2026-10-26T19:10:47Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599/job/121788143275",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143275",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:09:49Z",
+          "completed_at": "2026-10-26T19:09:49Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:09:49Z",
+          "completed_at": "2026-10-26T19:09:51Z"
+        },
+        {
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:09:51Z",
+          "completed_at": "2026-10-26T19:10:04Z"
+        },
+        {
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:10:04Z",
+          "completed_at": "2026-10-26T19:10:44Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:10:44Z",
+          "completed_at": "2026-10-26T19:10:44Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-26T19:10:44Z",
+          "completed_at": "2026-10-26T19:10:45Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-26T19:10:45Z",
+          "completed_at": "2026-10-26T19:10:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-26T19:10:45Z",
+          "completed_at": "2026-10-26T19:10:45Z"
+        }
+      ]
+    },
+    {
+      "id": 121788143838,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:09:48Z",
+      "completed_at": "2026-10-26T19:11:34Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599/job/121788143838",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143838",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:09:49Z",
+          "completed_at": "2026-10-26T19:09:49Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:09:50Z",
+          "completed_at": "2026-10-26T19:09:51Z"
+        },
+        {
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:09:51Z",
+          "completed_at": "2026-10-26T19:10:02Z"
+        },
+        {
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:10:02Z",
+          "completed_at": "2026-10-26T19:11:31Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:11:31Z",
+          "completed_at": "2026-10-26T19:11:31Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-26T19:11:31Z",
+          "completed_at": "2026-10-26T19:11:32Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-26T19:11:32Z",
+          "completed_at": "2026-10-26T19:11:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-26T19:11:32Z",
+          "completed_at": "2026-10-26T19:11:32Z"
+        }
+      ]
+    },
+    {
+      "id": 121788143884,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T19:09:48Z",
+      "completed_at": "2026-10-26T19:10:04Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599/job/121788143884",
+      "check_run_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143884",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-26T19:09:49Z",
+          "completed_at": "2026-10-26T19:09:51Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-26T19:09:51Z",
+          "completed_at": "2026-10-26T19:09:53Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-26T19:09:53Z",
+          "completed_at": "2026-10-26T19:09:58Z"
+        },
+        {
+          "name": "Run npm install --global pnpm@11.22.0 --ignore-scripts --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-26T19:09:58Z",
+          "completed_at": "2026-10-26T19:09:59Z"
+        },
+        {
+          "name": "Run pnpm audit --audit-level high --json > dependency-audit.json",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-26T19:09:59Z",
+          "completed_at": "2026-10-26T19:10:00Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-26T19:10:00Z",
+          "completed_at": "2026-10-26T19:10:01Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-26T19:10:01Z",
+          "completed_at": "2026-10-26T19:10:02Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-26T19:10:02Z",
+          "completed_at": "2026-10-26T19:10:02Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-26T19:10:02Z",
+          "completed_at": "2026-10-26T19:10:02Z"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": 121788143884,
+      "name": "dependencies",
+      "app": "github-actions",
+      "status": "completed",
+      "conclusion": "success",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 0,
+        "annotations_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143884/annotations"
+      },
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599/job/121788143884"
+    },
+    {
+      "id": 121788143838,
+      "name": "codeql (javascript-typescript)",
+      "app": "github-actions",
+      "status": "completed",
+      "conclusion": "success",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 0,
+        "annotations_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143838/annotations"
+      },
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599/job/121788143838"
+    },
+    {
+      "id": 121788143275,
+      "name": "codeql (python)",
+      "app": "github-actions",
+      "status": "completed",
+      "conclusion": "success",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 0,
+        "annotations_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143275/annotations"
+      },
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599/job/121788143275"
+    }
+  ],
+  "annotations_read": [
+    {
+      "check_run_id": 121788143884,
+      "check_name": "dependencies",
+      "api_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143884/annotations?per_page=100",
+      "http_status": 200,
+      "reported_annotations_count": 0,
+      "endpoint_result": [],
+      "normalization_note": "The annotations endpoint returned an empty JSON array. PowerShell wrapped that array once in the diagnostic display; it contains zero annotation objects."
+    },
+    {
+      "check_run_id": 121788143838,
+      "check_name": "codeql (javascript-typescript)",
+      "api_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143838/annotations?per_page=100",
+      "http_status": 200,
+      "reported_annotations_count": 0,
+      "endpoint_result": [],
+      "normalization_note": "The annotations endpoint returned an empty JSON array. PowerShell wrapped that array once in the diagnostic display; it contains zero annotation objects."
+    },
+    {
+      "check_run_id": 121788143275,
+      "check_name": "codeql (python)",
+      "api_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-runs/121788143275/annotations?per_page=100",
+      "http_status": 200,
+      "reported_annotations_count": 0,
+      "endpoint_result": [],
+      "normalization_note": "The annotations endpoint returned an empty JSON array. PowerShell wrapped that array once in the diagnostic display; it contains zero annotation objects."
+    }
+  ],
+  "code_scanning_alerts_access": {
+    "zero_alerts_verified": false,
+    "available": false,
+    "existing_alert_count": null,
+    "http_status": 401,
+    "message": "\r\n{\r\n  \"message\": \"Requires authentication\",\r\n  \"documentation_url\": \"https://docs.github.com/rest\",\r\n  \"status\": \"401\"\r\n}",
+    "api_url": "https://api.github.com/repos/Luoyehe/codex-harness/code-scanning/alerts?state=open&ref=refs%2Fheads%2FLuoyehe%2Fbuiltin-account-auth&per_page=100",
+    "new_alert_count": null
+  },
+  "limitations": [
+    "All three workflow jobs succeeded and their public Actions check annotations are empty.",
+    "Successful CodeQL jobs and zero Actions annotations do not establish zero code-scanning findings.",
+    "Code-scanning alerts require authentication: HTTP 401. New versus existing findings remain unknown through this unauthenticated interface.",
+    "Follow-up branch-specific review of eight open alerts is recorded in codeql-review.json. This unauthenticated API evidence did not independently enumerate those alerts."
+  ],
+  "mutations": "Read-only status collection. No source was modified and no workflow was dispatched or rerun by the status reviewer.",
+  "releaseSourceBinding": {
+    "version": "2.1.0",
+    "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+    "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+    "sourceFiles": 1862,
+    "sourceBindingEvidence": "hosted-ci.json",
+    "note": "The source digest is established by the local snapshot and hosted CI case artifacts. The security status API itself reports the commit SHA, not this source digest."
+  },
+  "relatedAlertReview": "codeql-review.json"
+}

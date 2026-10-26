@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-26T19:34:55.168Z",
+  "version": "2.1.0",
+  "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+  "instance": "crtest-rw-20261025",
+  "host": "192.168.1.120",
+  "productSourceModified": false,
+  "preparationArgumentCorrection": {
+    "from": "current/node/bin/node symlink alias",
+    "to": "retained release canonical node/bin/node path",
+    "reason": "Preparation rejected noncanonical input before any stage record; canonical path was resolved and checked before the sole recorded successful preparation."
+  },
+  "candidateBudget": {
+    "review": {
+      "path": "verification/audit-evidence/v210-release/candidate-review.json",
+      "sha256": "feccbc7d452a714a88c77ba76138fb235a4062f175e8adbce6b306471522e190"
+    },
+    "execution": {
+      "source": "/var/cache/codex-harness/crtest-rw-20261025/candidate-e1709a5c15064fea9a52011eb4898207",
+      "destination": "/var/cache/codex-harness/crtest-rw-20261025/.completed-candidates/candidate-e1709a5c15064fea9a52011eb4898207",
+      "device": 64512,
+      "inode": 7349676,
+      "preparedSha256": "0d8a4ef0f788b52f4b3e2465fa4caedbb1496f278833c5af29a73e0ca9ac8618",
+      "activationSha256": "ae36df2b20c1650e0543d54ed45a5268b9002d6d8e60e205ae229901dd8a6f7a",
+      "release": "35b3c4a1716395beb1fe7d4805be1198e61ca3356a777791c48b4acf913cbd89",
+      "candidateCountBefore": 8,
+      "observedAt": "2026-10-26T19:25:08.804693+00:00",
+      "apply": true,
+      "candidateCountAfter": 7,
+      "outcome": "archived"
+    },
+    "reconciliation": {
+      "schemaVersion": 1,
+      "reviewedAt": "2026-10-26T19:25:47.516464+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "reason": "Known budget refusal before candidate UUID allocation and before activation; existing selected release unchanged. One independently verified completed candidate archived without deleting data.",
+      "automaticRetry": false,
+      "nextStep": "Operator may explicitly execute a new app-update attempt",
+      "files": [
+        {
+          "name": "app-update.json",
+          "sha256": "d07e1872808ea0d31a29ecba88cb661cb992703a86f6fa6d8fe9ef01fc09fcbe"
+        },
+        {
+          "name": "app-update-cli.command.json",
+          "sha256": "adebf6affb8dd725809a521bd84303f9bea1e03b05571913ce0bb26a84ef8a51"
+        },
+        {
+          "name": "app-update-cli.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "app-update-cli.stderr.log",
+          "sha256": "5f34ef2483254b454fcd17a3584ad3f5413e06713405e12012ae062e042a4d2b"
+        },
+        {
+          "name": "app-update-source-snapshot.command.json",
+          "sha256": "6d6ed4bbed0a9e2267be603fa234783faa6d921b64b21dbab364837272d86004"
+        },
+        {
+          "name": "app-update-source-snapshot.stdout.log",
+          "sha256": "993d3beb45721f421d432853e76b732cba1041df5cb964782e6d398eceb9b638"
+        },
+        {
+          "name": "app-update-source-snapshot.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    "notes": "The completed candidate directory was atomically moved on the same filesystem, not deleted. Other seven candidates, including an uncertain mounted candidate, were left intact. Failed stage and all six diagnostics were retained with hashes before the operator explicitly started a second update attempt."
+  },
+  "httpsPortCorrection": {
+    "review": {
+      "path": "verification/audit-evidence/v210-release/https-port-review.json",
+      "sha256": "2c79318a75bfa6888ad80d4a5556d2ff80a4c05120b04e3ebdd47b564ccc8c30"
+    },
+    "reconciliation": {
+      "schemaVersion": 1,
+      "reviewedAt": "2026-10-26T19:29:48.664007+00:00",
+      "binding": {
+        "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+        "archiveSha256": "bee02f3da5aa208e50384307d4ca45e132fc8980e836b847639ca48e2f699280",
+        "head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+        "testEvidenceSha256": "5a225cd41d3dc1a5f9935b952b5ae294e2f7f4ac746ab92424f8a239aafd9ae0"
+      },
+      "reason": "Exact error hash identifies address equality guard before account verification and HTTPS mutation. Preserve actual existing HTTP port 18081; HTTPS 18443 and host are unchanged. Operator helper changed only request and final expectation.",
+      "automaticRetry": false,
+      "metadataSha256": "c701d2b10bf38641c4d54c578e6b7f57a5c830e40bef7fc81028002cb380dc0a",
+      "helperPath": "/opt/codex-harness-rewrite-20261025/v210-TV8WcWw9/v210-deploy-port18081.py",
+      "helperSha256": "2d645c3b387002ef05433b50cb35a157b4dfbcd81c4d2851b18cb3b2d3cbef01",
+      "files": [
+        {
+          "name": "https.json",
+          "sha256": "20d1c64dea4a3360232a647ee3e1e21c6f0fb418506fda9ba1d20b7a51cb7dc5"
+        },
+        {
+          "name": "https-cli.command.json",
+          "sha256": "bebad6d2fe2fd5ad5fd08c206e0b5d5f0553ec5fee1298d745f3c4a84d719c23"
+        },
+        {
+          "name": "https-source-snapshot.command.json",
+          "sha256": "cb5ca1dcad7a7b97087a84ce908ae63e7fd8f80bf640f00d1f36bce0b79532ad"
+        },
+        {
+          "name": "https-source-snapshot.stdout.log",
+          "sha256": "993d3beb45721f421d432853e76b732cba1041df5cb964782e6d398eceb9b638"
+        },
+        {
+          "name": "https-source-snapshot.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    "preserved": {
+      "httpPort": 18081,
+      "httpsPort": 18443,
+      "host": "harness.crtest.localhost",
+      "tls": "internal"
+    },
+    "notes": "The first attempt was refused by the address identity guard before account verification or HTTPS changes. All five failed-attempt files were retained. The corrected helper was stored separately; the original helper remains available."
+  },
+  "operatorHelpers": {
+    "prepare": "4ac44121cff8043b78826205a4ba53740e46bfba82ca8134165fc99cc195a5b6",
+    "deployCorrected": "2d645c3b387002ef05433b50cb35a157b4dfbcd81c4d2851b18cb3b2d3cbef01",
+    "acceptance": "cf22332c86ea1d7eb775de5da883f48b8060b8e9253ae8805cef84553486ac61",
+    "collector": "d64c0c7881d632acb7f22fe58d827ff31d68b38eb7eedda3e2120316186f3852",
+    "archive": "ec4b8721dc751a078c133c606764d0d9637ec0ba83e774c2ff9f6440c1ed1c7e",
+    "budgetReconciliation": "d6006364da02db5b7a28a156deba50d8f7cd7780e2e9de17eea99ceba08fc8a6",
+    "portReconciliation": "4d2dbc615cc4f8895bfc3e684593f9aa9a27e8f424b51ed7927e3d7b2b128e6b"
+  },
+  "completedStages": [
+    "prepare",
+    "control-update",
+    "app-update",
+    "account-setup",
+    "https",
+    "verify",
+    "restart",
+    "verify-restart",
+    "services"
+  ],
+  "sourceAuditGateResetRequired": false,
+  "boundary": "These are operator-input/preparation corrections, not product source fixes or additional full audit rounds. All nine final stages and strict acceptance results are independently bound in deployment.json. Recovery materials remain root-private on 120."
+}

@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "review_kind": "independent_current_source_CodeQL_alert_triage",
+  "reviewed_on": "2026-10-27",
+  "reviewer": "independent-current-source-codeql-triage",
+  "repository": "Luoyehe/codex-harness",
+  "branch": "Luoyehe/builtin-account-auth",
+  "current_head": "a61ab4a9074232fdc75ad015d0ab789018bf9a8f",
+  "current_git_tree": "6f3f2487990d698edc71899e24374fddc2df18ae",
+  "source_snapshot_sha256": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+  "source_snapshot_files": 1862,
+  "source_snapshot_note": "Independently recomputed with the current read-only scripts/snapshot.mjs. SHA-256 of sorted JSON tuples [relative path, executable permission bits, file SHA-256], covering current tracked and nonignored untracked regular source files and excluding only declared non-executable evidence paths. Matches the source binding in hosted-ci.json. This is a source inventory digest, not a Git commit; each reviewed alert file is additionally bound by SHA-256 and Git blob below.",
+  "worktree_status_before_review": "clean",
+  "scope": {
+    "inventory": "8 open CodeQL alerts on branch Luoyehe/builtin-account-auth",
+    "inventory_evidence": "Alert ids, titles and locations supplied by parent after live authenticated GitHub branch-filtered UI inspection; this reviewer independently inspected the current local source.",
+    "security_run": "https://github.com/Luoyehe/codex-harness/actions/runs/40384232599",
+    "security_run_note": "The same-head security workflow and its three successful jobs are recorded in security-ci.json; this source triage did not rerun those jobs.",
+    "rules": [
+      "Read AGENTS.md first; inspect only the current rewrite source.",
+      "No previous implementation, Git-history source or prior CodeQL review report used.",
+      "No code edits, tests, runtime probes, deployment or GitHub alert-state changes.",
+      "Read cited hash producers and consumers, credential output configuration, generated-code context and current account password paths."
+    ]
+  },
+  "result": {
+    "reviewed_alerts": 8,
+    "actionable_source_fixes": 0,
+    "release_blocking_source_findings": [],
+    "disposition_counts": {
+      "non_password_content_hash": 6,
+      "intentional_credential_command_output": 1,
+      "bounded_test_code_generation": 1
+    },
+    "conclusion": "No source change is required for the eight reviewed findings on this exact snapshot. This is a reasoned disposition of eight open alerts, not a claim of zero CodeQL alerts or a full security certification."
+  },
+  "alerts": [
+    {
+      "id": 12,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/12",
+      "title": "Use of password hash with insufficient computational effort",
+      "file": "src/runtime/service.ts",
+      "line": 588,
+      "current_source_sha256": "c70f91b485a3479c35842775c246624b6741c0f6e055998d1cb9c756dd8c53df",
+      "current_git_blob": "2ca4b8cd568e19644ff344f4c03462acdd377303",
+      "classification": "non_password_content_hash",
+      "requires_source_change": false,
+      "rationale": "SHA-256 hashes the canonical tuple of cwd, selected thread options and native config/read result into an in-memory effective-defaults cache key. The consumer only looks up/stores a bounded defaults object; it does not authenticate a password or persist a password verifier. A password KDF would not improve this cache identity check.",
+      "evidence": [
+        {
+          "file": "src/runtime/service.ts",
+          "lines": "584-599",
+          "detail": "config/read -> bounded canonical object -> key -> defaultsCache.get/set, with maximum 16 entries; only model/provider/reasoning/approval/sandbox/cwd defaults are returned."
+        },
+        {
+          "file": "src/runtime/service.ts",
+          "lines": "66,126,206,468",
+          "detail": "Cache is process memory and cleared by configuration/account/lifecycle changes."
+        }
+      ],
+      "risk_boundary": "A config value can itself contain sensitive content. SHA-256 is an identity digest, not encryption or secrecy for low-entropy config values. The reviewed key stays in the in-memory cache and is not returned as a password credential."
+    },
+    {
+      "id": 11,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/11",
+      "title": "Use of password hash with insufficient computational effort",
+      "file": "src/runtime/workspace-witness.ts",
+      "line": 74,
+      "current_source_sha256": "26f7102b6d666506cc1f8a0c287630e31516411d1b53bbf2d80725e9e3c55149",
+      "current_git_blob": "d2fc0a9a66083183c88727a1ade2dd0d63c1e9b4",
+      "classification": "non_password_content_hash",
+      "requires_source_change": false,
+      "rationale": "The flagged digest binds the selected path list for git/stage or git/unstage to the native acknowledgement, together with selectedCount. Other hashes in the same class bind canonical helper requests and receipt results. These are operation-consistency fingerprints, not password records.",
+      "evidence": [
+        {
+          "file": "src/runtime/workspace-witness.ts",
+          "lines": "60-95",
+          "detail": "Derives paths from validated operation params, compares count and pathsDigest before accepting the result, then updates only the matching reserved witness."
+        },
+        {
+          "file": "deploy/workspace_index.py",
+          "lines": "176-202",
+          "detail": "Native-side producer returns pathsDigest=digest(selected) and selectedCount=len(selected) after index publication checks."
+        },
+        {
+          "file": "deploy/common.py",
+          "lines": "29-34",
+          "detail": "Native digest uses canonical JSON bytes and SHA-256."
+        },
+        {
+          "file": "src/runtime/workspace-witness.ts",
+          "lines": "39-58,111-136",
+          "detail": "Request/result hashes are used for reservation conflicts, reconciliation and matching cleanup acknowledgement."
+        }
+      ],
+      "risk_boundary": "These unkeyed digests provide equality and collision resistance, not proof of a hostile native process's honesty or confidentiality. Trust also depends on the supervisor-private witness database and authenticated gateway context; no user password is verified at the flagged path."
+    },
+    {
+      "id": 10,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/10",
+      "title": "Use of password hash with insufficient computational effort",
+      "file": "src/runtime/input-context.ts",
+      "line": 22,
+      "current_source_sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+      "current_git_blob": "8f3df5f04a6c1ddd45c700ecc4734d34f4d82f75",
+      "classification": "non_password_content_hash",
+      "requires_source_change": false,
+      "rationale": "SHA-256 produces a stable harness-context key from a file source identity (cwd, relative path, revision and line range) or a user-note index/label. The digest names additionalContext and queued text placeholders; it is not a password or token verifier.",
+      "evidence": [
+        {
+          "file": "src/runtime/input-context.ts",
+          "lines": "20-28",
+          "detail": "Hashed source becomes a key; text is explicitly labelled untrusted and attached separately."
+        },
+        {
+          "file": "src/runtime/input-context.ts",
+          "lines": "51-66",
+          "detail": "The two source producers are canonical file-selection metadata and user-note index/label."
+        },
+        {
+          "file": "src/runtime/input-context.ts",
+          "lines": "71-75",
+          "detail": "Context-marker recognition checks placeholder syntax and byte range, not credentials."
+        },
+        {
+          "file": "src/runtime/attachments.ts",
+          "lines": "174-185",
+          "detail": "Queued-input reconstruction retains context markers as opaque referenced input."
+        }
+      ],
+      "risk_boundary": "The marker is descriptive metadata and must not be treated as authentication or as a trusted-instruction signature. The code keeps content explicitly untrusted. Hashing a label does not make that label confidential."
+    },
+    {
+      "id": 9,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/9",
+      "title": "Use of password hash with insufficient computational effort",
+      "file": "src/runtime/imports.ts",
+      "line": 6,
+      "current_source_sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+      "current_git_blob": "424bae35c57cae14add63e43ecd7476a84fe4df6",
+      "classification": "non_password_content_hash",
+      "requires_source_change": false,
+      "rationale": "The helper hashes canonical migration inventory objects. It creates itemId and previewHash, then re-detects the inventory and checks the submitted preview and selected item ids before import. It does not store or check passwords.",
+      "evidence": [
+        {
+          "file": "src/runtime/imports.ts",
+          "lines": "28-39",
+          "detail": "preview() hashes scope/item and scope/items; response explicitly describes a fresh native migration inventory and trustInherited=false."
+        },
+        {
+          "file": "src/runtime/imports.ts",
+          "lines": "41-53",
+          "detail": "apply() requires confirmation, refreshes preview, compares previewHash, resolves selected itemIds and separately gates executable configuration."
+        }
+      ],
+      "risk_boundary": "The hash identifies detected inventory, not an immutable snapshot of file bytes or approval of imported executable configuration. A password KDF would not close any inventory-to-import time gap; the code accurately labels this limit."
+    },
+    {
+      "id": 8,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/8",
+      "title": "Use of password hash with insufficient computational effort",
+      "file": "src/runtime/attachments.ts",
+      "line": 126,
+      "current_source_sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+      "current_git_blob": "29570076a730b713f8dd3708acf83b5e6ad18352",
+      "classification": "non_password_content_hash",
+      "requires_source_change": false,
+      "rationale": "SHA-256 records the uploaded attachment bytes in supervisor-private metadata. readFile recomputes it and rejects content changes before reading or preparing native input. It is an integrity checksum, not a password-derived credential.",
+      "evidence": [
+        {
+          "file": "src/runtime/attachments.ts",
+          "lines": "109-132",
+          "detail": "Canonical base64 bytes are bounded, written to an exclusive file, hashed into Attachment.sha256 and saved to index."
+        },
+        {
+          "file": "src/runtime/attachments.ts",
+          "lines": "58-76",
+          "detail": "Read path checks file identity/size/link type plus SHA-256 against metadata."
+        },
+        {
+          "file": "src/runtime/attachments.ts",
+          "lines": "99-108,187-196",
+          "detail": "Metadata index is written mode 0600; public response omits hash; prepare and pin re-read content."
+        }
+      ],
+      "risk_boundary": "Unkeyed hashing cannot protect against an actor who can rewrite both the attachment and the private metadata index. Ownership, directory identity, file descriptors and restricted permissions remain required. File contents may contain secrets; hashing does not encrypt them."
+    },
+    {
+      "id": 7,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/7",
+      "title": "Use of password hash with insufficient computational effort",
+      "file": "src/core/validation.ts",
+      "line": 40,
+      "current_source_sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "current_git_blob": "50bc4a3c0c0a99c1126adcf2083b64a1aad93c7b",
+      "classification": "non_password_content_hash",
+      "requires_source_change": false,
+      "rationale": "This exported digest hashes canonical JSON for RPC idempotency and workspace receipt reconciliation. Its consumers compare method/params and result fingerprints to detect reuse or mismatched acknowledgement. Built-in username/password authentication uses separate direct HTTP routes and the scrypt password implementation.",
+      "evidence": [
+        {
+          "file": "src/core/ledger.ts",
+          "lines": "103-123,181-182",
+          "detail": "reserve() stores method/params fingerprint and rejects operation-id reuse with changed content; matchesDigest checks equality."
+        },
+        {
+          "file": "src/gateway/dispatch.ts",
+          "lines": "147-157",
+          "detail": "Workspace calls carry gatewayRequestDigest and accepted receipts retain the same request fingerprint."
+        },
+        {
+          "file": "src/gateway/workspace-ack.ts",
+          "lines": "23-59",
+          "detail": "Request and projected-result digests must match durable accepted receipts before witness cleanup."
+        },
+        {
+          "file": "src/gateway/server.ts",
+          "lines": "201-265",
+          "detail": "Session/setup/account password routes call Authentication directly, separately from /api/rpc."
+        }
+      ],
+      "risk_boundary": "Arbitrary RPC content may itself include secrets; this function supplies an equality fingerprint, not a secrecy-preserving representation or a credential KDF. The reviewed built-in password routes do not use this ledger digest as their password verifier."
+    },
+    {
+      "id": 5,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/5",
+      "title": "Clear-text logging of sensitive information",
+      "file": "deploy/native_launcher.py",
+      "line": 188,
+      "current_source_sha256": "ce604b2424e012ba1dd2afeeb3f6f7ae08088f053b4a2b476f5e548ad795d75e",
+      "current_git_blob": "540f6665323e89bdccbaabad29ec2f3d877c1170",
+      "classification": "intentional_credential_command_output",
+      "requires_source_change": false,
+      "rationale": "This write is the data output of the fixed bedrock-token credential command. Provider configuration selects native-launch with the literal argument bedrock-token as auth.command, so stdout intentionally carries the selected bearer to its credential consumer. The launcher admits only exact verbs, enforces its fixed non-root native UID/GID and group set, verifies root-managed environment ownership/mode, validates token bounds/control characters and emits only a fixed generic error on stderr. There is no logging call at this sink.",
+      "evidence": [
+        {
+          "file": "deploy/provider_bedrock.py",
+          "lines": "25-36",
+          "detail": "Fixed HTTPS regional provider and auth.command/native-launch args=[bedrock-token]; bearer supplied through managed native environment."
+        },
+        {
+          "file": "deploy/provider.py",
+          "lines": "171-176,253-278",
+          "detail": "Builds provider auth table and root-owned mode-0640 native-env.json inside root-owned generation directories."
+        },
+        {
+          "file": "deploy/native_launcher.py",
+          "lines": "158-200",
+          "detail": "Exact verb admission, native identity/security checks, ownership/mode validation, bounded bearer stdout only for bedrock-token; generic stderr error."
+        },
+        {
+          "file": "deploy/units.py",
+          "lines": "151-157",
+          "detail": "Control identity sudo allowlist includes version/app-server/resolve-project/workspace but excludes bedrock-token."
+        }
+      ],
+      "risk_boundary": "The bearer is plaintext on the credential-command pipe by protocol and is available to the intended native UID. This classification depends on the auth-command consumer capturing stdout as credentials; redirecting or teeing that command output into logs would leak it. This read-only review did not run a real Bedrock request, inspect deployed secrets or certify upstream logging behavior."
+    },
+    {
+      "id": 6,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/6",
+      "title": "Improper code sanitization",
+      "file": "tests/deploy/vision_stdio_probe.mjs",
+      "line": 16,
+      "current_source_sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "current_git_blob": "64c885e430769521bc304f50a3b7898de7cb41fe",
+      "classification": "bounded_test_code_generation",
+      "requires_source_change": false,
+      "rationale": "The test writes a small Node CommonJS preload guard. The sole interpolated value at line 16 is the generated temporary attempts-file path, encoded by JSON.stringify as a complete double-quoted JavaScript string literal. It is placed directly in JavaScript source, not an HTML/script container or a shell command, and the child is spawned with an argument array. Quotes, backslashes and control characters remain literal path data in this context. The second generated schema probe follows the same string-literal encoding pattern for paths and serializes a fixed expected object.",
+      "evidence": [
+        {
+          "file": "tests/deploy/vision_stdio_probe.mjs",
+          "lines": "7-19",
+          "detail": "mkdtemp creates isolated home; path.join creates attempts path; JSON.stringify inserts it into static preload source; spawn passes --require/guard/entry as argv."
+        },
+        {
+          "file": "tests/deploy/vision_stdio_probe.mjs",
+          "lines": "17-32",
+          "detail": "Environment contains only an allowlist plus isolated paths and a fixture credential; protocol calls are initialize and tools/list and the test asserts no recorded network attempts."
+        },
+        {
+          "file": "tests/deploy/vision_stdio_probe.mjs",
+          "lines": "33-43",
+          "detail": "Schema probe imports registered schemas without tool-handler execution, passes argv directly, bounds process time/output and records fixture results."
+        }
+      ],
+      "risk_boundary": "The monkeypatch is a diagnostic for a pinned dependency's no-tool probe, not a general security sandbox against a malicious package. JSON.stringify is suitable here only because insertion is a standalone JS literal in a modern Node file; the same approach must not be generalized to shell strings or inline HTML scripts. The probe was inspected but not executed."
+    }
+  ],
+  "account_password_cross_check": {
+    "file": "src/gateway/auth-crypto.ts",
+    "current_source_sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+    "current_git_blob": "8b02421dfd185c3cbc45893ed8073ea279be74a1",
+    "password_algorithm": "scrypt",
+    "parameters": {
+      "N": 32768,
+      "r": 8,
+      "p": 3,
+      "salt_bytes": 32,
+      "derived_bytes": 64,
+      "maxmem_bytes": 67108864,
+      "max_concurrent_derivations": 2
+    },
+    "result": "No built-in human-password path uses SHA-256 as its password verifier.",
+    "evidence": [
+      {
+        "file": "src/gateway/auth-crypto.ts",
+        "lines": "4-34",
+        "detail": "parsePassword requires exact scrypt parameters and record shape; hashPassword uses random 32-byte salt and async scrypt; verifyPassword derives with scrypt then timingSafeEqual."
+      },
+      {
+        "file": "src/gateway/auth.ts",
+        "lines": "79-82,104-120,166-188",
+        "detail": "Bootstrap imports a validated scrypt record; setup and changePassword call hashPassword; login and current-password challenges call verifyPassword."
+      },
+      {
+        "file": "deploy/accounts.py",
+        "lines": "44-50,63-82",
+        "detail": "Operator bootstrap/reset creates and validates the same scrypt record parameters."
+      },
+      {
+        "file": "src/gateway/auth.ts",
+        "lines": "28,79,94,132-143,150,179-181,218-220",
+        "detail": "Separate SHA-256 helper hashes initialization-token comparison state, bootstrap-record fingerprint, peer/client identifiers, random 32-byte session tokens and random 10-byte recovery codes, not the human password."
+      }
+    ],
+    "risk_boundary": "Fast hashes for bearer/session/recovery material rely on their entropy and storage/access boundaries. Runtime-generated session tokens contain 256 random bits and recovery codes contain 80 random bits; externally supplied initialization tokens remain an operator-controlled secret. This limited triage is not a full authentication audit."
+  },
+  "verification": {
+    "read_only_evidence_checks": [
+      "node scripts/snapshot.mjs",
+      "JSON parse and eight per-alert SHA-256 comparisons",
+      "git rev-parse HEAD and tree",
+      "git status --short"
+    ],
+    "source_snapshot_recomputed": true,
+    "per_alert_source_digest_mismatches": 0,
+    "worktree_status_after_review": "clean",
+    "tests_run": [],
+    "runtime_probes_run": [],
+    "old_implementation_or_history_source_read": false,
+    "prior_CodeQL_report_used": false,
+    "source_files_modified": [],
+    "alert_states_modified": false
+  },
+  "publication": {
+    "version": "2.1.0",
+    "relatedEvidence": [
+      "hosted-ci.json",
+      "security-ci.json"
+    ],
+    "note": "The local workspace path and internal task identifier were removed; source hashes, alert dispositions and limitations are preserved."
+  }
+}
