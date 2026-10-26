@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "version": "2.0.1",
+  "status": "passed",
+  "scope": "Manual desktop browser acceptance; no new full audit or full test run",
+  "completedAt": "2026-10-26T14:51:47.179Z",
+  "releaseCommit": "98f3e212dcef1aa72f169bf5f6e2284c3a889790",
+  "sourceDigest": "4ad01fbc1f966f25e9bfa6ede3c03ceefa1ef60d316dc256d9fca951e13cc289",
+  "sourceFiles": 1841,
+  "deployedRelease": "b964b8521ac28e34b0f8117ef15be5ba52932f68868a6fb5e589bd4e74e77385",
+  "certificate": {
+    "testCaWarningHandledByUser": true,
+    "agentBypassedWarnings": false,
+    "strictTlsProtocolEvidence": "deployment.json"
+  },
+  "checks": [
+    {
+      "name": "two-layer-authentication",
+      "status": "passed",
+      "details": "Existing synthetic Authelia account authenticated, then the separate gateway administrator credential was required and accepted."
+    },
+    {
+      "name": "desktop-workbench",
+      "status": "passed",
+      "details": "Inspected actual desktop screenshots; project navigation, composer, disabled empty send, and connected state rendered normally."
+    },
+    {
+      "name": "project-files-and-git",
+      "status": "passed",
+      "details": "Registered empty acceptance project listed .git as inaccessible; Git showed no changes and disabled unavailable mutations."
+    },
+    {
+      "name": "settings-modal-and-focus",
+      "status": "passed",
+      "details": "Opened categories; Escape closed the modal and focus returned to its initiating settings button."
+    },
+    {
+      "name": "service-and-receipt-preview",
+      "status": "passed",
+      "details": "Read deployed version/status/logs and generation 0 with 36 receipts; archive rotation remained disabled before download/confirmation. No archive rotation or restart was initiated."
+    },
+    {
+      "name": "provider-profiles-display",
+      "status": "passed",
+      "details": "Current ChatGPT provider and empty saved-profile list rendered; no profile, provider, model or credential was changed."
+    },
+    {
+      "name": "native-config-display",
+      "status": "passed",
+      "details": "Read skills and configuration panels; native compression threshold and scope were present, with an explicit unknown-context-window explanation. No configuration was saved."
+    },
+    {
+      "name": "native-shell-roundtrip",
+      "status": "passed",
+      "details": "Opened the project shell, sent one harmless printf command, visually verified browser-v201-ok output, then closed it and observed the new-terminal control."
+    },
+    {
+      "name": "input-preference-and-draft",
+      "status": "passed",
+      "details": "Enter-newline mode inserted a newline without sending; the unsent synthetic draft and preference survived refresh. Restored the original Enter-send preference and discarded only that empty synthetic draft."
+    },
+    {
+      "name": "refresh-and-reconnect",
+      "status": "passed",
+      "details": "After refresh the initial connecting state resolved to connected, native defaults loaded, and transient connection-required messages disappeared."
+    },
+    {
+      "name": "access-authentication-recovery",
+      "status": "passed",
+      "details": "The page later reported site authentication invalidation. Reauthenticated the same test account in a separate tab, then the original page recovered through its recheck-login button; the extra tab was closed."
+    },
+    {
+      "name": "automation-display",
+      "status": "passed",
+      "details": "Scheduler status and the empty plan list loaded after authentication recovery. No automation was created or started."
+    }
+  ],
+  "consoleObservation": {
+    "warnings": 0,
+    "errors": 0,
+    "scope": "Final current-tab dev log query returned no warning/error entries."
+  },
+  "closeout": {
+    "fourServicesActiveAndEnabled": true,
+    "gatewayAndWorkerPidsUnchangedSinceDeployment": true,
+    "servicesRestartedForThisBrowserRun": false,
+    "testShellClosed": true,
+    "testDraftRemoved": true,
+    "inputPreferenceRestored": true,
+    "providerRevisionChanged": false,
+    "modelTurnsStarted": 0,
+    "externalMcpTasksStarted": 0
+  },
+  "screenshots": [
+    {
+      "name": "v201-browser-home.png",
+      "sha256": "5eb0253a3d11eee5491cc5c601d3bb997ed9409cfd112197f51f6b7830b1575a",
+      "width": 65536,
+      "height": 4292542531,
+      "storage": "Ignored local evidence; images are not published in Git."
+    },
+    {
+      "name": "v201-browser-terminal.png",
+      "sha256": "2cd44be2b210d6166c1e7f0aa2cc642f0742611d5e86f1c6a66c62c2285d91e1",
+      "width": 65536,
+      "height": 4292542531,
+      "storage": "Ignored local evidence; images are not published in Git."
+    },
+    {
+      "name": "v201-browser-complete.png",
+      "sha256": "5eb0253a3d11eee5491cc5c601d3bb997ed9409cfd112197f51f6b7830b1575a",
+      "width": 65536,
+      "height": 4292542531,
+      "storage": "Ignored local evidence; images are not published in Git."
+    }
+  ],
+  "limits": [
+    "Desktop viewport only; no mobile viewport or real operating-system IME acceptance.",
+    "No existing conversation or long history sample was available; full-history rendering was not manually exercised.",
+    "Archive download/rotation, configuration writes, real suppliers, paid inference and external MCP were not performed.",
+    "This supplements the previous complete CI and strict-TLS protocol evidence; it does not replace or expand their scope."
+  ]
+}

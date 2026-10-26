@@ -1,5 +1,7 @@
 # 独立重写执行记录
 
+浏览器补充验收（2026-10-26）：用户处理测试证书提示后，已完成双层登录、工作台与设置、文件/Git、回执预览、真实 Shell 输入输出、草稿和输入偏好刷新恢复、访问认证失效后的原页恢复及自动化空列表检查。未发现需修改代码的问题；120 四项服务仍运行并已启用开机启动。仅补充验收证据，v2.0.1 标签与部署源码不变；桌面验收范围和未执行项见[浏览器记录](audit-evidence/v201-release/browser.json)。
+
 发布验收完成（2026-10-26，v2.0.1）：提交 `0466fb96a7b389e3631c060572cd0761db213f6d`、源码摘要 `4ad01fbc1f966f25e9bfa6ede3c03ceefa1ef60d316dc256d9fca951e13cc289` 已通过 GitHub 托管 Windows、Linux 普通身份与 Linux root 的完整逐用例核对，共 **170 个测试文件、1,478 个独立用例，零覆盖缺口**。平台跳过保留原始状态，由适用平台的同一用例补足。安全检查通过；当前源码的 8 条 CodeQL 告警另有逐条人工复核，不声称零告警。120 已部署本次源码并实际重启，重启前后分别通过 22/24 项 HTTPS 验收，四项服务均保持运行及开机启动。详见[托管 CI 证据](audit-evidence/v201-release/hosted-ci.json)、[部署证据](audit-evidence/v201-release/deployment.json)和 [CodeQL 复核](audit-evidence/v201-release/codeql-review.json)。下方各阶段及[早期本地全量摘要](audit-evidence/v201-release/full-summary.json)保留其当时日期和源码范围，不代表当前总状态。
 
 ## 范围
