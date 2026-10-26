@@ -736,7 +736,9 @@ class NativeLauncherTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             fixture = root / "slow.py"
-            fixture.write_text("import sys,time,hashlib\ntime.sleep(0.5)\ndata=sys.stdin.buffer.read()\nprint(hashlib.sha256(data).hexdigest())\n")
+            # Saturation alone must not start the two-second EOF deadline:
+            # this writer remains open while the native reader pauses longer.
+            fixture.write_text("import sys,time,hashlib\ntime.sleep(3)\ndata=sys.stdin.buffer.read()\nprint(hashlib.sha256(data).hexdigest())\n")
             driver = "from deploy.native_launcher import security_process,supervise\nimport sys\nsecurity_process()\nraise SystemExit(supervise([sys.executable,sys.argv[1]], {'PATH':'/usr/bin:/bin'}, sys.argv[2], streaming=True))\n"
             command = [sys.executable, "-c", driver, str(fixture), str(root)]
             if os.geteuid() == 0:

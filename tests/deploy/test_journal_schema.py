@@ -6,9 +6,10 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from deploy.common import DeployError
-from deploy.journal import recover_journal
+from deploy.journal import MAX_RECEIPT_BYTES, recover_journal
 from deploy.journal_schema import BASE, RETIREMENTS
 
 
@@ -51,6 +52,8 @@ class CurrentJournalCompatibilityTests(unittest.TestCase):
                 self.assertEqual(db.execute('SELECT state FROM automations').fetchall(), [('paused',)])
                 self.assertEqual(db.execute('SELECT state FROM automation_runs').fetchall(), [('completed',)])
                 self.assertEqual(db.execute('SELECT name FROM worktree_projects').fetchall(), [('Retained worktree',)])
+                for result, error, stored_bytes in db.execute('SELECT result,error,bytes FROM receipts'):
+                    self.assertEqual(stored_bytes, len((result or '').encode('utf-8')) + len((error or '').encode('utf-8')))
             db.close()
             self.assertEqual(self.open_real_ledger(path)['state'], 'not_sent')
 
@@ -73,6 +76,62 @@ class CurrentJournalCompatibilityTests(unittest.TestCase):
                     db.executescript(ddl)
                 db.close()
                 self.assertEqual(recover_journal(path, services_stopped=True), {'notSent': 0, 'unknown': 0})
+
+    def test_recovery_corrects_utf8_accounting_without_changing_accepted_evidence(self):
+        self.assertEqual(MAX_RECEIPT_BYTES, 64 * 1024 * 1024)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'journal.sqlite'
+            with sqlite3.connect(path) as db:
+                db.executescript(BASE)
+                result = json.dumps({'evidence': '原始回执😀'}, ensure_ascii=False)
+                db.execute("INSERT INTO receipts VALUES('kept','turn/start','thread:t','d','accepted',?,NULL,0,1,1)", (result,))
+                db.execute("INSERT INTO receipts VALUES('pending','turn/start','thread:t','d','pending',NULL,NULL,0,1,1)")
+                db.commit()
+                self.assertEqual(recover_journal(path, services_stopped=True), {'notSent': 1, 'unknown': 0})
+                kept = db.execute("SELECT result,bytes,updated_at FROM receipts WHERE id='kept'").fetchone()
+                self.assertEqual(kept, (result, len(result.encode('utf-8')), 1))
+                for result, error, stored in db.execute('SELECT result,error,bytes FROM receipts'):
+                    self.assertEqual(stored, len((result or '').encode('utf-8')) + len((error or '').encode('utf-8')))
+            db.close()
+
+    def test_full_legacy_payload_keeps_evidence_and_never_expands_for_a_recovery_error(self):
+        # Reduce only the numeric bound; exercise the real SQLite recovery path.
+        for state in ('pending', 'dispatching'):
+            for size in (512, 513):
+                with self.subTest(state=state, bytes=size), tempfile.TemporaryDirectory() as folder:
+                    path = Path(folder) / 'journal.sqlite'
+                    with sqlite3.connect(path) as db:
+                        db.executescript(BASE)
+                        result = json.dumps('x' * (size - 2))
+                        db.execute("INSERT INTO receipts VALUES('kept','turn/start','thread:t','d','accepted',?,NULL,0,1,1)", (result,))
+                        db.execute("INSERT INTO receipts VALUES('pending','turn/start','thread:t','d',?,NULL,NULL,0,1,1)", (state,))
+                        db.commit()
+                        with patch('deploy.journal.MAX_RECEIPT_BYTES', 512):
+                            recover_journal(path, services_stopped=True)
+                        self.assertEqual(db.execute("SELECT result,bytes,updated_at FROM receipts WHERE id='kept'").fetchone(), (result, size, 1))
+                        self.assertEqual(db.execute("SELECT state,error,bytes FROM receipts WHERE id='pending'").fetchone(), ('unknown' if state == 'dispatching' else 'not_sent', None, 0))
+                        self.assertEqual(db.execute('SELECT sum(bytes) FROM receipts').fetchone()[0], size)
+                        self.assertEqual(db.execute("SELECT value FROM metadata WHERE key='activityUncertain'").fetchone()[0], 'false')
+                    db.close()
+
+    def test_overfull_legacy_error_can_shrink_without_losing_unrelated_receipts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'journal.sqlite'
+            with sqlite3.connect(path) as db:
+                db.executescript(BASE)
+                result = json.dumps('x' * 510)
+                old_error = json.dumps({'code': 'lost', 'message': 'x' * 1000, 'delivery': 'unknown'})
+                db.execute("INSERT INTO receipts VALUES('kept','turn/start','thread:t','d','accepted',?,NULL,0,1,1)", (result,))
+                db.execute("INSERT INTO receipts VALUES('pending','turn/start','thread:t','d','dispatching',NULL,?,0,1,1)", (old_error,))
+                db.commit()
+                with patch('deploy.journal.MAX_RECEIPT_BYTES', 512):
+                    recover_journal(path, services_stopped=True)
+                error, stored = db.execute("SELECT error,bytes FROM receipts WHERE id='pending'").fetchone()
+                self.assertEqual(json.loads(error)['delivery'], 'unknown')
+                self.assertEqual(stored, len(error.encode('utf-8')))
+                self.assertLess(stored, len(old_error.encode('utf-8')))
+                self.assertEqual(db.execute("SELECT result,updated_at FROM receipts WHERE id='kept'").fetchone(), (result, 1))
+            db.close()
 
     def test_schema_formatting_normalization_does_not_erase_literal_changes(self):
         with tempfile.TemporaryDirectory() as folder:

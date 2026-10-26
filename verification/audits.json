@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "phase": "independent-audit",
-  "consecutiveClean": 0,
+  "phase": "v210-independent-audit",
+  "consecutiveClean": 2,
   "rounds": [
     {
       "id": "round1",
@@ -2774,9 +2774,630 @@
           "sha256": "dd5229f17ad84b6c2ca3b29e1a6ee76ee3ad49f3d9740de63ef80220e53b9a24"
         }
       ]
+    },
+    {
+      "id": "v210-round1",
+      "sequence": 22,
+      "digest": "cf716085707487af4abf397bcb4e1f96172580c1c602e9630d08ff17accf40ba",
+      "complete": true,
+      "startedAt": "2026-10-26T15:36:03.676Z",
+      "completedAt": "2026-10-26T15:57:41.296Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "priority": "P2",
+          "path": "src/core/automations.ts",
+          "line": 81,
+          "trigger": "Repeatedly create a paused automation and remove it. The create capacity check counts only non-removed rows; remove only changes state to removed. An isolated in-memory SQLite probe completed 1025 create/remove pairs and observed 1025 stored rows, all removed, with zero visible automations.",
+          "impact": "Deleted automation definitions grow without a retention bound and are scanned by subsequent list, due-collection, and capacity queries. The 1000-run recycling and receipt-generation rotation do not reclaim this table, so normal long-running create/delete usage bypasses the intended bounded persistent-resource model.",
+          "recommendation": "Delete or recycle removed definitions once no retained run needs them, or introduce a bounded tombstone retention policy. Preserve existing accepted operation receipts for idempotency; exercise repeated create/remove across the retention bound and receipt rotations.",
+          "auditEvidence": "verification/audit-evidence/v210-round1/v210-audit1-gateway.json"
+        },
+        {
+          "priority": "P2",
+          "path": "src/runtime/service.ts",
+          "line": 493,
+          "title": "Late goal mutation responses overwrite newer goal notifications",
+          "trigger": "thread/goal/set returns an active goal after the runtime has processed a newer thread/goal/updated complete/paused notification, or thread/goal/clear returns after a newer active notification. NativeRpc can resolve a response and consume later notifications in the same stdout chunk before workflowMutation resumes.",
+          "impact": "The unconditional goalActive assignment resurrects a completed goal or hides a newer active goal. The reproduced completion case leaves runtime activity busy even when goal/get is complete, blocking direct work and idle-only maintenance/configuration until another goal mutation or runtime reload.",
+          "recommendation": "Version goal state at the final write boundary and apply response-derived goal/clear state only when no newer goal evidence has been consumed. Update continuation state versions when accepting mutation responses so concurrent continuation reads cannot overwrite them. Add deterministic tests for complete/paused/clear/active notifications and ordinary active goals.",
+          "evidence": ".work/v210-audit1-runtime-goal-race.test.ts: offline probe proves native goal complete, runtime activeThreads contains thread, maintenance/check rejects activity_busy.",
+          "auditEvidence": "verification/audit-evidence/v210-round1/v210-audit1-runtime.json"
+        },
+        {
+          "priority": "P2",
+          "path": "src/runtime/service.ts",
+          "line": 496,
+          "title": "Late live-settings responses overwrite the actual rerouted model",
+          "trigger": "A turn/settings/update applied response resumes after a newer model/rerouted notification for the same active turn has installed a different toModel.",
+          "impact": "The older requested model overwrites activeModel and defeats subsequent input modality checks. The deterministic probe requests an audio-capable model, receives a reroute to a text-only model, then incorrectly dispatches an audio turn/steer.",
+          "recommendation": "Capture turn identity and relevant model/settings version at beforeWrite; accept response-derived model state only while those versions still match. Ensure turn completion/replacement and concurrent notifications cannot restore an old turn model; retain the normal applied-response path when no newer evidence exists.",
+          "evidence": ".work/v210-audit1-runtime-goal-race.test.ts: second offline probe proves unsupported audio is dispatched after a text-only model reroute.",
+          "auditEvidence": "verification/audit-evidence/v210-round1/v210-audit1-runtime.json"
+        },
+        {
+          "id": "WEB-TRUST-PENDING-EDIT",
+          "priority": "P3",
+          "path": "web/components/ProjectTrustSettings.tsx",
+          "line": 106,
+          "title": "An older trust save clears a newer editable choice",
+          "trigger": "Select trusted and confirm, submit project/trust/write, hold its response, then change the still-enabled choice to untrusted. Resolve the original response successfully. The current choice becomes empty, although the only submitted write carried trusted. In Workspace, onChanged also changes the epoch used as the ProjectTrustSettings key, so accepting edits during the request can lose them through remounting as well.",
+          "impact": "The UI accepts and then silently discards a newer trust selection. The newer choice was not submitted, while the earlier trust change was applied. This is a small but reproducible form-state/data-entry regression; it does not itself send an unconfirmed second request.",
+          "recommendation": "Freeze the trust choice and its confirmation for the pending submission, including the period in which its result remains unknown. Alternatively retain a revision-owned draft across the onChanged/epoch remount; merely conditional setChoice clearing is insufficient for the real parent lifecycle. Add a deferred-response regression using the actual epoch/key relationship.",
+          "evidence": ".work/v210-audit1-web-probe.test.tsx; node node_modules/vitest/vitest.mjs run --config .work/v210-audit1-web-probe.config.mts: 1 observation probe passed on the unchanged reviewed source.",
+          "auditEvidence": "verification/audit-evidence/v210-round1/v210-audit1-web.json"
+        },
+        {
+          "priority": "P1",
+          "path": "deploy/control_update.py",
+          "line": 386,
+          "title": "Control rollback can remove the built-in-account downgrade guard",
+          "trigger": "After updating trusted control tools and activating built-in accounts or migrating HTTPS, invoke ordinary control-rollback for a committed generation whose capabilities provide system-v1/nativeWorkspace but predate built-in-account support.",
+          "impact": "The rollback admission checks only provider-layer and workspace compatibility and accepts an account-incompatible retained control generation. This replaces the trusted manager containing require_account_compatibility, leaving the subsequent ordinary application rollback path without the new account downgrade protection; retained account credentials and second-factor policy can consequently be bypassed by an accidental legacy application downgrade. The current staged capabilities also omit any account-guard version, so compatibility cannot be positively distinguished.",
+          "recommendation": "Add an explicit built-in-account/downgrade-guard capability to staged control generations and reject rollback to a generation lacking that capability before stopping or publishing whenever a bootstrap exists, HTTPS uses built-in authentication, or the selected verified release declares account-v1. Cover both bootstrap/edge markers and browser-initialized selected-release detection with targeted transaction regressions; preserve compatible control rollback and failure recovery.",
+          "evidence": [
+            "deploy/control_update.py:386-392 checks providerConfigLayer and nativeWorkspace only.",
+            "deploy/install.py:66 emits no built-in-account or authentication-downgrade capability.",
+            "deploy/manager.py:98-105 contains the account compatibility guard that control rollback can remove.",
+            ".work/v210-audit1-control-rollback-probe.json: the current synthetic control fixture accepted rollback with an auth-bootstrap marker and authentication=builtin; retained capabilities contained only format/providerConfigLayer/nativeWorkspace."
+          ],
+          "reproductionLimits": "Only the current synthetic fixture and opaque placeholder old/new deployment files were used. System/process commands were substituted; no legacy implementation, root systemd, SSH, online instance or actual legacy application was executed.",
+          "auditEvidence": "verification/audit-evidence/v210-round1/v210-audit1-deployment.json"
+        }
+      ],
+      "skipped": [
+        "Full test suite, build/release/deploy and online access were intentionally not run in this audit phase.",
+        "No real browser visual/device/keyboard QA or live microphone/WebRTC transport exercise was performed. Dialog, responsive CSS, media and IME behavior were reviewed from implementation and current regression tests.",
+        "No paid model inference, external MCP execution, personal credentials or personal CODEX_HOME were used.",
+        "No old sibling implementation or repository history was read. Current protocol types were used only as current implementation contracts."
+      ],
+      "reviewers": [
+        {
+          "id": "v210-audit1-gateway",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/v210-round1/v210-audit1-gateway.json",
+          "sha256": "0d2466999bdda42673f3bc81883e83dabb188eea43c79629d2c65081766a3cf8"
+        },
+        {
+          "id": "v210-audit1-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/v210-round1/v210-audit1-runtime.json",
+          "sha256": "df9d9978d6a057cd5ba1aee82aa159a43c631a689340d481a081063cf0998300"
+        },
+        {
+          "id": "v210-audit1-web",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round1/v210-audit1-web.json",
+          "sha256": "26876d79b1604e2a5b94240e5b31b268697ce54fd575cd604d79ebbc7eda0c97"
+        },
+        {
+          "id": "v210-audit1-deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round1/v210-audit1-deployment.json",
+          "sha256": "b612380519b2cbed7b33868dd52c6be124b8e300a5994ee7898c6ff086ef8c9e"
+        },
+        {
+          "id": "v210-audit1-tooling-docs",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round1/v210-audit1-tooling-docs.json",
+          "sha256": "7442039cdbafbf94104267453a56d0a7294d913965ece533236cc3a0a483c8ff"
+        }
+      ]
+    },
+    {
+      "id": "v210-round2",
+      "sequence": 23,
+      "digest": "862331f89cfb1e65c9b52d1e2869f1a1472ef4be1835a3ab3d59a39dc71e9f46",
+      "complete": true,
+      "startedAt": "2026-10-26T16:13:54.707Z",
+      "completedAt": "2026-10-26T16:36:00.818Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "v210-r2-ledger-recovery-capacity",
+          "priority": 2,
+          "file": "src/core/ledger.ts",
+          "lines": [
+            140,
+            169
+          ],
+          "title": "Recovered receipts bypass the total journal byte budget",
+          "description": "reserve releases its maximum-size reservation when an operation settles unknown; confirm and confirmWorkspace enforce only the individual receipt size. Later durable positive recovery can grow many small unknown rows beyond the 64 MiB live budget. The isolated probe records 69475140 bytes; continuing this path can also exceed the 80 MiB export bound. Repeated unknown operations can be accumulated across stop-confirmed recovery. Accepted and unknown evidence must never be evicted or re-dispatched to reclaim capacity.",
+          "reproduction": "node .work/v210-round2-ledger-capacity-probe.mjs",
+          "limitations": "Direct actual Ledger/projection reproduction; no end-to-end manager transport fault injection performed for this capacity issue.",
+          "auditEvidence": "verification/audit-evidence/v210-round2/v210-round2-gateway.json"
+        },
+        {
+          "id": "V210-R2-WEB-001",
+          "priority": "P2",
+          "severity": "P2",
+          "title": "模型发现成功后被父级刷新卸载，发现的模型无法继续确认应用",
+          "file": "web/components/ModelCatalog.tsx",
+          "start": 53,
+          "end": 53,
+          "evidence": [
+            "ModelCatalog.tsx:53 将 onApplied 直接作为 useExtensionAction 的每次成功变更回调；发现按钮在 78-80 行通过 action.run 调用 system/models/refresh。",
+            "useWorkflow.ts:63-67 在返回成功结果前调用 onChanged；ExtensionControls.tsx:11-16 将其转发给 onApplied。",
+            "ProviderSettings.tsx:350-374 只在 resource.data 存在时挂载 ModelCatalog，onApplied 在 368-370 行调用 resource.refresh()。",
+            "useResource.ts:19-20、41-43 在刷新后的首个 render 隐藏旧数据，使 ModelCatalog 卸载；发现回调在 91-93 行设置的 rows/status 随之丢失。重新读取供应商得到相同 revision 仍会重挂载。",
+            "现有 provider.test.tsx:54 的发现/能力确认测试单独挂载 ModelCatalog；组合 ProviderSettings 测试只检查原生目录刷新时默认模型字段草稿保留，因此未覆盖第三方模型发现结果的生命周期。"
+          ],
+          "reproduction": {
+            "type": "isolated_offline_component_composition",
+            "helper": ".work/v210-round2-provider-discovery.test.tsx",
+            "config": ".work/v210-round2-web-repro.config.mjs",
+            "command": "node node_modules/vitest/vitest.mjs run --config .work/v210-round2-web-repro.config.mjs",
+            "inputs": "挂载真实 ProviderSettings；system/provider/read 始终返回 revision=r1、kind=responses、models=[]；发现 RPC 返回 discovered-test-model 和 requiresConfirmation=true/applied=false。",
+            "observed": "发现仅发送一次；父级出现第二次 provider read；读取完成后 discovered-test-model 复选框不存在。单项测试在 queryByRole(...).not.toBeNull() 处按预期失败。",
+            "expected": "仅发现模型时应保留新发现的 rows，让用户核对能力并明确确认应用。",
+            "tests": 1,
+            "failed": 1,
+            "exitCode": 1,
+            "network": false,
+            "actualRuntimeOrModel": false
+          },
+          "impact": "Responses 等第三方供应商的正常“发现模型→选择能力→确认应用”流程中断。重新点击发现重复得到相同结果，用户只能绕过发现自行手工填写模型。",
+          "recommendation": "将发现与应用成功后的父级配置刷新分开；发现只更新本组件的待确认目录，确认应用成功才刷新供应商与模型资源。补充真实 ProviderSettings 组合回归，而不只测试独立 ModelCatalog。",
+          "confidence": "high",
+          "fixed": false,
+          "auditEvidence": "verification/audit-evidence/v210-round2/v210-round2-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v210-round2-gateway",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/v210-round2/v210-round2-gateway.json",
+          "sha256": "b3355757f03044178a694497608933e77e655a6b9cfcad6812243f51c74fa446"
+        },
+        {
+          "id": "v210-audit2-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/v210-round2/v210-round2-runtime.json",
+          "sha256": "058e06e4b05b8961a4bcc3ecc1262eef89334eaf6aae871fe49a84992cc09861"
+        },
+        {
+          "id": "v210-audit2-web",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round2/v210-round2-web.json",
+          "sha256": "bddbbfaed88c1e41c35bf1b6146d32f131715da128a6b38f3a351e2fc83bcc7c"
+        },
+        {
+          "id": "v210-round2-deploy-tooling",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round2/v210-round2-deploy-tooling.json",
+          "sha256": "812937e9e1e6b639b0e6f830b5df1aa19b1e854dffbfe1d26e420abb1d147be3"
+        }
+      ]
+    },
+    {
+      "id": "v210-round3",
+      "sequence": 24,
+      "digest": "db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781",
+      "complete": true,
+      "startedAt": "2026-10-26T16:54:00.251Z",
+      "completedAt": "2026-10-26T17:23:25.329Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V210-R3-GATEWAY-MCP-OAUTH-RETENTION",
+          "priority": "P2",
+          "confidence": "high",
+          "title": "通过临时交接交付 MCP OAuth 链接，避免写入持久回执",
+          "path": "src/gateway/receipt-result.ts",
+          "line": 300,
+          "endLine": 305,
+          "body": "点击 MCP 服务授权后，src/runtime/service.ts 将原生 mcpServer/oauth/login 的 authorizationUrl 返回到此投影；此分支完整保留该链接，dispatch.ts 随即 settle 到 SQLite result，operation-retention 的归档又完整导出它。已用真实投影、Ledger 和归档代码及人工 URL 离线复现：关闭并重开数据库后，回执和导出仍含授权 URL。这会让含 state、PKCE challenge 或提供商其他查询参数的临时登录链接长期进入回执及备份，违背 ARCHITECTURE.md:23 的回执最小化约束，也绕过其他账户登录使用的连接私有临时交接。这里不将授权 URL 泛称为访问 token。应保留有界、连接所有者绑定的临时链接读取通道，并让持久回执只含恢复身份；不能只删除 URL，因为 McpPanel 当前依赖它显示授权按钮。",
+          "trigger": "An authenticated administrator requests mcp/oauth and the native response contains authorizationUrl.",
+          "relatedLocations": [
+            "src/runtime/service.ts:336",
+            "src/gateway/dispatch.ts:150",
+            "src/core/ledger.ts:134",
+            "src/core/ledger.ts:154",
+            "src/core/operation-retention.ts:69",
+            "web/components/McpPanel.tsx:457",
+            "ARCHITECTURE.md:23"
+          ],
+          "evidence": ".work/v210-round3-mcp-receipt-repro.json",
+          "reproductionScript": ".work/v210-round3-mcp-receipt-repro.mjs",
+          "auditEvidence": "verification/audit-evidence/v210-round3/v210-round3-gateway-deploy.json"
+        },
+        {
+          "id": "V210-R3-TEST-GIT-ISOLATION",
+          "priority": "P2",
+          "confidence": "high",
+          "title": "隔离本地 Git fixture 的宿主配置与 hooks",
+          "path": "tests/tooling/ci-checks.test.ts",
+          "line": 23,
+          "endLine": 23,
+          "body": "package.json 提供的本地 pnpm test:targeted 入口经 scripts/run-tests.mjs:117/126/99 原样继承 process.env；这里创建临时仓库后 git commit 只覆盖作者配置，仍读取宿主 HOME/.gitconfig、系统配置和 Git 环境变量。用户设置了全局 core.hooksPath 时，测试会实际执行该目录的 hook，而非仅操作临时 fixture；全局签名配置也会让同一测试依赖个人 GPG 环境。已用完全位于 .work 的伪 HOME、伪全局 core.hooksPath 和无害写 marker hook 复现。请给 fixture Git 调用（包括 select-tests/release-audit/run-tests 的同类 helper）传入显式隔离环境，禁止全局/系统配置并清除 GIT_DIR/GIT_WORK_TREE/GIT_CONFIG_* 等继承覆盖，或让所有公开本地执行入口先完成与 CI 相同的环境隔离。scripts/ci-checks.mjs 的正式 CI run 已调用 isolatedEnvironment，此问题仅指未隔离的本地入口，不将 CI 算作受影响。",
+          "trigger": "pnpm test:targeted tests/tooling/ci-checks.test.ts with a developer global core.hooksPath (or signed-commit configuration).",
+          "relatedLocations": [
+            "package.json:17",
+            "scripts/run-tests.mjs:99",
+            "scripts/run-tests.mjs:117",
+            "tests/tooling/select-tests.test.ts:10",
+            "tests/tooling/release-audit.test.ts:11",
+            "tests/tooling/run-tests.test.ts:17"
+          ],
+          "evidence": ".work/v210-round3-git-fixture-repro.json",
+          "auditEvidence": "verification/audit-evidence/v210-round3/v210-round3-gateway-deploy.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v210-round3-runtime",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/v210-round3/v210-round3-runtime.json",
+          "sha256": "0c591c4ae1b8fe6fe72cd8c572c14793eb93de0bbb16227acdd5f95490ed9ffc"
+        },
+        {
+          "id": "v210-round3-web",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round3/v210-round3-web.json",
+          "sha256": "9e435d1e5dd1ea5eba90254de4a366c7aa45a81f9737ae89d038c6d819ed1970"
+        },
+        {
+          "id": "v210-round3-gateway-deployment-independent",
+          "scopes": [
+            "gateway-core",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round3/v210-round3-gateway-deploy.json",
+          "sha256": "91589f76a352f74bf90662054888dd7fcd7b3b6f4654fabab2cfe54c5d3bba1d"
+        }
+      ]
+    },
+    {
+      "id": "v210-round4",
+      "sequence": 25,
+      "digest": "bc995b764007152a4c8546b59d0980f44bdb5d53105cbcf195620eba703fdffa",
+      "complete": false,
+      "aborted": true,
+      "startedAt": "2026-10-26T17:44:11.408Z",
+      "completedAt": "2026-10-26T17:49:23.346Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V210-R4-SYNTHETIC-URL-SCAN",
+          "priority": "P2",
+          "kind": "release-gate-fixture",
+          "file": "tests/runtime/mcp-oauth.test.ts",
+          "line": 99,
+          "description": "The artificial embedded-credential URL negative fixture triggers the unchanged source security scanner. No real credential was identified. Its construction must change while retaining the rejection assertion before CI can run."
+        }
+      ],
+      "skipped": [
+        "Complete reviews were deliberately interrupted before completion after the source scan required a fixture change. Partial inventories and methods are retained in reviewer artifacts."
+      ],
+      "reviewers": [
+        {
+          "id": "v210-round4-runtime-protocol-04d0a54c-47ac-4a31-8002-d85e6948d390",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/v210-round4/v210-round4-runtime.json",
+          "sha256": "bb53941b436477f364c70928f26e999bc55b83b7bc086a2a9e4142ec6f77d6eb"
+        },
+        {
+          "id": "v210-round4-web-independent-20261026T174426Z",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round4/v210-round4-web.json",
+          "sha256": "1aa7393dda03ddf232e6e0268e30d41ef3235ae665c18ae0a892cd0a1237e62a"
+        },
+        {
+          "id": "v210-round4-gateway-deploy-20261026T174450Z",
+          "scopes": [
+            "gateway-core",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round4/v210-round4-gateway-deploy.json",
+          "sha256": "33f84a620ba77b06ab49fc85b3bbc632f9123282eea924225615d3fb5afde1ab"
+        }
+      ]
+    },
+    {
+      "id": "v210-round5",
+      "sequence": 26,
+      "digest": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458",
+      "complete": true,
+      "startedAt": "2026-10-26T17:51:19.873Z",
+      "completedAt": "2026-10-26T18:04:19.468Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v210-r5-runtime-independent-20261026T175119873Z",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/v210-round5/v210-round5-runtime.json",
+          "sha256": "b636db8705cf4adb1d1534d87170212f605a7bd42c598915b627fc22317263c8"
+        },
+        {
+          "id": "v210-round5-web-ux-90e775b3-7b24-4666-8dae-c7545af6ee34",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round5/v210-round5-web.json",
+          "sha256": "7b247499655992757ddc6eefa856da6541d9ed46cbda033108714de02e2f1fff"
+        },
+        {
+          "id": "v210-round5-gateway-deploy-independent",
+          "scopes": [
+            "gateway-core",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round5/v210-round5-gateway-deploy.json",
+          "sha256": "cbc5e5422582081dd9b88387fd033b04f0ad6ba680aacce5680cece9b6b80c9c"
+        }
+      ]
+    },
+    {
+      "id": "v210-round6",
+      "sequence": 27,
+      "digest": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458",
+      "complete": true,
+      "startedAt": "2026-10-26T18:05:27.497Z",
+      "completedAt": "2026-10-26T18:22:57.975Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "v210-round6-web-optional-session-metadata",
+          "priority": "P2",
+          "scope": "web-ux",
+          "title": "可选 sessionStorage 元数据故障使登录和只读工作台整体不可用",
+          "file": "web/lib/api.ts",
+          "line": 92,
+          "locations": [
+            {
+              "file": "web/lib/api.ts",
+              "startLine": 89,
+              "endLine": 92
+            },
+            {
+              "file": "web/Workspace.tsx",
+              "startLine": 82,
+              "endLine": 82
+            },
+            {
+              "file": "web/App.tsx",
+              "reason": "SessionApp 首次初始化 Api 和认证后 Workspace 均被顶层 Boundary 捕获，仅显示通用错误与重载按钮。"
+            }
+          ],
+          "body": "Api 构造器将每文档新生成的 clientId 无条件写入 sessionStorage 的 harness.client；当前源码没有读取该键的调用者。该可选写入遇到 QuotaExceededError 即在 /api/session 之前使整个 App 进入错误边界，登录表单无法出现。即使构造器成功，已认证后 Workspace 初始读取可选 harness.project 若抛出 SecurityError，也会让整个只读工作台进入同一错误屏幕。错误界面显示原始异常并只提供重载，不能通过正常界面管理草稿或继续只读核对。已用真实 App 组合路径离线复现，结论不只是缺少 try/catch。",
+          "conditions": "浏览器 sessionStorage 配额耗尽或对所访问的可选键拒绝读写。可选元数据失败不等同于必需 localStorage 操作意图日志不可用。",
+          "impact": "无法登录，或认证成功后无法查看项目和会话；重载仍会重复触发相同初始化失败。",
+          "recommendation": "移除没有读取者的 harness.client 持久写入，继续在内存中为每个 Api 文档实例生成独立 clientId；对可选项目选择读取失败采用默认未选择状态，并给出可理解的存储说明。必须保留 localStorage 操作意图持久化失败时禁止发送写操作的现有约束，不能以静默内存降级绕过回执防重放机制。",
+          "evidence": [
+            "完整扫描确认 harness.client 只有构造器写入，没有消费者；可选项目选择的后续写入和主题存储已有异常处理。",
+            ".work/v210-round6-web-storage.test.ts 的前两项通过真实 App/Boundary/SessionApp/Workspace 验证两个故障组合路径。",
+            ".work/v210-round6-web-storage.test.ts 的第三项验证 localStorage 操作意图写入失败仍使 mutate 拒绝且 fetch 为零。"
+          ],
+          "reproduction": {
+            "command": "node node_modules/vitest/vitest.mjs run --config .work/v210-round6-web-repro.config.ts",
+            "result": "1 test file passed; 3 tests passed; duration 1.93s",
+            "cases": [
+              {
+                "name": "sessionStorage harness.client setItem throws QuotaExceededError",
+                "observed": "App 显示工作台暂时无法打开；原始配额错误；无用户名字段；fetch 0。"
+              },
+              {
+                "name": "sessionStorage harness.project getItem throws SecurityError after authenticated session",
+                "observed": "GET /api/session 1 次后进入 App 错误边界；无消息输入。"
+              },
+              {
+                "name": "localStorage durable intent setItem throws QuotaExceededError",
+                "observed": "Api.mutate(thread/rename) 拒绝；fetch 0，确认必须保留的安全边界。"
+              }
+            ],
+            "isolated": true,
+            "realNetworkCalls": 0,
+            "files": [
+              ".work/v210-round6-web-storage.test.ts",
+              ".work/v210-round6-web-repro.config.ts"
+            ]
+          },
+          "auditEvidence": "verification/audit-evidence/v210-round6/v210-round6-web.json"
+        },
+        {
+          "id": "GDEP-R6-001",
+          "priority": 2,
+          "severity": "P2",
+          "title": "在观察到 EOF 时启动独立的原生进程清理截止时间",
+          "file": "deploy/native_launcher.py",
+          "startLine": 95,
+          "endLine": 107,
+          "body": "streaming 桥只在 input_ended 且 pending 已排空后设置 ended_at。若原生 CLI 持续存活但停止读取 stdin，桥内已积压的数据无法排空；即使已实际读到上游 EOF，ended_at 仍为 None，循环便永远到不了清理超时。NativeRpc.stop 的 launcher 分支仅 end stdin 并等待 6 秒，所以这一正常关闭路径会报告 cleanup unknown 并留下原生进程等待后续外部终止，而不是执行有界清理。",
+          "trigger": "原生 CLI 不再读取 stdin，桥仍有待发数据，随后上游关闭输入。64 KiB 待发数据就能在尚未达到 8 MiB 输入容量的情况下实际观察 EOF 并触发此问题。",
+          "impact": "依赖 EOF 的运行时关闭无法回收仍在运行的 CLI 及其后代，6 秒后进入 cleanup unknown；只有额外服务信号、原生进程自行退出或恢复读取才能解除。",
+          "recommendation": "EOF 一经观察就启动独立且不被排空逻辑延后的终止截止时间，允许在有限宽限期内排空数据，期满后进入已有 clean_children 流程。新增 CLI 不读取输入、已有待发字节且上游 EOF 的组合回归。",
+          "evidence": {
+            "relatedCurrentSource": "src/runtime/native.ts:175-181",
+            "existingCoverageGap": "tests/deploy/test_native_shutdown.py:62-64,85-86 的 EOF 场景没有先写输入；tests/deploy/test_deployment.py:735-747 的背压场景最终会读取输入。",
+            "reproductionArtifact": ".work/v210-round6-native-eof-repro.json",
+            "reproductionKind": "从当前源码 AST 抽取 supervise，注入确定性的 selector、存活但不读取的子进程和时钟；最多 100 次轮询；不启动 OS 子进程或测试套件。",
+            "result": "空缓冲 EOF 在 2.1 秒进入清理并返回 0；64 KiB 待发字节在 0.2 秒已观察 EOF，10.1 秒后仍未自行清理，只有复现器限步异常才进入 finally。",
+            "sourceSha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff"
+          },
+          "auditEvidence": "verification/audit-evidence/v210-round6/v210-round6-gateway-deploy.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "runtime-protocol-v210-round6-40ddb8da-166d-4c43-9ddd-74d2126e4a85",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/v210-round6/v210-round6-runtime.json",
+          "sha256": "0360084671d52af50c4e017ed417d4ce8be318d5cdb71a96bd6a1c420c2af28e"
+        },
+        {
+          "id": "v210-round6-web-3a6dc33b-ff3a-4a7c-9b3b-74bf8ac1a53e",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round6/v210-round6-web.json",
+          "sha256": "6eeae0fd5a5bd877fe3667cea484bbdb3f7411f2ad5db5459ad07369aa2fc9ba"
+        },
+        {
+          "id": "v210-round6-gateway-deploy-20261026T180551",
+          "scopes": [
+            "gateway-core",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round6/v210-round6-gateway-deploy.json",
+          "sha256": "bff590d0b966f7fadbf544629c07da1d96bf1b7a412774f8c54ac98fc3f0ec1d"
+        }
+      ]
+    },
+    {
+      "id": "v210-round7",
+      "sequence": 28,
+      "digest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+      "complete": true,
+      "startedAt": "2026-10-26T18:35:11.662Z",
+      "completedAt": "2026-10-26T18:47:20.293Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v210-round7-runtime-gateway-independent-20261026T183545Z",
+          "scopes": [
+            "runtime-protocol",
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/v210-round7/v210-round7-runtime-gateway.json",
+          "sha256": "55cfccdedd7aeef4a70014b8057d6929b238bc8e294298c70d9f207965381446"
+        },
+        {
+          "id": "v210-round7-deployment-tooling-independent-7b9f34c1",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round7/v210-round7-deploy-tooling.json",
+          "sha256": "518daef1da160eab4b68ea6da5d7e1e35a9111530b1cac2186401268e77a8373"
+        },
+        {
+          "id": "web-ux-independent-20261027-round7-6c8d3852",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round7/v210-round7-web.json",
+          "sha256": "404e3473a70047b162d24e97fe34a9c1891a7015141bb9255ea80d84288d4efb"
+        }
+      ]
+    },
+    {
+      "id": "v210-round8",
+      "sequence": 29,
+      "digest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
+      "complete": true,
+      "startedAt": "2026-10-26T18:48:58.851Z",
+      "completedAt": "2026-10-26T18:59:33.251Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v210-round8-runtime-gateway-9c507364-038e-405a-955e-83f2abe41678",
+          "scopes": [
+            "runtime-protocol",
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/v210-round8/v210-round8-runtime-gateway.json",
+          "sha256": "1e4076c27c44df92114c90ec4eee99905392dbb02ad50229c2e832c71a4b11b0"
+        },
+        {
+          "id": "v210-round8-deploy-tooling-independent-20261026t184916z",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v210-round8/v210-round8-deploy-tooling.json",
+          "sha256": "22afd974152e9a3890b446a5dd27f01639fb7f5e294c8b4cca9f5f800518e741"
+        },
+        {
+          "id": "web-independent-c155daf0-64fe-4ff9-b45e-33cabf1d484e",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/v210-round8/v210-round8-web.json",
+          "sha256": "99de4248af0dfc85fd7f4839c17ef826cf3b0070614e277084c9148e3c96cfb3"
+        }
+      ]
     }
   ],
   "fullTests": null,
   "scopeExtension": "Complete modern-agent and pinned Codex CLI user-facing capabilities as requested 2026-10-25; resume complete audit gate after feature implementation.",
-  "featureAcceptance": "FEATURES.md"
+  "featureAcceptance": "FEATURES.md",
+  "requiredConsecutiveClean": 2
 }

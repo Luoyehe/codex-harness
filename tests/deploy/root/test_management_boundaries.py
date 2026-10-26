@@ -2,7 +2,6 @@
 import tempfile
 import os
 import sys
-import subprocess
 import unittest
 import uuid
 from pathlib import Path
@@ -124,26 +123,38 @@ class ManagementBoundaryTests(unittest.TestCase):
             self.manager.require_update_ready()
         self.assertFalse(marker.exists())
 
-    def test_first_https_password_hash_input_is_a_complete_stdin_line(self):
-        password = "isolated-" + "password-fixture"
-        observed = []
-        def command(argv, **kwargs):
-            self.assertIn("hash-password", argv)
-            observed.append(kwargs["input"])
-            # Caddy's real non-TTY reader returns EOF if the line is not ended.
-            if not kwargs["input"].endswith("\n"):
-                raise DeployError("command_failed", "Incomplete hasher input")
-            return subprocess.CompletedProcess(argv, 0, "$argon2id$fixture\n", "")
-        with patch("deploy.https.edge_binary", side_effect=lambda layout, kind: self.layout.control / "edge" / kind / kind), \
-             patch("deploy.https.sys.stdin.isatty", return_value=True), \
-             patch("deploy.https.getpass.getpass", return_value=password), \
-             patch("deploy.https.run", side_effect=command), \
-             patch("deploy.https.ensure_account", side_effect=DeployError("fixture_stop", "Stop after real caller hasher protocol")):
+    def test_https_requires_verified_account_before_edge_preparation(self):
+        with patch("deploy.https.edge_binary") as binary, \
+             patch("deploy.https.verify_account_login", side_effect=DeployError("account_verification", "Invalid account")):
             with self.assertRaises(DeployError) as caught:
-                setup_https(self.manager, host="work.example.test", auth_host="auth.example.test", domain="example.test",
-                            username="admin", email="admin@example.test", auth_port=9091)
-        self.assertEqual(caught.exception.code, "fixture_stop")
-        self.assertEqual(observed, [password + "\n"])
+                setup_https(self.manager, host="work.example.test", username="admin", password="synthetic-password")
+        self.assertEqual(caught.exception.code, "account_verification")
+        binary.assert_not_called()
+        self.assertEqual(self.system.events, [])
+
+    def test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database(self):
+        package = self.layout.app / "releases" / ("a" * 64) / "app/package.json"
+        mkdir(package.parent)
+        write_json(package, {"harnessAuthentication": "account-v1"}, mode=0o644)
+        with self.assertRaises(DeployError) as caught:
+            self.manager.activate("b" * 64)
+        self.assertEqual(caught.exception.code, "authentication_downgrade")
+        self.assertEqual(self.system.events, [])
+        self.assertFalse((self.layout.state / "gateway/auth.sqlite").exists())
+
+    def test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old(self):
+        write_json(self.layout.config / "https.json", {"authentication": "builtin"})
+        with self.assertRaises(DeployError) as caught:
+            self.manager.activate("b" * 64)
+        self.assertEqual(caught.exception.code, "authentication_downgrade")
+        self.assertEqual(self.system.events, [])
+
+    def test_builtin_account_candidate_is_allowed_and_does_not_require_mutable_database_reads(self):
+        write_json(self.layout.config / "https.json", {"authentication": "builtin"})
+        package = self.layout.app / "releases" / ("b" * 64) / "app/package.json"
+        mkdir(package.parent)
+        write_json(package, {"harnessAuthentication": "account-v1"}, mode=0o644)
+        self.manager.require_account_compatibility("b" * 64)
         self.assertEqual(self.system.events, [])
 
     def test_uninstall_and_resume_reject_unowned_service_before_stop_or_delete(self):

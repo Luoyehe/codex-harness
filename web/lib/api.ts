@@ -27,10 +27,41 @@ export class RpcError extends Error {
 }
 export type Session = {
   authenticated: boolean;
+  authenticationMode?: 'account';
+  initialized?: boolean;
+  setupRequired?: boolean;
+  username?: string;
   csrf?: string;
   clientId?: string;
   operationGeneration?: number;
 };
+export type LoginCredentials = {
+  username: string;
+  password: string;
+  otp?: string;
+  remember?: boolean;
+};
+export type AccountSecurity = {
+  revision: string;
+  username: string;
+  mfaEnabled: boolean;
+  recoveryCodesRemaining: number;
+  sessions: {
+    id: string;
+    label: string;
+    createdAt: number;
+    lastSeenAt: number;
+    expiresAt: number;
+    current: boolean;
+  }[];
+};
+export type AccountAction =
+  | 'password'
+  | 'sessions/revoke'
+  | 'totp/start'
+  | 'totp/confirm'
+  | 'totp/disable'
+  | 'totp/recovery';
 export type TerminalOperation = TerminalOwner & {
   operationId: string;
   projectId: string;
@@ -58,7 +89,6 @@ export class Api {
   constructor() {
     // A document gets its own identity, including a tab duplicated by the browser.
     this.clientId = uuid();
-    sessionStorage.setItem('harness.client', this.clientId);
   }
   onAuthenticationLost(listener: (external: boolean) => void) {
     this.authenticationLost.add(listener);
@@ -96,39 +126,67 @@ export class Api {
         ? '站点访问认证已失效。请完成访问认证后重新检查登录，草稿和操作记录仍保留。'
         : '登录已失效，请重新登录。草稿和操作恢复记录仍保留。',
       external ? 'access_authentication_required' : 'unauthorized',
-      'not_sent',
+      object(body.error).delivery === 'unknown' ? 'unknown' : 'not_sent',
       operationId,
     );
   }
-  async session(token?: string): Promise<Session> {
-    const generation = token === undefined ? this.sessionGeneration : ++this.sessionGeneration,
+  async session(credentials?: LoginCredentials): Promise<Session> {
+    return this.readSession('/api/session', credentials);
+  }
+  async setupAccount(credentials: { token: string; username: string; password: string }): Promise<Session> {
+    return this.readSession('/api/account/setup', credentials);
+  }
+  private async readSession(
+    endpoint: string,
+    credentials?: LoginCredentials | { token: string; username: string; password: string },
+  ): Promise<Session> {
+    const generation = credentials === undefined ? this.sessionGeneration : ++this.sessionGeneration,
       previousCsrf = this.csrf;
-    const response = await fetch('/api/session', {
-      method: token === undefined ? 'GET' : 'POST',
-      credentials: 'same-origin',
-      headers: this.headers(),
-      ...(token === undefined ? {} : { body: JSON.stringify({ token }) }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (response.status === 401) {
-      const error = await this.authenticationError(response, previousCsrf, generation);
-      if (token !== undefined && error.code === 'unauthorized')
-        throw new Error('管理员密钥不正确。');
-      throw error;
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: credentials === undefined ? 'GET' : 'POST',
+        credentials: 'same-origin',
+        headers: this.headers(),
+        ...(credentials === undefined ? {} : { body: JSON.stringify(credentials) }),
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch {
+      throw new RpcError('暂时无法确认登录状态，请重新检查账号状态。', 'transport_error', credentials ? 'unknown' : undefined);
     }
     if (!response.ok) {
-      let rejectedToken = false;
-      if (token !== undefined)
-        try {
-          rejectedToken = object(object(await response.json()).error).code === 'unauthorized';
-        } catch {
-          /* Keep non-JSON failures distinct from a rejected administrator token. */
-        }
-      throw new Error(
-        rejectedToken ? '管理员密钥不正确。' : `登录服务暂不可用（${response.status}）。`,
+      let error: Record<string, unknown> = {};
+      try { error = object(object(await response.json()).error); } catch { /* Proxy response. */ }
+      if (error.delivery === 'unknown')
+        throw new RpcError(
+          '登录操作结果尚未确认，请先重新检查账号状态。',
+          String(error.code ?? response.status), 'unknown',
+        );
+      if (credentials !== undefined && ['unauthorized', 'mfa_required'].includes(String(error.code)))
+        throw new RpcError(
+          error.code === 'mfa_required' ? '请输入验证器验证码或恢复码。' : '登录信息不正确，请核对后重试。',
+          String(error.code), 'not_sent',
+        );
+      if (response.status === 401) {
+        const external = error.code !== 'unauthorized';
+        if (generation === this.sessionGeneration) this.loseAuthentication(previousCsrf, external);
+        throw new RpcError(
+          external ? '站点访问认证已失效。请完成访问认证后重新检查登录。' : '登录已失效，请重新登录。',
+          external ? 'access_authentication_required' : 'unauthorized', 'not_sent',
+        );
+      }
+      throw new RpcError(
+        typeof error.message === 'string' ? error.message : `登录服务暂不可用（${response.status}）。`,
+        String(error.code ?? response.status), response.status >= 500 ? 'unknown' : 'not_sent',
       );
     }
-    const session = (await response.json()) as Session;
+    let session: Session;
+    try {
+      session = (await response.json()) as Session;
+      if (typeof session?.authenticated !== 'boolean' || (session.authenticated && !session.csrf)) throw new Error();
+    } catch { throw new RpcError('登录状态无法确认，请重新检查账号状态。', 'invalid_response', credentials ? 'unknown' : undefined); }
+    if (credentials && generation !== this.sessionGeneration)
+      throw new RpcError('登录请求已过期，请重新检查账号状态。', 'stale_session', 'unknown');
     if (generation === this.sessionGeneration) {
       if (session.authenticated) {
         this.csrf = session.csrf ?? '';
@@ -137,6 +195,34 @@ export class Api {
       } else this.loseAuthentication(previousCsrf);
     }
     return session;
+  }
+  /** Account secrets never enter the durable business-operation journal or browser storage. */
+  async account<T = AccountSecurity>(action?: AccountAction, params?: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+    const csrf = this.csrf, generation = this.sessionGeneration;
+    let response: Response;
+    try {
+      response = await fetch(action ? `/api/account/${action}` : '/api/account', {
+        method: action ? 'POST' : 'GET',
+        credentials: 'same-origin',
+        headers: this.headers(),
+        ...(action ? { body: JSON.stringify(params ?? {}) } : {}),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000),
+      });
+    } catch {
+      throw new RpcError(action ? '未收到安全设置操作结果。请先重新读取状态，不要直接重复操作。' : '暂时无法读取账号安全状态。', 'transport_error', action ? 'unknown' : undefined);
+    }
+    if (response.status === 401) throw await this.authenticationError(response, csrf, generation);
+    let body: Record<string, unknown>;
+    try { body = object(await response.json()); }
+    catch { throw new RpcError('账号服务返回了无法确认的结果，请重新读取状态。', 'invalid_response', action ? 'unknown' : undefined); }
+    if (!response.ok) {
+      const error = object(body.error);
+      throw new RpcError(String(error.message ?? '账号安全操作失败。'), String(error.code ?? response.status), error.delivery === 'unknown' || response.status >= 500 ? 'unknown' : 'not_sent');
+    }
+    if (generation !== this.sessionGeneration || csrf !== this.csrf)
+      throw new RpcError('登录身份已变化，请重新读取账号状态。', 'stale_session', action ? 'unknown' : undefined);
+    if (body.authenticated === false) this.loseAuthentication(csrf);
+    return body as T;
   }
   async logout() {
     const csrf = this.csrf,

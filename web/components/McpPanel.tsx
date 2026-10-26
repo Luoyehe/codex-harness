@@ -4,7 +4,7 @@ import type { McpServerStatus } from '../../protocol/ts/v2/McpServerStatus';
 import type { McpResourceReadResponse } from '../../protocol/ts/v2/McpResourceReadResponse';
 import { Api, RpcError } from '../lib/api';
 import { Events } from '../lib/events';
-import { array, message, object, safeUrl } from '../lib/types';
+import { array, message, object } from '../lib/types';
 import { usePaged } from '../hooks/usePaged';
 import { useResource } from '../hooks/useResource';
 import { reconcileOperation } from '../lib/operations';
@@ -24,6 +24,7 @@ import { ExtensionStatus, ReadState } from './ExtensionControls';
 import { McpArguments } from './McpArguments';
 import { McpContent, McpMediaProvider } from './McpContent';
 import { McpConfiguration } from './McpConfiguration';
+import { McpAuthorization } from './McpAuthorization';
 type PendingRequest = {
   scope: object;
   session: object;
@@ -64,6 +65,7 @@ export function McpPanel({
   api,
   events,
   epoch,
+  runtimeEpoch = epoch,
   lease,
   connected,
   threadId,
@@ -76,6 +78,7 @@ export function McpPanel({
   api: Api;
   events: Events;
   epoch: string;
+  runtimeEpoch?: string;
   lease: string;
   connected: boolean;
   threadId: string;
@@ -91,7 +94,6 @@ export function McpPanel({
     [tab, setTab] = useState<'tools' | 'resources' | 'streams'>('tools');
   const [pendingRequest, setPendingRequest] = useState<PendingRequest>(),
     [error, setError] = useState(''),
-    [authorization, setAuthorization] = useState(''),
     [resource, setResource] = useState<{
       threadId: string;
       server: string;
@@ -106,8 +108,6 @@ export function McpPanel({
   const streamScope = useMemo(() => ({}), [api, session, epoch, threadId, selected, connected]);
   const streamConsent = streamConfirmation === streamScope,
     setStreamConsent = (value: boolean) => setStreamConfirmation(value ? streamScope : undefined);
-  const selection = useRef(selected);
-  selection.current = selected;
   const running = useRef<PendingRequest | undefined>(undefined),
     activeRequest = useRef<PendingRequest | undefined>(undefined),
     mounted = useRef(true),
@@ -184,7 +184,6 @@ export function McpPanel({
     setSelected('');
     setTool('');
     setResource(undefined);
-    setAuthorization('');
     setError('');
     setTemplate('');
     setUri('');
@@ -421,7 +420,6 @@ export function McpPanel({
               setTemplate('');
               setUri('');
               setResource(undefined);
-              setAuthorization('');
             }}
           >
             <option value="">选择已发现的服务</option>
@@ -449,26 +447,9 @@ export function McpPanel({
               </p>
               {server.httpOrigin && <p className="small path">{server.httpOrigin}</p>}
               {server.pluginId && <p className="small muted">来源插件：{server.pluginId}</p>}
-              <button
-                className="button small"
-                disabled={!connected || flow.disabled}
-                onClick={async () => {
-                  setAuthorization('');
-                  const result = await flow.run('mcp/oauth', { name: server.name });
-                  if (result && current() && selection.current === server.name) {
-                    const url = safeUrl(result.authorizationUrl ?? result.url);
-                    if (url) setAuthorization(url);
-                    else setError('未收到授权网址，请重新读取服务状态。');
-                  }
-                }}
-              >
-                请求此服务授权
-              </button>
-              {authorization && (
-                <a className="button" href={authorization} target="_blank" rel="noreferrer">
-                  打开 MCP 授权页面 ↗
-                </a>
-              )}
+              <McpAuthorization key={JSON.stringify([lease, epoch, runtimeEpoch, server.name, threadId, threadReady, connected])}
+                api={api} events={events} session={session} epoch={runtimeEpoch} name={server.name}
+                threadId={threadReady && threadId ? threadId : null} connected={connected} />
             </div>
             <nav className="extension-tabs" aria-label="MCP 操作类别">
               {[

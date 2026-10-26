@@ -2,7 +2,7 @@
 
 This is the clean-room deployment implementation for Ubuntu 24.04 and Debian 12, x64 and arm64. Python 3.11+, systemd with unified cgroup v2, sudo, e2fsprogs, mount, setpriv, bubblewrap (`/usr/bin/bwrap`) and ordinary user/group tools must already be installed. The manager does not modify existing unrelated services. Use a new instance name and unused ports for acceptance work.
 
-Pinned application tools are Node **24.22.1**, pnpm **11.22.0**, and official Codex **0.164.0**. Node archives use embedded SHA-256 values verified against the official release checksum file. pnpm and Codex use embedded SHA-512 npm integrity values. The optional edge uses Caddy **2.11.7** and Authelia **4.39.28**, pinned to official GitHub release asset SHA-256 digests.
+Pinned application tools are Node **24.22.1**, pnpm **11.22.0**, and official Codex **0.164.0**. Node archives use embedded SHA-256 values verified against the official release checksum file. pnpm and Codex use embedded SHA-512 npm integrity values. The optional HTTPS edge uses Caddy **2.11.7**, pinned to official GitHub release asset SHA-256 digests. New installations use the built-in administrator account; no Authelia installation or authentication hostname is required. Existing Authelia binaries and identity material are retained only for migration recovery.
 
 ## First installation
 
@@ -11,10 +11,10 @@ From the trusted source checkout, create the source archive as an ordinary user.
 ```sh
 python3 -m deploy.cli pack-source --source . --output /tmp/harness-source.tgz
 sudo python3 -m deploy.cli --instance demo install \
-  --source /tmp/harness-source.tgz --origin http://127.0.0.1:3300 --port 3300
+  --source /tmp/harness-source.tgz --origin http://127.0.0.1:3300 --port 3300 --username admin
 ```
 
-Omit `--origin` for the interactive origin prompt. The gateway always listens on loopback. For a remote host, forward its loopback port with SSH and use the same browser origin configured at installation. Open that URL on desktop or mobile and enter the administrator token read locally with `sudo cat /etc/codex-harness/demo/gateway-token`. SSH access does not bypass application authentication. The token is never printed in ordinary installer output.
+Installation securely prompts for the administrator password and confirmation; `--username` defaults to `admin`. Passwords contain 12–256 Unicode characters, at most 1,024 UTF-8 bytes, and are not trimmed. For automation, `--password-stdin` accepts exactly one bounded line from a protected input source; never put a password in shell arguments or environment variables. Omit `--origin` for the interactive origin prompt. The gateway always listens on loopback. For a remote host, forward its loopback port with SSH and use the same browser origin configured at installation. Open that URL and sign in with the administrator username and password. SSH forwarding does not bypass application authentication.
 
 The installer downloads verified upstream tools, fetches dependencies without lifecycle scripts, performs an offline installation, builds server and web, validates entrypoint syntax, and imports the stopped candidate. Before switching, a trusted non-root offline probe executes the exact imported CLI's version check, app-server initialize and model/list using a private fixture catalog, then verifies clean exit. The probe also checks token read denial, source write denial, blocked Internet sockets and the file-descriptor bound. A separate transient unit runs the candidate's `codex sandbox -c 'sandbox_mode="read-only"' -- /usr/bin/true` as the actual native UID/GID, with no capabilities, no-new-privileges, a private network and a fresh credential-free HOME/CODEX_HOME. These probes send no turns or external MCP calls. After startup, readiness requires both service processes running, gateway `/health` succeeding, and worker Unix `/status` reporting `connected: true`. A failed installation retains secrets and transaction records; it never silently replaces an identity on retry.
 
@@ -136,30 +136,70 @@ To apply explicitly verified capabilities, send `{expectedRevision,confirmCapabi
 
 Zhipu uses the official Responses URL `https://open.bigmodel.cn/api/v1`. Its four native MCP entries are search, reader, zread and vision. Remote MCP authorization uses a named environment variable; local vision uses the pinned `@z_ai/mcp-server@0.1.5` package with `Z_AI_MODE=ZHIPU`. MCP names do not grant approval or trust.
 
-## HTTPS and identity
+## Accounts, HTTPS and migration
 
-Configure public DNS and ensure this instance can bind ports 80/443. The optional edge is independent of any existing system Caddy/Authelia installation; it refuses collisions by failing startup and retains recovery state.
+The gateway owns a single administrator account. Account settings provide password changes, persistent login sessions, per-device revocation and optional TOTP with recovery codes. The gateway authenticates API and WebSocket requests using the same session. Model account authorization remains separate. There is no public registration or per-user project isolation.
+
+To initialize an upgraded legacy instance once, use:
 
 ```sh
-sudo python3 -m deploy.cli --instance demo https \
-  --host work.example.com --auth-host auth.example.com \
-  --cookie-domain example.com --email admin@example.com
+sudo python3 -m deploy.cli --instance demo account-setup --username admin
 ```
 
-The default `--tls acme` uses public issuance. For an internal network, add `--tls internal`; the command returns the instance CA file for deliberate client trust installation. For existing PEM material, use `--tls provided --certificate /absolute/fullchain.pem --private-key /absolute/key.pem`; root imports the pair into a protected immutable TLS generation. Repeat the same HTTPS command with both new PEM paths to renew the pair: Caddy validates the candidate before services stop, and publication or startup failure restores the previous pair and previously running services. Omit both PEM paths to reuse the selected pair. A pending recovery must be resolved with `repair` before another HTTPS change. `--http-port 18080 --https-port 18443 --authelia-port 19091` selects independent ports and includes the HTTPS port in browser/auth origins. Host and authentication names must share the cookie domain and resolve from clients. Each instance owns its identity and CA separately; two instances cannot bind the same address/ports. An external proxy must preserve the configured origin and equivalent authentication coverage. Port translation alone is not inferred as an alternate browser origin.
+To deliberately recover an existing account instead, use:
 
-The initial password is read interactively without echo, hashed by the pinned Caddy binary via stdin, and never stored in plaintext or argv. The edge applies Authelia to every gateway path, including API and WebSocket requests. The gateway still requires its administrator token. Authelia's default access policy is deny; only the configured application hostname is allowed after password authentication. Caddy's admin API is disabled. Proxy identity headers are not application login credentials.
+```sh
+sudo python3 -m deploy.cli --instance demo account-reset --username admin
+```
 
-The identity configuration, its encryption key and SQLite database are a recovery pair. Startup failure retains all three. Repeating setup with the same hosts reuses this identity without changing its username/password. A retained initial password is never presented as the current password. Host/domain changes require an explicit identity migration. Real public TLS issuance, browser login and provider billing rights are separate acceptance checks; active service units alone do not prove them.
+Run `account-setup` after updating the application to an account-capable release. It refuses to replace an existing account. Choose one command for the intended action; do not run both in sequence. `account-reset` is an explicit recovery operation: a new bootstrap revision replaces the account password, disables its second factor and revokes existing sessions when loaded by the gateway. Both commands prompt securely; both support `--password-stdin`. A saved reset is never automatically undone or retried when verification fails. Check the returned `loginVerified` field and the gateway status before proceeding. Password changes made in the browser remain in the gateway database; re-reading the same bootstrap revision never overwrites them. The high-entropy `gateway-token` proves the gateway instance's identity to local operator commands and may initialize an account once in an upgraded instance; it cannot sign in after initialization.
 
-HTTPS rollback installs separate per-service recovery conditions while restoring the recorded active and enabled sets. This keeps a previously stopped worker stopped even when restarting a gateway whose unit wants it. Unconfirmed restoration retains the conditions and journal for `repair`; successful restoration removes the markers and preserves existing control-maintenance drop-ins.
+For domain HTTPS, configure DNS and ensure this instance can bind ports 80/443:
+
+```sh
+sudo python3 -m deploy.cli --instance demo https --host work.example.com --username admin
+```
+
+The command verifies a real built-in account login and revokes its temporary verification session before switching the edge. Each operator request authenticates the gateway with a fresh instance-key HMAC challenge before reading account state or sending credentials, using the same TCP connection with reconnection disabled. It prompts for the account password; add `--two-factor` when a TOTP or recovery code is required. Non-interactive callers can use `--password-stdin`, or `--credentials-stdin` with a bounded JSON object containing `username`, `password` and optional `otp`. These inputs never go in argv or ordinary command output. Caddy provides HTTPS and reverse proxying; its admin API is disabled, and proxy identity headers never grant application access.
+
+The default `--tls acme` uses public issuance. For an internal network, add `--tls internal`; the command returns the instance CA file for deliberate client trust installation. For existing PEM material, use `--tls provided --certificate /absolute/fullchain.pem --private-key /absolute/key.pem`. Root imports the pair into a protected immutable TLS generation. Repeat the same HTTPS command with both new PEM paths to renew the pair, or omit both paths to reuse the selected pair. Caddy validates the candidate before services stop. `--http-port 18080 --https-port 18443` selects independent ports and includes the HTTPS port in the browser origin. An external proxy must preserve the exact configured origin. Port translation alone does not create an alternate browser origin.
+
+For an existing Authelia deployment, first update the reviewed control code and application, initialize and test the built-in account, then run `https` with the existing application hostname, TLS mode and ports. The command checks the current managed configuration, proves account login and snapshots the previous units, origin, certificate selection, metadata and enabled/running sets. A successful switch starts gateway, worker and Caddy, disables and removes the old Authelia unit, and preserves its identity database, keys and binary for recovery. The old authentication hostname is no longer used. Legacy `--auth-host`, `--cookie-domain`, `--email` and `--authelia-port` options exist only for matching the retained migration configuration; new setups do not need them.
+
+A failed switch restores the prior configuration and exact enabled/running set after confirming every involved cgroup stopped. Uncertain restoration retains the journal and separate recovery conditions; run `repair` before another change. A gateway restart is checked again for initialized account support before committing the migration. Login, logout or restart never resubmits an uncertain application operation.
+
+Ordinary application rollback accepts only releases declaring `harnessAuthentication: account-v1` after an account-capable release has been selected, an account bootstrap has been installed, or the edge has switched to built-in authentication. This prevents an old token-only release from silently bypassing account credentials or second-factor policy. The declaration is checked after complete release-manifest verification, and live account readiness is checked after startup. Returning to a legacy authentication architecture requires a separate complete operator recovery; the application `rollback` command does not perform that downgrade.
+
+Under those same conditions, `control-rollback` also requires the retained, fully verified control generation to declare `authenticationGuard: account-v1`; an incompatible target is rejected before creating a new transaction or stopping services, so rolling back management tools cannot remove the account downgrade guard.
+
+The same restrictions apply to failed-update recovery and `control-recover`/`repair`. An account-incompatible control recovery is refused before changing its transaction or service state. Application recovery first confirms services stopped, then refuses to select an old token-only release and retains the candidate and pending journal. This is reported as blocked recovery, never as a successful rollback. A failed first control upgrade on an instance still using a legacy application and without account bootstrap or built-in HTTPS continues to restore its original control tools normally.
+
+When the previous version cannot safely restore account authentication, correct the reported runtime prerequisite and explicitly resume the original candidate. Choose the command matching the pending transaction:
+
+```sh
+# Pending application update:
+sudo python3 -m deploy.cli --instance demo repair --target candidate
+```
+
+```sh
+# Pending trusted control-tool update; run from the separate reviewed checkout:
+sudo python3 -m deploy.cli --instance demo control-recover --target candidate
+```
+
+These commands accept no replacement path or arbitrary release identifier. They verify the complete candidate already recorded in the one pending transaction, confirm service shutdown, resume that same candidate and check readiness before committing the original transaction. A failed readiness check keeps the transaction pending and services stopped for another explicit attempt. Missing or modified candidate files are rejected; restore the exact trusted recovery material before retrying. The default recovery target remains the previous compatible version. `repair --target candidate` applies only to application-release transactions, not provider or HTTPS changes.
+
+Back up the protected account bootstrap and a consistent gateway authentication database together with the existing instance recovery material. The gateway owns `auth.sqlite`; passwords use salted scrypt and sessions are stored as digests. Keep these backups private. Public DNS, client certificate trust, real browser login and model-provider access remain separate acceptance checks.
+
+Versions before 2.1.0 could retain temporary MCP OAuth authorization links in operation receipts. New receipts keep only the handoff identity; receipt reads and new exports hide historical links while preserving the original operation and accepted state. Upgrading does not securely erase links already written to an old database, WAL or exported backup. Continue to protect retained instance backups as sensitive material.
 
 ## Security and failure contract
 
 | Object | Owner / purpose |
 | --- | --- |
 | `/opt/codex-harness/INSTANCE/releases/SHA256` | root, complete immutable application + Node + official Codex platform package |
-| `/etc/codex-harness/INSTANCE/gateway-token` | root:gateway, 0640; worker and IPC group cannot read |
+| `/etc/codex-harness/INSTANCE/auth-bootstrap.json` | root:gateway, 0640; account initialization/reset only; worker and IPC group cannot read |
+| `/var/lib/codex-harness-instances/INSTANCE/gateway/auth.sqlite` | gateway private state; account, second factor and session digests |
+| `/etc/codex-harness/INSTANCE/gateway-token` | root:gateway, 0640; internal instance proof and one-time legacy setup, never an account login bypass |
 | `/var/lib/codex-harness-instances/INSTANCE/gateway` | gateway UID, 0700; SQLite receipt journal |
 | `/var/lib/codex-harness-instances/INSTANCE/worker` | native worker UID, 0750; native sessions/auth/project execution; private files remain 0600 |
 | `/var/lib/codex-harness-instances/INSTANCE/supervisor` | control UID, native read group, 0750; attachments directory 2750 and files 0640; native cannot write |
@@ -262,7 +302,7 @@ The control-update fixture tests cover real directory/journal transitions with s
 
 The earlier Windows deployment run, before the identity-based test split above, passed 35 tests and explicitly skipped 4 Linux-only tests (39 selected). It covered independent transaction fault injection, complete runtime manifest changes, archive hazards, provider revisions/defaults/secrets, stopped-journal recovery, method/group boundaries, TLS modes/ports, real local HTTP model discovery, redirect rejection, disconnected-worker readiness rejection, bounded project resolution, exact workspace/override rejection and source-archive binding. The skipped cases include native pipe backpressure and real subreaper cleanup of a descendant that escapes its original process group. Eight additional HTTPS transaction tests passed with local files and substituted system/edge commands: paired certificate publication, validation failure before stop, unit-write/reload/start/health/enable failures, unknown-stop retention, interrupted-transaction repair, initial edge activation and previously stopped services. Nineteen additional initial-installation tests passed: enable and completion-record retry, failed-first-start pointers and legacy journals, existing disabled state, verified release reuse, interrupted manifest publication, interrupted upgrade guards, restoration of both release pointers and operator CLI error semantics. Windows substitutes pointer creation/reading because its test token cannot create symlinks; Linux uses the actual symlink implementation. These are file/transaction fixtures with substituted service commands, not real systemd boot acceptance. The identity database/key bytes in the HTTPS tests are opaque fixtures; these checks do not establish real certificate validity or external login. The trusted runtime probe also ran against the official Windows Codex 0.164.0 binary in an independent OS temporary home: version, initialize, exact fixture model/list and clean process exit passed, with zero turns. A separately generated catalog with a native default absent from the override list was accepted by the same fixed CLI.
 
-These Windows checks do **not** prove Linux systemd execution, UID isolation, network namespaces, loop mounts, real Authelia login, external MCP, or paid provider operation. These must be executed on the isolated Linux acceptance instance; a mock is not a replacement. After installing a disposable `crtest-*` instance, run `sudo python3 tests/deploy/linux_isolation.py --instance crtest-NAME` for real UID/token/source/network/disk/FD/child-process boundary evidence. The probe opens but never reads the token file if a boundary fails; its only network connection is to its own loopback listener.
+These Windows checks do **not** prove Linux systemd execution, UID isolation, network namespaces, loop mounts, real browser account login, external MCP, or paid provider operation. These must be executed on the isolated Linux acceptance instance; a mock is not a replacement. After installing a disposable `crtest-*` instance, run `sudo python3 tests/deploy/linux_isolation.py --instance crtest-NAME` for real UID/token/source/network/disk/FD/child-process boundary evidence. The probe opens but never reads the token file if a boundary fails; its only network connection is to its own loopback listener.
 
 Run `sudo python3 tests/deploy/linux_native_boundary.py --instance crtest-NAME` against that installed disposable instance to exercise native UID socket denial, supervisor `/proc` memory/environment/FD denial, `pidfd_getfd` and `process_vm_readv` denial, read-only attachments and the actual control-to-native sudo version command. It performs no turns and reads no secret contents. These Linux boundary checks remain unverified until that script runs successfully.
 
@@ -282,5 +322,5 @@ Primary compatibility references checked on 2026-10-25:
 - [GLM Coding Plan supported tools and Responses endpoint](https://docs.bigmodel.cn/cn/coding-plan/tool/others)
 - [GLM search MCP](https://docs.bigmodel.cn/cn/coding-plan/mcp/search-mcp-server), [reader MCP](https://docs.bigmodel.cn/cn/coding-plan/mcp/reader-mcp-server), [zread MCP](https://docs.bigmodel.cn/cn/coding-plan/mcp/zread-mcp-server), [vision MCP](https://docs.bigmodel.cn/cn/coding-plan/mcp/vision-mcp-server)
 - [Caddy official release](https://github.com/caddyserver/caddy/releases/tag/v2.11.7), [command validation](https://caddyserver.com/docs/command-line)
-- [Authelia official release](https://github.com/authelia/authelia/releases/tag/v4.39.28), [Caddy integration](https://www.authelia.com/integration/proxies/caddy/), [session cookie domains](https://www.authelia.com/configuration/session/introduction/), [SQLite key/database](https://www.authelia.com/configuration/storage/sqlite/)
+- [OWASP password storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) and [session management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
 - [Linux ptrace credential checks](https://www.man7.org/linux/man-pages/man2/ptrace.2.html), [process FD duplication checks](https://linuxman7.org/linux/man-pages/man2/pidfd_getfd.2.html), [kernel procfs visibility](https://www.kernel.org/doc/html/latest/filesystems/proc.html), [Node 24 signal-triggered inspector control](https://nodejs.org/download/release/v24.19.0/docs/api/cli.html#--disable-sigusr1)

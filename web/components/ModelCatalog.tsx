@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Api } from '../lib/api';
-import { ExtensionStatus, useExtensionAction } from './ExtensionControls';
+import { useExtensionAction } from './ExtensionControls';
+import { isArchivedReceipt, reconcileOperation } from '../lib/operations';
 import { array, message, object } from '../lib/types';
 type CatalogRow = {
   id: string;
@@ -15,6 +16,13 @@ type CatalogRow = {
 };
 const defaultInstructions =
   'Assist the user with the requested task. Follow their instructions and respect tool approval decisions.';
+const unchanged = () => {};
+type CatalogIntent = {
+  kind: 'discover' | 'apply';
+  scope: object;
+  previousOperationId?: string;
+  resolved: boolean;
+};
 const row = (value: unknown): CatalogRow => {
   const v = object(value);
   return {
@@ -50,17 +58,146 @@ export function ModelCatalog({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [status, setStatus] = useState('');
-  const action = useExtensionAction(api, enabled, onApplied);
-  const selected = rows.filter((r) => r.selected),
+  // Discovery is a preview. Refreshing the provider here would unmount this editor.
+  const action = useExtensionAction(
+    api,
+    enabled,
+    unchanged,
+    JSON.stringify([provider.kind, provider.revision]),
+  );
+  const intent = useRef<CatalogIntent | undefined>(undefined),
+    running = useRef<CatalogIntent | undefined>(undefined);
+  const current = (request: CatalogIntent) =>
+    intent.current === request && request.scope === action.scope && action.isCurrent();
+  const accept = (request: CatalogIntent, result: Record<string, unknown>) => {
+    if (!current(request) || request.resolved) return;
+    if (result.kind !== provider.kind || typeof result.revision !== 'string')
+      throw new Error('目录回执缺少匹配的供应商身份。');
+    if (request.kind === 'apply') {
+      if (result.applied !== true || result.requiresConfirmation !== false)
+        throw new Error('目录应用尚未取得明确的应用证明，未刷新供应商配置。');
+      request.resolved = true;
+      setRows([]);
+      setConfirmed(false);
+      setStatus('已应用确认的模型目录。');
+      onApplied();
+      return;
+    }
+    if (
+      result.revision !== provider.revision ||
+      result.applied !== false ||
+      !['native', 'provider'].includes(String(result.source)) ||
+      result.requiresConfirmation !== (result.source === 'provider')
+    )
+      throw new Error('发现结果与当前配置版本不匹配，请重新读取供应商配置。');
+    if (result.source === 'native') {
+      request.resolved = true;
+      setStatus('当前使用原生模型目录，无需应用自定义目录。');
+      return;
+    }
+    if (!Array.isArray(result.models) || result.models.length > 1000)
+      throw new Error('发现目录无效或超过 1,000 个模型的界面上限。');
+    const existing = new Map(
+      array<unknown>(provider.models).map((v) => [String(object(v).id), v]),
+    );
+    setRows(result.models.map((v) => row(existing.get(String(object(v).id)) ?? v)));
+    setConfirmed(false);
+    setStatus(`发现 ${result.models.length} 个模型 ID，尚未应用。`);
+    request.resolved = true;
+  };
+  const operation = action.operation,
+    recoverable = Boolean(
+      intent.current &&
+        !intent.current.resolved &&
+        intent.current.scope === action.scope &&
+        operation &&
+        operation.id !== intent.current.previousOperationId &&
+        ['pending', 'unknown', 'accepted'].includes(operation.state),
+    );
+  const run = async (kind: CatalogIntent['kind'], models?: Record<string, unknown>[]) => {
+    if (running.current || action.disabled || recoverable) return;
+    const request: CatalogIntent = {
+      kind,
+      scope: action.scope,
+      previousOperationId: operation?.id,
+      resolved: false,
+    };
+    intent.current = request;
+    running.current = request;
+    setBusy(true);
+    setError('');
+    setStatus('');
+    try {
+      const result = await action.run(
+        'system/models/refresh',
+        {
+          expectedRevision: provider.revision,
+          ...(kind === 'apply' ? { models, confirmCapabilities: true } : {}),
+        },
+        '目录请求已受理，正在核对结果。',
+      );
+      if (result) accept(request, result);
+    } catch (e) {
+      if (current(request)) setError(message(e));
+    } finally {
+      if (running.current === request) running.current = undefined;
+      if (current(request)) setBusy(false);
+    }
+  };
+  const recover = async () => {
+    const request = intent.current;
+    if (!request || !operation || !recoverable || running.current || !current(request)) return;
+    running.current = request;
+    setBusy(true);
+    setError('');
+    try {
+      const receipt = await api.call('operation/read', { operationId: operation.id });
+      if (
+        receipt.operationId !== operation.id ||
+        (receipt.state !== 'not_received' &&
+          receipt.method !== 'system/models/refresh' &&
+          !(receipt.method === 'operation/retire' && receipt.state === 'not_sent') &&
+          !isArchivedReceipt(receipt))
+      )
+        throw new Error('目录操作回执身份不匹配。');
+      reconcileOperation(operation.id, receipt);
+      if (!current(request)) return;
+      if (receipt.state === 'accepted') accept(request, object(receipt.result));
+      else if (receipt.state === 'not_sent') {
+        request.resolved = true;
+        setStatus('已确认原目录请求未发送；再次操作需要你明确选择。');
+      } else setStatus('原目录请求仍待确认，不能重复发现或应用。');
+    } catch (e) {
+      if (current(request)) setError(message(e));
+    } finally {
+      if (running.current === request) running.current = undefined;
+      if (current(request)) setBusy(false);
+    }
+  };
+  const editingDisabled = busy || action.disabled || recoverable,
+    selected = rows.filter((r) => r.selected),
     matching = rows.filter((r) => r.id.toLowerCase().includes(query.toLowerCase()));
   const change = (id: string, patch: Partial<CatalogRow>) => {
+    if (editingDisabled) return;
     setRows((current) => current.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     setConfirmed(false);
   };
   return (
     <section className="stack">
       <h3>模型目录与能力</h3>
-      <ExtensionStatus api={api} action={action} recoveryLabel="查询原目录操作回执" />
+      {action.notice && (
+        <p className="small muted" role="status">
+          {action.notice}
+        </p>
+      )}
+      {recoverable && (
+        <div className="workspace-warning">
+          <p>原目录结果待核对。查询只读取原回执，不会重复发现或应用。</p>
+          <button className="button small" disabled={busy} onClick={() => void recover()}>
+            查询原目录操作回执
+          </button>
+        </div>
+      )}
       <p className="muted">
         从已保存配置读取模型
         ID。目录发现不会证明工具调用、图片、音频或推理参数可用；请按供应商文档核对后再应用。
@@ -69,34 +206,8 @@ export function ModelCatalog({
         <button
           type="button"
           className="button"
-          disabled={busy || action.disabled}
-          onClick={async () => {
-            setBusy(true);
-            setError('');
-            setStatus('');
-            try {
-              const result = await action.run('system/models/refresh', {
-                expectedRevision: provider.revision,
-              });
-              if (!result) return;
-              if (result.source === 'native') {
-                setStatus('当前使用原生模型目录，已请求刷新。');
-                return;
-              }
-              const found = array<unknown>(result.models);
-              if (found.length > 1000) throw new Error('目录超过 1,000 个模型的界面上限。');
-              const existing = new Map(
-                array<unknown>(provider.models).map((v) => [String(object(v).id), v]),
-              );
-              setRows(found.map((v) => row(existing.get(String(object(v).id)) ?? v)));
-              setConfirmed(false);
-              setStatus(`发现 ${found.length} 个模型 ID，尚未应用。`);
-            } catch (e) {
-              setError(message(e));
-            } finally {
-              setBusy(false);
-            }
-          }}
+          disabled={editingDisabled}
+          onClick={() => void run('discover')}
         >
           {busy ? '正在读取…' : '发现模型'}
         </button>
@@ -108,13 +219,16 @@ export function ModelCatalog({
             <div className="inline">
               <input
                 id="catalog-manual-id"
+                disabled={editingDisabled}
                 value={manual}
-                onChange={(e) => setManual(e.target.value)}
+                onChange={(e) => {
+                  if (!editingDisabled) setManual(e.target.value);
+                }}
               />
               <button
                 className="button"
                 type="button"
-                disabled={!manual.trim() || rows.length >= 1000}
+                disabled={editingDisabled || !manual.trim() || rows.length >= 1000}
                 onClick={() => {
                   if (!rows.some((r) => r.id === manual.trim()))
                     setRows((current) => [...current, row({ id: manual.trim() })]);
@@ -138,11 +252,12 @@ export function ModelCatalog({
             </label>
           )}
           {matching.slice(0, visible).map((r) => (
-            <fieldset key={r.id}>
+            <fieldset key={r.id} disabled={editingDisabled}>
               <legend>
                 <label className="check-row">
                   <input
                     type="checkbox"
+                    disabled={editingDisabled}
                     checked={r.selected}
                     onChange={(e) => change(r.id, { selected: e.target.checked })}
                   />
@@ -234,42 +349,29 @@ export function ModelCatalog({
               <label className="check-row">
                 <input
                   type="checkbox"
+                  disabled={editingDisabled}
                   checked={confirmed}
-                  onChange={(e) => setConfirmed(e.target.checked)}
+                  onChange={(e) => {
+                    if (!editingDisabled) setConfirmed(e.target.checked);
+                  }}
                 />
                 我已核对选中模型的能力；应用后将重启运行时。
               </label>
               <button
                 className="button primary"
                 type="button"
-                disabled={!confirmed || !selected.length || busy || action.disabled}
-                onClick={async () => {
-                  setBusy(true);
-                  setError('');
-                  try {
-                    const models = selected.map(
-                      ({ selected: _selected, effortsText, ...model }) => ({
-                        ...model,
-                        efforts: effortsText
-                          .split(',')
-                          .map((v) => v.trim())
-                          .filter(Boolean),
-                      }),
-                    );
-                    const applied = await action.run('system/models/refresh', {
-                      expectedRevision: provider.revision,
-                      models,
-                      confirmCapabilities: true,
-                    });
-                    if (!applied) return;
-                    setRows([]);
-                    setConfirmed(false);
-                    setStatus('已应用确认的模型目录。');
-                  } catch (e) {
-                    setError(message(e));
-                  } finally {
-                    setBusy(false);
-                  }
+                disabled={!confirmed || !selected.length || editingDisabled}
+                onClick={() => {
+                  const models = selected.map(
+                    ({ selected: _selected, effortsText, ...model }) => ({
+                      ...model,
+                      efforts: effortsText
+                        .split(',')
+                        .map((v) => v.trim())
+                        .filter(Boolean),
+                    }),
+                  );
+                  void run('apply', models);
                 }}
               >
                 应用 {selected.length} 个确认的模型
@@ -278,9 +380,9 @@ export function ModelCatalog({
           )}
         </>
       )}
-      {error && (
+      {(error || action.error) && (
         <p className="error" role="alert">
-          {error}
+          {error || action.error}
         </p>
       )}
       {status && (

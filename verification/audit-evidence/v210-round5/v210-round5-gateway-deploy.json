@@ -1,0 +1,918 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v210-round5",
+  "reviewerId": "v210-round5-gateway-deploy-independent",
+  "digest": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458",
+  "sourceDigestAfter": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458",
+  "startedAt": "2026-10-26T17:51:54.711Z",
+  "completedAt": "2026-10-26T18:04:10.651Z",
+  "complete": true,
+  "scopes": [
+    "gateway-core",
+    "deployment-release"
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "This is a complete static review of the assigned 184-file domain, not a whole-repository clean-round decision or a test pass. No unit/targeted/full-suite test cases were executed; AST parsing and node --check were syntax-only checks.",
+    "No Linux/systemd, real root/native UID, live HTTP/browser, actual process-controller, installed-instance recovery, network namespace, reboot, public TLS, external account/provider/MCP, paid inference or deployment integration was executed in this review.",
+    "All test files were scanned in full; only the explicitly recorded critical assertion blocks were manually read. Bulk dependency lock and feature-evidence JSON were fully read and structurally scanned, with evidence limitations and cross-document claims manually checked; this does not claim a line-by-line manual reading of every generated evidence item.",
+    "Embedded historical verification and targeted-fix metadata occurs in the current scoped feature documentation. It was treated only as documentation with dated limitations, not as proof of current correctness; referenced prior audit/fix reports, sibling implementation/tests and Git history/object contents were not opened.",
+    "The earlier attempted TypeScript compiler-API parse was unavailable with the installed TypeScript API and produced no scan result. It was replaced by successful node --check for all 66 scoped JS/TS/MJS files. A Python text-read diagnostic was corrected with explicit UTF-8 before completing the selected-assertion scan."
+  ],
+  "method": "Independently reviewed the frozen current-source gateway/core, deployment, CI/tooling and documentation domain. Traced authorization, ownership, bounded resource lifetime, durable receipt and unknown-outcome handling, deployment publication/recovery and filesystem/Git transactions; scanned every assigned file and cross-checked selected security and recovery assertions without executing tests or services.",
+  "methodDetails": {
+    "snapshotVerification": {
+      "before": {
+        "at": "2026-10-26T17:51:54.711Z",
+        "filesHashed": 1862,
+        "mismatches": 0,
+        "script": "node scripts/snapshot.mjs",
+        "files": 1862,
+        "digest": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458"
+      },
+      "after": {
+        "at": "2026-10-26T18:04:10.651Z",
+        "filesHashed": 1862,
+        "mismatches": 0,
+        "module": "scripts/snapshot.mjs snapshot()",
+        "files": 1862,
+        "digest": "e7d688de8f7d2a5b5e1a7c7dc059366b47d850752d4f83c84fbcbb1585da1458"
+      },
+      "allFilesComparedIndividually": true
+    },
+    "scopeGroups": {
+      "gateway": 43,
+      "deployment": 81,
+      "tooling_docs": 60
+    },
+    "fullFileScan": {
+      "fileCount": 184,
+      "bytes": 2057071,
+      "testAndFixtureFiles": 63,
+      "artifacts": [
+        ".work/v210-round5-gateway-deploy-scan.json",
+        ".work/v210-round5-gateway-deploy-python-scan.json",
+        ".work/v210-round5-gateway-deploy-js-scan.json"
+      ]
+    },
+    "manualReading": {
+      "productionFiles": [
+        "src/core/automations.ts",
+        "src/core/budget.ts",
+        "src/core/contracts.ts",
+        "src/core/errors.ts",
+        "src/core/extension-methods.ts",
+        "src/core/feature-methods.ts",
+        "src/core/ledger.ts",
+        "src/core/mcp-oauth-receipt.ts",
+        "src/core/operation-retention.ts",
+        "src/core/organization-methods.ts",
+        "src/core/process-methods.ts",
+        "src/core/realtime-methods.ts",
+        "src/core/remote-methods.ts",
+        "src/core/schedule.ts",
+        "src/core/validation.ts",
+        "src/core/worktrees.ts",
+        "src/gateway/auth-crypto.ts",
+        "src/gateway/auth.ts",
+        "src/gateway/automation-scheduler.ts",
+        "src/gateway/dispatch.ts",
+        "src/gateway/main.ts",
+        "src/gateway/manager-client.ts",
+        "src/gateway/organization-receipt.ts",
+        "src/gateway/receipt-maintenance.ts",
+        "src/gateway/receipt-result.ts",
+        "src/gateway/server.ts",
+        "src/gateway/worker-client.ts",
+        "src/gateway/workspace-ack.ts",
+        "deploy/__init__.py",
+        "deploy/accounts.py",
+        "deploy/archive.py",
+        "deploy/build.py",
+        "deploy/candidate_probe.py",
+        "deploy/catalog.py",
+        "deploy/cli.py",
+        "deploy/common.py",
+        "deploy/config_layer.py",
+        "deploy/control_update.py",
+        "deploy/https.py",
+        "deploy/install.py",
+        "deploy/install.sh",
+        "deploy/journal.py",
+        "deploy/journal_schema.py",
+        "deploy/manager.py",
+        "deploy/native_launcher.py",
+        "deploy/ownership.py",
+        "deploy/provider.py",
+        "deploy/provider_bedrock.py",
+        "deploy/provider_gateway.py",
+        "deploy/provider_layers.py",
+        "deploy/provider_lifecycle.py",
+        "deploy/requests.py",
+        "deploy/safe_fs.py",
+        "deploy/sandbox.py",
+        "deploy/system.py",
+        "deploy/transactions.py",
+        "deploy/units.py",
+        "deploy/workspace.py",
+        "deploy/workspace_commit.py",
+        "deploy/workspace_git.py",
+        "deploy/workspace_git_transaction.py",
+        "deploy/workspace_git_view.py",
+        "deploy/workspace_index.py",
+        "deploy/workspace_index_store.py",
+        "deploy/workspace_paths.py",
+        "deploy/workspace_recovery.py",
+        "deploy/workspace_resources.py",
+        "deploy/workspace_search.py",
+        "deploy/workspace_store.py",
+        "deploy/workspace_worktrees.py"
+      ],
+      "toolingFiles": [
+        "scripts/ci-checks.mjs",
+        "scripts/compatibility-watch.mjs",
+        "scripts/prepare-ci-native.mjs",
+        "scripts/python-tests.py",
+        "scripts/release-audit.mjs",
+        "scripts/release-authorization.mjs",
+        "scripts/reviewed-history.mjs",
+        "scripts/run-tests.mjs",
+        "scripts/select-tests.mjs",
+        "scripts/snapshot.mjs",
+        "scripts/test-environment.mjs",
+        "scripts/windows-controller-preflight.mjs"
+      ],
+      "documentationFiles": [
+        "deploy/README.md",
+        "AGENTS.md",
+        "ARCHITECTURE.md",
+        "FEATURES.md",
+        "LICENSE",
+        "NOTICE.md",
+        "PROBLEM-ACCEPTANCE.md",
+        "README.md",
+        "verification/feature-evidence/CAPABILITY-COVERAGE.md"
+      ],
+      "configurationFiles": [
+        ".gitattributes",
+        ".github/workflows/affected.yml",
+        ".github/workflows/compatibility.yml",
+        ".github/workflows/security.yml",
+        ".gitignore",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "tsconfig.server.json",
+        "vitest.config.ts"
+      ],
+      "criticalJavaScriptAssertionRanges": [
+        {
+          "path": "tests/gateway/auth.test.ts",
+          "start": 1,
+          "end": 202
+        },
+        {
+          "path": "tests/core/ledger-capacity.test.ts",
+          "start": 1,
+          "end": 209
+        },
+        {
+          "path": "tests/core/operation-retention.test.ts",
+          "start": 1,
+          "end": 92
+        },
+        {
+          "path": "tests/core/schedule.test.ts",
+          "start": 1,
+          "end": 24
+        },
+        {
+          "path": "tests/gateway/dispatch.test.ts",
+          "start": 1,
+          "end": 218
+        },
+        {
+          "path": "tests/gateway/automation-scheduler.test.ts",
+          "start": 43,
+          "end": 105
+        },
+        {
+          "path": "tests/gateway/worktrees.test.ts",
+          "start": 1,
+          "end": 61
+        },
+        {
+          "path": "tests/gateway/http.test.ts",
+          "start": 121,
+          "end": 244
+        },
+        {
+          "path": "tests/gateway/mcp-oauth.test.ts",
+          "start": 44,
+          "end": 116
+        },
+        {
+          "path": "tests/gateway/workspace-ack.test.ts",
+          "start": 46,
+          "end": 101
+        },
+        {
+          "path": "tests/gateway/worker-client.test.ts",
+          "start": 28,
+          "end": 69
+        },
+        {
+          "path": "tests/gateway/receipt-maintenance.test.ts",
+          "start": 17,
+          "end": 54
+        },
+        {
+          "path": "tests/gateway/receipt-result.test.ts",
+          "start": 1,
+          "end": 47
+        },
+        {
+          "path": "tests/tooling/ci-checks.test.ts",
+          "start": 1,
+          "end": 141
+        },
+        {
+          "path": "tests/tooling/run-tests.test.ts",
+          "start": 1,
+          "end": 115
+        },
+        {
+          "path": "tests/tooling/test-environment.test.ts",
+          "start": 1,
+          "end": 67
+        },
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "start": 58,
+          "end": 121
+        },
+        {
+          "path": "tests/tooling/release-audit.test.ts",
+          "start": 29,
+          "end": 120
+        },
+        {
+          "path": "tests/tooling/prepare-ci-native.test.ts",
+          "start": 1,
+          "end": 55
+        },
+        {
+          "path": "tests/tooling/windows-controller-preflight.test.ts",
+          "start": 1,
+          "end": 30
+        },
+        {
+          "path": "tests/tooling/compatibility-watch.test.ts",
+          "start": 1,
+          "end": 9
+        }
+      ],
+      "criticalPythonAssertionRanges": [
+        {
+          "path": "tests/deploy/test_accounts.py",
+          "start": 154,
+          "end": 161,
+          "test": "test_correct_proof_and_password_share_the_same_tcp_connection"
+        },
+        {
+          "path": "tests/deploy/test_accounts.py",
+          "start": 163,
+          "end": 169,
+          "test": "test_forged_replayed_or_closed_proof_sends_no_password"
+        },
+        {
+          "path": "tests/deploy/root/test_accounts.py",
+          "start": 41,
+          "end": 50,
+          "test": "test_unconfirmed_reset_keeps_new_revision_and_reports_pending_without_automatic_retry"
+        },
+        {
+          "path": "tests/deploy/root/test_accounts.py",
+          "start": 52,
+          "end": 67,
+          "test": "test_bootstrap_symlink_or_wrong_owner_never_gets_replaced"
+        },
+        {
+          "path": "tests/deploy/root/test_account_recovery.py",
+          "start": 53,
+          "end": 65,
+          "test": "test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore"
+        },
+        {
+          "path": "tests/deploy/root/test_account_recovery.py",
+          "start": 102,
+          "end": 112,
+          "test": "test_explicit_candidate_repair_finishes_blocked_legacy_to_account_upgrade"
+        },
+        {
+          "path": "tests/deploy/root/test_config_layer.py",
+          "start": 210,
+          "end": 226,
+          "test": "test_candidate_publication_rechecks_policy_and_generation_identity"
+        },
+        {
+          "path": "tests/deploy/root/test_config_layer.py",
+          "start": 265,
+          "end": 278,
+          "test": "test_unknown_stop_never_publishes_pointer_config_units_or_sudo"
+        },
+        {
+          "path": "tests/deploy/root/test_config_layer.py",
+          "start": 317,
+          "end": 329,
+          "test": "test_power_loss_between_file_publications_can_finish_candidate"
+        },
+        {
+          "path": "tests/deploy/root/test_config_layer.py",
+          "start": 353,
+          "end": 372,
+          "test": "test_user_symlink_fifo_hardlink_and_parent_link_fail_without_follow_or_block"
+        },
+        {
+          "path": "tests/deploy/root/test_control_update.py",
+          "start": 181,
+          "end": 198,
+          "test": "test_unknown_stop_retains_trees_and_persistent_start_barriers"
+        },
+        {
+          "path": "tests/deploy/root/test_control_update.py",
+          "start": 234,
+          "end": 247,
+          "test": "test_crashes_before_and_between_directory_renames_recover"
+        },
+        {
+          "path": "tests/deploy/root/test_control_update.py",
+          "start": 385,
+          "end": 388,
+          "test": "test_root_account_bootstrap_blocks_control_guard_downgrade_before_any_mutation"
+        },
+        {
+          "path": "tests/deploy/root/test_control_update.py",
+          "start": 440,
+          "end": 453,
+          "test": "test_control_recover_cannot_restore_legacy_guard_for_account_dependent_instance"
+        },
+        {
+          "path": "tests/deploy/root/test_control_update.py",
+          "start": 540,
+          "end": 549,
+          "test": "test_incomplete_candidate_is_rejected_before_mutating_recovery_state"
+        },
+        {
+          "path": "tests/deploy/root/test_https.py",
+          "start": 195,
+          "end": 200,
+          "test": "test_unverified_account_cannot_remove_external_authentication"
+        },
+        {
+          "path": "tests/deploy/root/test_https.py",
+          "start": 202,
+          "end": 206,
+          "test": "test_account_support_lost_during_restart_restores_external_authentication"
+        },
+        {
+          "path": "tests/deploy/root/test_https.py",
+          "start": 254,
+          "end": 272,
+          "test": "test_unknown_recovery_stop_preserves_selected_material_and_repair_restores_it"
+        },
+        {
+          "path": "tests/deploy/test_dependency_lock.py",
+          "start": 87,
+          "end": 95,
+          "test": "test_cap_plus_one_rejects_before_utf8_decoding_and_closes_file"
+        },
+        {
+          "path": "tests/deploy/test_dependency_lock.py",
+          "start": 124,
+          "end": 133,
+          "test": "test_same_size_change_during_read_is_not_accepted"
+        },
+        {
+          "path": "tests/deploy/test_dependency_lock.py",
+          "start": 135,
+          "end": 153,
+          "test": "test_replacement_before_open_or_after_read_cannot_select_different_file"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 45,
+          "end": 50,
+          "test": "test_empty_duplicate_failed_and_contradictory_queries_do_not_authorize_cleanup"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 168,
+          "end": 178,
+          "test": "test_inspection_reserves_pending_siblings_before_descending"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 240,
+          "end": 254,
+          "test": "test_extensions_are_rejected_before_their_declared_payload_is_read"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 356,
+          "end": 368,
+          "test": "test_compressed_input_and_xz_decoder_memory_are_bounded"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 616,
+          "end": 625,
+          "test": "test_actual_dependency_command_disables_ancestor_workspace_and_hooks"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 627,
+          "end": 645,
+          "test": "test_units_have_distinct_worker_token_and_ipc_groups"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 647,
+          "end": 658,
+          "test": "test_real_current_dependency_inputs_pass_and_hook_resolution_fails"
+        },
+        {
+          "path": "tests/deploy/test_deployment.py",
+          "start": 697,
+          "end": 708,
+          "test": "test_source_archive_includes_the_reviewed_workspace"
+        },
+        {
+          "path": "tests/deploy/test_install_recovery.py",
+          "start": 105,
+          "end": 119,
+          "test": "test_unknown_stop_retains_pointer_until_a_confirmed_retry"
+        },
+        {
+          "path": "tests/deploy/test_install_recovery.py",
+          "start": 138,
+          "end": 150,
+          "test": "test_partial_enable_failure_retains_healthy_commit_and_retries"
+        },
+        {
+          "path": "tests/deploy/test_install_recovery.py",
+          "start": 219,
+          "end": 236,
+          "test": "failed_commit"
+        },
+        {
+          "path": "tests/deploy/test_install_recovery.py",
+          "start": 238,
+          "end": 239,
+          "test": "test_commit_failure_restores_both_release_pointers"
+        },
+        {
+          "path": "tests/deploy/test_install_recovery.py",
+          "start": 246,
+          "end": 266,
+          "test": "test_outer_cli_failures_do_not_claim_a_mutation_was_unsent"
+        },
+        {
+          "path": "tests/deploy/test_journal_schema.py",
+          "start": 97,
+          "end": 115,
+          "test": "test_full_legacy_payload_keeps_evidence_and_never_expands_for_a_recovery_error"
+        },
+        {
+          "path": "tests/deploy/test_journal_schema.py",
+          "start": 144,
+          "end": 160,
+          "test": "test_current_schema_rejects_changed_indexes_views_columns_and_hidden_prefix"
+        },
+        {
+          "path": "tests/deploy/root/test_journal_recovery.py",
+          "start": 84,
+          "end": 87,
+          "test": "test_restart_drops_gateway_uid_recovers_real_schema_then_reopens"
+        },
+        {
+          "path": "tests/deploy/root/test_journal_recovery.py",
+          "start": 104,
+          "end": 113,
+          "test": "test_rejected_schema_leaves_services_stopped_and_receipts_unmodified"
+        },
+        {
+          "path": "tests/deploy/test_request_spool.py",
+          "start": 174,
+          "end": 186,
+          "test": "test_uncertain_state_or_stop_retains_all_material_and_blocks_growth"
+        },
+        {
+          "path": "tests/deploy/test_request_spool.py",
+          "start": 249,
+          "end": 261,
+          "test": "test_executor_rechecks_admission_after_staging_and_keeps_input_until_collection"
+        },
+        {
+          "path": "tests/deploy/test_request_spool.py",
+          "start": 263,
+          "end": 279,
+          "test": "test_result_overflow_preserves_receipt_and_never_publishes_partial_output"
+        },
+        {
+          "path": "tests/deploy/test_request_spool.py",
+          "start": 281,
+          "end": 287,
+          "test": "test_input_and_reserved_result_bytes_checked_before_directory_creation"
+        },
+        {
+          "path": "tests/deploy/root/test_request_spool.py",
+          "start": 32,
+          "end": 45,
+          "test": "test_root_private_files_use_real_independent_nonblocking_locks"
+        },
+        {
+          "path": "tests/deploy/test_provider_lifecycle.py",
+          "start": 83,
+          "end": 96,
+          "test": "test_public_settings_and_logs_exclude_saved_credentials_and_unreviewed_fields"
+        },
+        {
+          "path": "tests/deploy/test_provider_lifecycle.py",
+          "start": 101,
+          "end": 119,
+          "test": "test_current_pending_recovery_and_recent_generations_are_retained"
+        },
+        {
+          "path": "tests/deploy/test_provider_layers.py",
+          "start": 69,
+          "end": 72,
+          "test": "test_complete_provider_definition_is_mandatory"
+        },
+        {
+          "path": "tests/deploy/test_workspace.py",
+          "start": 206,
+          "end": 218,
+          "test": "test_collision_between_capture_and_publish_preserves_both_versions"
+        },
+        {
+          "path": "tests/deploy/test_workspace.py",
+          "start": 250,
+          "end": 256,
+          "test": "test_directory_symlink_swap_does_not_follow_outside_root"
+        },
+        {
+          "path": "tests/deploy/test_workspace.py",
+          "start": 283,
+          "end": 314,
+          "test": "test_real_git_status_diff_refs_disable_repository_programs"
+        },
+        {
+          "path": "tests/deploy/test_workspace_ack.py",
+          "start": 58,
+          "end": 67,
+          "test": "test_mismatched_and_unknown_receipts_cannot_be_acknowledged"
+        },
+        {
+          "path": "tests/deploy/test_workspace_ack.py",
+          "start": 69,
+          "end": 81,
+          "test": "test_retained_payload_survives_ack_and_full_budget_allows_one_discard"
+        },
+        {
+          "path": "tests/deploy/test_workspace_ack.py",
+          "start": 83,
+          "end": 93,
+          "test": "test_failed_discard_consumes_the_single_reserved_slot"
+        },
+        {
+          "path": "tests/deploy/test_workspace_commit.py",
+          "start": 160,
+          "end": 179,
+          "test": "test_prepared_transaction_rechecks_index_and_aborts_without_overwriting_external_change"
+        },
+        {
+          "path": "tests/deploy/test_workspace_commit.py",
+          "start": 181,
+          "end": 197,
+          "test": "test_lost_publication_result_stays_unknown_with_candidate_and_no_resend"
+        },
+        {
+          "path": "tests/deploy/test_workspace_commit.py",
+          "start": 199,
+          "end": 214,
+          "test": "test_unknown_shutdown_retains_owned_lock_and_lock_replacement_is_never_unlinked"
+        },
+        {
+          "path": "tests/deploy/test_workspace_index.py",
+          "start": 166,
+          "end": 178,
+          "test": "test_prepared_fence_blocks_real_head_changes_and_git_add_before_index_publication"
+        },
+        {
+          "path": "tests/deploy/test_workspace_index.py",
+          "start": 194,
+          "end": 212,
+          "test": "test_publish_collision_preserves_old_external_and_candidate_indexes_and_explicit_restore"
+        },
+        {
+          "path": "tests/deploy/test_workspace_index.py",
+          "start": 268,
+          "end": 287,
+          "test": "test_foreign_primary_git_pointer_cannot_authorize_status_stage_or_commit"
+        },
+        {
+          "path": "tests/deploy/test_workspace_recovery.py",
+          "start": 91,
+          "end": 104,
+          "test": "test_stale_source_destination_and_injected_record_path_never_redirect_restore"
+        },
+        {
+          "path": "tests/deploy/test_workspace_recovery.py",
+          "start": 151,
+          "end": 165,
+          "test": "test_discard_capture_race_keeps_every_payload_and_reports_unknown"
+        },
+        {
+          "path": "tests/deploy/test_workspace_resources.py",
+          "start": 109,
+          "end": 118,
+          "test": "test_skill_parent_moved_after_open_is_conflict_not_success"
+        },
+        {
+          "path": "tests/deploy/test_workspace_resources.py",
+          "start": 135,
+          "end": 146,
+          "test": "test_plugin_preview_refuses_git_links_hardlinks_and_special_files"
+        },
+        {
+          "path": "tests/deploy/test_workspace_search.py",
+          "start": 64,
+          "end": 76,
+          "test": "test_result_entry_byte_depth_and_time_budgets_report_incomplete"
+        },
+        {
+          "path": "tests/deploy/test_workspace_search.py",
+          "start": 78,
+          "end": 82,
+          "test": "test_moved_root_or_scope_cannot_return_outside_results"
+        },
+        {
+          "path": "tests/deploy/test_workspace_worktrees.py",
+          "start": 25,
+          "end": 33,
+          "test": "test_checkout_rejects_implicit_directory_entries_and_depth_before_reading_blobs"
+        },
+        {
+          "path": "tests/deploy/test_workspace_worktrees.py",
+          "start": 190,
+          "end": 208,
+          "test": "test_archive_restore_preserve_dirty_staged_untracked_and_ignored_bytes_and_index"
+        },
+        {
+          "path": "tests/deploy/test_workspace_worktrees.py",
+          "start": 242,
+          "end": 255,
+          "test": "test_interruption_after_archive_move_keeps_whole_tree_and_explicit_restore_repairs_backlink"
+        },
+        {
+          "path": "tests/deploy/test_workspace_worktrees.py",
+          "start": 257,
+          "end": 267,
+          "test": "test_restore_never_overwrites_an_occupied_active_uuid_and_forged_journal_is_not_authority"
+        }
+      ]
+    },
+    "staticValidation": {
+      "pythonFilesParsed": 79,
+      "pythonTestFunctions": 369,
+      "pythonAssertionCalls": 1421,
+      "pythonEmptyTestFunctions": [],
+      "javaScriptTypeScriptFilesSyntaxChecked": 66,
+      "syntaxDiagnostics": [],
+      "exclusiveOrTodoTestMarkers": [],
+      "featureEvidenceJsonFilesParsed": 20,
+      "capabilityInventory": {
+        "methods": 178,
+        "uniqueMethods": 178,
+        "allEvidenceGroupsResolve": true
+      },
+      "dependencyLock": {
+        "bytes": 102240,
+        "integrityEntries": 336,
+        "directSpecifiers": 21,
+        "packagePins": 21,
+        "missingDirectPins": 0,
+        "externalGitFileOrUrlResolutions": 0
+      }
+    },
+    "topicsReviewed": [
+      "single-admin authentication, asynchronous revocation, bootstrap identity and TOTP replay",
+      "Origin/Host/CSRF, HTTP request/output budgets and connection-owned event delivery",
+      "durable receipt reservation/settlement/confirmation capacity, retirement generations, export and unknown recovery",
+      "automation persistence, time zones, missed runs and no unknown redispatch",
+      "operator versus gateway management boundaries, root spool and positive result binding",
+      "account-safe application/control recovery, immutable release import, stopped-process evidence and retained recovery materials",
+      "provider routing/credential separation, host requirements and configuration-layer migration",
+      "descriptor-safe workspace resources, filesystem backup/discard, Git commit/index locks and worktree preservation",
+      "CI test selection, source-bound authorization, platform/root reconciliation and isolated environment",
+      "documentation and dated evidence boundaries against current implementation"
+    ],
+    "execution": {
+      "testCasesRun": 0,
+      "fullSuiteRun": false,
+      "integrationRun": false,
+      "sourceFilesModified": 0,
+      "liveServicesTouched": false,
+      "personalConfigurationRead": false,
+      "externalNetworkOrModelCalls": false
+    },
+    "releaseGate": "The direct user request requires two consecutive complete clean rounds on unchanged source before full tests, superseding the repository default of three. This report does not itself authorize or execute full tests."
+  },
+  "inspectedFiles": [
+    "src/core/automations.ts",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/extension-methods.ts",
+    "src/core/feature-methods.ts",
+    "src/core/ledger.ts",
+    "src/core/mcp-oauth-receipt.ts",
+    "src/core/operation-retention.ts",
+    "src/core/organization-methods.ts",
+    "src/core/process-methods.ts",
+    "src/core/realtime-methods.ts",
+    "src/core/remote-methods.ts",
+    "src/core/schedule.ts",
+    "src/core/validation.ts",
+    "src/core/worktrees.ts",
+    "src/gateway/auth-crypto.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/organization-receipt.ts",
+    "src/gateway/receipt-maintenance.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "src/gateway/workspace-ack.ts",
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/operation-retention.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-maintenance.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "deploy/README.md",
+    "deploy/__init__.py",
+    "deploy/accounts.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/journal.py",
+    "deploy/journal_schema.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/provider_lifecycle.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/sandbox.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/test_accounts.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_provider_lifecycle.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_sandbox.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_ack.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/security.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "scripts/ci-checks.mjs",
+    "scripts/compatibility-watch.mjs",
+    "scripts/prepare-ci-native.mjs",
+    "scripts/python-tests.py",
+    "scripts/release-audit.mjs",
+    "scripts/release-authorization.mjs",
+    "scripts/reviewed-history.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "scripts/test-environment.mjs",
+    "scripts/windows-controller-preflight.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/test-environment.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/mcp-oauth-handoff.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ]
+}

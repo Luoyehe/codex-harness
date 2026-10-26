@@ -1,0 +1,116 @@
+{
+  "status": "passed",
+  "exitCode": 0,
+  "prerequisites": [
+    {
+      "group": "deploy",
+      "status": "ready",
+      "binary": "/usr/bin/python3",
+      "version": "Python 3.12.3"
+    }
+  ],
+  "results": [
+    {
+      "group": "javascript",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": [
+        "tests/tooling/test-environment.test.ts"
+      ],
+      "cases": [
+        {
+          "id": "tests/tooling/test-environment.test.ts::the shared local and CI allowlist replaces host paths and removes configuration and credential injection",
+          "file": "tests/tooling/test-environment.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/test-environment.test.ts::both engines and prerequisite checks receive the same isolated environment without mutating the caller",
+          "file": "tests/tooling/test-environment.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/test-environment.test.ts::root temporary ancestors stay outside private homes even with an inherited private TMPDIR",
+          "file": "tests/tooling/test-environment.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/tooling/test-environment.test.ts::the real targeted CLI isolates JavaScript and Python Git fixtures from artificial host hooks and injected Git overrides",
+          "file": "tests/tooling/test-environment.test.ts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "group": "deploy",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": [
+        "tests/deploy/root/test_account_recovery.py",
+        "tests/deploy/root/test_journal_recovery.py"
+      ],
+      "cases": [
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_can_resume_after_selection_record_interruption",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_health_failure_stops_and_retries_same_candidate_only",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_candidate_failure_restores_prior_account_release",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_repair_restores_prior_account_release",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_explicit_candidate_repair_finishes_blocked_legacy_to_account_upgrade",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_missing_candidate_file_rejects_candidate_repair_before_stop",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_activation_recovers_before_candidate_start_and_preserves_previous",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_control_update_restore_recovers_before_original_services_resume",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_rejected_schema_leaves_services_stopped_and_receipts_unmodified",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_restart_drops_gateway_uid_recovers_real_schema_then_reopens",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "digest": "f481ba6038f34ddef312d748d000504d833948aea01161927755b9c14f6f479d"
+}

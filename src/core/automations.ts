@@ -33,6 +33,7 @@ export class Automations {
       CREATE TABLE IF NOT EXISTS automation_runs(id TEXT PRIMARY KEY,automation_id TEXT NOT NULL,revision INTEGER NOT NULL,scheduled_at INTEGER NOT NULL,manual INTEGER NOT NULL,operation_id TEXT NOT NULL UNIQUE,client_id TEXT NOT NULL,state TEXT NOT NULL,thread_id TEXT,turn_id TEXT,started_at INTEGER,finished_at INTEGER,stop_requested INTEGER NOT NULL DEFAULT 0,stop_sent INTEGER NOT NULL DEFAULT 0,code TEXT,spec TEXT NOT NULL) STRICT;
       CREATE UNIQUE INDEX IF NOT EXISTS automation_occurrence ON automation_runs(automation_id,revision,scheduled_at) WHERE manual=0;
       CREATE INDEX IF NOT EXISTS automation_run_order ON automation_runs(automation_id,scheduled_at DESC);`);
+    this.pruneRemoved();
   }
   get(id: string): Automation { const row = this.db.prepare('SELECT * FROM automations WHERE id=?').get(uuid(id)); if (!row || row.state === 'removed') throw new HarnessError('automation_missing', '计划已移除。'); return job(row); }
   getRun(id: string): AutomationRun { const row = this.db.prepare('SELECT * FROM automation_runs WHERE id=?').get(uuid(id)); if (!row) throw new HarnessError('automation_run_missing', '运行记录不存在。'); return run(row); }
@@ -79,7 +80,14 @@ export class Automations {
     const nextAt = method === 'automation/pause' || method === 'automation/remove' ? current.nextAt : nextScheduled(spec.schedule, now);
     if (state === 'active' && nextAt === null) throw new HarnessError('invalid', '该一次性计划已经过期，请修改时间或手动运行。');
     this.db.prepare('UPDATE automations SET revision=revision+1,state=?,spec=?,next_at=?,updated_at=? WHERE id=?').run(state, state === 'removed' ? JSON.stringify({ ...spec, text: '', options: {} }) : JSON.stringify(spec), nextAt, now, current.id);
+    if (state === 'removed') this.pruneRemoved();
     return { id: current.id, revision: current.revision + 1, state };
+  }
+  private pruneRemoved(): void {
+    // Removed IDs are already unreadable, never caller-reused, and have their
+    // mutation receipts in Ledger. Keep bounded run history independently;
+    // do not discard a legacy row still associated with an unresolved run.
+    this.db.exec("DELETE FROM automations WHERE state='removed' AND NOT EXISTS (SELECT 1 FROM automation_runs WHERE automation_id=automations.id AND state IN ('queued','dispatching','running','needs_attention','stopping','unknown'))");
   }
   private spec(value: Automation): AutomationSpec { const { name, projectId, text, options, schedule, maxRunMinutes } = value; return { name, projectId, text, options, schedule, maxRunMinutes }; }
   private forJob(id: string): AutomationRun[] { return this.db.prepare('SELECT * FROM automation_runs WHERE automation_id=?').all(id).map(run); }

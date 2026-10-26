@@ -11,7 +11,8 @@ function SessionApp() {
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
   const [workspaceOpened, setWorkspaceOpened] = useState(false),
-    [externalAuthentication, setExternalAuthentication] = useState(false);
+    [externalAuthentication, setExternalAuthentication] = useState(false),
+    [setupRequired, setSetupRequired] = useState(false);
   useEffect(
     () =>
       api.onAuthenticationLost((external) => {
@@ -32,6 +33,7 @@ function SessionApp() {
       .then((s) => {
         if (current) {
           setAuthenticated(s.authenticated);
+          setSetupRequired(s.setupRequired === true);
           if (s.authenticated) setWorkspaceOpened(true);
         }
       })
@@ -75,8 +77,11 @@ function SessionApp() {
           api={api}
           initialError={error}
           externalAuthentication={externalAuthentication}
+          setupRequired={setupRequired}
           onLogin={() => {
             setError('');
+            setSetupRequired(false);
+            setExternalAuthentication(false);
             setWorkspaceOpened(true);
             setAuthenticated(true);
           }}

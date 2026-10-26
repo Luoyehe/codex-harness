@@ -14,9 +14,11 @@ function thread(id: string, cwd: string, active = false): JsonObject {
 class Native extends EventEmitter {
   connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonObject }[] = []; queue: JsonObject[] = []; active = false; directInput = true;
   gate?: Promise<void>; hook?: (method: string) => void; error?: DeliveryError; responseOverride?: { method: string; value: JsonValue }; history = [turn()];
+  afterWrite?: (method: string) => void | Promise<void>;
   constructor(readonly cwd: string) { super(); }
   async call(method: string, input: JsonValue, options: NativeOptions = {}): Promise<JsonValue> {
-    const p = object(input); if (method === 'thread/read') await this.gate; this.hook?.(method); options.beforeWrite?.(); this.calls.push({ method, params: p });
+    const p = object(input ?? {}); if (method === 'thread/read') await this.gate; this.hook?.(method); options.beforeWrite?.(); this.calls.push({ method, params: p });
+    if (this.afterWrite) await this.afterWrite(method);
     if (this.error && method !== 'thread/read') throw this.error;
     if (this.responseOverride?.method === method) return this.responseOverride.value;
     if (method === 'thread/read') return { thread: { ...thread(String(p.threadId), this.cwd, this.active), canAcceptDirectInput: this.directInput }, readState: null };
@@ -48,6 +50,8 @@ function setup() {
 }
 afterEach(async () => { await Promise.all(services.splice(0).map(item => item.close())); });
 const hydrate = (service: RuntimeService, threadId = 't') => service.call('thread/history', { threadId }, context);
+const goal = (status = 'active'): JsonObject => ({ threadId: 't', objective: 'keep working', status, tokenBudget: null, tokensUsed: 0, timeUsedSeconds: 0, createdAt: 1, updatedAt: 2 });
+const activeThreads = (service: RuntimeService): JsonValue => object(object(service.status()).activity).activeThreads!;
 
 test('queue text edits preserve durable attachments across runtime recreation and explicit [] clears input', async () => {
   const { service, native, cwd } = setup(); const upload = object(await service.call('attachment/upload', { name: 'picture.png', mimeType: 'image/png', base64: 'YQ==' }, context));
@@ -108,6 +112,44 @@ test('steer media requires a known current-turn model and honors applied live mo
   expect(native.calls.filter(call => call.method === 'turn/steer')).toHaveLength(1);
 });
 
+test.each(['before', 'after'] as const)('live model updates respect reroutes received %s the write boundary', async when => {
+  const { service, native } = setup(); await hydrate(service);
+  const attachmentId = object(await service.call('attachment/upload', { name: 'clip.wav', mimeType: 'audio/wav', base64: 'YQ==' }, context)).attachmentId!;
+  native.active = true; native.emit('notification', { method: 'turn/started', params: { threadId: 't', turn: turn('active', 'inProgress') } });
+  native.responseOverride = { method: 'model/list', value: { data: [{ id: 'fixture', model: 'fixture', inputModalities: ['text', 'audio'] }, { id: 'text-only', model: 'text-only', inputModalities: ['text'] }], nextCursor: null } };
+  const reroute = (method: string): void => { if (method === 'turn/settings/update') native.emit('notification', { method: 'model/rerouted', params: { threadId: 't', turnId: 'active', fromModel: 'fixture', toModel: 'text-only', reason: 'highRiskCyberActivity' } }); };
+  if (when === 'before') native.hook = reroute; else native.afterWrite = reroute;
+  await service.call('turn/settings/update', { threadId: 't', turnId: 'active', model: 'fixture' }, context);
+  const steer = () => service.call('turn/steer', { threadId: 't', expectedTurnId: 'active', attachmentIds: [attachmentId] }, context);
+  if (when === 'before') await expect(steer()).resolves.toEqual({ turnId: 'active' });
+  else { await expect(steer()).rejects.toMatchObject({ code: 'model_modality_unsupported' }); expect(native.calls.some(call => call.method === 'turn/steer')).toBe(false); }
+  native.hook = undefined; native.afterWrite = undefined;
+  await service.call('turn/settings/update', { threadId: 't', turnId: 'active', model: 'fixture' }, context);
+  await expect(steer()).resolves.toEqual({ turnId: 'active' });
+});
+
+test('a live settings response cannot restore the model of a completed or replaced turn', async () => {
+  const { service, native } = setup(); await hydrate(service);
+  const attachmentId = object(await service.call('attachment/upload', { name: 'clip.wav', mimeType: 'audio/wav', base64: 'YQ==' }, context)).attachmentId!;
+  native.active = true; native.emit('notification', { method: 'turn/started', params: { threadId: 't', turn: turn('active', 'inProgress') } });
+  native.afterWrite = method => { if (method === 'turn/settings/update') {
+    native.emit('notification', { method: 'turn/completed', params: { threadId: 't', turn: turn('active') } });
+    native.emit('notification', { method: 'turn/started', params: { threadId: 't', turn: turn('replacement', 'inProgress') } });
+  } };
+  await service.call('turn/settings/update', { threadId: 't', turnId: 'active', model: 'fixture' }, context);
+  await expect(service.call('turn/steer', { threadId: 't', expectedTurnId: 'replacement', attachmentIds: [attachmentId] }, context)).rejects.toMatchObject({ code: 'model_capability_unknown' });
+  expect(native.calls.some(call => call.method === 'turn/steer')).toBe(false);
+});
+
+test('ordinary output notifications do not discard applied live model settings', async () => {
+  const { service, native } = setup(); await hydrate(service);
+  const attachmentId = object(await service.call('attachment/upload', { name: 'clip.wav', mimeType: 'audio/wav', base64: 'YQ==' }, context)).attachmentId!;
+  native.active = true; native.emit('notification', { method: 'turn/started', params: { threadId: 't', turn: turn('active', 'inProgress') } });
+  native.afterWrite = method => { if (method === 'turn/settings/update') native.emit('notification', { method: 'item/agentMessage/delta', params: { threadId: 't', turnId: 'active', itemId: 'message', delta: 'output' } }); };
+  await service.call('turn/settings/update', { threadId: 't', turnId: 'active', model: 'fixture' }, context);
+  await expect(service.call('turn/steer', { threadId: 't', expectedTurnId: 'active', attachmentIds: [attachmentId] }, context)).resolves.toEqual({ turnId: 'active' });
+});
+
 test.each(['turn/start', 'thread/queue/add'])('%s rejects a model-change notification between media discovery and final write', async method => {
   const { service, native, cwd } = setup(); await hydrate(service); const attachmentId = object(await service.call('attachment/upload', { name: 'clip.wav', mimeType: 'audio/wav', base64: 'YQ==' }, context)).attachmentId!;
   native.hook = name => { if (name === 'model/list') native.emit('notification', { method: 'thread/settings/updated', params: { threadId: 't', threadSettings: { disabledPluginIds: [], cwd, approvalPolicy: 'never', approvalsReviewer: 'user', sandboxPolicy: { type: 'dangerFullAccess' }, activePermissionProfile: null, model: 'changed', modelProvider: 'fixture', serviceTier: null, effort: null, summary: null, collaborationMode: { mode: 'default', settings: { model: 'changed', reasoning_effort: null, developer_instructions: null } }, multiAgentMode: 'explicitRequestOnly', personality: null } } }); };
@@ -129,6 +171,67 @@ test('goals require user provenance, preserve null versus omission, and pause ac
   await expect(service.call('thread/goal/set', { threadId: 't', objective: 'new goal' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
   await service.call('thread/goal/set', { threadId: 't', status: 'paused', tokenBudget: null }, context); expect(native.calls.at(-1)!.params).toEqual({ threadId: 't', status: 'paused', tokenBudget: null, origin: 'user' });
   await service.call('thread/goal/clear', { threadId: 't' }, context); expect(native.calls.at(-1)!.params).toEqual({ threadId: 't', origin: 'user' });
+});
+
+test.each(['complete', 'paused', 'cleared', 'closed'] as const)('late active goal responses preserve newer %s evidence', async status => {
+  const { service, native } = setup(); await hydrate(service);
+  native.afterWrite = method => { if (method === 'thread/goal/set') native.emit('notification', status === 'closed'
+    ? { method: 'thread/closed', params: { threadId: 't' } }
+    : status === 'cleared' ? { method: 'thread/goal/cleared', params: { threadId: 't' } }
+    : { method: 'thread/goal/updated', params: { threadId: 't', turnId: null, goal: goal(status) } }); };
+  await service.call('thread/goal/set', { threadId: 't', objective: 'keep working' }, context);
+  expect(activeThreads(service)).not.toContain('t');
+  native.responseOverride = { method: 'remoteControl/status/read', value: { status: 'disabled', serverName: 'fixture', installationId: 'fixture', environmentId: null } };
+  await expect(service.call('runtime/maintenance/check', {}, context)).resolves.toMatchObject({ idle: true });
+});
+
+test.each(['thread/goal/set', 'thread/goal/clear'])('late %s responses cannot hide a newly active goal', async method => {
+  const { service, native } = setup(); await hydrate(service);
+  native.afterWrite = sent => { if (sent === method) native.emit('notification', { method: 'thread/goal/updated', params: { threadId: 't', turnId: null, goal: goal() } }); };
+  await service.call(method, { threadId: 't', ...(method === 'thread/goal/set' ? { status: 'paused' } : {}) }, context);
+  expect(activeThreads(service)).toContain('t');
+  await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+});
+
+test('goal write versions preserve ordinary replies and reject simultaneous mutations', async () => {
+  const { service, native } = setup(); await hydrate(service);
+  const written = Promise.withResolvers<void>(), reply = Promise.withResolvers<void>();
+  native.afterWrite = async method => { if (method === 'thread/goal/set') {
+    native.emit('notification', { method: 'item/agentMessage/delta', params: { threadId: 't', turnId: 'active', itemId: 'message', delta: 'output' } });
+    written.resolve(); await reply.promise;
+  } };
+  const setting = service.call('thread/goal/set', { threadId: 't', objective: 'keep working' }, context); await written.promise;
+  await expect(service.call('thread/goal/clear', { threadId: 't' }, context)).rejects.toMatchObject({ code: 'thread_busy' });
+  reply.resolve(); await setting;
+  expect(activeThreads(service)).toContain('t');
+  await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+  await service.call('thread/goal/clear', { threadId: 't' }, context); expect(activeThreads(service)).not.toContain('t');
+});
+
+test.each(['before', 'during'] as const)('continuation reads begun %s a goal write cannot overwrite its accepted result', async when => {
+  const { service, native } = setup(); await hydrate(service);
+  const readStarted = Promise.withResolvers<void>(), readReply = Promise.withResolvers<void>();
+  const writeStarted = Promise.withResolvers<void>(), writeReply = Promise.withResolvers<void>();
+  let firstRead = true;
+  native.afterWrite = async method => {
+    if (method === 'thread/queue/list' && firstRead) { firstRead = false; readStarted.resolve(); if (when === 'before') await readReply.promise; }
+    if (method === 'thread/goal/set' && when === 'during') { writeStarted.resolve(); await writeReply.promise; }
+  };
+  if (when === 'before') {
+    native.emit('notification', { method: 'thread/queue/changed', params: { threadId: 't' } }); await readStarted.promise;
+    await service.call('thread/goal/set', { threadId: 't', objective: 'keep working' }, context);
+    native.responseOverride = { method: 'thread/goal/get', value: { goal: goal() } }; readReply.resolve();
+    await expect.poll(() => native.calls.filter(call => call.method === 'thread/goal/get').length).toBe(2);
+  } else {
+    const setting = service.call('thread/goal/set', { threadId: 't', objective: 'keep working' }, context); await writeStarted.promise;
+    native.emit('notification', { method: 'thread/queue/changed', params: { threadId: 't' } }); await readStarted.promise;
+    await new Promise<void>(resolve => setImmediate(resolve));
+    writeReply.resolve(); await setting;
+  }
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(activeThreads(service)).toContain('t');
+  await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+  await service.call('thread/goal/clear', { threadId: 't' }, context); expect(activeThreads(service)).not.toContain('t');
 });
 test('fork retains source project and goal deferral; child and reverted history need new complete proofs', async () => {
   const { service, native } = setup(); await hydrate(service); const forked = object(await service.call('thread/fork', { threadId: 't', beforeTurnId: 'u' }, context)); expect(object(forked.thread).id).toBe('fork');

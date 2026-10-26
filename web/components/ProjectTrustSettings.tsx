@@ -28,6 +28,7 @@ export function ProjectTrustSettings({
     );
   const [choice, setChoice] = useState(''),
     [confirmation, setConfirmation] = useState('');
+  const frozen = action.busy || ['pending', 'unknown'].includes(action.operation?.state ?? '');
   const version = state.data?.userVersion;
   const choiceKey = `${project.id}:${version}:${choice}`;
   return (
@@ -63,6 +64,7 @@ export function ProjectTrustSettings({
             新的项目信任选择
             <select
               value={choice}
+              disabled={frozen}
               onChange={(e) => {
                 setChoice(e.target.value);
                 setConfirmation('');
@@ -82,6 +84,7 @@ export function ProjectTrustSettings({
           <label className="check-row">
             <input
               type="checkbox"
+              disabled={frozen}
               checked={confirmation === choiceKey}
               onChange={(e) => setConfirmation(e.target.checked ? choiceKey : '')}
             />

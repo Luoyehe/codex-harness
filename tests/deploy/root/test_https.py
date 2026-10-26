@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import secrets
 import sys
 import subprocess
 import tempfile
@@ -106,7 +107,8 @@ class HttpsTransactionTests(unittest.TestCase):
         self.manager.recover_control = lambda: self.system.events.append("recover-control")
         self.manager.healthy = lambda: self.system.fault("health")
         self.kwargs = {"host": "work.example.test", "auth_host": "auth.example.test", "domain": "example.test", "username": "admin",
-                       "email": "admin@example.test", "auth_port": 19091, "tls": "provided", "http_port": 18080, "https_port": 18443}
+                       "email": "admin@example.test", "auth_port": 19091, "tls": "provided", "http_port": 18080, "https_port": 18443,
+                       "password": secrets.token_urlsafe(24)}
         self.new_cert_path, self.new_key_path = self.root / "new-cert.pem", self.root / "new-key.pem"
         self.new_cert_path.write_bytes(self.new_cert)
         self.new_key_path.write_bytes(self.new_key)
@@ -117,6 +119,9 @@ class HttpsTransactionTests(unittest.TestCase):
         self.stack.enter_context(patch("deploy.https.ensure_account", return_value=(0, 0)))
         self.stack.enter_context(patch("deploy.https.render_caddy", side_effect=self.render))
         self.stack.enter_context(patch("deploy.https.run", side_effect=self.command))
+        self.account_login = self.stack.enter_context(patch("deploy.https.verify_account_login"))
+        self.account_status = self.stack.enter_context(patch("deploy.accounts.account_request", return_value=(
+            {"authenticationMode": "account", "initialized": True}, None)))
         for name in ("O_NOFOLLOW", "O_NONBLOCK"):
             if not hasattr(os, name):
                 self.stack.enter_context(patch.object(os, name, 0, create=True))
@@ -179,6 +184,38 @@ class HttpsTransactionTests(unittest.TestCase):
         self.assertIn(selected["tlsRevision"], (self.layout.config / "Caddyfile").read_text())
         self.assertEqual((self.layout.config / "tls/certificate.pem").read_bytes(), self.old_cert)
         self.assertEqual(self.journal()[1]["phase"], "committed")
+        self.assert_identity_preserved()
+        self.assertEqual(self.system.active, {"worker", "gateway", "caddy"})
+        self.assertEqual(self.system.enabled, {"worker", "gateway", "caddy"})
+        self.assertFalse((self.layout.units / self.layout.unit("authelia")).exists())
+        self.assertEqual(selected["authentication"], "builtin")
+        self.assertTrue(result["migratedFromAuthelia"])
+        self.account_login.assert_called_once()
+
+    def test_unverified_account_cannot_remove_external_authentication(self):
+        self.account_login.side_effect = DeployError("account_verification", "Rejected account")
+        with self.assertRaisesRegex(DeployError, "Rejected account"):
+            self.rotate()
+        self.assertEqual(self.system.events, [])
+        self.assertEqual({name: file.read_bytes() for name, file in transaction_paths(self.layout).items()}, self.before)
+
+    def test_account_support_lost_during_restart_restores_external_authentication(self):
+        self.account_status.return_value = ({"authenticated": False}, None)
+        with self.assertRaisesRegex(DeployError, "not restored"):
+            self.rotate()
+        self.assert_restored()
+
+    def test_first_builtin_setup_creates_no_authelia_unit_or_identity(self):
+        self.system.active = {"worker", "gateway"}
+        self.system.enabled = {"worker", "gateway"}
+        for path in (self.layout.units / self.layout.unit("caddy"), self.layout.units / self.layout.unit("authelia"),
+                     self.layout.config / "Caddyfile", self.layout.config / "https.json"):
+            path.unlink()
+        kwargs = {key: value for key, value in self.kwargs.items() if key not in ("auth_host", "domain", "email", "auth_port")}
+        result = setup_https(self.manager, **kwargs, certificate=self.new_cert_path, private_key=self.new_key_path)
+        self.assertFalse(result["migratedFromAuthelia"])
+        self.assertEqual(self.system.active, {"worker", "gateway", "caddy"})
+        self.assertFalse((self.layout.units / self.layout.unit("authelia")).exists())
         self.assert_identity_preserved()
 
     def test_candidate_validation_failure_does_not_stop_or_replace_the_old_pair(self):

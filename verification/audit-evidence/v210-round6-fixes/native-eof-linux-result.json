@@ -1,0 +1,396 @@
+{
+  "status": "passed",
+  "exitCode": 0,
+  "prerequisites": [
+    {
+      "group": "deploy",
+      "status": "ready",
+      "binary": "/usr/bin/python3",
+      "version": "Python 3.12.3"
+    }
+  ],
+  "results": [
+    {
+      "group": "javascript",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": [
+        "tests/runtime/native.test.ts"
+      ],
+      "cases": [
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery initialization requests explicit gateway authorization under the pinned schema",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery validates keys and nested Unicode before any write and keeps the connection usable",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery beforeWrite rejection is not_sent and does not reject unrelated requests",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery timeout after write is unknown and fails the epoch without replay",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery queued timeout under actual pipe backpressure is not_sent and retains sent work budget",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (true)",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (false)",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery preserves upstream error code/data and server request id type",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        },
+        {
+          "id": "tests/runtime/native.test.ts::bounded native delivery malformed native responses reject all waiters instead of hanging or claiming not_sent",
+          "file": "tests/runtime/native.test.ts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "group": "deploy",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": [
+        "tests/deploy/test_deployment.py",
+        "tests/deploy/test_native_shutdown.py"
+      ],
+      "cases": [
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_compressed_input_and_xz_decoder_memory_are_bounded",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_concatenated_compressed_streams_and_legacy_lzma_are_supported",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_delayed_links_consume_entry_budget_before_parent_creation",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_effective_pax_size_and_sparse_maps_do_not_bypass_admission",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_empty_xz_streams_do_not_accumulate_output_buffers",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_extensions_are_rejected_before_their_declared_payload_is_read",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_files_and_delayed_links_cannot_replace_an_implicit_directory",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_global_pax_state_cannot_accumulate_across_small_headers",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_implicit_directories_are_reserved_with_the_member_before_creation",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_inspection_caps_enumeration_before_collecting_a_wide_directory",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_inspection_reserves_pending_siblings_before_descending",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_long_link_and_global_pax_metadata_remain_parseable",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_metadata_total_physical_headers_and_extension_chain_are_bounded",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_pax_and_gnu_long_names_survive_all_supported_compression_formats",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_root_metadata_is_part_of_the_full_runtime_manifest",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_skipped_payload_still_consumes_decompressed_stream_budget",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_small_compressed_pax_payload_cannot_escape_metadata_budget",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_snapshot_bounds_fd_enumeration_and_reserves_pending_siblings",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_stopped_snapshot_preserves_full_tree_and_rejects_hardlinks",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_strip_and_late_explicit_directory_share_one_actual_entry_budget",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_symlink_relative_scope",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_traversal_hardlink_duplicate_and_special_file_rejected",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ArchiveTests.test_umask_077_does_not_hide_published_input",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::BoundaryTests.test_actual_dependency_command_disables_ancestor_workspace_and_hooks",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::BoundaryTests.test_lock_overrides_cannot_diverge_from_the_reviewed_workspace",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::BoundaryTests.test_real_current_dependency_inputs_pass_and_hook_resolution_fails",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::BoundaryTests.test_source_archive_includes_the_reviewed_workspace",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::BoundaryTests.test_units_have_distinct_worker_token_and_ipc_groups",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::BoundaryTests.test_workspace_rejects_hooks_catalogs_external_paths_and_unreviewed_overrides",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::CatalogDiscoveryTests.test_ids_do_not_inherit_unverified_capabilities",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::CatalogDiscoveryTests.test_local_no_auth_discovery_and_redirect_rejection",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::JournalTests.test_unknown_receipts_survive_control_barrier_reset",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::JournalTests.test_unknown_schema_or_trigger_is_rejected_before_mutation",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::NativeLauncherTests.test_native_bridge_backpressures_without_losing_large_protocol_frames",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::NativeLauncherTests.test_native_supervision_reaps_descendant_that_escaped_its_process_group",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::NativeLauncherTests.test_project_resolution_is_bounded_and_checks_directory_as_caller",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_confirmed_catalog_is_selected_by_the_native_configuration",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_default_without_override_is_legal_and_repeat_catalog_is_noop",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_empty_key_means_no_auth_and_literal_empty_is_not_a_sentinel",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_new_endpoint_never_inherits_old_key",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_non_default_override_rejected_and_stale_revision_rejected",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_public_http_is_rejected_even_when_insecure_is_confirmed",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_secrets_are_not_in_native_config_or_read_response",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_urls_and_secret_control_characters_are_rejected",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ProviderTests.test_zhipu_uses_official_responses_and_four_mcp_entries",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::ReadinessTests.test_gateway_http_success_cannot_mask_disconnected_worker",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::TransactionTests.test_health_failure_confirms_stop_before_restoring_old_release",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::TransactionTests.test_invalid_mutation_has_no_durable_unknown_receipt",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::TransactionTests.test_root_receipt_replays_without_running_mutation_twice",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::TransactionTests.test_unconfirmed_stop_never_changes_pointer_or_recovery_barrier",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::TransactionTests.test_unexpected_interruption_keeps_running_receipt_unknown",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::TransactionTests.test_unknown_recovery_stop_preserves_candidate_and_transaction",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::TransactionTests.test_validation_failure_never_stops_the_old_service",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::UnitStateTests.test_empty_duplicate_failed_and_contradictory_queries_do_not_authorize_cleanup",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_deployment.py::UnitStateTests.test_loaded_stopped_and_collected_have_consistent_evidence",
+          "file": "tests/deploy/test_deployment.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_buffered_eof_cannot_acknowledge_unconfirmed_cleanup",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_eof_acknowledges_cleanup_even_when_native_ignores_eof_and_term",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_eof_with_pending_bytes_still_stops_native_and_detached_descendant",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_pipe_hangup_stops_native_even_when_bridge_and_kernel_buffers_are_full",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_service_signal_acknowledges_confirmed_cleanup",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_socket_half_close_stops_native_even_when_bridge_and_kernel_buffers_are_full",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_unconfirmed_cleanup_cannot_acknowledge_success",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_unrequested_native_crash_preserves_failure",
+          "file": "tests/deploy/test_native_shutdown.py",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "digest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589"
+}

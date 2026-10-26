@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v210-round1",
+  "supplements": ".work/v210-audit1-deployment.json",
+  "originalAuditDigest": "cf716085707487af4abf397bcb4e1f96172580c1c602e9630d08ff17accf40ba",
+  "scope": "Targeted follow-up of the confirmed authentication downgrade finding; not a new full audit or clean-round result",
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "deploy/control_update.py",
+      "function": "ControlUpdater.recover_transaction",
+      "title": "Control recovery can bypass the retained generation's account guard requirement",
+      "trigger": "An operator has activated an account-capable application while still using older control tools, then the control upgrade fails or is interrupted. Ordinary control-recover and automatic exception recovery previously restored state.old without checking its account downgrade guard capability.",
+      "impact": "Recovery could replace the trusted manager with a retained control generation lacking account downgrade protection while the instance already depends on account-v1.",
+      "fix": "Verify the complete recovery target tree and apply the same authenticationGuard compatibility check before changing guards, stopping services or writing the recovery journal. Preserve fail-closed stopping for corrupt recovery material. A legacy instance with no account dependency remains eligible for its original first-upgrade recovery.",
+      "regressions": [
+        "test_control_recover_cannot_restore_legacy_guard_for_account_dependent_instance",
+        "test_automatic_control_recovery_does_not_restore_account_incompatible_guard",
+        "test_compatible_control_recovery_restores_prior_generation_with_accounts",
+        "test_initial_legacy_control_upgrade_failure_still_recovers"
+      ]
+    },
+    {
+      "priority": "P1",
+      "path": "deploy/manager.py",
+      "functions": [
+        "Manager.activate exception recovery",
+        "Manager.repair release branch"
+      ],
+      "title": "Application failure recovery can select token-only code after an account-capable candidate has run",
+      "trigger": "A legacy-to-account application update selects and starts the candidate, then readiness or commit publication fails, or the process is interrupted and repair is invoked. The new account-capable gateway may already have accepted initialization before that failure.",
+      "impact": "The previous recovery path selected state.old directly and restarted token-only application code, bypassing the compatibility check enforced by ordinary rollback and potentially bypassing the new account/MFA policy.",
+      "fix": "After confirming services stopped, verify both retained and selected release manifests and apply the same account compatibility gate before selecting the recovery target. An incompatible target leaves services stopped, candidate and pending journal intact, and returns authentication_downgrade with explicit operator recovery guidance. Account-compatible automatic recovery and repair retain their prior successful behavior.",
+      "regressions": [
+        "test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore",
+        "test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate",
+        "test_compatible_account_candidate_failure_restores_prior_account_release",
+        "test_compatible_account_repair_restores_prior_account_release"
+      ]
+    }
+  ],
+  "verification": {
+    "windowsTargeted": {
+      "selected": 63,
+      "passed": 19,
+      "skipped": 44,
+      "failed": 0
+    },
+    "rootRegressionStatus": "Added; Windows correctly skipped real-root fixtures. Parent will execute on isolated Linux root.",
+    "diffCheck": "passed",
+    "limits": "No online deployment, real systemd, old implementation, supplier inference or full suite was used for this follow-up. Control and app regression fixtures substitute service/process execution and use only current synthetic release metadata."
+  },
+  "recoveryEntryPoints": {
+    "application": "repair --target candidate",
+    "control": "control-recover --target candidate",
+    "scope": "Only the full-manifest-verified candidate already recorded in one unfinished transaction; no arbitrary replacement path or release ID. Shutdown is confirmed, candidate is restored, readiness succeeds before original transaction commits. Default previous-compatible recovery remains unchanged.",
+    "additionalRegressions": "Original interruption phases, interruption between control renames and application selection publication, readiness failure and repeated recovery, incomplete candidate rejection before service mutation."
+  }
+}

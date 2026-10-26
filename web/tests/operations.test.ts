@@ -86,10 +86,60 @@ describe('independent operation recovery', () => {
     expect(listOperations()[0]?.state).toBe('not_sent');
     expect(() => createOperation('turn/start', { threadId: 'a' })).not.toThrow();
   });
-  it('gives duplicated documents independent client identities', () => {
+  it.each(['available', 'getter', 'read', 'write'] as const)('gives duplicated documents independent client identities when sessionStorage is %s', (failure) => {
+    sessionStorage.setItem('harness.client', 'copied-document-client');
+    if (failure === 'getter') {
+      vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+        throw new DOMException('storage unavailable', 'SecurityError');
+      });
+    } else if (failure === 'read') {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new DOMException('storage unreadable', 'SecurityError');
+      });
+    } else if (failure === 'write') {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('storage unwritable', 'QuotaExceededError');
+      });
+    }
     const a = new Api(),
       b = new Api();
+    expect(a.clientId).not.toBe('copied-document-client');
+    expect(b.clientId).not.toBe('copied-document-client');
     expect(a.clientId).not.toBe(b.clientId);
+    expect(a.headers()['X-Harness-Client']).toBe(a.clientId);
+    expect(b.headers()['X-Harness-Client']).toBe(b.clientId);
+  });
+  it.each(['getter', 'read', 'write', 'discarded-write'] as const)('sends neither a business mutation nor a terminal open when operation storage has a %s failure', async (failure) => {
+    const storage = localStorage,
+      fetch = vi.fn(),
+      api = new Api();
+    vi.stubGlobal('fetch', fetch);
+    if (failure === 'getter') {
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+        throw new DOMException('operation storage unavailable', 'SecurityError');
+      });
+    } else if (failure === 'read') {
+      const original = Storage.prototype.getItem;
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key) {
+        if (this === storage) throw new DOMException('operation storage unreadable', 'SecurityError');
+        return original.call(this, key);
+      });
+    } else {
+      const original = Storage.prototype.setItem;
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+        if (this === storage) {
+          if (failure === 'discarded-write') return;
+          throw new DOMException('operation storage unwritable', 'QuotaExceededError');
+        }
+        return original.call(this, key, value);
+      });
+    }
+    await expect(api.mutate('workspace/write', { projectId: 'p', path: 'file.txt' })).rejects.toThrow();
+    expect(() => api.openTerminal({ projectId: 'p', rows: 24, cols: 80 }, 'lease')).toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+    await Promise.resolve();
+    expect(fetch).not.toHaveBeenCalled();
   });
   it('submits the first conversation input as one intent and preserves a partial unknown thread', async () => {
     const fetch = vi.fn().mockResolvedValue({

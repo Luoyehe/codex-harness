@@ -5,6 +5,7 @@ import ctypes
 import json
 import os
 from pathlib import Path
+import select
 import selectors
 import signal
 import stat
@@ -86,18 +87,27 @@ def supervise(command: list[str], environment: dict[str, str], cwd: str, *, stre
     stdin_registered = False
     output_registered = False
     input_capacity = 8 * 1024 * 1024
+    input_closed = None
     if streaming:
         os.set_blocking(child.stdin.fileno(), False)
         selector.register(sys.stdin.fileno(), selectors.EVENT_READ, "input")
         stdin_registered = True
+        # HUP is reported even while a pipe still contains unread bytes. RDHUP
+        # covers a half-closed socket (Node's stdio pipes can be socketpairs).
+        # Observe closure separately from reads: the bounded bridge may have
+        # unregistered a full input buffer, and must not wait for it to drain.
+        input_closed = select.poll()
+        input_closed.register(sys.stdin.fileno(), select.POLLRDHUP)
     try:
         while child.poll() is None and not stop_requested:
+            if input_closed is not None and ended_at is None and any(
+                    events & (select.POLLHUP | select.POLLRDHUP) for _, events in input_closed.poll(0)):
+                ended_at = time.monotonic()
             if input_ended and not pending and child.stdin is not None and not child.stdin.closed:
                 if output_registered:
                     selector.unregister(child.stdin.fileno())
                     output_registered = False
                 child.stdin.close()
-                ended_at = time.monotonic()
             if ended_at is not None and time.monotonic() - ended_at > (2 if streaming else 10):
                 break
             for key, _ in selector.select(0.1):
@@ -105,6 +115,8 @@ def supervise(command: list[str], environment: dict[str, str], cwd: str, *, stre
                     data = os.read(sys.stdin.fileno(), min(65536, input_capacity - len(pending)))
                     if not data:
                         input_ended = True
+                        if ended_at is None:
+                            ended_at = time.monotonic()
                         selector.unregister(sys.stdin.fileno())
                         stdin_registered = False
                     else:
@@ -138,7 +150,7 @@ def supervise(command: list[str], environment: dict[str, str], cwd: str, *, stre
     # systemd signals the entire cgroup, and EOF can require forced cleanup;
     # neither implies an unconfirmed process tree after clean_children succeeds.
     # Spontaneous native exits and non-streaming helpers retain their exit code.
-    if streaming and (stop_requested or input_ended):
+    if streaming and (stop_requested or ended_at is not None):
         return 0
     return natural if natural is not None else 1
 

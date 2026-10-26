@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "finding": "V210-R3-TEST-GIT-ISOLATION",
+  "status": "implemented-with-platform-coverage-limit",
+  "completedAt": "2026-10-26T17:37:29.390Z",
+  "scope": "Local targeted and full-test runner entry isolation, Python/JS prerequisites and execution, shared CI isolation; no application behavior changed.",
+  "design": [
+    "Extracted the existing CI allowlist into scripts/test-environment.mjs; only platform bootstrap variables and the three known HARNESS_TEST_* runtime prerequisites survive.",
+    "Fresh HOME, USERPROFILE, CODEX_HOME, app-data, XDG directories and temp replace host paths. Global/system Git configurations are disabled; GIT_CONFIG_COUNT/PARAMETERS, GIT_DIR/WORK_TREE, credential and interpreter injection variables are not inherited.",
+    "run-tests and select-tests public CLIs isolate their process before planning or Git snapshot/change reads. executePlan passes one isolated environment through prerequisite checks and both test engines, retaining dependency injection.",
+    "Python --version and test subprocess now receive explicit isolation; direct runPythonTests/runVitest defaults and selection execution also isolate. Native version checks retain fresh homes and take bootstrap variables from the supplied environment.",
+    "CI keeps its process-wide isolation and exact-selection/reporting behavior, calling the shared factory with its existing linux-root identity choice.",
+    "Root-owned local runs and CI root jobs use a fresh /tmp ancestor with mode 0755 outside the private 0700 HOME; inherited TMPDIR cannot put it back under a private home. No runtime fallback or missing-prerequisite conversion to success was added.",
+    "Affected-test mapping includes the new environment regression for shared-runner changes."
+  ],
+  "files": [
+    {
+      "file": "scripts/test-environment.mjs",
+      "sha256": "6d6c681427c0a2b53b19614eba5abcb317fbc86e63921e556cdcddf4a5ac212b"
+    },
+    {
+      "file": "scripts/run-tests.mjs",
+      "sha256": "d441ecf32bafc2ff40080a141be393100c92da77fab138be7069c52702581b3d"
+    },
+    {
+      "file": "scripts/select-tests.mjs",
+      "sha256": "d1da79b2651b0b6a445622d3f04161656edb2da9c690166edea548ab8c2d8879"
+    },
+    {
+      "file": "scripts/ci-checks.mjs",
+      "sha256": "e307b9b30e5e83ff12bd9a4c3495124036b9c974865e527c82fb57c05f321b76"
+    },
+    {
+      "file": "tests/tooling/test-environment.test.ts",
+      "sha256": "a7b6f60ef88b5871aee0686790df7fd8cc3b1387b8d8dee91b4fe1578586a034"
+    }
+  ],
+  "regression": {
+    "file": "tests/tooling/test-environment.test.ts",
+    "cases": 4,
+    "assertions": [
+      "Case-insensitive PATH/SystemRoot handling and all three runtime prerequisite values survive; artificial host paths, Git overrides, NODE_OPTIONS, PYTHONPATH, and credentials do not.",
+      "Both injected engine calls and prerequisite calls receive the same isolated environment; skipped and failed prerequisites stop both engines without a false pass.",
+      "Root temp path ignores artificial private TMPDIR and retains mode separation; conditional Linux root branch tests actual uid/gid 65534 traversal.",
+      "Copies the current runner modules into an artificial repository and runs their real public targeted CLI with JavaScript and Python probes that make real Git commits. Positive control proves artificial HOME/.gitconfig/pre-commit hook is executable; global config, GIT_CONFIG_COUNT, GIT_CONFIG_PARAMETERS, GIT_DIR and GIT_WORK_TREE cannot affect the actual selected children.",
+      "JavaScript/Python child HOME values agree, artificial Codex auth is absent, no hook marker is produced, and an absent Python executable yields exit 3 and no engine results.",
+      "Positive artificial fsmonitor control proves the hook is executable; public full-mode planning reaches the missing-three-audit-round rejection without executing fsmonitor or accepting injected GIT_DIR. No full test suite is executed."
+    ]
+  },
+  "targeted": {
+    "startedAt": "2026-10-26T17:34:50.217Z",
+    "completedAt": "2026-10-26T17:34:59.536Z",
+    "command": "pnpm test:targeted tests/tooling/ci-checks.test.ts tests/tooling/compatibility-watch.test.ts tests/tooling/prepare-ci-native.test.ts tests/tooling/release-audit.test.ts tests/tooling/reviewed-history.test.ts tests/tooling/run-tests.test.ts tests/tooling/select-tests.test.ts tests/tooling/test-environment.test.ts tests/tooling/windows-controller-preflight.test.ts",
+    "pnpmVersion": "11.22.0",
+    "pnpmConfigVerifyDepsBeforeRun": "warn (isolated store differs; no dependency installation authorized)",
+    "exitCode": 3,
+    "error": null,
+    "files": [
+      "tests/tooling/ci-checks.test.ts",
+      "tests/tooling/compatibility-watch.test.ts",
+      "tests/tooling/prepare-ci-native.test.ts",
+      "tests/tooling/release-audit.test.ts",
+      "tests/tooling/reviewed-history.test.ts",
+      "tests/tooling/run-tests.test.ts",
+      "tests/tooling/select-tests.test.ts",
+      "tests/tooling/test-environment.test.ts",
+      "tests/tooling/windows-controller-preflight.test.ts"
+    ],
+    "passed": 68,
+    "failed": 0,
+    "pending": 1,
+    "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-auXgsH/vitest.json",
+    "stdout": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v210-local-targeted-cdbm7f\\stdout.txt",
+    "stderr": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v210-local-targeted-cdbm7f\\stderr.txt",
+    "fakeGlobalOrInjectedHookExecuted": false,
+    "personalEnvironmentUsed": false
+  },
+  "staticChecks": {
+    "sourceScan": {
+      "mode": "source",
+      "status": "clean",
+      "scannedFiles": 5,
+      "scannedBytes": 57326,
+      "findings": [],
+      "artifacts": [],
+      "unreadable": [],
+      "skipped": []
+    },
+    "testTypeScriptSyntax": {
+      "status": 0,
+      "stderr": ""
+    },
+    "nodeCheck": [
+      "scripts/test-environment.mjs",
+      "scripts/run-tests.mjs",
+      "scripts/select-tests.mjs",
+      "scripts/ci-checks.mjs"
+    ],
+    "nodeCheckResult": "passed",
+    "pythonRunnerAst": "passed",
+    "gitDiffCheck": "passed",
+    "typecheck": "No production TypeScript changed; test TypeScript parsed and executed by Vitest, plus Node type stripping and syntax check."
+  },
+  "intermediateChecks": [
+    {
+      "report": ".work/test-results/run-8IfP9P/vitest.json",
+      "files": 6,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 1,
+      "exitCode": 3
+    },
+    {
+      "report": ".work/test-results/run-fXt7bd/vitest.json",
+      "files": 1,
+      "passed": 3,
+      "failed": 1,
+      "reason": "New artificial full-planning fixture initially included Vitest generated node_modules; fixed only its .gitignore before final validation."
+    },
+    {
+      "report": ".work/test-results/run-XPolh4/vitest.json",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "exitCode": 0
+    }
+  ],
+  "toolingNotes": [
+    "Real pnpm is 11.22.0. An artificial HOME changes pnpm store settings, so its default pre-run dependency verification tried install but stopped at the non-TTY purge confirmation before running tests; logs remain in .work/v210-local-targeted-RiHs1e/. No dependency installation was performed.",
+    "An attempted CLI --verify-deps-before-run=false option was unsupported; logs remain in .work/v210-local-targeted-l5Ehyn/. Final validation used pnpm_config_verify_deps_before_run=warn, an existing pnpm configuration supported by its installed implementation. This runs the actual package test:targeted script without reinstalling dependencies; the runner removes the pnpm configuration from test child environments.",
+    "TypeScript 7 installed here has no previous transpileModule enum API; new test syntax was instead checked using Node type stripping plus node --check and the actual Vitest transform/execution. No production TypeScript file changed."
+  ],
+  "limitations": [
+    "Windows-only local validation. The existing CI POSIX temp-permission case remains a reported skip and the overall targeted command correctly exits 3. Linux root UID-drop branch, native Linux runtime and hosted CI jobs were not executed.",
+    "No full suite, SSH, online deployment, real service changes, model inference, external MCP, dependency download or package lock modification.",
+    "The allowed trusted runtime/bootstrap executable paths can be supplied by the caller. Isolation begins inside the Node CLI and controls its planning/prerequisite/test subprocesses; it does not sandbox the parent shell or package-manager process before the CLI starts.",
+    "Global and system Git configuration is removed; repository-local configuration deliberately created by tests remains available.",
+    "No sibling or prior implementation was consulted. Git-object tests operated only on their newly created artificial fixtures."
+  ]
+}

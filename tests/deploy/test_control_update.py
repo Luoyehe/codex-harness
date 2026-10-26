@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy.cli import parser
-from deploy.common import Layout
+from deploy.common import Layout, read_json
 from deploy.control_update import ControlSystem
 from deploy.install import stage_control
 
@@ -15,6 +15,8 @@ class ControlBoundaryTests(unittest.TestCase):
     def test_operator_control_commands_have_no_candidate_archive_argument(self):
         self.assertEqual(parser().parse_args(["control-update"]).command, "control-update")
         self.assertEqual(parser().parse_args(["control-recover"]).command, "control-recover")
+        self.assertEqual(parser().parse_args(["control-recover", "--target", "candidate"]).target, "candidate")
+        self.assertEqual(parser().parse_args(["repair", "--target", "candidate"]).target, "candidate")
         self.assertEqual(parser().parse_args(["control-rollback", "--transaction", "a" * 32]).transaction, "a" * 32)
         with patch("sys.stderr"), self.assertRaises(SystemExit):
             parser().parse_args(["control-update", "--source", "/tmp/untrusted.tgz"])
@@ -38,6 +40,7 @@ class ControlBoundaryTests(unittest.TestCase):
             layout = Layout("fixture", Path(folder))
             destination = Path(folder) / "staged"
             stage_control(layout, destination)
+            self.assertEqual(read_json(destination / "capabilities.json")["authenticationGuard"], "account-v1")
             self.assertTrue((destination / "deploy/control_update.py").is_file())
             self.assertEqual(list(destination.rglob("*.pyc")), [])
             self.assertFalse((destination / "deploy/README.md").exists())

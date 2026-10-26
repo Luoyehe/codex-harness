@@ -1,0 +1,7 @@
+{
+  "before": "f481ba6038f34ddef312d748d000504d833948aea01161927755b9c14f6f479d",
+  "after": "bc995b764007152a4c8546b59d0980f44bdb5d53105cbcf195620eba703fdffa",
+  "changedPaths": [
+    "verification/feature-evidence/mcp-oauth-handoff.json"
+  ]
+}

@@ -36,6 +36,7 @@ import { UnifiedHistory } from './history.js';
 import { mediaModalities, selectedInputModel, validateInputModalities } from './input-modalities.js';
 import { CliDiagnostics, cliDiagnosticMethods } from './cli-diagnostics.js';
 import { DeviceLogin } from './device-login.js';
+import { McpOauth } from './mcp-oauth.js';
 import { Predictions, predictionMethods } from './predictions.js';
 import { ThreadActivity, hasTurnActivity, type Activity } from './thread-activity.js';
 
@@ -83,6 +84,7 @@ export class RuntimeService extends EventEmitter {
   private cliTerminals: CliTerminals;
   private cliDiagnostics: CliDiagnostics;
   private deviceLogin: DeviceLogin;
+  private mcpOauth: McpOauth;
   private predictions: Predictions;
   private configurationPending = false;
   private workspace: RuntimeWorkspace;
@@ -124,6 +126,7 @@ export class RuntimeService extends EventEmitter {
       settled: () => { this.unknown = true; this.defaultsCache.clear(); this.sessions.clear(); this.historyStore.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); this.emitState(); }, failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: (operation, context) => this.configurationMutation(operation, context, false), available: () => this.admit(undefined, false, true), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.deviceLogin = new DeviceLogin({ native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor });
+    this.mcpOauth = new McpOauth({ epoch: this.epoch, redactor: this.redactor, notify: (params, channel) => this.emitEvent('mcp', { type: 'oauth-completed', ...params }, channel) });
     this.predictions = new Predictions({ native: (method, params) => this.native.call(method, params), mutate: (operation, context) => this.workflowMutation(operation, context), revision: threadId => this.track(threadId).revision, emit: (data, channel) => this.emitEvent('prediction', data, channel), changed: () => this.emitState(), unknown: () => { this.unknown = true; this.emitState(); } });
     native.on('notification', (message: JsonObject) => {
       try { this.notification(message); }
@@ -147,7 +150,7 @@ export class RuntimeService extends EventEmitter {
       this.cliTerminals.reset();
       this.cliDiagnostics.reset();
       this.environments.reset(); this.remoteControl.reset();
-      this.extensions.close(); this.deviceLogin.close();
+      this.extensions.close(); this.deviceLogin.close(); this.mcpOauth.close();
       this.historyStore.clear();
       for (const prompt of [...this.prompts.values()]) this.closePrompt(prompt, 'runtime_lost');
       for (const terminal of this.terminals.values()) this.emitEvent('terminal', { terminalId: terminal.terminalId, clientId: terminal.clientId, type: 'error', error: 'Native runtime disconnected' }, terminal.eventChannelId);
@@ -194,6 +197,7 @@ export class RuntimeService extends EventEmitter {
     if (this.extensions.notification(method, params)) return;
     if (this.predictions.notification(method, params)) return;
     this.guardian.notification(method, params); this.deviceLogin.notification(method, params);
+    if (this.mcpOauth.notification(method, params)) return;
     if (this.mcp.notification(method, params)) return;
     if (this.cliDiagnostics.notification(method, params)) return;
     if (this.cliTerminals.notification(method, params)) return;
@@ -202,20 +206,25 @@ export class RuntimeService extends EventEmitter {
     if (method === 'account/updated' || method === 'account/login/completed') this.defaultsCache.clear();
     if (typeof params.threadId === 'string') {
       const state = this.track(params.threadId); state.revision++;
-      if (['thread/status/changed', 'turn/started', 'turn/completed', 'thread/goal/updated', 'thread/goal/cleared', 'thread/queue/changed'].includes(method)) state.continuationRevision = (state.continuationRevision ?? 0) + 1;
+      if (['thread/status/changed', 'turn/started', 'turn/completed', 'thread/goal/updated', 'thread/goal/cleared', 'thread/queue/changed', 'thread/closed', 'thread/deleted'].includes(method)) state.continuationRevision = (state.continuationRevision ?? 0) + 1;
       if (method === 'thread/status/changed') { state.status = string(object(params.status).type, 'thread status'); if (state.status === 'active') state.fresh = false; }
-      if (method === 'turn/started') { if (!state.pending) delete state.activeModel; state.fresh = false; state.status = 'active'; state.turnId = string(object(params.turn).id, 'turn id'); }
+      if (method === 'turn/started') {
+        const turnId = string(object(params.turn).id, 'turn id');
+        if (!state.pending || (state.turnId !== null && state.turnId !== turnId)) delete state.activeModel;
+        if (state.turnId !== turnId) { state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
+        state.fresh = false; state.status = 'active'; state.turnId = turnId;
+      }
       if (method === 'turn/completed') {
-        const turnId = string(object(params.turn).id, 'turn id'); if (state.turnId === turnId) { state.status = 'idle'; state.turnId = null; delete state.activeModel; }
+        const turnId = string(object(params.turn).id, 'turn id'); if (state.turnId === turnId) { state.status = 'idle'; state.turnId = null; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
         for (const prompt of [...this.prompts.values()]) if (prompt.threadId === params.threadId && prompt.turnId === turnId) this.closePrompt(prompt, 'turn_ended');
       }
       if (method === 'thread/reverted') this.invalidateHistory(params.threadId);
-      if (method === 'thread/closed' || method === 'thread/deleted') { state.status = 'notLoaded'; state.subscribed = false; state.turnId = null; state.goalActive = false; state.queued = false; this.invalidateHistory(params.threadId); this.emitState(); }
+      if (method === 'thread/closed' || method === 'thread/deleted') { state.status = 'notLoaded'; state.subscribed = false; state.turnId = null; state.goalActive = false; state.goalRevision = (state.goalRevision ?? 0) + 1; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; state.queued = false; this.invalidateHistory(params.threadId); this.emitState(); }
       if (method === 'thread/closed' || method === 'thread/deleted' || (method === 'thread/status/changed' && state.status === 'notLoaded')) this.sessions.invalidate(params.threadId);
       if (method === 'thread/settings/updated') { state.settingsRevision = (state.settingsRevision ?? 0) + 1; validateOfficial('ThreadSettings', params.threadSettings!); if (state.status !== 'notLoaded') this.sessions.settings(params.threadId, object(params.threadSettings)); }
-      if (method === 'model/rerouted') { validateOfficial('ModelReroutedNotification', params); if (state.turnId === params.turnId) { state.activeModel = string(params.toModel, 'rerouted model'); state.settingsRevision = (state.settingsRevision ?? 0) + 1; } }
-      if (method === 'thread/goal/updated') { validateOfficial('ThreadGoal', params.goal!); state.goalActive = object(params.goal).status === 'active'; this.emitState(); }
-      if (method === 'thread/goal/cleared') { state.goalActive = false; this.emitState(); }
+      if (method === 'model/rerouted') { validateOfficial('ModelReroutedNotification', params); if (state.turnId === params.turnId) { state.activeModel = string(params.toModel, 'rerouted model'); state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; } }
+      if (method === 'thread/goal/updated') { validateOfficial('ThreadGoal', params.goal!); state.goalActive = object(params.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; this.emitState(); }
+      if (method === 'thread/goal/cleared') { state.goalActive = false; state.goalRevision = (state.goalRevision ?? 0) + 1; this.emitState(); }
       if (method === 'thread/queue/changed') { state.queued = true; this.emitState(); void this.refreshContinuation(params.threadId).catch(() => {}); }
       if (method.startsWith('turn/') || method === 'thread/status/changed') this.emitState();
     }
@@ -328,7 +337,8 @@ export class RuntimeService extends EventEmitter {
         onlyKeys(params, ['threadId', 'turnId']); const threadId = string(params.threadId, 'threadId'); const turnId = string(params.turnId ?? this.track(threadId).turnId, 'turnId'); return this.directMutation(method, { threadId, turnId }, context);
       }
       case 'model/list': return this.page(method, 'ModelListParams', params, {}, ['cursor', 'limit', 'includeHidden']);
-      case 'mcp/oauth': validateOfficial('McpServerOauthLoginParams', params); return this.directMutation('mcpServer/oauth/login', params, context);
+      case 'mcp/oauth': return this.mcpOauth.start(params, (method, params, options) => this.directMutation(method, params, context, options), context);
+      case 'mcp/oauth/handoff': return this.mcpOauth.read(params, context);
       case 'defaults/read': return this.defaults(params);
       case 'account/read': onlyKeys(params, []); return this.native.call('account/read', { refreshToken: false });
       case 'account/login/handoff': return this.deviceLogin.read(params, context);
@@ -339,10 +349,10 @@ export class RuntimeService extends EventEmitter {
       default: throw new DeliveryError('method_not_found', 'Unsupported runtime method');
     }
   }
-  private async directMutation(method: string, params: JsonValue, context: CallContext): Promise<JsonValue> {
+  private async directMutation(method: string, params: JsonValue, context: CallContext, options: NativeOptions = {}): Promise<JsonValue> {
     const guard = (): void => { if (this.cliTerminals.active) throw new DeliveryError('native_cli_busy', 'The native CLI has exclusive execution access'); if (this.configurationPending) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing'); };
     guard(); this.pendingStarts++; this.emitState();
-    try { return await this.native.call(method, params, { beforeWrite: () => { guard(); context.beforeWrite?.(); if (params && typeof params === 'object' && !Array.isArray(params) && typeof params.threadId === 'string') this.predictions.invalidate(params.threadId); } }); }
+    try { return await this.native.call(method, params, { ...options, beforeWrite: () => { guard(); context.beforeWrite?.(); options.beforeWrite?.(); if (params && typeof params === 'object' && !Array.isArray(params) && typeof params.threadId === 'string') this.predictions.invalidate(params.threadId); } }); }
     catch (error) { if (!(error instanceof DeliveryError) || error.delivery === 'unknown') this.unknown = true; throw error; }
     finally { this.pendingStarts--; this.emitState(); }
   }
@@ -409,7 +419,11 @@ export class RuntimeService extends EventEmitter {
         const threadRevision = state.revision;
         const current = await this.native.call('thread/read', { threadId }); if (object(object(current).thread).id !== threadId) throw new Error('Continuation thread identity mismatch');
         if (revision !== (state.continuationRevision ?? 0)) { await new Promise(resolve => setTimeout(resolve, 25)); continue; }
-        this.observeThread(current, threadRevision); state.goalActive = goal.goal !== null && object(goal.goal).status === 'active'; state.queued = (queue.data as JsonValue[]).length > 0; return;
+        this.observeThread(current, threadRevision);
+        // A read may complete while a goal write is still awaiting its reply.
+        // That write or a newer notification owns goal state until it settles.
+        if (!state.goalPending) { state.goalActive = goal.goal !== null && object(goal.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; }
+        state.queued = (queue.data as JsonValue[]).length > 0; return;
       }
       throw new Error('Continuation changed throughout bounded state checks');
     }).catch(error => { state.unknown = true; throw new DeliveryError('activity_unknown', 'Native continuation state could not be confirmed', 'unknown'); })
@@ -464,6 +478,8 @@ export class RuntimeService extends EventEmitter {
     if (operation.history) this.admitHistory(threadId, context);
     state.pending = true; if (operation.newThread) this.pendingStarts++; this.emitState();
     let accepted = false; let writeRevision: number | undefined; let restoreSession: (() => void) | undefined; let mediaRevision: number | undefined; const wasFresh = state.fresh;
+    const goalMutation = operation.method === 'thread/goal/set' || operation.method === 'thread/goal/clear';
+    let goalRevision: number | undefined; let modelRevision: number | undefined; let modelTurnId: string | null | undefined;
     const guard = (): void => {
       this.admit(); if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
       if (operation.method !== 'thread/realtime/start' && this.realtime.has(threadId)) throw new DeliveryError('voice_busy', 'Stop voice before changing this thread');
@@ -486,14 +502,23 @@ export class RuntimeService extends EventEmitter {
         const fallback = operation.method === 'turn/steer' ? state.activeModel : object(object(current).thread).model ?? this.sessions.read(threadId).model;
         await validateInputModalities((method, params) => this.native.call(method, params), selectedInputModel(operation.params, fallback), input);
       }
-      const result = await this.native.call(operation.method, operation.params, { beforeWrite: () => { guard(); context.beforeWrite?.(); operation.beforeWrite?.(); operation.prepared?.pin(); if (operation.method !== 'thread/prediction/request') this.predictions.invalidate(threadId); if (operation.invalidateHistory) this.invalidateHistory(threadId); if (operation.method === 'thread/settings/update') restoreSession = this.sessions.invalidate(threadId); writeRevision = state.revision; } });
+      const result = await this.native.call(operation.method, operation.params, { beforeWrite: () => {
+        guard(); context.beforeWrite?.(); operation.beforeWrite?.(); operation.prepared?.pin(); if (operation.method !== 'thread/prediction/request') this.predictions.invalidate(threadId); if (operation.invalidateHistory) this.invalidateHistory(threadId); if (operation.method === 'thread/settings/update') restoreSession = this.sessions.invalidate(threadId);
+        writeRevision = state.revision;
+        if (goalMutation) { goalRevision = state.goalRevision ?? 0; state.goalPending = true; state.continuationRevision = (state.continuationRevision ?? 0) + 1; }
+        if (operation.method === 'turn/settings/update') { modelRevision = state.modelRevision ?? 0; modelTurnId = state.turnId; }
+      } });
       accepted = true; operation.prepared?.settle(true); validateOfficial(operation.responseSchema, result);
       const value = object(result);
       if (value.goal !== undefined && object(value.goal).threadId !== threadId) throw new Error('Native goal identity mismatch');
-      if (value.goal !== undefined) state.goalActive = object(value.goal).status === 'active';
-      if (operation.method === 'thread/goal/clear') state.goalActive = false;
+      if (goalMutation) {
+        // Reply promises can resume after later notifications from the same
+        // native read. Keep their state and invalidate overlapping readbacks.
+        state.continuationRevision = (state.continuationRevision ?? 0) + 1;
+        if (goalRevision === (state.goalRevision ?? 0)) { state.goalActive = operation.method !== 'thread/goal/clear' && object(value.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; }
+      }
       if (operation.method === 'thread/delete' || operation.method === 'thread/unsubscribe') { this.sessions.invalidate(threadId); state.subscribed = false; }
-      if (operation.method === 'turn/settings/update' && value.status === 'applied' && typeof operation.params.model === 'string') { state.activeModel = operation.params.model; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
+      if (operation.method === 'turn/settings/update' && value.status === 'applied' && typeof operation.params.model === 'string' && modelRevision === (state.modelRevision ?? 0) && modelTurnId === state.turnId) { state.activeModel = operation.params.model; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
       if (['thread/delete', 'thread/unsubscribe', 'thread/revert', 'thread/settings/update', 'turn/settings/update'].includes(operation.method)) this.guardian.invalidate(threadId);
       if (operation.method === 'turn/steer' && value.turnId !== operation.expectedTurnId) throw new Error('Native steering target mismatch');
       if (operation.method === 'review/start' && value.reviewThreadId !== threadId) throw new Error('Native review target mismatch');
@@ -511,7 +536,7 @@ export class RuntimeService extends EventEmitter {
       try { operation.prepared?.settle(!notSent); } catch { this.emit('diagnostic', 'Workflow attachment reservation could not be released'); }
       if (!notSent) { state.unknown = true; if (operation.newThread) this.unknown = true; }
       if (accepted) throw new DeliveryError('invalid_native_response', 'Native workflow returned an invalid result', 'unknown'); throw error;
-    } finally { state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
+    } finally { if (goalMutation) state.goalPending = false; state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
   }
   private async newTurn(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, method === 'turn/start' ? ['threadId', 'text', 'attachmentIds', 'options', 'references', 'extraContext'] : ['threadId']);
@@ -610,6 +635,7 @@ export class RuntimeService extends EventEmitter {
     this.historyStore.disconnect(clientId, eventChannelId);
     this.remoteControl.disconnect(clientId, eventChannelId);
     this.predictions.disconnect(clientId, eventChannelId);
+    this.mcpOauth.disconnect(clientId, eventChannelId);
     // Each subsystem revokes its leases synchronously before any cleanup waits.
     await Promise.all([this.mcp.disconnect(clientId, eventChannelId), this.processes.disconnect(clientId, eventChannelId), this.realtime.disconnect(clientId, eventChannelId), this.extensions.disconnect(clientId, eventChannelId), this.cliTerminals.disconnect(clientId, eventChannelId), this.cliDiagnostics.disconnect(clientId, eventChannelId), this.deviceLogin.disconnect(clientId, eventChannelId)]);
     const owned = [...this.terminals.values()].filter(item => item.clientId === clientId && item.eventChannelId === eventChannelId); if (!owned.length) return;
@@ -628,6 +654,7 @@ export class RuntimeService extends EventEmitter {
     this.historyStore.disconnect(undefined, eventChannelId);
     this.remoteControl.disconnect(undefined, eventChannelId);
     this.predictions.disconnect(undefined, eventChannelId);
+    this.mcpOauth.disconnect(undefined, eventChannelId);
     await Promise.all([this.mcp.disconnect(undefined, eventChannelId), this.processes.disconnect(undefined, eventChannelId), this.realtime.disconnect(undefined, eventChannelId), this.extensions.disconnect(undefined, eventChannelId), this.cliTerminals.disconnect(undefined, eventChannelId), this.cliDiagnostics.disconnect(undefined, eventChannelId), this.deviceLogin.disconnect(undefined, eventChannelId)]);
     const owners = new Map([...this.terminals.values()].filter(terminal => eventChannelId === undefined || terminal.eventChannelId === eventChannelId).map(terminal => [this.ownerKey(terminal.clientId, terminal.eventChannelId), terminal]));
     const results = await Promise.allSettled([...owners.values()].map(terminal => this.clientDisconnected(terminal.clientId, terminal.eventChannelId)));
@@ -646,7 +673,7 @@ export class RuntimeService extends EventEmitter {
     this.cliTerminals.reset();
     this.cliDiagnostics.reset();
     this.environments.reset(); this.remoteControl.reset();
-    this.extensions.close(); this.deviceLogin.close();
+    this.extensions.close(); this.deviceLogin.close(); this.mcpOauth.close();
     this.closePromise = Promise.allSettled([this.native.close(), ...(this.defaultsProbe ? [this.defaultsProbe.close()] : []), this.workspace.close()]).then(results => {
       const errors = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map(result => result.reason as unknown);
       if (errors.length) throw new AggregateError(errors, 'Runtime process cleanup was not fully confirmed');

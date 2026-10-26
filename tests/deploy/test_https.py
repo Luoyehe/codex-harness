@@ -2,21 +2,29 @@
 import unittest
 
 from deploy.common import DeployError, Layout
-from deploy.https import identity_configuration, render_caddy
+from deploy.https import render_caddy
+from deploy.units import render_edge_units
 
 
 class HttpsConfigurationTests(unittest.TestCase):
-    def test_https_guards_every_gateway_path_and_preserves_identity_material(self):
+    def test_legacy_renderer_remains_available_for_exact_recovery_validation(self):
         text = render_caddy("work.example.invalid", "auth.example.invalid", 3000, 9091)
         self.assertIn("admin off", text)
         self.assertIn("forward_auth", text)
         self.assertNotIn("/api/*", text)
+
+    def test_builtin_https_requires_only_application_hostname_and_no_identity_service(self):
+        text = render_caddy("work.example.invalid", None, 3000, 9091)
+        self.assertIn("admin off", text)
+        self.assertIn("reverse_proxy 127.0.0.1:3000", text)
+        self.assertNotIn("forward_auth", text)
+        self.assertNotIn("9091", text)
+        self.assertNotIn("/api/*", text)
+        self.assertIn("request_header -Remote-User", text)
         layout = Layout("fixture")
-        keys = {"session": "fixture-session", "storage": "fixture-storage", "jwt": "fixture-jwt"}
-        config = identity_configuration(layout, "work.example.invalid", "auth.example.invalid", "example.invalid", 9091, keys)
-        self.assertEqual(config["access_control"]["default_policy"], "deny")
-        self.assertEqual(config["storage"]["encryption_key"], "fixture-storage")
-        self.assertIn("identity/db.sqlite3", config["storage"]["local"]["path"].replace("\\", "/"))
+        units = render_edge_units(layout, builtin=True)
+        self.assertEqual(set(units), {layout.unit("caddy")})
+        self.assertIn("After=" + layout.unit("gateway"), units[layout.unit("caddy")])
 
     def test_internal_and_provided_tls_use_explicit_ports_and_paths(self):
         internal = render_caddy("work.example.test", "auth.example.test", 3000, 9091, tls="internal", http_port=18080, https_port=18443)

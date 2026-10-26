@@ -1,0 +1,60 @@
+{
+  "review": "v210-native-stop-targeted-read-only",
+  "completed_at_local_date": "2026-10-27",
+  "result": "no_new_actionable_findings",
+  "findings": [],
+  "full_repository_audit": false,
+  "counts_as_clean_full_round": false,
+  "source_changed": false,
+  "linux_executed_by_this_reviewer": false,
+  "tests_executed_by_this_reviewer": [],
+  "offline_probes_executed_by_this_reviewer": [],
+  "primary_scope": [
+    "deploy/native_launcher.py",
+    "src/runtime/native.ts",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_deployment.py:NativeLauncherTests",
+    "tests/runtime/native.test.ts"
+  ],
+  "supporting_current_code": [
+    "AGENTS.md",
+    "src/runtime/native-launch.ts",
+    "src/runtime/types.ts",
+    "tests/runtime/native-fixture.mjs",
+    "deploy/units.py:sudo_rule"
+  ],
+  "checks": [
+    {
+      "topic": "Linux HUP/RDHUP under saturated input",
+      "evidence": "deploy/native_launcher.py:91-105 keeps a separate poll registration after the bounded selector reader is removed. POLLHUP and POLLRDHUP establish the stop deadline independently of draining pending bytes. The full-buffer path does not call os.read with zero capacity.",
+      "assessment": "No new actionable issue found by source inspection. Linux kernel behavior was not executed independently in this review."
+    },
+    {
+      "topic": "Node stop and delivery classification",
+      "evidence": "src/runtime/native.ts:147-184 calls fail before stdin.destroy, classifies submitted writes as unknown and queued writes as not_sent, caches closePromise, and requires launcher close with exit code zero within the deadline.",
+      "assessment": "No new actionable issue found. destroy removes the dependency on flushing the blocked write callback; it does not change already-submitted operations into not_sent."
+    },
+    {
+      "topic": "Different UID boundary",
+      "evidence": "src/runtime/native-launch.ts uses a fixed sudo target and launcher. deploy/units.py:sudo_rule disables use_pty. The launcher path in NativeRpc.stop does not rely on the control UID being able to signal the native UID. deploy/native_launcher.py validates the fixed non-root native identity and removes inherited descriptors.",
+      "assessment": "Static path is consistent with the UID separation. The inspected native.test.ts case substitutes nativeCommand and therefore does not itself establish actual sudo or different-UID behavior. No such runtime claim is made here."
+    },
+    {
+      "topic": "Cleanup acknowledgement",
+      "evidence": "deploy/native_launcher.py:48-71 checks for no direct children after subreaping and a reaped main child; supervise requires cleanup success before returning zero for a requested streaming stop. src/runtime/native.ts also waits for the child close event and rejects nonzero or unconfirmed exits.",
+      "assessment": "No new actionable issue found within the current supervised-process model. Source inspection does not replace live process-tree or cgroup evidence."
+    },
+    {
+      "topic": "Large frames and regression coverage",
+      "evidence": "The bridge bounds pending input to 8 MiB and re-enables reads after draining. tests/deploy/test_deployment.py keeps the writer open while a reader pauses for three seconds and verifies a roughly 12 MiB payload digest. Shutdown tests cover pipe saturation, socket half-close saturation, escaped-session descendants, crashes, and false cleanup acknowledgement. NativeRpc tests check a blocked 10 MiB write, queued not_sent classification, unknown sent work, idempotent close, and retained-budget release.",
+      "assessment": "The inspected cases exercise the intended distinction between saturation and EOF. No new actionable regression defect found."
+    }
+  ],
+  "limitations": [
+    "Targeted independent source review only; not a complete repository audit and not a clean-round increment.",
+    "No Linux commands, full tests, external services, credentials, old implementations, Git history, or prior audit/fix reports were intentionally accessed.",
+    "No tests were duplicated because the parent was executing the three selected test files in isolation on the authorized Linux host.",
+    "The parent reported Linux 72/72 passing with zero skips and confirmed test cgroup exit. This is parent-provided evidence, not an independently rerun result of this reviewer.",
+    "No claims are made about uninspected integration paths or actual different-UID sudo execution."
+  ]
+}

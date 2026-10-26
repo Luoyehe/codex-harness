@@ -76,10 +76,11 @@ async function fixture(
     mimeType: 'text/plain',
     name: 'fixture.txt',
   }),
+  initialAuthenticated = true,
 ) {
   const sockets: Socket[] = [],
-    calls: { method: string; params: Record<string, unknown> }[] = [];
-  let valid = true,
+    calls: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
+  let valid = initialAuthenticated,
     access = true,
     archived = initialArchived,
     sequence = 1,
@@ -230,6 +231,11 @@ async function fixture(
     }),
   );
   render(<App />);
+  if (!initialAuthenticated) {
+    fireEvent.change(await screen.findByLabelText('用户名'), { target: { value: 'admin' } });
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'storage-fixture-only' } });
+    fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+  }
   await waitFor(() => expect(sockets.length).toBe(1));
   const state = (connected: boolean, socket = sockets.at(-1)!) =>
     socket.onmessage({
@@ -269,6 +275,73 @@ async function fixture(
     count: (method: string) => calls.filter((call) => call.method === method).length,
   };
 }
+it.each([
+  ['sessionStorage', 'getter'],
+  ['sessionStorage', 'read'],
+  ['sessionStorage', 'write'],
+  ['localStorage', 'getter'],
+  ['localStorage', 'read'],
+  ['localStorage', 'write'],
+] as const)('keeps real App login and read-only navigation available when %s %s fails', async (name, failure) => {
+  const storage = window[name];
+  if (failure === 'getter') {
+    vi.spyOn(window, name, 'get').mockImplementation(() => {
+      throw new DOMException(`${name} unavailable`, 'SecurityError');
+    });
+  } else if (failure === 'read') {
+    const original = Storage.prototype.getItem;
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key) {
+      if (this === storage) throw new DOMException(`${name} unreadable`, 'SecurityError');
+      return original.call(this, key);
+    });
+  } else {
+    const original = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+      if (this === storage) throw new DOMException(`${name} unwritable`, 'QuotaExceededError');
+      return original.call(this, key, value);
+    });
+  }
+  const f = await fixture(false, false, undefined, false);
+  expect(screen.queryByText('工作台暂时无法打开')).toBeNull();
+  expect(screen.queryByLabelText('密码')).toBeNull();
+  const before = f.count('thread/list');
+  fireEvent.click(screen.getByRole('button', { name: '刷新会话列表' }));
+  await waitFor(() => expect(f.count('thread/list')).toBeGreaterThan(before));
+  expect(f.calls.some((call) => call.method === 'thread/read')).toBe(true);
+  expect(f.calls.some((call) => call.operationId)).toBe(false);
+  expect(vi.mocked(fetch).mock.calls.filter(([url, init]) => url === '/api/session' && init?.method === 'POST')).toHaveLength(1);
+});
+it('keeps the real App readable but sends no mutation when operation intent persistence fails', async () => {
+  const f = await fixture(false, false, undefined, false),
+    original = Storage.prototype.setItem,
+    failedIntent = vi.fn();
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+    if (this === localStorage && key.startsWith('harness.operation.')) {
+      failedIntent();
+      throw new DOMException('operation intent unavailable', 'QuotaExceededError');
+    }
+    return original.call(this, key, value);
+  });
+  fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), {
+    target: { value: 'retain this unsent draft' },
+  });
+  const send = screen.getByRole('button', { name: '发送消息' });
+  await waitFor(() => expect((send as HTMLButtonElement).disabled).toBe(false));
+  const before = vi.mocked(fetch).mock.calls.length;
+  fireEvent.click(send);
+  await waitFor(() => expect(failedIntent).toHaveBeenCalledOnce());
+  expect(screen.getByText(/operation intent unavailable|请求未完成，请重试读取状态。/)).toBeTruthy();
+  expect(vi.mocked(fetch).mock.calls).toHaveLength(before);
+  expect(f.count('turn/start')).toBe(0);
+  expect(readDraft('t').text).toBe('retain this unsent draft');
+  vi.restoreAllMocks();
+  await act(async () => {});
+  expect(f.count('turn/start')).toBe(0);
+  const reads = f.count('thread/list');
+  fireEvent.click(screen.getByRole('button', { name: '刷新会话列表' }));
+  await waitFor(() => expect(f.count('thread/list')).toBeGreaterThan(reads));
+  expect(f.count('turn/start')).toBe(0);
+});
 it('requires explicit continuation before loading a stored thread that may resume native queued work', async () => {
   const f = await fixture(false, true);
   await waitFor(() =>
@@ -414,7 +487,7 @@ it('recovers outer access authentication explicitly without losing a memory-only
   const link = await screen.findByRole('link', { name: '在新标签页完成访问认证 ↗' });
   expect(link.getAttribute('href')).toBe(location.href);
   expect(link.getAttribute('target')).toBe('_blank');
-  expect(screen.queryByLabelText('管理员密钥')).toBeNull();
+  expect(screen.queryByLabelText('密码')).toBeNull();
   f.restoreAccess();
   fireEvent.click(screen.getByRole('button', { name: '重新检查登录' }));
   await waitFor(() => expect(f.sockets).toHaveLength(2));
@@ -465,11 +538,12 @@ it('renews authentication without losing a draft or replaying an unresolved writ
   });
   f.expire();
   await act(async () => f.sockets[0]!.onclose());
-  expect(await screen.findByLabelText('管理员密钥')).toBeTruthy();
+  expect(await screen.findByLabelText('密码')).toBeTruthy();
   expect(readDraft('t').text).toBe('draft survives login');
-  fireEvent.change(screen.getByLabelText('管理员密钥'), {
+  fireEvent.change(screen.getByLabelText('密码'), {
     target: { value: 'local-fixture-only' },
   });
+  fireEvent.change(screen.getByLabelText('用户名'), { target: { value: 'admin' } });
   fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
   await waitFor(() => expect(f.sockets).toHaveLength(2));
   await act(async () => {
@@ -518,14 +592,15 @@ it.each(['open', 'pending'])(
     else await waitFor(() => expect(f.count('attachment/read')).toBe(1));
     f.expire();
     await act(async () => f.sockets[0]!.onclose());
-    const password = await screen.findByLabelText('管理员密钥');
+    const password = await screen.findByLabelText('密码');
     if (state === 'pending') await act(async () => resolve(response));
     expect(document.querySelector('dialog')?.open).toBe(false);
     password.focus();
     expect(document.activeElement).toBe(password);
     expect(fireEvent.keyDown(password, { key: 'Tab' })).toBe(true);
     fireEvent.change(password, { target: { value: 'local-fixture-only' } });
-    fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+    fireEvent.change(screen.getByLabelText('用户名'), { target: { value: 'admin' } });
+  fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
     await waitFor(() => expect(f.sockets).toHaveLength(2));
     await act(async () => {
       f.sockets[1]!.onopen();
@@ -559,9 +634,10 @@ it('keeps an in-memory draft visible after renewal even when browser draft stora
   });
   f.expire();
   await act(async () => f.sockets[0]!.onclose());
-  fireEvent.change(await screen.findByLabelText('管理员密钥'), {
+  fireEvent.change(await screen.findByLabelText('密码'), {
     target: { value: 'local-fixture-only' },
   });
+  fireEvent.change(screen.getByLabelText('用户名'), { target: { value: 'admin' } });
   fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
   await waitFor(() => expect(f.sockets).toHaveLength(2));
   await act(async () => {

@@ -174,7 +174,10 @@ export class NativeRpc extends EventEmitter {
     }
     if (this.config.launcher) {
       // The root-owned launcher supervises the different-UID process tree. A zero exit is its cleanup acknowledgement.
-      this.child.stdin.end(); let timeout: NodeJS.Timeout | undefined;
+      // fail() has classified written work as unknown and queued work as
+      // not_sent. Close now: end() waits for buffered writes and cannot signal
+      // EOF when both the supervisor and native stdin are backpressured.
+      this.child.stdin.destroy(); let timeout: NodeJS.Timeout | undefined;
       try {
         await Promise.race([this.exitPromise, new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error('Native launcher cleanup was not confirmed')), 6000); })]);
         if (this.exitCode !== 0) throw new Error('Native launcher exited without confirming cleanup');

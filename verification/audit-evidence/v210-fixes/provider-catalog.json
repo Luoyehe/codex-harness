@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "finding": "V210-R2-WEB-001",
+  "completedAt": "2026-10-26T16:50:05.1145378Z",
+  "files": [
+    "web/components/ModelCatalog.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/provider-catalog.test.tsx"
+  ],
+  "changes": [
+    "Discovery does not refresh or unmount ProviderSettings; pending model rows remain available for explicit capability confirmation.",
+    "Original-operation recovery consumes the complete discovery/application receipt and checks operation identity, provider kind/revision, current intent and mounted scope.",
+    "Only applied=true and requiresConfirmation=false for the live application intent triggers the parent callback; native catalog discovery does not claim an application.",
+    "Unknown and accepted-but-unusable recovery results keep duplicate discovery/application gated; no operation is automatically replayed."
+  ],
+  "validation": [
+    {
+      "command": "node node_modules/vitest/vitest.mjs run web/tests/provider.test.tsx web/tests/provider-catalog.test.tsx web/tests/provider-advanced.test.tsx web/tests/provider-profiles.test.tsx",
+      "result": "4 files, 25 tests passed"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "result": "passed, no diagnostics"
+    },
+    {
+      "command": "git diff --check -- web/components/ModelCatalog.tsx web/tests/provider.test.tsx",
+      "result": "passed"
+    }
+  ],
+  "limitations": [
+    "No full suite, real provider/model/MCP, browser visual run, or deployment.",
+    "The frozen audit report was preserved as evidence; this fix requires a new source snapshot and fresh clean audits."
+  ],
+  "postFixReview": {
+    "scope": "集中修复复查，非新一轮完整审计",
+    "issue": "目录在 discovery/apply busy 和 unknown recovery 时仍可编辑，晚到结果可能覆盖这些期间新编辑。",
+    "fix": "统一 busy/action.disabled/recoverable 编辑锁，覆盖手动 ID 输入与添加、能力字段、首个 legend 内模型选择以及最终确认；筛选保持可用。",
+    "regressions": "真实 ProviderSettings 父组件，deferred discovery/application 和 unknown discovery/application 共4个新用例；使用 userEvent 验证 disabled 控件不接受输入或切换，not_sent 恢复后原草稿及确认仍保留。",
+    "validation": "25 targeted tests passed. Initial typecheck flagged 3 unsupported ByRoleOptions.exact options in new tests; removed these ignored options, reran web typecheck successfully. diff --check passed."
+  }
+}

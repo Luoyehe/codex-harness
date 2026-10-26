@@ -16,9 +16,16 @@ export type McpAttempt = {
   unavailable?: boolean;
 };
 export type McpStream = { subscriptionId: string; threadId: string; server: string; name: string };
+export type McpOauthAttempt = {
+  name: string; threadId: string | null; operationId?: string;
+  state: 'pending' | 'unknown' | 'accepted' | 'not_sent';
+  identity?: { handoffId: string; epoch: string; name: string; threadId: string | null };
+  status?: 'pending' | 'completed' | 'failed'; restartRequired?: boolean;
+};
 export type McpSession = {
   epoch: string;
   attempts: McpAttempt[];
+  oauth: McpOauthAttempt[];
   logs: { subscriptionId: string; text: string }[];
   dropped: number;
   listeners: Set<() => void>;
@@ -27,7 +34,7 @@ const sessions = new WeakMap<Api, McpSession>();
 export function mcpSession(api: Api, epoch: string): McpSession {
   let session = sessions.get(api);
   if (!session || session.epoch !== epoch) {
-    session = { epoch, attempts: [], logs: [], dropped: 0, listeners: new Set() };
+    session = { epoch, attempts: [], oauth: [], logs: [], dropped: 0, listeners: new Set() };
     sessions.set(api, session);
   }
   return session;

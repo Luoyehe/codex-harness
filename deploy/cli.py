@@ -117,8 +117,16 @@ def parser() -> argparse.ArgumentParser:
     setup.add_argument("--source", type=Path, required=True)
     setup.add_argument("--origin")
     setup.add_argument("--port", type=int, default=3000)
+    setup.add_argument("--username", default="admin")
+    setup.add_argument("--password-stdin", action="store_true", help="Read one password line from stdin; never pass passwords in argv")
+    for command in ("account-setup", "account-reset"):
+        account = subs.add_parser(command, help="Operator only: initialize or reset the single administrator account")
+        account.add_argument("--username", default="admin")
+        account.add_argument("--password-stdin", action="store_true")
     for name in ("status", "verify", "restart", "repair", "rollback", "uninstall", "provider-read"):
-        subs.add_parser(name)
+        command = subs.add_parser(name)
+        if name == "repair":
+            command.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("provider-prune", help="Retain current and pending-recovery generations plus three recent unused generations")
     logs = subs.add_parser("logs")
     logs.add_argument("--service", choices=("gateway", "worker"), default="gateway")
@@ -126,7 +134,8 @@ def parser() -> argparse.ArgumentParser:
     update = subs.add_parser("update")
     update.add_argument("--source", type=Path, required=True)
     subs.add_parser("control-update", help="Operator only: install trusted control code from this reviewed root-owned checkout")
-    subs.add_parser("control-recover", help="Operator only: restore the previous control tree after interrupted maintenance")
+    control_recover = subs.add_parser("control-recover", help="Operator only: recover one original control generation after interrupted maintenance")
+    control_recover.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("config-layer-migrate", help="Operator only: migrate or refresh preserved host defaults and enforced provider requirements")
     subs.add_parser("config-layer-rollback", help="Operator only: restore legacy config mount and sudo compatibility, preserving user config bytes")
     layer_recover = subs.add_parser("config-layer-recover", help="Operator only: recover one interrupted configuration-layer transaction")
@@ -139,13 +148,16 @@ def parser() -> argparse.ArgumentParser:
     catalog.add_argument("--operation-id", default=None)
     operation = subs.add_parser("operation-read")
     operation.add_argument("operation_id")
-    secure = subs.add_parser("https", help="Install optional Caddy/Authelia configuration using preinstalled verified binaries")
+    secure = subs.add_parser("https", help="Configure Caddy HTTPS with built-in accounts; migrate a retained Authelia edge safely")
     secure.add_argument("--host", required=True)
-    secure.add_argument("--auth-host", required=True)
-    secure.add_argument("--cookie-domain", required=True)
+    secure.add_argument("--auth-host", help="Legacy migration compatibility only")
+    secure.add_argument("--cookie-domain", help="Legacy migration compatibility only")
     secure.add_argument("--username", default="admin")
-    secure.add_argument("--email", required=True)
-    secure.add_argument("--authelia-port", type=int, default=9091)
+    secure.add_argument("--email", help="Legacy migration compatibility only")
+    secure.add_argument("--password-stdin", action="store_true")
+    secure.add_argument("--credentials-stdin", action="store_true", help="Read {username,password,otp?} JSON for login verification")
+    secure.add_argument("--two-factor", action="store_true", help="Prompt securely for a TOTP or recovery code")
+    secure.add_argument("--authelia-port", type=int, help="Legacy migration compatibility only")
     secure.add_argument("--tls", choices=("acme", "internal", "provided"), default="acme")
     secure.add_argument("--certificate", type=Path)
     secure.add_argument("--private-key", type=Path)
@@ -168,12 +180,14 @@ def main(argv: list[str] | None = None) -> None:
                 require(sys.stdin.isatty(), "--origin is required for non-interactive installation")
                 print("Single administrator deployment. Default bind address is 127.0.0.1; use SSH forwarding or optional HTTPS.", file=sys.stderr)
                 origin = input(f"Browser origin [http://127.0.0.1:{args.port}]: ").strip() or f"http://127.0.0.1:{args.port}"
-            result = install(layout, args.source.resolve(), origin=origin, port=args.port)
+            from .accounts import bootstrap, read_password
+            account = bootstrap(args.username, read_password(from_stdin=args.password_stdin))
+            result = install(layout, args.source.resolve(), origin=origin, port=args.port, account=account)
         elif args.command in ("control-update", "control-recover", "control-rollback"):
             require_linux()
             from .control_update import control_command
             with exclusive(layout.config / "management.lock"):
-                result = control_command(layout, args.command, getattr(args, "transaction", None))
+                result = control_command(layout, args.command, getattr(args, "transaction", None), target=getattr(args, "target", "old"))
         else:
             require_linux()
             with exclusive(layout.config / "management.lock"):
@@ -182,6 +196,10 @@ def main(argv: list[str] | None = None) -> None:
                 manager = Manager(layout)
                 if args.command == "status":
                     result = manager.status()
+                elif args.command in ("account-setup", "account-reset"):
+                    from .accounts import configure_account, read_password
+                    result = configure_account(manager, args.username, read_password(from_stdin=args.password_stdin),
+                                               reset=args.command == "account-reset")
                 elif args.command in ("config-layer-migrate", "config-layer-rollback"):
                     from .config_layer import change_config_layer
                     result = change_config_layer(manager, layered=args.command == "config-layer-migrate")
@@ -208,13 +226,28 @@ def main(argv: list[str] | None = None) -> None:
                 elif args.command == "restart":
                     result = manager.restart()
                 elif args.command == "repair":
-                    result = manager.repair()
+                    result = manager.repair(target=args.target)
                 elif args.command == "uninstall":
                     result = uninstall(layout)
                 elif args.command == "https":
                     from .https import setup_https
+                    from .accounts import read_password
+                    require(not (args.credentials_stdin and (args.password_stdin or args.two_factor)),
+                            "Choose one credential input mode")
+                    if args.credentials_stdin:
+                        credentials = read_request(sys.stdin)
+                        require(set(credentials) <= {"username", "password", "otp"} and
+                                {"username", "password"} <= set(credentials) and
+                                ("otp" not in credentials or isinstance(credentials["otp"], str) and len(credentials["otp"]) <= 128),
+                                "Credentials JSON must contain username, password and optional otp")
+                    else:
+                        credentials = {"username": args.username, "password": read_password(from_stdin=args.password_stdin, confirm=False)}
+                        if args.two_factor:
+                            require(sys.stdin.isatty(), "Use --credentials-stdin for non-interactive two-factor verification")
+                            credentials["otp"] = getpass.getpass("Two-factor or recovery code: ")
                     result = setup_https(manager, host=args.host, auth_host=args.auth_host, domain=args.cookie_domain,
-                                         username=args.username, email=args.email, auth_port=args.authelia_port, tls=args.tls,
+                                         username=credentials["username"], password=credentials["password"], otp=credentials.get("otp"),
+                                         email=args.email, auth_port=args.authelia_port, tls=args.tls,
                                          certificate=args.certificate, private_key=args.private_key,
                                          http_port=args.http_port, https_port=args.https_port)
                 else:

@@ -1,0 +1,83 @@
+[
+  {
+    "phase": "root",
+    "unit": "crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+    "description": "codex-harness-builtin:28dbf422cff64a0b9361218fc89d4ef2:root:db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781",
+    "base": "/var/lib/crtest-builtin-sjh0a21r",
+    "digest": "db9fb115155605b817e08b1599557c02a92032c2a1f237f490e51f2c8ed3d781",
+    "launchAttempted": true,
+    "preflightAbsent": true,
+    "preflight": {
+      "queryExit": 0,
+      "state": {
+        "MainPID": "0",
+        "ControlPID": "0",
+        "ControlGroup": "",
+        "Id": "crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "Description": "crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "LoadState": "not-found",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "FragmentPath": "",
+        "Transient": "no"
+      },
+      "cgroup": {
+        "path": "/system.slice/crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "absent": true,
+        "confirmed": true
+      }
+    },
+    "exitCode": 0,
+    "logs": {
+      "stdout": {
+        "path": "/var/lib/crtest-builtin-sjh0a21r/stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/var/lib/crtest-builtin-sjh0a21r/stderr.log",
+        "bytes": 4057,
+        "sha256": "4f4386b7b79b3fbd7a03312a697b55a4e5013520f6b7b4124152b04f494b2d2d"
+      }
+    },
+    "beforeStop": {
+      "queryExit": 0,
+      "state": {
+        "MainPID": "0",
+        "ControlPID": "0",
+        "ControlGroup": "",
+        "Id": "crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "Description": "crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "LoadState": "not-found",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "FragmentPath": "",
+        "Transient": "no"
+      }
+    },
+    "stopAction": "none: collected unit already absent",
+    "stopProof": {
+      "queryExit": 0,
+      "state": {
+        "MainPID": "0",
+        "ControlPID": "0",
+        "ControlGroup": "",
+        "Id": "crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "Description": "crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "LoadState": "not-found",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "FragmentPath": "",
+        "Transient": "no"
+      },
+      "owned": false,
+      "absent": true,
+      "cgroup": {
+        "path": "/system.slice/crtest-full-28dbf422cff64a0b9361218fc89d4ef2-root.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "confirmed": true
+    }
+  }
+]

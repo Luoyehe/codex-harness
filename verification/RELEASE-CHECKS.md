@@ -2,6 +2,8 @@
 
 > Public copy. Private deployment details have been omitted.
 
+
+
 Browser follow-up (2026-10-26): after the user handled the test certificate warnings, desktop interaction acceptance passed for two-layer login, workbench/settings, files/Git, receipt preview, a real shell roundtrip, draft/preference persistence, original-page reauthentication recovery, and the empty automation list. No product change was required; all four services remain active/enabled. The v2.0.1 tag and deployed source are unchanged. See [scoped browser evidence](audit-evidence/v201-release/browser.json), including untested interactions.
 
 

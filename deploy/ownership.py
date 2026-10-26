@@ -37,6 +37,8 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
         unit = layout.unit(role)
         path = layout.units / unit
         allowed = {expected[unit].encode()}
+        if role == "caddy":
+            allowed.add(render_edge_units(layout, builtin=True)[unit].encode())
         if role == "worker":
             allowed.update(worker_variants)
         if prior_units and prior_units.get(role) is not None:

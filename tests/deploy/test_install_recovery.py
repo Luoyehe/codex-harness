@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import secrets
 import tempfile
 import unittest
 from contextlib import nullcontext, redirect_stderr
@@ -254,7 +255,8 @@ class OperatorFailureTests(unittest.TestCase):
                     raise DeployError("fixture", "Failure after mutation")
                 stderr = io.StringIO()
                 with patch("deploy.cli.require_linux"), patch("deploy.cli.exclusive", side_effect=lambda path: nullcontext()), \
-                     patch("deploy.control_update.require_no_pending_control"), patch(target, side_effect=fail), redirect_stderr(stderr):
+                     patch("deploy.control_update.require_no_pending_control"), patch("deploy.accounts.read_password", return_value=secrets.token_urlsafe(24)), \
+                     patch(target, side_effect=fail), redirect_stderr(stderr):
                     with self.assertRaises(SystemExit) as raised:
                         cli.main(["--instance", "fixture", command, *arguments])
                 self.assertEqual(raised.exception.code, 1)

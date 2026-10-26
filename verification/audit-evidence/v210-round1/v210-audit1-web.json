@@ -1,0 +1,1591 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v210-round1",
+  "reviewerId": "v210-audit1-web",
+  "digest": "cf716085707487af4abf397bcb4e1f96172580c1c602e9630d08ff17accf40ba",
+  "startedAt": "2026-10-26T15:47:29.245Z",
+  "startedAtBasis": "First timestamped systematic scan artifact; manual source review began before this timestamp and was not separately clocked.",
+  "completedAt": "2026-10-26T15:57:41.296Z",
+  "complete": true,
+  "findings": [
+    {
+      "id": "WEB-TRUST-PENDING-EDIT",
+      "priority": "P3",
+      "path": "web/components/ProjectTrustSettings.tsx",
+      "line": 106,
+      "title": "An older trust save clears a newer editable choice",
+      "trigger": "Select trusted and confirm, submit project/trust/write, hold its response, then change the still-enabled choice to untrusted. Resolve the original response successfully. The current choice becomes empty, although the only submitted write carried trusted. In Workspace, onChanged also changes the epoch used as the ProjectTrustSettings key, so accepting edits during the request can lose them through remounting as well.",
+      "impact": "The UI accepts and then silently discards a newer trust selection. The newer choice was not submitted, while the earlier trust change was applied. This is a small but reproducible form-state/data-entry regression; it does not itself send an unconfirmed second request.",
+      "recommendation": "Freeze the trust choice and its confirmation for the pending submission, including the period in which its result remains unknown. Alternatively retain a revision-owned draft across the onChanged/epoch remount; merely conditional setChoice clearing is insufficient for the real parent lifecycle. Add a deferred-response regression using the actual epoch/key relationship.",
+      "evidence": ".work/v210-audit1-web-probe.test.tsx; node node_modules/vitest/vitest.mjs run --config .work/v210-audit1-web-probe.config.mts: 1 observation probe passed on the unchanged reviewed source."
+    }
+  ],
+  "skipped": [
+    "Full test suite, build/release/deploy and online access were intentionally not run in this audit phase.",
+    "No real browser visual/device/keyboard QA or live microphone/WebRTC transport exercise was performed. Dialog, responsive CSS, media and IME behavior were reviewed from implementation and current regression tests.",
+    "No paid model inference, external MCP execution, personal credentials or personal CODEX_HOME were used.",
+    "No old sibling implementation or repository history was read. Current protocol types were used only as current implementation contracts."
+  ],
+  "method": "{\"coverage\":\"All 190 assigned web inventory files (50,056 lines) were read in full by a static scan, including source, CSS, tests and web configuration. This is systematic static coverage, not a claim that every line was individually examined by a human-style reasoning pass or that the tests were all executed.\",\"systematicChecks\":\"All assigned inventory files read in full by script; SHA-256, relative import existence, mutation and direct RPC sites, effect/resource ownership sites, executable DOM sinks, persistence sites, CSS remote URLs, test names/assertions and disabled test markers enumerated. This is static coverage evidence, not proof of exhaustive human line-by-line review or execution.\",\"machineResults\":{\"missingRelativeImports\":0,\"disabledOrOnlyTests\":0,\"remoteCssUrls\":0,\"dangerousDomSinks\":\"One controlled innerHTML fixture in web/tests/dialog.test.tsx; no production sink found.\"},\"manualReview\":[\"App/Workspace routing, auth suspension, scope and epoch ownership, draft and attachment lifetimes, project/thread switching, explicit resume, input admission, operation recovery and unknown-result handling.\",\"Every hook and library family: resource pagination and history bounds, stale response suppression, immutable receipts and local draft revisions, safe paths and media bytes, schemas, realtime and MCP session identities, receipt archive verification.\",\"Component-family implementation and relevant current regression catalog: settings/account/security/providers/config/trust/memory; projects and organization; skills/plugins/import/sharing/MCP; conversation/history/search/actions/prompts; automation/task/goal/agents; native/project/background terminals and realtime/prediction; workspace files/Git/index/commit/worktrees/recovery; diagnostics/maintenance; presentation/navigation/markdown/media and dialogs.\",\"Reviewed mutation and direct RPC sites against lifecycle guards and parent keys, examined CSS hidden/focus/overflow/responsive rules, import closure and test assertions/skip markers. Large component and test files were inspected by focused sections and systematic checks, not claimed as exhaustive manual line-by-line inspection.\"],\"validation\":[{\"command\":\"node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit\",\"result\":\"passed; static typecheck including web test sources\"},{\"command\":\"node node_modules/vitest/vitest.mjs run --config .work/v210-audit1-web-probe.config.mts\",\"result\":\"passed; one local deferred-response observation probe confirming WEB-TRUST-PENDING-EDIT\"}],\"snapshotVerification\":\"All assigned web file UTF-8 SHA-256 hashes matched the scan immediately before report generation. Other agents changed deployment-domain files; no web change occurred during this audit.\",\"artifacts\":[\".work/v210-audit1-web-scan.mjs\",\".work/v210-audit1-web-scan.json\",\".work/v210-audit1-web-probe.test.tsx\",\".work/v210-audit1-web-probe.config.mts\"]}",
+  "inspectedFiles": [
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "originalScopeLabels": null,
+  "scopes": [
+    "web-ux"
+  ],
+  "methodDetails": {
+    "coverage": "All 190 assigned web inventory files (50,056 lines) were read in full by a static scan, including source, CSS, tests and web configuration. This is systematic static coverage, not a claim that every line was individually examined by a human-style reasoning pass or that the tests were all executed.",
+    "systematicChecks": "All assigned inventory files read in full by script; SHA-256, relative import existence, mutation and direct RPC sites, effect/resource ownership sites, executable DOM sinks, persistence sites, CSS remote URLs, test names/assertions and disabled test markers enumerated. This is static coverage evidence, not proof of exhaustive human line-by-line review or execution.",
+    "machineResults": {
+      "missingRelativeImports": 0,
+      "disabledOrOnlyTests": 0,
+      "remoteCssUrls": 0,
+      "dangerousDomSinks": "One controlled innerHTML fixture in web/tests/dialog.test.tsx; no production sink found."
+    },
+    "manualReview": [
+      "App/Workspace routing, auth suspension, scope and epoch ownership, draft and attachment lifetimes, project/thread switching, explicit resume, input admission, operation recovery and unknown-result handling.",
+      "Every hook and library family: resource pagination and history bounds, stale response suppression, immutable receipts and local draft revisions, safe paths and media bytes, schemas, realtime and MCP session identities, receipt archive verification.",
+      "Component-family implementation and relevant current regression catalog: settings/account/security/providers/config/trust/memory; projects and organization; skills/plugins/import/sharing/MCP; conversation/history/search/actions/prompts; automation/task/goal/agents; native/project/background terminals and realtime/prediction; workspace files/Git/index/commit/worktrees/recovery; diagnostics/maintenance; presentation/navigation/markdown/media and dialogs.",
+      "Reviewed mutation and direct RPC sites against lifecycle guards and parent keys, examined CSS hidden/focus/overflow/responsive rules, import closure and test assertions/skip markers. Large component and test files were inspected by focused sections and systematic checks, not claimed as exhaustive manual line-by-line inspection."
+    ],
+    "validation": [
+      {
+        "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+        "result": "passed; static typecheck including web test sources"
+      },
+      {
+        "command": "node node_modules/vitest/vitest.mjs run --config .work/v210-audit1-web-probe.config.mts",
+        "result": "passed; one local deferred-response observation probe confirming WEB-TRUST-PENDING-EDIT"
+      }
+    ],
+    "snapshotVerification": "All assigned web file UTF-8 SHA-256 hashes matched the scan immediately before report generation. Other agents changed deployment-domain files; no web change occurred during this audit.",
+    "artifacts": [
+      ".work/v210-audit1-web-scan.mjs",
+      ".work/v210-audit1-web-scan.json",
+      ".work/v210-audit1-web-probe.test.tsx",
+      ".work/v210-audit1-web-probe.config.mts"
+    ]
+  },
+  "inspectionDetails": [
+    {
+      "path": "web/App.tsx",
+      "sha256": "91a89559632136bd3bfa72cdae87278b43c563bcce97d7edba68b4265a685e9f",
+      "bytes": 3579,
+      "lines": 120,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "sha256": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571",
+      "bytes": 14483,
+      "lines": 87,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "f6f4d4e47ce5d674c67299e7554495af36ff29b5c181d6d539374c1c5aa74113",
+      "bytes": 58846,
+      "lines": 1525,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "sha256": "b4491e413371b3337bc9d9c52dfaa3ea8cd5d12bec9491504bdccf7f369d65aa",
+      "bytes": 17305,
+      "lines": 488,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/AccountToolsPanel.tsx",
+      "sha256": "3f21a43499727e83813b27e5d3f29d0018095b00f41e96c9e78c68a3e2891c55",
+      "bytes": 14226,
+      "lines": 378,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/AdminSettings.tsx",
+      "sha256": "24f47ebf00bb441ad30503f312c0cc9b2b80f4021adf4708c702714215cb9cfe",
+      "bytes": 5062,
+      "lines": 139,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ArchiveActions.tsx",
+      "sha256": "f4c8e6dd710ec398484683b8dfd9bb8aa1625c643fc2b51e8301d3a96c171a25",
+      "bytes": 688,
+      "lines": 28,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/AttachmentButton.tsx",
+      "sha256": "54e3f7a50f0ef98025a7151587ffc9b964f5310d703dba782e82b169460e7f66",
+      "bytes": 5695,
+      "lines": 178,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "sha256": "3a1c887626f7d85bde34e8b12c78bed384bc453fc7f8ee6dbb48f28ffc71e3be",
+      "bytes": 26876,
+      "lines": 736,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/AutomationsPanel.tsx",
+      "sha256": "1b8c11f808c6101eb2a01dc3765c1ad5efe4abe09e7e108f39825b505ae7e970",
+      "bytes": 18253,
+      "lines": 517,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/CliDiagnosticsPanel.tsx",
+      "sha256": "0df99646ee6aa93898cefa54d35b47c3ddfcca33d33c6b59b11550f245d60f99",
+      "bytes": 5790,
+      "lines": 159,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/CompactThreshold.tsx",
+      "sha256": "525c896550f17df6449a09e4d07d7e71bf8c5df183618043160c76d1c1005206",
+      "bytes": 2776,
+      "lines": 80,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "841dff16c6bffffa2e594d8e610b118db577d862928cfed78cfb8c6f7ffc0a94",
+      "bytes": 17609,
+      "lines": 512,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ComposerOptions.tsx",
+      "sha256": "bc95f520889047ebeeac725a04f3ebda3e94ab9f0782f3aec8e73f33c1fb6f96",
+      "bytes": 3235,
+      "lines": 100,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ConfigSettings.tsx",
+      "sha256": "87b49472bc8ed3ee4eecad3204c25307737772d1e3870b5b5ef0cc2d67a91042",
+      "bytes": 16232,
+      "lines": 429,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/CreditNudge.tsx",
+      "sha256": "0582f6d8f01a13d245a1885ce795b697ed3e33c86145c9ca264b5efcae7dc11e",
+      "bytes": 4217,
+      "lines": 121,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/DiagnosticsPanel.tsx",
+      "sha256": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916",
+      "bytes": 10572,
+      "lines": 276,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Dialog.tsx",
+      "sha256": "27f42ab0524dbb1faf42ef191587461205e0edec339cf275967e75de98800228",
+      "bytes": 4441,
+      "lines": 133,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/DraftsSettings.tsx",
+      "sha256": "5808f941af259d3b152762358e80802ecdbca1495d9b715a753f4d4fa2cddc18",
+      "bytes": 3829,
+      "lines": 108,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/EnvironmentPicker.tsx",
+      "sha256": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4",
+      "bytes": 5524,
+      "lines": 165,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "sha256": "044ddf20fd959c373b0dc2fe5c32a473da90e2b463e6a733a1eb1f981f1c53f1",
+      "bytes": 4061,
+      "lines": 118,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ExtensionsPanel.tsx",
+      "sha256": "0a7d79335526252dc8e6cc85d66b8cda237bb8f48e7908f53d174ccb0078b969",
+      "bytes": 4962,
+      "lines": 164,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/FileEditor.tsx",
+      "sha256": "19c6e8f1fa143349462075e4a88921d75da64e5d5dd4e7c68506a8ef24c7d594",
+      "bytes": 14854,
+      "lines": 436,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/GuardianReviewPanel.tsx",
+      "sha256": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6",
+      "bytes": 14121,
+      "lines": 406,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "sha256": "d2ebb85323b008d4403902691e2d6a6cdaf3f903914c8aa7038f5c5a0d206e55",
+      "bytes": 20578,
+      "lines": 631,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/HookEventsPanel.tsx",
+      "sha256": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f",
+      "bytes": 8290,
+      "lines": 217,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Icon.tsx",
+      "sha256": "ec958b738c8d362b203b189df4b13842c5dbf6aecbc50c268890c53572136c35",
+      "bytes": 1234,
+      "lines": 37,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ImportPanel.tsx",
+      "sha256": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d",
+      "bytes": 15347,
+      "lines": 421,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/InputContextPicker.tsx",
+      "sha256": "1a0398c76f8aaff0b53f4b8bce70e9a68f92e25f1bf4ba957aaec689d4e1c2c3",
+      "bytes": 14734,
+      "lines": 422,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/InputPreferences.tsx",
+      "sha256": "2532173fc09717411399d4dc1a0387b575e6b467eefc35dcea8672f4292f9e3f",
+      "bytes": 1110,
+      "lines": 32,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/LoadedThreadsPanel.tsx",
+      "sha256": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db",
+      "bytes": 6071,
+      "lines": 153,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Login.tsx",
+      "sha256": "40d5ac7e3d5cca4a0d90986ff865d371846d6ac4849546672545360ec1cca089",
+      "bytes": 7155,
+      "lines": 104,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "sha256": "0107c372a6ae2b6ec785ae9148b294043747c9c521cea4835170ca144913f22f",
+      "bytes": 5001,
+      "lines": 148,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/McpConfiguration.tsx",
+      "sha256": "7ae6faae86dd4f0f1bee1dd7f37926b028f8e1c4717299f69b3d4b723dcb3235",
+      "bytes": 18741,
+      "lines": 527,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/McpContent.tsx",
+      "sha256": "6f167a68daf53902af5887ecba8d847b38833fc07a91c69df5acf6aef91945e7",
+      "bytes": 8757,
+      "lines": 263,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/McpPanel.tsx",
+      "sha256": "e8f5707b1080160de4d00a7583d034874c6ca428287c90e1f6b7c9503d7a7ef0",
+      "bytes": 30917,
+      "lines": 838,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/MemorySettings.tsx",
+      "sha256": "f04b8722ca2251f45cac83c771165c40178f3d7376214f643a3bb32df9a1af95",
+      "bytes": 7509,
+      "lines": 205,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "sha256": "bb4595e66acb8920a01ffa57c6b8c706fde04371b1d7f91202844825548a93c1",
+      "bytes": 5860,
+      "lines": 162,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/MessageMedia.tsx",
+      "sha256": "4e14e590d9b38e645d9eeee3f59b543f999a83f62bfcc00fe60e767328aab40e",
+      "bytes": 7169,
+      "lines": 219,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Messages.tsx",
+      "sha256": "e5b73b1315101ddd60f5e90ee57c8039e57415aaa05463fb23489d5223f52888",
+      "bytes": 9303,
+      "lines": 267,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ModelCatalog.tsx",
+      "sha256": "64ef817adafb482538846329c4e6b45b2106e74a860d65c47216ee0909693a35",
+      "bytes": 10939,
+      "lines": 294,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/NativeProjects.tsx",
+      "sha256": "3805e1fa1b9997eb7bd61013a9d5de33d1052db4f2a008bfff72dcd4db231be9",
+      "bytes": 14418,
+      "lines": 406,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/OrganizationPanel.tsx",
+      "sha256": "0af8d61df37e423a0ddfa766b1a13656878464134682ff08778a56b90d4951d5",
+      "bytes": 2577,
+      "lines": 91,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/PluginSettings.tsx",
+      "sha256": "30905ac0e8015697762e8bd4287586d6baa61bf70cc85237ce8274de9c9cf064",
+      "bytes": 16479,
+      "lines": 444,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/PluginSharing.tsx",
+      "sha256": "815b6a036f7de66ee132b17a2f9270db8fc42d44b6fe602d5b4acdac40d20a4f",
+      "bytes": 17122,
+      "lines": 480,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/PredictionPanel.tsx",
+      "sha256": "00dd87a7297a4fee66e1aff896125c9f06c547346aa0942bf9b2d34cef7c917f",
+      "bytes": 15245,
+      "lines": 408,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ProcessPanel.tsx",
+      "sha256": "f5f86f43f8104fb8fb039ffa550981f6cff9603bc6e9f3c29bf46c5232b461c0",
+      "bytes": 19807,
+      "lines": 571,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ProjectDialog.tsx",
+      "sha256": "c6b522602700eef9bc8979beca1c1f49b725b6c3b51f66492567998b109135b0",
+      "bytes": 2614,
+      "lines": 88,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ProjectTrustSettings.tsx",
+      "sha256": "a65adbef38801119ec7d7ce7ccd58713ca5d116ff27df127675161fe5e36b6d7",
+      "bytes": 4310,
+      "lines": 118,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "sha256": "710468a00100aac797b287d05636630d6a2c859bfe65a32dc3e145cee1454fd9",
+      "bytes": 7444,
+      "lines": 229,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Prompts.tsx",
+      "sha256": "4eb8808bb298b92c4e487b115dd22bed83ae331f23fd00932ee3c45d805a6827",
+      "bytes": 17960,
+      "lines": 495,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ProviderProfiles.tsx",
+      "sha256": "88ff150d601e94a9d10eb7d4c73c1c7266a1bdc4fa96b06731c78dc79bd2cc4b",
+      "bytes": 5286,
+      "lines": 158,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "sha256": "d5032af6022970282cff86f6d9157490f6fc5f88c263b1e24ad858bfa510d11e",
+      "bytes": 13705,
+      "lines": 378,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/RealtimePanel.tsx",
+      "sha256": "5cc9ba57a8f63585eaa45242a0d57d35329771917a105e9dca4e61aed581e1e8",
+      "bytes": 24666,
+      "lines": 715,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ReceiptMaintenance.tsx",
+      "sha256": "c78781236964ce8d63a6ff94dd2b91a5c03f3d12ab3cc0b1e1210d34cfae72d5",
+      "bytes": 9285,
+      "lines": 274,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "e47bc9d3cdfaa7cae2c16d8982afb1f925a3d6e2cabd640513c068a83a86c61f",
+      "bytes": 9341,
+      "lines": 242,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "sha256": "1e27b2ad1b6afef09a3066145a6a1834c35d5a45b6881ad83e00ee2502c3b399",
+      "bytes": 21088,
+      "lines": 615,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/RenameDialog.tsx",
+      "sha256": "e52d346a6a900fb171c3d387eb48156dc62145204ea66ae6f9f0fea47e6a2893",
+      "bytes": 2192,
+      "lines": 68,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/RuntimeInsights.tsx",
+      "sha256": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a",
+      "bytes": 10866,
+      "lines": 295,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/SafeMarkdown.tsx",
+      "sha256": "20a64b0068bb207f5596b545228551311474eb05541e47559c3c38619b3563e2",
+      "bytes": 7790,
+      "lines": 249,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/SecuritySettings.tsx",
+      "sha256": "36d3b90e1d2fb7087d57897a48835a67dca072f505fa2bfd4e59f1a6330bcb2c",
+      "bytes": 12077,
+      "lines": 158,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Settings.tsx",
+      "sha256": "b08907374d51869663bc49d5ca3742b2cfe43828b0229049a13180ce8f41f780",
+      "bytes": 7709,
+      "lines": 236,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "18983bf677a7ae99d313d21142fa929c944c47248cbe05ab815e271197f5dcae",
+      "bytes": 6509,
+      "lines": 217,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/SkillLibraryTools.tsx",
+      "sha256": "91057e428ef5815a322f64254b73e224174351f7a411481cd4b0821034021ddf",
+      "bytes": 19271,
+      "lines": 549,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/SkillSettings.tsx",
+      "sha256": "8e496add42cab950c4f3625e01315a99f6727446595c501cfd374d9a4cbb5eeb",
+      "bytes": 7045,
+      "lines": 185,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/TaskPanel.tsx",
+      "sha256": "76f0634dd7c1d48cf2aea0906cdb4de81dc09243d8d0140a6f70b9e4a4a4abd4",
+      "bytes": 24020,
+      "lines": 705,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/TerminalPanel.tsx",
+      "sha256": "428ff45d7d79334de715fa784b465962523a2bcbda18022be111571e35d75fff",
+      "bytes": 19011,
+      "lines": 520,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "42b70054b1fd6f8e09a36fdc3f95899b70671448067ab6c5b41c420b2720cefb",
+      "bytes": 17365,
+      "lines": 470,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ThreadOrganization.tsx",
+      "sha256": "628d26084d47b30d8f7fcd11eff7410b0b81fec1c7d1d779f8d044810b800cc6",
+      "bytes": 25057,
+      "lines": 708,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/ThreadTerminals.tsx",
+      "sha256": "984cf27cde2a740e7eeb32bd1b829166a05b87dc0b234f09875abf85e3f2e0e7",
+      "bytes": 13522,
+      "lines": 400,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/Welcome.tsx",
+      "sha256": "790850a8ae4d371998ee6924e149cd6d07725803c7bd8e594d1514a8a5128ae8",
+      "bytes": 1701,
+      "lines": 47,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceCommit.tsx",
+      "sha256": "004902020caf0641f148be9cde9c66577631c60ab09254add6d109f7e2299f8c",
+      "bytes": 6644,
+      "lines": 195,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceDownload.tsx",
+      "sha256": "ecde699159eb97d5d02ff3bfcd1bc0093a097b753c38697d23ec1bd90a4b1135",
+      "bytes": 2824,
+      "lines": 90,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceGit.tsx",
+      "sha256": "93c82d98ead10c864882a0b7ddee246cb501947d0e6dd5a3e930cbdbb776ec83",
+      "bytes": 6005,
+      "lines": 192,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceIndex.tsx",
+      "sha256": "a2d1a6aac59dc431e0f38ae3c445605686a0f5b0b08d7e0af6aa7704deb9d0ce",
+      "bytes": 9791,
+      "lines": 268,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceIndexRecovery.tsx",
+      "sha256": "f05e5fb6fe652a2eed017d347e7c715b4b5cc1972619a3363c81a110fce9b96f",
+      "bytes": 11679,
+      "lines": 319,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspacePanel.tsx",
+      "sha256": "1300dcdf6cd0a9663068d84812c150ec7ec04217611411e650f8d3143834bfd3",
+      "bytes": 29004,
+      "lines": 810,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceRecovery.tsx",
+      "sha256": "2913c69e0ac69b76b9d3ea119268dc69c887ccf1a3ca27db5b2c30c21dc68a75",
+      "bytes": 15277,
+      "lines": 416,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceSearch.tsx",
+      "sha256": "128fa4b17135e355fe6e948aac90945e246e71e27f17878a8d78fbee00ce06c3",
+      "bytes": 6218,
+      "lines": 176,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/components/WorkspaceWorktrees.tsx",
+      "sha256": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb",
+      "bytes": 14129,
+      "lines": 394,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useAutomationRuns.ts",
+      "sha256": "2282f3aff02c49ccf012959964526db1cff674c898748738269329ca4141fc79",
+      "bytes": 4099,
+      "lines": 112,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useConversation.ts",
+      "sha256": "8b251b4d4513d6511d9db6780c9dba47ad07bcbe08cfd371723f3f2fbd4d7ff2",
+      "bytes": 9619,
+      "lines": 280,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "sha256": "208e9778e9d5191963807a66aa7d25510b20873499d5e40a8308a1bbbfb887a3",
+      "bytes": 3901,
+      "lines": 114,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useEvents.ts",
+      "sha256": "d63a5091a9ebfb984f132e5390e2730722b7ed6a703f8e8fadeb88649f810e5f",
+      "bytes": 4858,
+      "lines": 137,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "sha256": "faf28e89a288735eb27bf6449256e805a3ae37ea7c8c9eed68ae18ce8c3038c3",
+      "bytes": 3542,
+      "lines": 109,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/usePrompts.ts",
+      "sha256": "b13628ce86618553bcd09f3c475c9ce408fbe564cc45d66ed5605400bac39ada",
+      "bytes": 2211,
+      "lines": 59,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882",
+      "bytes": 1485,
+      "lines": 49,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useResume.ts",
+      "sha256": "6a56e7afe50f82279617831b9d92ae2ad5ed7b542c29b2ec5e02c0111fa40031",
+      "bytes": 1623,
+      "lines": 44,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "sha256": "de1847284c0bbba6f5a796bf5becf78df5643b45591079174c7c6c6ed23b64b2",
+      "bytes": 4581,
+      "lines": 131,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/hooks/useWorkspaceWatch.ts",
+      "sha256": "3124afd820bec9be3cae5055def2fd1eeabcfba3e1e56d2a546a5adcddb017ba",
+      "bytes": 3086,
+      "lines": 85,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/index.html",
+      "sha256": "e87a9b75a52a29b482759e8f03be846b573901d5aeeefa9977ab6cc735aa3d3d",
+      "bytes": 306,
+      "lines": 3,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "5416b222d7c5d53d69855e9205ae7b29194813e4a2a19df9cabc8c3cea34bb75",
+      "bytes": 17702,
+      "lines": 467,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/automations.ts",
+      "sha256": "cc60224d88c03596e463e138f0b665adc3da956483cf4fc4b356ce15f9032484",
+      "bytes": 4231,
+      "lines": 133,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/download.ts",
+      "sha256": "2263f60c277ca4ef7ca0de93cdeb03c988ff666d1044483f4f8abbf78c95b6a1",
+      "bytes": 662,
+      "lines": 20,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/drafts.ts",
+      "sha256": "bfce48cb58d12aa3777c183235ac5c91f6d250e967c47c3a64e96de7824a7716",
+      "bytes": 5032,
+      "lines": 141,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/events.ts",
+      "sha256": "387fc1c1e000376d0cd58ebe9c996118b3a596d1b3e77dbf36e31cd1160e4429",
+      "bytes": 582,
+      "lines": 18,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/file-drafts.ts",
+      "sha256": "2b4a86b951fa0700b12954773736784e4603c26743fc1fcce03bd78656a3696b",
+      "bytes": 3957,
+      "lines": 106,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "sha256": "9c3ca836c163fd13dbb67717e881d5dc38768c0b80c38e9c51e9c264a0befded",
+      "bytes": 483,
+      "lines": 16,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/git-state.ts",
+      "sha256": "5ed7132f44dd1edada75866cfb54228cb89c33809ea6b019ee8fb68b69c94e5b",
+      "bytes": 961,
+      "lines": 28,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/history.ts",
+      "sha256": "0a48a2aacc2dce9e239f6dfa0fad4cd3ab8fafe42c7fbda1a1dd6163e5f80d0f",
+      "bytes": 8556,
+      "lines": 227,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/ids.ts",
+      "sha256": "1879581127de9597673785e32fb4f3efc3cce012f94cf881332abc859406baa4",
+      "bytes": 1041,
+      "lines": 19,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/imports.ts",
+      "sha256": "4ca6c964e1e1f1d7f066a4bc953232365493d380911854de71766d2b8f0e408f",
+      "bytes": 3233,
+      "lines": 91,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/input-context.ts",
+      "sha256": "f7e5181d7ef801414eac64940720833483aaf73ce41f4d8ff27faf89e3a3d27c",
+      "bytes": 5187,
+      "lines": 127,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/input-modalities.ts",
+      "sha256": "aac74b51e676a56c71ea66a4066ad5613bfb3e69b61e60e6807e5eff0e057cbf",
+      "bytes": 2887,
+      "lines": 74,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/input-preference.ts",
+      "sha256": "2bbd70f35803c0377a67f7bfc8780ac97461c5d317972661476e4335a09b6d90",
+      "bytes": 1292,
+      "lines": 47,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/mcp-session.ts",
+      "sha256": "de4eeb04b194cb6ad71f1acae6512c8b2a95120e81d1d1063aabd0910fbd6aab",
+      "bytes": 3392,
+      "lines": 94,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/media.ts",
+      "sha256": "08a6206948c9120eaa4a37478cb6fb6a3f1c6426b366ab20147bfca991718c6a",
+      "bytes": 6879,
+      "lines": 177,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "004c7e4216da14d869abce24f47c8bafcfbe76fc0f2d45747b236be00539f767",
+      "bytes": 9116,
+      "lines": 229,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/organization.ts",
+      "sha256": "126eae596f9b5141ed9553f471e3d1bd717733178138229677988606913abd3b",
+      "bytes": 533,
+      "lines": 11,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "sha256": "eed59f8770a3efde470b67cd7179bbc260dbe2f47f19ceb241af6fa429c266d4",
+      "bytes": 6536,
+      "lines": 170,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/realtime-media.ts",
+      "sha256": "0989bc01d884061ecbe32a4ce93dc82bf5f2825550ac5ecb80be2f44aa3ac0cd",
+      "bytes": 4660,
+      "lines": 117,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/receipt-archive.ts",
+      "sha256": "1203a9f6627e9fe8252907e2faae903741ca2ae44a03a4528a363cac47fed472",
+      "bytes": 4386,
+      "lines": 116,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/stream-items.ts",
+      "sha256": "a5e1b533f8dff0c8eac43932d2c932f79c38583e4643e379bd4d50ce27525b5a",
+      "bytes": 2966,
+      "lines": 77,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/timeline.ts",
+      "sha256": "40372ce0338f6a464bb2b44fd39dc081e414688063a4892eefbe8358118bd218",
+      "bytes": 5189,
+      "lines": 126,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/types.ts",
+      "sha256": "612e29d5541f7312ef3ef06ab9a40e8c5470ed532d7a9c295c4c8bbb7909a6c2",
+      "bytes": 2322,
+      "lines": 83,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "sha256": "00860097b0af141a87f639551d4ad0158c04faf3424f07b51467e6523cd85b6b",
+      "bytes": 4198,
+      "lines": 102,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/lib/workspace.ts",
+      "sha256": "7d1e147904b5a94feec6ac35c726174253b093cdef896a3df81f1bf6f5e6e5d5",
+      "bytes": 4612,
+      "lines": 132,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/main.tsx",
+      "sha256": "01250f924757d9567c7a8471ac1930d8ba01109f9a72f38a869ecd9300678807",
+      "bytes": 273,
+      "lines": 12,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/styles-automations.css",
+      "sha256": "824c6f8b0faa40f70d6d360dd1aaca502c5b1556d5df28ed51c2cba96dbc5da9",
+      "bytes": 1198,
+      "lines": 66,
+      "inspection": "Full static scan; focused layout, hidden-state, focus and responsive-rule review"
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "sha256": "c4190a8ed5de06d796cada2a3f5e510cc3caad97c4d38eab6009848f8f7b5a3c",
+      "bytes": 3994,
+      "lines": 218,
+      "inspection": "Full static scan; focused layout, hidden-state, focus and responsive-rule review"
+    },
+    {
+      "path": "web/styles-input-context.css",
+      "sha256": "1796957fc6fa10b44a9a1cfdd98ea69a5ac2c7d09852a14d50f03ff6403b52e0",
+      "bytes": 1603,
+      "lines": 92,
+      "inspection": "Full static scan; focused layout, hidden-state, focus and responsive-rule review"
+    },
+    {
+      "path": "web/styles-responsive.css",
+      "sha256": "bf0ed4a4dc8022116332767b2568b45f241e679fbccbff19696ffdf2721df77d",
+      "bytes": 7797,
+      "lines": 441,
+      "inspection": "Full static scan; focused layout, hidden-state, focus and responsive-rule review"
+    },
+    {
+      "path": "web/styles-workflows.css",
+      "sha256": "63542d4b26c70b47016e38945ab87285685056c2ca72a75408f3f45bb0539904",
+      "bytes": 5135,
+      "lines": 285,
+      "inspection": "Full static scan; focused layout, hidden-state, focus and responsive-rule review"
+    },
+    {
+      "path": "web/styles-workspace.css",
+      "sha256": "943da6d607a9f77a949180792f79b1c4decc40ef44acf17d6ad1c95670228046",
+      "bytes": 5725,
+      "lines": 318,
+      "inspection": "Full static scan; focused layout, hidden-state, focus and responsive-rule review"
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "e88e4df96bd898aa7dd67cc87cea2e6e21fb5fcceb77b4ccbb393598373bb127",
+      "bytes": 26086,
+      "lines": 1528,
+      "inspection": "Full static scan; focused layout, hidden-state, focus and responsive-rule review"
+    },
+    {
+      "path": "web/tests/account-app.test.tsx",
+      "sha256": "cd97e289e3604e32ad136163e0d31e63e6d7a95910a9a2b661d9518270d85431",
+      "bytes": 1933,
+      "lines": 36,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/account-tools.test.tsx",
+      "sha256": "a8e464ef1478b39c645821a9732de0bc07794a423c986c6a32e61fd9524cb264",
+      "bytes": 7147,
+      "lines": 167,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "4ace450f32f138e849434dca3f633f30015dc4719bdcf164cabbe11183927bae",
+      "bytes": 30231,
+      "lines": 726,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/attachments.test.tsx",
+      "sha256": "34050ba1ce7f600bf5378cfe7368236851cf0a706a696e468fca44a167fab295",
+      "bytes": 10438,
+      "lines": 241,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "f69ec16f661915f47249741ad5d8a959fb78b0cff8969f86d2697fc01b143689",
+      "bytes": 30277,
+      "lines": 700,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/builtin-auth.test.tsx",
+      "sha256": "512d66cb936941ade4093440443ceae04e31357eaf964bcc433d6cb44a60c02f",
+      "bytes": 18232,
+      "lines": 279,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/cli-diagnostics.test.tsx",
+      "sha256": "c2d30b4f82f0cda6de54f9e496425a6466bd2cd5c01fdc915d64c49e29c43ae1",
+      "bytes": 5080,
+      "lines": 115,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/compact-threshold.test.tsx",
+      "sha256": "bbe9991a5f68ff7274d686cb858563da32969c3e826aac178e202314f615367a",
+      "bytes": 1379,
+      "lines": 37,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/composer.test.tsx",
+      "sha256": "d27b03937f7ea09d6484c5bfb6bd09e6124d32fec569cb5e3a323139a117e3d2",
+      "bytes": 9346,
+      "lines": 259,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "sha256": "91240cd9c0b720bd3dec121e4f2ddfc0d8dd25d4f8a883dcbec1f8586cd57c9d",
+      "bytes": 15910,
+      "lines": 444,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/credit-nudge.test.tsx",
+      "sha256": "b978ea00088656954c14a81dcecca0b383ee28ef43e57f6b5075739355c05bec",
+      "bytes": 3491,
+      "lines": 85,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "c795fbd20d9e304f6060e61e27da246b14cc6d931bc7577dbc33b01d3c403d79",
+      "bytes": 7366,
+      "lines": 214,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "sha256": "518c5ea948b4725d7275ecd683761f2560de232b76cc0fa4dfe27b115187abac",
+      "bytes": 9182,
+      "lines": 234,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/dialog.test.tsx",
+      "sha256": "2986e9fcc2c45b2291bc258bcbada720ef509cd33178151bc25cd6ba158d6ec0",
+      "bytes": 6992,
+      "lines": 180,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/drafts.test.tsx",
+      "sha256": "c95368ec5f20cf358de439761514ccb5bf9a223a793aa46a55b66be42c385749",
+      "bytes": 9409,
+      "lines": 199,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/environment-picker.test.tsx",
+      "sha256": "444108809ba1043de25660876b775a66279ab05182a7f78d00a2e71cc9c9f1aa",
+      "bytes": 3130,
+      "lines": 94,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/events.test.tsx",
+      "sha256": "953a556718219bcdd4233e79f9853531247654243f1e6ae0502ee48c82839513",
+      "bytes": 7066,
+      "lines": 234,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "sha256": "6b6d1c02edf4e94ec780b0ab729f3bd1bd5a1af72f24276bbf3e4f3c3a2d4c6a",
+      "bytes": 12019,
+      "lines": 294,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "sha256": "1bdd5aa6e8fae67181891ebef32d3a7ec93690e2991fe7a45ce1d4eef7b81b4a",
+      "bytes": 16821,
+      "lines": 407,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/git-index-ui.test.tsx",
+      "sha256": "7bd7cc4d316b10c1e72152e69e7108f7b020c8cf6b5f3a196bdfd412a0a1f480",
+      "bytes": 11864,
+      "lines": 275,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/guardian-review.test.tsx",
+      "sha256": "5ac37089972b353647e391026857e602c8542ae760cebb889f0513f48f03cded",
+      "bytes": 9530,
+      "lines": 257,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/history.test.ts",
+      "sha256": "1df869a2bf229ce06d9f30b51746c9e102a1ed18f0c598caf25e48217cdc061c",
+      "bytes": 7368,
+      "lines": 240,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/hook-events.test.tsx",
+      "sha256": "b046d2c1771373ad60d0ca3643ee5161794ddc927c342c0f50daac84bb68d356",
+      "bytes": 5097,
+      "lines": 139,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/import-ui.test.tsx",
+      "sha256": "fc80754961209c37be33de57547299fbc4aa47b364ec3d46e2aae095a9195085",
+      "bytes": 11392,
+      "lines": 282,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/input-context.test.tsx",
+      "sha256": "eb0d5d8958cc8c923a7538b824bb0214dee1a4832aa13b4b9c555524e2779861",
+      "bytes": 14087,
+      "lines": 420,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/input-modalities.test.tsx",
+      "sha256": "846a43abb01c830fb2e0438b54229131e37ab5668717af9260eaa5c6ebfb3b87",
+      "bytes": 5927,
+      "lines": 148,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/input-preference.test.tsx",
+      "sha256": "a5290b8270d0cfb60cbf27d3b20352c3e1cc93cb549922ff1faa80bc44382c7b",
+      "bytes": 2851,
+      "lines": 74,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/loaded-threads.test.tsx",
+      "sha256": "dbbb73bf95eb9661d477e22b0025dd0cac5b0d0999502ea14c35f7521da4c298",
+      "bytes": 5306,
+      "lines": 128,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/mcp-media.test.tsx",
+      "sha256": "35b08c362e819cf91639e716778580b83e6a817bd574a537703c2cb050b7f51c",
+      "bytes": 14300,
+      "lines": 325,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "f01c5032bfb32c99fdebd32c9df280a73ad59448a7f7e682d1a2fad59abe3717",
+      "bytes": 38969,
+      "lines": 1007,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/memory-settings.test.tsx",
+      "sha256": "862150a7e01acf58cafed4b0ef82fb9efc927807d595c9de5e4ffde49f26e249",
+      "bytes": 5777,
+      "lines": 139,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "sha256": "806bff39c18db5ef1e5d8c9af035f4fc615a7e21a02330897558fa8b0b1679d9",
+      "bytes": 7296,
+      "lines": 190,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/modal-mutations.test.tsx",
+      "sha256": "9f4a20c97b45cc7ac622bdabf67e91af563c364b9d588e1235302d19903011f7",
+      "bytes": 17179,
+      "lines": 457,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/operation-generation.test.ts",
+      "sha256": "36b788dce8966acf9e926bdfe6d7b0d7b897a487ecb35ea2a36810a1dfa347fa",
+      "bytes": 2208,
+      "lines": 56,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/operations.test.ts",
+      "sha256": "8d62d0e7bd3abb502f75ed2ae96ea3de584b602ba410d8570b29c5d545e84541",
+      "bytes": 9159,
+      "lines": 239,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "sha256": "ad55623c17180dc1efad2054431d03b2ede45417d47e50fc829402be26e79ee5",
+      "bytes": 13788,
+      "lines": 314,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/prediction.test.tsx",
+      "sha256": "a9444a9e1412296e7955486d242ed97c4e56730ea9a9465b10e49bae7b3cee51",
+      "bytes": 8394,
+      "lines": 215,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/preview-server.mjs",
+      "sha256": "c19a1c557f9336ba1a5751e73c60b4e7a513b746d49e367495c297d6229572a8",
+      "bytes": 4906,
+      "lines": 28,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "sha256": "37e3de47bef359ebcb05148c634a1c30e667ad26b1518d271ec38d42bc4f4e18",
+      "bytes": 30862,
+      "lines": 705,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/prompt-fields.test.tsx",
+      "sha256": "d53ad05ad2567b7537fb6373be58a91e3b40b76c857e3605521506d2e8cbd349",
+      "bytes": 10831,
+      "lines": 275,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "sha256": "0db1f10def4ee011495ab87abfd24284297ea875b570aeb0659e3a614942f000",
+      "bytes": 21207,
+      "lines": 591,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/provider-advanced.test.tsx",
+      "sha256": "3b07d322c4d8c479298eb2b20f35cbacc26b5b6cb6e594b8a4ff3864420a20e2",
+      "bytes": 6678,
+      "lines": 155,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/provider-profiles.test.tsx",
+      "sha256": "44749831acad541a19d7627cf7cfca79423a13c11f792e34da8d8c2450bd5f8c",
+      "bytes": 5383,
+      "lines": 115,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/provider.test.tsx",
+      "sha256": "f13479d18e1290496a2831a2e5852cdd536e488907628945ad36b65c2e0421f4",
+      "bytes": 5422,
+      "lines": 125,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/realtime.test.tsx",
+      "sha256": "a4db30472332c0e86e34703fbddc7e187b6e3f86609fa8a253ac8bd7f6a617ee",
+      "bytes": 22993,
+      "lines": 569,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/receipt-maintenance.test.tsx",
+      "sha256": "13bd364fa7b400d35059e368372d653d684dfcdeb444f2d16e807856ffd86247",
+      "bytes": 8668,
+      "lines": 187,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/recovery.test.tsx",
+      "sha256": "3db7d4a7efd86a85b6d97b3edb48edb46dbe1996bd2e63c2eb5b59b6e707b9ce",
+      "bytes": 6476,
+      "lines": 151,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/render-budget.test.tsx",
+      "sha256": "a0826c7edd93384f19caee4c66396a262ae6c83bb4854c7b2bd19a08aa480741",
+      "bytes": 6553,
+      "lines": 161,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/resources.test.tsx",
+      "sha256": "a0714c97943b58c6fd83d4b61dc17cf2f9680e0872c9d49de9f26dd1f8697b4b",
+      "bytes": 2356,
+      "lines": 57,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/resume.test.tsx",
+      "sha256": "50f46330c76463d12df96c177ff2b90c4127c736c224b46667dcff0edfa54ddc",
+      "bytes": 2281,
+      "lines": 51,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/session.test.ts",
+      "sha256": "e5ccacc0f7331165aaed39fa758d9848684cf1e1a8eff9827db131da3bddcec0",
+      "bytes": 5841,
+      "lines": 164,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/settings.test.tsx",
+      "sha256": "2c321338d96aeab7a09599dbee600a55c9764804b29e8763595ced25f1bf9d6a",
+      "bytes": 5966,
+      "lines": 172,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/sharing-diagnostics.test.tsx",
+      "sha256": "e1203933364af3076a3de1f04bd5e978132698e73e104738a449eb9515b36a0e",
+      "bytes": 10234,
+      "lines": 229,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/skill-library.test.tsx",
+      "sha256": "9ae345caaf0a0247c116c7b9d829e2184644b695c9ebf625181b13fde7bdb8d6",
+      "bytes": 15957,
+      "lines": 380,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/stream-items.test.ts",
+      "sha256": "09b4ace364935079cf3dec5e804f2a11da233cc81196052236aafd41a977babd",
+      "bytes": 3521,
+      "lines": 93,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "sha256": "39643c1034fbf966d21a3eee1dd04522ebe9e1ea6cd219d6e88e92645c6b8d57",
+      "bytes": 22580,
+      "lines": 589,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/thread-terminals.test.tsx",
+      "sha256": "b15494e940f1918409023bb70873c87780783698358bd07993d71cbb68674262",
+      "bytes": 17650,
+      "lines": 427,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/timeline-history.test.tsx",
+      "sha256": "b325e6f8867508ad6f87c65649ed45088c852c1aa9e2c517ae4e13e1821617ea",
+      "bytes": 11241,
+      "lines": 293,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/workflows.test.tsx",
+      "sha256": "e8909c9f50b9f18ebeda5caa674ab52e3b288e730f6eb66aa31b83b1c5ddd017",
+      "bytes": 29635,
+      "lines": 736,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/workspace-management.test.tsx",
+      "sha256": "c510d02feedbbbc4bf8f95aad71e55412afd45788e08de213211aa990b32720c",
+      "bytes": 23183,
+      "lines": 540,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/workspace-search.test.tsx",
+      "sha256": "92b88084b95e733b599e8d7d9dd48474aab384e0073369ef05749be20ffc8fad",
+      "bytes": 3025,
+      "lines": 90,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/workspace-ui.test.tsx",
+      "sha256": "aa586345b2fc282159cffdc3587a7d6a260f6dbe7e0c9f3c0153636d9effc5ed",
+      "bytes": 18559,
+      "lines": 490,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tests/workspace-watch.test.tsx",
+      "sha256": "e1b86716a526f288fab63c2911ecaab2040d97ebd8a8f5e8c5c1e8588417a891",
+      "bytes": 2473,
+      "lines": 66,
+      "inspection": "Full static scan and typecheck where TypeScript; regression catalog and selected fixture/assertion review"
+    },
+    {
+      "path": "web/tsconfig.json",
+      "sha256": "efd877301f02127f32d2a954ae07d485795fa317d1917f384a4782f8fe72ee09",
+      "bytes": 329,
+      "lines": 2,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    },
+    {
+      "path": "web/vite.config.ts",
+      "sha256": "ee2c8cacb1a7f4cc94ac3dcc7a16f3e40e062ce07a78cf867c58451b0b11e12e",
+      "bytes": 362,
+      "lines": 12,
+      "inspection": "Full static scan; component/library family review and focused lifecycle/RPC/mutation/render paths"
+    }
+  ]
+}

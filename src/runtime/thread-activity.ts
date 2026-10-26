@@ -11,12 +11,15 @@ export interface Activity {
   fresh?: boolean;
   directInput?: boolean | null;
   goalActive?: boolean;
+  goalRevision?: number;
+  goalPending?: boolean;
   queued?: boolean;
   checkingContinuation?: boolean;
   continuationRevision?: number;
   subscribed?: boolean;
   settingsRevision?: number;
   activeModel?: string;
+  modelRevision?: number;
 }
 
 // Idle metadata does not settle an accepted turn; its matching completion does.

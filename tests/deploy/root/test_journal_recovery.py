@@ -33,6 +33,8 @@ class Services:
         try:
             assert dict(db.execute("SELECT id,state FROM receipts")) == {"pending": "not_sent", "sent": "unknown"}
             assert db.execute("SELECT value FROM metadata WHERE key='activityUncertain'").fetchone()[0] == "false"
+            for result, error, stored in db.execute("SELECT result,error,bytes FROM receipts"):
+                assert stored == len((result or '').encode('utf-8')) + len((error or '').encode('utf-8'))
         finally: db.close()
         self.events.append("start")
         self.active.update(role for role in ROLES if self.layout.unit(role) in units)

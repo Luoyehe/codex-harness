@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateRelative } from './release-audit.mjs';
 import { evidencePath } from './snapshot.mjs';
+import { isolatedTestEnvironment, isolateTestProcess } from './test-environment.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 export const nativeTestFiles = ['tests/runtime/native-smoke.test.ts', 'tests/runtime/gateway-native.test.ts', 'tests/runtime/approval-native.test.ts', 'tests/runtime/workflows-native.test.ts', 'tests/runtime/extensions-native.test.ts', 'tests/runtime/mcp-native.test.ts', 'tests/runtime/organization-native.test.ts', 'tests/runtime/automation-native.test.ts', 'tests/runtime/process-native.test.ts', 'tests/runtime/input-native.test.ts', 'tests/runtime/remote-native.test.ts', 'tests/runtime/guardian-native.test.ts', 'tests/runtime/gateway-oauth-native.test.ts', 'tests/runtime/cli-diagnostics-native.test.ts'];
@@ -70,8 +71,8 @@ export function selectTests(changed, available) {
     else if (name.startsWith('tests/runtime/') && !documentation.has(name)) add(name, domain('tests/runtime/'), 'runtime-fixture');
     else if (name === 'scripts/release-audit.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'release-scanner-and-dependent-gates');
     else if (name === 'scripts/reviewed-history.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/reviewed-history.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts'], 'immutable-historical-pattern-review');
-    else if (name === 'scripts/select-tests.mjs') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'affected-test-selection-and-runner');
-    else if (['scripts/run-tests.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/prepare-ci-native.test.ts'], 'test-execution-and-release-gates');
+    else if (name === 'scripts/select-tests.mjs') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts'], 'affected-test-selection-and-runner');
+    else if (['scripts/run-tests.mjs', 'scripts/test-environment.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/prepare-ci-native.test.ts'], 'test-execution-and-release-gates');
     else if (name === 'scripts/snapshot.mjs') add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/select-tests.test.ts'], 'source-snapshot-and-evidence-classification');
     else if (['.github/workflows/affected.yml', '.github/workflows/security.yml', '.github/workflows/compatibility.yml', 'scripts/compatibility-watch.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/compatibility-watch.test.ts', 'tests/tooling/release-audit.test.ts', ...domain('tests/deploy/')], 'ci-orchestration-and-deployment-identities');
     else if (name === '.gitignore' || name === '.gitattributes') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'source-inventory-policy');
@@ -105,7 +106,7 @@ export function gitChanges(base, head, cwd = root) {
   return run(['diff', '--name-only', '-z', '--no-renames', '--diff-filter=ACDMRTUXB', base, head, '--']).split('\0').filter(Boolean).map(validateRelative);
 }
 
-export function nativePrerequisite(base = root, explicit = process.env.HARNESS_TEST_CODEX_BIN) {
+export function nativePrerequisite(base = root, explicit = process.env.HARNESS_TEST_CODEX_BIN, inherited = process.env) {
   if (!explicit) return { status: 'skipped', reason: 'independent-official-cli-path-not-provided', requiredVersion: '0.164.0' };
   const runtime = path.resolve(base, 'reference/runtime');
   const candidate = path.resolve(explicit);
@@ -125,28 +126,28 @@ export function nativePrerequisite(base = root, explicit = process.env.HARNESS_T
   const homes = path.join(base, '.work/native-version'); mkdirSync(homes, { recursive: true }); const isolated = mkdtempSync(path.join(homes, 'check-'));
   const home = path.join(isolated, 'home'); const temporary = path.join(isolated, 'tmp'); mkdirSync(home); mkdirSync(temporary);
   const env = { HOME: home, USERPROFILE: home, CODEX_HOME: path.join(home, 'codex'), TEMP: temporary, TMP: temporary };
-  for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC']) if (process.env[key]) env[key] = process.env[key];
+  for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC']) if (inherited[key]) env[key] = inherited[key];
   const checked = spawnSync(candidate, ['--version'], { cwd: base, env, encoding: 'utf8', timeout: 15000, maxBuffer: 4096, windowsHide: true });
   if (checked.error || checked.status !== 0 || checked.stdout.trim() !== 'codex-cli 0.164.0') return { status: 'failed', reason: 'native-version-check-failed' };
   return { status: 'ready', version: '0.164.0', binary: candidate };
 }
 
-export function pythonPrerequisite() {
-  const binary = process.env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const checked = spawnSync(binary, ['--version'], { encoding: 'utf8', timeout: 15000, maxBuffer: 4096, windowsHide: true });
+export function pythonPrerequisite(env = isolatedTestEnvironment(root)) {
+  const binary = env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const checked = spawnSync(binary, ['--version'], { env, encoding: 'utf8', timeout: 15000, maxBuffer: 4096, windowsHide: true });
   if (checked.error || checked.status !== 0) return { status: 'skipped', reason: 'python-interpreter-unavailable' };
   const version = `${checked.stdout ?? ''}${checked.stderr ?? ''}`.trim();
   if (!/^Python 3\.(?:1[1-9]|[2-9][0-9])\.\d+$/.test(version)) return { status: 'failed', reason: 'python-3.11-or-later-required' };
   return { status: 'ready', binary, version };
 }
 
-export function runPythonTests(files, base = root) {
-  const prerequisite = pythonPrerequisite();
+export function runPythonTests(files, base = root, env = isolatedTestEnvironment(base)) {
+  const prerequisite = pythonPrerequisite(env);
   if (prerequisite.status !== 'ready') return { ...prerequisite, exitCode: prerequisite.status === 'skipped' ? 3 : 1, tests: files };
   if (!files.length) return { status: 'failed', exitCode: 1, reason: 'empty-python-selection', tests: [] };
   const reports = path.join(base, '.work/test-results'); mkdirSync(reports, { recursive: true });
   const output = path.join(mkdtempSync(path.join(reports, 'python-')), 'cases.json');
-  const child = spawnSync(prerequisite.binary, ['-B', path.join(root, 'scripts/python-tests.py'), output, ...files], { cwd: base, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }, stdio: 'inherit', shell: false, windowsHide: true });
+  const child = spawnSync(prerequisite.binary, ['-B', path.join(root, 'scripts/python-tests.py'), output, ...files], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
   const code = child.status ?? 1;
   try {
     const report = JSON.parse(readFileSync(output, 'utf8'));
@@ -160,18 +161,17 @@ export function runSelection(plan, group = 'all', base = root) {
   if (plan.status === 'no-behavior-change') return { status: 'no-behavior-change', exitCode: 0, results: [], note: 'No tests were run; this is not a test pass.' };
   const groups = group === 'all' ? ['unit', 'deploy', 'deploy-root', 'native'] : [group];
   if (groups.some(name => !['unit', 'deploy', 'deploy-root', 'native'].includes(name))) throw new Error('Unknown test group');
-  const results = []; let exitCode = 0;
+  const results = []; let exitCode = 0; const env = isolatedTestEnvironment(base);
   for (const kind of groups) {
     const files = plan.groups[kind];
     if (!files.length) { results.push({ group: kind, status: 'not-affected', tests: [] }); continue; }
     if (kind === 'deploy' || kind === 'deploy-root') {
-      const result = runPythonTests(files, base); results.push({ group: kind, ...result });
+      const result = runPythonTests(files, base, env); results.push({ group: kind, ...result });
       if (result.exitCode && exitCode !== 1) exitCode = result.exitCode;
       continue;
     }
-    const env = { ...process.env };
     if (kind === 'native') {
-      const prerequisite = nativePrerequisite(base);
+      const prerequisite = nativePrerequisite(base, env.HARNESS_TEST_CODEX_BIN, env);
       if (prerequisite.status !== 'ready') { results.push({ group: kind, ...prerequisite, tests: files }); exitCode = prerequisite.status === 'skipped' && exitCode !== 1 ? 3 : 1; continue; }
       env.HARNESS_TEST_CODEX_BIN = prerequisite.binary;
     }
@@ -185,6 +185,7 @@ export function runSelection(plan, group = 'all', base = root) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
+    isolateTestProcess(root);
     const args = process.argv.slice(2); let changed; let run; let base; let head;
     for (let index = 0; index < args.length; index++) {
       if (args[index] === '--base') base = args[++index];

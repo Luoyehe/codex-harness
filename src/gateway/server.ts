@@ -52,8 +52,12 @@ export class GatewayServer {
   readonly #transportWaiters = new Map<Socket, { callbacks: Set<() => void>; close: () => void }>();
   readonly #responseRelease = new WeakMap<ServerResponse, () => void>();
   readonly #heartbeat: NodeJS.Timeout;
+  readonly #revoke = () => {
+    for (const connection of this.#browsers.values()) if (!this.auth.session(connection.cookie)) connection.socket.close(4001, 'session revoked');
+  };
   #closing = false;
   constructor(readonly auth: Authentication, readonly dispatcher: Dispatcher, readonly worker: WorkerClient, readonly staticDir?: string) {
+    auth.on('revoked', this.#revoke);
     this.server = http.createServer({ maxHeaderSize: 16384, requestTimeout: 20000, headersTimeout: 10000, keepAliveTimeout: 5000 }, (req, res) => { void this.handle(req, res); });
     this.server.maxRequestsPerSocket = 500;
     this.server.maxConnections = LIMITS.httpConnections;
@@ -164,6 +168,7 @@ export class GatewayServer {
   }
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     security(res); let release: (() => void) | undefined;
+    let authenticationMutationStarted = false, authenticationMutationCompleted = false;
     let backendSettled = false, responseSettled = false;
     let unwatch = () => {};
     const releaseWhenSettled = () => { if (backendSettled && responseSettled) release?.(); };
@@ -188,26 +193,67 @@ export class GatewayServer {
         const ready = state.connected === true && state.activity.unknown === false;
         this.json(res, { ok: ready }, ready ? 200 : 503); return;
       }
+      if (url.pathname === '/api/account/proof' && req.method === 'GET') {
+        if (header(req, 'origin') !== undefined) this.auth.checkOrigin(header(req, 'origin'));
+        if (url.searchParams.size !== 1 || url.searchParams.getAll('nonce').length !== 1) throw new HarnessError('invalid_input', '认证探测需要单个随机挑战。');
+        this.json(res, this.auth.proof(url.searchParams.get('nonce'))); return;
+      }
       if (url.pathname === '/api/session') {
         if (req.method === 'GET') {
-          const session = this.auth.session(header(req, 'cookie'));
-          this.json(res, session ? { authenticated: true, csrf: session.csrf, operationGeneration: this.dispatcher.ledger.operationGeneration() } : { authenticated: false }); return;
+          const status = this.auth.status(header(req, 'cookie'));
+          this.json(res, { ...status, ...(status.authenticated ? { operationGeneration: this.dispatcher.ledger.operationGeneration() } : {}) } as JsonValue); return;
         }
         this.auth.checkOrigin(header(req, 'origin'));
         if (req.method === 'POST') {
           const value = await body(req, 8192, reservation.add); object(value);
-          const login = this.auth.login(value.token, req.socket.remoteAddress ?? 'unknown');
-          res.setHeader('set-cookie', login.cookie); this.json(res, { authenticated: true, csrf: login.session.csrf, operationGeneration: this.dispatcher.ledger.operationGeneration() }); return;
+          authenticationMutationStarted = true;
+          const login = await this.auth.login(value, req.socket.remoteAddress ?? 'unknown', header(req, 'user-agent'));
+          authenticationMutationCompleted = true;
+          res.setHeader('set-cookie', login.cookie); this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration() } as JsonValue); return;
         }
         if (req.method === 'DELETE') {
           const session = this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
           // Cookies for other services can change or reorder after WS upgrade.
           // Bind revocation to the authenticated session, not the header bytes.
           for (const connection of this.#browsers.values()) if (this.auth.session(connection.cookie)?.id === session.id) connection.socket.close(4001, 'logged out');
-          res.setHeader('set-cookie', this.auth.logout(header(req, 'cookie')));
+          authenticationMutationStarted = true;
+          res.setHeader('set-cookie', this.auth.logout(header(req, 'cookie'))); authenticationMutationCompleted = true;
           this.json(res, { authenticated: false }); return;
         }
         throw new HarnessError('method_not_allowed', '不支持此请求方法。');
+      }
+      if (url.pathname === '/api/account/setup' && req.method === 'POST') {
+        this.auth.checkOrigin(header(req, 'origin'));
+        const value = await body(req, 8192, reservation.add); object(value);
+        authenticationMutationStarted = true;
+        const login = await this.auth.setup(value, req.socket.remoteAddress ?? 'unknown', header(req, 'user-agent'));
+        authenticationMutationCompleted = true;
+        res.setHeader('set-cookie', login.cookie);
+        this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration() } as JsonValue); return;
+      }
+      if (url.pathname === '/api/account' || url.pathname.startsWith('/api/account/')) {
+        const cookie = header(req, 'cookie');
+        if (url.pathname === '/api/account' && req.method === 'GET') {
+          this.json(res, this.auth.security(this.auth.require(cookie)) as JsonValue); return;
+        }
+        if (req.method !== 'POST') throw new HarnessError('method_not_allowed', '不支持此请求方法。');
+        this.auth.checkOrigin(header(req, 'origin'));
+        const session = this.auth.require(cookie, header(req, 'x-harness-csrf') ?? '');
+        const value = await body(req, 8192, reservation.add); object(value);
+        const peer = req.socket.remoteAddress ?? 'unknown';
+        authenticationMutationStarted = true;
+        if (url.pathname === '/api/account/password') {
+          await this.auth.changePassword(session, value, peer); authenticationMutationCompleted = true; res.setHeader('set-cookie', this.auth.logout(cookie)); this.json(res, { authenticated: false }); return;
+        }
+        if (url.pathname === '/api/account/sessions/revoke') {
+          const authenticated = this.auth.revoke(session, value); authenticationMutationCompleted = true; if (!authenticated) res.setHeader('set-cookie', this.auth.logout(cookie));
+          this.json(res, { authenticated }); return;
+        }
+        if (url.pathname === '/api/account/totp/start') { const result = await this.auth.startTotp(session, value, peer); authenticationMutationCompleted = true; this.json(res, result as JsonValue); return; }
+        if (url.pathname === '/api/account/totp/confirm') { const recoveryCodes = this.auth.confirmTotp(session, value, peer); authenticationMutationCompleted = true; this.json(res, { mfaEnabled: true, recoveryCodes }); return; }
+        if (url.pathname === '/api/account/totp/disable') { await this.auth.disableTotp(session, value, peer); authenticationMutationCompleted = true; this.json(res, { mfaEnabled: false }); return; }
+        if (url.pathname === '/api/account/totp/recovery') { const recoveryCodes = await this.auth.replaceRecovery(session, value, peer); authenticationMutationCompleted = true; this.json(res, { recoveryCodes }); return; }
+        throw new HarnessError('not_found', '接口不存在。');
       }
       if (url.pathname === '/api/rpc' && req.method === 'POST') {
         this.auth.checkOrigin(header(req, 'origin'));
@@ -215,8 +261,10 @@ export class GatewayServer {
         const clientId = this.auth.client(session, header(req, 'x-harness-client'));
         // Keep admission until both backend work and the HTTP response settle.
         const call = rpcCall(await body(req, LIMITS.requestBytes, reservation.add));
+        this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
         const connection = this.#browsers.get(clientId);
         const requireConnection = () => {
+          this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
           if (!connection || this.#browsers.get(clientId) !== connection || connection.socket.readyState !== WebSocket.OPEN || this.#connecting.has(clientId) || this.#disconnecting.has(clientId))
             throw new HarnessError('connection_required', '此操作需要已就绪的实时连接，请稍后重试。');
         };
@@ -226,8 +274,9 @@ export class GatewayServer {
       if (req.method !== 'GET' && req.method !== 'HEAD') throw new HarnessError('method_not_allowed', '不支持此请求方法。');
       await this.serveStatic(url.pathname, req, res);
     } catch (error) {
-      const failure = errorBody(error);
-      const status = failure.code === 'unauthorized' ? 401 : ['csrf', 'host', 'origin'].includes(failure.code) ? 403 : failure.code === 'not_found' ? 404 : failure.code === 'rate_limited' ? 429 : 400;
+      const failure = errorBody(error, authenticationMutationStarted ? 'unknown' : 'not_sent');
+      if (authenticationMutationCompleted) failure.delivery = 'unknown';
+      const status = ['unauthorized', 'mfa_required'].includes(failure.code) ? 401 : ['csrf', 'host', 'origin'].includes(failure.code) ? 403 : failure.code === 'not_found' ? 404 : failure.code === 'rate_limited' ? 429 : 400;
       try { if (!res.headersSent) this.json(res, { ok: false, error: { ...failure } }, status); else { res.destroy(); req.socket.destroy(); } }
       catch { res.destroy(); req.socket.destroy(); } // An exhausted output budget cannot allocate an unbounded error response.
       req.resume();
@@ -287,6 +336,7 @@ export class GatewayServer {
   }
   async close(): Promise<void> {
     this.#closing = true; clearInterval(this.#heartbeat);
+    this.auth.off('revoked', this.#revoke);
     for (const connection of this.#browsers.values()) connection.socket.terminate();
     this.#wss.close();
     await new Promise<void>(resolve => { this.server.close(() => resolve()); this.server.closeIdleConnections(); });
