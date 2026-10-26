@@ -44,9 +44,14 @@ jobs:
         with:
           node-version: '24.15.0'
       - name: Scan source and complete Git objects
-        run: |
-          node scripts/release-audit.mjs --source
-          node scripts/release-audit.mjs --git-objects
+        run: node scripts/reviewed-history.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: source-security
+          path: .work/*security*.json
+          include-hidden-files: true
+          if-no-files-found: error
       - name: Select reviewed changes or source-bound full closeout
         id: plan
         env:

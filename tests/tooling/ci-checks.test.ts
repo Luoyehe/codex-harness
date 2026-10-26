@@ -1,9 +1,9 @@
 import { afterEach, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildCiPlan, reconcileCi, selectCiPlan } from '../../scripts/ci-checks.mjs';
+import { buildCiPlan, isolatedPaths, reconcileCi, selectCiPlan } from '../../scripts/ci-checks.mjs';
 import { releaseAuthorization } from '../../scripts/release-authorization.mjs';
 import { snapshot } from '../../scripts/snapshot.mjs';
 import { nativeTestFiles } from '../../scripts/select-tests.mjs';
@@ -33,6 +33,13 @@ function approve(base: string, baseCommit: string) {
   return { value, name, sha256: checksum(bytes) };
 }
 afterEach(() => { for (const base of fixtures.splice(0)) rmSync(base, { recursive: true, force: true }); });
+
+test.runIf(process.platform !== 'win32')('root fixtures have a traversable disposable temp outside their private home', () => {
+  const { base } = fixture(); const paths = isolatedPaths(base, true); fixtures.push(paths.temporary);
+  expect(paths.temporary.startsWith(paths.home + path.sep)).toBe(false);
+  expect(statSync(paths.temporary).mode & 0o777).toBe(0o755);
+  expect(statSync(paths.home).mode & 0o777).toBe(0o700);
+});
 
 test('a root-only change does not launch empty standard jobs', () => {
   const plan = selectCiPlan({ changed: ['tests/deploy/root/test_example.py'], available, head, sourceDigest: digest });

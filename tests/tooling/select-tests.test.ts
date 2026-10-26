@@ -95,7 +95,7 @@ test('unioning every affected domain cannot turn targeted orchestration into a f
 
 test('CI entrypoints select exact changes and reconcile real identities without inventing audit rounds', () => {
   const workflow = readFileSync(path.resolve('.github/workflows/affected.yml'), 'utf8');
-  expect(workflow).toContain('scripts/ci-checks.mjs'); expect(workflow).toContain('scripts/release-audit.mjs');
+  expect(workflow).toContain('scripts/ci-checks.mjs'); expect(workflow).toContain('scripts/reviewed-history.mjs');
   expect(workflow).not.toMatch(/(?:vitest[^\n]*\brun|--full|test:full|audits\.json|passWithNoTests)/);
   expect(workflow).toContain('0.164.0'); expect(workflow).toContain('scripts/prepare-ci-native.mjs');
   const rootJob = workflow.split('\n  root_deploy:\n')[1].split('\n  coverage:\n')[0];

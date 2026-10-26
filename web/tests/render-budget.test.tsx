@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
+import { useLayoutEffect } from 'react';
 import {
   SafeMarkdown,
   Diff,
@@ -16,6 +17,34 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+it('commits focus together with an initially mounted search target before the result is published', () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  const committed: (string | null | undefined)[] = [];
+  function ResultWindow() {
+    useLayoutEffect(() => {
+      committed.push(document.activeElement?.getAttribute('class'));
+    }, []);
+    return (
+      <Messages
+        turns={[
+          {
+            id: 't',
+            status: 'completed',
+            items: [{ id: 'match', type: 'agentMessage', text: 'search result' }],
+          },
+        ]}
+        loading={false}
+        complete
+        onMore={vi.fn()}
+        focusTarget={{ turnId: 't', itemId: 'match' }}
+      />
+    );
+  }
+  render(<ResultWindow />);
+  expect(committed).toHaveLength(1);
+  expect(committed[0]).toContain('search-selected');
+  expect(document.activeElement?.textContent).toContain('search result');
 });
 it('never splits a Unicode surrogate pair across plain-text pages', () => {
   const source = 'x'.repeat(23999) + '😀end';
