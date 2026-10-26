@@ -46,6 +46,15 @@ the remedy for a fixture finding.
 
 ## Affected selection and CI
 
+Current source must pass the unchanged scanner with zero findings. The full Git
+object scan also retains v1.2.1 history. Twelve findings in eight immutable old
+blobs were inspected individually: synthetic rejection-test URLs/tokens, generic
+path placeholders and one variable-based runtime path, not real credentials.
+`scripts/reviewed-history.mjs` classifies only those exact blob/line/rule tuples,
+refuses them in the current source tree, and retains both raw and reviewed reports.
+Any changed object, additional finding, unreadable content, artifact or skipped
+object blocks CI. It neither rewrites public history nor relaxes scanner rules.
+
 ```text
 node scripts/select-tests.mjs --base <commit-id> --head <commit-id>
 node scripts/select-tests.mjs --run unit --changed web/components/Composer.tsx

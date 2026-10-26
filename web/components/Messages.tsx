@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { timelineRows, type RealtimeItem, type TimelineEntry } from '../lib/timeline';
 import { object, type Turn, type Project } from '../lib/types';
@@ -94,24 +94,33 @@ export function Messages({
     }
     setLocateError('');
     setFollow(false);
-    if (index < start || index >= end)
-      setEndKey(rows[Math.min(rows.length - 1, index + Math.floor(WINDOW_ROWS / 2))]!.key);
-    setLocating(key);
+    const element = anchors.current.get(key);
+    if (element) {
+      element.scrollIntoView({ block: 'center', behavior: 'instant' });
+      element.focus({ preventScroll: true });
+      setLocating(null);
+    } else {
+      if (index < start || index >= end)
+        setEndKey(rows[Math.min(rows.length - 1, index + Math.floor(WINDOW_ROWS / 2))]!.key);
+      setLocating(key);
+    }
   };
-  useEffect(() => {
+  useLayoutEffect(() => {
     setEndKey(null);
     setFollow(true);
     setLocating(null);
     setLocateError('');
   }, [threadId]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (follow && endKey === null)
       bottom.current?.scrollIntoView({ block: 'end', behavior: 'instant' });
   }, [turns, timeline, follow, endKey]);
-  useEffect(() => {
+  // Navigation focus is part of committing the visible result. A passive effect
+  // leaves a published search window temporarily focused on the previous control.
+  useLayoutEffect(() => {
     if (focusTarget) locate(focusTarget.turnId, focusTarget.itemId);
-  }, [focusTarget]);
-  useEffect(() => {
+  }, [focusTarget, threadId]);
+  useLayoutEffect(() => {
     if (!locating) return;
     const element = anchors.current.get(locating);
     if (element) {

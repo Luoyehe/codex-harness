@@ -27,6 +27,7 @@ export const hasTurnActivity = (state: Activity): boolean =>
 export class ThreadActivity {
   private entries = new Map<string, Activity>();
   private readers = new Map<string, number>();
+  private successfulReads = new WeakSet<Activity>();
 
   constructor(
     private readonly retained: (id: string) => boolean,
@@ -75,12 +76,18 @@ export class ThreadActivity {
   async read<T>(id: string, operation: (state: Activity) => Promise<T>): Promise<T> {
     const state = this.track(id);
     this.readers.set(id, (this.readers.get(id) ?? 0) + 1);
-    try { return await operation(state); }
+    try {
+      const result = await operation(state);
+      this.successfulReads.add(state);
+      return result;
+    }
     finally {
       const count = this.readers.get(id)! - 1;
       if (count) this.readers.set(id, count); else this.readers.delete(id);
-      // Failed lookups of absent IDs must not consume historical cache space.
-      if (state.status === 'notLoaded' && state.revision === 0 && this.disposable(id, state)) this.remove(id);
+      // A successfully read cold thread legitimately remains notLoaded. Keep
+      // its history proof until normal LRU eviction, including when another
+      // concurrent read fails after that successful result has arrived.
+      if (!this.successfulReads.has(state) && state.status === 'notLoaded' && state.revision === 0 && this.disposable(id, state)) this.remove(id);
     }
   }
 }

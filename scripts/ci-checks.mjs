@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { snapshot, root } from './snapshot.mjs';
@@ -84,16 +85,24 @@ export function reconcileCi(plan, reports) {
   return { status: plan.files.length ? 'passed' : 'no-behavior-change', sourceDigest: plan.sourceDigest, head: plan.head, files: plan.files.length, cases: cases.size, coverageGaps: [], note: plan.files.length ? 'All observed cases passed on an appropriate platform; individual skips remain recorded.' : 'No tests were run for documentation-only changes.' };
 }
 
-function isolatedEnvironment(base) {
+export function isolatedPaths(base, rootFixtures = false) {
   const parent = path.join(base, '.work/ci-homes'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'run-'));
+  // Root fixtures intentionally drop UID. Keep their disposable temp ancestor
+  // traversable without making the isolated home or any credentials readable.
+  const temporary = rootFixtures ? mkdtempSync(path.join(tmpdir(), 'harness-ci-root-')) : path.join(home, 'tmp');
+  if (rootFixtures) chmodSync(temporary, 0o755); else mkdirSync(temporary);
+  for (const folder of ['appdata', 'localappdata']) mkdirSync(path.join(home, folder));
+  return { home, temporary };
+}
+function isolatedEnvironment(base, target) {
+  const { home, temporary } = isolatedPaths(base, target === 'linux-root');
   const env = {};
   for (const key of ['PATH', 'PATHEXT', 'SystemRoot', 'WINDIR', 'COMSPEC', 'SystemDrive', 'HARNESS_TEST_PYTHON', 'HARNESS_TEST_NODE', 'HARNESS_TEST_CODEX_BIN']) {
     const found = Object.keys(process.env).find(name => name.toLowerCase() === key.toLowerCase());
     if (found) env[key] = process.env[found];
   }
-  for (const folder of ['tmp', 'appdata', 'localappdata']) mkdirSync(path.join(home, folder));
-  Object.assign(env, { HOME: home, USERPROFILE: home, CODEX_HOME: path.join(home, 'codex'), TMP: path.join(home, 'tmp'), TEMP: path.join(home, 'tmp'), TMPDIR: path.join(home, 'tmp'), APPDATA: path.join(home, 'appdata'), LOCALAPPDATA: path.join(home, 'localappdata'), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null', PYTHONDONTWRITEBYTECODE: '1', PYTHONIOENCODING: 'utf-8', LANG: 'C.UTF-8', NO_COLOR: '1', HTTP_PROXY: 'http://127.0.0.1:9', HTTPS_PROXY: 'http://127.0.0.1:9', ALL_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost,[::1]' });
+  Object.assign(env, { HOME: home, USERPROFILE: home, CODEX_HOME: path.join(home, 'codex'), TMP: temporary, TEMP: temporary, TMPDIR: temporary, APPDATA: path.join(home, 'appdata'), LOCALAPPDATA: path.join(home, 'localappdata'), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null', PYTHONDONTWRITEBYTECODE: '1', PYTHONIOENCODING: 'utf-8', LANG: 'C.UTF-8', NO_COLOR: '1', HTTP_PROXY: 'http://127.0.0.1:9', HTTPS_PROXY: 'http://127.0.0.1:9', ALL_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost,[::1]' });
   for (const key of Object.keys(process.env)) delete process.env[key];
   Object.assign(process.env, env);
 }
@@ -113,7 +122,7 @@ export function runCi(plan, target, base = root) {
   const expected = plan.files.filter(name => target === 'linux-root' ? name.startsWith('tests/deploy/root/') : !name.startsWith('tests/deploy/root/'));
   if (JSON.stringify(files) !== JSON.stringify(expected)) throw Error('Platform selection does not match the complete reviewed plan');
   if (!files.length) throw Error('An empty target is not a passing test job');
-  isolatedEnvironment(base);
+  isolatedEnvironment(base, target);
   const js = files.filter(name => /\.test\.tsx?$/.test(name)), python = files.filter(name => name.endsWith('.py'));
   if (js.some(name => nativeTestFiles.includes(name))) {
     const native = nativePrerequisite(base);

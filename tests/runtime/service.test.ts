@@ -44,6 +44,23 @@ function setup(): { service: RuntimeService; native: FakeNative; events: Runtime
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 const context = { clientId: 'client-a' };
 describe('RuntimeService admission and recovery', () => {
+  test('cold notLoaded history retains pagination and authorizes only its fully hydrated owner to resume', async () => {
+    const { service, native } = setup(), original = native.call.bind(native);
+    native.call = async (method, params, options) => {
+      const result = await original(method, params, options);
+      if (method === 'thread/read') object(object(result).thread).status = { type: 'notLoaded' };
+      return result;
+    };
+    native.page = { data: [], nextCursor: 'older', backwardsCursor: null };
+    const first = object(await service.call('thread/history', { threadId: 'cold' }, context));
+    expect(first.complete).toBe(false);
+    await expect(service.call('thread/resume', { threadId: 'cold' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
+    native.page = { data: [], nextCursor: null, backwardsCursor: null };
+    expect(await service.call('thread/history', { threadId: 'cold', cursor: first.nextCursor! }, context)).toMatchObject({ complete: true });
+    await expect(service.call('thread/resume', { threadId: 'cold' }, { clientId: 'other' })).rejects.toMatchObject({ code: 'history_incomplete' });
+    native.beforeNativeWrite = method => { if (method === 'thread/resume') throw new DeliveryError('resume_reached', 'Native resume admission reached'); };
+    await expect(service.call('thread/resume', { threadId: 'cold' }, context)).rejects.toMatchObject({ code: 'resume_reached', delivery: 'not_sent' });
+  });
   test('maintenance refuses accepted turns and uncertain activity', async () => {
     const { service, native } = setup();
     await expect(service.call('runtime/maintenance/check', {}, context)).resolves.toMatchObject({ idle: true, workspaceWitness: { total: 0, limit: 2000 } });

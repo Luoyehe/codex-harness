@@ -69,6 +69,7 @@ export function selectTests(changed, available) {
     } else if (name.startsWith('web/')) add(name, domain('web/tests/'), 'browser-behavior-and-shared-ui');
     else if (name.startsWith('tests/runtime/') && !documentation.has(name)) add(name, domain('tests/runtime/'), 'runtime-fixture');
     else if (name === 'scripts/release-audit.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'release-scanner-and-dependent-gates');
+    else if (name === 'scripts/reviewed-history.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/reviewed-history.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts'], 'immutable-historical-pattern-review');
     else if (name === 'scripts/select-tests.mjs') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'affected-test-selection-and-runner');
     else if (['scripts/run-tests.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/prepare-ci-native.test.ts'], 'test-execution-and-release-gates');
     else if (name === 'scripts/snapshot.mjs') add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/select-tests.test.ts'], 'source-snapshot-and-evidence-classification');

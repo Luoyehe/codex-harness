@@ -50,4 +50,19 @@ describe('thread activity lifetime', () => {
     expect(registry.size).toBe(0);
     expect(registry.track('other').unknown).toBe(false);
   });
+  test('successful notLoaded reads retain their state until ordinary capacity eviction', async () => {
+    const removed: string[] = [], registry = new ThreadActivity(() => false, id => removed.push(id), 1);
+    const state = await registry.read('cold', async current => current);
+    expect(state.status).toBe('notLoaded'); expect(registry.track('cold')).toBe(state); expect(removed).toEqual([]);
+    registry.track('next'); expect(removed).toEqual(['cold']);
+  });
+  test('a failed concurrent cold read cannot revoke the state of a successful read', async () => {
+    const removed: string[] = [], registry = new ThreadActivity(() => false, id => removed.push(id), 1);
+    let reject!: (error: Error) => void;
+    const failing = registry.read('cold', async () => new Promise((_resolve, failed) => { reject = failed; }));
+    const failure = expect(failing).rejects.toThrow('transient');
+    const state = await registry.read('cold', async current => current);
+    reject(Error('transient')); await failure;
+    expect(registry.track('cold')).toBe(state); expect(removed).toEqual([]);
+  });
 });
