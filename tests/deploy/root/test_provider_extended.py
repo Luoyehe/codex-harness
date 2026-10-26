@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 from deploy.common import Layout, mkdir, write_json
+from deploy.install import stage_control
 from deploy.provider import ProviderStore, validate_provider
 from deploy.provider_layers import prepare_host_targets
 
@@ -19,6 +20,10 @@ class ExtendedProviderGenerationTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="provider-extended-"); self.addCleanup(self.temp.cleanup)
         self.layout = Layout("fixture", Path(self.temp.name)); os.chmod(self.layout.root, 0o755)
         mkdir(self.layout.config, 0o751)
+        # Hosted runner homes can be 0700. Native execution imports the actual
+        # reviewed helper from its readable, root-owned installation fixture;
+        # permissions on the checkout and runner home remain unchanged.
+        stage_control(self.layout, self.layout.control)
         self.current = {"revision": "a" * 32, "kind": "chatgpt", "models": []}
         self.selected = validate_provider({"expectedRevision": "a" * 32, "kind": "bedrock-runtime", "region": "us-east-1", "apiKey": "fixture-managed-bearer"}, self.current)
         prepare_host_targets(self.selected, self.layout, 65534)
@@ -43,7 +48,7 @@ class ExtendedProviderGenerationTests(unittest.TestCase):
         def identity():
             os.setgroups([]); os.setgid(65534); os.setuid(65534)
         return subprocess.run([sys.executable, "-B", "-c", code, str(self.layout.root), verb],
-                              cwd=Path(__file__).resolve().parents[3], env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
+                              cwd=self.layout.control, env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
                               preexec_fn=identity if native else None)
 

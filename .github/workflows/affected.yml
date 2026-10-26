@@ -114,6 +114,16 @@ jobs:
           npm pack "@openai/codex@$CODEX_PACKAGE_VERSION" --registry=https://registry.npmjs.org --pack-destination reference/runtime/ci-codex --json > reference/runtime/ci-codex/pack.json
           node scripts/prepare-ci-native.mjs
           python -c 'import os,sys; open(os.environ["GITHUB_ENV"],"a",encoding="utf-8").write("HARNESS_TEST_PYTHON="+sys.executable+"\n")'
+      - name: Verify isolated Windows process controllers before native tests
+        if: runner.os == 'Windows'
+        run: node scripts/windows-controller-preflight.mjs .work/windows-controller-preflight.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && runner.os == 'Windows'
+        with:
+          name: windows-controller-preflight
+          path: .work/windows-controller-preflight.json
+          include-hidden-files: true
+          if-no-files-found: error
       - name: Run exact selection and retain platform skips for reconciliation
         env:
           CI_TARGET: ${{ matrix.target }}
@@ -158,9 +168,28 @@ jobs:
         run: |
           test "$RUNNER_ENVIRONMENT" = github-hosted
           test "$(id -u)" -ne 0
+          source_root="$(pwd -P)"
+          test "$source_root" = "$(realpath "$GITHUB_WORKSPACE")"
+          root_checkout="$(mktemp -d /tmp/harness-ci-root-source.XXXXXX)"
+          /usr/bin/sudo -n -- /usr/bin/chown 0:0 "$root_checkout"
+          /usr/bin/sudo -n -- /usr/bin/chmod 0755 "$root_checkout"
+          # Reconstruct only reviewed tracked source, then add its Git metadata,
+          # built modules/dependencies and exact plan. Runner homes, npm caches
+          # and unrelated ignored workspaces are never copied into the fixture.
+          git -C "$source_root" archive --format=tar HEAD | /usr/bin/sudo -n -- /usr/bin/tar --no-same-owner -xf - -C "$root_checkout"
+          for entry in .git node_modules dist; do
+            test -d "$source_root/$entry" && test ! -L "$source_root/$entry"
+            /usr/bin/sudo -n -- /usr/bin/cp -a --no-preserve=ownership -- "$source_root/$entry" "$root_checkout/$entry"
+          done
+          /usr/bin/sudo -n -- /usr/bin/mkdir -m 0755 "$root_checkout/.work"
+          /usr/bin/sudo -n -- /usr/bin/cp --no-preserve=ownership -- "$source_root/.work/ci-plan.json" "$root_checkout/.work/ci-plan.json"
           node_bin="$(command -v node)"
+          cd "$root_checkout"
           code=0
           /usr/bin/sudo -n -- /usr/bin/env -i PATH="$(dirname "$node_bin"):/usr/bin:/bin" HARNESS_TEST_NODE="$node_bin" HARNESS_TEST_PYTHON=/usr/bin/python3 "$node_bin" scripts/ci-checks.mjs linux-root .work/ci-plan.json .work/result-linux-root.json || code=$?
+          # A failed test still publishes its report. A missing report remains
+          # an error and can never be reclassified as an accepted platform skip.
+          /usr/bin/sudo -n -- /usr/bin/install -m 0644 "$root_checkout/.work/result-linux-root.json" "$source_root/.work/result-linux-root.json"
           test "$code" -eq 0 -o "$code" -eq 3
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
