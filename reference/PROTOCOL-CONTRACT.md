@@ -21,7 +21,7 @@ codex.exe app-server generate-ts --experimental --out protocol/ts
 
 ## 连接与生命周期
 
-- 启动固定二进制 `app-server --listen stdio://`；stdin/stdout 是逐行 JSON RPC，stderr 独立收集。wire 不带 `jsonrpc` 属性。
+- 启动固定二进制 `app-server --listen stdio://`；stdin/stdout 是逐行 JSON RPC，stderr 使用独立管道排空，不保留或转发。wire 不带 `jsonrpc` 属性。
 - 每条新连接只发一次 `initialize`，成功后发无 id 的 `initialized`，再放行普通请求。
 - 最小 capabilities：`{ experimentalApi: true, requestAttestation: false }`。不要宣称尚未实现的 MCP 扩展；不要接管外部 ChatGPT token 刷新或 attestation。
 - 请求 `{ id, method, params }`；响应 `{ id, result }` 或 `{ id, error }`；通知无 id。服务端反向请求也有 id 和 method，必须与普通 RPC 响应分开处理。

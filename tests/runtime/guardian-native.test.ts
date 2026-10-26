@@ -3,6 +3,7 @@ import { createServer, type ServerResponse } from 'node:http';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonObject, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { PtyTranscript } from './pty-transcript.js';
@@ -57,8 +58,8 @@ test.each([true, 'permissions'] as const)('real CLI denial %s is captured once a
 test('fixed native CLI PTY exposes the real hook trust flow, makes zero model calls and requires restart after proven cleanup', async () => {
   const f = await fixture(false); let terminalId: JsonValue | undefined, unansweredQueries = 0;
   const transcript = new PtyTranscript(), pending: Promise<unknown>[] = [], replyErrors: unknown[] = [];
-  const phases: { phase: string; at: number; outputLength: number; hasReview: boolean; hasTrustAll: boolean }[] = [];
-  const phase = (name: string) => { phases.push({ phase: name, at: Date.now(), outputLength: transcript.mark(), hasReview: transcript.tail.includes('Hooks need review'), hasTrustAll: transcript.tail.includes('trust all') }); };
+  const phases: { phase: string; at: number; monotonicMs: number; outputLength: number; hasReview: boolean; hasTrustAll: boolean }[] = [];
+  const phase = (name: string) => { phases.push({ phase: name, at: Date.now(), monotonicMs: performance.now(), outputLength: transcript.mark(), hasReview: transcript.tail.includes('Hooks need review'), hasTrustAll: transcript.tail.includes('trust all') }); };
   const answerQueries = () => {
     if (!terminalId) return;
     while (unansweredQueries > 0) {
@@ -67,7 +68,18 @@ test('fixed native CLI PTY exposes the real hook trust flow, makes zero model ca
     }
   };
   const waitForMenu = async (mark: number, content: string[]) => {
-    await expect.poll(() => content.every(value => transcript.since(mark).includes(value)), { timeout: 10000 }).toBe(true);
+    await expect.poll(() => content.filter(value => !transcript.since(mark).includes(value)), { timeout: 10000 }).toEqual([]);
+    return performance.now();
+  };
+  const confirmMenu = async (visibleAt: number) => {
+    // Pinned CLI 0.164.0 intentionally consumes another legacy Enter for one
+    // second after a view transition (activation_key_guard.rs:9-10,46-49).
+    // Measure from the observed menu, which is later than its activation. This
+    // is a distinct user press, not a retry of a deliberately discarded key.
+    // https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/tui/src/activation_key_guard.rs
+    const freshAfter = visibleAt + 1000;
+    while (performance.now() <= freshAfter) await delay(Math.max(1, Math.ceil(freshAfter - performance.now() + 1)));
+    await f.service.call('terminal/write', { terminalId: terminalId!, text: '\r' }, f.context);
   };
   writeFileSync(path.join(f.home, 'hooks.json'), JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'echo isolated-hook-not-executed' }] }] } }));
   f.service.on('event', (event: RuntimeEvent) => { if (event.type === 'terminal' && object(event.data).type === 'output') { unansweredQueries += transcript.append(Buffer.from(String(object(event.data).deltaBase64), 'base64')); answerQueries(); } });
@@ -79,13 +91,13 @@ test('fixed native CLI PTY exposes the real hook trust flow, makes zero model ca
     for (const [method, params] of [['conversation/start', { cwd: f.root, text: 'must not start' }], ['thread/goal/set', { threadId: 'other', objective: 'blocked' }], ['settings/write', { expectedVersion: 'stale', changes: [] }], ['terminal/open', { cwd: f.root }]] as [string, JsonObject][]) await expect(f.service.call(method, params, f.context)).rejects.toMatchObject({ code: 'native_cli_busy' });
     phase('before-hooks'); let mark = transcript.mark();
     await f.service.call('terminal/write', { terminalId, text: '/hooks\r' }, f.context);
-    await waitForMenu(mark, ['Hooks need review', '1. Review hooks', 'enter confirm · esc skip']);
-    phase('before-review-enter'); mark = transcript.mark();
-    await f.service.call('terminal/write', { terminalId, text: '\r' }, f.context);
-    await waitForMenu(mark, ['Lifecycle hooks from config and enabled plugins.', 'UserPromptSubmit', 't trust all · enter review · esc close']);
+    let visibleAt = await waitForMenu(mark, ['Hooks need review', '1. Review hooks', 'enter confirm · esc skip']);
+    phase('review-menu-ready'); mark = transcript.mark();
+    await confirmMenu(visibleAt); phase('review-enter-sent');
+    visibleAt = await waitForMenu(mark, ['Lifecycle hooks from config and enabled plugins.', 'UserPromptSubmit', 't trust all · enter review · esc close']);
     phase('trust-all-visible');
     mark = transcript.mark();
-    await f.service.call('terminal/write', { terminalId, text: '\r' }, f.context);
+    await confirmMenu(visibleAt); phase('detail-enter-sent');
     await waitForMenu(mark, ['UserPromptSubmit hooks', 'echo isolated-hook-not-executed', 't trust · esc back']);
     phase('hook-detail-ready');
     await f.service.call('terminal/write', { terminalId, text: 't' }, f.context);
