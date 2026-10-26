@@ -21,13 +21,21 @@ export function validatePackageMetadata(pack, platform = process.platform, arch 
   return { filename: entry.filename, integrity: pin[1] };
 }
 
+export function extractArchive(directory, filename) {
+  if (typeof filename !== 'string' || !filename || path.posix.basename(filename) !== filename || path.win32.basename(filename) !== filename || /[:\x00-\x1f]/u.test(filename)) throw Error('Expected an archive basename');
+  // Git Bash may put GNU tar before the Windows bsdtar executable. GNU tar
+  // treats the colon in an absolute D:\\... archive as a remote-host delimiter.
+  // A verified basename and native process cwd work with both implementations.
+  execFileSync('tar', ['-xzf', filename], { cwd: directory, stdio: 'inherit', windowsHide: true });
+}
+
 export function prepareCiNative(base = root, env = process.env) {
   const directory = path.join(base, 'reference/runtime/ci-codex');
   mkdirSync(directory, { recursive: true });
   const entry = validatePackageMetadata(JSON.parse(readFileSync(path.join(directory, 'pack.json'), 'utf8')));
   const archive = path.join(directory, entry.filename);
   if ('sha512-' + createHash('sha512').update(readFileSync(archive)).digest('base64') !== entry.integrity) throw Error('Official CLI archive integrity mismatch');
-  execFileSync('tar', ['-xzf', archive, '-C', directory], { stdio: 'inherit', windowsHide: true });
+  extractArchive(directory, entry.filename);
   const binaries = [];
   function visit(folder) {
     for (const item of readdirSync(folder, { withFileTypes: true })) {
