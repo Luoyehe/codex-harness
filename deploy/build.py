@@ -246,6 +246,8 @@ class Builder:
         return root
 
     def prepare(self, source_archive: Path) -> str:
+        from .sandbox import require_host
+        require_host()
         tools = self.toolchain()
         require(len(list(self.layout.work.glob("candidate-*"))) < 8,
                 "Eight candidate workspaces retained; inspect and remove completed workspaces before another build", "budget")
@@ -318,10 +320,12 @@ class Builder:
              "--codex", str(export / "codex" / f"vendor/{machine}-unknown-linux-musl/bin/codex"),
              "--workspace", str(build), "--source", str(source), "--token", str(self.layout.config / "gateway-token")],
             build, build, network=False, timeout=60)
+        from .sandbox import preflight
+        preflight(self.layout, self.system, identity, export / "codex" / f"vendor/{machine}-unknown-linux-musl/bin/codex")
         manifest = inspect_tree(export, root_owned=True)
         release = publish_release(self.layout, export, manifest)
         write_json(tx / "prepared.json", {"release": release, "inputDigest": digest(input_manifest), "manifestDigest": digest(manifest),
-                                         "nativeInitializationProbe": True, "offlineBoundaryProbe": True})
+                                         "nativeInitializationProbe": True, "offlineBoundaryProbe": True, "nativeSandboxProbe": True})
         # Both producers have been confirmed stopped by isolated() before import.
         # Failure paths retain mounts/images for diagnosis instead of guessing.
         for directory, image in ((fetch, fetch_image), (build, build_image)):

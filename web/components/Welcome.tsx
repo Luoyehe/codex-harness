@@ -1,4 +1,46 @@
 import { Icon } from './Icon';
-export function Welcome({ projectName, onSuggestion }: { projectName?: string; onSuggestion: (text: string) => void }) {
-  return <div className="welcome"><div className="welcome-emblem" aria-hidden="true">⌘</div><span className="eyebrow">让想法开始发生</span><h1>今天，想做点什么？</h1><p>从一个问题、一个想法，或一段尚未完成的工作开始。</p><div className="suggestions"><button onClick={() => onSuggestion('帮我熟悉这个项目，梳理结构与主要模块。')}><span className="suggestion-icon blue"><Icon name="folder"/></span><strong>了解项目</strong><small>理清结构，找到起点</small></button><button onClick={() => onSuggestion('帮我排查一个问题。先了解相关代码，再一起确认修复方案。')}><span className="suggestion-icon amber">⌁</span><strong>解决问题</strong><small>从现象走到原因</small></button><button onClick={() => onSuggestion('我想实现一个新功能，请先和我明确目标与边界。')}><span className="suggestion-icon green"><Icon name="plus"/></span><strong>创造新东西</strong><small>把想法变成可用的成果</small></button></div><div className="welcome-project"><Icon name="folder" size={15}/>{projectName ? `工作于 ${projectName}` : '先在侧栏添加一个本地项目'}</div></div>;
+export function Welcome({
+  projectName,
+  onSuggestion,
+}: {
+  projectName?: string;
+  onSuggestion: (text: string) => void;
+}) {
+  return (
+    <div className="welcome">
+      <div className="welcome-emblem" aria-hidden="true">
+        ⌘
+      </div>
+      <span className="eyebrow">让想法开始发生</span>
+      <h1>今天，想做点什么？</h1>
+      <p>从一个问题、一个想法，或一段尚未完成的工作开始。</p>
+      <div className="suggestions">
+        <button onClick={() => onSuggestion('帮我熟悉这个项目，梳理结构与主要模块。')}>
+          <span className="suggestion-icon blue">
+            <Icon name="folder" />
+          </span>
+          <strong>了解项目</strong>
+          <small>理清结构，找到起点</small>
+        </button>
+        <button
+          onClick={() => onSuggestion('帮我排查一个问题。先了解相关代码，再一起确认修复方案。')}
+        >
+          <span className="suggestion-icon amber">⌁</span>
+          <strong>解决问题</strong>
+          <small>从现象走到原因</small>
+        </button>
+        <button onClick={() => onSuggestion('我想实现一个新功能，请先和我明确目标与边界。')}>
+          <span className="suggestion-icon green">
+            <Icon name="plus" />
+          </span>
+          <strong>创造新东西</strong>
+          <small>把想法变成可用的成果</small>
+        </button>
+      </div>
+      <div className="welcome-project">
+        <Icon name="folder" size={15} />
+        {projectName ? `工作于 ${projectName}` : '先在侧栏添加一个本地项目'}
+      </div>
+    </div>
+  );
 }

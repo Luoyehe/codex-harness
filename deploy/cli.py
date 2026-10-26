@@ -119,6 +119,7 @@ def parser() -> argparse.ArgumentParser:
     setup.add_argument("--port", type=int, default=3000)
     for name in ("status", "verify", "restart", "repair", "rollback", "uninstall", "provider-read"):
         subs.add_parser(name)
+    subs.add_parser("provider-prune", help="Retain current and pending-recovery generations plus three recent unused generations")
     logs = subs.add_parser("logs")
     logs.add_argument("--service", choices=("gateway", "worker"), default="gateway")
     logs.add_argument("--lines", type=int, default=100)
@@ -192,6 +193,9 @@ def main(argv: list[str] | None = None) -> None:
                     result = recover_config_layer(manager, *pending[0], candidate=args.target == "candidate")
                 elif args.command == "verify":
                     result = manager.verify()
+                elif args.command == "provider-prune":
+                    from .provider_lifecycle import collect_generations
+                    result = collect_generations(layout, manager.providers.root)
                 elif args.command == "update":
                     manager.require_update_ready(persist=False)
                     config = manager.config

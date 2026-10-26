@@ -90,7 +90,7 @@ def read(workspace, action: str, params: dict) -> dict:
                     continue
                 operation_id(entry.name)
                 names.append(entry.name)
-                require(len(names) <= MAX_RECORDS, "Recovery record inventory exceeds budget", "budget")
+                require(len(names) <= MAX_RECORDS + 1, "Recovery record inventory exceeds budget", "budget")
         records = []
         for identity in sorted(names):
             directory = private_directory(store, identity)

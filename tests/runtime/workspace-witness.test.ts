@@ -24,6 +24,79 @@ test('workspace witness persists a positive acknowledgement across restart witho
   } finally { witness.close(); }
   expect(readFileSync(path.join(home, 'workspace-witness', 'witness.sqlite')).includes(Buffer.from('private file contents'))).toBe(false);
 });
+
+test('accepted proofs recycle only after matching gateway acknowledgement and successful native cleanup', async () => {
+  const { home, context, request, result } = fixture(); const witness = new WorkspaceWitness(home);
+  try {
+    witness.reserve('workspace/write', request, context); witness.complete('workspace/write', request, result, context);
+    const ack = object((witness.pending({}).data as import('../../src/runtime/types.js').JsonValue[])[0]);
+    expect(ack).toMatchObject({ operationId: context.operationId, projectId: context.projectId, gatewayRequestDigest: context.gatewayRequestDigest });
+    expect(JSON.stringify(ack)).not.toContain('file.txt');
+    for (const change of [{ method: 'workspace/remove' }, { projectId: randomUUID() }, { gatewayRequestDigest: 'f'.repeat(64) }, { resultDigest: 'f'.repeat(64) }]) {
+      await expect(witness.acknowledge({ ...ack, ...change }, async () => { throw new Error('must not run'); })).rejects.toMatchObject({ code: 'operation_conflict' });
+    }
+    await expect(witness.acknowledge(ack, async () => { throw new Error('helper unavailable'); })).rejects.toThrow('helper unavailable');
+    expect(witness.usage().total).toBe(1);
+    const cleaned: string[][] = [];
+    expect(await witness.acknowledge(ack, async (...args) => { cleaned.push(args); })).toMatchObject({ acknowledged: true, removed: true });
+    const { operationId: _id, ...body } = request;
+    expect(cleaned).toEqual([['/project', context.operationId, createHash('sha256').update(canonical(body)).digest('hex')]]);
+    expect(witness.usage()).toEqual({ total: 0, unresolved: 0, limit: 2000 });
+    expect(await witness.acknowledge(ack, async () => { throw new Error('already cleaned'); })).toMatchObject({ acknowledged: true, removed: false });
+  } finally { witness.close(); }
+});
+
+test('unknown proofs cannot be acknowledged or omitted from unresolved capacity accounting', async () => {
+  const { home, context, request } = fixture(); const witness = new WorkspaceWitness(home);
+  try {
+    witness.reserve('workspace/write', request, context);
+    expect(witness.pending({})).toEqual({ data: [], nextCursor: null });
+    await expect(witness.acknowledge({ operationId: context.operationId, method: 'workspace/write', projectId: context.projectId, gatewayRequestDigest: context.gatewayRequestDigest, resultDigest: 'a'.repeat(64) }, async () => {})).rejects.toMatchObject({ code: 'operation_conflict' });
+    expect(witness.usage()).toEqual({ total: 1, unresolved: 1, limit: 2000 });
+  } finally { witness.close(); }
+});
+
+test('completed witness pagination remains complete while earlier pages are acknowledged', async () => {
+  const first = fixture(), witness = new WorkspaceWitness(first.home);
+  try {
+    for (let index = 0; index < 70; index++) {
+      const operationId = randomUUID(), context = { ...first.context, operationId }, request = { ...first.request, operationId };
+      witness.reserve('workspace/write', request, context); witness.complete('workspace/write', request, { ...first.result, recoveryOperationId: operationId }, context);
+    }
+    let after: string | null = null, total = 0;
+    do {
+      const page = witness.pending(after ? { after, limit: 8 } : { limit: 8 });
+      for (const ack of page.data as import('../../src/runtime/types.js').JsonValue[]) { await witness.acknowledge(object(ack), async () => {}); total++; }
+      after = page.nextCursor as string | null;
+    } while (after);
+    expect(total).toBe(70); expect(witness.usage().total).toBe(0);
+  } finally { witness.close(); }
+});
+
+test('definitive native not_sent reclaims only its own unresolved reservation', () => {
+  const { home, context, request, result } = fixture(); const witness = new WorkspaceWitness(home);
+  try {
+    witness.reserve('workspace/write', request, context);
+    witness.discardNotSent('workspace/write', request, { ...context, projectId: randomUUID() });
+    expect(witness.usage().total).toBe(1);
+    witness.discardNotSent('workspace/write', request, context); expect(witness.usage().total).toBe(0);
+    witness.reserve('workspace/write', request, context); witness.complete('workspace/write', request, result, context);
+    witness.discardNotSent('workspace/write', request, context); expect(witness.read({ operationId: context.operationId })).toMatchObject({ state: 'completed' });
+  } finally { witness.close(); }
+});
+
+test('acknowledged ordinary operations can exceed the lifetime witness capacity', async () => {
+  const first = fixture(), witness = new WorkspaceWitness(first.home);
+  try {
+    for (let index = 0; index < 2005; index++) {
+      const operationId = randomUUID(), context = { ...first.context, operationId }, request = { ...first.request, operationId };
+      witness.reserve('workspace/write', request, context); witness.complete('workspace/write', request, { ...first.result, recoveryOperationId: operationId }, context);
+      const ack = object((witness.pending({}).data as import('../../src/runtime/types.js').JsonValue[])[0]);
+      await witness.acknowledge(ack, async () => {});
+    }
+    expect(witness.usage().total).toBe(0);
+  } finally { witness.close(); }
+}, 30000);
 test('missing or incomplete witnesses never adopt a native recovery record or authorize a replay', () => {
   const { home, context, request } = fixture(); const witness = new WorkspaceWitness(home);
   try {

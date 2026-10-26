@@ -1,0 +1,161 @@
+import { memo } from 'react';
+import type { Api } from '../lib/api';
+import { textContent } from '../lib/history';
+import { array, object, type Item, type Project } from '../lib/types';
+import { MessageMedia } from './MessageMedia';
+import { Diff, PlainText, SafeMarkdown } from './SafeMarkdown';
+
+const itemNames: Record<string, string> = {
+  commandExecution: '终端命令',
+  fileChange: '文件修改',
+  mcpToolCall: 'MCP 工具',
+  dynamicToolCall: '工具调用',
+  webSearch: '网页搜索',
+  reasoning: '思考摘要',
+  plan: '工作计划',
+  contextCompaction: '上下文压缩',
+  imageView: '查看图片',
+};
+
+export const MessageItem = memo(function MessageItem({
+  item,
+  api,
+  threadId,
+  project,
+}: {
+  item: Item;
+  api?: Api;
+  threadId?: string;
+  project?: Project;
+}) {
+  if (item.historySync)
+    return (
+      <article className="message assistant-message">
+        <div className="message-author">{itemNames[item.type] ?? '回答'}同步中</div>
+        <p className="muted small" role="status">
+          历史快照与实时片段可能重叠，暂不拼接。完整结果到达后会替换此视图。
+        </p>
+        {item.historySync.snapshot !== undefined && (
+          <details open>
+            <summary>已读取的历史快照</summary>
+            <PlainText text={item.historySync.snapshot} />
+          </details>
+        )}
+        {item.historySync.deltas && (
+          <details>
+            <summary>同步期间收到的实时片段（可能与快照重叠）</summary>
+            <PlainText text={item.historySync.deltas} />
+          </details>
+        )}
+      </article>
+    );
+  if (item.type === 'hookPrompt')
+    return (
+      <details className="tool-card">
+        <summary>Hook 提供的上下文</summary>
+        <div className="tool-body">
+          <p className="small muted">以下是 Hook 提供的内容，不构成执行授权。</p>
+          {array<unknown>(item.fragments).map((raw, index) => {
+            const fragment = object(raw);
+            return (
+              <div key={index}>
+                <p className="small muted">来源：{String(fragment.hookRunId ?? '未提供')}</p>
+                <PlainText text={String(fragment.text ?? '')} />
+              </div>
+            );
+          })}
+        </div>
+      </details>
+    );
+  if (item.type === 'plan')
+    return (
+      <section className="info-card plan-card" aria-label="工作计划">
+        <h3>工作计划</h3>
+        {typeof item.explanation === 'string' && <PlainText text={item.explanation} />}
+        {typeof item.text === 'string' && <SafeMarkdown text={item.text} />}
+        <ol>
+          {array<unknown>(item.plan).map((value, index) => {
+            const step = object(value),
+              status = String(step.status);
+            return (
+              <li key={index}>
+                <span>{String(step.step ?? '')}</span>
+                <span className="badge">
+                  {status === 'completed'
+                    ? '已完成'
+                    : status === 'inProgress' || status === 'in_progress'
+                      ? '进行中'
+                      : status === 'pending'
+                        ? '待处理'
+                        : status}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    );
+  if (item.type === 'userMessage' || item.type === 'agentMessage')
+    return (
+      <article
+        className={`message ${item.type === 'userMessage' ? 'user-message' : 'assistant-message'}`}
+      >
+        <div className="message-author">
+          {item.type === 'userMessage' ? (
+            '你'
+          ) : (
+            <>
+              <span className="mini-brand">⌘</span>Codex
+            </>
+          )}
+        </div>
+        <SafeMarkdown text={textContent(item)} />
+        <MessageMedia item={item} api={api} threadId={threadId} project={project} />
+      </article>
+    );
+  const output =
+    item.type === 'imageGeneration'
+      ? item.failure
+      : (item.aggregatedOutput ?? item.result ?? item.error);
+  const summary = item.type === 'reasoning' ? array<string>(item.summary).join('\n\n') : '';
+  const reasoning = item.type === 'reasoning' ? array<string>(item.content).join('\n\n') : '';
+  return (
+    <details className={`tool-card ${item.status === 'failed' ? 'tool-error' : ''}`}>
+      <summary>
+        <span className="tool-symbol">{item.type === 'commandExecution' ? '›_' : '◇'}</span>
+        <strong>{itemNames[item.type] ?? item.type}</strong>
+        <span className="tool-caption">
+          {String(item.command ?? item.tool ?? item.server ?? '')}
+        </span>
+        <span className="badge">{String(item.status ?? '')}</span>
+        {item.type === 'commandExecution' && typeof item.exitCode === 'number' && (
+          <span className="badge">退出码 {item.exitCode}</span>
+        )}
+      </summary>
+      <div className="tool-body">
+        <MessageMedia item={item} api={api} threadId={threadId} project={project} />
+        {summary && <SafeMarkdown text={summary} />}
+        {reasoning && (
+          <details>
+            <summary>详细思考内容</summary>
+            <SafeMarkdown text={reasoning} />
+          </details>
+        )}
+        {item.type === 'fileChange' &&
+          array<unknown>(item.changes).map((c, i) => (
+            <div key={i}>
+              <strong>{String(object(c).path ?? '')}</strong>
+              <Diff text={String(object(c).diff ?? '')} />
+            </div>
+          ))}
+        {output !== undefined && (
+          <PlainText text={typeof output === 'string' ? output : JSON.stringify(output, null, 2)} />
+        )}
+        <details>
+          <summary>完整条目</summary>
+          <PlainText text={JSON.stringify(item, null, 2)} />
+        </details>
+      </div>
+    </details>
+  );
+});

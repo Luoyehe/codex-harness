@@ -482,7 +482,7 @@ class JournalTests(unittest.TestCase):
     def create(self, path):
         db = sqlite3.connect(path)
         db.executescript("""CREATE TABLE receipts(id TEXT PRIMARY KEY,method TEXT NOT NULL,scope TEXT NOT NULL,digest TEXT NOT NULL,
-            state TEXT NOT NULL,result TEXT,error TEXT,bytes INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL) STRICT;
+            state TEXT NOT NULL CHECK(state IN ('pending','dispatching','accepted','not_sent','unknown')),result TEXT,error TEXT,bytes INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL) STRICT;
             CREATE TABLE projects(id TEXT PRIMARY KEY,path TEXT NOT NULL UNIQUE,name TEXT NOT NULL) STRICT;
             CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL) STRICT;""")
         for value in ("pending", "dispatching", "accepted", "unknown"):

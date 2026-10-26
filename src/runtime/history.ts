@@ -22,6 +22,16 @@ export class UnifiedHistory {
     if (params.cursor != null) string(params.cursor, 'cursor', LIMITS.cursorBytes, true);
     let entry = this.traversals.get(id);
     if (params.cursor == null) {
+      if (!entry && this.traversals.size >= 256) {
+        // A finished traversal is a cache of permission to reuse already read
+        // context, not live work. Eviction revokes that permission; a later
+        // mutation must read history again. In-flight/incomplete pages survive.
+        for (const [candidate, traversal] of this.traversals) {
+          if (!traversal.complete || traversal.loading) continue;
+          this.traversals.delete(candidate);
+          break;
+        }
+      }
       if (!entry && this.traversals.size >= 256) throw new DeliveryError('capacity', 'History traversal capacity exhausted');
       entry = { threadId, clientId: context.clientId, channel: context.eventChannelId, next: undefined, complete: false, loading: false, turnCursor: null, timelineCursor: null, turnsComplete: false, timelineComplete: false, turnSeen: new Set(), timelineSeen: new Set(), pages: 0, bytes: 0, items: 0, legacy: false }; this.traversals.set(id, entry);
     } else if (!entry || entry.complete || entry.next !== params.cursor) throw new DeliveryError('invalid_cursor', 'History cursor does not continue this connection\'s combined traversal');

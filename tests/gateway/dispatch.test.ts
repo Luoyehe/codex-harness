@@ -119,7 +119,7 @@ describe('gateway operation admission', () => {
   it.each([false, true])('publishes the released maintenance state after management settles (failed=%s)', async failed => {
     const { ledger, dispatcher, manager } = setup(); const states: Record<string, unknown>[] = [];
     dispatcher.on('event', event => { if (event.type === 'state') states.push(event.data); });
-    manager.call = async (_m, _p, _id, before) => { before?.(); if (failed) throw new HarnessError('discovery_failed', 'discovery failed'); return { source: 'provider', models: [] }; };
+    manager.call = async (_m, _p, _id, before) => { before?.(); if (failed) throw new HarnessError('discovery_failed', 'discovery failed'); return { kind: 'chatgpt', revision: 'a'.repeat(32), hasApiKey: false, source: 'provider', models: [], applied: false, requiresConfirmation: false }; };
     try {
       const operation = dispatcher.call({ operationId: randomUUID(), method: 'system/models/refresh', params: {} }, { clientId: 'c' });
       if (failed) await expect(operation).rejects.toMatchObject({ code: 'discovery_failed' }); else await operation;
@@ -191,12 +191,12 @@ describe('gateway operation admission', () => {
     const pending = dispatcher.call({ operationId: randomUUID(), method: 'system/provider/write', params: { kind: 'chatgpt', expectedRevision: 'old' } }, { clientId: 'c' });
     try {
       await expect(dispatcher.call({ operationId: randomUUID(), method: 'turn/start', params: { threadId: 't', text: 'a' } }, { clientId: 'c' })).rejects.toMatchObject({ code: 'maintenance' });
-      finish({ revision: 'new' }); await pending;
+      finish({ kind: 'chatgpt', revision: 'a'.repeat(32), hasApiKey: false, models: [] }); await pending;
     } finally { ledger.close(); }
   });
   it('allows explicit restart to recover stale activity while configuration changes remain blocked', async () => {
     const { ledger, dispatcher, manager } = setup(); let calls = 0;
-    manager.call = async (_m, _p, _id, before) => { calls++; before?.(); return { restarted: true }; };
+    manager.call = async (_m, _p, _id, before) => { calls++; before?.(); return { restarted: true, release: 'a'.repeat(64) }; };
     dispatcher.event({ type: 'state', data: { epoch: 'lost', connected: false, activity: { activeThreads: ['uncertain'], pendingStarts: 1, terminals: 1, unknown: true } } });
     try {
       await expect(dispatcher.call({ operationId: randomUUID(), method: 'system/provider/write', params: { kind: 'chatgpt' } }, { clientId: 'c' })).rejects.toMatchObject({ code: 'activity_unknown' });

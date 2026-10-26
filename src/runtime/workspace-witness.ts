@@ -36,6 +36,13 @@ export class WorkspaceWitness {
     this.worktrees = new WorktreeBindings(this.db, nativeHome);
   }
   worktreeBinding(id: unknown, root: string): JsonObject { return this.worktrees.get(id, root); }
+  /** A complete native not_sent response proves this reserved write did not happen. */
+  discardNotSent(method: string, request: JsonObject, context: CallContext): void {
+    const { operationId: _id, ...body } = request;
+    const helperDigest = createHash('sha256').update(canonical(body)).digest('hex');
+    this.db.prepare('DELETE FROM witnesses WHERE id=? AND method=? AND project_id=? AND root=? AND gateway_digest=? AND helper_digest=? AND result IS NULL')
+      .run(String(context.operationId), method, String(context.projectId), String(request.root), String(context.gatewayRequestDigest), helperDigest);
+  }
   reserve(method: string, request: JsonObject, context: CallContext): void {
     const id = string(context.operationId, 'operationId', 36); const projectId = string(context.projectId, 'projectId', 36); const gatewayDigest = string(context.gatewayRequestDigest, 'gatewayRequestDigest', 64);
     if (!UUID.test(id) || !UUID.test(projectId) || !SHA.test(gatewayDigest) || request.operationId !== id || method !== 'workspace/' + String(request.action)) throw new DeliveryError('invalid_params', 'Workspace witness requires matching gateway and helper identities');
@@ -96,6 +103,38 @@ export class WorkspaceWitness {
     const row = this.db.prepare('SELECT * FROM witnesses WHERE id=?').get(id);
     if (!row) return { operationId: id, state: 'not_received' };
     return { operationId: id, state: typeof row.result === 'string' ? 'completed' : 'unknown', method: String(row.method), projectId: String(row.project_id), root: String(row.root), gatewayRequestDigest: String(row.gateway_digest), helperRequestDigest: String(row.helper_digest), ...(typeof row.result === 'string' ? { result: JSON.parse(row.result) as JsonValue } : {}) };
+  }
+  usage(): JsonObject {
+    const row = this.db.prepare('SELECT count(*) AS total,sum(result IS NULL) AS unresolved FROM witnesses').get()!;
+    return { total: Number(row.total), unresolved: Number(row.unresolved ?? 0), limit: MAX_ROWS };
+  }
+  /** Private gateway reconciliation feed. Payloads and native paths are not needed here. */
+  pending(params: JsonObject): JsonObject {
+    onlyKeys(params, ['after', 'limit']);
+    const after = params.after === undefined ? '' : string(params.after, 'after', 36);
+    const limit = params.limit ?? 64;
+    if ((after && !UUID.test(after)) || typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 64) throw new DeliveryError('invalid_params', 'Invalid witness page');
+    const rows = this.db.prepare('SELECT * FROM witnesses WHERE result IS NOT NULL AND id>? ORDER BY id LIMIT ?').all(after, limit + 1);
+    return { data: rows.slice(0, limit).map(row => ({ operationId: String(row.id), method: String(row.method), projectId: String(row.project_id),
+      gatewayRequestDigest: String(row.gateway_digest), resultDigest: createHash('sha256').update(canonical(JSON.parse(String(row.result)) as JsonValue)).digest('hex') })),
+      nextCursor: rows.length > limit ? String(rows[limit - 1]!.id) : null };
+  }
+  /** Only the authenticated gateway invokes this after persisting an accepted receipt. */
+  async acknowledge(params: JsonObject, cleanup: (root: string, operationId: string, helperDigest: string) => Promise<void>): Promise<JsonObject> {
+    onlyKeys(params, ['operationId', 'method', 'projectId', 'gatewayRequestDigest', 'resultDigest']);
+    const id = string(params.operationId, 'operationId', 36), project = string(params.projectId, 'projectId', 36);
+    const method = string(params.method, 'method', 128), gatewayDigest = string(params.gatewayRequestDigest, 'gatewayRequestDigest', 64), resultDigest = string(params.resultDigest, 'resultDigest', 64);
+    if (!UUID.test(id) || !UUID.test(project) || !SHA.test(gatewayDigest) || !SHA.test(resultDigest)) throw new DeliveryError('invalid_params', 'Invalid witness acknowledgement');
+    const row = this.db.prepare('SELECT * FROM witnesses WHERE id=?').get(id);
+    if (!row) return { acknowledged: true, operationId: id, removed: false };
+    if (typeof row.result !== 'string' || row.method !== method || row.project_id !== project || row.gateway_digest !== gatewayDigest ||
+        createHash('sha256').update(canonical(JSON.parse(row.result) as JsonValue)).digest('hex') !== resultDigest) throw new DeliveryError('operation_conflict', 'Accepted gateway receipt does not match the completed witness');
+    // Keep the proof if native cleanup fails, including after a lost acknowledgement.
+    // A retry can safely finish both steps; the gateway journal prevents redispatch.
+    await cleanup(String(row.root), id, String(row.helper_digest));
+    const removed = this.db.prepare('DELETE FROM witnesses WHERE id=? AND method=? AND project_id=? AND gateway_digest=? AND result=?')
+      .run(id, method, project, gatewayDigest, row.result);
+    return { acknowledged: true, operationId: id, removed: Number(removed.changes) === 1 };
   }
   close(): void { this.db.close(); }
 }

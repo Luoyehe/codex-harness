@@ -28,7 +28,7 @@ function run(row: Row): AutomationRun { return { id: String(row.id), automationI
 function publicRun(value: AutomationRun): JsonObject { const { spec: _spec, clientId: _client, ...result } = value; return result; }
 /** Shares the gateway journal connection. Every mutation is called inside Ledger.transaction. */
 export class Automations {
-  constructor(private db: DatabaseSync, private now: () => number) {
+  constructor(private db: DatabaseSync, private now: () => number, private createOperationId: () => string = randomUUID) {
     db.exec(`CREATE TABLE IF NOT EXISTS automations(id TEXT PRIMARY KEY,revision INTEGER NOT NULL,state TEXT NOT NULL,spec TEXT NOT NULL,next_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL) STRICT;
       CREATE TABLE IF NOT EXISTS automation_runs(id TEXT PRIMARY KEY,automation_id TEXT NOT NULL,revision INTEGER NOT NULL,scheduled_at INTEGER NOT NULL,manual INTEGER NOT NULL,operation_id TEXT NOT NULL UNIQUE,client_id TEXT NOT NULL,state TEXT NOT NULL,thread_id TEXT,turn_id TEXT,started_at INTEGER,finished_at INTEGER,stop_requested INTEGER NOT NULL DEFAULT 0,stop_sent INTEGER NOT NULL DEFAULT 0,code TEXT,spec TEXT NOT NULL) STRICT;
       CREATE UNIQUE INDEX IF NOT EXISTS automation_occurrence ON automation_runs(automation_id,revision,scheduled_at) WHERE manual=0;
@@ -89,7 +89,7 @@ export class Automations {
     const count = Number(this.db.prepare('SELECT count(*) AS count FROM automation_runs').get()!.count);
     if (count >= 1000) this.db.prepare("DELETE FROM automation_runs WHERE id IN (SELECT id FROM automation_runs WHERE state IN ('completed','failed','interrupted','closed_unknown','not_sent','skipped','canceled') ORDER BY rowid LIMIT ?)").run(count - 999);
     if (Number(this.db.prepare('SELECT count(*) AS count FROM automation_runs').get()!.count) >= 1000) throw new HarnessError('capacity', '自动化运行记录已满，请核对未完成的运行。');
-    const id = randomUUID(), operationId = randomUUID(), clientId = randomUUID();
+    const id = randomUUID(), operationId = this.createOperationId(), clientId = randomUUID();
     this.db.prepare('INSERT INTO automation_runs(id,automation_id,revision,scheduled_at,manual,operation_id,client_id,state,finished_at,code,spec) VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(id, value.id, value.revision, at, Number(manual), operationId, clientId, skipped ? 'skipped' : 'queued', skipped ? this.now() : null, skipped ?? null, JSON.stringify(this.spec(value)));
     return this.getRun(id);
   }

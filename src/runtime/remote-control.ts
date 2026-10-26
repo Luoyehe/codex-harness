@@ -10,6 +10,9 @@ export class RemoteControl {
   private pairing(id: JsonValue | undefined, context: CallContext): Pairing { const entry = this.pairings.get(string(id, 'pairingId', 36)); if (!entry || entry.revoked || entry.clientId !== context.clientId || entry.eventChannelId !== context.eventChannelId) throw new DeliveryError('not_found', 'Pairing secret is unavailable for this connection'); return entry; }
   private remove(entry: Pairing): void { clearTimeout(entry.timer); this.pairings.delete(entry.pairingId); }
   private async status(): Promise<JsonObject> { return remoteResponse('RemoteControlStatusReadResponse', await this.host.native('remoteControl/status/read', null), 64 * 1024); }
+  async assertDisabledForMaintenance(): Promise<void> {
+    if ((await this.status()).status !== 'disabled') throw new DeliveryError('remote_control_active', 'Disable native remote control before journal maintenance');
+  }
   private async requireEnvironment(id: JsonValue | undefined): Promise<void> { const status = await this.status(); if (typeof id !== 'string' || status.environmentId !== id) throw new DeliveryError('remote_environment_changed', 'Only the current native remote-control environment may be managed'); }
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     if (method === 'remoteControl/status/read') { onlyKeys(params, []); return this.status(); }

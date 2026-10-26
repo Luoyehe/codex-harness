@@ -93,16 +93,17 @@ test('unioning every affected domain cannot turn targeted orchestration into a f
   const plan = selectTests(['src/core/contracts.ts', 'web/App.tsx', 'deploy/install.py', 'scripts/release-audit.mjs'], available); expect(plan.status).toBe('requires-full-audit'); expect(plan.requiresFullAudit.some((entry: { reason: string }) => entry.reason === 'selection-covers-full-inventory')).toBe(true);
 });
 
-test('CI entrypoints select changes and never start an unguarded full suite or write audit rounds', () => {
+test('CI entrypoints select exact changes and reconcile real identities without inventing audit rounds', () => {
   const workflow = readFileSync(path.resolve('.github/workflows/affected.yml'), 'utf8');
-  expect(workflow).toContain('pull_request:'); expect(workflow).toContain('push:'); expect(workflow).toContain('scripts/select-tests.mjs'); expect(workflow).toContain('scripts/release-audit.mjs');
+  expect(workflow).toContain('scripts/ci-checks.mjs'); expect(workflow).toContain('scripts/release-audit.mjs');
   expect(workflow).not.toMatch(/(?:vitest[^\n]*\brun|--full|test:full|audits\.json|passWithNoTests)/);
-  expect(workflow).toContain('0.164.0'); expect(workflow).toContain('HARNESS_TEST_CODEX_BIN'); expect(workflow).toContain('--run native');
-  const rootJob = workflow.split('\n  root_deploy:\n')[1].split('\n  native:\n')[0];
+  expect(workflow).toContain('0.164.0'); expect(workflow).toContain('scripts/prepare-ci-native.mjs');
+  const rootJob = workflow.split('\n  root_deploy:\n')[1].split('\n  coverage:\n')[0];
   expect(rootJob).toContain('runs-on: ubuntu-24.04');
   expect(rootJob).toContain('test "$RUNNER_ENVIRONMENT" = github-hosted');
-  expect(rootJob).toContain('SELECTED_ROOT_FILES: ${{ needs.affected.outputs.root_deploy }}');
-  expect(rootJob).toContain('/usr/bin/sudo -n -- /usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/python3 -I -B -');
-  expect(rootJob).not.toMatch(/npm|pnpm|setup-node|setup-python|self-hosted/);
-  expect(rootJob).toContain('else 3 if result.skipped else 0');
+  expect(rootJob).toContain('/usr/bin/sudo -n -- /usr/bin/env -i');
+  expect(rootJob).toContain('HARNESS_TEST_NODE=');
+  expect(rootJob).toContain('scripts/ci-checks.mjs linux-root');
+  expect(workflow).toContain('reconcile .work/ci-results/ci-plan.json');
+  expect(workflow).toContain('if-no-files-found: error');
 });

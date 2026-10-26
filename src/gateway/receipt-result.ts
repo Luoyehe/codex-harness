@@ -17,6 +17,86 @@ function turnMetadata(input: JsonValue | undefined): JsonObject {
   object(input, '回合结果');
   return { id: identifier(input.id, '回合标识'), ...(typeof input.status === 'string' ? { status: input.status } : {}) };
 }
+const providerKinds = ['chatgpt', 'chatgpt-gateway', 'responses', 'zhipu-coding', 'bedrock-runtime', 'bedrock-mantle'];
+function hex(value: JsonValue | undefined, length: number): string {
+  if (typeof value !== 'string' || !new RegExp(`^[0-9a-f]{${length}}$`).test(value)) throw new Error('Invalid management revision');
+  return value;
+}
+function managementText(value: JsonValue | undefined, bytes: number): string {
+  const text = validText(value, bytes);
+  if (!text || Buffer.byteLength(text) > bytes || /[\x00-\x1f\x7f]/u.test(text)) throw new Error('Invalid management text');
+  return text;
+}
+function endpoint(value: JsonValue | undefined, https = false): string {
+  const text = managementText(value, 2048); const url = new URL(text);
+  if (!(https ? url.protocol === 'https:' : ['https:', 'http:'].includes(url.protocol)) || !url.hostname || url.username || url.password || url.search || url.hash) throw new Error('Invalid management URL');
+  return text;
+}
+function providerReceipt(input: JsonValue): JsonObject {
+  object(input);
+  if (typeof input.kind !== 'string' || !providerKinds.includes(input.kind) || typeof input.hasApiKey !== 'boolean' || !Array.isArray(input.models) || input.models.length > 1000) throw new Error('Invalid provider receipt');
+  const result: JsonObject = { kind: input.kind!, revision: hex(input.revision, 32), hasApiKey: input.hasApiKey };
+  for (const key of ['model', 'region', 'effort']) if (input[key] !== undefined) result[key] = managementText(input[key], key === 'effort' ? 64 : 256);
+  if (input.baseUrl !== undefined) result.baseUrl = endpoint(input.baseUrl);
+  if (input.allowInsecureHttp !== undefined) {
+    if (typeof input.allowInsecureHttp !== 'boolean') throw new Error('Invalid transport confirmation');
+    result.allowInsecureHttp = input.allowInsecureHttp;
+  }
+  if (input.gatewayOAuth !== undefined) {
+    object(input.gatewayOAuth); const oauth = input.gatewayOAuth;
+    const projected: JsonObject = { authorizationUrl: endpoint(oauth.authorizationUrl, true), tokenUrl: endpoint(oauth.tokenUrl, true),
+      clientId: managementText(oauth.clientId, 512), cookieName: managementText(oauth.cookieName, 128) };
+    if (oauth.redirectPort !== undefined) {
+      if (typeof oauth.redirectPort !== 'number' || !Number.isSafeInteger(oauth.redirectPort) || oauth.redirectPort < 1024 || oauth.redirectPort > 65535) throw new Error('Invalid OAuth redirect port');
+      projected.redirectPort = oauth.redirectPort;
+    }
+    result.gatewayOAuth = projected;
+  }
+  const models = new Set<string>();
+  result.models = input.models.map(item => {
+    object(item); const id = managementText(item.id, 256);
+    if (models.has(id) || !(item.defaultEffort === null || typeof item.defaultEffort === 'string') || !Array.isArray(item.efforts) || item.efforts.length > 32) throw new Error('Invalid provider model');
+    models.add(id);
+    const model: JsonObject = { id, defaultEffort: item.defaultEffort === '' || item.defaultEffort === null ? item.defaultEffort : managementText(item.defaultEffort, 64), efforts: item.efforts.map(value => managementText(value, 64)) };
+    if (item.inputModalities !== undefined) {
+      if (!Array.isArray(item.inputModalities) || item.inputModalities.length < 1 || item.inputModalities.length > 3 || !item.inputModalities.includes('text') || item.inputModalities.some(value => typeof value !== 'string' || !['text', 'image', 'audio'].includes(value))) throw new Error('Invalid input modalities');
+      model.inputModalities = item.inputModalities;
+    }
+    if (item.contextWindow !== undefined) {
+      if (!(item.contextWindow === null || typeof item.contextWindow === 'number' && Number.isSafeInteger(item.contextWindow) && item.contextWindow >= 4096 && item.contextWindow <= 10_000_000)) throw new Error('Invalid context window');
+      model.contextWindow = item.contextWindow;
+    }
+    if (item.supportsTools !== undefined) {
+      if (typeof item.supportsTools !== 'boolean') throw new Error('Invalid model tools flag');
+      model.supportsTools = item.supportsTools;
+    }
+    if (item.instructions !== undefined) {
+      const instructions = validText(item.instructions, 65536);
+      if (!instructions || Buffer.byteLength(instructions) > 65536) throw new Error('Invalid model instructions');
+      model.instructions = instructions;
+    }
+    return model;
+  });
+  if (input.profiles !== undefined) {
+    if (!Array.isArray(input.profiles) || input.profiles.length > 16) throw new Error('Invalid saved profiles');
+    const ids = new Set<string>(); const names = new Set<string>();
+    result.profiles = input.profiles.map(value => {
+      object(value); const id = hex(value.id, 32); const name = managementText(value.name, 256);
+      if (Array.from(name).length > 64 || name !== name.trim() || ids.has(id) || names.has(name) || typeof value.kind !== 'string' || !providerKinds.includes(value.kind) || typeof value.hasApiKey !== 'boolean') throw new Error('Invalid saved profile');
+      ids.add(id); names.add(name);
+      const profile: JsonObject = { id, name, kind: value.kind!, revision: hex(value.revision, 32), hasApiKey: value.hasApiKey };
+      for (const key of ['model', 'region']) if (value[key] !== undefined) profile[key] = managementText(value[key], 256);
+      if (value.baseUrl !== undefined) profile.baseUrl = endpoint(value.baseUrl);
+      return profile;
+    });
+  }
+  if (input.retention !== undefined) {
+    object(input.retention); const retention = input.retention;
+    if (typeof retention.generations !== 'number' || !Number.isSafeInteger(retention.generations) || retention.generations < 0 || retention.generations > 128 || retention.limit !== 128 || retention.retainedHistory !== 3) throw new Error('Invalid provider retention');
+    result.retention = { generations: retention.generations, limit: 128, retainedHistory: 3 };
+  }
+  return result;
+}
 /** The initial response and every replay share this projection; native history owns message bodies. */
 export function receiptResult(method: string, input: JsonValue): JsonValue {
   try { return projectResult(method, input); }
@@ -225,6 +305,21 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     for (const key of allowed) if (Object.hasOwn(input, key)) output[key] = input[key]!;
     return output;
   }
-  if (method.startsWith('system/')) return input; // The fixed root helper returns a separately validated redacted receipt.
+  if (method === 'system/restart') {
+    object(input); if (input.restarted !== true) throw new Error('Unconfirmed service restart');
+    return { restarted: true, release: hex(input.release, 64) };
+  }
+  if (method === 'system/provider/write') return providerReceipt(input);
+  if (method === 'system/models/refresh') {
+    const result = providerReceipt(input); object(input);
+    if (typeof input.applied !== 'boolean' || typeof input.requiresConfirmation !== 'boolean' || input.applied && input.requiresConfirmation) throw new Error('Invalid catalog confirmation');
+    result.applied = input.applied; result.requiresConfirmation = input.requiresConfirmation;
+    if (input.source !== undefined) {
+      if (typeof input.source !== 'string' || !['native', 'provider'].includes(input.source)) throw new Error('Invalid model catalog source');
+      result.source = input.source;
+    }
+    if (input.notice !== undefined) result.notice = managementText(input.notice, 2048);
+    return result;
+  }
   throw new HarnessError('receipt_contract', '此操作没有定义可持久化的回执格式。', 'unknown');
 }

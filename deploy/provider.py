@@ -39,7 +39,7 @@ def provider_url(base: str, api_key: str, allow_insecure: bool = False) -> str:
 
 
 def small_text(value, name: str, maximum: int = 256) -> str:
-    require(isinstance(value, str) and 0 < len(value.encode()) <= maximum and not any(ord(c) < 32 for c in value),
+    require(isinstance(value, str) and 0 < len(value.encode()) <= maximum and not any(ord(c) < 32 or ord(c) == 127 for c in value),
             f"Invalid {name}")
     return value
 
@@ -150,7 +150,8 @@ def validate_catalog(params: dict, current: dict) -> dict:
 
 
 def redacted(value: dict) -> dict:
-    return {**{key: item for key, item in value.items() if key not in ("apiKey", "nativeCatalog")}, "hasApiKey": bool(value.get("apiKey"))}
+    public = {"kind", "revision", "baseUrl", "model", "effort", "models", "allowInsecureHttp", "gatewayOAuth", "region"}
+    return {**{key: item for key, item in value.items() if key in public}, "hasApiKey": bool(value.get("apiKey"))}
 
 
 def quote_toml(value: str) -> str:
@@ -205,6 +206,38 @@ class ProviderStore:
     def read(self) -> dict:
         return read_json(self.root / "current/settings.json", 4 * 1024 * 1024)
 
+    def public(self, settings: dict | None = None) -> dict:
+        from .provider_lifecycle import Profiles, generations, KEEP_HISTORY, MAX_GENERATIONS
+        return {**redacted(settings if settings is not None else self.read()), "profiles": Profiles(self.layout).public(),
+                "retention": {"generations": len(generations(self.root)), "limit": MAX_GENERATIONS, "retainedHistory": KEEP_HISTORY}}
+
+    def validate_change(self, params: dict, current: dict) -> tuple[str, dict | str]:
+        from .provider_lifecycle import Profiles
+        profiles = Profiles(self.layout)
+        actions = set(params) & {"saveProfileName", "profileId", "deleteProfileId"}
+        if not actions:
+            return "provider", validate_provider(params, current)
+        require(len(actions) == 1 and set(params) == {"expectedRevision", *actions},
+                "Profile actions cannot be mixed with provider fields")
+        require(params.get("expectedRevision") == current.get("revision"), "Provider changed; read again", "revision_conflict")
+        action = next(iter(actions))
+        if action == "saveProfileName":
+            return action, profiles.validate_save(params[action])
+        saved = profiles.read(params[action])
+        if action == "deleteProfileId":
+            return action, saved["id"]
+        settings = saved["settings"]
+        # Restore a complete immutable endpoint-bound profile; the browser cannot
+        # substitute an endpoint while asking to reuse its stored credential.
+        allowed = {"kind", "baseUrl", "model", "effort", "apiKey", "allowInsecureHttp", "gatewayOAuth", "region"}
+        restore = {key: value for key, value in settings.items() if key in allowed}
+        if settings.get("kind") == "chatgpt-gateway":
+            restore["confirmGatewayCredentials"] = True
+        restored = validate_provider({**restore, "expectedRevision": settings.get("revision")}, settings)
+        if settings.get("nativeCatalog"):
+            restored = validate_catalog({"expectedRevision": restored["revision"], "models": restored["models"]}, restored)
+        return "provider", restored
+
     def prepare(self, settings: dict, *, layered: bool | None = None) -> str:
         generation = settings["revision"]
         require(bool(re.fullmatch(r"[0-9a-f]{32}", generation)), "Invalid provider generation")
@@ -218,10 +251,12 @@ class ProviderStore:
         if layered:
             layers, manifest = generation_layers(settings, self.layout, self.gid)
         mkdir(self.root, 0o750, 0, self.gid)
+        target = self.root / generation
+        require(not target.exists() and not target.is_symlink(), "Provider generation collision", "collision")
+        from .provider_lifecycle import collect_generations
+        collect_generations(self.layout, self.root)
         require(len([path for path in self.root.iterdir() if re.fullmatch(r"[0-9a-f]{32}", path.name)]) < 128,
                 "Provider generation retention budget reached; inspect old recovery records", "budget")
-        target = self.root / generation
-        require(not target.exists(), "Provider generation collision", "collision")
         mkdir(target, 0o750, 0, self.gid)
         write_json(target / "settings.json", settings, mode=0o600)
         if settings.get("nativeCatalog"):

@@ -145,17 +145,93 @@ class Store:
         finally:
             os.close(store)
 
-    def inventory(self, store: int, reserve_bytes: int = 2 * MAX_FILE + 16384) -> None:
-        total = count = 0
+    def external_payload(self, identity: str) -> bool:
+        # Index recovery records depend on the operation receipt for their
+        # terminal state even when this store has no before/next file.
+        index_store = Store(self.root, self.storage.parent / "git-index-state")
+        project = directory = None
+        try:
+            project = index_store.open()
+            directory = private_directory(project, identity)
+            return True
+        except FileNotFoundError:
+            return False
+        finally:
+            if directory is not None: os.close(directory)
+            if project is not None: os.close(project)
+
+    def reclaim_acknowledged(self, store: int, identity: str, directory: int) -> bool:
+        saved = read_record(directory)
+        if saved.get("acknowledged") is not True or saved.get("state") != "completed" or saved.get("response", {}).get("ok") is not True:
+            return False
+        with os.scandir(directory) as children:
+            names = [entry.name for entry in children]
+        if names != ["state.json"] or self.external_payload(identity):
+            return False
+        actual, pinned = os.stat(identity, dir_fd=store, follow_symlinks=False), os.fstat(directory)
+        require((actual.st_dev, actual.st_ino) == (pinned.st_dev, pinned.st_ino), "Workspace receipt directory changed", "conflict")
+        os.unlink("state.json", dir_fd=directory)
+        os.fsync(directory)
+        os.rmdir(identity, dir_fd=store)
+        os.fsync(store)
+        return True
+
+    def acknowledge(self, identity: str, request_digest: str) -> dict:
+        """Internal supervisor cleanup after a durable gateway acceptance.
+
+        This is not a success witness: native-owned files never establish that
+        an operation succeeded. Missing receipts are idempotently acknowledged
+        because the caller already holds the durable authoritative acceptance.
+        """
+        import fcntl
+        operation_id(identity)
+        require(isinstance(request_digest, str) and re.fullmatch("[0-9a-f]{64}", request_digest), "Invalid acknowledgement digest")
+        try: store = self.open()
+        except FileNotFoundError: return {"acknowledged": True, "operationId": identity, "removed": True}
+        lock = directory = None
+        try:
+            lock = os.open("lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=store)
+            info = regular(lock)
+            require(info.st_uid == os.geteuid() and not info.st_mode & 0o077, "Unsafe workspace lock", "unsafe_path")
+            try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc: raise DeployError("busy", "Another workspace mutation is running") from exc
+            try: directory = private_directory(store, identity)
+            except FileNotFoundError: return {"acknowledged": True, "operationId": identity, "removed": True}
+            try: saved = read_record(directory)
+            except FileNotFoundError:
+                # A crash after the metadata unlink can leave an empty directory.
+                with os.scandir(directory) as children:
+                    require(next(children, None) is None, "Incomplete workspace receipt retains material", "recovery_required")
+                os.rmdir(identity, dir_fd=store)
+                os.fsync(store)
+                return {"acknowledged": True, "operationId": identity, "removed": True}
+            require(saved.get("requestDigest") == request_digest, "Workspace acknowledgement digest differs", "operation_conflict")
+            require(saved.get("state") == "completed" and isinstance(saved.get("response"), dict) and saved["response"].get("ok") is True,
+                    "Only completed accepted operations can be acknowledged", "recovery_required")
+            if saved.get("acknowledged") is not True: Record(directory, identity).save({**saved, "acknowledged": True})
+            removed = self.reclaim_acknowledged(store, identity, directory)
+            return {"acknowledged": True, "operationId": identity, "removed": removed}
+        finally:
+            if directory is not None: os.close(directory)
+            if lock is not None: os.close(lock)
+            os.close(store)
+
+    def inventory(self, store: int, reserve_bytes: int = 2 * MAX_FILE + 16384, *, maintenance: bool = False) -> None:
+        total = count = scanned = 0
         with os.scandir(store) as entries:
             for entry in entries:
                 if entry.name == "lock":
                     continue
                 operation_id(entry.name)
-                count += 1
-                require(count < MAX_RECORDS, "Workspace recovery record budget reached; inspect retained records", "budget")
+                scanned += 1
+                require(scanned <= MAX_RECORDS + 1, "Workspace recovery inventory exceeds budget", "budget")
                 directory = private_directory(store, entry.name)
                 try:
+                    if self.reclaim_acknowledged(store, entry.name, directory):
+                        continue
+                    count += 1
+                    # Exactly one extra slot allows an explicit discard to free
+                    # material at capacity; failed/unknown cleanup keeps it used.
                     names = []
                     with os.scandir(directory) as children:
                         for child in children:
@@ -179,9 +255,10 @@ class Store:
                             require(total + reserve_bytes <= MAX_BYTES, "Workspace recovery byte budget reached", "budget")
                 finally:
                     os.close(directory)
+        require(count < MAX_RECORDS + (1 if maintenance else 0), "Workspace recovery record budget reached; inspect retained records", "budget")
 
     @contextmanager
-    def mutation(self, identity: str, request_digest: str, *, reserve_bytes: int = 2 * MAX_FILE + 16384):
+    def mutation(self, identity: str, request_digest: str, *, reserve_bytes: int = 2 * MAX_FILE + 16384, maintenance: bool = False):
         import fcntl
         operation_id(identity)
         store = self.open(create=True)
@@ -203,7 +280,7 @@ class Store:
                 require(saved.get("requestDigest") == request_digest, "Workspace operation ID reused with different input", "operation_conflict")
                 yield saved.get("response", {"ok": False, "error": {"code": "unknown", "message": "Workspace operation needs recovery inspection", "delivery": "unknown"}})
                 return
-            self.inventory(store, reserve_bytes)
+            self.inventory(store, reserve_bytes, maintenance=maintenance)
             os.mkdir(identity, 0o700, dir_fd=store)
             os.fsync(store)
             directory = private_directory(store, identity)

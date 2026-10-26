@@ -1,176 +1,195 @@
-name: Affected checks
+name: Reviewed checks
 
 on:
   push:
+    branches: ['**']
   pull_request:
+  workflow_dispatch:
+    inputs:
+      base_commit:
+        description: Exact reviewed base commit for change selection
+        required: true
+        type: string
+      authorization_sha256:
+        description: Optional exact checksum of a source-bound full closeout authorization
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: affected-${{ github.workflow }}-${{ github.ref }}
+  group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  CHANGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-  CHANGE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
   PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONIOENCODING: utf-8
 
 jobs:
-  affected:
+  plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     outputs:
-      native: ${{ steps.plan.outputs.native }}
-      root_deploy: ${{ steps.plan.outputs.root_deploy }}
+      tests: ${{ steps.plan.outputs.tests }}
+      standard: ${{ steps.plan.outputs.standard }}
+      root: ${{ steps.plan.outputs.root }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.15.0'
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.12.10'
-      - name: Scan the release source inventory
-        run: node scripts/release-audit.mjs --source
-      - name: Install pinned project dependencies
+      - name: Scan source and complete Git objects
         run: |
-          npm install --global pnpm@11.22.0 --ignore-scripts --no-audit --no-fund
-          pnpm install --frozen-lockfile
-      - name: Type and build checks
-        run: |
-          pnpm typecheck
-          pnpm build
-      - name: Select affected tests
+          node scripts/release-audit.mjs --source
+          node scripts/release-audit.mjs --git-objects
+      - name: Select reviewed changes or source-bound full closeout
         id: plan
-        shell: bash
-        run: |
-          mkdir -p .work
-          node scripts/select-tests.mjs --base "$CHANGE_BASE" --head "$CHANGE_HEAD" > .work/ci-plan.json
-          cat .work/ci-plan.json
-          node --input-type=module -e 'import fs from "node:fs"; const p=JSON.parse(fs.readFileSync(".work/ci-plan.json","utf8")); fs.appendFileSync(process.env.GITHUB_OUTPUT, `native=${p.groups.native.length > 0}\nroot_deploy=${JSON.stringify(p.groups["deploy-root"])}\n`);'
-      - name: Run affected JavaScript tests
-        run: node scripts/select-tests.mjs --base "$CHANGE_BASE" --head "$CHANGE_HEAD" --run unit
-      - name: Run affected unprivileged Python deployment tests
-        run: node scripts/select-tests.mjs --base "$CHANGE_BASE" --head "$CHANGE_HEAD" --run deploy
-
-  root_deploy:
-    needs: affected
-    if: needs.affected.outputs.root_deploy != '[]'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    env:
-      SELECTED_ROOT_FILES: ${{ needs.affected.outputs.root_deploy }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        env:
+          HARNESS_CI_BASE: ${{ inputs.base_commit }}
+          HARNESS_AUTHORIZATION_SHA: ${{ inputs.authorization_sha256 }}
+        run: node scripts/ci-checks.mjs plan .work/ci-plan.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
-      - name: Run selected root ownership fixtures on the disposable runner
-        shell: bash
-        run: |
-          test "$RUNNER_ENVIRONMENT" = github-hosted
-          test "$(id -u)" -ne 0
-          mkdir -p .work
-          /usr/bin/python3 -I -c 'import os,pathlib; pathlib.Path(".work/ci-root-deploy.json").write_text(os.environ["SELECTED_ROOT_FILES"],encoding="utf-8")'
-          /usr/bin/sudo -n -- /usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/python3 -I -B - <<'PY'
-          import importlib.util, json, os, re, sys, tempfile, unittest
-          from pathlib import Path
-          if sys.platform != "linux" or os.geteuid() != 0:
-              raise RuntimeError("Root ownership fixtures require Linux root")
-          root = Path.cwd().resolve()
-          selection = (root / ".work/ci-root-deploy.json").read_bytes()
-          if len(selection) > 32768:
-              raise RuntimeError("Root test selection exceeds its bound")
-          files = json.loads(selection)
-          if not isinstance(files, list) or not 1 <= len(files) <= 128 or any(not isinstance(name, str) for name in files) or len(set(files)) != len(files):
-              raise RuntimeError("Expected exact nonempty unique selected test files")
-          for name in files:
-              if not re.fullmatch(r"tests/deploy/root/test_[a-z0-9_]+\.py", name):
-                  raise RuntimeError("Selection contains a non-root-fixture path")
-              current = root
-              parts = Path(name).parts
-              for index, part in enumerate(parts):
-                  current /= part
-                  if current.is_symlink() or not (current.is_file() if index == len(parts) - 1 else current.is_dir()):
-                      raise RuntimeError("Selected test must be an ordinary repository file")
-          sys.path.insert(0, str(root))
-          os.umask(0o077)
-          with tempfile.TemporaryDirectory(prefix="root-fixture-home-", dir=root / ".work") as home:
-              os.environ.update(HOME=home, PYTHONDONTWRITEBYTECODE="1")
-              suite = unittest.TestSuite()
-              for index, name in enumerate(files):
-                  spec = importlib.util.spec_from_file_location("selected_root_" + str(index), root / name)
-                  module = importlib.util.module_from_spec(spec)
-                  sys.modules[spec.name] = module
-                  spec.loader.exec_module(module)
-                  selected = unittest.defaultTestLoader.loadTestsFromModule(module)
-                  if not selected.countTestCases():
-                      raise RuntimeError("Selected root fixture contains no tests")
-                  suite.addTests(selected)
-              result = unittest.TextTestRunner(verbosity=2).run(suite)
-          raise SystemExit(1 if not result.wasSuccessful() else 3 if result.skipped else 0)
-          PY
+          name: ci-plan
+          path: .work/ci-plan.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
 
-  native:
-    needs: affected
-    if: needs.affected.outputs.native == 'true'
+  standard:
+    needs: plan
+    if: needs.plan.outputs.standard == 'true'
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-24.04
+            target: linux
             package: 0.164.0-linux-x64
-            integrity: sha512-XLAoaWsGOT2khzl+P4FYDPTkzAr9W0VFXFaVkqlFdkM0soa1gH/4S0wSD57Ek3HHwkirAEGz2/Mwehseh+l5Mg==
           - os: windows-2025
+            target: windows
             package: 0.164.0-win32-x64
-            integrity: sha512-urWPhwh9YavuoAPIkmVYKBTtd5OtGVL4Ki0Fb28dhK/Mz6Pt4LSy+gbRrZFz5+RXrw9ubvXuXDCcd8beYcWhDg==
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    env:
-      CODEX_PACKAGE_VERSION: ${{ matrix.package }}
-      CODEX_PACKAGE_INTEGRITY: ${{ matrix.integrity }}
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.15.0'
-      - name: Install pinned project dependencies
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12.10'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-plan
+          path: .work
+      - name: Install pinned dependencies and build the actual modules
         run: |
           npm install --global pnpm@11.22.0 --ignore-scripts --no-audit --no-fund
-          pnpm install --frozen-lockfile
-      - name: Prepare independent official CLI 0.164.0
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm typecheck
+          pnpm build
+      - name: Prepare independent official CLI
+        env:
+          CODEX_PACKAGE_VERSION: ${{ matrix.package }}
         run: |
           mkdir -p reference/runtime/ci-codex
           npm pack "@openai/codex@$CODEX_PACKAGE_VERSION" --registry=https://registry.npmjs.org --pack-destination reference/runtime/ci-codex --json > reference/runtime/ci-codex/pack.json
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          import crypto from 'node:crypto';
-          import path from 'node:path';
-          import { execFileSync } from 'node:child_process';
-          const root = path.resolve('reference/runtime/ci-codex');
-          const [entry] = JSON.parse(fs.readFileSync(path.join(root, 'pack.json'), 'utf8'));
-          if (entry.name !== '@openai/codex' || entry.version !== process.env.CODEX_PACKAGE_VERSION || entry.integrity !== process.env.CODEX_PACKAGE_INTEGRITY || !/^codex-[A-Za-z0-9.-]+\.tgz$/.test(entry.filename)) throw Error('Official package metadata mismatch');
-          const archive = path.join(root, entry.filename);
-          const integrity = 'sha512-' + crypto.createHash('sha512').update(fs.readFileSync(archive)).digest('base64');
-          if (integrity !== process.env.CODEX_PACKAGE_INTEGRITY) throw Error('Official package integrity mismatch');
-          execFileSync('tar', ['-xzf', archive, '-C', root], { stdio: 'inherit', windowsHide: true });
-          const binaries = [];
-          function walk(folder) { for (const item of fs.readdirSync(folder, { withFileTypes: true })) { const file=path.join(folder,item.name); if(item.isDirectory()) walk(file); else if(item.isFile() && item.name === (process.platform === 'win32' ? 'codex.exe' : 'codex')) binaries.push(file); } }
-          walk(path.join(root, 'package', 'vendor'));
-          if (binaries.length !== 1) throw Error('Expected one independent native binary');
-          fs.appendFileSync(process.env.GITHUB_ENV, `HARNESS_TEST_CODEX_BIN=${binaries[0]}\n`);
-          NODE
-      - name: Run affected native tests with the independent CLI
-        run: node scripts/select-tests.mjs --base "$CHANGE_BASE" --head "$CHANGE_HEAD" --run native
+          node scripts/prepare-ci-native.mjs
+          python -c 'import os,sys; open(os.environ["GITHUB_ENV"],"a",encoding="utf-8").write("HARNESS_TEST_PYTHON="+sys.executable+"\n")'
+      - name: Run exact selection and retain platform skips for reconciliation
+        env:
+          CI_TARGET: ${{ matrix.target }}
+        run: |
+          code=0
+          node scripts/ci-checks.mjs "$CI_TARGET" .work/ci-plan.json ".work/result-$CI_TARGET.json" || code=$?
+          test "$code" -eq 0 -o "$code" -eq 3
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: cases-${{ matrix.target }}
+          path: .work/result-${{ matrix.target }}.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  root_deploy:
+    needs: plan
+    if: needs.plan.outputs.root == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.15.0'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-plan
+          path: .work
+      - name: Build actual Ledger as the unprivileged runner
+        run: |
+          npm install --global pnpm@11.22.0 --ignore-scripts --no-audit --no-fund
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm build:server
+      - name: Run root fixtures only on the disposable hosted runner
+        shell: bash
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(id -u)" -ne 0
+          node_bin="$(command -v node)"
+          code=0
+          /usr/bin/sudo -n -- /usr/bin/env -i PATH="$(dirname "$node_bin"):/usr/bin:/bin" HARNESS_TEST_NODE="$node_bin" HARNESS_TEST_PYTHON=/usr/bin/python3 "$node_bin" scripts/ci-checks.mjs linux-root .work/ci-plan.json .work/result-linux-root.json || code=$?
+          test "$code" -eq 0 -o "$code" -eq 3
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: cases-linux-root
+          path: .work/result-linux-root.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  coverage:
+    name: Verified case coverage
+    needs: [plan, standard, root_deploy]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.15.0'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: '*'
+          path: .work/ci-results
+          merge-multiple: true
+      - name: Require all identities and complement every skipped case
+        run: node scripts/ci-checks.mjs reconcile .work/ci-results/ci-plan.json .work/ci-results
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-coverage
+          path: .work/ci-results/reconciled.json
+          include-hidden-files: true
+          if-no-files-found: error

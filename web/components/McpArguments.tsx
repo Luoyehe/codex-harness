@@ -4,10 +4,144 @@ import { array, object } from '../lib/types';
 import { schemaSupported, validateValue } from '../lib/prompt-validation';
 import { SchemaField } from './PromptFields';
 import { ownField, withField } from '../lib/form-values';
-const schemaText = (schema: unknown) => { try { const text = JSON.stringify(schema, null, 2); return text.length > 131072 ? text.slice(0, 131072) + "\n[结构展示已截断]" : text; } catch { return "结构过深，无法在页面展开。"; } };
-function boundedSchema(schema: unknown) { let count = 0; const visit = (value: unknown, depth: number): boolean => ++count <= 300 && depth <= 8 && (!value || typeof value !== 'object' || Object.values(value).every(child => visit(child, depth + 1))); return visit(schema, 0); }
-export function McpArguments({ tool, disabled, onCall }: { tool: Tool; disabled: boolean; onCall: (arguments_: Record<string, unknown>) => void }) {
-  const [values, setValues] = useState<Record<string, unknown>>({}), [raw, setRaw] = useState('{}'), [advanced, setAdvanced] = useState(false), [error, setError] = useState(''), [confirmed, setConfirmed] = useState(false);
-  const schema = object(tool.inputSchema), form = boundedSchema(schema) && schemaSupported(schema) && schema.type === 'object', annotations = object(tool.annotations);
-  return <form className="stack" onSubmit={event => { event.preventDefault(); setError(''); try { const input = advanced || !form ? JSON.parse(raw) : values; if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('工具参数必须为对象。'); if (new TextEncoder().encode(JSON.stringify(input)).length > 262144) throw new Error('参数超过 256 KiB 界面上限。'); if (form) { const errors = validateValue(schema, input); if (errors.length) throw new Error(errors.join(' ')); } if (confirmed) onCall(input); } catch (e) { setError(e instanceof Error ? e.message : '参数无效。'); } }}><h4>{tool.title ?? tool.name}</h4><p>{tool.description}</p><p className="workspace-warning">{annotations.readOnlyHint === true ? '服务将此工具标记为只读；该标记不是执行结果保证。' : '此工具可能改变外部数据。请核对参数后明确调用。'}</p>{form && <label className="check-row"><input type="checkbox" checked={advanced} onChange={event => { if (event.target.checked) setRaw(JSON.stringify(values, null, 2)); else try { setValues(object(JSON.parse(raw))); } catch { setError('JSON 无效，未切换表单。'); return; } setAdvanced(event.target.checked); setConfirmed(false); }}/>使用此工具的 JSON 参数编辑器</label>}{form && !advanced ? Object.entries(object(schema.properties)).map(([name, property]) => <SchemaField key={name} name={name} schema={property} required={array(schema.required).includes(name)} value={ownField(values, name)} onChange={next => { setValues(current => withField(current, name, next)); setConfirmed(false); }}/>) : <><p className="small muted">按下方已发现的工具结构填写参数。提交前，运行时会重新发现并验证该工具的完整 Schema。</p><label className="field">工具参数 JSON<textarea value={raw} rows={8} maxLength={262144} onChange={event => { setRaw(event.target.value); setConfirmed(false); }}/></label></>}<details><summary>查看此工具的参数结构</summary><pre className="raw">{schemaText(schema)}</pre></details>{error && <p className="error" role="alert">{error}</p>}<label className="check-row"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)}/>确认向此服务调用所选工具与上述参数</label><button className="button primary" disabled={disabled || !confirmed}>调用 {tool.title ?? tool.name}</button></form>;
+const schemaText = (schema: unknown) => {
+  try {
+    const text = JSON.stringify(schema, null, 2);
+    return text.length > 131072 ? text.slice(0, 131072) + '\n[结构展示已截断]' : text;
+  } catch {
+    return '结构过深，无法在页面展开。';
+  }
+};
+function boundedSchema(schema: unknown) {
+  let count = 0;
+  const visit = (value: unknown, depth: number): boolean =>
+    ++count <= 300 &&
+    depth <= 8 &&
+    (!value ||
+      typeof value !== 'object' ||
+      Object.values(value).every((child) => visit(child, depth + 1)));
+  return visit(schema, 0);
+}
+export function McpArguments({
+  tool,
+  disabled,
+  onCall,
+}: {
+  tool: Tool;
+  disabled: boolean;
+  onCall: (arguments_: Record<string, unknown>) => void;
+}) {
+  const [values, setValues] = useState<Record<string, unknown>>({}),
+    [raw, setRaw] = useState('{}'),
+    [advanced, setAdvanced] = useState(false),
+    [error, setError] = useState(''),
+    [confirmed, setConfirmed] = useState(false);
+  const schema = object(tool.inputSchema),
+    form = boundedSchema(schema) && schemaSupported(schema) && schema.type === 'object',
+    annotations = object(tool.annotations);
+  return (
+    <form
+      className="stack"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setError('');
+        try {
+          const input = advanced || !form ? JSON.parse(raw) : values;
+          if (!input || typeof input !== 'object' || Array.isArray(input))
+            throw new Error('工具参数必须为对象。');
+          if (new TextEncoder().encode(JSON.stringify(input)).length > 262144)
+            throw new Error('参数超过 256 KiB 界面上限。');
+          if (form) {
+            const errors = validateValue(schema, input);
+            if (errors.length) throw new Error(errors.join(' '));
+          }
+          if (confirmed) onCall(input);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : '参数无效。');
+        }
+      }}
+    >
+      <h4>{tool.title ?? tool.name}</h4>
+      <p>{tool.description}</p>
+      <p className="workspace-warning">
+        {annotations.readOnlyHint === true
+          ? '服务将此工具标记为只读；该标记不是执行结果保证。'
+          : '此工具可能改变外部数据。请核对参数后明确调用。'}
+      </p>
+      {form && (
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={advanced}
+            onChange={(event) => {
+              if (event.target.checked) setRaw(JSON.stringify(values, null, 2));
+              else
+                try {
+                  setValues(object(JSON.parse(raw)));
+                } catch {
+                  setError('JSON 无效，未切换表单。');
+                  return;
+                }
+              setAdvanced(event.target.checked);
+              setConfirmed(false);
+            }}
+          />
+          使用此工具的 JSON 参数编辑器
+        </label>
+      )}
+      {form && !advanced ? (
+        Object.entries(object(schema.properties)).map(([name, property]) => (
+          <SchemaField
+            key={name}
+            name={name}
+            schema={property}
+            required={array(schema.required).includes(name)}
+            value={ownField(values, name)}
+            onChange={(next) => {
+              setValues((current) => withField(current, name, next));
+              setConfirmed(false);
+            }}
+          />
+        ))
+      ) : (
+        <>
+          <p className="small muted">
+            按下方已发现的工具结构填写参数。提交前，运行时会重新发现并验证该工具的完整 Schema。
+          </p>
+          <label className="field">
+            工具参数 JSON
+            <textarea
+              value={raw}
+              rows={8}
+              maxLength={262144}
+              onChange={(event) => {
+                setRaw(event.target.value);
+                setConfirmed(false);
+              }}
+            />
+          </label>
+        </>
+      )}
+      <details>
+        <summary>查看此工具的参数结构</summary>
+        <pre className="raw">{schemaText(schema)}</pre>
+      </details>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(event) => setConfirmed(event.target.checked)}
+        />
+        确认向此服务调用所选工具与上述参数
+      </label>
+      <button className="button primary" disabled={disabled || !confirmed}>
+        调用 {tool.title ?? tool.name}
+      </button>
+    </form>
+  );
 }

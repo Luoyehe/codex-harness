@@ -316,9 +316,18 @@ class Manager:
         self.require_recovered_transactions(None)
         self.require_service_ownership()
         old = self.providers.read()
-        new = validate_catalog(params, old) if catalog else validate_provider(params, old)
+        action, value = ("provider", validate_catalog(params, old)) if catalog else self.providers.validate_change(params, old)
+        if action != "provider":
+            from .provider_lifecycle import Profiles
+            profiles = Profiles(self.layout)
+            if action == "saveProfileName":
+                profiles.save(value, old)
+            else:
+                profiles.remove(value)
+            return self.providers.public(old)
+        new = value
         if new == old:
-            return redacted(old)
+            return self.providers.public(old)
         generation = self.providers.prepare(new)
         tx = self.layout.state / "transactions" / uuid.uuid4().hex
         mkdir(tx, 0o700)
@@ -348,7 +357,7 @@ class Manager:
             journal["phase"] = "recovered"
             write_json(tx / "state.json", journal)
             raise
-        return redacted(new)
+        return self.providers.public(new)
 
     def refresh_models(self, params: dict) -> dict:
         require(not set(params) - {"expectedRevision", "models", "confirmCapabilities"}, "Invalid catalog refresh fields")
@@ -446,7 +455,7 @@ class Manager:
             if method == "provider/write" or "models" in params:
                 self.require_service_ownership()
         if method == "provider/write":
-            validate_provider(params, self.providers.read())
+            self.providers.validate_change(params, self.providers.read())
         elif method == "models/refresh":
             require(not set(params) - {"expectedRevision", "models", "confirmCapabilities"}, "Invalid catalog refresh fields")
             current = self.providers.read()
@@ -485,16 +494,17 @@ class Manager:
                 text = self.system.logs(self.layout.unit(params.get("service", "gateway")), params.get("lines", 100))
                 # Service diagnostics may accidentally include credentials. Remove exact known secrets.
                 known_secrets = [(self.layout.config / "gateway-token").read_text().strip()]
+                from .provider_lifecycle import Profiles
+                known_secrets.extend(profile["settings"].get("apiKey") for profile in Profiles(self.layout).records())
                 for generation in self.providers.root.iterdir():
                     if re.fullmatch(r"[0-9a-f]{32}", generation.name):
                         known_secrets.append(read_json(generation / "settings.json", 4 * 1024 * 1024).get("apiKey"))
-                for secret in known_secrets:
-                    if secret:
-                        text = text.replace(secret, "[redacted]")
+                for secret in sorted({value for value in known_secrets if isinstance(value, str) and value}, key=len, reverse=True):
+                    text = text.replace(secret, "[redacted]")
                 value = {"text": text, "truncated": len(text) >= 131072}
             elif method == "provider/read":
                 require(not params, "provider/read takes no parameters")
-                value = redacted(self.providers.read())
+                value = self.providers.public()
             elif method == "provider/write":
                 value = self.provider_change(params)
             elif method == "models/refresh":

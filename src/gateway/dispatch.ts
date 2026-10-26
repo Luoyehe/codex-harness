@@ -8,6 +8,8 @@ import type { ManagerPort } from './manager-client.js';
 import { receiptResult } from './receipt-result.js';
 import { featureMethod } from '../core/feature-methods.js';
 import { automationReads, automationWrites, automationSpec } from '../core/automations.js';
+import { WorkspaceAcknowledgements } from './workspace-ack.js';
+import { ReceiptMaintenance } from './receipt-maintenance.js';
 
 const readMethods = new Set(['thread/list', 'thread/read', 'thread/history', 'model/list', 'defaults/read', 'account/read', 'account/rateLimits', 'mcp/list', 'prompt/list', 'attachment/read', 'runtime/status']);
 const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh']);
@@ -17,10 +19,12 @@ const systemReads = new Set(['system/status', 'system/logs', 'system/provider/re
 const projectMethods = new Set(['thread/list', 'conversation/start', 'defaults/read', 'terminal/open']);
 interface Activity { activeThreads: string[]; pendingStarts: number; terminals: number; subscriptions: number; processes: number; unknown: boolean }
 export class Dispatcher extends EventEmitter {
+  readonly workspaceAcknowledgements: WorkspaceAcknowledgements;
+  readonly receiptMaintenance: ReceiptMaintenance;
   #pendingWork = new Set<string>(); #maintenance = false;
   #automationHealth: JsonObject = { running: false, lastTickAt: null, lastError: null };
   #runtime: JsonValue = null; #activity: Activity = { activeThreads: [], pendingStarts: 0, terminals: 0, subscriptions: 0, processes: 0, unknown: true };
-  constructor(readonly ledger: Ledger, readonly worker: WorkerPort, readonly manager: ManagerPort) { super(); }
+  constructor(readonly ledger: Ledger, readonly worker: WorkerPort, readonly manager: ManagerPort) { super(); this.workspaceAcknowledgements = new WorkspaceAcknowledgements(ledger, worker); this.receiptMaintenance = new ReceiptMaintenance(ledger); }
   event(event: HarnessEvent): void {
     if (event.type === 'state') {
       this.#runtime = event.data;
@@ -34,10 +38,10 @@ export class Dispatcher extends EventEmitter {
     }
     this.emit('event', event.type === 'state' ? { type: 'state', data: this.status() } : event);
   }
-  disconnected(): void { this.#activity.unknown = true; this.emit('event', { type: 'state', data: { connected: false, activity: { ...this.#activity } } }); }
+  disconnected(): void { this.workspaceAcknowledgements.reconnected(); this.#activity.unknown = true; this.emit('event', { type: 'state', data: { connected: false, activity: { ...this.#activity } } }); }
   status(): JsonValue {
     const runtime = this.#runtime && typeof this.#runtime === 'object' && !Array.isArray(this.#runtime) ? this.#runtime : {};
-    return { ...runtime, connected: this.worker.connected && runtime.connected === true, activity: { ...this.#activity }, activityUncertain: this.ledger.getMeta('activityUncertain') === 'true', maintenance: this.#maintenance, automation: this.#automationHealth };
+    return { ...runtime, connected: this.worker.connected && runtime.connected === true, operationGeneration: this.ledger.operationGeneration(), activity: { ...this.#activity }, activityUncertain: this.ledger.getMeta('activityUncertain') === 'true', maintenance: this.#maintenance, automation: this.#automationHealth };
   }
   automationHealth(value: JsonObject): void { this.#automationHealth = value; this.emit('event', { type: 'automation', data: { health: value } }); }
   private replay(receipt: Receipt): JsonValue {
@@ -46,7 +50,22 @@ export class Dispatcher extends EventEmitter {
     throw new HarnessError(receipt.state === 'unknown' ? 'operation_unknown' : 'operation_pending', '该操作结果尚未确认，请查询操作记录，不要重复提交。', 'unknown', receipt.error?.data);
   }
   async call(call: RpcCall, context: CallContext): Promise<JsonValue> {
+    this.workspaceAcknowledgements.opportunistic(context);
     const { method, params } = call; const feature = featureMethod(method);
+    if (method.startsWith('operation/maintenance/')) {
+      if (method !== 'operation/maintenance/rotate') return this.receiptMaintenance.call(method, params, context);
+      const rotation = this.receiptMaintenance.validateRotation(params, context);
+      this.requireIdle(); this.#maintenance = true;
+      try {
+        await this.workspaceAcknowledgements.drain(context);
+        context.requireConnection?.();
+        const idle = await this.worker.call('runtime/maintenance/check', {}, context); object(idle); object(idle.workspaceWitness);
+        if (idle.idle !== true || idle.workspaceWitness.total !== 0) throw new HarnessError('journal_busy', '仍有未确认的工作区记录，不能轮换回执。');
+        context.requireConnection?.(); this.requireIdle(true);
+        this.receiptMaintenance.validateRotation(params, context);
+        const result = this.ledger.rotate(rotation); this.receiptMaintenance.forget(); return result;
+      } finally { this.#maintenance = false; this.emit('event', { type: 'state', data: this.status() }); }
+    }
     if (method === 'operation/retire') {
       if (Object.keys(params).some(key => key !== 'operationId')) throw new HarnessError('invalid', '阻止请求只接受操作编号。');
       const receipt = this.ledger.retire(uuid(params.operationId)); this.emitReceipt(receipt);
@@ -58,7 +77,7 @@ export class Dispatcher extends EventEmitter {
         try {
           const proof = await this.manager.call('operation/read', { operationId }); object(proof);
           if (proof.operationId === operationId && proof.method === saved.method.slice(7) && this.ledger.matchesDigest(operationId, proof.gatewayRequestDigest) && proof.state === 'completed' && Object.hasOwn(proof, 'result'))
-            saved = this.ledger.confirm(operationId, proof.result!);
+            saved = this.ledger.confirm(operationId, receiptResult(saved.method, proof.result!));
         } catch { /* Preserve uncertainty until positive root-manager evidence exists. */ }
       }
       if (saved?.method.startsWith('workspace/') && saved.state === 'unknown') {
@@ -69,6 +88,7 @@ export class Dispatcher extends EventEmitter {
           }
         } catch { /* Native-owned helper journals and absence are never acceptance proofs. */ }
       }
+      if (saved?.state === 'accepted') await this.workspaceAcknowledgements.accepted(saved, context);
       return saved ? { ...saved } as unknown as JsonValue : { operationId, state: 'not_received' };
     }
     if (method === 'project/list') return { data: this.ledger.projects() } as unknown as JsonValue;
@@ -79,7 +99,11 @@ export class Dispatcher extends EventEmitter {
     if (method === 'automation/status') { if (Object.keys(params).length) throw new HarnessError('invalid', '状态查询不接受参数。'); return this.#automationHealth; }
     if (automationReads.has(method)) return this.ledger.automations.read(method, params);
     if (automationWrites.has(method)) return this.automation(call, context);
-    if (systemReads.has(method)) return this.manager.call(method.slice(7), params);
+    if (systemReads.has(method)) {
+      const result = await this.manager.call(method.slice(7), params);
+      if (method !== 'system/status') return result;
+      object(result); return { ...result, operationGeneration: this.ledger.operationGeneration(), journalUsage: this.ledger.usage() };
+    }
     if (readMethods.has(method) || volatile.has(method) || feature?.access === 'read' || feature?.access === 'live') { context.requireConnection?.(); return this.worker.call(method, this.projectParams(method, params), context); }
     if (!mutations.has(method) && feature?.access !== 'write') throw new HarnessError('method_not_found', '不支持此操作。');
     const operationId = uuid(call.operationId); const scope = this.scope(method, params);
@@ -130,6 +154,7 @@ export class Dispatcher extends EventEmitter {
         if (method.startsWith('workspace/worktree/')) this.ledger.worktrees.apply(method, identifier(params.projectId), operationId, projected);
         return this.ledger.settle(operationId, { ok: true, value: projected });
       }); this.emitReceipt(receipt);
+      await this.workspaceAcknowledgements.accepted(receipt, context, digest({ method, params }));
       return this.replay(receipt);
     } catch (error) {
       const body = errorBody(error, dispatched ? 'unknown' : 'not_sent');
@@ -152,6 +177,7 @@ export class Dispatcher extends EventEmitter {
     if (!reserved.created) return this.replay(reserved.receipt);
     try {
       context.requireConnection?.();
+      if (this.#maintenance) throw new HarnessError('maintenance', '回执或配置维护正在进行，请稍后重试。');
       if (method === 'automation/acknowledge' && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown || this.#pendingWork.size || this.#activity.pendingStarts || this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes)) throw new HarnessError('activity_unknown', '请先核对会话并完成服务恢复，确认没有活动执行后才能关闭未知记录。');
       let projectId: string | undefined;
       if (method === 'automation/create' || method === 'automation/update' || method === 'automation/run' || method === 'automation/resume') {
@@ -162,6 +188,7 @@ export class Dispatcher extends EventEmitter {
       // Definition changes, queued runs and their receipt commit in the same SQLite transaction.
       const receipt = this.ledger.transaction(() => {
         context.requireConnection?.(); if (projectId) this.ledger.project(projectId);
+        if (this.#maintenance) throw new HarnessError('maintenance', '回执或配置维护正在进行，请稍后重试。');
         this.ledger.dispatch(operationId);
         return this.ledger.settle(operationId, { ok: true, value: this.ledger.automations.command(method, params) });
       });
@@ -177,6 +204,11 @@ export class Dispatcher extends EventEmitter {
   private emitReceipt(receipt: Receipt): void {
     this.emit('event', { type: 'receipt', data: { ...receipt } as unknown as JsonValue });
     this.emit('event', { type: 'state', data: this.status() });
+  }
+  maintenanceActive(): boolean { return this.#maintenance; }
+  private requireIdle(locked = false): void {
+    if ((!locked && this.#maintenance) || !this.worker.connected || this.#activity.unknown || this.ledger.getMeta('activityUncertain') === 'true' || this.#pendingWork.size || this.#activity.pendingStarts || this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes)
+      throw new HarnessError('journal_busy', '请先结束后台任务并恢复所有未知状态，再轮换回执。');
   }
   private scope(method: string, params: JsonObject): string {
     if (typeof params.threadId === 'string') return 'thread:' + identifier(params.threadId);

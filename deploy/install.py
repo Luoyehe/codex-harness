@@ -103,6 +103,8 @@ def initialize(layout: Layout, *, origin: str, port: int) -> tuple[int, int]:
     require(type(port) is int and 1024 <= port <= 65535, "Invalid listening port")
     # Check every name before creating identities, secrets or resumable records.
     preflight_new(layout, System())
+    from .sandbox import require_host
+    require_host()
     from .provider_layers import LAYER_MODE, preflight_host_policy, prepare_host_targets
     import grp
     try:
