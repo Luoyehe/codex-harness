@@ -2,7 +2,9 @@
 
 > Public copy. Private deployment details have been omitted.
 
-当前进度（2026-10-27，v2.1.0，发布验证中）：内置单管理员账号、密码与两步验证、设备撤销及 Authelia 迁移已实现。所有已确认问题均完成定向修复，浏览器可选存储与原生进程饱和输入退出的补充回归已通过。最终源码 `69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589` 已连续通过第 7、8 两轮完整独立审计：每轮覆盖 1,862 文件，首尾哈希一致，无新问题或跳过项，见 [审计记录](audits.json)。按用户要求进入 182 个测试文件的全量验证；本段尚不声明全量测试、正式 Release 或在线迁移完成。120 仍运行 v2.0.1。下方旧版本结果及早期阶段说明保留其原始时间与范围。
+发布验收（2026-10-27，v2.1.0）：内置单管理员账号、密码与两步验证、设备撤销及 Authelia 迁移均完成。最终源码 `69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589` 连续通过第 7、8 两轮完整独立审计：每轮覆盖 1,862 文件，首尾哈希一致，无新问题或跳过项，满足用户要求的两轮门禁。提交 `historical-commit-082` 随后通过 GitHub Windows、Linux 普通身份和 Linux root 全量作业：**182 个测试文件、1,677 个独立用例、零覆盖缺口**；平台跳过均由适用平台同一用例补足。安全作业成功，8 条当前源码 CodeQL 告警经逐项复核，无需源码修正，不声称零告警。详见[审计记录](audits.json)、[全量 CI](audit-evidence/v210-release/hosted-ci.json)和 [CodeQL 复核](audit-evidence/v210-release/codeql-review.json)。
+
+
 
 
 

@@ -2,6 +2,8 @@
 
 > Public copy. Private deployment details have been omitted.
 
+Release acceptance (2026-10-27, v2.1.0): complete independent rounds 7 and 8 passed on unchanged source `69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589`, covering all 1,862 files with matching boundary hashes, no findings and no skips. This satisfies the user's explicit two-round gate. Commit `historical-commit-082` then passed the complete hosted Windows/Linux/Linux-root suite: **182 test files, 1,677 distinct cases and zero coverage gaps**. Platform skips retain their reported status and are complemented by passing cases on the appropriate platform. All security jobs passed; eight current-source CodeQL alerts received individual source review, not a zero-alert claim. See [audit evidence](audits.json), [hosted CI](audit-evidence/v210-release/hosted-ci.json) and [CodeQL review](audit-evidence/v210-release/codeql-review.json).
+
 
 
 Browser follow-up (2026-10-26): after the user handled the test certificate warnings, desktop interaction acceptance passed for two-layer login, workbench/settings, files/Git, receipt preview, a real shell roundtrip, draft/preference persistence, original-page reauthentication recovery, and the empty automation list. No product change was required; all four services remain active/enabled. The v2.0.1 tag and deployed source are unchanged. See [scoped browser evidence](audit-evidence/v201-release/browser.json), including untested interactions.
