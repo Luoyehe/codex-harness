@@ -30,6 +30,7 @@ class FakeNative extends EventEmitter {
     if (method === 'command/exec/terminate') { this.terminalEnds.get(String(object(params).processId))?.({ exitCode: 0, stdout: '', stderr: '' }); this.terminalEnds.delete(String(object(params).processId)); return {}; }
     if (method === 'account/login/start') return { type: 'chatgptDeviceCode', loginId: 'login', userCode: 'private-code', verificationUrl: 'https://auth.example/device' };
     if (method === 'account/login/cancel') return { status: 'canceled' };
+    if (method === 'remoteControl/status/read') return { status: 'disabled', serverName: 'test', installationId: 'test', environmentId: null };
     return {};
   }
   async respond(id: string | number, result: JsonValue, beforeWrite?: () => void): Promise<void> { beforeWrite?.(); this.responses.push({ id, result }); }
@@ -43,6 +44,63 @@ function setup(): { service: RuntimeService; native: FakeNative; events: Runtime
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 const context = { clientId: 'client-a' };
 describe('RuntimeService admission and recovery', () => {
+  test('maintenance refuses accepted turns and uncertain activity', async () => {
+    const { service, native } = setup();
+    await expect(service.call('runtime/maintenance/check', {}, context)).resolves.toMatchObject({ idle: true, workspaceWitness: { total: 0, limit: 2000 } });
+    native.emit('notification', { method: 'turn/started', params: { threadId: 't', turn: { id: 'u' } } });
+    await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+    native.emit('notification', { method: 'thread/status/changed', params: { threadId: 't', status: { type: 'idle' } } });
+    await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+    native.emit('notification', { method: 'turn/completed', params: { threadId: 't', turn: { id: 'u', status: 'completed' } } });
+    await expect(service.call('runtime/maintenance/check', {}, context)).resolves.toMatchObject({ idle: true });
+    native.emit('fatal', new Error('disconnected'));
+    await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_unknown' });
+  });
+  test('maintenance requires remote control disabled and rechecks activity after the native status read', async () => {
+    const { service, native } = setup(), original = native.call.bind(native);
+    let active = false;
+    native.call = async (method, params, options) => method === 'remoteControl/status/read'
+      ? { status: active ? 'connected' : 'disabled', serverName: 'test', installationId: 'test', environmentId: null }
+      : original(method, params, options);
+    active = true;
+    await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'remote_control_active' });
+    native.call = async (method, params, options) => {
+      if (method === 'remoteControl/status/read') {
+        native.emit('notification', { method: 'turn/started', params: { threadId: 'external', turn: { id: 'u' } } });
+        return { status: 'disabled', serverName: 'test', installationId: 'test', environmentId: null };
+      }
+      return original(method, params, options);
+    };
+    await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+  });
+  test('browsing more than the activity cache size retains admission for subsequent work', async () => {
+    const { service } = setup();
+    for (let index = 0; index < 2200; index++) {
+      expect(await service.call('thread/read', { threadId: `historical-${index}` }, context)).toHaveProperty('thread');
+    }
+    expect(object(object(service.status()).activity).unknown).toBe(false);
+    await expect(service.call('account/logout', {}, { ...context, beforeWrite: () => {} })).resolves.toEqual({});
+  });
+
+  test('failed reads of nonexistent threads do not exhaust or poison the activity cache', async () => {
+    const { service, native } = setup();
+    native.beforeNativeWrite = method => { if (method === 'thread/read') throw new DeliveryError('native_error', 'No such thread'); };
+    for (let index = 0; index < 2200; index++) {
+      await expect(service.call('thread/read', { threadId: `missing-${index}` }, context)).rejects.toMatchObject({ code: 'native_error' });
+    }
+    expect(object(object(service.status()).activity).unknown).toBe(false);
+    await expect(service.call('account/logout', {}, { ...context, beforeWrite: () => {} })).resolves.toEqual({});
+  });
+
+  test('completed history caches recycle without retaining permission for an evicted traversal', async () => {
+    const { service } = setup();
+    for (let index = 0; index < 270; index++) {
+      expect(await service.call('thread/history', { threadId: `history-${index}` }, context)).toMatchObject({ complete: true });
+    }
+    await expect(service.call('turn/start', { threadId: 'history-0', text: 'requires a fresh read' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
+    expect(await service.call('thread/history', { threadId: 'history-0' }, context)).toMatchObject({ complete: true });
+    await expect(service.call('turn/start', { threadId: 'history-0', text: 'now verified' }, context)).resolves.toHaveProperty('turn');
+  });
   test('device login is configuration-gated, owner-scoped and revoked by gateway disconnection', async () => {
     const { service } = setup(), owner = { ...context, eventChannelId: 'channel', beforeWrite: () => {} };
     await expect(service.call('account/login', {}, context)).rejects.toMatchObject({ code: 'operation_required' });

@@ -12,14 +12,283 @@ import { usePaged } from '../hooks/usePaged';
 import { useResource } from '../hooks/useResource';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 export function AppCatalog({ api, epoch }: { api: Api; epoch: string }) {
-  const apps = usePaged<AppInfo>(api, 'app/list', {}, epoch), installed = useResource(epoch, signal => api.call<AppsInstalledResponse>('app/installed', {}, signal));
+  const apps = usePaged<AppInfo>(api, 'app/list', {}, epoch),
+    installed = useResource(epoch, (signal) =>
+      api.call<AppsInstalledResponse>('app/installed', {}, signal),
+    );
   const [selected, setSelected] = useState('');
-  const details = useResource(`${epoch}:${selected}`, signal => api.call<AppsReadResponse>('app/read', { appIds: [selected], includeTools: true }, signal), Boolean(selected));
-  return <section className="stack"><div className="section-heading"><h3>Apps 与工具状态</h3><button className="button small" onClick={() => { apps.refresh(); installed.refresh(); details.refresh(); }}>重新读取</button></div><p className="small muted">目录可见、已连接、已启用与可调用是不同状态。认证链接由目录提供，点击后在新页面完成；回来后请重新读取。</p><ReadState {...apps}/><ReadState {...installed}/><div className="extension-cards">{apps.items.map(app => { const runtime = installed.data?.apps.find(row => row.id === app.id); return <article className="info-card stack" key={app.id}><strong>{app.name}</strong><p>{app.description}</p><p className="small">{app.isAccessible ? '目录可访问' : '目录受限'} · {app.isEnabled ? '配置已启用' : '配置已停用'} · {runtime ? runtime.callable ? '工具可调用' : '已连接，工具暂不可调用' : installed.loading || installed.error ? '连接状态待确认' : '当前运行时未连接'}</p>{app.pluginDisplayNames.length > 0 && <p className="small muted">来自 {app.pluginDisplayNames.join('、')}</p>}<div className="inline wrap"><button className="button small" onClick={() => setSelected(app.id)}>工具与权限详情</button>{safeUrl(app.installUrl) && <a className="button small" href={safeUrl(app.installUrl)} target="_blank" rel="noreferrer">打开连接页面 ↗</a>}</div></article>; })}</div>{apps.hasMore && <button className="button" disabled={apps.loading} onClick={() => void apps.more()}>更多 Apps</button>}{!apps.items.length && !apps.loading && !apps.error && <p className="muted">当前目录没有 Apps。</p>}{selected && <section className="info-card stack"><ReadState {...details}/>{details.data?.missingAppIds.includes(selected) && <p className="workspace-warning">此 App 已不在当前目录，请刷新列表。</p>}{details.data?.apps.map(app => <div className="stack" key={app.id}><h4>{app.name}</h4><p>{app.description}</p>{app.toolSummaries === null ? <p className="muted">目录未提供工具摘要。</p> : <ul>{app.toolSummaries.map(tool => <li key={tool.name}><strong>{tool.title ?? tool.name}</strong><p>{tool.description}</p><p className="small muted">{tool.isReadOnly ? "只读" : "可能更改外部数据"} · {tool.isEnabled ? "已启用" : "已停用"}{tool.disabledReason ? ` · ${tool.disabledReason}` : ""}</p></li>)}</ul>}</div>)}</section>}</section>;
+  const details = useResource(
+    `${epoch}:${selected}`,
+    (signal) =>
+      api.call<AppsReadResponse>('app/read', { appIds: [selected], includeTools: true }, signal),
+    Boolean(selected),
+  );
+  return (
+    <section className="stack">
+      <div className="section-heading">
+        <h3>Apps 与工具状态</h3>
+        <button
+          className="button small"
+          onClick={() => {
+            apps.refresh();
+            installed.refresh();
+            details.refresh();
+          }}
+        >
+          重新读取
+        </button>
+      </div>
+      <p className="small muted">
+        目录可见、已连接、已启用与可调用是不同状态。认证链接由目录提供，点击后在新页面完成；回来后请重新读取。
+      </p>
+      <ReadState {...apps} />
+      <ReadState {...installed} />
+      <div className="extension-cards">
+        {apps.items.map((app) => {
+          const runtime = installed.data?.apps.find((row) => row.id === app.id);
+          return (
+            <article className="info-card stack" key={app.id}>
+              <strong>{app.name}</strong>
+              <p>{app.description}</p>
+              <p className="small">
+                {app.isAccessible ? '目录可访问' : '目录受限'} ·{' '}
+                {app.isEnabled ? '配置已启用' : '配置已停用'} ·{' '}
+                {runtime
+                  ? runtime.callable
+                    ? '工具可调用'
+                    : '已连接，工具暂不可调用'
+                  : installed.loading || installed.error
+                    ? '连接状态待确认'
+                    : '当前运行时未连接'}
+              </p>
+              {app.pluginDisplayNames.length > 0 && (
+                <p className="small muted">来自 {app.pluginDisplayNames.join('、')}</p>
+              )}
+              <div className="inline wrap">
+                <button className="button small" onClick={() => setSelected(app.id)}>
+                  工具与权限详情
+                </button>
+                {safeUrl(app.installUrl) && (
+                  <a
+                    className="button small"
+                    href={safeUrl(app.installUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    打开连接页面 ↗
+                  </a>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      {apps.hasMore && (
+        <button className="button" disabled={apps.loading} onClick={() => void apps.more()}>
+          更多 Apps
+        </button>
+      )}
+      {!apps.items.length && !apps.loading && !apps.error && (
+        <p className="muted">当前目录没有 Apps。</p>
+      )}
+      {selected && (
+        <section className="info-card stack">
+          <ReadState {...details} />
+          {details.data?.missingAppIds.includes(selected) && (
+            <p className="workspace-warning">此 App 已不在当前目录，请刷新列表。</p>
+          )}
+          {details.data?.apps.map((app) => (
+            <div className="stack" key={app.id}>
+              <h4>{app.name}</h4>
+              <p>{app.description}</p>
+              {app.toolSummaries === null ? (
+                <p className="muted">目录未提供工具摘要。</p>
+              ) : (
+                <ul>
+                  {app.toolSummaries.map((tool) => (
+                    <li key={tool.name}>
+                      <strong>{tool.title ?? tool.name}</strong>
+                      <p>{tool.description}</p>
+                      <p className="small muted">
+                        {tool.isReadOnly ? '只读' : '可能更改外部数据'} ·{' '}
+                        {tool.isEnabled ? '已启用' : '已停用'}
+                        {tool.disabledReason ? ` · ${tool.disabledReason}` : ''}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+    </section>
+  );
 }
-const quantity = (value: unknown) => value === null || value === undefined ? '未提供' : typeof value === 'number' ? value.toLocaleString() : String(value);
-export function RuntimeInsights({ api, epoch, enabled, onChanged }: { api: Api; epoch: string; enabled: boolean; onChanged: () => void }) {
-  const action = useExtensionAction(api, enabled, onChanged), key = `${epoch}:${action.revision}`, [confirmation, setConfirmation] = useState('');
-  const memory = useResource(key, signal => api.call<MemoryStatusResponse>('memory/status', {}, signal)), usage = useResource(key, signal => api.call<GetAccountTokenUsageResponse>('account/usage/read', {}, signal)), messages = useResource(key, signal => api.call<GetWorkspaceMessagesResponse>('account/workspaceMessages/read', {}, signal)), diagnostics = useResource(key, signal => api.call<ServerDiagnosticsResponse>('server/diagnostics', {}, signal));
-  return <section className="stack"><div className="section-heading"><h3>全局记忆</h3><button className="button small" onClick={action.refresh}>重新读取</button></div><ExtensionStatus api={api} action={action}/><ReadState {...memory}/>{memory.data && <p>已整合 {memory.data.v2ConsolidatedThreads.toLocaleString()} 个会话 · {memory.data.v2Ready ? '记忆已就绪' : '尚未就绪'}</p>}<details className="info-card"><summary>重置全局记忆</summary><div className="stack"><p>清除运行时全局记忆。此操作不是压缩当前会话，也不会删除会话历史。</p><label className="field">输入“重置全局记忆”以确认<input value={confirmation} onChange={event => setConfirmation(event.target.value)} autoComplete="off"/></label><button className="button danger" disabled={action.disabled || confirmation !== '重置全局记忆'} onClick={async () => { if (await action.run('memory/reset', { confirm: true })) setConfirmation(''); }}>确认重置全局记忆</button></div></details><h3>账户用量</h3><ReadState {...usage}/>{usage.data && <><dl className="extension-metrics"><div><dt>累计 Token</dt><dd>{quantity(usage.data.summary.lifetimeTokens)}</dd></div><div><dt>单日峰值 Token</dt><dd>{quantity(usage.data.summary.peakDailyTokens)}</dd></div><div><dt>最长回合（秒）</dt><dd>{quantity(usage.data.summary.longestRunningTurnSec)}</dd></div><div><dt>当前连续使用天数</dt><dd>{quantity(usage.data.summary.currentStreakDays)}</dd></div></dl>{usage.data.dailyUsageBuckets && <details><summary>每日用量</summary><table className="extension-table"><thead><tr><th>日期</th><th>Token</th></tr></thead><tbody>{usage.data.dailyUsageBuckets.map(day => <tr key={day.startDate}><td>{day.startDate}</td><td>{quantity(day.tokens)}</td></tr>)}</tbody></table></details>}</>}<h3>工作区消息</h3><ReadState {...messages}/>{messages.data?.featureEnabled === false && <p className="muted">当前账户未提供工作区消息。</p>}{messages.data?.messages.map(item => <article className="info-card" key={item.messageId}><strong>{item.messageType}</strong><p>{item.messageBody}</p>{item.createdAt && <small>{new Date(item.createdAt * 1000).toLocaleString()}</small>}</article>)}<h3>运行时诊断</h3><ReadState {...diagnostics}/>{diagnostics.data && <><dl className="extension-metrics"><div><dt>进程</dt><dd>{diagnostics.data.process.id}</dd></div><div><dt>常驻内存（字节）</dt><dd>{quantity(diagnostics.data.process.residentMemoryBytes)}</dd></div><div><dt>实际内存占用（字节）</dt><dd>{quantity(diagnostics.data.process.physicalFootprintBytes)}</dd></div></dl><table className="extension-table"><thead><tr><th>指标</th><th>值</th></tr></thead><tbody>{diagnostics.data.gauges.map(gauge => <tr key={gauge.name}><td>{gauge.name}</td><td>{quantity(gauge.value)}</td></tr>)}</tbody></table></>}</section>;
+const quantity = (value: unknown) =>
+  value === null || value === undefined
+    ? '未提供'
+    : typeof value === 'number'
+      ? value.toLocaleString()
+      : String(value);
+export function RuntimeInsights({
+  api,
+  epoch,
+  enabled,
+  onChanged,
+}: {
+  api: Api;
+  epoch: string;
+  enabled: boolean;
+  onChanged: () => void;
+}) {
+  const action = useExtensionAction(api, enabled, onChanged),
+    key = `${epoch}:${action.revision}`,
+    [confirmation, setConfirmation] = useState('');
+  const memory = useResource(key, (signal) =>
+      api.call<MemoryStatusResponse>('memory/status', {}, signal),
+    ),
+    usage = useResource(key, (signal) =>
+      api.call<GetAccountTokenUsageResponse>('account/usage/read', {}, signal),
+    ),
+    messages = useResource(key, (signal) =>
+      api.call<GetWorkspaceMessagesResponse>('account/workspaceMessages/read', {}, signal),
+    ),
+    diagnostics = useResource(key, (signal) =>
+      api.call<ServerDiagnosticsResponse>('server/diagnostics', {}, signal),
+    );
+  return (
+    <section className="stack">
+      <div className="section-heading">
+        <h3>全局记忆</h3>
+        <button className="button small" onClick={action.refresh}>
+          重新读取
+        </button>
+      </div>
+      <ExtensionStatus api={api} action={action} />
+      <ReadState {...memory} />
+      {memory.data && (
+        <p>
+          已整合 {memory.data.v2ConsolidatedThreads.toLocaleString()} 个会话 ·{' '}
+          {memory.data.v2Ready ? '记忆已就绪' : '尚未就绪'}
+        </p>
+      )}
+      <details className="info-card">
+        <summary>重置全局记忆</summary>
+        <div className="stack">
+          <p>清除运行时全局记忆。此操作不是压缩当前会话，也不会删除会话历史。</p>
+          <label className="field">
+            输入“重置全局记忆”以确认
+            <input
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <button
+            className="button danger"
+            disabled={action.disabled || confirmation !== '重置全局记忆'}
+            onClick={async () => {
+              if (await action.run('memory/reset', { confirm: true })) setConfirmation('');
+            }}
+          >
+            确认重置全局记忆
+          </button>
+        </div>
+      </details>
+      <h3>账户用量</h3>
+      <ReadState {...usage} />
+      {usage.data && (
+        <>
+          <dl className="extension-metrics">
+            <div>
+              <dt>累计 Token</dt>
+              <dd>{quantity(usage.data.summary.lifetimeTokens)}</dd>
+            </div>
+            <div>
+              <dt>单日峰值 Token</dt>
+              <dd>{quantity(usage.data.summary.peakDailyTokens)}</dd>
+            </div>
+            <div>
+              <dt>最长回合（秒）</dt>
+              <dd>{quantity(usage.data.summary.longestRunningTurnSec)}</dd>
+            </div>
+            <div>
+              <dt>当前连续使用天数</dt>
+              <dd>{quantity(usage.data.summary.currentStreakDays)}</dd>
+            </div>
+          </dl>
+          {usage.data.dailyUsageBuckets && (
+            <details>
+              <summary>每日用量</summary>
+              <table className="extension-table">
+                <thead>
+                  <tr>
+                    <th>日期</th>
+                    <th>Token</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usage.data.dailyUsageBuckets.map((day) => (
+                    <tr key={day.startDate}>
+                      <td>{day.startDate}</td>
+                      <td>{quantity(day.tokens)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
+        </>
+      )}
+      <h3>工作区消息</h3>
+      <ReadState {...messages} />
+      {messages.data?.featureEnabled === false && (
+        <p className="muted">当前账户未提供工作区消息。</p>
+      )}
+      {messages.data?.messages.map((item) => (
+        <article className="info-card" key={item.messageId}>
+          <strong>{item.messageType}</strong>
+          <p>{item.messageBody}</p>
+          {item.createdAt && <small>{new Date(item.createdAt * 1000).toLocaleString()}</small>}
+        </article>
+      ))}
+      <h3>运行时诊断</h3>
+      <ReadState {...diagnostics} />
+      {diagnostics.data && (
+        <>
+          <dl className="extension-metrics">
+            <div>
+              <dt>进程</dt>
+              <dd>{diagnostics.data.process.id}</dd>
+            </div>
+            <div>
+              <dt>常驻内存（字节）</dt>
+              <dd>{quantity(diagnostics.data.process.residentMemoryBytes)}</dd>
+            </div>
+            <div>
+              <dt>实际内存占用（字节）</dt>
+              <dd>{quantity(diagnostics.data.process.physicalFootprintBytes)}</dd>
+            </div>
+          </dl>
+          <table className="extension-table">
+            <thead>
+              <tr>
+                <th>指标</th>
+                <th>值</th>
+              </tr>
+            </thead>
+            <tbody>
+              {diagnostics.data.gauges.map((gauge) => (
+                <tr key={gauge.name}>
+                  <td>{gauge.name}</td>
+                  <td>{quantity(gauge.value)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </section>
+  );
 }

@@ -1,9 +1,317 @@
-.workspace-panel{display:flex;flex:1;min-height:0;min-width:0;flex-direction:column;padding:18px 24px;gap:12px;overflow:auto}.workspace-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.workspace-heading h2{margin-bottom:5px}.workspace-heading p{margin:0}.workspace-heading .selected{background:var(--accent-soft);border-color:var(--accent)}.workspace-panel>.error,.workspace-panel>p{margin:0}
-.workspace-path{display:flex;gap:8px}.workspace-path .field{flex:1}.workspace-path input{font-size:12px}.workspace-columns{display:grid;grid-template-columns:minmax(180px,260px) minmax(0,1fr);gap:18px;flex:1;min-height:320px;overflow:hidden}.file-explorer,.file-detail{min-width:0;overflow:auto}.file-explorer{border-right:1px solid var(--line);padding-right:14px}.file-detail{padding:0 3px 15px}.file-detail>.info-card{margin-bottom:14px}.file-breadcrumb{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px}.file-breadcrumb button{border:0;background:transparent;padding:5px;font-size:11px;color:var(--accent);overflow-wrap:anywhere}.file-list{list-style:none;margin:12px 0 0;padding:0}.file-list button{width:100%;min-width:0;display:flex;align-items:center;gap:7px;border:0;border-radius:6px;background:none;text-align:left;padding:9px 5px;font-size:12px}.file-list button:hover,.file-list .selected{background:var(--accent-soft)}.file-list button>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.file-list small{font-size:9px;color:var(--muted);white-space:nowrap}.file-list svg{flex-shrink:0}.file-heading{align-items:flex-start;flex-wrap:wrap;margin-bottom:15px}.file-heading h3{font-size:13px;margin:0;flex:1;min-width:100px}.file-empty{display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:250px;color:var(--muted);text-align:center;padding:30px;gap:14px}.file-empty p{margin:0}.file-editor .code-editor{font:12px/1.65 "Cascadia Code",Consolas,monospace;min-height:300px;max-height:65dvh;tab-size:2;resize:vertical}.workspace-warning{padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:12px;overflow-wrap:anywhere}.workspace-warning p{margin-bottom:9px}.workspace-conflict{padding:16px;border:1px solid var(--danger);border-radius:10px;background:var(--surface)}.workspace-conflict textarea{font:11px/1.5 Consolas,monospace}.workspace-drafts{font-size:12px;padding:8px;background:var(--surface);border-radius:8px}.workspace-drafts>div{padding-top:8px}.workspace-git{overflow:auto;min-width:0}.git-status-list{padding:0;margin:0;list-style:none;display:flex;flex-direction:column;gap:5px}.git-status-list li{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:7px 0;flex-wrap:wrap}.git-status-list button{overflow-wrap:anywhere;text-align:left}.workspace-git .diff{max-height:55dvh}
-@media(max-width:850px){.workspace-panel{padding:14px}.workspace-columns{grid-template-columns:minmax(140px,200px) minmax(0,1fr);gap:12px}}
-@media(max-width:600px){.workspace-panel{padding:12px;gap:10px}.workspace-columns{display:flex;flex-direction:column;overflow:visible;min-height:unset}.file-explorer{max-height:30dvh;flex-shrink:0;border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:10px}.file-detail{overflow:visible}.file-heading .inline{width:100%}.workspace-heading .inline{width:100%}.workspace-heading .button{flex:1}.file-editor .code-editor{min-height:270px;max-height:55dvh}.workspace-path{flex-wrap:wrap}.workspace-path .field{min-width:180px}.workspace-git .section-heading{flex-wrap:wrap}.git-status-list li{align-items:flex-start;flex-direction:column}}
+.workspace-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  padding: 18px 24px;
+  gap: 12px;
+  overflow: auto;
+}
+.workspace-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.workspace-heading h2 {
+  margin-bottom: 5px;
+}
+.workspace-heading p {
+  margin: 0;
+}
+.workspace-heading .selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.workspace-panel > .error,
+.workspace-panel > p {
+  margin: 0;
+}
+.workspace-path {
+  display: flex;
+  gap: 8px;
+}
+.workspace-path .field {
+  flex: 1;
+}
+.workspace-path input {
+  font-size: 12px;
+}
+.workspace-columns {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 18px;
+  flex: 1;
+  min-height: 320px;
+  overflow: hidden;
+}
+.file-explorer,
+.file-detail {
+  min-width: 0;
+  overflow: auto;
+}
+.file-explorer {
+  border-right: 1px solid var(--line);
+  padding-right: 14px;
+}
+.file-detail {
+  padding: 0 3px 15px;
+}
+.file-detail > .info-card {
+  margin-bottom: 14px;
+}
+.file-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+.file-breadcrumb button {
+  border: 0;
+  background: transparent;
+  padding: 5px;
+  font-size: 11px;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.file-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.file-list button {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  padding: 9px 5px;
+  font-size: 12px;
+}
+.file-list button:hover,
+.file-list .selected {
+  background: var(--accent-soft);
+}
+.file-list button > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.file-list small {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.file-list svg {
+  flex-shrink: 0;
+}
+.file-heading {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+.file-heading h3 {
+  font-size: 13px;
+  margin: 0;
+  flex: 1;
+  min-width: 100px;
+}
+.file-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 250px;
+  color: var(--muted);
+  text-align: center;
+  padding: 30px;
+  gap: 14px;
+}
+.file-empty p {
+  margin: 0;
+}
+.file-editor .code-editor {
+  font:
+    12px/1.65 'Cascadia Code',
+    Consolas,
+    monospace;
+  min-height: 300px;
+  max-height: 65dvh;
+  tab-size: 2;
+  resize: vertical;
+}
+.workspace-warning {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.workspace-warning p {
+  margin-bottom: 9px;
+}
+.workspace-conflict {
+  padding: 16px;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.workspace-conflict textarea {
+  font:
+    11px/1.5 Consolas,
+    monospace;
+}
+.workspace-drafts {
+  font-size: 12px;
+  padding: 8px;
+  background: var(--surface);
+  border-radius: 8px;
+}
+.workspace-drafts > div {
+  padding-top: 8px;
+}
+.workspace-git {
+  overflow: auto;
+  min-width: 0;
+}
+.git-status-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.git-status-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding: 7px 0;
+  flex-wrap: wrap;
+}
+.git-status-list button {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.workspace-git .diff {
+  max-height: 55dvh;
+}
+@media (max-width: 850px) {
+  .workspace-panel {
+    padding: 14px;
+  }
+  .workspace-columns {
+    grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .workspace-panel {
+    padding: 12px;
+    gap: 10px;
+  }
+  .workspace-columns {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    min-height: unset;
+  }
+  .file-explorer {
+    max-height: 30dvh;
+    flex-shrink: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+    padding-bottom: 10px;
+  }
+  .file-detail {
+    overflow: visible;
+  }
+  .file-heading .inline {
+    width: 100%;
+  }
+  .workspace-heading .inline {
+    width: 100%;
+  }
+  .workspace-heading .button {
+    flex: 1;
+  }
+  .file-editor .code-editor {
+    min-height: 270px;
+    max-height: 55dvh;
+  }
+  .workspace-path {
+    flex-wrap: wrap;
+  }
+  .workspace-path .field {
+    min-width: 180px;
+  }
+  .workspace-git .section-heading {
+    flex-wrap: wrap;
+  }
+  .git-status-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
 
-.file-editor-actions{position:sticky;bottom:0;z-index:2;background:var(--panel,var(--surface));border-top:1px solid var(--line);padding:12px 0;margin-top:10px;box-shadow:0 -5px 12px color-mix(in srgb,var(--surface) 85%,transparent)}.file-editor-actions>.small:first-child{margin-right:auto}.file-editor-actions>.small:last-child{width:100%}
-@media(max-width:600px){.file-editor-actions .button{flex:1}.file-editor-actions>.small:first-child{width:100%}}
+.file-editor-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--panel, var(--surface));
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  margin-top: 10px;
+  box-shadow: 0 -5px 12px color-mix(in srgb, var(--surface) 85%, transparent);
+}
+.file-editor-actions > .small:first-child {
+  margin-right: auto;
+}
+.file-editor-actions > .small:last-child {
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .file-editor-actions .button {
+    flex: 1;
+  }
+  .file-editor-actions > .small:first-child {
+    width: 100%;
+  }
+}
 
-.workspace-recovery fieldset,.workspace-worktrees fieldset,.workspace-commit fieldset{min-width:0;border:1px solid var(--line);border-radius:8px;padding:12px}.recovery-preview{max-height:40dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.workspace-recovery .check,.workspace-worktrees .check,.workspace-commit .check{font-size:12px}.workspace-commit>section{padding-top:12px}.workspace-worktrees .info-card{overflow-wrap:anywhere}
+.workspace-recovery fieldset,
+.workspace-worktrees fieldset,
+.workspace-commit fieldset {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+.recovery-preview {
+  max-height: 40dvh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.workspace-recovery .check,
+.workspace-worktrees .check,
+.workspace-commit .check {
+  font-size: 12px;
+}
+.workspace-commit > section {
+  padding-top: 12px;
+}
+.workspace-worktrees .info-card {
+  overflow-wrap: anywhere;
+}

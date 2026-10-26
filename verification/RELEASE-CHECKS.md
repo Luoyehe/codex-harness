@@ -83,12 +83,17 @@ exit 1. Python requires 3.11 or newer and can be located with
 `HARNESS_TEST_PYTHON`; every selected Python file must collect at least one test.
 
 `.github/workflows/affected.yml` runs source security, pinned dependency install,
-type/build checks and selected JavaScript/Python tests on push and pull request.
-Native changes also create independent Linux and Windows native jobs. Actions
-are pinned by commit; Node is 24.15.0 and pnpm is 11.22.0. The initial push with a
-zero/missing base fails closed and needs an explicit reviewed comparison. The CI
-does not create audit records, run the full mode, call a paid model or access a
-personal Codex home.
+type/build checks and selected JavaScript/Python tests on branch push and pull request.
+The exact selected inventory runs on Linux and Windows; privileged fixtures run
+separately as root on a disposable hosted Linux runner. A final job checks each
+case identity, source digest and outcome: every skipped case needs a pass on an
+appropriate platform, and missing or failed artifacts block completion. Actions
+are pinned by commit; Node is 24.15.0 and pnpm is 11.22.0. A zero/missing base
+requires an explicit reviewed comparison or the base from the source-bound
+closeout authorization. It never silently substitutes `HEAD~1`. Tag pushes do
+not start an invalid zero-base comparison. CI does not create audit records,
+call a paid model or access a personal Codex home. Separate workflows run CodeQL,
+dependency vulnerability checks and read-only upstream version detection.
 
 Native jobs fetch official platform packages for CLI 0.164.0 into ignored
 `reference/runtime`, verify pinned SHA-512 archive integrity, extract them and
@@ -103,16 +108,24 @@ test pass.
 
 ## Full-audit gate
 
-Only `node scripts/run-tests.mjs --full` is the full-test entrypoint. It takes no
-test filters or override flag. `--targeted` accepts existing exact test files,
+`node scripts/run-tests.mjs --full` is the full-test entrypoint. It accepts no
+test filters. `--targeted` accepts existing exact test files,
 deduplicates them, and refuses empty, directory, traversal and complete-suite
 selections. The Vitest invocation excludes unselected files because positional
 Vitest filters are substring matches. JSON results must name exactly the selected
 files and contain actual test assertions; skipped/todo assertions remain a
 nonzero coverage gap. `.only` is disallowed.
 
-The full mode snapshots the current source and validates the last three audit
-rounds before executing either engine. It requires native and Python prerequisites
+The full mode snapshots the current source and normally validates the last three audit
+rounds before executing either engine. An explicit maintainer-directed closeout
+can instead use `--authorization <record.json> --sha256 <checksum>`: the record
+must bind the current source digest/file count, package version, reviewed base,
+actual user instructions, waived audit rounds, reviewed fixes and no unresolved
+blockers. This is an authorization, not evidence of three clean audits. The
+current release record is `verification/audit-evidence/release-closeout/authorization.json`.
+CI uses the same validation and exact full inventory when metadata or change
+scope requires a full run. Stale records cannot authorize a different source.
+It requires native and Python prerequisites
 up front, then includes all JavaScript/native tests and the Python deployment
 suite. Fixture tests of this orchestrator replace both engines with spies; they
 never execute a real full suite.

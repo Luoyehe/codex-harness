@@ -44,13 +44,14 @@ export class AutomationScheduler {
     }).finally(() => { this.task = undefined; }); return this.task;
   }
   private async step(): Promise<void> {
+    if (this.dispatcher.maintenanceActive()) return;
     this.ledger.transaction(() => this.ledger.automations.collectDue());
     if (!this.worker.connected) return;
     const outstanding = this.ledger.automations.outstanding();
     const running = outstanding.filter(value => ['dispatching', 'running', 'needs_attention', 'stopping'].includes(value.state));
     let slots = Math.max(0, 4 - running.length);
     for (const value of outstanding.filter(value => value.state === 'queued')) {
-      if (this.closed || !this.worker.connected || slots <= 0) break;
+      if (this.closed || !this.worker.connected || this.dispatcher.maintenanceActive() || slots <= 0) break;
       if (this.now() - value.scheduledAt > 300_000) { this.ledger.transaction(() => this.ledger.automations.finish(value.id, 'not_sent', 'missed_window')); this.publish(value.id); continue; }
       const claimed = this.ledger.transaction(() => this.ledger.automations.claim(value.id));
       if (claimed) { slots--; await this.launch(claimed); }

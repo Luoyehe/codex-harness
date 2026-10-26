@@ -20,6 +20,9 @@ MAX_DOWNLOAD = 8 * 1024 * 1024
 READS = {"list", "read", "download", "search", "metadata", "git/status", "git/diff", "git/refs", "operation/read", "recovery/list", "recovery/read", "worktree/read", "resource/skill/read", "resource/directory/resolve", "resource/plugin/preview"}
 WRITES = {"write", "mkdir", "copy", "remove", "git/commit", "recovery/restore", "recovery/discard", "worktree/create", "worktree/attach", "worktree/archive", "worktree/restore"}
 READS |= {"git/index/recovery/list", "git/index/recovery/read"}
+# Internal supervisor housekeeping. It is deliberately absent from public RPC
+# methods; an acknowledgement does not return or attest an operation result.
+READS |= {"operation/ack"}
 WRITES |= {"git/stage", "git/unstage", "git/index/recovery/restore", "git/index/recovery/discard"}
 FIELDS = {"list": {"path"}, "read": {"path"}, "download": {"path", "expectedRevision"}, "metadata": {"path"}, "write": {"path", "text", "expectedRevision"},
           "search": {"path", "query", "mode", "caseSensitive", "limit"},
@@ -32,6 +35,7 @@ FIELDS = {"list": {"path"}, "read": {"path"}, "download": {"path", "expectedRevi
           "worktree/attach": {"worktreeId", "expectedRevision"}, "worktree/archive": {"worktreeId", "expectedRevision", "confirm"},
           "worktree/restore": {"worktreeId", "expectedRevision", "confirm"}, "resource/skill/read": {"path"}, "resource/directory/resolve": {"path"}, "resource/plugin/preview": {"path"}}
 FIELDS.update(INDEX_FIELDS)
+FIELDS["operation/ack"] = {"operationId", "requestDigest"}
 
 
 def validate(value: object) -> dict:
@@ -64,6 +68,10 @@ def validate(value: object) -> dict:
                 "Removal requires explicit confirmation and recursive:false; only files and empty directories are supported")
     if action == "operation/read":
         operation_id(params.get("operationId"))
+    if action == "operation/ack":
+        require(set(params) == FIELDS[action], "Invalid workspace acknowledgement fields")
+        operation_id(params.get("operationId"))
+        valid_revision(params.get("requestDigest"))
     if action == "recovery/read":
         operation_id(params.get("operationId"))
     if action in ("recovery/restore", "recovery/discard"):
@@ -141,6 +149,8 @@ class Workspace:
             return read(self, action, params)
         if action == "operation/read":
             return self.store.read(params["operationId"])
+        if action == "operation/ack":
+            return self.store.acknowledge(params["operationId"], params["requestDigest"])
         if action in INDEX_FIELDS:
             from .workspace_index import run
             return run(self, action, params)
@@ -258,7 +268,8 @@ class Workspace:
             return {"ok": True, "result": self.read(action, params)}
         request_digest = digest({key: value for key, value in request.items() if key != "operationId"})
         reserve_bytes = 16384 if action in ("recovery/discard", "git/index/recovery/discard") else 2 * MAX_FILE + 16384
-        with self.store.mutation(request["operationId"], request_digest, reserve_bytes=reserve_bytes) as record:
+        with self.store.mutation(request["operationId"], request_digest, reserve_bytes=reserve_bytes,
+                                 maintenance=action in ("recovery/discard", "git/index/recovery/discard")) as record:
             if isinstance(record, dict):
                 return record
             self.dispatched = True

@@ -16,6 +16,9 @@ The verification sections below retain their implementation-phase scope and resu
 - xterm terminal code and CSS load with the application; opening its view and starting its process remain explicit. Incremental byte output, bounded serialized input, resize/close and ownership invalidation apply on disconnect/epoch/project changes. An open-attempt buffer retains authenticated owner events that precede its HTTP response, then applies only the matching terminal ID in order; overflow closes that attempt visibly. Terminal lifetime is connection-scoped.
 - Actual model/default queries, account device-code login, rate limits, MCP OAuth, provider management, explicit private-HTTP key authorization, model discovery plus separate capability confirmation, service status/logs/restart. New conversations inherit project defaults; existing conversations inherit their current native settings, including accepted overrides. Receipt changes trigger a fresh resume/default read, with stale settings hidden while reading.
 - Light/dark/system theme, mobile modal navigation, focus trapping/return and composed-key guards.
+- Browser-local Enter send/newline preference, indexed native plan/reasoning deltas, readable reasoning summaries and command exit codes. Completed items/turns reject late intermediate updates; overlapping snapshots and deltas with no common watermark remain visibly separate until authoritative completion.
+- Immutable named provider profiles retain endpoint-bound configuration on the server; restoration and deletion each require identity-specific consent. Native auto-compaction token threshold/scope is editable; percentage conversion requires an explicit configured context window and only changes the draft.
+- Service status/log reads are serialized across remounts. Receipt archival verifies all chunks and SHA-256 before download and explicit rotation; an unknown rotation retains its identity across remounts and only reads back generation plus archive digest. Operation generation comes from authenticated session/status/events and applies only to new operation IDs.
 
 ## Declared browser bounds
 
@@ -29,6 +32,10 @@ The verification sections below retain their implementation-phase scope and resu
 | Attachments | 8 per draft / 4 MiB per file; text preview 64 KiB |
 | Terminal | 2,000 lines scrollback / 64 KiB queued input / 128 early events or 256 KiB per open attempt |
 | Provider catalog | 1,000 discovered models; rendered in groups of 30 |
+| Visible timeline | 150 rows; all loaded rows remain available by window navigation and search location |
+| Markdown | 80,000 input characters, 12,000 syntax markers, 8,000 parsed nodes, depth 32; per-message plain-text fallback |
+| Plain text and diff | 24,000 characters per text page; diff at most 200 lines and 24,000 characters per page; complete download retained |
+| Receipt archive | Browser verifies at most 128 MiB; no truncated export or automatic rotation |
 
 Exceeding history or draft capacity is visible and does not pretend synchronization or saving succeeded. Operation acknowledgement tombstones are retained to prevent late cross-tab responses from resurrecting dismissed entries; browser storage denial fails closed for new recorded writes.
 

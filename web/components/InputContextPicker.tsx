@@ -2,19 +2,420 @@ import { useState } from 'react';
 import type { AppInfo } from '../../protocol/ts/v2/AppInfo';
 import type { InstalledApp } from '../../protocol/ts/v2/InstalledApp';
 import type { Api } from '../lib/api';
-import { contextProblem, parseOutputSchema, type ContextNote, type DraftReference } from '../lib/input-context';
+import {
+  contextProblem,
+  parseOutputSchema,
+  type ContextNote,
+  type DraftReference,
+} from '../lib/input-context';
 import { useResource } from '../hooks/useResource';
 import { usePaged } from '../hooks/usePaged';
 import { ReadState } from './ExtensionControls';
 import { message } from '../lib/types';
-type Skill = { skillId: string; name: string; description: string; enabled: boolean; path: string; interface?: { displayName?: string } | null };
-export function InputContextPicker({ api, projectId, threadId = '', epoch = '', references, notes, schema, onReferences, onNotes, onSchema, normalTurn, onFiles }: { api: Api; projectId: string; threadId?: string; epoch?: string; references: DraftReference[]; notes: ContextNote[]; schema: string; onReferences: (value: DraftReference[]) => void; onNotes: (value: ContextNote[]) => void; onSchema: (value: string) => void; normalTurn: boolean; onFiles?: () => void }) {
-  const [open, setOpen] = useState(false), [tab, setTab] = useState('skills'), [query, setQuery] = useState(''), [error, setError] = useState('');
-  const key = `${projectId}:${threadId}:${epoch}:${open}`, scoped = threadId ? { threadId } : {};
-  const skills = useResource(key, signal => api.call<{ data: { skills: Skill[]; errors: { message: string }[] }[] }>('skills/list', { projectId, forceReload: true }, signal), open && tab === 'skills' && Boolean(projectId));
-  const apps = usePaged<AppInfo>(api, 'app/list', scoped, key, open && tab === 'apps'), installed = useResource(key, signal => api.call<{ apps: InstalledApp[] }>('app/installed', { ...scoped, forceRefresh: true }, signal), open && tab === 'apps');
-  const add = (reference: DraftReference) => { const next = [...references, reference], problem = contextProblem(next, notes); if (problem) { setError(problem); return; } onReferences(next); setError(''); };
-  let schemaError = ''; try { parseOutputSchema(schema); } catch (e) { schemaError = message(e); }
-  const selected = new Set(references.map(reference => reference.type === 'skill' ? reference.skillId : reference.type === 'app' ? reference.appId : ''));
-  return <section className="input-context"><div className="inline wrap"><button type="button" className="button subtle small" aria-expanded={open} onClick={() => setOpen(value => !value)}>引用与输出格式{references.length + notes.length > 0 ? ` · ${references.length + notes.length}` : ''}</button>{onFiles && <button type="button" className="button subtle small" onClick={onFiles}>从项目文件引用选中行</button>}{schema.trim() && <span className="badge">结构化输出</span>}</div>{references.length > 0 && <ul className="context-chips">{references.map((reference, index) => <li key={index}><span title={reference.type === 'file' ? `${reference.path} · 版本 ${reference.revision}` : reference.label}>{reference.type === 'file' ? '文件' : reference.type === 'skill' ? '技能' : 'App'}：{reference.label}{reference.projectId !== projectId ? '（其他项目，发送前请处理）' : ''}</span><button type="button" aria-label={`移除引用 ${reference.label}`} onClick={() => onReferences(references.filter((_, row) => row !== index))}>×</button></li>)}</ul>}{!normalTurn && schema.trim() && <p className="error small" role="alert">结构化输出只支持普通发送。请切换发送方式或清空 Schema 后再排队、追加指令。</p>}{open && <div className="stack context-panel"><nav className="extension-tabs" aria-label="输入上下文类型">{[['skills', '技能'], ['apps', 'Apps'], ['notes', '补充上下文'], ['schema', '输出格式']].map(([id, label]) => <button className={`button small ${tab === id ? 'selected' : ''}`} type="button" key={id} aria-pressed={tab === id} onClick={() => { setTab(id); setError(''); }}>{label}</button>)}</nav>{error && <p className="error" role="alert">{error}</p>}{['skills', 'apps'].includes(tab) && <label className="field">筛选引用<input value={query} onChange={e => setQuery(e.target.value)} placeholder="名称或描述"/></label>}{tab === 'skills' && <><div className="inline"><button className="button small" type="button" disabled={skills.loading} onClick={skills.refresh}>刷新技能目录</button><span className="small muted">仅能选择当前项目已启用的技能。发送时会再次核对。</span></div><ReadState {...skills}/><div className="context-catalog">{skills.data?.data.flatMap(row => row.skills).filter(skill => `${skill.name} ${skill.description}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(skill => <article className="info-card" key={skill.skillId}><strong>{skill.interface?.displayName ?? skill.name}</strong><p className="small">{skill.description}</p><p className="small path muted">{skill.path}</p><button className="button small" type="button" disabled={!skill.enabled || selected.has(skill.skillId) || references.length >= 24 || !/^[a-f0-9]{64}$/.test(skill.skillId)} onClick={() => add({ type: 'skill', skillId: skill.skillId, projectId, label: skill.interface?.displayName ?? skill.name })}>{selected.has(skill.skillId) ? '已引用' : skill.enabled ? '引用此技能' : '技能未启用'}</button></article>)}</div>{skills.data?.data.flatMap(row => row.errors).map((error, index) => <p key={index} className="error">{error.message}</p>)}{skills.data && skills.data.data.every(row => row.skills.length === 0) && <p className="muted small">当前项目没有发现技能。</p>}</>}{tab === 'apps' && <><button type="button" className="button small" disabled={apps.loading || installed.loading} onClick={() => { apps.refresh(); installed.refresh(); }}>刷新 Apps 与可调用状态</button><ReadState {...apps}/><ReadState {...installed}/><div className="context-catalog">{apps.items.filter(app => `${app.name} ${app.description}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(app => { const runtime = installed.data?.apps.find(row => row.id === app.id), callable = runtime?.enabled === true && runtime.callable === true; return <article className="info-card" key={app.id}><strong>{app.name}</strong><p className="small">{app.description}</p><button type="button" className="button small" disabled={!callable || !app.isEnabled || !app.isAccessible || selected.has(app.id) || references.length >= 24} onClick={() => add({ type: 'app', appId: app.id, projectId, label: app.name })}>{selected.has(app.id) ? '已引用' : callable && app.isEnabled && app.isAccessible ? '引用此 App' : '尚不可调用'}</button></article>; })}</div>{apps.hasMore && <button className="button small" type="button" disabled={apps.loading} onClick={() => void apps.more()}>更多 Apps</button>}<p className="small muted">目录可见不等于可调用。请在设置中完成 App 连接，随后刷新目录。</p></>}{tab === 'notes' && <><p className="small muted">这些内容作为不受信任的资料提供给 Agent，不提升为系统指令。最多 8 段；与文件引用合计最多 256 KiB。</p>{notes.map((note, index) => <fieldset className="stack" key={index}><legend>资料 {index + 1}</legend><label className="field">资料名称<input maxLength={128} value={note.label} onChange={e => onNotes(notes.map((row, position) => position === index ? { ...row, label: e.target.value } : row))}/></label><label className="field">资料内容<textarea rows={4} maxLength={65_536} value={note.text} onChange={e => onNotes(notes.map((row, position) => position === index ? { ...row, text: e.target.value } : row))}/></label><button className="button small" type="button" onClick={() => onNotes(notes.filter((_, position) => index !== position))}>移除此段资料</button></fieldset>)}<button className="button small" type="button" disabled={notes.length >= 8} onClick={() => onNotes([...notes, { label: '', text: '' }])}>添加补充资料</button></>}{tab === 'schema' && <><p className="small muted">要求普通回合按 JSON Schema 返回结构化结果。支持情况由当前供应商决定；排队和追加指令不能使用此选项。</p><label className="field">JSON 输出 Schema<textarea rows={7} maxLength={65_536} spellCheck={false} value={schema} onChange={e => onSchema(e.target.value)} placeholder={'{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}'}/></label>{schemaError && <p className="error small" role="alert">{schemaError}</p>}<button className="button small" type="button" disabled={!schema} onClick={() => onSchema('')}>清空输出 Schema</button></>}</div>}</section>;
+type Skill = {
+  skillId: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  path: string;
+  interface?: { displayName?: string } | null;
+};
+export function InputContextPicker({
+  api,
+  projectId,
+  threadId = '',
+  epoch = '',
+  references,
+  notes,
+  schema,
+  onReferences,
+  onNotes,
+  onSchema,
+  normalTurn,
+  onFiles,
+}: {
+  api: Api;
+  projectId: string;
+  threadId?: string;
+  epoch?: string;
+  references: DraftReference[];
+  notes: ContextNote[];
+  schema: string;
+  onReferences: (value: DraftReference[]) => void;
+  onNotes: (value: ContextNote[]) => void;
+  onSchema: (value: string) => void;
+  normalTurn: boolean;
+  onFiles?: () => void;
+}) {
+  const [open, setOpen] = useState(false),
+    [tab, setTab] = useState('skills'),
+    [query, setQuery] = useState(''),
+    [error, setError] = useState('');
+  const key = `${projectId}:${threadId}:${epoch}:${open}`,
+    scoped = threadId ? { threadId } : {};
+  const skills = useResource(
+    key,
+    (signal) =>
+      api.call<{ data: { skills: Skill[]; errors: { message: string }[] }[] }>(
+        'skills/list',
+        { projectId, forceReload: true },
+        signal,
+      ),
+    open && tab === 'skills' && Boolean(projectId),
+  );
+  const apps = usePaged<AppInfo>(api, 'app/list', scoped, key, open && tab === 'apps'),
+    installed = useResource(
+      key,
+      (signal) =>
+        api.call<{ apps: InstalledApp[] }>(
+          'app/installed',
+          { ...scoped, forceRefresh: true },
+          signal,
+        ),
+      open && tab === 'apps',
+    );
+  const add = (reference: DraftReference) => {
+    const next = [...references, reference],
+      problem = contextProblem(next, notes);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    onReferences(next);
+    setError('');
+  };
+  let schemaError = '';
+  try {
+    parseOutputSchema(schema);
+  } catch (e) {
+    schemaError = message(e);
+  }
+  const selected = new Set(
+    references.map((reference) =>
+      reference.type === 'skill'
+        ? reference.skillId
+        : reference.type === 'app'
+          ? reference.appId
+          : '',
+    ),
+  );
+  return (
+    <section className="input-context">
+      <div className="inline wrap">
+        <button
+          type="button"
+          className="button subtle small"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          引用与输出格式
+          {references.length + notes.length > 0 ? ` · ${references.length + notes.length}` : ''}
+        </button>
+        {onFiles && (
+          <button type="button" className="button subtle small" onClick={onFiles}>
+            从项目文件引用选中行
+          </button>
+        )}
+        {schema.trim() && <span className="badge">结构化输出</span>}
+      </div>
+      {references.length > 0 && (
+        <ul className="context-chips">
+          {references.map((reference, index) => (
+            <li key={index}>
+              <span
+                title={
+                  reference.type === 'file'
+                    ? `${reference.path} · 版本 ${reference.revision}`
+                    : reference.label
+                }
+              >
+                {reference.type === 'file' ? '文件' : reference.type === 'skill' ? '技能' : 'App'}：
+                {reference.label}
+                {reference.projectId !== projectId ? '（其他项目，发送前请处理）' : ''}
+              </span>
+              <button
+                type="button"
+                aria-label={`移除引用 ${reference.label}`}
+                onClick={() => onReferences(references.filter((_, row) => row !== index))}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!normalTurn && schema.trim() && (
+        <p className="error small" role="alert">
+          结构化输出只支持普通发送。请切换发送方式或清空 Schema 后再排队、追加指令。
+        </p>
+      )}
+      {open && (
+        <div className="stack context-panel">
+          <nav className="extension-tabs" aria-label="输入上下文类型">
+            {[
+              ['skills', '技能'],
+              ['apps', 'Apps'],
+              ['notes', '补充上下文'],
+              ['schema', '输出格式'],
+            ].map(([id, label]) => (
+              <button
+                className={`button small ${tab === id ? 'selected' : ''}`}
+                type="button"
+                key={id}
+                aria-pressed={tab === id}
+                onClick={() => {
+                  setTab(id);
+                  setError('');
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          {['skills', 'apps'].includes(tab) && (
+            <label className="field">
+              筛选引用
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="名称或描述"
+              />
+            </label>
+          )}
+          {tab === 'skills' && (
+            <>
+              <div className="inline">
+                <button
+                  className="button small"
+                  type="button"
+                  disabled={skills.loading}
+                  onClick={skills.refresh}
+                >
+                  刷新技能目录
+                </button>
+                <span className="small muted">
+                  仅能选择当前项目已启用的技能。发送时会再次核对。
+                </span>
+              </div>
+              <ReadState {...skills} />
+              <div className="context-catalog">
+                {skills.data?.data
+                  .flatMap((row) => row.skills)
+                  .filter((skill) =>
+                    `${skill.name} ${skill.description}`
+                      .toLocaleLowerCase()
+                      .includes(query.toLocaleLowerCase()),
+                  )
+                  .map((skill) => (
+                    <article className="info-card" key={skill.skillId}>
+                      <strong>{skill.interface?.displayName ?? skill.name}</strong>
+                      <p className="small">{skill.description}</p>
+                      <p className="small path muted">{skill.path}</p>
+                      <button
+                        className="button small"
+                        type="button"
+                        disabled={
+                          !skill.enabled ||
+                          selected.has(skill.skillId) ||
+                          references.length >= 24 ||
+                          !/^[a-f0-9]{64}$/.test(skill.skillId)
+                        }
+                        onClick={() =>
+                          add({
+                            type: 'skill',
+                            skillId: skill.skillId,
+                            projectId,
+                            label: skill.interface?.displayName ?? skill.name,
+                          })
+                        }
+                      >
+                        {selected.has(skill.skillId)
+                          ? '已引用'
+                          : skill.enabled
+                            ? '引用此技能'
+                            : '技能未启用'}
+                      </button>
+                    </article>
+                  ))}
+              </div>
+              {skills.data?.data
+                .flatMap((row) => row.errors)
+                .map((error, index) => (
+                  <p key={index} className="error">
+                    {error.message}
+                  </p>
+                ))}
+              {skills.data && skills.data.data.every((row) => row.skills.length === 0) && (
+                <p className="muted small">当前项目没有发现技能。</p>
+              )}
+            </>
+          )}
+          {tab === 'apps' && (
+            <>
+              <button
+                type="button"
+                className="button small"
+                disabled={apps.loading || installed.loading}
+                onClick={() => {
+                  apps.refresh();
+                  installed.refresh();
+                }}
+              >
+                刷新 Apps 与可调用状态
+              </button>
+              <ReadState {...apps} />
+              <ReadState {...installed} />
+              <div className="context-catalog">
+                {apps.items
+                  .filter((app) =>
+                    `${app.name} ${app.description}`
+                      .toLocaleLowerCase()
+                      .includes(query.toLocaleLowerCase()),
+                  )
+                  .map((app) => {
+                    const runtime = installed.data?.apps.find((row) => row.id === app.id),
+                      callable = runtime?.enabled === true && runtime.callable === true;
+                    return (
+                      <article className="info-card" key={app.id}>
+                        <strong>{app.name}</strong>
+                        <p className="small">{app.description}</p>
+                        <button
+                          type="button"
+                          className="button small"
+                          disabled={
+                            !callable ||
+                            !app.isEnabled ||
+                            !app.isAccessible ||
+                            selected.has(app.id) ||
+                            references.length >= 24
+                          }
+                          onClick={() =>
+                            add({ type: 'app', appId: app.id, projectId, label: app.name })
+                          }
+                        >
+                          {selected.has(app.id)
+                            ? '已引用'
+                            : callable && app.isEnabled && app.isAccessible
+                              ? '引用此 App'
+                              : '尚不可调用'}
+                        </button>
+                      </article>
+                    );
+                  })}
+              </div>
+              {apps.hasMore && (
+                <button
+                  className="button small"
+                  type="button"
+                  disabled={apps.loading}
+                  onClick={() => void apps.more()}
+                >
+                  更多 Apps
+                </button>
+              )}
+              <p className="small muted">
+                目录可见不等于可调用。请在设置中完成 App 连接，随后刷新目录。
+              </p>
+            </>
+          )}
+          {tab === 'notes' && (
+            <>
+              <p className="small muted">
+                这些内容作为不受信任的资料提供给 Agent，不提升为系统指令。最多 8
+                段；与文件引用合计最多 256 KiB。
+              </p>
+              {notes.map((note, index) => (
+                <fieldset className="stack" key={index}>
+                  <legend>资料 {index + 1}</legend>
+                  <label className="field">
+                    资料名称
+                    <input
+                      maxLength={128}
+                      value={note.label}
+                      onChange={(e) =>
+                        onNotes(
+                          notes.map((row, position) =>
+                            position === index ? { ...row, label: e.target.value } : row,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    资料内容
+                    <textarea
+                      rows={4}
+                      maxLength={65_536}
+                      value={note.text}
+                      onChange={(e) =>
+                        onNotes(
+                          notes.map((row, position) =>
+                            position === index ? { ...row, text: e.target.value } : row,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                  <button
+                    className="button small"
+                    type="button"
+                    onClick={() => onNotes(notes.filter((_, position) => index !== position))}
+                  >
+                    移除此段资料
+                  </button>
+                </fieldset>
+              ))}
+              <button
+                className="button small"
+                type="button"
+                disabled={notes.length >= 8}
+                onClick={() => onNotes([...notes, { label: '', text: '' }])}
+              >
+                添加补充资料
+              </button>
+            </>
+          )}
+          {tab === 'schema' && (
+            <>
+              <p className="small muted">
+                要求普通回合按 JSON Schema
+                返回结构化结果。支持情况由当前供应商决定；排队和追加指令不能使用此选项。
+              </p>
+              <label className="field">
+                JSON 输出 Schema
+                <textarea
+                  rows={7}
+                  maxLength={65_536}
+                  spellCheck={false}
+                  value={schema}
+                  onChange={(e) => onSchema(e.target.value)}
+                  placeholder={
+                    '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}'
+                  }
+                />
+              </label>
+              {schemaError && (
+                <p className="error small" role="alert">
+                  {schemaError}
+                </p>
+              )}
+              <button
+                className="button small"
+                type="button"
+                disabled={!schema}
+                onClick={() => onSchema('')}
+              >
+                清空输出 Schema
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
 }

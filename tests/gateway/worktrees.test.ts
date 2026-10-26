@@ -29,7 +29,7 @@ test('worktree creation, archive and restore register exact projects atomically 
 });
 test('lost creation acknowledgement registers only matching positive witness and never repeats creation', async () => {
   const f = setup(); let sent = 0; let proof: JsonObject = {};
-  f.set(async (method, _params, c) => { if (method === 'workspace/witness/read') return proof; sent++; c.beforeWrite?.(); throw new HarnessError('lost', 'lost', 'unknown'); });
+  f.set(async (method, _params, c) => { if (method === 'workspace/witness/read') return proof; if (method === 'workspace/witness/ack') return { acknowledged: true, operationId: f.id, removed: true }; sent++; c.beforeWrite?.(); throw new HarnessError('lost', 'lost', 'unknown'); });
   try {
     await expect(f.dispatcher.call(f.create, { clientId: 'owner' })).rejects.toMatchObject({ delivery: 'unknown' }); expect(f.ledger.projects()).toHaveLength(1);
     proof = { operationId: f.id, state: 'completed', method: f.create.method, projectId: f.origin.id, gatewayRequestDigest: '0'.repeat(64), result: f.result };

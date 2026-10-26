@@ -1,6 +1,39 @@
 import { describe, expect, it } from 'vitest';
 import { receiptResult } from '../../src/gateway/receipt-result.js';
 describe('durable receipt data minimization', () => {
+  it('projects fixed root management results and nested saved profiles without future secret fields', () => {
+    const model = { id: 'fixture', defaultEffort: null, efforts: [], inputModalities: ['text'], contextWindow: 4096, supportsTools: false, instructions: 'Known\nmodel instructions' };
+    const profile = { id: 'b'.repeat(32), name: 'Saved endpoint', kind: 'responses', revision: 'c'.repeat(32), baseUrl: 'https://provider.invalid/v1', model: 'fixture', hasApiKey: true };
+    const oauth = { authorizationUrl: 'https://login.invalid/authorize', tokenUrl: 'https://login.invalid/token', clientId: 'public', cookieName: 'session', redirectPort: 9090 };
+    const expected = { kind: 'chatgpt-gateway', revision: 'a'.repeat(32), baseUrl: 'https://provider.invalid/v1', hasApiKey: false, gatewayOAuth: oauth,
+      models: [model], profiles: [profile], retention: { generations: 4, limit: 128, retainedHistory: 3 } };
+    const actual = { ...expected, apiKey: 'private', futureToken: 'private', nativeCatalog: { secret: 'private' },
+      gatewayOAuth: { ...oauth, clientSecret: 'private' }, models: [{ ...model, apiKey: 'private' }], profiles: [{ ...profile, apiKey: 'private', settings: { apiKey: 'private' } }],
+      retention: { ...expected.retention, secrets: 'private' } };
+    expect(receiptResult('system/provider/write', actual)).toEqual(expected);
+    expect(receiptResult('system/models/refresh', { ...actual, applied: false, requiresConfirmation: true, source: 'provider' })).toEqual({ ...expected, applied: false, requiresConfirmation: true, source: 'provider' });
+    expect(receiptResult('system/restart', { restarted: true, release: 'd'.repeat(64), privatePath: '/private' })).toEqual({ restarted: true, release: 'd'.repeat(64) });
+  });
+  it('refuses malformed management proof and unsupported system receipt kinds', () => {
+    const provider = { kind: 'chatgpt', revision: 'a'.repeat(32), hasApiKey: false, models: [] };
+    for (const change of [{ revision: 'invalid' }, { kind: ['chatgpt'] }, { hasApiKey: 'false' }, { profiles: Array(17).fill({}) },
+      { retention: { generations: 129, limit: 128, retainedHistory: 3 } }, { baseUrl: ['https://', 'user', ':', 'secret', '@', 'provider.invalid/v1'].join('') },
+      { models: [{ id: 'model', defaultEffort: null, efforts: [], inputModalities: ['text', ['image']] }] }])
+      expect(() => receiptResult('system/provider/write', { ...provider, ...change })).toThrow(expect.objectContaining({ code: 'receipt_contract', delivery: 'unknown' }));
+    expect(() => receiptResult('system/restart', { restarted: true })).toThrow();
+    expect(() => receiptResult('system/models/refresh', { ...provider, applied: true, requiresConfirmation: true })).toThrow();
+    expect(() => receiptResult('system/models/refresh', { ...provider, applied: false, requiresConfirmation: true, source: ['provider'] })).toThrow();
+    expect(() => receiptResult('system/unreviewed-write', {})).toThrow();
+    expect(() => receiptResult('system/provider/read', provider)).toThrow();
+  });
+  it('preserves the 64 Unicode character saved-profile name contract', () => {
+    const profile = { id: 'b'.repeat(32), kind: 'chatgpt', revision: 'c'.repeat(32), hasApiKey: false };
+    const provider = { kind: 'chatgpt', revision: 'a'.repeat(32), hasApiKey: false, models: [] };
+    for (const name of ['中'.repeat(64), '🌟'.repeat(64)])
+      expect(receiptResult('system/provider/write', { ...provider, profiles: [{ ...profile, name }] })).toMatchObject({ profiles: [{ name }] });
+    for (const name of ['中'.repeat(65), '🌟'.repeat(65), ' '.repeat(3)])
+      expect(() => receiptResult('system/provider/write', { ...provider, profiles: [{ ...profile, name }] })).toThrow();
+  });
   it('account receipts preserve redemption outcome and OAuth handoff identity without private authorization links', () => {
     expect(receiptResult('account/gatewayOAuth/login', { handoffId: 'handoff', providerId: 'enterprise', started: true, authUrl: 'https://private' })).toEqual({ handoffId: 'handoff', providerId: 'enterprise', started: true });
     expect(receiptResult('account/resetCredit/consume', { outcome: 'nothingToReset', accountId: 'account' })).toEqual({ outcome: 'nothingToReset', accountId: 'account' });

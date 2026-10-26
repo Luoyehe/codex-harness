@@ -8,6 +8,7 @@ import { HarnessError } from './errors.js';
 import { digest, identifier, validText } from './validation.js';
 import { Automations } from './automations.js';
 import { Worktrees } from './worktrees.js';
+import { OperationRetention, operationId } from './operation-retention.js';
 
 type Row = Record<string, unknown>;
 function receipt(row: Row): Receipt {
@@ -19,11 +20,12 @@ function receipt(row: Row): Receipt {
   };
 }
 
-/** A single gateway owns this journal. Completed IDs are permanent tombstones. */
+/** A single gateway owns this journal. A retired generation can never dispatch again. */
 export class Ledger {
   readonly #db: DatabaseSync;
   readonly automations: Automations;
   readonly worktrees: Worktrees;
+  private readonly retention: OperationRetention;
   #depth = 0;
   constructor(file: string, readonly now: () => number = Date.now) {
     if (file !== ':memory:') mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
@@ -38,8 +40,22 @@ export class Ledger {
       CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE, name TEXT NOT NULL) STRICT;
       CREATE TABLE IF NOT EXISTS retired_operations(id TEXT PRIMARY KEY, created_at INTEGER NOT NULL) STRICT;
       CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;`);
-    this.automations = new Automations(this.#db, now);
+    this.retention = new OperationRetention(this.#db, now);
+    this.automations = new Automations(this.#db, now, () => this.newOperationId());
     this.worktrees = new Worktrees(this.#db, now);
+  }
+  operationGeneration(): number { return this.retention.generation(); }
+  newOperationId(): string { return operationId(this.operationGeneration()); }
+  maintenancePreview(): JsonValue { return this.retention.preview(); }
+  maintenanceChunk(params: { digest: string; offset: number; limit?: number }): JsonValue {
+    return this.retention.chunk(params.digest, params.offset, params.limit);
+  }
+  rotate(params: { digest: string; nextGeneration: number; exportedDigest: string }): JsonValue {
+    return this.transaction(() => this.retention.rotate(params));
+  }
+  usage(): JsonValue { return this.retention.usage(); }
+  hasWorkspaceReceipts(): boolean {
+    return !!this.#db.prepare("SELECT 1 FROM receipts WHERE state='accepted' AND method LIKE 'workspace/%' LIMIT 1").get();
   }
   transaction<T>(operation: () => T): T {
     const depth = this.#depth++, savepoint = `harness_${depth}`;
@@ -71,6 +87,7 @@ export class Ledger {
         if (prior.digest !== fingerprint || prior.scope !== scope) throw new HarnessError('operation_conflict', '该操作编号已用于不同内容。');
         return { created: false, receipt: receipt(prior) };
       }
+      this.retention.assertCurrent(id);
       const totals = this.#db.prepare(`SELECT count(*) AS count,coalesce(sum(bytes),0) AS bytes,
         coalesce(sum(CASE WHEN state IN ('pending','dispatching') THEN 1 ELSE 0 END),0) AS pending FROM receipts`).get()!;
       const retired = Number(this.#db.prepare('SELECT count(*) AS count FROM retired_operations').get()!.count);
@@ -108,7 +125,7 @@ export class Ledger {
     const row = this.#db.prepare('SELECT * FROM receipts WHERE id=?').get(id);
     if (row) return receipt(row);
     const retired = this.#db.prepare('SELECT created_at FROM retired_operations WHERE id=?').get(id);
-    return retired ? { operationId: id, method: 'operation/retire', scope: 'operation:' + id, state: 'not_sent', createdAt: Number(retired.created_at), updatedAt: Number(retired.created_at), error: { code: 'operation_retired', message: '该操作编号在登记前已被阻止，迟到请求不会执行。', delivery: 'not_sent' } } : null;
+    return retired ? { operationId: id, method: 'operation/retire', scope: 'operation:' + id, state: 'not_sent', createdAt: Number(retired.created_at), updatedAt: Number(retired.created_at), error: { code: 'operation_retired', message: '该操作编号在登记前已被阻止，迟到请求不会执行。', delivery: 'not_sent' } } : this.retention.archived(id);
   }
   /** Fence only an unregistered ID. Existing records, including pending/unknown, are never changed. */
   retire(id: string): Receipt {

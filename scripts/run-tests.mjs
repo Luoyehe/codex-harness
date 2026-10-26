@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { root, snapshot, evidencePath } from './snapshot.mjs';
 import { nativePrerequisite, nativeTestFiles, pythonPrerequisite, runPythonTests, testInventory } from './select-tests.mjs';
 import { validateRelative } from './release-audit.mjs';
+import { releaseAuthorization } from './release-authorization.mjs';
 
 const requiredScopes = ['gateway-core', 'runtime-protocol', 'web-ux', 'deployment-release'];
 const scopeAreas = {
@@ -62,7 +63,7 @@ export function validateAuditRecord(record, current, base = root) {
 }
 
 export function prepareRun(mode, args, base = root) {
-  const available = testInventory(base); const all = new Set(available); let files; let auditRounds;
+  const available = testInventory(base); const all = new Set(available); let files; let auditRounds; let authorization;
   if (mode === '--targeted') {
     if (!args.length) throw new Error('Provide explicit affected test files; an empty selection is not a full-test shortcut');
     files = [...new Set(args.map(validateRelative))].sort();
@@ -73,13 +74,18 @@ export function prepareRun(mode, args, base = root) {
     const jsInventory = available.filter(name => jsTest.test(name));
     if (files.length === available.length || (jsInventory.length && jsInventory.every(name => files.includes(name)))) throw new Error('Selecting the complete JavaScript or repository inventory requires the audited --full mode');
   } else if (mode === '--full') {
-    if (args.length) throw new Error('Full testing accepts no extra arguments');
-    const current = snapshot(base);
-    const record = JSON.parse(readFileSync(ordinaryFile(base, 'verification/audits.json'), 'utf8'));
-    auditRounds = validateAuditRecord(record, current, base); files = available;
+    if (args.length) {
+      if (args.length !== 4 || args[0] !== '--authorization' || args[2] !== '--sha256') throw new Error('Full testing requires an exact authorization file and checksum');
+      authorization = releaseAuthorization(base, args[1], args[3]);
+    } else {
+      const current = snapshot(base);
+      const record = JSON.parse(readFileSync(ordinaryFile(base, 'verification/audits.json'), 'utf8'));
+      auditRounds = validateAuditRecord(record, current, base);
+    }
+    files = available;
     if (!files.some(name => pyTest.test(name)) || ![...nativeNames].every(name => files.includes(name))) throw new Error('Full inventory must include deployment and native regressions');
   } else throw new Error('Use --targeted <files...> or the audited --full mode');
-  return { mode, files, ...(auditRounds ? { auditRounds } : {}) };
+  return { mode, files, ...(auditRounds ? { auditRounds } : {}), ...(authorization ? { authorization } : {}) };
 }
 
 export function runVitest(files, base = root, env = process.env) {
@@ -96,9 +102,14 @@ export function runVitest(files, base = root, env = process.env) {
     const report = JSON.parse(readFileSync(output, 'utf8'));
     const executed = new Set(report.testResults.map(result => path.relative(base, result.name).replaceAll('\\', '/')));
     if (report.success !== true || !Number.isSafeInteger(report.numTotalTests) || report.numTotalTests < 1 || report.numFailedTests !== 0 || files.some(name => !executed.has(name)) || [...executed].some(name => !files.includes(name))) throw new Error('Test report did not cover exactly the requested files');
-    if (report.numPendingTests || report.numTodoTests || report.testResults.some(result => !result.assertionResults?.length || result.assertionResults.some(assertion => ['pending', 'todo', 'skipped'].includes(assertion.status)))) return { status: 'skipped', exitCode: 3, tests: files };
+    const cases = report.testResults.flatMap(result => {
+      const file = path.relative(base, result.name).replaceAll('\\', '/');
+      return result.assertionResults.map(assertion => ({ id: `${file}::${assertion.fullName}`, file, status: assertion.status === 'passed' ? 'passed' : ['pending', 'todo', 'skipped'].includes(assertion.status) ? 'skipped' : 'failed' }));
+    });
+    if (new Set(cases.map(item => item.id)).size !== cases.length) throw new Error('Duplicate test identities cannot establish complete coverage');
+    if (report.numPendingTests || report.numTodoTests || report.testResults.some(result => !result.assertionResults?.length || result.assertionResults.some(assertion => ['pending', 'todo', 'skipped'].includes(assertion.status)))) return { status: 'skipped', exitCode: 3, tests: files, cases };
     if (report.numPassedTests !== report.numTotalTests || report.testResults.some(result => result.assertionResults.some(assertion => assertion.status !== 'passed'))) throw new Error('Test assertions were not all verified as passed');
-    return { status: 'passed', exitCode: 0, tests: files };
+    return { status: 'passed', exitCode: 0, tests: files, cases };
   } catch { return { status: 'failed', exitCode: 1, tests: files, reason: 'missing-or-invalid-test-evidence' }; }
 }
 

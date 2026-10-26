@@ -31,12 +31,17 @@ function operationId(value: unknown): string {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) throw new DeliveryError('invalid_params', 'Canonical operationId is required');
   return id;
 }
-export function workspaceRequest(root: WorkspaceRoot, action: string, input: JsonObject, context: CallContext): JsonObject {
-  if (!Object.hasOwn(fields, action)) throw new DeliveryError('method_not_found', 'Unsupported workspace action');
-  onlyKeys(input, [...fields[action]!]);
+export function workspaceRequest(root: WorkspaceRoot, action: string, input: JsonObject, context: CallContext, internal = false): JsonObject {
+  const internalAck = internal && action === 'operation/ack';
+  if (!internalAck && !Object.hasOwn(fields, action)) throw new DeliveryError('method_not_found', 'Unsupported workspace action');
+  onlyKeys(input, internalAck ? ['operationId', 'requestDigest'] : [...fields[action]!]);
   const rootPath = string(root.path, 'registered workspace root');
   if (!rootPath.startsWith('/') || path.posix.normalize(rootPath) !== rootPath || /[\u0000-\u001f\u007f]/.test(rootPath)) throw new DeliveryError('invalid_project', 'Registered native workspace root must be canonical');
   const params = { ...input };
+  if (internalAck) {
+    operationId(params.operationId);
+    if (typeof params.requestDigest !== 'string' || !/^[0-9a-f]{64}$/.test(params.requestDigest)) throw new DeliveryError('invalid_params', 'Invalid accepted helper request digest');
+  }
   if (Object.hasOwn(indexFields, action)) validateIndexAction(action, params);
   if (action === 'list' || action === 'metadata') relative(params.path ?? '', true);
   else if (['read', 'download', 'write', 'mkdir', 'copy', 'remove'].includes(action)) relative(params.path);
@@ -100,9 +105,9 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
   return request;
 }
 
-export async function runWorkspace(config: LaunchConfig, root: WorkspaceRoot, action: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
-  const request = workspaceRequest(root, action, params, context);
-  const mutation = workspaceMutations.has(action);
+export async function runWorkspace(config: LaunchConfig, root: WorkspaceRoot, action: string, params: JsonObject, context: CallContext, internal = false): Promise<JsonValue> {
+  const request = workspaceRequest(root, action, params, context, internal);
+  const mutation = workspaceMutations.has(action) || (internal && action === 'operation/ack');
   if (mutation && !context.beforeWrite) throw new DeliveryError('operation_required', 'Workspace mutations require the durable operation boundary');
   const body = jsonBytes(request, 1024 * 1024);
   const command = nativeCommand(config, 'workspace');

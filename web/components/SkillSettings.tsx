@@ -8,10 +8,177 @@ import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
 import { useExtensionAction, ExtensionStatus, ReadState } from './ExtensionControls';
-export function SkillSettings({ api, project, epoch, enabled, onChanged, projects = [project], onOpenNativeTerminal }: { onOpenNativeTerminal?: (projectId: string) => void; projects?: Project[]; api: Api; project: Project; epoch: string; enabled: boolean; onChanged: () => void }) {
+export function SkillSettings({
+  api,
+  project,
+  epoch,
+  enabled,
+  onChanged,
+  projects = [project],
+  onOpenNativeTerminal,
+}: {
+  onOpenNativeTerminal?: (projectId: string) => void;
+  projects?: Project[];
+  api: Api;
+  project: Project;
+  epoch: string;
+  enabled: boolean;
+  onChanged: () => void;
+}) {
   const [selected, setSelected] = useState('');
-  const action = useExtensionAction(api, enabled, onChanged), key = `${project.id}:${epoch}:${action.revision}`;
-  const skills = useResource(key, signal => api.call<{ data: (Omit<SkillsListEntry, 'skills'> & { skills: (SkillMetadata & { skillId: string })[] })[] }>('skills/list', { projectId: project.id }, signal));
-  const hooks = useResource(key, signal => api.call<{ data: HooksListEntry[] }>('hooks/list', { projectId: project.id }, signal));
-  return <section className="stack"><div className="section-heading"><h3>技能与 Hooks</h3><button className="button small" onClick={action.refresh}>重新读取</button></div><p className="muted small">显示当前项目可用的技能、依赖和 Hook 信任状态。启停技能修改运行时用户配置。</p><SkillRoots api={api} projects={projects} epoch={epoch} enabled={enabled} onChanged={onChanged}/><SkillCreator api={api} project={project} epoch={epoch} enabled={enabled} onChanged={action.refresh}/><ExtensionStatus api={api} action={action}/><ReadState {...skills}/>{skills.data?.data.map(row => <div className="stack" key={row.cwd}>{row.errors.map((error, i) => <p key={i} className="error" role="alert">{error.message}</p>)}{row.skills.map(skill => <article className="info-card stack" key={skill.skillId}><div className="section-heading"><strong>{skill.interface?.displayName ?? skill.name}</strong><span className="badge">{skill.enabled ? '已启用' : '已停用'} · {skill.scope}</span></div><p>{skill.description}</p><p className="small path">{skill.path}</p>{skill.pluginId && <p className="small muted">来源插件：{skill.pluginId}</p>}{Boolean(skill.dependencies?.tools.length) && <details><summary>所需工具</summary><ul>{skill.dependencies?.tools.map((dependency, i) => <li key={i}><strong>{dependency.value}</strong> · {dependency.type}{dependency.transport ? ` · ${dependency.transport}` : ''}{dependency.description && <p>{dependency.description}</p>}</li>)}</ul></details>}<button className="button small" aria-expanded={selected === skill.skillId} onClick={() => setSelected(selected === skill.skillId ? "" : skill.skillId)}>查看 SKILL.md</button>{selected === skill.skillId && <SkillDocument api={api} project={project} epoch={epoch} skillId={skill.skillId}/>}<button className="button small" disabled={action.disabled || !/^[a-f0-9]{64}$/.test(skill.skillId)} onClick={() => void action.run('skills/config/write', { projectId: project.id, skillId: skill.skillId, enabled: !skill.enabled })}>{skill.enabled ? '停用技能' : '启用技能'}</button></article>)}{!row.skills.length && <p className="muted">此项目没有发现技能。</p>}</div>)}<HookEventsPanel/><h3>Hook 来源与信任</h3><p className="small muted">Hook 信任须在官方 CLI 中按当前哈希审阅。打开终端不会更改信任；退出后需要显式重启服务同步配置。</p>{onOpenNativeTerminal && <button className="button" disabled={!enabled || action.disabled} onClick={() => onOpenNativeTerminal(project.id)}>打开原生 Hooks 管理终端</button>}<ReadState {...hooks}/>{hooks.data?.data.map(row => <div className="stack" key={row.cwd}>{row.warnings.map((warning, i) => <p className="workspace-warning" key={i}>{warning}</p>)}{row.errors.map((error, i) => <p className="error" role="alert" key={i}>{error.message}</p>)}{row.hooks.map(hook => <article className="info-card stack" key={hook.key}><div className="section-heading"><strong>{hook.eventName}</strong><span className="badge">{hook.enabled ? '已启用' : '已停用'} · {hook.trustStatus}</span></div><p className="small">{hook.handlerType} · {hook.isManaged ? '受管理' : '本地配置'}{hook.matcher ? ` · 匹配 ${hook.matcher}` : ''} · 超时 {String(hook.timeoutSec)} 秒</p><p className="small path">{hook.sourcePath}</p>{hook.handlerType === 'command' && <pre className="raw">{hook.command}</pre>}{hook.handlerType === 'mcpTool' && <p>{hook.server} / {hook.tool}</p>}{hook.statusMessage && <p>{hook.statusMessage}</p>}<code className="small path">{hook.currentHash}</code></article>)}{!row.hooks.length && <p className="muted">此项目没有发现 Hooks。</p>}</div>)}</section>;
+  const action = useExtensionAction(api, enabled, onChanged),
+    key = `${project.id}:${epoch}:${action.revision}`;
+  const skills = useResource(key, (signal) =>
+    api.call<{
+      data: (Omit<SkillsListEntry, 'skills'> & {
+        skills: (SkillMetadata & { skillId: string })[];
+      })[];
+    }>('skills/list', { projectId: project.id }, signal),
+  );
+  const hooks = useResource(key, (signal) =>
+    api.call<{ data: HooksListEntry[] }>('hooks/list', { projectId: project.id }, signal),
+  );
+  return (
+    <section className="stack">
+      <div className="section-heading">
+        <h3>技能与 Hooks</h3>
+        <button className="button small" onClick={action.refresh}>
+          重新读取
+        </button>
+      </div>
+      <p className="muted small">
+        显示当前项目可用的技能、依赖和 Hook 信任状态。启停技能修改运行时用户配置。
+      </p>
+      <SkillRoots
+        api={api}
+        projects={projects}
+        epoch={epoch}
+        enabled={enabled}
+        onChanged={onChanged}
+      />
+      <SkillCreator
+        api={api}
+        project={project}
+        epoch={epoch}
+        enabled={enabled}
+        onChanged={action.refresh}
+      />
+      <ExtensionStatus api={api} action={action} />
+      <ReadState {...skills} />
+      {skills.data?.data.map((row) => (
+        <div className="stack" key={row.cwd}>
+          {row.errors.map((error, i) => (
+            <p key={i} className="error" role="alert">
+              {error.message}
+            </p>
+          ))}
+          {row.skills.map((skill) => (
+            <article className="info-card stack" key={skill.skillId}>
+              <div className="section-heading">
+                <strong>{skill.interface?.displayName ?? skill.name}</strong>
+                <span className="badge">
+                  {skill.enabled ? '已启用' : '已停用'} · {skill.scope}
+                </span>
+              </div>
+              <p>{skill.description}</p>
+              <p className="small path">{skill.path}</p>
+              {skill.pluginId && <p className="small muted">来源插件：{skill.pluginId}</p>}
+              {Boolean(skill.dependencies?.tools.length) && (
+                <details>
+                  <summary>所需工具</summary>
+                  <ul>
+                    {skill.dependencies?.tools.map((dependency, i) => (
+                      <li key={i}>
+                        <strong>{dependency.value}</strong> · {dependency.type}
+                        {dependency.transport ? ` · ${dependency.transport}` : ''}
+                        {dependency.description && <p>{dependency.description}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              <button
+                className="button small"
+                aria-expanded={selected === skill.skillId}
+                onClick={() => setSelected(selected === skill.skillId ? '' : skill.skillId)}
+              >
+                查看 SKILL.md
+              </button>
+              {selected === skill.skillId && (
+                <SkillDocument api={api} project={project} epoch={epoch} skillId={skill.skillId} />
+              )}
+              <button
+                className="button small"
+                disabled={action.disabled || !/^[a-f0-9]{64}$/.test(skill.skillId)}
+                onClick={() =>
+                  void action.run('skills/config/write', {
+                    projectId: project.id,
+                    skillId: skill.skillId,
+                    enabled: !skill.enabled,
+                  })
+                }
+              >
+                {skill.enabled ? '停用技能' : '启用技能'}
+              </button>
+            </article>
+          ))}
+          {!row.skills.length && <p className="muted">此项目没有发现技能。</p>}
+        </div>
+      ))}
+      <HookEventsPanel />
+      <h3>Hook 来源与信任</h3>
+      <p className="small muted">
+        Hook 信任须在官方 CLI
+        中按当前哈希审阅。打开终端不会更改信任；退出后需要显式重启服务同步配置。
+      </p>
+      {onOpenNativeTerminal && (
+        <button
+          className="button"
+          disabled={!enabled || action.disabled}
+          onClick={() => onOpenNativeTerminal(project.id)}
+        >
+          打开原生 Hooks 管理终端
+        </button>
+      )}
+      <ReadState {...hooks} />
+      {hooks.data?.data.map((row) => (
+        <div className="stack" key={row.cwd}>
+          {row.warnings.map((warning, i) => (
+            <p className="workspace-warning" key={i}>
+              {warning}
+            </p>
+          ))}
+          {row.errors.map((error, i) => (
+            <p className="error" role="alert" key={i}>
+              {error.message}
+            </p>
+          ))}
+          {row.hooks.map((hook) => (
+            <article className="info-card stack" key={hook.key}>
+              <div className="section-heading">
+                <strong>{hook.eventName}</strong>
+                <span className="badge">
+                  {hook.enabled ? '已启用' : '已停用'} · {hook.trustStatus}
+                </span>
+              </div>
+              <p className="small">
+                {hook.handlerType} · {hook.isManaged ? '受管理' : '本地配置'}
+                {hook.matcher ? ` · 匹配 ${hook.matcher}` : ''} · 超时 {String(hook.timeoutSec)} 秒
+              </p>
+              <p className="small path">{hook.sourcePath}</p>
+              {hook.handlerType === 'command' && <pre className="raw">{hook.command}</pre>}
+              {hook.handlerType === 'mcpTool' && (
+                <p>
+                  {hook.server} / {hook.tool}
+                </p>
+              )}
+              {hook.statusMessage && <p>{hook.statusMessage}</p>}
+              <code className="small path">{hook.currentHash}</code>
+            </article>
+          ))}
+          {!row.hooks.length && <p className="muted">此项目没有发现 Hooks。</p>}
+        </div>
+      ))}
+    </section>
+  );
 }

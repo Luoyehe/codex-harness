@@ -8,11 +8,12 @@ import { DeliveryError, object, type JsonObject, type JsonValue } from '../../sr
 const helper = vi.hoisted(() => ({ hook: undefined as undefined | ((action: string) => void), gate: undefined as Promise<void> | undefined, calls: [] as { action: string; binding: unknown }[], result: undefined as JsonValue | undefined }));
 vi.mock('../../src/runtime/workspace.js', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/runtime/workspace.js')>();
-  return { ...actual, runWorkspace: async (_config: unknown, root: import('../../src/runtime/workspace.js').WorkspaceRoot, action: string, params: JsonObject, context: import('../../src/runtime/types.js').CallContext) => {
-    actual.workspaceRequest(root, action, params, context); helper.hook?.(action);
-    if (actual.workspaceMutations.has(action)) context.beforeWrite?.();
+  return { ...actual, runWorkspace: async (_config: unknown, root: import('../../src/runtime/workspace.js').WorkspaceRoot, action: string, params: JsonObject, context: import('../../src/runtime/types.js').CallContext, internal = false) => {
+    actual.workspaceRequest(root, action, params, context, internal); helper.hook?.(action);
+    if (actual.workspaceMutations.has(action) || action === 'operation/ack') context.beforeWrite?.();
     helper.calls.push({ action, binding: root.worktreeBinding }); await helper.gate;
     if (helper.result !== undefined) return helper.result;
+    if (action === 'operation/ack') return { acknowledged: true, operationId: params.operationId, removed: true };
     if (action === 'mkdir') return { path: params.path, created: true };
     const id = action === 'worktree/create' ? context.operationId : params.worktreeId;
     const binding = root.worktreeBinding ?? { version: 1, worktreeId: id!, originRoot: root.path, commonDir: '/project/.git', commonDevice: 1, commonInode: 2, gitDir: '/project/.git/worktrees/managed', gitDirDevice: 1, gitDirInode: 3, worktreeDevice: 1, worktreeInode: 4 };
@@ -22,7 +23,7 @@ vi.mock('../../src/runtime/workspace.js', async importOriginal => {
 import { RuntimeService } from '../../src/runtime/service.js';
 class Native extends EventEmitter {
   connected = true; budget = {};
-  async call(_method: string, _params: JsonValue, options: NativeOptions = {}) { options.beforeWrite?.(); return {}; }
+  async call(method: string, _params: JsonValue, options: NativeOptions = {}) { options.beforeWrite?.(); return method === 'remoteControl/status/read' ? { status: 'disabled', serverName: 'test', installationId: 'test', environmentId: null } : {}; }
   async close() { this.connected = false; }
 }
 const services: RuntimeService[] = [];
@@ -68,4 +69,27 @@ test('service close waits for helper acknowledgement before closing the witness 
   const pending = service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, context); await expect.poll(() => helper.calls.length).toBe(1);
   let closed = false; const closing = service.close().then(() => { closed = true; }); await Promise.resolve(); expect(closed).toBe(false);
   release(); await expect(pending).resolves.toMatchObject({ created: true, worktreeVersion: 1 }); await closing;
+});
+
+test('internal receipt acknowledgement retains worktree binding and is protected by owner fence', async () => {
+  const { service, context } = setup();
+  await service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, context);
+  const page = object(await service.call('workspace/witness/pending', {}, context)), ack = object((page.data as JsonValue[])[0]);
+  await expect(service.call('workspace/operation/ack', { cwd: '/project', operationId: context.operationId, requestDigest: 'c'.repeat(64) }, context)).rejects.toMatchObject({ code: 'method_not_found' });
+  await expect(service.call('workspace/witness/ack', ack, { ...context, beforeWrite() { throw new DeliveryError('client_disconnected', 'revoked'); } })).rejects.toMatchObject({ code: 'client_disconnected' });
+  expect(await service.call('workspace/witness/read', { operationId: context.operationId }, context)).toMatchObject({ state: 'completed' });
+  expect(await service.call('workspace/witness/ack', ack, context)).toMatchObject({ acknowledged: true, removed: true });
+  expect(await service.call('runtime/maintenance/check', {}, context)).toMatchObject({ idle: true, workspaceWitness: { total: 0 } });
+  expect(await service.call('workspace/worktree/read', { cwd: '/project', worktreeId: context.operationId }, context)).toMatchObject({ worktreeId: context.operationId });
+});
+
+test('maintenance waits for native acknowledgement cleanup to finish', async () => {
+  const { service, context } = setup();
+  await service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context);
+  const page = object(await service.call('workspace/witness/pending', {}, context)), ack = object((page.data as JsonValue[])[0]);
+  let release!: () => void; helper.gate = new Promise(resolve => { release = resolve; });
+  const cleanup = service.call('workspace/witness/ack', ack, context);
+  await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+  release(); await cleanup;
+  await expect(service.call('runtime/maintenance/check', {}, context)).resolves.toMatchObject({ idle: true });
 });

@@ -25,10 +25,12 @@ class ControlBoundaryTests(unittest.TestCase):
             "codex-harness-main-other-worker.service loaded active running other",
             "codex-harness-main-manage-" + "a" * 32 + ".service loaded active running helper",
             "codex-harness-main-other-manage-" + "b" * 32 + ".service loaded active running other helper",
+            "codex-harness-main-sandbox-" + "c" * 32 + ".service loaded active running sandbox probe",
+            "codex-harness-main-other-sandbox-" + "d" * 32 + ".service loaded active running other sandbox probe",
         ])
         with patch("deploy.control_update.run", return_value=subprocess.CompletedProcess([], 0, text, "")):
             units = ControlSystem().instance_units(Layout("main"))
-        self.assertEqual(len(units), 2)
+        self.assertEqual(len(units), 3)
         self.assertFalse(any("main-other" in unit for unit in units))
 
     def test_stage_has_fixed_real_paths_and_excludes_checkout_bytecode(self):

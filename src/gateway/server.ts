@@ -112,6 +112,7 @@ export class GatewayServer {
     this.send(connection, { type: 'state', data: this.dispatcher.status() });
   }
   private disconnect(clientId: string, workerClientId: string): Promise<void> {
+    this.dispatcher.receiptMaintenance.forget(workerClientId);
     const previous = this.#disconnecting.get(clientId); if (previous) return previous;
     const pending = this.worker.clientDisconnected(workerClientId).finally(() => {
       if (this.#disconnecting.get(clientId) === pending) this.#disconnecting.delete(clientId);
@@ -156,13 +157,13 @@ export class GatewayServer {
       if (url.pathname === '/api/session') {
         if (req.method === 'GET') {
           const session = this.auth.session(header(req, 'cookie'));
-          this.json(res, session ? { authenticated: true, csrf: session.csrf } : { authenticated: false }); return;
+          this.json(res, session ? { authenticated: true, csrf: session.csrf, operationGeneration: this.dispatcher.ledger.operationGeneration() } : { authenticated: false }); return;
         }
         this.auth.checkOrigin(header(req, 'origin'));
         if (req.method === 'POST') {
           const value = await body(req, 8192, reservation.add); object(value);
           const login = this.auth.login(value.token, req.socket.remoteAddress ?? 'unknown');
-          res.setHeader('set-cookie', login.cookie); this.json(res, { authenticated: true, csrf: login.session.csrf }); return;
+          res.setHeader('set-cookie', login.cookie); this.json(res, { authenticated: true, csrf: login.session.csrf, operationGeneration: this.dispatcher.ledger.operationGeneration() }); return;
         }
         if (req.method === 'DELETE') {
           const session = this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');

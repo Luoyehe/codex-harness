@@ -12,8 +12,7 @@ import { resolveNativeProject } from './native-launch.js';
 import { Workflows, type WorkflowMutation } from './workflows.js';
 import { workflowMethods } from './workflow-methods.js';
 import { SessionSnapshots } from './session-snapshots.js';
-import { runWorkspace, workspaceMutations, workspaceRequest, type WorkspaceRoot } from './workspace.js';
-import { WorkspaceWitness } from './workspace-witness.js';
+import { RuntimeWorkspace } from './workspace-service.js';
 import { devResource } from './dev-resources.js';
 import { previewProjectPlugin, readSkillResource, resolveProjectDirectory } from './skill-resources.js';
 import { Extensions } from './extensions.js';
@@ -30,7 +29,6 @@ import { remoteMethods } from '../core/remote-methods.js';
 import { Environments } from './environments.js';
 import { RemoteControl } from './remote-control.js';
 import { ThreadTerminals, threadTerminalMethods } from './thread-terminals.js';
-import { indexMutations } from './workspace-index.js';
 import { Guardian, guardianMethods } from './guardian.js';
 import { CliTerminals } from './cli-terminals.js';
 import { featureMethod } from '../core/feature-methods.js';
@@ -39,16 +37,23 @@ import { mediaModalities, selectedInputModel, validateInputModalities } from './
 import { CliDiagnostics, cliDiagnosticMethods } from './cli-diagnostics.js';
 import { DeviceLogin } from './device-login.js';
 import { Predictions, predictionMethods } from './predictions.js';
+import { ThreadActivity, hasTurnActivity, type Activity } from './thread-activity.js';
 
 export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number }
-interface Activity { status: string; turnId: string | null; pending: boolean; unknown: boolean; revision: number; historyMode?: string; historyRevision?: number; fresh?: boolean; directInput?: boolean | null; goalActive?: boolean; queued?: boolean; checkingContinuation?: boolean; continuationRevision?: number; subscribed?: boolean; settingsRevision?: number; activeModel?: string }
-// Thread idle metadata does not settle an accepted turn; its matching completion does.
-const hasTurnActivity = (state: Activity): boolean => state.turnId !== null || state.status === 'active';
 interface Prompt { promptId: string; epoch: string; method: string; params: JsonObject; threadId: string | null; turnId: string | null; requestId: string | number; bytes: number; answering: boolean }
 interface Terminal { terminalId: string; clientId: string; eventChannelId: string | undefined; generation: number; ended: boolean }
 export class RuntimeService extends EventEmitter {
   readonly epoch = randomUUID();
-  private activity = new Map<string, Activity>();
+  private activity = new ThreadActivity(
+    id => this.realtime?.has(id) || this.continuationChecks.has(id) ||
+      this.predictions?.activeThreads().includes(id) || [...this.prompts.values()].some(prompt => prompt.threadId === id),
+    id => {
+      this.historyStore.invalidate(id);
+      this.sessions.invalidate(id);
+      this.guardian?.invalidate(id);
+      this.predictions?.invalidate(id);
+    },
+  );
   private prompts = new Map<string, Prompt>();
   private terminals = new Map<string, Terminal>();
   private generations = new Map<string, number>();
@@ -80,12 +85,18 @@ export class RuntimeService extends EventEmitter {
   private deviceLogin: DeviceLogin;
   private predictions: Predictions;
   private configurationPending = false;
-  private workspaceWitness: WorkspaceWitness | undefined;
-  private workspacePending = new Set<Promise<JsonValue>>();
+  private workspace: RuntimeWorkspace;
   private sessions = new SessionSnapshots();
   private continuationChecks = new Map<string, Promise<void>>();
   constructor(readonly config: RuntimeConfig, readonly native: NativeRpc) {
-    super(); this.historyStore = new UnifiedHistory({ native: (method, params) => this.native.call(method, params), state: id => this.track(id), observe: (value, revision) => this.observeThread(value, revision), checkTurns: turns => this.checkHistory(turns), closed: () => this.closed }); this.attachments = new Attachments(config.workerHome, config.attachmentGid); this.redactor = new DiagnosticRedactor(config.env);
+    super();
+    this.workspace = new RuntimeWorkspace({
+      config, cwd: value => this.cwd(value), admit: () => this.admit(),
+      configure: (operation, context) => this.configurationMutation((_write, boundary) => operation(boundary), context),
+      pending: change => { this.pendingStarts += change; this.emitState(); },
+      uncertain: () => { this.unknown = true; },
+    });
+    this.historyStore = new UnifiedHistory({ native: (method, params) => this.native.call(method, params), state: id => this.track(id), observe: (value, revision) => this.observeThread(value, revision), checkTurns: turns => this.checkHistory(turns), closed: () => this.closed }); this.attachments = new Attachments(config.workerHome, config.attachmentGid); this.redactor = new DiagnosticRedactor(config.env);
     this.workflows = new Workflows({ native: (method, params, options) => this.native.call(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), call: (method, params, context) => this.call(method, params, context), prepare: (ids, threadId) => this.attachments.prepare(ids, threadId), describeInput: (input, threadId) => this.attachments.describeInput(input, threadId), contextInput: (cwd, references, extra, context, threadId) => this.inputContext.prepare(cwd, references, extra, context, threadId), checkHistory: turns => this.checkHistory(turns), cwd: value => this.cwd(value) });
     this.extensions = new Extensions({ native: (method, params, options) => this.native.call(method, params, options), configure: (operation, context) => this.configurationMutation(operation, context), cwd: value => this.cwd(value), redactor: this.redactor, notify: (method, params) => this.emitEvent('notification', { method, params }),
       resource: async (cwd, action, params) => {
@@ -114,7 +125,16 @@ export class RuntimeService extends EventEmitter {
     this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: (operation, context) => this.configurationMutation(operation, context, false), available: () => this.admit(undefined, false, true), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.deviceLogin = new DeviceLogin({ native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor });
     this.predictions = new Predictions({ native: (method, params) => this.native.call(method, params), mutate: (operation, context) => this.workflowMutation(operation, context), revision: threadId => this.track(threadId).revision, emit: (data, channel) => this.emitEvent('prediction', data, channel), changed: () => this.emitState(), unknown: () => { this.unknown = true; this.emitState(); } });
-    native.on('notification', (message: JsonObject) => this.notification(message));
+    native.on('notification', (message: JsonObject) => {
+      try { this.notification(message); }
+      catch (error) {
+        if (!(error instanceof DeliveryError) || error.code !== 'activity_capacity') throw error;
+        // An unsolicited native thread cannot be ignored when every retained
+        // slot describes live/uncertain work. Unlike read pressure, this is an
+        // actual loss of activity knowledge and must close execution admission.
+        this.unknown = true; this.emitState();
+      }
+    });
     native.on('request', (message: JsonObject) => { void this.serverRequest(message).catch(() => { this.unknown = true; this.emitState(); void this.native.close(); }); });
     native.on('fatal', () => {
       this.unknown = true; for (const item of this.activity.values()) if (item.pending || hasTurnActivity(item)) item.unknown = true;
@@ -148,9 +168,7 @@ export class RuntimeService extends EventEmitter {
   private ownerKey(clientId: string, eventChannelId?: string): string { return canonical([eventChannelId ?? null, clientId]); }
   private emitState(): void { this.emitEvent('state', this.status()); }
   private track(id: string): Activity {
-    let entry = this.activity.get(id);
-    if (!entry) { if (this.activity.size >= 2048) { this.unknown = true; this.emitState(); throw new DeliveryError('activity_unknown', 'Thread activity capacity exhausted'); } entry = { status: 'notLoaded', turnId: null, pending: false, unknown: false, revision: 0 }; this.activity.set(id, entry); }
-    return entry;
+    return this.activity.track(id);
   }
   private admit(threadId?: string, ownPending = false, ownConfiguration = false, ownCli = false): void {
     if (!this.native.connected || this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime unavailable');
@@ -241,8 +259,7 @@ export class RuntimeService extends EventEmitter {
     }
     if (workflowMethods.has(method)) return this.workflows.call(method, params, context);
     if (Object.hasOwn(extensionMethods, method)) return this.extensions.call(method, params, context);
-    if (method === 'workspace/witness/read') return this.witness().read(params);
-    if (method.startsWith('workspace/')) return this.workspace(method, params, context);
+    if (method.startsWith('workspace/')) return this.workspace.call(method, params, context);
     switch (method) {
       case 'automation/validate': {
         onlyKeys(params, ['cwd', 'options']); const cwd = this.cwd(params.cwd);
@@ -258,6 +275,14 @@ export class RuntimeService extends EventEmitter {
         } catch (error) { if (error instanceof DeliveryError) throw error; throw new DeliveryError('project_unavailable', 'Worker cannot access this project directory'); }
       }
       case 'runtime/status': return this.status();
+      case 'runtime/maintenance/check': {
+        onlyKeys(params, []);
+        this.assertIdle();
+        await this.remoteControl.assertDisabledForMaintenance();
+        this.assertIdle();
+        if (this.prompts.size || this.workspace.pending) throw new DeliveryError('activity_busy', 'Finish pending prompts and workspace operations before maintenance');
+        return { idle: true, epoch: this.epoch, workspaceWitness: this.workspace.usage() };
+      }
       case 'thread/session': onlyKeys(params, ['threadId']); return this.closed || !this.native.connected ? { requiresResume: true } : this.sessions.read(string(params.threadId, 'threadId'));
       case 'prompt/list': return { epoch: this.epoch, prompts: [...this.prompts.values()].map(prompt => this.publicPrompt(prompt)) };
       case 'prompt/answer': return this.answer(params, context);
@@ -284,7 +309,14 @@ export class RuntimeService extends EventEmitter {
         finally { this.pendingStarts--; this.emitState(); }
       }
       case 'thread/read': {
-        onlyKeys(params, ['threadId']); const threadId = string(params.threadId, 'threadId'); const revision = this.track(threadId).revision; const result = await this.native.call(method, { threadId }); if (object(object(result).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.observeThread(result, revision); return result;
+        onlyKeys(params, ['threadId']); const threadId = string(params.threadId, 'threadId');
+        return this.activity.read(threadId, async state => {
+          const revision = state.revision;
+          const result = await this.native.call(method, { threadId });
+          if (object(object(result).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch');
+          this.observeThread(result, revision);
+          return result;
+        });
       }
       case 'thread/list': return this.page(method, 'ThreadListParams', params, { sourceKinds: ['cli', 'vscode', 'appServer', 'exec'] }, ['cwd', 'archived', 'cursor', 'limit', 'searchTerm', 'sortKey', 'sortDirection']);
       case 'thread/history': return this.history(params, context);
@@ -350,7 +382,10 @@ export class RuntimeService extends EventEmitter {
     if (result.nextCursor !== null && result.nextCursor !== undefined) { string(result.nextCursor, 'nextCursor', LIMITS.cursorBytes, true); if (result.nextCursor === params.cursor) throw new DeliveryError('cursor_loop', 'Native pagination did not advance'); }
     return result;
   }
-  private history(params: JsonObject, context: CallContext): Promise<JsonValue> { return this.historyStore.read(params, context); }
+  private history(params: JsonObject, context: CallContext): Promise<JsonValue> {
+    const threadId = string(params.threadId, 'threadId');
+    return this.activity.read(threadId, () => this.historyStore.read(params, context));
+  }
   private checkHistory(turns: JsonValue[]): void { jsonBytes(turns, LIMITS.historyBytes); let items = 0; for (const turn of turns) { const value = object(turn); if (!Array.isArray(value.items) || value.itemsView !== 'full') throw new DeliveryError('invalid_native_response', 'History turn lacks full items'); items += value.items.length; } if (turns.length > 1000 || items > LIMITS.historyItems) throw new DeliveryError('capacity', 'History page exceeds item budget; narrow the requested page'); }
   private admitHistory(threadId: string, context: CallContext): void {
     if (this.track(threadId).fresh) return;
@@ -400,50 +435,18 @@ export class RuntimeService extends EventEmitter {
       if (accepted) throw new DeliveryError('invalid_native_response', 'Native organization change returned an invalid result', 'unknown'); throw error;
     } finally { for (const { state } of states) state.pending = false; this.pendingStarts--; if (operation.idle) this.configurationPending = false; this.emitState(); }
   }
-  private witness(): WorkspaceWitness { return this.workspaceWitness ??= new WorkspaceWitness(this.config.workerHome, this.config.nativeHome); }
-  private async workspace(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
-    if (!this.config.launcher) throw new DeliveryError('workspace_unsupported', 'Workspace tools require the native identity launcher');
-    const { cwd, ...request } = params; const action = method.slice('workspace/'.length); const root: WorkspaceRoot = { path: this.cwd(cwd) };
-    const worktree = action.startsWith('worktree/');
-    if (worktree && !this.config.nativeHome) throw new DeliveryError('worktree_unavailable', 'Native home is required for managed worktrees');
-    if (worktree && action !== 'worktree/create') root.worktreeBinding = this.witness().worktreeBinding(request.worktreeId, root.path);
-    if (!workspaceMutations.has(action)) {
-      const result = await runWorkspace(this.config, root, action, request, context); jsonBytes(result);
-      // Native recovery records can nest a worktree result. Private inode bindings
-      // never leave the supervisor, including through the operation/read route.
-      const publicValue = (value: JsonValue): JsonValue => Array.isArray(value) ? value.map(publicValue) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'binding').map(([key, item]) => [key, publicValue(item)])) : value;
-      return publicValue(result);
+  private assertIdle(own = false): void {
+    this.admit(undefined, false, own);
+    if (this.pendingStarts > (own ? 1 : 0) || this.predictions.activeThreads().length || this.defaultsPending ||
+        this.terminals.size || this.mcp.subscriptions || this.processes.active || this.realtime.activeThreads().length ||
+        [...this.activity.values()].some(state => hasTurnActivity(state) || state.pending || state.unknown ||
+          state.goalActive || state.queued || state.checkingContinuation)) {
+      throw new DeliveryError('activity_busy', 'Finish active work and terminals before changing configuration');
     }
-    if (!context.beforeWrite) throw new DeliveryError('operation_required', 'Workspace mutations require the durable operation boundary');
-    const execute = async (boundary: () => void): Promise<JsonValue> => {
-      let sent = false;
-      try {
-        const body = workspaceRequest(root, action, request, context); const witness = this.witness();
-        const result = await runWorkspace(this.config, root, action, request, { ...context, beforeWrite: () => { boundary(); witness.reserve(method, body, context); sent = true; } });
-        return witness.complete(method, body, result, context);
-      } catch (error) {
-        const failure = error instanceof DeliveryError ? error : new DeliveryError('workspace_witness', 'Workspace acknowledgement could not be confirmed', sent ? 'unknown' : 'not_sent');
-        if (failure.delivery === 'unknown') this.unknown = true; throw failure;
-      }
-    };
-    if (worktree || action === 'git/commit' || indexMutations.includes(action)) {
-      await Promise.allSettled([...this.workspacePending]);
-      return this.configurationMutation(async (_write, boundary) => {
-        const task = execute(boundary); this.workspacePending.add(task);
-        try { return await task; } finally { this.workspacePending.delete(task); }
-      }, context);
-    }
-    this.admit(); this.pendingStarts++; this.emitState();
-    const task = execute(() => { this.admit(); context.beforeWrite!(); }); this.workspacePending.add(task);
-    try { return await task; } finally { this.workspacePending.delete(task); this.pendingStarts--; this.emitState(); }
   }
   private async configurationMutation(operation: (write: (method: string, params: JsonValue, options?: NativeOptions) => Promise<JsonValue>, beforeWrite: () => void) => Promise<JsonValue>, context: CallContext, invalidate = true): Promise<JsonValue> {
     if (!context.beforeWrite) throw new DeliveryError('operation_required', 'Configuration changes require the durable operation boundary');
-    const idle = (own = false): void => {
-      this.admit(undefined, false, own);
-      if (this.pendingStarts > (own ? 1 : 0) || this.predictions.activeThreads().length || this.defaultsPending || this.terminals.size || this.mcp.subscriptions || this.processes.active || this.realtime.activeThreads().length || [...this.activity.values()].some(state => hasTurnActivity(state) || state.pending || state.unknown || state.goalActive || state.queued || state.checkingContinuation))
-        throw new DeliveryError('activity_busy', 'Finish active work and terminals before changing configuration');
-    };
+    const idle = (own = false): void => this.assertIdle(own);
     idle(); this.configurationPending = true; this.pendingStarts++; this.emitState(); let dispatched = false;
     try {
       const beforeWrite = (): void => { idle(true); context.beforeWrite!(); dispatched = true; };
@@ -644,8 +647,7 @@ export class RuntimeService extends EventEmitter {
     this.cliDiagnostics.reset();
     this.environments.reset(); this.remoteControl.reset();
     this.extensions.close(); this.deviceLogin.close();
-    this.closePromise = Promise.allSettled([this.native.close(), ...(this.defaultsProbe ? [this.defaultsProbe.close()] : []), Promise.allSettled([...this.workspacePending])]).then(results => {
-      this.workspaceWitness?.close();
+    this.closePromise = Promise.allSettled([this.native.close(), ...(this.defaultsProbe ? [this.defaultsProbe.close()] : []), this.workspace.close()]).then(results => {
       const errors = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map(result => result.reason as unknown);
       if (errors.length) throw new AggregateError(errors, 'Runtime process cleanup was not fully confirmed');
     });

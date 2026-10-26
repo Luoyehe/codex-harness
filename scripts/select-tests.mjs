@@ -70,9 +70,9 @@ export function selectTests(changed, available) {
     else if (name.startsWith('tests/runtime/') && !documentation.has(name)) add(name, domain('tests/runtime/'), 'runtime-fixture');
     else if (name === 'scripts/release-audit.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'release-scanner-and-dependent-gates');
     else if (name === 'scripts/select-tests.mjs') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'affected-test-selection-and-runner');
-    else if (name === 'scripts/run-tests.mjs') add(name, ['tests/tooling/run-tests.test.ts'], 'full-audit-gate');
+    else if (['scripts/run-tests.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/prepare-ci-native.test.ts'], 'test-execution-and-release-gates');
     else if (name === 'scripts/snapshot.mjs') add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/select-tests.test.ts'], 'source-snapshot-and-evidence-classification');
-    else if (name === '.github/workflows/affected.yml') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/release-audit.test.ts', ...domain('tests/deploy/')], 'ci-orchestration-and-deployment-identities');
+    else if (['.github/workflows/affected.yml', '.github/workflows/security.yml', '.github/workflows/compatibility.yml', 'scripts/compatibility-watch.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/compatibility-watch.test.ts', 'tests/tooling/release-audit.test.ts', ...domain('tests/deploy/')], 'ci-orchestration-and-deployment-identities');
     else if (name === '.gitignore' || name === '.gitattributes') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'source-inventory-policy');
     else if (documentation.has(name) || evidencePath(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-or-audit-evidence-only' });
     else plan.requiresFullAudit.push({ path: name, reason: 'unknown-change-mapping' });
@@ -143,10 +143,15 @@ export function runPythonTests(files, base = root) {
   const prerequisite = pythonPrerequisite();
   if (prerequisite.status !== 'ready') return { ...prerequisite, exitCode: prerequisite.status === 'skipped' ? 3 : 1, tests: files };
   if (!files.length) return { status: 'failed', exitCode: 1, reason: 'empty-python-selection', tests: [] };
-  const program = "import sys, unittest, importlib.util; suite=unittest.TestSuite(); loader=unittest.defaultTestLoader\nfor i,p in enumerate(sys.argv[1:]):\n spec=importlib.util.spec_from_file_location('selected_deploy_'+str(i),p); module=importlib.util.module_from_spec(spec); sys.modules[spec.name]=module; spec.loader.exec_module(module); selected=loader.loadTestsFromModule(module)\n if not selected.countTestCases(): raise RuntimeError('Selected Python file contains no tests: '+p)\n suite.addTests(selected)\ncount=suite.countTestCases(); result=unittest.TextTestRunner(verbosity=2).run(suite) if count else None; sys.exit(1 if result is None or not result.wasSuccessful() else 3 if result.skipped else 0)";
-  const child = spawnSync(prerequisite.binary, ['-B', '-c', program, ...files], { cwd: base, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }, stdio: 'inherit', shell: false, windowsHide: true });
+  const reports = path.join(base, '.work/test-results'); mkdirSync(reports, { recursive: true });
+  const output = path.join(mkdtempSync(path.join(reports, 'python-')), 'cases.json');
+  const child = spawnSync(prerequisite.binary, ['-B', path.join(root, 'scripts/python-tests.py'), output, ...files], { cwd: base, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }, stdio: 'inherit', shell: false, windowsHide: true });
   const code = child.status ?? 1;
-  return { status: code === 0 ? 'passed' : code === 3 ? 'skipped' : 'failed', exitCode: code === 0 ? 0 : code === 3 ? 3 : 1, tests: files };
+  try {
+    const report = JSON.parse(readFileSync(output, 'utf8'));
+    if (report.exitCode !== code || JSON.stringify(report.files) !== JSON.stringify(files) || !Array.isArray(report.cases) || !report.cases.length || new Set(report.cases.map(item => item.id)).size !== report.cases.length || files.some(file => !report.cases.some(item => item.file === file))) throw Error('Invalid per-case Python evidence');
+    return { status: code === 0 ? 'passed' : code === 3 ? 'skipped' : 'failed', exitCode: code === 0 ? 0 : code === 3 ? 3 : 1, tests: files, cases: report.cases };
+  } catch { return { status: 'failed', exitCode: 1, tests: files, reason: 'missing-or-invalid-python-evidence' }; }
 }
 
 export function runSelection(plan, group = 'all', base = root) {

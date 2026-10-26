@@ -83,7 +83,7 @@ class ControlSystem(System):
             suffix = fields[0][len(prefix):-len(".service")]
             # Instance names may contain '-': a broad main-* glob must never
             # stop main-other's services. Known transient suffixes end in a UUID.
-            if suffix in (*ROLES, "config-check") or re.fullmatch(r"(?:manage|fetch|install|tsc|web|gateway-check|worker-check|runtime-probe)-[0-9a-f]{32}", suffix):
+            if suffix in (*ROLES, "config-check") or re.fullmatch(r"(?:manage|fetch|install|tsc|web|gateway-check|worker-check|runtime-probe|sandbox)-[0-9a-f]{32}", suffix):
                 units.append(fields[0])
         return units
 

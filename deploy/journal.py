@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 from .common import DeployError, require
+from .journal_schema import validate_schema
 
 
 def recover_journal(path: Path, *, services_stopped: bool) -> dict:
@@ -22,21 +23,7 @@ def recover_journal(path: Path, *, services_stopped: bool) -> dict:
         db.enable_load_extension(False)
         db.execute("PRAGMA trusted_schema=OFF")
         db.execute("PRAGMA synchronous=FULL")
-        require(db.execute("PRAGMA user_version").fetchone()[0] == 0, "Unknown journal schema version", "corrupt_state")
-        objects = db.execute("SELECT type,name FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'").fetchall()
-        base_objects = {("table", "receipts"), ("table", "projects"), ("table", "metadata")}
-        has_retirements = ("table", "retired_operations") in objects
-        require(set(objects) == base_objects | ({("table", "retired_operations")} if has_retirements else set()),
-                "Unexpected journal schema objects", "corrupt_state")
-        expected = {
-            "receipts": ["id", "method", "scope", "digest", "state", "result", "error", "bytes", "created_at", "updated_at"],
-            "projects": ["id", "path", "name"], "metadata": ["key", "value"],
-        }
-        if has_retirements:
-            expected["retired_operations"] = ["id", "created_at"]
-        for table, columns in expected.items():
-            require([row[1] for row in db.execute("PRAGMA table_info(" + table + ")")] == columns,
-                    "Unknown journal columns", "corrupt_state")
+        has_retirements = validate_schema(db)
         require(db.execute("SELECT count(*) FROM receipts").fetchone()[0] <= 100_000, "Journal receipt budget exceeded", "budget")
         if has_retirements:
             require(db.execute("SELECT count(*) FROM retired_operations").fetchone()[0] <= 100_000,

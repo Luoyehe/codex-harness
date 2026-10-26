@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "4f187a52ce049bd65b07a97fe3f2137a18c379a4705547ab9610e98fb569b185",
+  "sourceFiles": 1834,
+  "baseCommit": "2672e97bfe1d088961ad6910c9b85ee86f726c5e",
+  "version": "2.0.1",
+  "approvedAt": "2026-10-26T09:12:32.802Z",
+  "userInstruction": "对比较中发现的所有问题进行修复和完善，包括重启恢复和 CI 问题。验证通过后再创建正式 Release，并更新120上的部署，保持服务运行。",
+  "auditWaiverInstruction": "本次修复之后就直接进入全量测试与发布，以及在120上进行生产环境部署吧，不用重新开始下三轮了。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "note": "Revalidated for the final comparison-fix source. This authorizes complete verification and is not a claim of three clean audit rounds."
+}

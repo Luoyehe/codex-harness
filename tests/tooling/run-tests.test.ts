@@ -106,3 +106,10 @@ test('a Python platform skip remains a nonzero coverage gap', () => {
   const root = fixture(); put(root, 'tests/deploy/test_example.py', "import unittest\nclass Check(unittest.TestCase):\n @unittest.skip('fixture platform is unavailable')\n def test_behavior(self): pass\n");
   expect(runPythonTests(['tests/deploy/test_example.py'], root)).toMatchObject({ status: 'skipped', exitCode: 3 });
 });
+
+test('Python class setup failures and skips preserve each collected case identity', () => {
+  for (const [raised, status, exitCode] of [["RuntimeError('broken fixture')", 'failed', 1], ["unittest.SkipTest('unavailable fixture')", 'skipped', 3]] as const) {
+    const root = fixture(); put(root, 'tests/deploy/test_example.py', `import unittest\nclass Check(unittest.TestCase):\n @classmethod\n def setUpClass(cls): raise ${raised}\n def test_behavior(self): pass\n`);
+    expect(runPythonTests(['tests/deploy/test_example.py'], root)).toMatchObject({ status, exitCode, cases: [{ id: 'tests/deploy/test_example.py::Check.test_behavior', status }] });
+  }
+});

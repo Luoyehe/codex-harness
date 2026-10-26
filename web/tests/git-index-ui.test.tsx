@@ -1,18 +1,274 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'; import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { Api } from '../lib/api'; import { WorkspaceIndex } from '../components/WorkspaceIndex'; import { WorkspaceIndexRecovery } from '../components/WorkspaceIndexRecovery'; import { createOperation, listOperations, updateOperation } from '../lib/operations';
-const project={id:'project',name:'Project',cwd:'/project'}, a='a'.repeat(64),b='b'.repeat(64),c='c'.repeat(64),source='11111111-1111-4111-8111-111111111111'; const state={head:'a'.repeat(40),symbolicTarget:'refs/heads/main',headRevision:a,indexRevision:b};
-const entries=[{path:'changed.txt',index:' ',worktree:'M'}]; const record={operationId:source,state:'completed',phase:'published',manifest:a,discardAllowed:true,entries:[{slot:'before',revision:c,bytes:0,absent:true}]}; type Call={method:string;params:Record<string,unknown>;operationId?:string};
-function setup(handler:(call:Call)=>unknown=()=>undefined){const api=new Api(),calls:Call[]=[];vi.stubGlobal('fetch',vi.fn().mockImplementation(async(_url,init)=>{const call:Call=JSON.parse(init.body);calls.push(call);const result=await handler(call)??(call.method==='workspace/git/status'?{complete:true,entries,commitState:state}:call.method==='workspace/git/diff'?{text:'+new',staged:call.params.staged,complete:true}:call.method==='workspace/metadata'?{path:call.params.path,kind:'file',bytes:4,revision:c}:call.method==='workspace/git/index/recovery/list'?{records:[record],complete:true,retainedLimit:64}:call.method==='workspace/git/index/recovery/read'?record:{});return {ok:true,status:200,json:async()=>result&&typeof result==='object'&&'fault'in result?{ok:false,error:result.fault}:{ok:true,result}};}));return{api,calls};}
-const props=(api:Api)=>({api,project,epoch:'one',enabled:true,onChanged:vi.fn(),onFile:vi.fn(),entries}); const recovery=(api:Api)=>({...props(api),connected:true});
-async function select(){fireEvent.click(screen.getByRole('checkbox',{name:'选择 changed.txt'}));fireEvent.click(screen.getByRole('button',{name:'核对并暂存所选文件'}));await screen.findByRole('button',{name:'确认暂存所选版本'});}
-async function selectBackup(){fireEvent.click(screen.getByText('恢复或清理 Git 索引备份',{selector:'summary'}));await screen.findByRole('option',{name:new RegExp(source)});fireEvent.change(screen.getByRole('combobox',{name:'索引备份操作'}),{target:{value:source}});await screen.findByText(/原先没有索引/,{selector:'p'});}
-beforeEach(()=>{sessionStorage.clear();localStorage.clear();});afterEach(()=>{cleanup();vi.unstubAllGlobals();});
-it('stages only explicit selected file versions bound to the inspected HEAD and index',async()=>{const {api,calls}=setup();render(<WorkspaceIndex {...props(api)}/>);await select();expect(calls.some(c=>c.method==='workspace/git/stage')).toBe(false);fireEvent.click(screen.getByRole('checkbox',{name:/确认以上路径与版本/}));fireEvent.click(screen.getByRole('button',{name:'确认暂存所选版本'}));await waitFor(()=>expect(calls.find(c=>c.method==='workspace/git/stage')?.params).toEqual({projectId:'project',expectedHead:state.head,expectedHeadRevision:a,expectedIndexRevision:b,files:[{path:'changed.txt',expectedRevision:c,deleted:false}]}));expect(calls.filter(c=>c.operationId)).toHaveLength(1);});
-it('includes both explicit rename paths and only marks a deletion after exact not_found',async()=>{const rename={path:'new.txt',originalPath:'old.txt',index:'R',worktree:'M'};const {api,calls}=setup(call=>call.method==='workspace/git/status'?{complete:true,entries:[rename],commitState:state}:call.method==='workspace/metadata'&&call.params.path==='old.txt'?{fault:{code:'not_found',message:'gone',delivery:'not_sent'}}:undefined);render(<WorkspaceIndex {...props(api)} entries={[rename]}/>);fireEvent.click(screen.getByRole('checkbox',{name:'选择 new.txt'}));fireEvent.click(screen.getByRole('button',{name:'核对并暂存所选文件'}));await screen.findByText(/old.txt · 暂存删除/);fireEvent.click(screen.getByRole('checkbox',{name:/确认以上路径与版本/}));fireEvent.click(screen.getByRole('button',{name:'确认暂存所选版本'}));await waitFor(()=>expect(calls.find(c=>c.method==='workspace/git/stage')?.params.files).toEqual([{path:'old.txt',expectedRevision:null,deleted:true},{path:'new.txt',expectedRevision:c,deleted:false}]));});
-it('does not infer deletions from metadata failures or use a changed index preview',async()=>{const first=setup(call=>call.method==='workspace/metadata'?{fault:{code:'workspace_error',message:'cannot inspect',delivery:'not_sent'}}:undefined);const view=render(<WorkspaceIndex {...props(first.api)}/>);fireEvent.click(screen.getByRole('checkbox',{name:'选择 changed.txt'}));fireEvent.click(screen.getByRole('button',{name:'核对并暂存所选文件'}));await screen.findByText('cannot inspect');expect(screen.queryByRole('button',{name:'确认暂存所选版本'})).toBeNull();view.unmount();let reads=0;const second=setup(call=>call.method==='workspace/git/status'?{complete:true,entries,commitState:{...state,indexRevision:++reads===1?b:c}}:undefined);render(<WorkspaceIndex {...props(second.api)}/>);fireEvent.click(screen.getByRole('checkbox',{name:'选择 changed.txt'}));fireEvent.click(screen.getByRole('button',{name:'核对并暂存所选文件'}));await screen.findByText(/索引已变化/);expect(second.calls.some(c=>c.operationId)).toBe(false);});
-it('unstages selected paths without reading or changing working-tree file bytes',async()=>{const staged=[{...entries[0]!,index:'M',worktree:' '}];const {api,calls}=setup(call=>call.method==='workspace/git/status'?{complete:true,entries:staged,commitState:state}:undefined);render(<WorkspaceIndex {...props(api)} entries={staged}/>);fireEvent.click(screen.getByRole('checkbox',{name:'选择 changed.txt'}));fireEvent.click(screen.getByRole('button',{name:'核对并取消暂存'}));await screen.findByRole('button',{name:'确认取消所选暂存'});fireEvent.click(screen.getByRole('checkbox',{name:/确认以上路径与版本/}));fireEvent.click(screen.getByRole('button',{name:'确认取消所选暂存'}));await waitFor(()=>expect(calls.find(c=>c.method==='workspace/git/unstage')?.params).toEqual({projectId:'project',expectedHead:state.head,expectedHeadRevision:a,expectedIndexRevision:b,paths:['changed.txt']}));expect(calls.some(c=>c.method==='workspace/metadata'||c.method==='workspace/write')).toBe(false);});
-it('recovers unknown staging only by querying the original receipt',async()=>{let id='';const {api,calls}=setup(call=>{if(call.method==='workspace/git/stage'){id=call.operationId!;throw new Error('response lost');}if(call.method==='operation/read')return{operationId:id,method:'workspace/git/stage',state:'accepted',result:{indexRevision:c}};});render(<WorkspaceIndex {...props(api)}/>);await select();fireEvent.click(screen.getByRole('checkbox',{name:/确认以上路径与版本/}));fireEvent.click(screen.getByRole('button',{name:'确认暂存所选版本'}));fireEvent.click(await screen.findByRole('button',{name:'查询原暂存操作回执'}));await waitFor(()=>expect(listOperations().find(op=>op.id===id)?.state).toBe('accepted'));expect(calls.filter(call=>call.method==='workspace/git/stage')).toHaveLength(1);});
-it('restores the selected whole-index slot only after binding current HEAD and index',async()=>{const {api,calls}=setup();render(<WorkspaceIndexRecovery {...recovery(api)}/>);await selectBackup();expect((screen.getByRole('button',{name:'恢复整个暂存区'})as HTMLButtonElement).disabled).toBe(true);fireEvent.click(screen.getByRole('button',{name:'核对将被替换的当前暂存区'}));await screen.findByRole('checkbox',{name:/确认用所选备份替换整个暂存区/});fireEvent.click(screen.getByRole('checkbox',{name:/确认用所选备份替换整个暂存区/}));fireEvent.click(screen.getByRole('button',{name:'恢复整个暂存区'}));await waitFor(()=>expect(calls.find(call=>call.method==='workspace/git/index/recovery/restore')?.params).toEqual({projectId:'project',expectedHead:state.head,expectedHeadRevision:a,expectedIndexRevision:b,recoveryOperationId:source,slot:'before',sourceRevision:c}));});
-it('does not turn backup-local completed into global accepted and binds discard to manifest',async()=>{const op=createOperation('workspace/git/stage',{projectId:'project'});updateOperation(op.id,'unknown');const first=setup();const view=render(<WorkspaceIndexRecovery {...recovery(first.api)}/>);await selectBackup();expect(listOperations().find(saved=>saved.id===op.id)?.state).toBe('unknown');expect(first.calls.some(call=>call.method==='operation/read')).toBe(false);view.unmount();localStorage.clear();const second=setup();render(<WorkspaceIndexRecovery {...recovery(second.api)}/>);await selectBackup();fireEvent.click(screen.getByRole('checkbox',{name:/确认永久清理/}));fireEvent.click(screen.getByRole('button',{name:'清理所选索引备份'}));await waitFor(()=>expect(second.calls.find(call=>call.method==='workspace/git/index/recovery/discard')?.params).toEqual({projectId:'project',recoveryOperationId:source,expectedManifest:a,confirm:true}));});
-it('does not discard failed records or permit index mutations while the runtime is busy',async()=>{const {api,calls}=setup(call=>call.method==='workspace/git/index/recovery/read'?{...record,state:'failed',discardAllowed:false}:undefined);render(<WorkspaceIndexRecovery {...recovery(api)} enabled={false}/>);await selectBackup();fireEvent.click(screen.getByRole('checkbox',{name:/确认永久清理/}));expect((screen.getByRole('button',{name:'清理所选索引备份'})as HTMLButtonElement).disabled).toBe(true);expect((screen.getByRole('button',{name:'核对将被替换的当前暂存区'})as HTMLButtonElement).disabled).toBe(true);expect(calls.some(call=>call.operationId)).toBe(false);});
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { Api } from '../lib/api';
+import { WorkspaceIndex } from '../components/WorkspaceIndex';
+import { WorkspaceIndexRecovery } from '../components/WorkspaceIndexRecovery';
+import { createOperation, listOperations, updateOperation } from '../lib/operations';
+const project = { id: 'project', name: 'Project', cwd: '/project' },
+  a = 'a'.repeat(64),
+  b = 'b'.repeat(64),
+  c = 'c'.repeat(64),
+  source = '11111111-1111-4111-8111-111111111111';
+const state = {
+  head: 'a'.repeat(40),
+  symbolicTarget: 'refs/heads/main',
+  headRevision: a,
+  indexRevision: b,
+};
+const entries = [{ path: 'changed.txt', index: ' ', worktree: 'M' }];
+const record = {
+  operationId: source,
+  state: 'completed',
+  phase: 'published',
+  manifest: a,
+  discardAllowed: true,
+  entries: [{ slot: 'before', revision: c, bytes: 0, absent: true }],
+};
+type Call = { method: string; params: Record<string, unknown>; operationId?: string };
+function setup(handler: (call: Call) => unknown = () => undefined) {
+  const api = new Api(),
+    calls: Call[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation(async (_url, init) => {
+      const call: Call = JSON.parse(init.body);
+      calls.push(call);
+      const result =
+        (await handler(call)) ??
+        (call.method === 'workspace/git/status'
+          ? { complete: true, entries, commitState: state }
+          : call.method === 'workspace/git/diff'
+            ? { text: '+new', staged: call.params.staged, complete: true }
+            : call.method === 'workspace/metadata'
+              ? { path: call.params.path, kind: 'file', bytes: 4, revision: c }
+              : call.method === 'workspace/git/index/recovery/list'
+                ? { records: [record], complete: true, retainedLimit: 64 }
+                : call.method === 'workspace/git/index/recovery/read'
+                  ? record
+                  : {});
+      return {
+        ok: true,
+        status: 200,
+        json: async () =>
+          result && typeof result === 'object' && 'fault' in result
+            ? { ok: false, error: result.fault }
+            : { ok: true, result },
+      };
+    }),
+  );
+  return { api, calls };
+}
+const props = (api: Api) => ({
+  api,
+  project,
+  epoch: 'one',
+  enabled: true,
+  onChanged: vi.fn(),
+  onFile: vi.fn(),
+  entries,
+});
+const recovery = (api: Api) => ({ ...props(api), connected: true });
+async function select() {
+  fireEvent.click(screen.getByRole('checkbox', { name: '选择 changed.txt' }));
+  fireEvent.click(screen.getByRole('button', { name: '核对并暂存所选文件' }));
+  await screen.findByRole('button', { name: '确认暂存所选版本' });
+}
+async function selectBackup() {
+  fireEvent.click(screen.getByText('恢复或清理 Git 索引备份', { selector: 'summary' }));
+  await screen.findByRole('option', { name: new RegExp(source) });
+  fireEvent.change(screen.getByRole('combobox', { name: '索引备份操作' }), {
+    target: { value: source },
+  });
+  await screen.findByText(/原先没有索引/, { selector: 'p' });
+}
+beforeEach(() => {
+  sessionStorage.clear();
+  localStorage.clear();
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+it('stages only explicit selected file versions bound to the inspected HEAD and index', async () => {
+  const { api, calls } = setup();
+  render(<WorkspaceIndex {...props(api)} />);
+  await select();
+  expect(calls.some((c) => c.method === 'workspace/git/stage')).toBe(false);
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认以上路径与版本/ }));
+  fireEvent.click(screen.getByRole('button', { name: '确认暂存所选版本' }));
+  await waitFor(() =>
+    expect(calls.find((c) => c.method === 'workspace/git/stage')?.params).toEqual({
+      projectId: 'project',
+      expectedHead: state.head,
+      expectedHeadRevision: a,
+      expectedIndexRevision: b,
+      files: [{ path: 'changed.txt', expectedRevision: c, deleted: false }],
+    }),
+  );
+  expect(calls.filter((c) => c.operationId)).toHaveLength(1);
+});
+it('includes both explicit rename paths and only marks a deletion after exact not_found', async () => {
+  const rename = { path: 'new.txt', originalPath: 'old.txt', index: 'R', worktree: 'M' };
+  const { api, calls } = setup((call) =>
+    call.method === 'workspace/git/status'
+      ? { complete: true, entries: [rename], commitState: state }
+      : call.method === 'workspace/metadata' && call.params.path === 'old.txt'
+        ? { fault: { code: 'not_found', message: 'gone', delivery: 'not_sent' } }
+        : undefined,
+  );
+  render(<WorkspaceIndex {...props(api)} entries={[rename]} />);
+  fireEvent.click(screen.getByRole('checkbox', { name: '选择 new.txt' }));
+  fireEvent.click(screen.getByRole('button', { name: '核对并暂存所选文件' }));
+  await screen.findByText(/old.txt · 暂存删除/);
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认以上路径与版本/ }));
+  fireEvent.click(screen.getByRole('button', { name: '确认暂存所选版本' }));
+  await waitFor(() =>
+    expect(calls.find((c) => c.method === 'workspace/git/stage')?.params.files).toEqual([
+      { path: 'old.txt', expectedRevision: null, deleted: true },
+      { path: 'new.txt', expectedRevision: c, deleted: false },
+    ]),
+  );
+});
+it('does not infer deletions from metadata failures or use a changed index preview', async () => {
+  const first = setup((call) =>
+    call.method === 'workspace/metadata'
+      ? { fault: { code: 'workspace_error', message: 'cannot inspect', delivery: 'not_sent' } }
+      : undefined,
+  );
+  const view = render(<WorkspaceIndex {...props(first.api)} />);
+  fireEvent.click(screen.getByRole('checkbox', { name: '选择 changed.txt' }));
+  fireEvent.click(screen.getByRole('button', { name: '核对并暂存所选文件' }));
+  await screen.findByText('cannot inspect');
+  expect(screen.queryByRole('button', { name: '确认暂存所选版本' })).toBeNull();
+  view.unmount();
+  let reads = 0;
+  const second = setup((call) =>
+    call.method === 'workspace/git/status'
+      ? { complete: true, entries, commitState: { ...state, indexRevision: ++reads === 1 ? b : c } }
+      : undefined,
+  );
+  render(<WorkspaceIndex {...props(second.api)} />);
+  fireEvent.click(screen.getByRole('checkbox', { name: '选择 changed.txt' }));
+  fireEvent.click(screen.getByRole('button', { name: '核对并暂存所选文件' }));
+  await screen.findByText(/索引已变化/);
+  expect(second.calls.some((c) => c.operationId)).toBe(false);
+});
+it('unstages selected paths without reading or changing working-tree file bytes', async () => {
+  const staged = [{ ...entries[0]!, index: 'M', worktree: ' ' }];
+  const { api, calls } = setup((call) =>
+    call.method === 'workspace/git/status'
+      ? { complete: true, entries: staged, commitState: state }
+      : undefined,
+  );
+  render(<WorkspaceIndex {...props(api)} entries={staged} />);
+  fireEvent.click(screen.getByRole('checkbox', { name: '选择 changed.txt' }));
+  fireEvent.click(screen.getByRole('button', { name: '核对并取消暂存' }));
+  await screen.findByRole('button', { name: '确认取消所选暂存' });
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认以上路径与版本/ }));
+  fireEvent.click(screen.getByRole('button', { name: '确认取消所选暂存' }));
+  await waitFor(() =>
+    expect(calls.find((c) => c.method === 'workspace/git/unstage')?.params).toEqual({
+      projectId: 'project',
+      expectedHead: state.head,
+      expectedHeadRevision: a,
+      expectedIndexRevision: b,
+      paths: ['changed.txt'],
+    }),
+  );
+  expect(
+    calls.some((c) => c.method === 'workspace/metadata' || c.method === 'workspace/write'),
+  ).toBe(false);
+});
+it('recovers unknown staging only by querying the original receipt', async () => {
+  let id = '';
+  const { api, calls } = setup((call) => {
+    if (call.method === 'workspace/git/stage') {
+      id = call.operationId!;
+      throw new Error('response lost');
+    }
+    if (call.method === 'operation/read')
+      return {
+        operationId: id,
+        method: 'workspace/git/stage',
+        state: 'accepted',
+        result: { indexRevision: c },
+      };
+  });
+  render(<WorkspaceIndex {...props(api)} />);
+  await select();
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认以上路径与版本/ }));
+  fireEvent.click(screen.getByRole('button', { name: '确认暂存所选版本' }));
+  fireEvent.click(await screen.findByRole('button', { name: '查询原暂存操作回执' }));
+  await waitFor(() => expect(listOperations().find((op) => op.id === id)?.state).toBe('accepted'));
+  expect(calls.filter((call) => call.method === 'workspace/git/stage')).toHaveLength(1);
+});
+it('restores the selected whole-index slot only after binding current HEAD and index', async () => {
+  const { api, calls } = setup();
+  render(<WorkspaceIndexRecovery {...recovery(api)} />);
+  await selectBackup();
+  expect(
+    (screen.getByRole('button', { name: '恢复整个暂存区' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: '核对将被替换的当前暂存区' }));
+  await screen.findByRole('checkbox', { name: /确认用所选备份替换整个暂存区/ });
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认用所选备份替换整个暂存区/ }));
+  fireEvent.click(screen.getByRole('button', { name: '恢复整个暂存区' }));
+  await waitFor(() =>
+    expect(
+      calls.find((call) => call.method === 'workspace/git/index/recovery/restore')?.params,
+    ).toEqual({
+      projectId: 'project',
+      expectedHead: state.head,
+      expectedHeadRevision: a,
+      expectedIndexRevision: b,
+      recoveryOperationId: source,
+      slot: 'before',
+      sourceRevision: c,
+    }),
+  );
+});
+it('does not turn backup-local completed into global accepted and binds discard to manifest', async () => {
+  const op = createOperation('workspace/git/stage', { projectId: 'project' });
+  updateOperation(op.id, 'unknown');
+  const first = setup();
+  const view = render(<WorkspaceIndexRecovery {...recovery(first.api)} />);
+  await selectBackup();
+  expect(listOperations().find((saved) => saved.id === op.id)?.state).toBe('unknown');
+  expect(first.calls.some((call) => call.method === 'operation/read')).toBe(false);
+  view.unmount();
+  localStorage.clear();
+  const second = setup();
+  render(<WorkspaceIndexRecovery {...recovery(second.api)} />);
+  await selectBackup();
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认永久清理/ }));
+  fireEvent.click(screen.getByRole('button', { name: '清理所选索引备份' }));
+  await waitFor(() =>
+    expect(
+      second.calls.find((call) => call.method === 'workspace/git/index/recovery/discard')?.params,
+    ).toEqual({
+      projectId: 'project',
+      recoveryOperationId: source,
+      expectedManifest: a,
+      confirm: true,
+    }),
+  );
+});
+it('does not discard failed records or permit index mutations while the runtime is busy', async () => {
+  const { api, calls } = setup((call) =>
+    call.method === 'workspace/git/index/recovery/read'
+      ? { ...record, state: 'failed', discardAllowed: false }
+      : undefined,
+  );
+  render(<WorkspaceIndexRecovery {...recovery(api)} enabled={false} />);
+  await selectBackup();
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认永久清理/ }));
+  expect(
+    (screen.getByRole('button', { name: '清理所选索引备份' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  expect(
+    (screen.getByRole('button', { name: '核对将被替换的当前暂存区' }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+  expect(calls.some((call) => call.operationId)).toBe(false);
+});
