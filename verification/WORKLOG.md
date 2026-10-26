@@ -1,6 +1,6 @@
 # 独立重写执行记录
 
-全量测试检查点（2026-10-26，v2.0.1）：源码摘要 `aaf648ede72d410cbebd6b66e11020024d7affc4f82d1cbe47929fa05f734803` 已通过 Windows、Linux 普通身份与 Linux root 的全量逐用例核对，共 **167 个测试文件、1,465 个独立用例，零失败、零覆盖缺口**。后续 CI 归档解压兼容性修复已改变源码摘要，本份全量结果不自动覆盖之后的新快照。最终 GitHub Actions 验收和 120 上的 v2.0.1 部署收尾另行记录，此处不声明正式发布完成。详见文末 v2.0.1 记录及[全量摘要](audit-evidence/v201-release/full-summary.json)。下方各阶段的“尚未全测”“CI 未运行”“正在完成”等表述保留其当时日期和源码范围，不代表当前总状态。
+发布验收完成（2026-10-26，v2.0.1）：提交 `0466fb96a7b389e3631c060572cd0761db213f6d`、源码摘要 `4ad01fbc1f966f25e9bfa6ede3c03ceefa1ef60d316dc256d9fca951e13cc289` 已通过 GitHub 托管 Windows、Linux 普通身份与 Linux root 的完整逐用例核对，共 **170 个测试文件、1,478 个独立用例，零覆盖缺口**。平台跳过保留原始状态，由适用平台的同一用例补足。安全检查通过；当前源码的 8 条 CodeQL 告警另有逐条人工复核，不声称零告警。120 已部署本次源码并实际重启，重启前后分别通过 22/24 项 HTTPS 验收，四项服务均保持运行及开机启动。详见[托管 CI 证据](audit-evidence/v201-release/hosted-ci.json)、[部署证据](audit-evidence/v201-release/deployment.json)和 [CodeQL 复核](audit-evidence/v201-release/codeql-review.json)。下方各阶段及[早期本地全量摘要](audit-evidence/v201-release/full-summary.json)保留其当时日期和源码范围，不代表当前总状态。
 
 ## 范围
 

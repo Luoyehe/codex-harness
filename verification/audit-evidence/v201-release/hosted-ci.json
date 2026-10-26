@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "version": "2.0.1",
+  "status": "passed",
+  "checkedAt": "2026-10-26T10:52:31.659Z",
+  "head": "0466fb96a7b389e3631c060572cd0761db213f6d",
+  "sourceDigest": "4ad01fbc1f966f25e9bfa6ede3c03ceefa1ef60d316dc256d9fca951e13cc289",
+  "sourceFiles": 1841,
+  "testFiles": 170,
+  "uniqueCases": 1478,
+  "coverageGaps": [],
+  "originalPlatformSkipsRetained": true,
+  "full": {
+    "id": 40309851137,
+    "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40309851137",
+    "event": "workflow_dispatch",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 121528125102,
+        "name": "plan",
+        "conclusion": "success",
+        "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40309851137/job/121528125102"
+      },
+      {
+        "id": 121528340831,
+        "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+        "conclusion": "success",
+        "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40309851137/job/121528340831"
+      },
+      {
+        "id": 121528340929,
+        "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+        "conclusion": "success",
+        "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40309851137/job/121528340929"
+      },
+      {
+        "id": 121528341065,
+        "name": "root_deploy",
+        "conclusion": "success",
+        "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40309851137/job/121528341065"
+      },
+      {
+        "id": 121529926313,
+        "name": "Verified case coverage",
+        "conclusion": "success",
+        "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40309851137/job/121529926313"
+      }
+    ]
+  },
+  "coverage": {
+    "status": "passed",
+    "sourceDigest": "4ad01fbc1f966f25e9bfa6ede3c03ceefa1ef60d316dc256d9fca951e13cc289",
+    "head": "0466fb96a7b389e3631c060572cd0761db213f6d",
+    "files": 170,
+    "cases": 1478,
+    "coverageGaps": [],
+    "note": "All observed cases passed on an appropriate platform; individual skips remain recorded.",
+    "logSha256": "03cb1dab5851c722fb421d58a4844038066b50c674c3b86562ec43a1592d72a0",
+    "jobUrl": "https://github.com/Luoyehe/codex-harness/actions/runs/40309851137/job/121529926313"
+  },
+  "artifacts": [
+    {
+      "id": 12644995675,
+      "name": "windows-controller-preflight",
+      "digest": "sha256:3e2e3b3c25b559b8ba47c8c8ec8b0b95e4b776aa9d52931e0e170eaa19b22d99",
+      "bytes": 1950
+    },
+    {
+      "id": 12644845277,
+      "name": "ci-plan",
+      "digest": "sha256:c0181238b91d4aac3fd0dc7e6caa20318991b5cfe4bcae3c8456f44d1a86bf7c",
+      "bytes": 11675
+    },
+    {
+      "id": 12644791389,
+      "name": "cases-linux",
+      "digest": "sha256:ccb2484e30806b6d20e1022e7f5a8e1b82c81aa7a73705e9a6ce72a567d44f81",
+      "bytes": 88935
+    },
+    {
+      "id": 12644605734,
+      "name": "source-security",
+      "digest": "sha256:139d4bdd0ba768f1bd933cca18b9bd94b8d3f203b87f773985bdf7cad712b345",
+      "bytes": 2631
+    },
+    {
+      "id": 12644546745,
+      "name": "cases-windows",
+      "digest": "sha256:a86d7ee06e766f4602bd4dcc36e80033be1a067179c9198e5b521a299e33db6b",
+      "bytes": 89474
+    },
+    {
+      "id": 12644202862,
+      "name": "verified-coverage",
+      "digest": "sha256:1d2fbbe99cba4bd77692ba522e088d86199d5f20a66ce62410b8b0aa4924185a",
+      "bytes": 370
+    },
+    {
+      "id": 12643881812,
+      "name": "cases-linux-root",
+      "digest": "sha256:ba7ee5a5d820c7fb8ce2bbb5e7f130192118a3a8af06a71a1d40999ab794366d",
+      "bytes": 3274
+    }
+  ],
+  "security": {
+    "id": 40309786138,
+    "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40309786138",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "codeql (javascript-typescript)",
+        "conclusion": "success"
+      },
+      {
+        "name": "dependencies",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeql (python)",
+        "conclusion": "success"
+      }
+    ],
+    "currentCodeqlAlertsReviewed": 8,
+    "alertFiles": [
+      {
+        "number": 5,
+        "path": "deploy/native_launcher.py",
+        "sha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff",
+        "reviewedSha256": "b3660ae60a03a1880640fe7fa2151de229add4aa8a7680611ae59e6f06d1edff"
+      },
+      {
+        "number": 6,
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "reviewedSha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      {
+        "number": 7,
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+        "reviewedSha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+      },
+      {
+        "number": 8,
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+        "reviewedSha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+      },
+      {
+        "number": 9,
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+        "reviewedSha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+      },
+      {
+        "number": 10,
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+        "reviewedSha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+      },
+      {
+        "number": 11,
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "26f7102b6d666506cc1f8a0c287630e31516411d1b53bbf2d80725e9e3c55149",
+        "reviewedSha256": "26f7102b6d666506cc1f8a0c287630e31516411d1b53bbf2d80725e9e3c55149"
+      },
+      {
+        "number": 12,
+        "path": "src/runtime/service.ts",
+        "sha256": "6bc7a74ec0a8f6166b8618688c65928ed2d4baf59040e6a33710d75c9db9abba",
+        "reviewedSha256": "6bc7a74ec0a8f6166b8618688c65928ed2d4baf59040e6a33710d75c9db9abba"
+      }
+    ],
+    "review": "codeql-review.json",
+    "note": "Successful CodeQL execution is not a zero-alert claim. Eight alerts were manually reviewed; no remote alerts were dismissed or broadly suppressed."
+  },
+  "limits": [
+    "Official pinned CLI uses isolated loopback protocol fixtures; no commercial model inference or external MCP task.",
+    "Public DNS, ACME and external firewall traversal were not exercised."
+  ]
+}
