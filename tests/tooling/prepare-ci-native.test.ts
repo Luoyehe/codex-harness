@@ -41,7 +41,7 @@ test('extracts a real archive from its native working directory without passing 
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
-test('archive integrity failure prevents extraction and writing the CI environment', () => {
+test.skipIf(!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64')('archive integrity failure prevents extraction and writing the CI environment', () => {
   const pin = packages.find(value => value.platform === process.platform)!;
   const directory = mkdtempSync(path.join(os.tmpdir(), 'ci native invalid archive-'));
   try {

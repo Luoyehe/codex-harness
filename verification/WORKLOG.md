@@ -1,5 +1,7 @@
 # 独立重写执行记录
 
+当前检查点（2026-10-26，v2.0.1）：冻结源码已通过 Windows、Linux 普通身份与 Linux root 的全量逐用例核对，共 **167 个测试文件、1,465 个独立用例，零失败、零覆盖缺口**。最终 GitHub Actions 验收和 120 上的 v2.0.1 部署仍在进行，尚不在此声明正式发布完成。详见文末 v2.0.1 记录及[全量摘要](audit-evidence/v201-release/full-summary.json)。下方各阶段的“尚未全测”“CI 未运行”“正在完成”等表述保留其当时日期和源码范围，不代表当前总状态。
+
 ## 范围
 
 2026-10-25 用户授权整个程序重写，只参考历史问题，不参考旧源码。旧开发快照已保存为 Git 提交 `fe54926eec22faf370a70a6ed853dd1d75ec0de6`，归档分支与 `archive/pre-rewrite-20261025` 标签已推送 GitHub，旧稳定分支未改动。本地另有源码 ZIP、完整 Git bundle、校验清单。归档未经最终验收，具体限制见该标签的 ARCHIVE-STATUS.md。使用仓库专用 SSH Deploy key 推送，因此没有冒称已创建 GitHub Release 说明页。
@@ -191,3 +193,17 @@ Frozen source `96cde170ad50eb50753feb3229881ce609f6d3328691ffee5c479105803963d1`
 The reviewed control update, provider-layer migration and application update completed for `crtest-rw-20261025` on 120. Native user configuration was preserved. Release `57434193056c8166dc4786f3686564ae7ee0cff0566a5fb7d63be81bb24047a8` contains v2.0.0 with Codex 0.164.0. Verification checked 20131 files plus permissions and managed units. Twenty-two real internal-CA HTTPS checks passed, including edge-to-gateway WebSocket, double authentication, file/Git helpers, bundled CLI diagnostics, attachment replay and native PTY disconnect cleanup. Four services remain active and enabled; the worker is connected and idle with no pending transaction.
 
 [Deployment evidence](audit-evidence/v2-release/deployment.json) retains exact results. Browser visual acceptance is separately pending user handling of the internal-CA warning. Real commercial providers, public DNS/ACME and external firewall access were not exercised. GitHub publication is recorded separately.
+
+### 2026-10-26 — v2.0.1 全量平台验证完成
+
+第三次完整验证绑定源码摘要 `aaf648ede72d410cbebd6b66e11020024d7affc4f82d1cbe47929fa05f734803`，测试时提交为 `a3ec164b7c4c0aaf1f91b535ba4799e7a0fe2fb1`。三个平台报告的执行前后摘要一致；授权覆盖 1,836 个源码文件。本次采用用户明确要求的直接收尾授权，不把历史修复或授权记录算作新的三轮无问题审计。
+
+| 验证身份 | 测试文件 | 通过观测 | 原始跳过 | 原始退出码 |
+| --- | ---: | ---: | ---: | ---: |
+| Windows | 158 | 1,299 | 93 | 3 |
+| Linux 普通身份 | 158 | 1,378 | 14 | 3 |
+| Linux root 夹具 | 9 | 73 | 0 | 0 |
+
+合并后共 **167 个文件、1,465 个独立用例**；2,857 是跨平台观测次数，不作为独立用例数。107 次跳过都在同一源码的适用平台上找到完全相同文件与用例标识的通过结果，覆盖缺口为 0，失败为 0；原始跳过和退出码未改写。[摘要 JSON](audit-evidence/v201-release/full-summary.json)记录三平台明细、所有跳过对应关系、原始报告 SHA-256、核对结果与授权引用。先前失败和定向修复证据继续保留，不计入本次通过结果。
+
+真实固定 Codex CLI 使用隔离目录及本地 loopback 协议替身，未调用商业模型或执行真实外部 MCP 业务任务；不据此声称真实账号、OAuth、语音、云任务或供应商业务验收通过。浏览器/操作系统输入法、公网 DNS/ACME、外部防火墙及第三方认证部署属于各自独立证据。本检查点只完成上述全量测试核对，最终 GitHub Actions 验收、120 的 v2.0.1 更新与正式 Release 仍待后续记录；上方 v2.0.0 部署结果不能替代本版部署验收。
