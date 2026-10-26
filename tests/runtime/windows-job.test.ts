@@ -3,7 +3,7 @@ import { execFile, spawn, type ExecFileOptions } from 'node:child_process';
 import { existsSync, mkdtempSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { NativeRpc } from '../../src/runtime/native.js';
-import { windowsJob } from '../../src/runtime/windows-job.js';
+import { windowsJob, windowsPowerShellBootstrap } from '../../src/runtime/windows-job.js';
 vi.mock('node:child_process', async importOriginal => {
   const actual = await importOriginal<typeof import('node:child_process')>();
   return { ...actual, execFile: vi.fn(actual.execFile) };
@@ -31,6 +31,9 @@ describe.skipIf(process.platform !== 'win32')('Windows job ownership', () => {
       expect.soft(Object.entries(job.command.env).filter(([key]) => key.toLowerCase() === 'psmoduleanalysiscachepath')).toEqual([['PSModuleAnalysisCachePath', 'NUL']]);
       const signalOptions = vi.mocked(execFile).mock.calls.at(-1)![2] as ExecFileOptions;
       expect.soft(signalOptions.env?.PSModuleAnalysisCachePath).toBe('NUL');
+      expect.soft(signalOptions.env?.PSModulePath).toBe(job.command.env.PSModulePath);
+      const signalArgs = vi.mocked(execFile).mock.calls.at(-1)![1] as string[];
+      expect.soft(Buffer.from(signalArgs[4]!, 'base64').toString('utf16le')).toContain(windowsPowerShellBootstrap);
       expect.soft(existsSync(path.join(config.cwd, 'Microsoft', 'Windows', 'PowerShell'))).toBe(false);
       expect.soft(existsSync(redirected)).toBe(false); expect(parentEnv).toEqual(originalEnv);
     } finally { if (child.exitCode === null) { await job.signal().catch(() => child.kill()); await closed; } }

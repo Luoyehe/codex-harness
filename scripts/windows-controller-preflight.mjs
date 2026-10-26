@@ -33,6 +33,9 @@ export function instrumentController(args) {
   if (!innerCatch.test(script) || !outerCatch.test(script)) throw Error('Windows controller exception hooks drifted');
   script = script.replace(innerCatch, '} catch(Exception error) { Console.Error.WriteLine("harness-preflight-native-exception "+error); return 1; }');
   script = script.replace(outerCatch, "} catch { [Console]::Error.WriteLine('harness-preflight-powershell-exception ' + $_.Exception.ToString()); exit 1 }");
+  script = script.replace("$PSModuleAutoLoadingPreference='None'", "[Console]::Error.WriteLine('harness-preflight-before-builtin-imports')\n$PSModuleAutoLoadingPreference='None'");
+  script = script.replace('$c=$env:', "[Console]::Error.WriteLine('harness-preflight-after-builtin-imports')\n[Console]::Error.WriteLine('harness-preflight-before-json')\n$c=$env:");
+  script = script.replace('Remove-Item Env:', "[Console]::Error.WriteLine('harness-preflight-after-json')\nRemove-Item Env:");
   script = script.replace("Add-Type -TypeDefinition @'\n", "[Console]::Error.WriteLine('harness-preflight-before-add-type')\n$preflightCompile=[Diagnostics.Stopwatch]::StartNew()\nAdd-Type -TypeDefinition @'\n");
   script = script.replace("'@\nexit [HarnessWindowsJob]", "'@\n$preflightCompile.Stop()\n[Console]::Error.WriteLine('harness-preflight-after-add-type elapsedMs=' + $preflightCompile.ElapsedMilliseconds)\nexit [HarnessWindowsJob]");
   script = "[Console]::Error.WriteLine('harness-preflight-powershell-started')\n" + script;
@@ -53,6 +56,9 @@ function launch(bin, args, cwd, env) {
     result.stderr = bounded(result.stderr + bytes);
     if (result.powershellStartedMs === undefined && result.stderr.includes('harness-preflight-powershell-started')) result.powershellStartedMs = Date.now() - start;
     if (result.compileStartedMs === undefined && result.stderr.includes('harness-preflight-before-add-type')) result.compileStartedMs = Date.now() - start;
+    for (const marker of ['before-builtin-imports', 'after-builtin-imports', 'before-json', 'after-json', 'before-add-type', 'after-add-type']) {
+      if (result.stderr.includes(`harness-preflight-${marker}`)) result.lastBootstrapStage = marker;
+    }
     const compiled = /harness-preflight-after-add-type elapsedMs=(\d+)/.exec(result.stderr);
     if (compiled) result.compileMs = Number(compiled[1]);
   });
@@ -66,8 +72,8 @@ async function deadline(promise, timeoutMs, stage) {
   finally { clearTimeout(timer); }
 }
 
-async function basicPowerShell(bin, home, env, stage) {
-  const script = "$ErrorActionPreference='Stop';[Console]::WriteLine(([pscustomobject]@{version=$PSVersionTable.PSVersion.ToString();languageMode=$ExecutionContext.SessionState.LanguageMode.ToString();is64Bit=[Environment]::Is64BitProcess;addTypeAvailable=[bool](Get-Command Add-Type -ErrorAction Stop)} | ConvertTo-Json -Compress))";
+async function basicPowerShell(bin, home, env, stage, bootstrap = '') {
+  const script = "$ErrorActionPreference='Stop'\n[Console]::Error.WriteLine('harness-preflight-powershell-started')\n[Console]::Error.WriteLine('harness-preflight-before-builtin-imports')\n" + bootstrap + "\n[Console]::Error.WriteLine('harness-preflight-after-builtin-imports')\n[Console]::Error.WriteLine('harness-preflight-before-json')\n[Console]::WriteLine(([pscustomobject]@{version=$PSVersionTable.PSVersion.ToString();languageMode=$ExecutionContext.SessionState.LanguageMode.ToString();is64Bit=[Environment]::Is64BitProcess;addTypeAvailable=[bool](Get-Command Add-Type -ErrorAction Stop)} | ConvertTo-Json -Compress))\n[Console]::Error.WriteLine('harness-preflight-after-json')";
   const run = launch(bin, encoded(script), home, env);
   try { await deadline(run.closed, 10000, stage); }
   catch (error) { run.result.failure = error.message; run.process.kill(); await deadline(run.closed, 2000, `${stage}-kill`).catch(() => {}); }
@@ -116,16 +122,20 @@ export async function runWindowsControllerPreflight(base = root) {
   // These are the same sparse caller variables used by the real ownership
   // fixtures. Compare their PowerShell bootstrap with CI's sterile environment.
   const sparse = { HOME: home, USERPROFILE: home, TEMP: env.TEMP, TMP: env.TMP };
-  const { windowsJob } = await import(pathToFileURL(path.join(base, 'dist/src/runtime/windows-job.js')).href);
+  const { windowsJob, windowsPowerShellEnv, windowsPowerShellBootstrap } = await import(pathToFileURL(path.join(base, 'dist/src/runtime/windows-job.js')).href);
   const { windowsProcessJob } = await import(pathToFileURL(path.join(base, 'dist/src/runtime/windows-process.js')).href);
   const command = { bin: process.execPath, args: ['-e', 'console.log(JSON.stringify({fixture:"harness-preflight",pid:process.pid}));setInterval(()=>{},1000)'], cwd: home, env: sparse };
   const job = windowsJob(command);
-  const results = [await basicPowerShell(job.command.bin, home, env, 'powershell-ci-environment')];
-  results.push(await basicPowerShell(job.command.bin, home, { ...sparse, SystemRoot: job.command.env.SystemRoot, PSModuleAnalysisCachePath: 'NUL' }, 'powershell-sparse-environment'));
+  // Old discovery behavior is diagnostic evidence only. Passing requires every
+  // new production bootstrap and both real process ownership paths to work.
+  const comparisons = [await basicPowerShell(job.command.bin, home, env, 'legacy-module-discovery')];
+  comparisons.push(await basicPowerShell(job.command.bin, home, windowsPowerShellEnv(env), 'restricted-path-auto-discovery'));
+  const results = [await basicPowerShell(job.command.bin, home, windowsPowerShellEnv(env), 'powershell-ci-environment', windowsPowerShellBootstrap)];
+  results.push(await basicPowerShell(job.command.bin, home, windowsPowerShellEnv({ ...sparse, SystemRoot: job.command.env.SystemRoot }), 'powershell-sparse-environment', windowsPowerShellBootstrap));
   results.push(await controllerProbe('windows-job', job.command, home, sparse, job));
   const standalone = await windowsProcessJob([command.bin, ...command.args], home);
   results.push(await controllerProbe('windows-process', { bin: standalone.command[0], args: standalone.command.slice(1), env: standalone.env }, home, sparse, standalone));
-  return { schemaVersion: 1, platform: process.platform, node: process.version, status: results.every(result => result.status === 'passed') ? 'passed' : 'failed', fixture: 'independent-home-fixed-node-child-no-model', results };
+  return { schemaVersion: 1, platform: process.platform, node: process.version, status: results.every(result => result.status === 'passed') ? 'passed' : 'failed', fixture: 'independent-home-fixed-node-child-no-model', comparisons, results };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -134,6 +144,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try { report = await runWindowsControllerPreflight(); }
   catch (error) { report = { status: 'failed', error: bounded(error.message) }; }
   mkdirSync(path.dirname(output), { recursive: true }); writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
-  console.log(JSON.stringify({ status: report.status, error: report.error, results: report.results?.map(({ stage, status, elapsedMs, powershellStartedMs, compileStartedMs, compileMs, childReadyMs, signalElapsedMs, exitCode, failure }) => ({ stage, status, elapsedMs, powershellStartedMs, compileStartedMs, compileMs, childReadyMs, signalElapsedMs, exitCode, failure })) }));
+  const summary = ({ stage, status, elapsedMs, powershellStartedMs, lastBootstrapStage, compileStartedMs, compileMs, childReadyMs, signalElapsedMs, exitCode, failure }) => ({ stage, status, elapsedMs, powershellStartedMs, lastBootstrapStage, compileStartedMs, compileMs, childReadyMs, signalElapsedMs, exitCode, failure });
+  console.log(JSON.stringify({ status: report.status, error: report.error, comparisons: report.comparisons?.map(summary), results: report.results?.map(summary) }));
   process.exitCode = report.status === 'passed' ? 0 : 1;
 }

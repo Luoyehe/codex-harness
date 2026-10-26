@@ -4,13 +4,21 @@ import path from 'node:path';
 
 interface Command { bin: string; args: string[]; cwd: string; env: NodeJS.ProcessEnv }
 
-/** Disable PowerShell's disk cache before startup, including sparse environments. */
+/** Keep controller bootstrap independent of user modules and disk caches. */
 export function windowsPowerShellEnv<T>(env: Record<string, T>): Record<string, T | string> {
   // Windows names are case-insensitive; remove every caller spelling before
   // setting the process-scoped value so a duplicate key cannot redirect it.
-  const entries = Object.entries(env).filter(([name]) => name.toLowerCase() !== 'psmoduleanalysiscachepath');
-  return { ...Object.fromEntries(entries), PSModuleAnalysisCachePath: 'NUL' };
+  const entries = Object.entries(env).filter(([name]) => !['psmoduleanalysiscachepath', 'psmodulepath'].includes(name.toLowerCase()));
+  const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
+  return { ...Object.fromEntries(entries), PSModuleAnalysisCachePath: 'NUL', PSModulePath: path.win32.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'Modules') };
 }
+
+// These controllers use only inbox cmdlets. Absolute imports avoid an unbounded
+// discovery scan on hosts with many installed modules while caches stay off.
+export const windowsPowerShellBootstrap = `$PSModuleAutoLoadingPreference='None'
+$env:PSModulePath=[IO.Path]::Combine($PSHOME,'Modules')
+Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Utility.psd1')) -ErrorAction Stop
+Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Management','Microsoft.PowerShell.Management.psd1')) -ErrorAction Stop`;
 
 // Built-in Windows PowerShell compiles this small controller in memory. The
 // native process is suspended until it belongs to a non-breakaway Job Object.
@@ -111,12 +119,12 @@ export function windowsJob(command: Command): { command: Command; signal: () => 
   const eventName = `Local\\CodexHarness-${randomUUID()}`;
   const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
   const powershell = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-  const script = `$ErrorActionPreference='Stop'\ntry {\n$c=$env:HARNESS_WINDOWS_JOB_COMMAND | ConvertFrom-Json\nRemove-Item Env:HARNESS_WINDOWS_JOB_COMMAND\nAdd-Type -TypeDefinition @'\n${controller}\n'@\nexit [HarnessWindowsJob]::Run([string]$c.bin,[string[]]$c.args,[string]$c.cwd,[string]$c.eventName,[uint32]$c.parentPid)\n} catch { [Console]::Error.WriteLine('Windows native launcher failed'); exit 1 }`;
+  const script = `$ErrorActionPreference='Stop'\ntry {\n${windowsPowerShellBootstrap}\n$c=$env:HARNESS_WINDOWS_JOB_COMMAND | ConvertFrom-Json\nRemove-Item Env:HARNESS_WINDOWS_JOB_COMMAND\nAdd-Type -TypeDefinition @'\n${controller}\n'@\nexit [HarnessWindowsJob]::Run([string]$c.bin,[string[]]$c.args,[string]$c.cwd,[string]$c.eventName,[uint32]$c.parentPid)\n} catch { [Console]::Error.WriteLine('Windows native launcher failed'); exit 1 }`;
   const env = windowsPowerShellEnv({ ...command.env, SystemRoot: systemRoot, HARNESS_WINDOWS_JOB_COMMAND: JSON.stringify({ bin: command.bin, args: command.args, cwd: command.cwd, eventName, parentPid: process.pid }) });
   return { command: { bin: powershell, args: encoded(script), cwd: command.cwd, env }, signal: () => new Promise<void>((resolve, reject) => {
     // A separate named event remains responsive while the protocol stdin is
     // backpressured. The event name contains only our generated UUID.
-    const stop = `$ErrorActionPreference='Stop'; for($i=0;$i -lt 30;$i++){try{$e=[Threading.EventWaitHandle]::OpenExisting('${eventName}');[void]$e.Set();$e.Dispose();exit 0}catch{Start-Sleep -Milliseconds 100}};exit 1`;
+    const stop = `$ErrorActionPreference='Stop'\n${windowsPowerShellBootstrap}\nfor($i=0;$i -lt 30;$i++){try{$e=[Threading.EventWaitHandle]::OpenExisting('${eventName}');[void]$e.Set();$e.Dispose();exit 0}catch{Start-Sleep -Milliseconds 100}};exit 1`;
     execFile(powershell, encoded(stop), { env: windowsPowerShellEnv({ SystemRoot: systemRoot }), cwd: systemRoot, windowsHide: true, timeout: 5000, maxBuffer: 1024 }, error => { if (error) reject(new Error('Windows native shutdown signal was not acknowledged')); else resolve(); });
   }) };
 }

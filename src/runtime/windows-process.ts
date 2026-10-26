@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { createServer, type Socket } from 'node:net';
 import path from 'node:path';
-import { windowsJobController, windowsPowerShellEnv } from './windows-job.js';
+import { windowsJobController, windowsPowerShellBootstrap, windowsPowerShellEnv } from './windows-job.js';
 
 const entrypoint = String.raw`
   [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetExitCodeProcess(IntPtr process,out uint code);
@@ -74,9 +74,9 @@ export async function windowsProcessJob(command: string[], cwd: string): Promise
   await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(`\\\\.\\pipe\\${pipeName}`, () => { server.off('error', reject); server.on('error', failed); resolve(); }); });
   startupTimer = setTimeout(failed, 15000); startupTimer.unref();
   const systemRoot = process.env.SystemRoot ?? 'C:\\Windows'; const powershell = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-  const script = `$ErrorActionPreference='Stop'\n$ProgressPreference='SilentlyContinue'\ntry {\n$c=$env:HARNESS_WINDOWS_PROCESS_COMMAND | ConvertFrom-Json\nRemove-Item Env:HARNESS_WINDOWS_PROCESS_COMMAND\n$target=(Get-Command -Name ([Management.Automation.WildcardPattern]::Escape([string]$c.bin)) -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source\nAdd-Type -TypeDefinition @'\n${controller}\n'@\nexit [HarnessWindowsJob]::RunProcess([string]$target,[string[]]$c.args,[string]$c.cwd,[string]$c.eventName,[uint32]$c.parentPid,[string]$c.pipeName,[string]$c.token)\n} catch { [Console]::Error.WriteLine('Windows process launcher failed'); exit 1 }`;
+  const script = `$ErrorActionPreference='Stop'\n$ProgressPreference='SilentlyContinue'\ntry {\n${windowsPowerShellBootstrap}\n$c=$env:HARNESS_WINDOWS_PROCESS_COMMAND | ConvertFrom-Json\nRemove-Item Env:HARNESS_WINDOWS_PROCESS_COMMAND\n$target=(Get-Command -Name ([Management.Automation.WildcardPattern]::Escape([string]$c.bin)) -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source\nAdd-Type -TypeDefinition @'\n${controller}\n'@\nexit [HarnessWindowsJob]::RunProcess([string]$target,[string[]]$c.args,[string]$c.cwd,[string]$c.eventName,[uint32]$c.parentPid,[string]$c.pipeName,[string]$c.token)\n} catch { [Console]::Error.WriteLine('Windows process launcher failed'); exit 1 }`;
   return { command: [powershell, ...encoded(script)], env: windowsPowerShellEnv({ SystemRoot: systemRoot, HARNESS_WINDOWS_PROCESS_COMMAND: JSON.stringify({ bin: command[0], args: command.slice(1), cwd, eventName, parentPid: process.pid, pipeName, token }) }), started, exited,
-    signal: () => new Promise<void>((resolve, reject) => { if (done) { resolve(); return; } const script = `$ErrorActionPreference='Stop';$e=[Threading.EventWaitHandle]::OpenExisting('${eventName}');[void]$e.Set();$e.Dispose()`; execFile(powershell, encoded(script), { env: windowsPowerShellEnv({ SystemRoot: systemRoot }), cwd: systemRoot, timeout: 5000, maxBuffer: 1024, windowsHide: true }, error => error && !done ? reject(new Error('Windows process shutdown signal failed')) : resolve()); }),
+    signal: () => new Promise<void>((resolve, reject) => { if (done) { resolve(); return; } const script = `$ErrorActionPreference='Stop'\n${windowsPowerShellBootstrap}\n$e=[Threading.EventWaitHandle]::OpenExisting('${eventName}');[void]$e.Set();$e.Dispose()`; execFile(powershell, encoded(script), { env: windowsPowerShellEnv({ SystemRoot: systemRoot }), cwd: systemRoot, timeout: 5000, maxBuffer: 1024, windowsHide: true }, error => error && !done ? reject(new Error('Windows process shutdown signal failed')) : resolve()); }),
     dispose: () => { if (!done) failed(); else { clearTimeout(startupTimer); socket?.destroy(); server.close(); } },
   };
 }

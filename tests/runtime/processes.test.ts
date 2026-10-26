@@ -26,11 +26,13 @@ afterEach(() => { for (const instance of instances.splice(0)) instance.reset(); 
 
 test.runIf(process.platform === 'win32')('forces the final Windows spawn environment to disable cache despite case-variant user overrides', async () => {
   const { processes, calls } = setup();
-  const env = { PSModuleAnalysisCachePath: 'canonical-cache', PSMODULEANALYSISCACHEPATH: 'uppercase-cache', psmoduleanalysiscachepath: 'lowercase-cache', Kept: 'value', Removed: null };
+  const env = { PSModuleAnalysisCachePath: 'canonical-cache', PSMODULEANALYSISCACHEPATH: 'uppercase-cache', psmoduleanalysiscachepath: 'lowercase-cache', PSModulePath: 'caller-modules', PSMODULEPATH: 'caller-uppercase', psmodulepath: null, Kept: 'value', Removed: null };
   const originalEnv = { ...env };
   await spawn(processes, { env });
   const finalEnv = object(object(calls[0]!.params).env);
   expect(Object.entries(finalEnv).filter(([key]) => key.toLowerCase() === 'psmoduleanalysiscachepath')).toEqual([['PSModuleAnalysisCachePath', 'NUL']]);
+  const modulePaths = Object.entries(finalEnv).filter(([key]) => key.toLowerCase() === 'psmodulepath');
+  expect(modulePaths).toHaveLength(1); expect(modulePaths[0]![0]).toBe('PSModulePath'); expect(String(modulePaths[0]![1])).toMatch(/\\System32\\WindowsPowerShell\\v1\.0\\Modules$/i);
   expect(finalEnv).toMatchObject({ Kept: 'value', Removed: null, HARNESS_WINDOWS_PROCESS_COMMAND: 'private' });
   expect(env).toEqual(originalEnv);
 });

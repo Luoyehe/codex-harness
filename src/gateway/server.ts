@@ -2,6 +2,7 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import type { Socket } from 'node:net';
 import WebSocket, { WebSocketServer } from 'ws';
 import { Authentication } from './auth.js';
 import { Dispatcher } from './dispatch.js';
@@ -48,6 +49,8 @@ export class GatewayServer {
   readonly #disconnecting = new Map<string, Promise<void>>();
   readonly #budget = new Budget(LIMITS.concurrentRequests, LIMITS.retainedRequestBytes);
   readonly #responses = new Budget(LIMITS.httpConnections, LIMITS.retainedResponseBytes);
+  readonly #transportWaiters = new Map<Socket, { callbacks: Set<() => void>; close: () => void }>();
+  readonly #responseRelease = new WeakMap<ServerResponse, () => void>();
   readonly #heartbeat: NodeJS.Timeout;
   #closing = false;
   constructor(readonly auth: Authentication, readonly dispatcher: Dispatcher, readonly worker: WorkerClient, readonly staticDir?: string) {
@@ -138,12 +141,43 @@ export class GatewayServer {
     }
     for (const connection of this.#browsers.values()) if (target === null || target === connection.workerClientId) this.send(connection, event);
   }
+  private onTransportClose(socket: Socket, callback: () => void): () => void {
+    if (socket.destroyed) { callback(); return () => {}; }
+    let entry = this.#transportWaiters.get(socket);
+    if (!entry) {
+      const callbacks = new Set<() => void>();
+      const close = () => {
+        this.#transportWaiters.delete(socket);
+        for (const settle of [...callbacks]) settle();
+        callbacks.clear();
+      };
+      entry = { callbacks, close }; this.#transportWaiters.set(socket, entry);
+      socket.once('close', close);
+    }
+    const current = entry; current.callbacks.add(callback);
+    return () => {
+      current.callbacks.delete(callback);
+      if (!current.callbacks.size && this.#transportWaiters.get(socket) === current) {
+        socket.off('close', current.close); this.#transportWaiters.delete(socket);
+      }
+    };
+  }
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     security(res); let release: (() => void) | undefined;
     let backendSettled = false, responseSettled = false;
+    let unwatch = () => {};
     const releaseWhenSettled = () => { if (backendSettled && responseSettled) release?.(); };
-    const responseDone = () => { responseSettled = true; releaseWhenSettled(); };
+    const responseDone = () => {
+      if (!responseSettled) {
+        responseSettled = true; res.off('finish', responseDone); res.off('close', responseDone); unwatch();
+        this.#responseRelease.get(res)?.();
+      }
+      releaseWhenSettled();
+    };
     res.once('finish', responseDone); res.once('close', responseDone);
+    // A pipelined response may never receive a socket, finish or close event.
+    // Own its transport explicitly, while keeping pending backend work charged.
+    unwatch = this.onTransportClose(req.socket, () => { res.destroy(); responseDone(); });
     try {
       const reservation = this.#budget.reserve(); release = reservation.release;
       this.auth.checkHost(header(req, 'host'));
@@ -194,21 +228,23 @@ export class GatewayServer {
     } catch (error) {
       const failure = errorBody(error);
       const status = failure.code === 'unauthorized' ? 401 : ['csrf', 'host', 'origin'].includes(failure.code) ? 403 : failure.code === 'not_found' ? 404 : failure.code === 'rate_limited' ? 429 : 400;
-      try { if (!res.headersSent) this.json(res, { ok: false, error: { ...failure } }, status); else res.destroy(); }
-      catch { res.destroy(); } // An exhausted output budget cannot allocate an unbounded error response.
+      try { if (!res.headersSent) this.json(res, { ok: false, error: { ...failure } }, status); else { res.destroy(); req.socket.destroy(); } }
+      catch { res.destroy(); req.socket.destroy(); } // An exhausted output budget cannot allocate an unbounded error response.
       req.resume();
-    } finally { backendSettled = true; responseSettled ||= res.destroyed || res.writableFinished; releaseWhenSettled(); }
+    } finally { backendSettled = true; if (res.destroyed || res.writableFinished || req.socket.destroyed) responseDone(); else releaseWhenSettled(); }
   }
   private retainResponse(res: ServerResponse, bytes: number, reserved?: () => void): () => void {
     const release = reserved ?? this.#responses.acquire(bytes);
-    const timer = setTimeout(() => res.destroy(), LIMITS.responseWriteTimeoutMs); timer.unref();
+    const transport = res.req.socket;
+    const timer = setTimeout(() => { res.destroy(); transport.destroy(); done(); }, LIMITS.responseWriteTimeoutMs); timer.unref();
     let settled = false;
     const done = () => {
       if (settled) return; settled = true; clearTimeout(timer);
-      res.off('finish', done); res.off('close', done); release();
+      res.off('finish', done); res.off('close', done); this.#responseRelease.delete(res); release();
     };
+    this.#responseRelease.set(res, done);
     res.once('finish', done); res.once('close', done);
-    if (res.destroyed || res.writableFinished) done();
+    if (res.destroyed || res.writableFinished || transport.destroyed) done();
     return done;
   }
   private json(res: ServerResponse, value: JsonValue, status = 200): void {

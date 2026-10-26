@@ -86,14 +86,44 @@ describe('real HTTP and WebSocket authorization boundary', () => {
       // behind that data until the server's separate write deadline expires.
       // Explicitly reset these aborted connections and observe server cleanup;
       // the preceding test independently checks the graceful write deadline.
-      const closed = unfinished.map(res => new Promise<void>(resolve => res.once('close', resolve)));
       for (const socket of sockets) if (!socket.destroyed) socket.resetAndDestroy();
-      await Promise.all(closed);
-      expect(responses.filter(res => !res.writableFinished && !res.destroyed).length).toBe(0);
+      await expect.poll(() => responses.filter(res => !res.writableFinished && !res.destroyed).length).toBe(0);
       const response = await f.post('/api/rpc', { method: 'thread/read', params: { threadId: 'after-close' } }, f.headers);
       expect(response.status).toBe(200); expect((await response.text()).length).toBeGreaterThan(6 * 1024 * 1024);
     } finally { for (const socket of sockets) socket.destroy(); await f.close(); }
   }, 15000);
+  it('settles unassigned pipelined responses on transport close while retaining the first pending backend', async () => {
+    const f = await fixture(); const responses: ServerResponse[] = [], completions: (() => void)[] = [];
+    let first!: () => void, calls = 0, socket: net.Socket | undefined;
+    const held: Promise<Response>[] = [];
+    f.backend.call = async () => {
+      calls++;
+      if (calls === 1) return new Promise<JsonValue>(resolve => { first = () => resolve({ data: [] }); });
+      return { data: [] };
+    };
+    f.server.server.on('request', (req, res) => { if (req.url === '/api/rpc') responses.push(res); });
+    const body = JSON.stringify({ method: 'thread/read', params: { threadId: 'pipeline' } });
+    const request = ['POST /api/rpc HTTP/1.1', `Host: ${new URL(f.origin).host}`, `Origin: ${f.origin}`,
+      ...Object.entries(f.headers).map(([name, value]) => `${name}: ${value}`), 'Content-Type: application/json',
+      `Content-Length: ${Buffer.byteLength(body)}`, '', ''].join('\r\n') + body;
+    try {
+      socket = net.createConnection({ host: '127.0.0.1', port: Number(new URL(f.origin).port) });
+      socket.on('error', () => {}); socket.pause(); await once(socket, 'connect'); socket.write(request.repeat(3));
+      await expect.poll(() => calls).toBe(3);
+      await expect.poll(() => responses.slice(1).every(res => res.writableEnded)).toBe(true);
+      expect(responses.slice(1).every(res => res.socket === null && !res.writableFinished)).toBe(true);
+      socket.resetAndDestroy();
+      await expect.poll(() => responses.every(res => res.destroyed)).toBe(true);
+      f.backend.call = async () => new Promise<JsonValue>(resolve => { completions.push(() => resolve({ data: [] })); });
+      for (let i = 0; i < LIMITS.concurrentRequests - 1; i++) held.push(f.post('/api/rpc', { method: 'thread/read', params: { threadId: 'held' } }, f.headers));
+      await expect.poll(() => completions.length).toBe(LIMITS.concurrentRequests - 1);
+      expect((await fetch(f.origin + '/health')).status).toBe(400);
+      first();
+      await expect.poll(async () => (await fetch(f.origin + '/health')).status).toBe(200);
+      completions.forEach(done => done());
+      expect((await Promise.all(held)).every(response => response.status === 200)).toBe(true);
+    } finally { f.backend.call = async () => ({ data: [] }); first?.(); completions.forEach(done => done()); socket?.destroy(); await Promise.allSettled(held); await f.close(); }
+  });
   it('keeps backend request admission charged after clients abandon their pending reads', async () => {
     const f = await fixture(), clients: net.Socket[] = [], complete: (() => void)[] = [];
     f.backend.call = async () => new Promise<JsonValue>(resolve => { complete.push(() => resolve({ data: [] })); });
