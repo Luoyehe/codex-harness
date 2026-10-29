@@ -1,5 +1,6 @@
 """Real local TLS handshakes and proof responses; no remote services or homes."""
 import contextlib
+from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import http.server
@@ -24,6 +25,7 @@ from deploy.https_health import https_health, require_https_ready
 
 def certificates(directory: Path):
     """Use the OS test utility, or the bundled Windows cryptography runtime."""
+    now = datetime.now(timezone.utc)
     openssl = shutil.which("openssl")
     if openssl:
         def run(*args):
@@ -31,13 +33,27 @@ def certificates(directory: Path):
         run("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", "ca.key", "-out", "ca.pem",
             "-subj", "/CN=Isolated HTTPS Test CA", "-days", "30", "-addext", "basicConstraints=critical,CA:TRUE",
             "-addext", "keyUsage=critical,keyCertSign,cRLSign")
-        for label, host, days in (("valid", "work.example.test", "7"), ("wrong", "other.example.test", "7"),
-                                  ("expired", "work.example.test", "-1")):
+        for label, host in (("valid", "work.example.test"), ("wrong", "other.example.test"),
+                            ("expired", "work.example.test")):
             extension = directory / (label + ".ext")
             extension.write_text("subjectAltName=DNS:" + host + "\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n")
             run("req", "-newkey", "rsa:2048", "-nodes", "-keyout", label + ".key", "-out", label + ".csr", "-subj", "/CN=" + host)
-            run("x509", "-req", "-in", label + ".csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial", "-out", label + ".pem",
-                "-days", days, "-extfile", extension.name)
+            if label == "expired":
+                # Modern OpenSSL rejects negative -days. Sign an ordered validity
+                # interval wholly in the past using a fixture-local CA database.
+                (directory / "expired-ca.index").write_text("")
+                (directory / "expired-ca.serial").write_text("1000\n")
+                (directory / "expired-ca.cnf").write_text(
+                    "[ca]\ndefault_ca=fixture_ca\n[fixture_ca]\ncertificate=ca.pem\nprivate_key=ca.key\n"
+                    "database=expired-ca.index\nserial=expired-ca.serial\nnew_certs_dir=.\ndefault_md=sha256\n"
+                    "policy=fixture_policy\n[fixture_policy]\ncommonName=supplied\n[leaf]\n" + extension.read_text())
+                run("ca", "-batch", "-notext", "-config", "expired-ca.cnf", "-extensions", "leaf",
+                    "-in", "expired.csr", "-out", "expired.pem",
+                    "-startdate", (now - timedelta(days=2)).strftime("%Y%m%d%H%M%SZ"),
+                    "-enddate", (now - timedelta(days=1)).strftime("%Y%m%d%H%M%SZ"))
+            else:
+                run("x509", "-req", "-in", label + ".csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial", "-out", label + ".pem",
+                    "-days", "7", "-extfile", extension.name)
         return
     try:
         from cryptography import x509
@@ -46,8 +62,6 @@ def certificates(directory: Path):
         from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
     except ImportError as error:
         raise unittest.SkipTest("Local TLS fixtures require openssl or the bundled cryptography runtime") from error
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Isolated HTTPS Test CA")])
     ca = (x509.CertificateBuilder().subject_name(ca_name).issuer_name(ca_name).public_key(ca_key.public_key())
@@ -212,6 +226,19 @@ class HttpsHealthTests(unittest.TestCase):
                 self.assertEqual(result["failure"], "certificate_validation_failed", result)
                 self.assertFalse(result["ready"])
                 self.assertFalse(result["tlsVerified"])
+        self.assertEqual(self.requests, [])
+
+    def test_expired_fixture_has_past_validity_and_fails_specifically_for_expiry(self):
+        certificate = ssl._ssl._test_decode_cert(str(self.fixtures / "expired.pem"))
+        starts = ssl.cert_time_to_seconds(certificate["notBefore"])
+        ends = ssl.cert_time_to_seconds(certificate["notAfter"])
+        self.assertLess(starts, ends)
+        self.assertLess(ends, time.time())
+        context = ssl.create_default_context(cafile=self.fixtures / "ca.pem")
+        with self.server("expired") as port, socket.create_connection(("127.0.0.1", port), timeout=2) as connection:
+            with self.assertRaises(ssl.SSLCertVerificationError) as caught:
+                context.wrap_socket(connection, server_hostname="work.example.test")
+        self.assertEqual(caught.exception.verify_code, 10)  # X509_V_ERR_CERT_HAS_EXPIRED
         self.assertEqual(self.requests, [])
 
     def test_invalid_proof_redirect_and_oversized_response_never_report_ready(self):
