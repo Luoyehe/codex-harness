@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "focused-hosted-ci-repair",
+  "recordedAt": "2026-10-29T21:38:29.628Z",
+  "baseCommit": "363b5aa4daa156911ffef876aff798846546e3e6",
+  "baselineSourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceDigest": "f470f14444806fddb488a99ef871c58c0c3db0dde15af1b7868fd2ca9fd4f858",
+  "sourceFiles": 1911,
+  "changedFiles": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "before": "86a8ae49324c920ee022bdf090842d355232ad6dab1e284648f1ec0e8d62013e",
+      "after": "24b110974140c14c7c3879f503615a8262f9d379762ab1f2c999529a2ca7eb3f"
+    },
+    {
+      "path": "scripts/prepare-ci-go.py",
+      "before": "ab7e7693ecfb7df6f1f5d67b79ae39607db499c956a6dee124e5cb9b8bc89ae5",
+      "after": "2ec71bcdb84ebe9a912b3ba58cb73b277346febfc69e51c709f899ec5cda8a4f"
+    },
+    {
+      "path": "tests/deploy/test_prepare_ci_go.py",
+      "before": "75f3a08ba30dc76a97d8013d847855983921eb18cdc536355a5747b621eb9c8f",
+      "after": "f6809e2784c5d6a4aef0789dd82a495669632107e090ac2d8f0f6eea33a920c6"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "before": "641d66050f52843b4fdd1e29e786e383c7f248eb890cc3d9643532882b54bde3",
+      "after": "6c938755acb998fc123bccdd5805f9fc3ec28db86cbd150db48f65c2504e09a4"
+    }
+  ],
+  "unchangedSourceFiles": 1907,
+  "applicationAndDeploymentSourceUnchanged": true,
+  "failedRun": {
+    "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40955613895",
+    "conclusion": "failure",
+    "linux": "One automation test clicked Save before the IndexedDB operation refresh enabled the button; all other Vitest and Python cases passed.",
+    "windows": "Go preparation failed before tests; the original generic error did not distinguish download, verification, return code or output budget.",
+    "root": "passed",
+    "coverage": "failed because required platform results were incomplete"
+  },
+  "repairs": {
+    "automation": "Wait for the existing positive enabledButton condition; assertions and timeouts unchanged.",
+    "go": "Identify exact command and return code or budget; retain three allowlisted Go logs after failure. No retry or security relaxation."
+  },
+  "targetedValidation": {
+    "automationCases": 21,
+    "automationFailed": 0,
+    "automationSkipped": 0,
+    "controlledProbeCases": 1,
+    "goPreparationCases": 15,
+    "goPreparationFailed": 0,
+    "goPreparationSkipped": 0
+  },
+  "review": {
+    "parent": "Reviewed all four file diffs and underlying readiness ordering.",
+    "independent": "Separate focused reviewers confirmed the automation synchronization and Go diagnostics/privacy boundaries.",
+    "isFullAudit": false,
+    "newFullAuditsClaimed": 0
+  },
+  "retainedLocalEvidence": [
+    [
+      ".work/v211-automation-ci-diagnosis.json",
+      "5959f2d28df654adf80f7fa5b095ba8a9f5cb8d7f642a2720d75e90b6a433afc"
+    ],
+    [
+      ".work/v211-ci-go-diagnostic-security-review.json",
+      "4413f7d1ef3f77b0817f4f2dbc578dd6d93a81f2ae3d9a505fe3783a36a6bdfc"
+    ]
+  ],
+  "status": "targeted-passed-hosted-verification-pending",
+  "underlyingWindowsModuleFailureResolved": false,
+  "deployedSourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "deployment": "Existing running deployment remains valid: all application and deployment source bytes are unchanged."
+}

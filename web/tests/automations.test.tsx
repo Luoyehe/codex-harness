@@ -225,7 +225,7 @@ it('preserves unedited native options and requires explicit rebase after a confl
   fireEvent.click(screen.getByRole('button', { name: '保留草稿并以最新版本为基准' }));
   reject = false;
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存计划修改' }));
+  fireEvent.click(await enabledButton({ name: '保存计划修改' }));
   await waitFor(() =>
     expect(calls.filter((call) => call.method === 'automation/update')).toHaveLength(2),
   );
