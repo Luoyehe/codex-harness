@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "kind": "hosted-affected-release-validation",
+  "recordedAt": "2026-10-29T22:01:08.370Z",
+  "sourceCommit": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+  "sourceDigest": "02c53be78839a7e585b962d7b81907ae774604b37e63ff09a089b5d70eddd723",
+  "status": "passed",
+  "scope": "All five source changes since the locally validated full-suite baseline; 61 selected files on Windows, Linux and Linux-root. This is not a new full-suite or full-audit claim.",
+  "runs": [
+    {
+      "id": 40961333197,
+      "name": "Reviewed checks",
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40961333197",
+      "workflowId": 396386315,
+      "attempt": 1,
+      "event": "workflow_dispatch"
+    },
+    {
+      "id": 40961314362,
+      "name": "Security checks",
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/40961314362",
+      "workflowId": 396881977,
+      "attempt": 1,
+      "event": "push"
+    }
+  ],
+  "coverage": {
+    "status": "passed",
+    "sourceDigest": "02c53be78839a7e585b962d7b81907ae774604b37e63ff09a089b5d70eddd723",
+    "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+    "files": 61,
+    "cases": 708,
+    "coverageGaps": [],
+    "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+  },
+  "sourceFiles": 1911,
+  "changedSourceFiles": [
+    ".github/workflows/affected.yml",
+    "scripts/prepare-ci-go.py",
+    "tests/deploy/test_https_health.py",
+    "tests/deploy/test_prepare_ci_go.py",
+    "web/tests/automations.test.tsx"
+  ],
+  "applicationAndDeploymentSourceUnchanged": true,
+  "priorFull": {
+    "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+    "files": 210,
+    "distinctCases": 2148,
+    "evidence": "verification/audit-evidence/public-https-full-attempt4/reconciled-result.json"
+  },
+  "priorFailures": [
+    {
+      "runId": 40955613895,
+      "reason": "Automation-test readiness race and unclassified Windows Go preparation failure."
+    },
+    {
+      "runId": 40959593986,
+      "reason": "Hosted Windows OpenSSL rejected the test fixture negative-days argument; Linux/root passed and Go preparation succeeded."
+    }
+  ],
+  "supersededPush": {
+    "runId": 40961314393,
+    "status": "cancelled",
+    "reason": "Workflow concurrency superseded the one-fixture push selection with explicit all-followup selection from commit 363b5aa."
+  },
+  "diagnostics": "Original Go preparation failure did not recur; its precise original cause is not established. Detailed bounded logs are retained on future failures.",
+  "evidence": [
+    {
+      "path": ".work/v211-final-affected-hosted/observation-20261029T220021.866460Z.json",
+      "sha256": "4bbe3a212629f88b3dac14a0c1162c075511b102a640212289313256465fa71b"
+    },
+    {
+      "path": ".work/v211-final-coverage.json",
+      "sha256": "18bdf42ecc71c61371d2f9eb32a65a8da7d4eebdf740632811cfd3e9a2c65545"
+    },
+    {
+      "path": ".work/v211-https-expiry-fixture-review.json",
+      "sha256": "a7f64a4d6e7993fa9156af2ea4f8dce616cb224927005ed0220a0487848cf367"
+    }
+  ],
+  "artifactMetadata": [
+    {
+      "id": 12936445934,
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "source-security",
+      "bytes": 2630,
+      "expired": false,
+      "digest": "sha256:1b3b5e294babbad6fdcf27ea149cfba8ee5bac25570eb2b81e82152087c8a9ab",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12936445934/zip"
+    },
+    {
+      "id": 12935908198,
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "cases-windows",
+      "bytes": 30725,
+      "expired": false,
+      "digest": "sha256:6844f0b3969dbe90b550d78a019a1ee9689cc01262979b451a75d3777b648e40",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12935908198/zip"
+    },
+    {
+      "id": 12935653757,
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "verified-coverage",
+      "bytes": 369,
+      "expired": false,
+      "digest": "sha256:cdc1bb9dd9a54ecb6b7c626fb65a56c29b5b6c271f8a9f1868aaa28d8e59dd0d",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12935653757/zip"
+    },
+    {
+      "id": 12935284918,
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "windows-controller-preflight",
+      "bytes": 1952,
+      "expired": false,
+      "digest": "sha256:7f957f1f1c47ac9a08a8374429182f334b029808eb0ed97bf175a4e6d040483d",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12935284918/zip"
+    },
+    {
+      "id": 12935238359,
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "cases-linux-root",
+      "bytes": 11178,
+      "expired": false,
+      "digest": "sha256:6c04284b5e23b08c747ed0c15311c5d3f3c121cdb0c336838564ebc21fdeaa38",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12935238359/zip"
+    },
+    {
+      "id": 12935028645,
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "cases-linux",
+      "bytes": 29893,
+      "expired": false,
+      "digest": "sha256:f33cb1dc866180639f79c40389c135af570b553d90b99dc80f2922faf7720eb6",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12935028645/zip"
+    },
+    {
+      "id": 12934919438,
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "ci-plan",
+      "bytes": 1801,
+      "expired": false,
+      "digest": "sha256:4e64c5325a3e8cc0899232e6117467c530d9fc8903748146fbc44598d14e16dc",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12934919438/zip"
+    },
+    {
+      "id": 12935517970,
+      "runId": 40961314362,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "dependency-audit",
+      "bytes": 301,
+      "expired": false,
+      "digest": "sha256:a01f2cd08d478fd4d7eb7f9ea9b1d3d5b7cb70f9eb28d7e84a46e1e9e13e0a00",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12935517970/zip"
+    },
+    {
+      "id": 12936241515,
+      "runId": 40961314393,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "source-security",
+      "bytes": 2630,
+      "expired": false,
+      "digest": "sha256:d84a6b224c95ae03d81178be3b8a3ca453a9a51c01351061586ffc2ddc10031c",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12936241515/zip"
+    },
+    {
+      "id": 12935418161,
+      "runId": 40961314393,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "name": "ci-plan",
+      "bytes": 666,
+      "expired": false,
+      "digest": "sha256:812a35df1d9b93ab6f6fcce27226b3c347666b36ce449cd97845595f3df26ced",
+      "downloadApiUrl": "https://api.github.com/repos/Luoyehe/codex-harness/actions/artifacts/12935418161/zip"
+    }
+  ],
+  "artifactBodiesDownloaded": false,
+  "coverageEvidence": "Actual authenticated GitHub coverage-job JSON; independent public API verifies run/head/conclusion.",
+  "noAdditionalFullAudit": true,
+  "noPaidInference": true
+}

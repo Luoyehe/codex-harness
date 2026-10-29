@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+  "sourceDigest": "02c53be78839a7e585b962d7b81907ae774604b37e63ff09a089b5d70eddd723",
+  "recordedAt": "2026-10-29T22:01:08.370Z",
+  "openAlerts": 14,
+  "currentSourceAlerts": 11,
+  "legacyAlerts": 3,
+  "actionableFindings": [],
+  "alertsDismissed": false,
+  "existingCurrentAlerts": [
+    {
+      "id": 12,
+      "path": "src/runtime/service.ts",
+      "sha256": "c70f91b485a3479c35842775c246624b6741c0f6e055998d1cb9c756dd8c53df",
+      "unchanged": true
+    },
+    {
+      "id": 11,
+      "path": "src/runtime/workspace-witness.ts",
+      "sha256": "9794a2c3460d83ca6a9b437d3898174f8e71f4dfdb4f60bae42c4a92d922fd13",
+      "unchanged": true
+    },
+    {
+      "id": 10,
+      "path": "src/runtime/input-context.ts",
+      "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+      "unchanged": true
+    },
+    {
+      "id": 9,
+      "path": "src/runtime/imports.ts",
+      "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+      "unchanged": true
+    },
+    {
+      "id": 8,
+      "path": "src/runtime/attachments.ts",
+      "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+      "unchanged": true
+    },
+    {
+      "id": 7,
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "unchanged": true
+    },
+    {
+      "id": 5,
+      "path": "deploy/native_launcher.py",
+      "sha256": "ce604b2424e012ba1dd2afeeb3f6f7ae08088f053b4a2b476f5e548ad795d75e",
+      "unchanged": true
+    },
+    {
+      "id": 6,
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "unchanged": true
+    }
+  ],
+  "newAlertReview": "verification/audit-evidence/v211-release/codeql-new-alerts.json",
+  "locationCorrection": "verification/audit-evidence/v211-release/codeql-location.json",
+  "previousReview": {
+    "path": ".work/public-codeql-independent-current.json",
+    "sha256": "69759e376460cd87baffc021c74a62b00fa626a5b4aacab2ae1135acf60f8ed4"
+  },
+  "liveList": {
+    "path": ".work/v211-codeql-live-list.txt",
+    "sha256": "2c4026dcd016b8908eae089a09bf4f5b2e6b22c61b6c5b17447141b38cae1ee9"
+  },
+  "finalFixtureChange": "The subsequent expiry-certificate generation repair leaves the PROTOCOL_TLS_SERVER context and protocol settings unchanged; the negative handshake now additionally requires expiry error 10.",
+  "scope": "Focused triage of current alerts and exact unchanged source; no zero-alert claim, no new full audit."
+}

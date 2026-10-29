@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "kind": "focused-independent-codeql-alert-triage",
+  "reviewer": "release_scope_review",
+  "recordedAt": "2026-10-29T21:44:30.529130+00:00",
+  "sourceCommit": "10356ef43231034bb8dfaf15b031970a7f84b854",
+  "reviewedAlertIds": [
+    13,
+    14,
+    15
+  ],
+  "actionableFindings": [],
+  "alerts": [
+    {
+      "id": 15,
+      "rule": "py/weak-sensitive-data-hashing",
+      "location": "deploy/install_recovery.py:172",
+      "classification": "not-actionable-file-integrity-digest-with-misclassified-public-configuration-source",
+      "observedDataflow": "The expanded authenticated UI shows 58 steps starting at deploy/provider_gateway.py:48 value[gatewayOAuth], following redirectPort/redirect_port through provider.py:180 and TOML serialization to install_recovery.py:325,171,172.",
+      "sourceEvidence": [
+        "deploy/provider_gateway.py:27-36 permits only public OAuth policy fields; redirectPort is constrained to integer 1024..65535. URL validation rejects embedded username/password.",
+        "deploy/provider_gateway.py:48-53 emits public endpoint/client/cookie-name/redirect-port policy; it does not emit native OAuth token values.",
+        "deploy/provider.py:177-180 serializes that public definition into TOML.",
+        "deploy/install_recovery.py:317 fixes initial settings to kind chatgpt, so the chatgpt-gateway branch from the reported path is not entered by this initialization call."
+      ],
+      "sinkEvidence": [
+        "CreationPlan.file at lines171-173 records content SHA256 alongside kind/mode/uid/gid as the file identity; content remains separately tracked.",
+        "CreationPlan.bind at lines185-191 checks equality with the retained private creation plan during recovery.",
+        "private_record at lines22-28 enforces a root-owned mode0600 regular file; publish/verify also enforce claimed file identity, permissions and exact content."
+      ],
+      "passwordBoundary": [
+        "deploy/cli.py:224-225 calls accounts.bootstrap before install.",
+        "deploy/accounts.py:44-50 uses a fresh 32-byte salt and scrypt N32768,r8,p3,dklen64; the returned bootstrap contains salt/hash/parameters, not plaintext password.",
+        "deploy/install_recovery.py:332 serializes that already-scrypt-derived bootstrap record."
+      ],
+      "conclusion": "This SHA256 is not the account password verifier. The actual alert source is public configuration, and the sink is a recovery integrity digest. No password-hashing change is warranted for this alert."
+    },
+    {
+      "id": 14,
+      "rule": "py/insecure-protocol",
+      "location": "tests/deploy/test_https_health.py:156",
+      "classification": "not-actionable-supported-python-secure-default-local-test-server",
+      "sourceEvidence": [
+        "tests/deploy/test_https_health.py:152 binds the synthetic server only to loopback127.0.0.1 with an ephemeral port.",
+        "Lines153-156 create SSLContext(PROTOCOL_TLS_SERVER), load disposable test certificates and wrap the loopback socket; no protocol downgrade is configured.",
+        "The CI workflow pins Python3.12.10. Official Python3.12 documentation states PROTOCOL_TLS_SERVER uses TLS1.2 as minimum since Python3.10.",
+        "deploy/https_health.py:141-145 additionally sets minimum_version=TLSv1_2, check_hostname=True, hostname_checks_common_name=False and CERT_REQUIRED for the actual health probe.",
+        "tests/deploy/test_https_health.py:89,125-127 use a synthetic proof key; lines193-194 assert no Authorization or Cookie header."
+      ],
+      "officialReference": {
+        "url": "https://docs.python.org/3.12/library/ssl.html#ssl.SSLContext",
+        "section": "SSLContext, Changed in version3.10",
+        "fact": "PROTOCOL_TLS, PROTOCOL_TLS_CLIENT and PROTOCOL_TLS_SERVER have a minimum of TLS1.2."
+      },
+      "conclusion": "The alert assumes older permissive defaults; supported Python and the production client do not permit TLS1.0/1.1 here. This is a test fixture, not a production TLS listener. No source change is required to resolve a demonstrated security defect."
+    },
+    {
+      "id": 13,
+      "rule": "py/clear-text-storage-sensitive-data",
+      "location": "tests/deploy/test_dns_tls.py:33",
+      "classification": "not-actionable-synthetic-test-fixture",
+      "sourceEvidence": [
+        "tests/deploy/test_dns_tls.py:26-34 creates TemporaryDirectory, registers cleanup, constructs an input JSON from explicit isolated-fake-access-id and isolated-fake-access-secret literals, writes it and applies mode0600.",
+        "No user credential, account data or protected environment value feeds this fixture.",
+        "The parser tests exercise private-file ownership/mode, malformed fields, redaction and selected-provider environment behavior.",
+        "deploy/dns_tls.py:23-35 enforces an absolute non-symlink bounded single-link root-owned mode0600 credential input in production; immutable managed credential directories are mode0700 and files0600."
+      ],
+      "conclusion": "The flagged write stores only disposable synthetic input needed to exercise the credential-file parser, not real secret material."
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "deploy/install_recovery.py",
+      "sha256": "7195b20796ac0c301415c5c931292e131a5392d26e6b34a335f9c70355b85306",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/provider_gateway.py",
+      "sha256": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "sha256": "416a07709c4102b1768d7bbedecdcf65532debbdb7272168f59a970102cc96eb",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/accounts.py",
+      "sha256": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "cc553e67598f24f2dcd0a5383df18c5be7353465f481028ed1de4c8514c30029",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/https_health.py",
+      "sha256": "1862f1c1373a582ea08a3627d2449e17ce998dc517bdd513b147d1e046ba1d90",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/dns_tls.py",
+      "sha256": "4b451e88758577d41507b3ef3c9fdeb69729b211650d6095d3cfadf9211db612",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "tests/deploy/test_https_health.py",
+      "sha256": "c9240ed35987f31b9d4138b14a57087101e440dddefbc63373722f03182e5d9d",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "tests/deploy/test_dns_tls.py",
+      "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "24b110974140c14c7c3879f503615a8262f9d379762ab1f2c999529a2ca7eb3f",
+      "matchesSourceCommit": true
+    }
+  ],
+  "uiEvidence": [
+    {
+      "path": ".work/v211-codeql-alert13-ui.txt",
+      "sha256": "e13606f22ee2bac33cf49a682bc7bb46d933d9d84a3485e077617196a48ade2e",
+      "bytes": 7951
+    },
+    {
+      "path": ".work/v211-codeql-alert14-ui.txt",
+      "sha256": "b11db120811922fa04d46549c134b5d83a91f6e03e34040083bfee7abd7a9f5e",
+      "bytes": 8881
+    },
+    {
+      "path": ".work/v211-codeql-alert15-ui.txt",
+      "sha256": "ef8c52048ab9f63811132d69b54040c18e6f22ea6d73033d5bd93c23282d7e2e",
+      "bytes": 142925
+    }
+  ],
+  "scope": {
+    "fullAudit": false,
+    "newFullAuditCredit": false,
+    "testsRun": false,
+    "sourceEdited": false,
+    "alertsDismissed": false,
+    "credentialsRead": false,
+    "networkUsed": "One read-only request to the official Python3.12 SSL documentation; no application/vendor calls."
+  },
+  "limitations": [
+    "This review covers only new alerts13,14,15 at the recorded source commit; it is not a zero-open-alert claim.",
+    "No TLS handshake or test suite was executed during this review. TLS default semantics were checked against the supported Python documentation and current source.",
+    "The public provider/API strings in source are configuration and synthetic fixtures; live runtime secrets were not inspected."
+  ]
+}

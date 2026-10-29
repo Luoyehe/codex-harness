@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "public-https-full-and-deployment-passed-hosted-publication-pending",
+  "phase": "v2.1.1-validated-release",
   "consecutiveClean": 0,
   "rounds": [
     {
@@ -6067,7 +6067,7 @@
     ],
     "publicDeploymentAcceptance": "passed; verification/audit-evidence/v211-release/public-acceptance.json",
     "acmeAcceptance": "fresh AliDNS DNS-01 issuance passed; future timed renewal not tested",
-    "githubPublicationAndHostedCi": "pending"
+    "githubPublicationAndHostedCi": "Historical full-suite source retained; current follow-up CI is recorded in releaseCloseout."
   },
   "scopeExtension": "Complete modern-agent and pinned Codex CLI user-facing capabilities as requested 2026-10-25; resume complete audit gate after feature implementation.",
   "featureAcceptance": "FEATURES.md",
@@ -6080,7 +6080,15 @@
     "publicAcceptance": "verification/audit-evidence/v211-release/public-acceptance.json",
     "restart": "verification/audit-evidence/v211-release/restart.json",
     "browser": "verification/audit-evidence/v211-release/browser.json",
-    "hostedCi": "pending",
-    "publication": "pending"
+    "hostedCi": "verification/audit-evidence/v211-release/hosted-ci.json",
+    "publication": "The final v2.1.1 GitHub tag and Release are the publication authority."
+  },
+  "releaseCloseout": {
+    "sourceCommit": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+    "sourceDigest": "02c53be78839a7e585b962d7b81907ae774604b37e63ff09a089b5d70eddd723",
+    "scope": "verification/audit-evidence/v211-release/final-scope.json",
+    "hostedCi": "verification/audit-evidence/v211-release/hosted-ci.json",
+    "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
+    "newFullAuditsClaimed": 0
   }
 }

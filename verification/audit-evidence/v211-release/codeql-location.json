@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "kind": "focused-codeql-current-location-correction",
+  "reviewer": "release_scope_review",
+  "recordedAt": "2026-10-29T21:45:27.393567+00:00",
+  "sourceCommit": "10356ef43231034bb8dfaf15b031970a7f84b854",
+  "alertId": 11,
+  "reportedTitle": "Use of password hash with insufficient computational effort",
+  "currentLocation": {
+    "path": "src/runtime/workspace-witness.ts",
+    "line": 94,
+    "sha256": "9794a2c3460d83ca6a9b437d3898174f8e71f4dfdb4f60bae42c4a92d922fd13"
+  },
+  "priorMappedLocation": {
+    "line": 69,
+    "expression": "helperDigest of canonical helper request body"
+  },
+  "classification": "not-actionable-canonical-selected-path-identity-digest",
+  "actionable": false,
+  "independentTrace": [
+    "src/runtime/workspace-index.ts:26-42 validates one to32 explicit unique relative selected paths, with Git-stage file metadata checked separately.",
+    "src/runtime/workspace-witness.ts:88-94 enters the Git stage/unstage acknowledgement branch; line93 extracts only file path strings or the unstage paths array.",
+    "At line94, SHA256 hashes canonical(paths) and compares the result to row.pathsDigest together with selectedCount. This binds acknowledgement to the same ordered selection, not to a login/password.",
+    "deploy/workspace_index.py:102 extracts that same selected path list and line202 reports digest(selected) and its length.",
+    "src/gateway/receipt-result.ts:112-117 validates and projects pathsDigest/selectedCount; it does not carry the original selected path list into the retained result.",
+    "tests/runtime/workspace-witness.test.ts:161-170 checks mismatched count and reversed-order digest are rejected, and exact successful projection does not retain the selected path names. This existing test was read but not rerun."
+  ],
+  "securityInterpretation": "The digest is an identity/integrity comparison for a Git selection. It is not password storage or a promise to make low-entropy file names unguessable. SHA256 computational cost is appropriate to this purpose; replacing it with password hashing is not justified by this alert.",
+  "sourceFiles": [
+    {
+      "path": "src/runtime/workspace-witness.ts",
+      "sha256": "9794a2c3460d83ca6a9b437d3898174f8e71f4dfdb4f60bae42c4a92d922fd13",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "src/runtime/workspace-index.ts",
+      "sha256": "94108d13acc49982d652a73cfba577f78b8c6bc87bcfab4336e67e8e50540670",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "src/runtime/workspace.ts",
+      "sha256": "4c9e1a677cbf79d610f5de6171e34a622ef7122b71886e2e33a60fad1c50534c",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "src/runtime/types.ts",
+      "sha256": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "aecabb62da54774baa8f8d88e9ea346f5042c9e0284a7f9eca7fa68907b7381f",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/workspace_index.py",
+      "sha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "deploy/common.py",
+      "sha256": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+      "matchesSourceCommit": true
+    },
+    {
+      "path": "tests/runtime/workspace-witness.test.ts",
+      "sha256": "9d0ea30aa601106f9fcc817d3a27b0512563a78e92ef88d5b1c2e1c24f2445ff",
+      "matchesSourceCommit": true
+    }
+  ],
+  "scope": {
+    "fullAudit": false,
+    "newFullAuditCredit": false,
+    "testsRun": false,
+    "sourceEdited": false,
+    "alertsDismissed": false,
+    "credentialsRead": false,
+    "networkUsed": false
+  },
+  "limitations": [
+    "Current alert location was supplied by the parent live UI inspection; this report independently inspects the exact current sink and its source/producer/consumer rather than relying only on an unchanged whole-file hash.",
+    "This is a correction for existing alert11, separate from the three newly reported alerts13-15."
+  ]
+}
