@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "focused-hosted-windows-test-fixture-repair",
+  "recordedAt": "2026-10-29T21:51:10.173Z",
+  "baselineCommit": "10356ef43231034bb8dfaf15b031970a7f84b854",
+  "baselineSourceDigest": "f470f14444806fddb488a99ef871c58c0c3db0dde15af1b7868fd2ca9fd4f858",
+  "sourceDigest": "02c53be78839a7e585b962d7b81907ae774604b37e63ff09a089b5d70eddd723",
+  "sourceFiles": 1911,
+  "changedFile": {
+    "path": "tests/deploy/test_https_health.py",
+    "before": "c9240ed35987f31b9d4138b14a57087101e440dddefbc63373722f03182e5d9d",
+    "after": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+  },
+  "failedRun": "https://github.com/Luoyehe/codex-harness/actions/runs/40959593986",
+  "failure": "Hosted Windows OpenSSL rejected x509 -days -1 while preparing expired.pem, before the HTTPS health class ran. Linux and Linux-root passed; Windows Go preparation passed in 22 seconds.",
+  "repair": "Use fixture-local openssl ca with an ordered validity interval wholly in the past. Add a real trusted-host TLS handshake assertion for X509_V_ERR_CERT_HAS_EXPIRED (10), and inspect notBefore < notAfter < now.",
+  "validation": {
+    "windowsCryptographyFallback": {
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linuxOpenSsl3013": {
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    "mainProductionServiceIdentitiesUnchanged": true,
+    "hostedModernWindowsOpenSsl": "pending"
+  },
+  "productionSourceChanged": false,
+  "assertionsRemovedOrRelaxed": false,
+  "fullSuiteRun": false,
+  "newFullAuditsClaimed": 0,
+  "originalGoPreparationFailure": "Did not recur in the follow-up; its exact original cause is not established.",
+  "status": "targeted-passed-hosted-affected-revalidation-pending"
+}
