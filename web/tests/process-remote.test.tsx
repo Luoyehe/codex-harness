@@ -2,14 +2,22 @@
 import { cleanup, fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api, RpcError } from '../lib/api';
+import { listOperations } from '../lib/operations';
 import { Events } from '../lib/events';
 import { ProcessPanel } from '../components/ProcessPanel';
 import { RemoteSettings } from '../components/RemoteSettings';
 const project = { id: 'project', name: 'Project', cwd: '/project' };
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
+const settleFixtures: (() => Promise<unknown>)[] = [];
 function routed(handler: (call: Call, signal?: AbortSignal | null) => unknown) {
   const calls: Call[] = [],
     api = new Api();
+  // Observe the real mutation promises, including their IndexedDB admission and receipt writes.
+  const mutations = vi.spyOn(api, 'mutate');
+  const settle = () => Promise.allSettled(
+    mutations.mock.results.filter((result) => result.type === 'return').map((result) => result.value),
+  );
+  settleFixtures.push(settle);
   vi.stubGlobal(
     'fetch',
     vi.fn().mockImplementation(async (_url, init: RequestInit) => {
@@ -33,7 +41,7 @@ function routed(handler: (call: Call, signal?: AbortSignal | null) => unknown) {
       };
     }),
   );
-  return { api, calls };
+  return { api, calls, settle };
 }
 const base = () => ({
   project,
@@ -48,7 +56,10 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
 });
-afterEach(() => {
+afterEach(async () => {
+  await act(async () => {
+    for (const settle of settleFixtures.splice(0)) await settle();
+  });
   cleanup();
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -118,7 +129,7 @@ it.each([
 });
 it('clears an unchanged accepted stdin submission and sends it only once', async () => {
   const pending = delayedWrite(),
-    { api, calls } = routed((call) =>
+    { api, calls, settle } = routed((call) =>
       call.method === 'process/writeStdin' ? pending.promise : interactiveRoute(call),
     );
   render(<ProcessPanel {...base()} api={api} />);
@@ -128,7 +139,11 @@ it('clears an unchanged accepted stdin submission and sends it only once', async
   fireEvent.click(send);
   fireEvent.click(send);
   expect(input.value).toBe('A');
-  await act(async () => pending.resolve({}));
+  await waitFor(() => expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(1));
+  await act(async () => {
+    pending.resolve({});
+    await settle();
+  });
   expect(input.value).toBe('');
   const writes = calls.filter((call) => call.method === 'process/writeStdin');
   expect(writes).toHaveLength(1);
@@ -138,7 +153,7 @@ it.each(['B', 'A'])(
   'preserves draft revision after pending send and A to B to %s edits',
   async (finalText) => {
     const pending = delayedWrite(),
-      { api, calls } = routed((call) =>
+      { api, calls, settle } = routed((call) =>
         call.method === 'process/writeStdin' ? pending.promise : interactiveRoute(call),
       );
     render(<ProcessPanel {...base()} api={api} />);
@@ -147,7 +162,11 @@ it.each(['B', 'A'])(
     fireEvent.click(screen.getByRole('button', { name: '发送输入' }));
     fireEvent.change(input, { target: { value: 'B' } });
     if (finalText === 'A') fireEvent.change(input, { target: { value: 'A' } });
-    await act(async () => pending.resolve({}));
+    await waitFor(() => expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(1));
+    await act(async () => {
+      pending.resolve({});
+      await settle();
+    });
     expect(input.value).toBe(finalText);
     expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(1);
   },
@@ -156,17 +175,21 @@ it.each(['other', 'handle'])(
   'preserves new %s process draft after changing selection during pending send',
   async (finalProcess) => {
     const pending = delayedWrite(),
-      { api, calls } = routed((call) =>
+      { api, calls, settle } = routed((call) =>
         call.method === 'process/writeStdin' ? pending.promise : interactiveRoute(call),
       );
     render(<ProcessPanel {...base()} api={api} />);
     const input = await selectProcessInput();
     fireEvent.change(input, { target: { value: 'A' } });
     fireEvent.click(screen.getByRole('button', { name: '发送输入' }));
+    await waitFor(() => expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(1));
     let next = await selectProcessInput('other');
     if (finalProcess === 'handle') next = await selectProcessInput('handle');
     fireEvent.change(next, { target: { value: 'A' } });
-    await act(async () => pending.resolve({}));
+    await act(async () => {
+      pending.resolve({});
+      await settle();
+    });
     expect(next.value).toBe('A');
     const writes = calls.filter((call) => call.method === 'process/writeStdin');
     expect(writes).toHaveLength(1);
@@ -212,13 +235,14 @@ it.each(['epoch', 'connection', 'disconnect', 'unmount'])(
   async (transition) => {
     const pending = delayedWrite(),
       props = base(),
-      { api, calls } = routed((call) =>
+      { api, calls, settle } = routed((call) =>
         call.method === 'process/writeStdin' ? pending.promise : interactiveRoute(call),
       );
     const view = render(<ProcessPanel {...props} api={api} />);
     const input = await selectProcessInput();
     fireEvent.change(input, { target: { value: 'A' } });
     fireEvent.click(screen.getByRole('button', { name: '发送输入' }));
+    await waitFor(() => expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(1));
     if (transition === 'unmount') {
       view.unmount();
       render(<ProcessPanel {...props} api={api} />);
@@ -237,18 +261,37 @@ it.each(['epoch', 'connection', 'disconnect', 'unmount'])(
       );
     const next = await selectProcessInput();
     fireEvent.change(next, { target: { value: 'A' } });
-    await act(async () => pending.resolve({}));
+    await act(async () => {
+      pending.resolve({});
+      await settle();
+    });
     expect(next.value).toBe('A');
     expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(1);
   },
 );
+it('cancels stdin before dispatch when the connection changes during durable admission', async () => {
+  const { api, calls, settle } = routed(interactiveRoute);
+  render(<ProcessPanel {...base()} api={api} />);
+  const input = await selectProcessInput();
+  fireEvent.change(input, { target: { value: 'keep unsent input' } });
+  fireEvent.click(screen.getByRole('button', { name: '发送输入' }));
+  expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(0);
+  api.connectionChanged();
+  await act(async () => { await settle(); });
+  await screen.findByText('请求所属登录或连接已变化，尚未发送请求。');
+  expect(input.value).toBe('keep unsent input');
+  expect(calls.filter((call) => call.method === 'process/writeStdin')).toHaveLength(0);
+  expect(await listOperations()).toEqual([
+    expect.objectContaining({ method: 'process/writeStdin', state: 'not_sent' }),
+  ]);
+});
 it.each(['selection', 'edit', 'existing draft'])(
   'preserves the current input owner after delayed spawn and %s',
   async (change) => {
     const pending = delayedWrite(),
       started = { ...process, tty: true, processHandle: 'new-handle' };
     let ready = false;
-    const { api, calls } = routed((call) => {
+    const { api, calls, settle } = routed((call) => {
       if (call.method === 'process/spawn') return pending.promise;
       if (call.method === 'process/list')
         return { data: [...interactiveProcesses, ...(ready ? [started] : [])] };
@@ -269,11 +312,15 @@ it.each(['selection', 'edit', 'existing draft'])(
       screen.getByRole('checkbox', { name: '确认以执行账号权限在此项目运行上述命令' }),
     );
     fireEvent.click(screen.getByRole('button', { name: '启动一次命令' }));
+    await waitFor(() => expect(calls.filter((call) => call.method === 'process/spawn')).toHaveLength(1));
     if (change === 'selection') input = await selectProcessInput('other');
     if (change !== 'existing draft')
       fireEvent.change(input, { target: { value: 'keep with original process' } });
     ready = true;
-    await act(async () => pending.resolve({ processHandle: started.processHandle }));
+    await act(async () => {
+      pending.resolve({ processHandle: started.processHandle });
+      await settle();
+    });
     expect(
       (screen.getByRole('combobox', { name: '当前连接的进程' }) as HTMLSelectElement).value,
     ).toBe(change === 'selection' ? 'other' : 'handle');
@@ -289,7 +336,7 @@ it('keeps a new process selection and draft when removing a previous exited proc
   const pending = delayedWrite(),
     exited = { ...process, status: 'exited' };
   let removed = false;
-  const { api, calls } = routed((call) => {
+  const { api, calls, settle } = routed((call) => {
     if (call.method === 'process/remove') return pending.promise;
     if (call.method === 'process/list')
       return { data: [...(removed ? [] : [exited]), interactiveProcesses[1]] };
@@ -303,10 +350,14 @@ it('keeps a new process selection and draft when removing a previous exited proc
     target: { value: 'handle' },
   });
   fireEvent.click(await screen.findByRole('button', { name: '移除已退出进程的输出' }));
+  await waitFor(() => expect(calls.filter((call) => call.method === 'process/remove')).toHaveLength(1));
   const input = await selectProcessInput('other');
   fireEvent.change(input, { target: { value: 'keep new input' } });
   removed = true;
-  await act(async () => pending.resolve({}));
+  await act(async () => {
+    pending.resolve({});
+    await settle();
+  });
   expect(
     (screen.getByRole('combobox', { name: '当前连接的进程' }) as HTMLSelectElement).value,
   ).toBe('other');
@@ -533,7 +584,7 @@ async function pairingFixture(reusePairingId = false) {
     expiresAt: 0,
   };
   const reads: PendingPairCheck[] = [];
-  const { api, calls } = routed((call, signal) => {
+  const { api, calls, settle } = routed((call, signal) => {
     if (call.method === 'remoteControl/status/read') return { ...status, environmentId };
     if (call.method === 'remoteControl/pairing/start') {
       sequence++;
@@ -558,12 +609,14 @@ async function pairingFixture(reusePairingId = false) {
     view = render(<RemoteSettings {...props} api={api} />);
   await act(async () => {});
   const create = async () => {
+    const nextSequence = sequence + 1;
     const summary = screen.getByText('配对新的客户端', { selector: 'summary' });
     if (!(summary.parentElement as HTMLDetailsElement).open) fireEvent.click(summary);
     fireEvent.click(screen.getByRole('checkbox', { name: '确认创建用于授权新客户端的配对码' }));
     fireEvent.click(screen.getByRole('button', { name: '创建一次配对' }));
-    await act(async () => {});
-    expect(screen.getByDisplayValue(`code-${sequence}`)).toBeTruthy();
+    await act(async () => { await settle(); });
+    expect(sequence).toBe(nextSequence);
+    expect(screen.getByDisplayValue(`code-${nextSequence}`)).toBeTruthy();
     return screen.getByRole('button', { name: '检查是否已配对' }) as HTMLButtonElement;
   };
   const check = async (button: HTMLButtonElement, repeatBeforeRender = false) => {

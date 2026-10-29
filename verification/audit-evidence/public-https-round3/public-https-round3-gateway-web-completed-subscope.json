@@ -1,0 +1,929 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round3",
+  "reviewerId": "public-round3-gateway-web-primary",
+  "scopes": [
+    "gateway-core",
+    "web-ux"
+  ],
+  "digest": "6b97df9efa8681d652d9898d500d8e82e6c322aa7f72400abd18fe238460a3e0",
+  "sourceDigestAfter": "6b97df9efa8681d652d9898d500d8e82e6c322aa7f72400abd18fe238460a3e0",
+  "startedAt": "2026-10-27T02:21:31.000Z",
+  "completedAt": "2026-10-27T02:27:57.000Z",
+  "complete": true,
+  "completedScopes": [
+    "gateway-core"
+  ],
+  "inspectedFiles": [
+    "src/gateway/auth-crypto.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/server.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/worker-client.ts",
+    "src/gateway/manager-client.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/budget.ts",
+    "src/core/validation.ts",
+    "src/core/feature-methods.ts",
+    "src/core/extension-methods.ts",
+    "src/core/organization-methods.ts",
+    "src/core/process-methods.ts",
+    "src/core/realtime-methods.ts",
+    "src/core/remote-methods.ts",
+    "src/gateway/main.ts",
+    "src/core/mcp-oauth-receipt.ts",
+    "src/gateway/organization-receipt.ts",
+    "src/core/ledger.ts",
+    "src/core/operation-retention.ts",
+    "src/gateway/receipt-maintenance.ts",
+    "src/core/automations.ts",
+    "src/core/schedule.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/core/worktrees.ts",
+    "src/gateway/workspace-ack.ts",
+    "src/gateway/receipt-result.ts",
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/operation-retention.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/receipt-maintenance.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "web/lib/api.ts",
+    "web/lib/operations.ts",
+    "web/lib/ids.ts",
+    "web/App.tsx",
+    "web/hooks/useEvents.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/usePaged.ts",
+    "web/lib/events.ts",
+    "web/components/Login.tsx",
+    "web/components/Recovery.tsx",
+    "web/lib/drafts.ts",
+    "web/hooks/useDraft.ts",
+    "web/lib/file-drafts.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/http.test.ts",
+    "web/Workspace.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/events.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/input-context.ts",
+    "web/lib/history.ts",
+    "web/lib/timeline.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/workspace.ts"
+  ],
+  "auxiliaryInspectedFiles": [
+    "AGENTS.md",
+    "package.json",
+    "scripts/snapshot.mjs"
+  ],
+  "method": "Full-source semantic reading of all 43 assigned gateway production/test files and 34 Web entry/API/session/recovery/draft/history files, including 10 corresponding Web test files. Large files were read in sequential complete ranges; omitted text from truncated tool output was reread. Cross-checked authentication/CSRF/Host/Origin, WebSocket owner registration and cleanup, write admission and durable replay, unknown outcomes, receipt projection and rotation, automation scheduling, worktree acknowledgements, UI session renewal, navigation generations, draft snapshot clearing, history and timeline merging. Reviewed test setup/actions/assertions as source, not merely test names or directory enumeration. No tests executed, no source edits, no external integrations or credentials accessed. Current snapshot recomputed with node scripts/snapshot.mjs: 1880 files, unchanged digest. Remaining Web files explicitly delegated for further coverage, so original combined scope is incomplete.",
+  "findings": [],
+  "skipped": [],
+  "verification": {
+    "snapshotCommand": "node scripts/snapshot.mjs",
+    "snapshotFiles": 1880,
+    "testExecution": "Not run; static independent audit only.",
+    "coverage": {
+      "gateway": {
+        "inspected": 43,
+        "total": 43
+      },
+      "web": {
+        "inspected": 34,
+        "total": 193
+      }
+    }
+  },
+  "scopeReconciliation": {
+    "coordinatedBy": "root",
+    "originalPath": ".work/public-https-round3-gateway-web.json",
+    "originalSha256": "f2650d4c77fad0a080ef77c735e075e192597b507144220a850ea06811b29a51",
+    "statement": "Only the original reviewer's 77 actually inspected files are the scope of this completed report. The original assignment included additional Web files; those uninspected files were explicitly reassigned and must be covered by other reports before a full repository audit is complete. No additional read or independent reviewer is claimed by this scope normalization.",
+    "originalComplete": false,
+    "reassignedFiles": [
+      {
+        "path": "web/VERIFICATION.md",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/AccountSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/AccountToolsPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/AdminSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ArchiveActions.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/AttachmentButton.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/AutomationForm.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/AutomationsPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/CliDiagnosticsPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/CompactThreshold.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Composer.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ComposerOptions.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ConfigSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/CreditNudge.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/DiagnosticsPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Dialog.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/DraftsSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/EnvironmentPicker.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ExtensionControls.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ExtensionsPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/FileEditor.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/GuardianReviewPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/HistoryTools.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/HookEventsPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Icon.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ImportPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/InputContextPicker.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/InputPreferences.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/LoadedThreadsPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/McpArguments.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/McpAuthorization.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/McpConfiguration.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/McpContent.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/McpPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/MemorySettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/MessageItem.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/MessageMedia.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Messages.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ModelCatalog.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/NativeProjects.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/OrganizationPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/PluginSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/PluginSharing.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/PredictionPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ProcessPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ProjectDialog.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ProjectTrustSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/PromptFields.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Prompts.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ProviderProfiles.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ProviderSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/RealtimePanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ReceiptMaintenance.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/RemoteSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/RenameDialog.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/RuntimeInsights.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/SafeMarkdown.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/SecuritySettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Settings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Sidebar.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/SkillLibraryTools.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/SkillSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/TaskPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/TerminalPanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ThreadExecutionSettings.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ThreadOrganization.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/ThreadTerminals.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/Welcome.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceCommit.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceDownload.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceGit.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceIndex.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceIndexRecovery.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspacePanel.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceRecovery.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceSearch.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/components/WorkspaceWorktrees.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/hooks/useAutomationRuns.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/hooks/useWorkflow.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/hooks/useWorkspaceWatch.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/index.html",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/automations.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/download.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/form-values.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/git-state.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/imports.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/input-modalities.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/input-preference.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/mcp-session.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/media.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/organization.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/prompt-validation.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/realtime-media.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/lib/receipt-archive.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/main.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/styles-automations.css",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/styles-extensions.css",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/styles-input-context.css",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/styles-responsive.css",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/styles-workflows.css",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/styles-workspace.css",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/styles.css",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/account-app.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/account-tools.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/attachments.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/automations.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/builtin-auth.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/cli-diagnostics.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/compact-threshold.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/composer.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/credit-nudge.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/defaults.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/device-login.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/dialog.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/environment-picker.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/execution-settings.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/extensions.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/git-index-ui.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/guardian-review.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/history.test.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/hook-events.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/import-ui.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/input-context.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/input-modalities.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/input-preference.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/loaded-threads.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/mcp-media.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/mcp-oauth.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/mcp-ui.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/memory-settings.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/message-media.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/modal-mutations.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/organization.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/prediction.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/preview-server.mjs",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/process-remote.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/prompt-fields.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/prompts.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/provider-advanced.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/provider-catalog.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/provider-profiles.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/provider.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/realtime.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/receipt-maintenance.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/render-budget.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/settings.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/sharing-diagnostics.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/skill-library.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/stream-items.test.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/terminal.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/thread-terminals.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/timeline-history.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/workflows.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/workspace-management.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/workspace-search.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/workspace-ui.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tests/workspace-watch.test.tsx",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/tsconfig.json",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      },
+      {
+        "path": "web/vite.config.ts",
+        "reason": "Not yet semantically inspected by this reviewer; remaining Web scope handed back to parent for delegation."
+      }
+    ],
+    "remainingInventory": {
+      "roundId": "public-https-round3",
+      "reviewerId": "public-round3-gateway-web-primary",
+      "files": [
+        "web/VERIFICATION.md",
+        "web/components/AccountSettings.tsx",
+        "web/components/AccountToolsPanel.tsx",
+        "web/components/AdminSettings.tsx",
+        "web/components/ArchiveActions.tsx",
+        "web/components/AttachmentButton.tsx",
+        "web/components/AutomationForm.tsx",
+        "web/components/AutomationsPanel.tsx",
+        "web/components/CliDiagnosticsPanel.tsx",
+        "web/components/CompactThreshold.tsx",
+        "web/components/Composer.tsx",
+        "web/components/ComposerOptions.tsx",
+        "web/components/ConfigSettings.tsx",
+        "web/components/CreditNudge.tsx",
+        "web/components/DiagnosticsPanel.tsx",
+        "web/components/Dialog.tsx",
+        "web/components/DraftsSettings.tsx",
+        "web/components/EnvironmentPicker.tsx",
+        "web/components/ExtensionControls.tsx",
+        "web/components/ExtensionsPanel.tsx",
+        "web/components/FileEditor.tsx",
+        "web/components/GuardianReviewPanel.tsx",
+        "web/components/HistoryTools.tsx",
+        "web/components/HookEventsPanel.tsx",
+        "web/components/Icon.tsx",
+        "web/components/ImportPanel.tsx",
+        "web/components/InputContextPicker.tsx",
+        "web/components/InputPreferences.tsx",
+        "web/components/LoadedThreadsPanel.tsx",
+        "web/components/McpArguments.tsx",
+        "web/components/McpAuthorization.tsx",
+        "web/components/McpConfiguration.tsx",
+        "web/components/McpContent.tsx",
+        "web/components/McpPanel.tsx",
+        "web/components/MemorySettings.tsx",
+        "web/components/MessageItem.tsx",
+        "web/components/MessageMedia.tsx",
+        "web/components/Messages.tsx",
+        "web/components/ModelCatalog.tsx",
+        "web/components/NativeProjects.tsx",
+        "web/components/OrganizationPanel.tsx",
+        "web/components/PluginSettings.tsx",
+        "web/components/PluginSharing.tsx",
+        "web/components/PredictionPanel.tsx",
+        "web/components/ProcessPanel.tsx",
+        "web/components/ProjectDialog.tsx",
+        "web/components/ProjectTrustSettings.tsx",
+        "web/components/PromptFields.tsx",
+        "web/components/Prompts.tsx",
+        "web/components/ProviderProfiles.tsx",
+        "web/components/ProviderSettings.tsx",
+        "web/components/RealtimePanel.tsx",
+        "web/components/ReceiptMaintenance.tsx",
+        "web/components/RemoteSettings.tsx",
+        "web/components/RenameDialog.tsx",
+        "web/components/RuntimeInsights.tsx",
+        "web/components/SafeMarkdown.tsx",
+        "web/components/SecuritySettings.tsx",
+        "web/components/Settings.tsx",
+        "web/components/Sidebar.tsx",
+        "web/components/SkillLibraryTools.tsx",
+        "web/components/SkillSettings.tsx",
+        "web/components/TaskPanel.tsx",
+        "web/components/TerminalPanel.tsx",
+        "web/components/ThreadExecutionSettings.tsx",
+        "web/components/ThreadOrganization.tsx",
+        "web/components/ThreadTerminals.tsx",
+        "web/components/Welcome.tsx",
+        "web/components/WorkspaceCommit.tsx",
+        "web/components/WorkspaceDownload.tsx",
+        "web/components/WorkspaceGit.tsx",
+        "web/components/WorkspaceIndex.tsx",
+        "web/components/WorkspaceIndexRecovery.tsx",
+        "web/components/WorkspacePanel.tsx",
+        "web/components/WorkspaceRecovery.tsx",
+        "web/components/WorkspaceSearch.tsx",
+        "web/components/WorkspaceWorktrees.tsx",
+        "web/hooks/useAutomationRuns.ts",
+        "web/hooks/useWorkflow.ts",
+        "web/hooks/useWorkspaceWatch.ts",
+        "web/index.html",
+        "web/lib/automations.ts",
+        "web/lib/download.ts",
+        "web/lib/form-values.ts",
+        "web/lib/git-state.ts",
+        "web/lib/imports.ts",
+        "web/lib/input-modalities.ts",
+        "web/lib/input-preference.ts",
+        "web/lib/mcp-session.ts",
+        "web/lib/media.ts",
+        "web/lib/organization.ts",
+        "web/lib/prompt-validation.ts",
+        "web/lib/realtime-media.ts",
+        "web/lib/receipt-archive.ts",
+        "web/main.tsx",
+        "web/styles-automations.css",
+        "web/styles-extensions.css",
+        "web/styles-input-context.css",
+        "web/styles-responsive.css",
+        "web/styles-workflows.css",
+        "web/styles-workspace.css",
+        "web/styles.css",
+        "web/tests/account-app.test.tsx",
+        "web/tests/account-tools.test.tsx",
+        "web/tests/attachments.test.tsx",
+        "web/tests/automations.test.tsx",
+        "web/tests/builtin-auth.test.tsx",
+        "web/tests/cli-diagnostics.test.tsx",
+        "web/tests/compact-threshold.test.tsx",
+        "web/tests/composer.test.tsx",
+        "web/tests/credit-nudge.test.tsx",
+        "web/tests/defaults.test.tsx",
+        "web/tests/device-login.test.tsx",
+        "web/tests/dialog.test.tsx",
+        "web/tests/environment-picker.test.tsx",
+        "web/tests/execution-settings.test.tsx",
+        "web/tests/extensions.test.tsx",
+        "web/tests/git-index-ui.test.tsx",
+        "web/tests/guardian-review.test.tsx",
+        "web/tests/history.test.ts",
+        "web/tests/hook-events.test.tsx",
+        "web/tests/import-ui.test.tsx",
+        "web/tests/input-context.test.tsx",
+        "web/tests/input-modalities.test.tsx",
+        "web/tests/input-preference.test.tsx",
+        "web/tests/loaded-threads.test.tsx",
+        "web/tests/mcp-media.test.tsx",
+        "web/tests/mcp-oauth.test.tsx",
+        "web/tests/mcp-ui.test.tsx",
+        "web/tests/memory-settings.test.tsx",
+        "web/tests/message-media.test.tsx",
+        "web/tests/modal-mutations.test.tsx",
+        "web/tests/organization.test.tsx",
+        "web/tests/prediction.test.tsx",
+        "web/tests/preview-server.mjs",
+        "web/tests/process-remote.test.tsx",
+        "web/tests/prompt-fields.test.tsx",
+        "web/tests/prompts.test.tsx",
+        "web/tests/provider-advanced.test.tsx",
+        "web/tests/provider-catalog.test.tsx",
+        "web/tests/provider-profiles.test.tsx",
+        "web/tests/provider.test.tsx",
+        "web/tests/realtime.test.tsx",
+        "web/tests/receipt-maintenance.test.tsx",
+        "web/tests/render-budget.test.tsx",
+        "web/tests/settings.test.tsx",
+        "web/tests/sharing-diagnostics.test.tsx",
+        "web/tests/skill-library.test.tsx",
+        "web/tests/stream-items.test.ts",
+        "web/tests/terminal.test.tsx",
+        "web/tests/thread-terminals.test.tsx",
+        "web/tests/timeline-history.test.tsx",
+        "web/tests/workflows.test.tsx",
+        "web/tests/workspace-management.test.tsx",
+        "web/tests/workspace-search.test.tsx",
+        "web/tests/workspace-ui.test.tsx",
+        "web/tests/workspace-watch.test.tsx",
+        "web/tsconfig.json",
+        "web/vite.config.ts"
+      ]
+    }
+  }
+}

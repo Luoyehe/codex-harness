@@ -1,0 +1,847 @@
+{
+  "status": "linux-evidence-ready-awaiting-windows-reconciliation",
+  "fullSuitePassed": false,
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "archiveSha256": "f47c3e5e2c57458ce774c9c8f7ba7e020dfcf64fde8baf40ae86c91fa90307a1",
+  "planSha256": "005983d030e89049c198b02740288138720e39c9782c3bc29ff43caaeec5708a",
+  "authorizationSha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee",
+  "mainBaseline": {
+    "codex-harness-crtest-rw-20261025-gateway.service": {
+      "MainPID": "2051745",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-gateway.service",
+      "Id": "codex-harness-crtest-rw-20261025-gateway.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820957"
+    },
+    "codex-harness-crtest-rw-20261025-worker.service": {
+      "MainPID": "2051743",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-worker.service",
+      "Id": "codex-harness-crtest-rw-20261025-worker.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820955"
+    },
+    "codex-harness-crtest-rw-20261025-caddy.service": {
+      "MainPID": "2050556",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-caddy.service",
+      "Id": "codex-harness-crtest-rw-20261025-caddy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195818264"
+    }
+  },
+  "preparations": [
+    {
+      "phase": "go-preparation",
+      "unit": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+      "description": "codex-harness-public-go-prepare:b7cbb2ddbef44cb38ac057e36184420b:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "base": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/go-preparation",
+      "digest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "authorizationSha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee",
+      "planSha256": "005983d030e89049c198b02740288138720e39c9782c3bc29ff43caaeec5708a",
+      "properties": [
+        "Type=exec",
+        "Description=codex-harness-public-go-prepare:b7cbb2ddbef44cb38ac057e36184420b:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+        "Slice=system.slice",
+        "User=nobody",
+        "UMask=0022",
+        "WorkingDirectory=/var/lib/crtest-public-full-offline-irwswa3i/nobody/source",
+        "PrivateNetwork=yes",
+        "PrivateTmp=yes",
+        "PrivateDevices=yes",
+        "ProtectSystem=strict",
+        "ProtectHome=yes",
+        "NoNewPrivileges=yes",
+        "ProtectKernelTunables=yes",
+        "ProtectKernelModules=yes",
+        "ProtectControlGroups=yes",
+        "ProtectClock=yes",
+        "ProtectProc=invisible",
+        "RestrictNamespaces=yes",
+        "RestrictSUIDSGID=yes",
+        "LockPersonality=yes",
+        "RestrictAddressFamilies=AF_UNIX",
+        "CapabilityBoundingSet=",
+        "TemporaryFileSystem=/etc/codex:ro /run:ro",
+        "ReadWritePaths=/var/lib/crtest-public-full-offline-irwswa3i/nobody/go-preparation /var/lib/crtest-public-full-offline-irwswa3i/nobody/home /var/lib/crtest-public-full-offline-irwswa3i/nobody/tmp /var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work /var/lib/crtest-public-full-offline-irwswa3i/nobody/source/reference/runtime",
+        "InaccessiblePaths=-/etc/codex-harness -/usr/lib/codex-harness -/opt/codex-harness -/var/cache/codex-harness -/var/lib/codex-harness-instances -/sys/fs/cgroup",
+        "KillMode=control-group",
+        "SendSIGKILL=yes",
+        "TimeoutStopSec=15",
+        "RuntimeMaxSec=1900",
+        "MemoryMax=4G",
+        "MemorySwapMax=0",
+        "TasksMax=512",
+        "LimitNOFILE=4096",
+        "ReadOnlyPaths=/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs"
+      ],
+      "offlineInputs": {
+        "manifest": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs/inputs.json",
+        "manifestSha256": "035599da31eaf9170359ed069019cbbff4488e6b13f9bf5cd824c0696f295312",
+        "goArchive": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs/go.tar.gz",
+        "goArchiveSha256": "ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5",
+        "cacheArchiveSha256": "5fe69fb26322c67fc2c91cc1baecf805376cc6007c5ad11a97ac7127104a74dc",
+        "seedCache": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs/seed",
+        "files": 30459,
+        "bytes": 276050647,
+        "sources": {
+          "main.go": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+          "main_test.go": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+          "go.mod": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+          "go.sum": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975"
+        }
+      },
+      "launchAttempted": true,
+      "preflightAbsent": true,
+      "preflight": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "Description": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "absent": true,
+          "confirmed": true
+        }
+      },
+      "exitCode": 0,
+      "logs": {
+        "stdout": {
+          "path": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/go-preparation/stdout.log",
+          "bytes": 3359,
+          "sha256": "ff284474b379300b2d79c27a82bdb4238c23bd0e9927d59a4e94da22e76ccb08"
+        },
+        "stderr": {
+          "path": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/go-preparation/stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "beforeStop": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "Description": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "stopAction": "none: collected unit already absent",
+      "stopProof": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "Description": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "owned": false,
+        "absent": true,
+        "cgroup": {
+          "path": "/system.slice/crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "collectionProof": {
+        "unit": {
+          "queryExit": 0,
+          "state": {
+            "MainPID": "0",
+            "ControlPID": "0",
+            "ControlGroup": "",
+            "Id": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+            "Description": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+            "LoadState": "not-found",
+            "ActiveState": "inactive",
+            "SubState": "dead",
+            "FragmentPath": "",
+            "Transient": "no"
+          }
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "mainUnchanged": true,
+      "isolation": {
+        "uid": 65534,
+        "umask": "0022",
+        "capabilities": {
+          "CapEff": 0,
+          "CapPrm": 0,
+          "CapBnd": 0,
+          "CapInh": 0,
+          "CapAmb": 0
+        },
+        "initialCapabilities": {
+          "CapEff": 0,
+          "CapPrm": 0,
+          "CapBnd": 0,
+          "CapInh": 0,
+          "CapAmb": 0
+        },
+        "capabilityNormalization": "already-clean",
+        "networkIsolated": true,
+        "publicDependencyPreparation": true,
+        "runReadonlyTmpfs": true,
+        "maskedPaths": {
+          "/etc/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/usr/lib/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/opt/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/var/cache/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/var/lib/codex-harness-instances": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/sys/fs/cgroup": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          }
+        },
+        "unprivilegedProbe": {
+          "uid": 65534,
+          "capEff": 0,
+          "capabilities": {
+            "CapEff": 0,
+            "CapPrm": 0,
+            "CapBnd": 0,
+            "CapInh": 0,
+            "CapAmb": 0
+          },
+          "denials": {
+            "/etc/codex-harness": "EACCES",
+            "/usr/lib/codex-harness": "EACCES",
+            "/opt/codex-harness": "EACCES",
+            "/var/cache/codex-harness": "EACCES",
+            "/var/lib/codex-harness-instances": "EACCES",
+            "/sys/fs/cgroup": "EACCES",
+            "/run/systemd/private": "ENOENT",
+            "/run/dbus/system_bus_socket": "ENOENT",
+            "/sys/fs/cgroup/cgroup.controllers": "EACCES"
+          }
+        },
+        "probeSucceeded": true
+      },
+      "goPreparation": {
+        "manifest": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/ci-go/prepared.json",
+        "manifestSha256": "6b12fa90788b3952b35769a23e985795f05aee22b5170530aedda49032a1ff24",
+        "verified": {
+          "manifest": {
+            "schemaVersion": 1,
+            "goVersion": "1.26.10",
+            "platform": "linux",
+            "architecture": "amd64",
+            "archiveSha256": "ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5",
+            "goBinarySha256": "9c2a37ae5b21ba1d5a004bb9ab4d0c64de6fc5778e9d30487adccea62678b8b5",
+            "archive": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/reference/runtime/ci-go/go1.26.10.linux-amd64.tar.gz",
+            "binary": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/reference/runtime/ci-go/go/bin/go",
+            "moduleCache": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/ci-go/modules",
+            "sources": {
+              "main.go": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+              "main_test.go": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+              "go.mod": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+              "go.sum": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975"
+            }
+          },
+          "binary": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/reference/runtime/ci-go/go/bin/go",
+          "moduleCache": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/ci-go/modules"
+        },
+        "offlineInputs": {
+          "manifest": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs/inputs.json",
+          "manifestSha256": "035599da31eaf9170359ed069019cbbff4488e6b13f9bf5cd824c0696f295312",
+          "goArchive": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs/go.tar.gz",
+          "goArchiveSha256": "ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5",
+          "cacheArchiveSha256": "5fe69fb26322c67fc2c91cc1baecf805376cc6007c5ad11a97ac7127104a74dc",
+          "seedCache": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs/seed",
+          "files": 30459,
+          "bytes": 276050647,
+          "sources": {
+            "main.go": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+            "main_test.go": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+            "go.mod": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+            "go.sum": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975"
+          }
+        },
+        "freshNetworkDownload": false
+      }
+    }
+  ],
+  "phases": [
+    {
+      "phase": "nobody",
+      "target": "linux",
+      "unit": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+      "description": "codex-harness-public-full:5f7ac4733fb247d1b48a3bdef4a06691:nobody:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "base": "/var/lib/crtest-public-full-offline-irwswa3i/nobody",
+      "digest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "authorizationSha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee",
+      "planSha256": "005983d030e89049c198b02740288138720e39c9782c3bc29ff43caaeec5708a",
+      "dependencyVersions": {
+        "@xterm/addon-fit": "0.11.0",
+        "@xterm/xterm": "6.0.0",
+        "@z_ai/mcp-server": "0.1.5",
+        "ajv": "8.20.0",
+        "ajv-formats": "3.0.1",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "react-markdown": "10.1.0",
+        "remark-gfm": "4.0.1",
+        "ws": "8.22.0",
+        "@testing-library/react": "16.3.3",
+        "@testing-library/user-event": "14.6.8",
+        "@types/node": "24.19.2",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@types/ws": "8.18.2",
+        "@vitejs/plugin-react": "6.1.2",
+        "fake-indexeddb": "6.2.6",
+        "jsdom": "30.1.3",
+        "typescript": "7.0.2",
+        "vite": "8.3.5",
+        "vitest": "5.0.5"
+      },
+      "dependencyProof": {
+        "sha256": "0e4f984a2dc9609e9dc338b87f897842fa64a2abf9af27218d95a34b2c24655b",
+        "entries": 12561,
+        "bytes": 137975726
+      },
+      "properties": [
+        "Type=exec",
+        "Description=codex-harness-public-full:5f7ac4733fb247d1b48a3bdef4a06691:nobody:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+        "Slice=system.slice",
+        "User=nobody",
+        "UMask=0022",
+        "WorkingDirectory=/var/lib/crtest-public-full-offline-irwswa3i/nobody/source",
+        "PrivateNetwork=yes",
+        "PrivateTmp=yes",
+        "PrivateDevices=yes",
+        "ProtectSystem=strict",
+        "ProtectHome=yes",
+        "NoNewPrivileges=yes",
+        "ProtectKernelTunables=yes",
+        "ProtectKernelModules=yes",
+        "ProtectControlGroups=yes",
+        "ProtectClock=yes",
+        "ProtectProc=invisible",
+        "RestrictNamespaces=yes",
+        "RestrictSUIDSGID=no",
+        "LockPersonality=yes",
+        "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6",
+        "CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_FSETID CAP_KILL CAP_SETGID CAP_SETUID",
+        "TemporaryFileSystem=/etc/codex:ro /run:ro",
+        "ReadWritePaths=/var/lib/crtest-public-full-offline-irwswa3i/nobody",
+        "InaccessiblePaths=-/etc/codex-harness -/usr/lib/codex-harness -/opt/codex-harness -/var/cache/codex-harness -/var/lib/codex-harness-instances -/sys/fs/cgroup",
+        "KillMode=control-group",
+        "SendSIGKILL=yes",
+        "TimeoutStopSec=15",
+        "RuntimeMaxSec=1900",
+        "MemoryMax=4G",
+        "MemorySwapMax=0",
+        "TasksMax=512",
+        "LimitNOFILE=4096",
+        "ReadOnlyPaths=/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/public-go-inputs"
+      ],
+      "launchAttempted": true,
+      "preflightAbsent": true,
+      "preflight": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "Description": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "absent": true,
+          "confirmed": true
+        }
+      },
+      "exitCode": 3,
+      "logs": {
+        "stdout": {
+          "path": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/stdout.log",
+          "bytes": 17613,
+          "sha256": "d9bfd27d58785771b3bdeb133dfdb05f406dc2cf8f2129fca7ab1a2281d91e52"
+        },
+        "stderr": {
+          "path": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/stderr.log",
+          "bytes": 71285,
+          "sha256": "a1efb8bfdc9382b089734827041a8ba93dc0f6372a980bde365415bfaa1362da"
+        }
+      },
+      "beforeStop": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "Description": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "stopAction": "none: collected unit already absent",
+      "stopProof": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "Description": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "owned": false,
+        "absent": true,
+        "cgroup": {
+          "path": "/system.slice/crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "collectionProof": {
+        "unit": {
+          "queryExit": 0,
+          "state": {
+            "MainPID": "0",
+            "ControlPID": "0",
+            "ControlGroup": "",
+            "Id": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+            "Description": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+            "LoadState": "not-found",
+            "ActiveState": "inactive",
+            "SubState": "dead",
+            "FragmentPath": "",
+            "Transient": "no"
+          }
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "isolation": {
+        "uid": 65534,
+        "umask": "0022",
+        "capabilities": {
+          "CapEff": 0,
+          "CapPrm": 0,
+          "CapBnd": 251,
+          "CapInh": 0,
+          "CapAmb": 0
+        },
+        "initialCapabilities": {
+          "CapEff": 0,
+          "CapPrm": 0,
+          "CapBnd": 251,
+          "CapInh": 0,
+          "CapAmb": 0
+        },
+        "capabilityNormalization": "already-clean",
+        "networkIsolated": true,
+        "publicDependencyPreparation": false,
+        "runReadonlyTmpfs": true,
+        "maskedPaths": {
+          "/etc/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/usr/lib/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/opt/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/var/cache/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/var/lib/codex-harness-instances": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/sys/fs/cgroup": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          }
+        },
+        "unprivilegedProbe": {
+          "uid": 65534,
+          "capEff": 0,
+          "capabilities": {
+            "CapEff": 0,
+            "CapPrm": 0,
+            "CapBnd": 251,
+            "CapInh": 0,
+            "CapAmb": 0
+          },
+          "denials": {
+            "/etc/codex-harness": "EACCES",
+            "/usr/lib/codex-harness": "EACCES",
+            "/opt/codex-harness": "EACCES",
+            "/var/cache/codex-harness": "EACCES",
+            "/var/lib/codex-harness-instances": "EACCES",
+            "/sys/fs/cgroup": "EACCES",
+            "/run/systemd/private": "ENOENT",
+            "/run/dbus/system_bus_socket": "ENOENT",
+            "/sys/fs/cgroup/cgroup.controllers": "EACCES"
+          }
+        },
+        "probeSucceeded": true
+      },
+      "report": {
+        "path": "/var/lib/crtest-public-full-offline-irwswa3i/nobody/source/.work/result-linux.json",
+        "sha256": "e0c7768f0c74c422aed23f3c5ca388b16114003d092540a68ccaf9d15f02f693",
+        "exitCode": 3,
+        "cases": 1934
+      },
+      "mainUnchanged": true
+    },
+    {
+      "phase": "root",
+      "target": "linux-root",
+      "unit": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+      "description": "codex-harness-public-full:030e44663e0f49e38ad3ad9244f5ce42:root:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "base": "/var/lib/crtest-public-full-offline-irwswa3i/root",
+      "digest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "authorizationSha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee",
+      "planSha256": "005983d030e89049c198b02740288138720e39c9782c3bc29ff43caaeec5708a",
+      "dependencyVersions": {
+        "@xterm/addon-fit": "0.11.0",
+        "@xterm/xterm": "6.0.0",
+        "@z_ai/mcp-server": "0.1.5",
+        "ajv": "8.20.0",
+        "ajv-formats": "3.0.1",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "react-markdown": "10.1.0",
+        "remark-gfm": "4.0.1",
+        "ws": "8.22.0",
+        "@testing-library/react": "16.3.3",
+        "@testing-library/user-event": "14.6.8",
+        "@types/node": "24.19.2",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@types/ws": "8.18.2",
+        "@vitejs/plugin-react": "6.1.2",
+        "fake-indexeddb": "6.2.6",
+        "jsdom": "30.1.3",
+        "typescript": "7.0.2",
+        "vite": "8.3.5",
+        "vitest": "5.0.5"
+      },
+      "dependencyProof": {
+        "sha256": "0e4f984a2dc9609e9dc338b87f897842fa64a2abf9af27218d95a34b2c24655b",
+        "entries": 12561,
+        "bytes": 137975726
+      },
+      "properties": [
+        "Type=exec",
+        "Description=codex-harness-public-full:030e44663e0f49e38ad3ad9244f5ce42:root:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+        "Slice=system.slice",
+        "User=root",
+        "UMask=0022",
+        "WorkingDirectory=/var/lib/crtest-public-full-offline-irwswa3i/root/source",
+        "PrivateNetwork=yes",
+        "PrivateTmp=yes",
+        "PrivateDevices=yes",
+        "ProtectSystem=strict",
+        "ProtectHome=yes",
+        "NoNewPrivileges=yes",
+        "ProtectKernelTunables=yes",
+        "ProtectKernelModules=yes",
+        "ProtectControlGroups=yes",
+        "ProtectClock=yes",
+        "ProtectProc=invisible",
+        "RestrictNamespaces=yes",
+        "RestrictSUIDSGID=no",
+        "LockPersonality=yes",
+        "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6",
+        "CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_FSETID CAP_KILL CAP_SETGID CAP_SETUID",
+        "TemporaryFileSystem=/etc/codex:ro /run:ro",
+        "ReadWritePaths=/var/lib/crtest-public-full-offline-irwswa3i/root",
+        "InaccessiblePaths=-/etc/codex-harness -/usr/lib/codex-harness -/opt/codex-harness -/var/cache/codex-harness -/var/lib/codex-harness-instances -/sys/fs/cgroup",
+        "KillMode=control-group",
+        "SendSIGKILL=yes",
+        "TimeoutStopSec=15",
+        "RuntimeMaxSec=1900",
+        "MemoryMax=4G",
+        "MemorySwapMax=0",
+        "TasksMax=512",
+        "LimitNOFILE=4096",
+        "AmbientCapabilities=CAP_SETUID"
+      ],
+      "launchAttempted": true,
+      "preflightAbsent": true,
+      "preflight": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "Description": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "absent": true,
+          "confirmed": true
+        }
+      },
+      "exitCode": 0,
+      "logs": {
+        "stdout": {
+          "path": "/var/lib/crtest-public-full-offline-irwswa3i/root/stdout.log",
+          "bytes": 1836,
+          "sha256": "57b3d83c704cb2005e1a6140c415d08ac6806191f3b3a2f561cdd6b1ca31deeb"
+        },
+        "stderr": {
+          "path": "/var/lib/crtest-public-full-offline-irwswa3i/root/stderr.log",
+          "bytes": 39815,
+          "sha256": "891693f65dba8d08697cf3f210e59e366d0ae31b8b33147e8c652ed5dadd3b64"
+        }
+      },
+      "beforeStop": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "Description": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "stopAction": "none: collected unit already absent",
+      "stopProof": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "Description": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        },
+        "owned": false,
+        "absent": true,
+        "cgroup": {
+          "path": "/system.slice/crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "collectionProof": {
+        "unit": {
+          "queryExit": 0,
+          "state": {
+            "MainPID": "0",
+            "ControlPID": "0",
+            "ControlGroup": "",
+            "Id": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+            "Description": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+            "LoadState": "not-found",
+            "ActiveState": "inactive",
+            "SubState": "dead",
+            "FragmentPath": "",
+            "Transient": "no"
+          }
+        },
+        "cgroup": {
+          "path": "/system.slice/crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "absent": true,
+          "confirmed": true
+        },
+        "confirmed": true
+      },
+      "isolation": {
+        "uid": 0,
+        "umask": "0022",
+        "capabilities": {
+          "CapEff": 251,
+          "CapPrm": 251,
+          "CapBnd": 251,
+          "CapInh": 0,
+          "CapAmb": 0
+        },
+        "initialCapabilities": {
+          "CapEff": 251,
+          "CapPrm": 251,
+          "CapBnd": 251,
+          "CapInh": 128,
+          "CapAmb": 128
+        },
+        "capabilityNormalization": "cleared-root-inheritable-and-ambient",
+        "networkIsolated": true,
+        "publicDependencyPreparation": false,
+        "runReadonlyTmpfs": true,
+        "maskedPaths": {
+          "/etc/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/usr/lib/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/opt/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/var/cache/codex-harness": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/var/lib/codex-harness-instances": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          },
+          "/sys/fs/cgroup": {
+            "device": 25,
+            "inode": 673,
+            "mode": 0,
+            "readonlyMount": true
+          }
+        },
+        "unprivilegedProbe": {
+          "uid": 65534,
+          "capEff": 0,
+          "capabilities": {
+            "CapEff": 0,
+            "CapPrm": 0,
+            "CapBnd": 251,
+            "CapInh": 0,
+            "CapAmb": 0
+          },
+          "denials": {
+            "/etc/codex-harness": "EACCES",
+            "/usr/lib/codex-harness": "EACCES",
+            "/opt/codex-harness": "EACCES",
+            "/var/cache/codex-harness": "EACCES",
+            "/var/lib/codex-harness-instances": "EACCES",
+            "/sys/fs/cgroup": "EACCES",
+            "/run/systemd/private": "ENOENT",
+            "/run/dbus/system_bus_socket": "ENOENT",
+            "/sys/fs/cgroup/cgroup.controllers": "EACCES"
+          }
+        },
+        "probeSucceeded": true
+      },
+      "report": {
+        "path": "/var/lib/crtest-public-full-offline-irwswa3i/root/source/.work/result-linux-root.json",
+        "sha256": "50b3f3be4604222e21f4ca8424b4dc0465226d4ea4a6277c255dada5a143e314",
+        "exitCode": 0,
+        "cases": 214
+      },
+      "mainUnchanged": true
+    }
+  ],
+  "note": "Go preparation uses only copied, sealed public inputs and native --archive/--seed-cache; preparation and tests remain offline. Fresh network download is not claimed. Exit 3 and individual skips remain recorded. Windows report plus repository reconcileCi are mandatory; Linux-only evidence is never full-suite pass."
+}

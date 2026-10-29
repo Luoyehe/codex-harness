@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "version": "2.1.1",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceFiles": 1911,
+  "origin": "https://example.invalid:10000",
+  "originRedacted": true,
+  "publication": "Whitelisted summary only. Credentials, session/account identifiers, project data, hostnames, addresses and certificate identity fields are omitted.",
+  "kind": "redacted-managed-restart-acceptance",
+  "status": "passed",
+  "startedAt": "2026-10-29T21:03:33.919080+00:00",
+  "completedAt": "2026-10-29T21:03:40.579146+00:00",
+  "rawEvidence": {
+    "path": ".work/public-restart-acceptance-10000.json",
+    "sha256": "a09b10e3e02ef93901a1fd83002d2e69fb4f905797ebac1211f9f3f8193d928b",
+    "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+  },
+  "externalAcceptanceEvidence": {
+    "path": ".work/public-live-acceptance-10000-reuse-attempt4.json",
+    "sha256": "fabb367b660b53e72e591721fc41b92c1d228898cc7960c120403c4368754669",
+    "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+  },
+  "helper": {
+    "source": {
+      "path": ".work/public-live-acceptance-10000-reuse.mjs",
+      "sha256": "7693e6a5f6fb0db89540a042b1e214019a85c52e49115a5513e6d50d843547a8"
+    },
+    "focusedReview": {
+      "path": ".work/public-live-reuse-review.json",
+      "sha256": "d4fc3f22b6e2ea5f7d24963460497f7bce5e3edebce76bb2cd1c7079f9043c7d",
+      "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence.",
+      "checksPassed": 17,
+      "findings": 0,
+      "fullAuditCredit": false
+    }
+  },
+  "managedRestart": {
+    "gatewayActuallyRestarted": true,
+    "workerActuallyRestarted": true,
+    "proxyRestarted": false,
+    "sameReleaseBeforeAndAfter": true,
+    "allManagedServicesActiveRunningEnabled": true
+  },
+  "deploymentHostVerification": {
+    "vantage": "deployment-host",
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "httpsReady": true,
+    "tlsVerified": true,
+    "instanceVerified": true,
+    "independentExternalAcceptanceClaimedByThisHostCheck": false
+  },
+  "externalPostRestartVerification": {
+    "sameAuthenticatedSessionRetained": true,
+    "sameOperationGenerationRetained": true,
+    "realWebSocketStateReceived": true,
+    "readOnlyRpcSucceeded": true,
+    "logoutRevoked": true,
+    "independentExternalPeerConfirmed": true
+  },
+  "limits": [
+    "The deployment-host TLS check and independent external acceptance are separate evidence.",
+    "The reverse proxy was not restarted as part of this managed gateway/worker restart.",
+    "Service process identifiers, network peers, release configuration identifiers and account/session identities are intentionally omitted."
+  ]
+}

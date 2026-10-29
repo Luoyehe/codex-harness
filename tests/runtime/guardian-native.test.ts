@@ -7,13 +7,14 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonObject, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { PtyTranscript } from './pty-transcript.js';
+import { withFixtureCleanup, type FixtureCleanup } from './fixture-cleanup.js';
 function stream(res: ServerResponse, item: JsonObject, n: number) {
   const response = { id: `response_${n}`, object: 'response', created_at: 1, status: 'completed', model: 'harness-loopback-fixture', output: [item], usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 } };
   res.writeHead(200, { 'Content-Type': 'text/event-stream' });
   for (const [sequence_number, event] of [{ type: 'response.created', response: { ...response, status: 'in_progress', output: [] } }, { type: 'response.output_item.added', output_index: 0, item }, { type: 'response.output_item.done', output_index: 0, item }, { type: 'response.completed', response }].entries()) res.write(`event: ${event.type}\ndata: ${JSON.stringify({ ...event, sequence_number })}\n\n`);
   res.end();
 }
-async function fixture(guardian: boolean | 'permissions') {
+async function fixture(guardian: boolean | 'permissions', defer: FixtureCleanup) {
   const base = path.resolve('.work/guardian-native-tests'); mkdirSync(base, { recursive: true }); const root = mkdtempSync(path.join(base, 'home-')), home = path.join(root, 'codex'), temp = path.join(root, 'tmp'); mkdirSync(home); mkdirSync(temp);
   const requests: JsonObject[] = [], errors: string[] = [];
   const server = createServer((req, res) => { void (async () => {
@@ -26,16 +27,18 @@ async function fixture(guardian: boolean | 'permissions') {
   })().catch(error => { errors.push(String(error)); res.destroy(); }); });
   server.on('connect', (_req, socket) => socket.end('HTTP/1.1 503 Denied\r\nContent-Length: 0\r\n\r\n'));
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve)); const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`, catalog = path.join(root, 'models.json');
+  defer(async () => { const closed = new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); server.closeAllConnections(); await closed; });
   const models = JSON.parse(readFileSync('tests/runtime/fixture-model-catalog.json', 'utf8')); if (guardian) models.models[0].shell_type = 'unified_exec'; writeFileSync(catalog, JSON.stringify(models));
   writeFileSync(path.join(home, 'config.toml'), `check_for_update_on_startup=false\nmodel="harness-loopback-fixture"\nmodel_provider="fixture"\nmodel_catalog_json=${JSON.stringify(catalog)}\napproval_policy="on-request"\napprovals_reviewer="auto_review"\nsandbox_mode="read-only"\n[projects.${JSON.stringify(root)}]\ntrust_level="trusted"\n[model_providers.fixture]\nname="Fixture"\nbase_url="${url}/v1"\nwire_api="responses"\nrequires_openai_auth=false\nsupports_websockets=false\nrequest_max_retries=0\nstream_max_retries=0\n`);
   if (guardian === 'permissions') writeFileSync(path.join(home, 'config.toml'), `${readFileSync(path.join(home, 'config.toml'), 'utf8')}\n[features]\nrequest_permissions_tool=true\n`);
   const env: NodeJS.ProcessEnv = { HOME: root, USERPROFILE: root, CODEX_HOME: home, TEMP: temp, TMP: temp, HTTP_PROXY: url, HTTPS_PROXY: url, ALL_PROXY: url, NO_PROXY: '127.0.0.1' }; for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC']) if (process.env[key]) env[key] = process.env[key];
   const config = { bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true }, service = await RuntimeService.create(config), events: RuntimeEvent[] = []; service.on('event', event => events.push(event));
+  defer(() => service.close());
   const context = { clientId: 'fixture', eventChannelId: 'channel', beforeWrite: () => {} };
-  return { root, home, service, events, requests, errors, context, close: async () => { await service.close(); server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); } };
+  return { root, home, service, events, requests, errors, context };
 }
-test.each([true, 'permissions'] as const)('real CLI denial %s is captured once and approval inserts an exact-action marker without starting a turn', async kind => {
-  const f = await fixture(kind); try {
+test.each([true, 'permissions'] as const)('real CLI denial %s is captured once and approval inserts an exact-action marker without starting a turn', kind => withFixtureCleanup(async defer => {
+  const f = await fixture(kind, defer);
     const created = object(await f.service.call('conversation/start', { cwd: f.root, text: 'Inspect the harmless command.' }, f.context)), threadId = object(created.thread).id!;
     await expect.poll(() => f.events.some(event => event.type === 'notification' && object(event.data).method === 'turn/completed'), { timeout: 15000 }).toBe(true);
     const denial = object((object(await f.service.call('thread/guardian/list', { threadId }, f.context)).data as JsonValue[])[0]);
@@ -53,12 +56,12 @@ test.each([true, 'permissions'] as const)('real CLI denial %s is captured once a
     else expect(action).toEqual({ type: 'command', source: 'unified_exec', command: object(denial.action).command, cwd: f.root });
     expect(f.errors).toEqual([]);
     expect(object(await f.service.call('thread/guardian/list', { threadId }, f.context)).data).toEqual([]);
-  } finally { await f.close(); }
-}, 30000);
-test('fixed native CLI PTY exposes the real hook trust flow, makes zero model calls and requires restart after proven cleanup', async () => {
-  const f = await fixture(false); let terminalId: JsonValue | undefined, unansweredQueries = 0;
+}), 30000);
+test('fixed native CLI PTY exposes the real hook trust flow, makes zero model calls and requires restart after proven cleanup', () => withFixtureCleanup(async defer => {
+  const f = await fixture(false, defer); let terminalId: JsonValue | undefined, unansweredQueries = 0;
   const transcript = new PtyTranscript(), pending: Promise<unknown>[] = [], replyErrors: unknown[] = [];
   const phases: { phase: string; at: number; monotonicMs: number; outputLength: number; hasReview: boolean; hasTrustAll: boolean }[] = [];
+  defer(() => { writeFileSync(path.join(f.root, 'hook-pty-transcript.json'), JSON.stringify({ phases, terminalTail: transcript.tail })); });
   const phase = (name: string) => { phases.push({ phase: name, at: Date.now(), monotonicMs: performance.now(), outputLength: transcript.mark(), hasReview: transcript.tail.includes('Hooks need review'), hasTrustAll: transcript.tail.includes('trust all') }); };
   const answerQueries = () => {
     if (!terminalId) return;
@@ -112,20 +115,15 @@ test('fixed native CLI PTY exposes the real hook trust flow, makes zero model ca
     // PTY frames so CI failures distinguish input ordering from terminal render.
     console.error(JSON.stringify({ fixture: 'guardian-native-hook-pty', phases, runtime: f.service.status(), terminalTail: transcript.tail.slice(-16000) }));
     throw error;
-  } finally {
-    writeFileSync(path.join(f.root, 'hook-pty-transcript.json'), JSON.stringify({ phases, terminalTail: transcript.tail }));
-    await f.close();
   }
-}, 45000);
+}), 45000);
 
-test('fixed cloud PTY reports actual missing ChatGPT auth and releases its tree only with a restart requirement', async () => {
-  const f = await fixture(false); let text = '';
+test('fixed cloud PTY reports actual missing ChatGPT auth and releases its tree only with a restart requirement', () => withFixtureCleanup(async defer => {
+  const f = await fixture(false, defer); let text = '';
   f.service.on('event', (event: RuntimeEvent) => { if (event.type === 'terminal' && object(event.data).type === 'output') text = (text + Buffer.from(String(object(event.data).deltaBase64), 'base64').toString()).slice(-262144); });
-  try {
     const result = object(await f.service.call('terminal/open', { cwd: f.root, program: 'codex-cloud', rows: 30, cols: 100 }, f.context)); expect(typeof result.terminalId).toBe('string');
     await expect.poll(() => f.events.some(event => event.type === 'terminal' && object(event.data).type === 'exit'), { timeout: 10000 }).toBe(true);
     expect(text).toContain('Not signed in.'); expect(text).toContain('codex login'); expect(f.requests).toHaveLength(0); expect(f.errors).toEqual([]);
     expect(object(object(f.service.status()).activity)).toMatchObject({ terminals: 0, unknown: true });
     await expect(f.service.call('thread/start', { cwd: f.root }, f.context)).rejects.toMatchObject({ code: 'activity_unknown' });
-  } finally { await f.close(); }
-}, 20000);
+}), 20000);

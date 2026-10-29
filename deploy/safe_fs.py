@@ -44,6 +44,69 @@ def bounded_names(directory: Path | int, remaining: int) -> list[str]:
     return names
 
 
+def durable_tree(path: Path) -> None:
+    """Flush a trusted, quiescent tree before publishing its name or manifest.
+
+    Symlink entries are persisted by their containing directory, never followed.
+    Linux uses read-only descriptors so an existing executable can be in use.
+    This does not establish ownership or stop an untrusted producer.
+    """
+    reserved = 0
+
+    def visit(directory: Path | int) -> None:
+        nonlocal reserved
+        names = bounded_names(directory, MAX_FILES - reserved)
+        reserved += len(names)
+        for name in names:
+            if os.name == "posix":
+                before = os.stat(name, dir_fd=directory, follow_symlinks=False)
+            else:
+                before = (directory / name).lstat()
+            if stat.S_ISLNK(before.st_mode):
+                continue
+            is_directory = stat.S_ISDIR(before.st_mode)
+            require(is_directory or stat.S_ISREG(before.st_mode), "Special file in durable tree", "unsafe_path")
+            if os.name != "posix":
+                # Windows fixtures need writable file descriptors for fsync and
+                # do not support the Linux directory durability contract.
+                if is_directory:
+                    visit(directory / name)
+                else:
+                    with (directory / name).open("r+b") as source:
+                        os.fsync(source.fileno())
+                continue
+            flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+            child = os.open(name, flags | (os.O_DIRECTORY if is_directory else 0), dir_fd=directory)
+            try:
+                require(stable_identity(os.fstat(child)) == stable_identity(before),
+                        "Tree changed before durability flush", "unsafe_path")
+                if is_directory:
+                    visit(child)
+                else:
+                    os.fsync(child)
+                require(stable_identity(os.fstat(child)) == stable_identity(before) and
+                        stable_identity(os.stat(name, dir_fd=directory, follow_symlinks=False)) == stable_identity(before),
+                        "Tree changed during durability flush", "unsafe_path")
+            finally:
+                os.close(child)
+        if os.name == "posix":
+            os.fsync(directory)
+
+    before = path.lstat()
+    require(stat.S_ISDIR(before.st_mode), "Durable tree root is not a directory", "unsafe_path")
+    if os.name != "posix":
+        visit(path)
+        return
+    root = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        require(stable_identity(os.fstat(root)) == stable_identity(before), "Durable tree root changed", "unsafe_path")
+        visit(root)
+        require(stable_identity(os.fstat(root)) == stable_identity(before) and
+                stable_identity(path.lstat()) == stable_identity(before), "Durable tree root changed", "unsafe_path")
+    finally:
+        os.close(root)
+
+
 def prefixes(parts):
     prefix = ""
     for part in parts:
@@ -136,6 +199,8 @@ def extract_tar(archive: Path, destination: Path, strip: int = 0) -> None:
         if kind == "link":
             os.symlink(target, destination / name)
     check_links(destination)
+    durable_tree(destination)
+    fsync_directory(destination.parent)
 
 
 def check_links(root: Path) -> None:
@@ -199,6 +264,7 @@ def snapshot(source: Path, destination: Path, *, producer_stopped: bool, expecte
                     require(stable_identity(opened) == stable_identity(before), "File changed before import", "unsafe_path")
                     sha = hashlib.sha256()
                     size = 0
+                    mode = 0o755 if before.st_mode & 0o111 else 0o644
                     with target.open("xb") as out:
                         while block := os.read(item_fd, 1024**2):
                             size += len(block)
@@ -206,21 +272,21 @@ def snapshot(source: Path, destination: Path, *, producer_stopped: bool, expecte
                             sha.update(block)
                             out.write(block)
                         out.flush()
+                        os.fchmod(out.fileno(), mode)
                         os.fsync(out.fileno())
                     require(stable_identity(os.fstat(item_fd)) == stable_identity(before) and size == before.st_size, "File changed during import", "unsafe_path")
-                    mode = 0o755 if before.st_mode & 0o111 else 0o644
-                    os.chmod(target, mode)
                     manifest[relative] = {"type": "file", "mode": mode, "bytes": size, "sha256": sha.hexdigest()}
                 finally:
                     os.close(item_fd)
             else:
                 raise DeployError("unsafe_path", "Special file in candidate")
+        fsync_directory(destination / prefix)
     try:
         visit(source_fd, "")
     finally:
         os.close(source_fd)
     check_links(destination)
-    fsync_directory(destination)
+    fsync_directory(destination.parent)
     return manifest
 
 

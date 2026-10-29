@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { enabledButton } from './enabled-button';
 import {
   act,
   cleanup,
@@ -93,7 +94,7 @@ it('queries the original request after a lost response without regenerating', as
       };
   });
   generate();
-  fireEvent.click(await screen.findByRole('button', { name: '查询原建议请求回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原建议请求回执' }));
   await screen.findByText('Suggested next step');
   expect(s.calls.filter((c) => c.method === 'thread/prediction/request')).toHaveLength(1);
   expect(s.insert).not.toHaveBeenCalled();
@@ -108,6 +109,7 @@ it('uses identity-matched private events and obtains an early result through rea
       : undefined,
   );
   generate();
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
   act(() => s.events.publish({ type: 'prediction', data: { ...completed, owned: true } }));
   expect(screen.queryByText('Suggested next step')).toBeNull();
   await act(async () => finish({ ...identity, requested: true }));

@@ -2,7 +2,11 @@
 
 This is the clean-room deployment implementation for Ubuntu 24.04 and Debian 12, x64 and arm64. Python 3.11+, systemd with unified cgroup v2, sudo, e2fsprogs, mount, setpriv, bubblewrap (`/usr/bin/bwrap`) and ordinary user/group tools must already be installed. The manager does not modify existing unrelated services. Use a new instance name and unused ports for acceptance work.
 
+The HTTPS migration and initialization/service recovery commands in this guide require version **2.1.1** or later. The earlier `v2.1.0` tag does not contain these additions.
+
 Pinned application tools are Node **24.22.1**, pnpm **11.22.0**, and official Codex **0.164.0**. Node archives use embedded SHA-256 values verified against the official release checksum file. pnpm and Codex use embedded SHA-512 npm integrity values. The optional HTTPS edge uses Caddy **2.11.7**, pinned to official GitHub release asset SHA-256 digests. New installations use the built-in administrator account; no Authelia installation or authentication hostname is required. Existing Authelia binaries and identity material are retained only for migration recovery.
+
+DNS-01 mode adds a separately built Caddy generation with six pinned provider plugins and Go **1.26.10**, exact source/module locks and official Go archive hashes. The plugins are AliDNS **1.0.29**, TencentCloud **0.4.3**, Cloudflare **0.2.4**, HuaweiCloud **1.0.1**, Route53 **1.6.2** and DigitalOcean **v0.0.0-20250606074528-04bde2867106**. The original edge binary and previously selected AliDNS-only generations are preserved. Binary capabilities and DNS credential selection participate in HTTPS recovery and remain intact across control updates.
 
 ## First installation
 
@@ -22,13 +26,15 @@ Install the distribution's `bubblewrap` package before installation or applicati
 
 After initialization, resume a failed build or first startup with `update --source` from the reviewed checkout. The root-private `installation.json` records pending setup, a healthy release, and completed boot enablement separately. A confirmed failed first startup clears `current` and never creates a `previous` rollback target; uncertain stop retains its pointer and journal until a stop-confirmed retry. A partial `systemctl enable` or completion-record failure keeps the healthy release and retries enablement on update/restart. Once installation is complete, later updates and restarts preserve an administrator's disabled-unit choice. Older installations without this record are resumed automatically only when retained transactions prove there was no successful release. An older committed installation has no reliable enable-completion evidence, so its enablement is left unchanged; inspect `systemctl is-enabled` and explicitly enable the two instance units if recovering that older install's failed enable step.
 
+For interruption inside initialization itself, use `install-resume --source` with the same reviewed deployment code and retained initialization journal. It accepts no replacement origin, account or password. `restore-services` separately restores services removed by a recorded uninstall. See [recovery and maintenance](RECOVERY.md) for the exact state distinction, offline backups and completed-candidate archiving.
+
 The source archive is application input, not a replacement for the root manager. Updating the management implementation itself requires an operator to review and install a new trusted deployment tool; candidate source cannot replace the sudo-authorized helper.
 
 Initialization checks every instance path, fixed service name, systemd definition/drop-in and sudo policy before creating identities or resumable configuration. A collision is not permission to take over the existing service. Resume, repair, control maintenance and uninstall recognize complete managed unit/sudo contents before stopping or deleting anything; unknown edits and overrides require operator inspection. The known control-maintenance and HTTPS-recovery condition drop-ins remain valid across trusted control updates.
 
 ## Updating the trusted control tools
 
-Application `update --source` does not change the root-authorized management code. To update that code, review a separate checkout and place its deployment Python sources in a root-owned directory with no group/other-writable ancestor (for example `/root/reviewed-harness`). Run these commands there as root. Do not run them from `/usr/lib/codex-harness` or a retained control generation. Do not edit a running control directory in place.
+Application `update --source` does not change the root-authorized management code. To update that code, review a separate checkout and place its deployment Python sources and fixed `deploy/caddy_dns_source` recipe in a root-owned directory with no group/other-writable ancestor (for example `/root/reviewed-harness`). Run these commands there as root. Do not run them from `/usr/lib/codex-harness` or a retained control generation. Do not edit a running control directory in place.
 
 ```sh
 cd /root/reviewed-harness
@@ -39,7 +45,7 @@ sudo python3 -B -m deploy.cli --instance demo control-recover
 sudo python3 -B -m deploy.cli --instance demo control-rollback --transaction TRANSACTION_ID
 ```
 
-These commands are operator-only, are absent from the gateway RPC allowlist, and accept no candidate archive or caller-selected helper source. `control-update` copies only deployment Python source from its executing reviewed checkout and generates fixed launchers. It checks that source is exclusively root writable, rejects symlinked control trees, disables installed bytecode-cache writes, and imports the staged trusted package in a separate isolated Python process before stopping services. The checked-out code itself executes as root, so review and exclusive ownership must be established **before invoking Python**; the checks cannot make an untrusted checkout safe to execute.
+These commands are operator-only, are absent from the gateway RPC allowlist, and accept no candidate archive or caller-selected helper source. `control-update` copies deployment Python source plus the four fixed, hash-verified DNS build recipe files (`main.go`, `main_test.go`, `go.mod`, `go.sum`) from its executing reviewed checkout and generates fixed launchers. It checks that source is exclusively root writable, rejects symlinked control trees, disables installed bytecode-cache writes, and imports the staged trusted package in a separate isolated Python process before stopping services. The checked-out code itself executes as root, so review and exclusive ownership must be established **before invoking Python**; the checks cannot make an untrusted checkout safe to execute.
 
 Each transaction retains a complete old control tree, candidate manifest, original per-service activity/enablement and durable journal under `/usr/lib/codex-harness/.demo-control-transactions/TRANSACTION_ID`. Existing accounts, administrator token, provider settings, TLS material, identity database and encryption keys remain in place. The currently verified `control/edge` binaries are copied with their existing `*-binary.json` bindings, including during a Python rollback; later edge installation is not undone by rolling back older control code. A partially prepared or mismatched edge binary/record must be repaired separately before updating control tools.
 
@@ -84,6 +90,7 @@ All instance commands below run from the reviewed deployment checkout as root; `
 sudo python3 -m deploy.cli --instance demo status
 sudo python3 -m deploy.cli --instance demo verify
 sudo python3 -m deploy.cli --instance demo logs --service worker --lines 100
+sudo python3 -m deploy.cli --instance demo logs --service caddy --lines 100
 sudo python3 -m deploy.cli --instance demo restart
 sudo python3 -m deploy.cli --instance demo provider-read
 sudo python3 -m deploy.cli --instance demo provider-prune
@@ -154,15 +161,145 @@ sudo python3 -m deploy.cli --instance demo account-reset --username admin
 
 Run `account-setup` after updating the application to an account-capable release. It refuses to replace an existing account. Choose one command for the intended action; do not run both in sequence. `account-reset` is an explicit recovery operation: a new bootstrap revision replaces the account password, disables its second factor and revokes existing sessions when loaded by the gateway. Both commands prompt securely; both support `--password-stdin`. A saved reset is never automatically undone or retried when verification fails. Check the returned `loginVerified` field and the gateway status before proceeding. Password changes made in the browser remain in the gateway database; re-reading the same bootstrap revision never overwrites them. The high-entropy `gateway-token` proves the gateway instance's identity to local operator commands and may initialize an account once in an upgraded instance; it cannot sign in after initialization.
 
-For domain HTTPS, configure DNS and ensure this instance can bind ports 80/443:
+For public HTTPS, point the domain's A/AAAA records at the actual ingress and forward public TCP **18443** to this instance's **18443** for browser access. Remove an incorrect AAAA record rather than advertising an unreachable IPv6 route. The default local listeners are HTTPS 18443 and HTTP 18081. Keep Caddy's state directory persistent and writable, its outbound DNS/HTTPS access available, and the server clock correct.
+
+The default ACME mode needs only a hostname and the chosen listener ports in the command; it does not require a DNS API key. Before running it, arrange at least one of the following public validation routes:
+
+| Validation method | Public route to Caddy with the default listeners |
+| --- | --- |
+| HTTP-01 | Public TCP **80** → local **18081** |
+| TLS-ALPN-01 | Public TCP **443** → local **18443**, with TLS passthrough so Caddy receives the challenge handshake |
+
+Caddy selects and retries the supported methods. The domain's advertised A/AAAA addresses must route correctly. A high browser port does not replace public port 80 or 443 for these challenges; keep a working validation route available for renewal as well as the first issuance. With those prerequisites satisfied, run:
 
 ```sh
-sudo python3 -m deploy.cli --instance demo https --host work.example.com --username admin
+sudo python3 -m deploy.cli --instance demo https --host work.example.com
+```
+
+If the ISP blocks both public 80 and 443, use DNS-01. This requires no public inbound validation port, although browsers still need the public business port. For a zone whose authoritative DNS is hosted by Alibaba Cloud DNS, prepare the credentials below and run:
+
+```sh
+sudo python3 -m deploy.cli --instance demo https --host work.example.com --username admin \
+  --dns-provider alidns --dns-credentials /root/harness-dns.json
 ```
 
 The command verifies a real built-in account login and revokes its temporary verification session before switching the edge. Each operator request authenticates the gateway with a fresh instance-key HMAC challenge before reading account state or sending credentials, using the same TCP connection with reconnection disabled. It prompts for the account password; add `--two-factor` when a TOTP or recovery code is required. Non-interactive callers can use `--password-stdin`, or `--credentials-stdin` with a bounded JSON object containing `username`, `password` and optional `otp`. These inputs never go in argv or ordinary command output. Caddy provides HTTPS and reverse proxying; its admin API is disabled, and proxy identity headers never grant application access.
 
-The default `--tls acme` uses public issuance. For an internal network, add `--tls internal`; the command returns the instance CA file for deliberate client trust installation. For existing PEM material, use `--tls provided --certificate /absolute/fullchain.pem --private-key /absolute/key.pem`. Root imports the pair into a protected immutable TLS generation. Repeat the same HTTPS command with both new PEM paths to renew the pair, or omit both paths to reuse the selected pair. Caddy validates the candidate before services stop. `--http-port 18080 --https-port 18443` selects independent ports and includes the HTTPS port in the browser origin. An external proxy must preserve the exact configured origin. Port translation alone does not create an alternate browser origin.
+Open **https://work.example.com:18443** from another network after activation. Both ACME paths use Caddy for issuance and renewal; no Certbot or cron job is needed. DNS-01 also creates and removes its temporary TXT records automatically, with no manual TXT updates. Choose the domain's authoritative DNS host, which may differ from its registrar; the selected account must manage that public zone. The HTTP redirect listener need not be exposed when using DNS-01. The first DNS setup builds the pinned Caddy/provider combination using a verified Go distribution and locked modules under the isolated build account. It does not run downloaded source as root or give the build process DNS credentials.
+
+Inspect the proposed routes and certificate requirements before changing anything:
+
+```sh
+python3 -m deploy.cli https-plan --host work.example.com
+# Or inspect the DNS-01 path:
+python3 -m deploy.cli https-plan --host work.example.com --dns-provider alidns
+```
+
+`https-plan` requires no installed instance, root privileges, password, DNS credentials or network access. It uses only the supplied options, even if `--instance` is supplied; an omitted DNS provider means standard ACME for this plan. Its output explicitly leaves network access, credential validity and issuance unverified. Use `https-read` for an existing instance's actual retained selection. Neither command changes firewall rules, port forwarding or DNS records.
+
+If the server requires an existing local proxy to download Go modules, add `--download-proxy http://127.0.0.1:PORT`. Only an explicit credential-free loopback HTTP proxy is accepted; shell proxy variables are not inherited. This option is for component preparation, not Caddy's DNS/CA traffic. Downloads still use pinned official distributions and checksum-verified modules; component tests and compilation run offline. Preparation phases are reported on stderr while stdout remains the final JSON result.
+
+If the external TLS port differs from the local listener, set the browser origin explicitly. For example, public 24443 forwarded to local 18443:
+
+```sh
+sudo python3 -m deploy.cli --instance demo https --host work.example.com \
+  --dns-provider alidns --dns-credentials /root/harness-dns.json \
+  --https-port 18443 --public-origin https://work.example.com:24443
+```
+
+| Setting | Meaning |
+| --- | --- |
+| `--http-port 18081` | Optional local HTTP redirect listener; not required for DNS validation |
+| `--https-port 18443` | Local TLS listener; forward the chosen public TLS port here |
+| `--public-origin https://work.example.com:24443` | Exact browser origin, cookie/Origin checks and redirect destination; hostname must equal `--host` |
+| Omitted `--public-origin` | Browser origin uses `--host` and `--https-port`, including a nonstandard port |
+
+Explicit standard local ports remain supported with `--http-port 80 --https-port 443`. The integrated DNS providers are listed below; domains using other DNS providers can use default ACME when a public validation route is available, or operator-managed PEM certificates. The gateway backend stays on loopback; do not forward its port. See Caddy's [challenge requirements](https://caddyserver.com/docs/automatic-https#acme-challenges).
+
+### DNS credentials
+
+Use a dedicated API credential for the authoritative DNS service. All fields in the selected row are required; field names and case are exact. `https-plan --host work.example.com --dns-provider PROVIDER` shows the same schema without reading credentials or making API calls. Each platform is compiled into the reviewed binary; passing an arbitrary plugin or environment variable is not supported.
+
+| DNS platform | Provider option | Required JSON fields | Credential type |
+| --- | --- | --- | --- |
+| Alibaba Cloud DNS | `alidns` | `accessKeyId`, `accessKeySecret` | Dedicated RAM AccessKey |
+| Tencent Cloud DNSPod | `tencentcloud` | `secretId`, `secretKey` | Tencent Cloud CAM SecretId/SecretKey; **not** legacy DNSPod ID/Token |
+| Cloudflare | `cloudflare` | `apiToken` | Scoped API Token; **not** Global API Key |
+| Huawei Cloud DNS | `huaweicloud` | `accessKeyId`, `secretAccessKey` | IAM AK/SK |
+| Amazon Route 53 | `route53` | `accessKeyId`, `secretAccessKey`, `region` | Explicit IAM key and region, e.g. `us-east-1` |
+| DigitalOcean DNS | `digitalocean` | `apiToken` | Personal Access Token with domain scopes |
+
+For example, Tencent Cloud input is `{"secretId":"YOUR_SECRET_ID","secretKey":"YOUR_SECRET_KEY"}`. Cloudflare and DigitalOcean each use `{"apiToken":"YOUR_API_TOKEN"}`, but their files are selected with different provider options and cannot reuse one another's managed credential generation. Huawei Cloud uses `{"accessKeyId":"YOUR_ACCESS_KEY_ID","secretAccessKey":"YOUR_SECRET_ACCESS_KEY"}`. Route 53 uses `{"accessKeyId":"YOUR_ACCESS_KEY_ID","secretAccessKey":"YOUR_SECRET_ACCESS_KEY","region":"us-east-1"}`. This integration requires explicit persistent credentials; it does not import host AWS profiles, EC2 roles or temporary session tokens. A region field alone is not evidence of successful operation in another AWS partition.
+
+Use only the required DNS permissions and the narrowest resource scope supported by the provider:
+
+- **Tencent Cloud DNSPod:** create a CAM subuser with API access and use its SecretId/SecretKey. The pinned ACME append/delete path uses `dnspod:DescribeRecordList`, `dnspod:CreateRecord` and `dnspod:DeleteRecord`; scope these to the intended domain resource, `qcs::dnspod::uin/ACCOUNT_ID:domain/DOMAIN_ID`. Follow the [DNSPod CAM guide](https://cloud.tencent.com/document/product/302/105690) and [resource scope reference](https://cloud.tencent.com/document/product/302/105719). The library's separate `ModifyRecord` method is not used by this path. Legacy DNSPod Token credentials use a different API and are not accepted by `tencentcloud`.
+- **Cloudflare:** create one API Token with **Zone → Zone → Read** and **Zone → DNS → Edit**, restricted to the intended zone. Follow the [token guide](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) and [plugin's single-token contract](https://github.com/caddy-dns/cloudflare). For the default public `18443` URL use **DNS only** (gray cloud); the standard proxy accepts only its [documented ports](https://developers.cloudflare.com/fundamentals/reference/network-ports/). DNS-01 success does not establish proxy reachability.
+- **Huawei Cloud:** the pinned append/delete path uses `dns:zone:list` plus `dns:recordset:list`, `dns:recordset:create` and `dns:recordset:delete`, scoped to the intended zone where supported. Review [DNS authorization actions](https://support.huaweicloud.com/api-dns/Permission.html) and attach the policy to the IAM user/group that owns the AK/SK. The pinned library signs requests directly and defaults to `https://dns.cn-south-1.myhuaweicloud.com/v2`; this integration keeps that endpoint and does not add project discovery or an arbitrary endpoint override. Do not use a private zone for public DNS validation. Other regional endpoints have not been validated by this integration.
+- **Route 53:** the pinned default path uses `ListHostedZonesByName` for discovery and `ListResourceRecordSets`/`ChangeResourceRecordSets` on the selected hosted zone. The [plugin's broader IAM examples](https://github.com/caddy-dns/route53) also cover `ListHostedZones` and optional `GetChange` polling; this integration leaves that extra polling disabled and lets Caddy check DNS propagation. Use AWS [record-name/type conditions](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/specifying-conditions-route53.html) to limit writes to the intended `_acme-challenge` TXT records. No hosted-zone creation or account administrator access is required.
+- **DigitalOcean:** use a Personal Access Token with `domain:read`, `domain:create` and `domain:delete` for the DNS-01 record lifecycle, according to the [domain-record API](https://docs.digitalocean.com/products/networking/dns/reference/api/domain-records/). These scopes grant domain operations and are not a guarantee of restriction to a single TXT record; use an appropriately isolated account/team when a narrower resource boundary is unavailable.
+
+**Alibaba Cloud DNS:**
+
+Create a dedicated Alibaba Cloud RAM user with an AccessKey. For the pinned provider's DNS-01 create/remove workflow, grant `alidns:DescribeDomainRecords`, `alidns:AddDomainRecord` and `alidns:DeleteDomainRecord` on `acs:alidns:*:ACCOUNT_ID:domain/YOUR_DOMAIN`. Grant `alidns:DescribeDomains` separately on `*` for domain discovery. This does not require account-wide DNS write access or the account owner's AccessKey. The provider's general record-update action is not needed by this ACME workflow. See the [provider documentation](https://github.com/libdns/alidns/blob/master/README.md) and [Alibaba Cloud's domain-scoped policy documentation](https://help.aliyun.com/zh/dns/alibaba-cloud-dns-custom-permission-policy-reference-dns). Domain scope is not a restriction to one TXT record; a narrower boundary requires a separately managed challenge subdomain/delegation.
+
+On the deployment server, save a UTF-8 JSON file outside the repository, owned by root with mode 0600:
+
+```json
+{"accessKeyId":"YOUR_ACCESS_KEY_ID","accessKeySecret":"YOUR_ACCESS_KEY_SECRET"}
+```
+
+For every provider, save the matching JSON as a private file such as `/root/harness-dns.json`, set ownership to root, and run `sudo chmod 600 /root/harness-dns.json`. Pass its path with `--dns-credentials`; never put credential values in command arguments. The tool copies the validated values into an immutable root-only generation. systemd supplies only the selected provider's values to the edge service; the gateway, worker and build account do not receive them. Caddy's configuration and diagnostic output reference the selection without printing the values. Keep the API credential active for renewal; deleting the original input file does not remove the managed copy.
+
+Omitting both DNS options preserves an existing DNS selection when retaining ACME mode. Adding, removing or changing a DNS provider on an existing instance requires `https-migrate`; a change to another provider also requires its new credential file. Use `--dns-provider none` to explicitly return to standard-port challenges. Old credential and binary generations are retained for recovery, and upgrades preserve them. A control rollback is refused when its provider capability set does not cover the current selection or a pending HTTPS recovery snapshot. Original AliDNS-only tools qualify only for AliDNS selections, even if their generic DNS capability flag exists.
+
+For planned credential rotation, create a replacement API credential with the same required permissions and put it in a new root-owned mode 0600 JSON file. Read `https-read`, then repeat the existing `https` hostname, TLS mode, local ports and any public-origin override with the new file. For an existing default-port DNS selection:
+
+```sh
+sudo python3 -m deploy.cli --instance demo https-read
+sudo python3 -m deploy.cli --instance demo https --host work.example.com --tls acme \
+  --http-port 18081 --https-port 18443 --dns-credentials /root/harness-dns-next.json
+```
+
+The selected provider is preserved and the new private generation is selected transactionally. A valid cached certificate may make activation succeed without a new DNS API request: successful TLS readiness does **not** prove the replacement key can create/delete TXT records. Verify the new key's permissions separately before revoking the old key during a planned rotation, then inspect subsequent actual issuance/renewal logs and certificate expiry. The tool performs no forced renewal or credential probe and reports `dnsApiAccessVerified: false`. Recovery material retains old credential generations, but a revoked key will no longer work if that generation is restored; reselect valid credentials after recovery. Do not delete managed generations manually.
+
+| TLS mode | Trust and renewal |
+| --- | --- |
+| `acme` (default) | Public CA, system trust; Caddy manages issuance and renewal. With a supported `--dns-provider`, DNS API access replaces the public 80/443 challenge routes |
+| `internal` | This instance's Caddy CA; install the returned `internalCaFile` deliberately on each client. Caddy manages its local certificates; this is not public CA trust |
+| `provided` | Operator-supplied PEM certificate and key; replacement/renewal is the operator's responsibility |
+
+For provided material, use `--tls provided --certificate /absolute/fullchain.pem --private-key /absolute/key.pem`. If its CA is not in system trust, also supply `--tls-ca-certificate /absolute/ca-bundle.pem`. Root copies the pair and optional public trust bundle into protected immutable generations. The trust bundle enables the deployment check; it does not install client trust. Repeat the same address/mode/port settings with both new PEM paths to replace the pair, or omit both paths to reuse it. Omitting both CA options preserves the selected trust bundle; use `--tls-system-ca` explicitly to return to system trust when replacing a private-CA certificate with a publicly signed provided certificate. The two CA options are mutually exclusive and apply only to `provided`. Never bypass certificate verification.
+
+Caddy configuration validation happens before stopping services. After startup, activation requires a bounded real TLS handshake with the selected SNI, hostname/SAN, chain and validity checks, plus the selected gateway's HMAC identity proof. DNS ACME readiness waits up to 300 seconds, standard-port ACME up to 120 seconds, and other modes up to 30 seconds. Timeout fails activation and invokes recovery rather than declaring success. `Caddy active` alone cannot commit HTTPS activation. This check connects locally while preserving the configured Host and Origin; it does not prove public DNS, firewall/NAT reachability or browser trust from another network.
+
+To change an already active built-in HTTPS hostname, TLS mode or ports, first read the current selection:
+
+```sh
+sudo python3 -m deploy.cli --instance demo https-read
+sudo python3 -m deploy.cli --instance demo https-migrate \
+  --expected-origin 'CURRENT_ORIGIN_FROM_HTTPS_READ' \
+  --expected-https-revision 'CURRENT_HTTPS_REVISION_FROM_HTTPS_READ' \
+  --host work.example.com --tls acme \
+  --http-port 18081 --https-port 18443 \
+  --dns-provider alidns --dns-credentials /root/harness-dns.json
+```
+
+Copy both returned values exactly; they prevent a stale plan from overwriting a newer selection. Supply all desired target ports/mode explicitly. Ordinary `https` preserves an existing address and rejects an accidental migration. `https-migrate` verifies the existing account, retains old configuration/TLS generations and switches transactionally. A changed browser origin requires signing in at the new origin. DNS-01 manages its temporary challenge records; it does not configure your A/AAAA records or router rules. For a legacy Authelia edge, first use the same-address migration below; `https-migrate` requires active built-in HTTPS.
+
+Before changing the browser origin, copy unsent drafts and resolve outstanding operation receipts in the old page. Browser drafts and local recovery records belong to that browser and origin; the deployment transaction does not transfer them to a new domain, port or device. Server-side projects, conversations, account data and receipts remain retained.
+
+Check certificate and renewal diagnostics with:
+
+```sh
+sudo python3 -m deploy.cli --instance demo status
+sudo python3 -m deploy.cli --instance demo verify
+sudo python3 -m deploy.cli --instance demo logs --service caddy --lines 100
+```
+
+The HTTPS result distinguishes `tlsVerified`, `instanceVerified` and `ready`, and exposes certificate `notAfter`, issuer, SANs and `daysRemaining`. `validation` explains the selected challenge and public-port requirements; `renewal.requirements` lists what must remain available. `renewal.automatic` reports the configured manager; `futureSuccessVerified: false` means no future renewal has been demonstrated. Check the Caddy log for challenge/issuance/renewal errors, and check the actual expiry again after a renewal. Do not delete the Caddy data directory or install a second certificate-renewal job over its managed certificates. The server-local result is explicitly marked `independentPublicAcceptance: false`.
+
+Failures include `diagnostics` with mode-specific next steps. For `certificate_validation_failed`, check the selected hostname, expiration, server clock and trust chain. For connection failures or timeouts, check Caddy's listener, service log and port conflicts. For DNS ACME failures, check the selected provider's permissions, credential type/validity, authoritative TXT record propagation and outbound DNS/CA access. Check public 80/443 routes only when using the standard-port challenge mode. Read the exact CA error for CAA restrictions or rate limits; fix the cause before retrying rather than repeatedly creating orders or deleting Caddy state. `instance_proof_failed` means the response did not prove the selected instance; check the reverse-proxy target and origin. `legacy_identity_requires_migration` means TLS passed but the retained external identity gate prevents the built-in instance check. After local readiness succeeds, independently open the public URL from another network and verify browser login; none of the local checks claims that acceptance has already happened.
 
 For an existing Authelia deployment, first update the reviewed control code and application, initialize and test the built-in account, then run `https` with the existing application hostname, TLS mode and ports. The command checks the current managed configuration, proves account login and snapshots the previous units, origin, certificate selection, metadata and enabled/running sets. A successful switch starts gateway, worker and Caddy, disables and removes the old Authelia unit, and preserves its identity database, keys and binary for recovery. The old authentication hostname is no longer used. Legacy `--auth-host`, `--cookie-domain`, `--email` and `--authelia-port` options exist only for matching the retained migration configuration; new setups do not need them.
 
@@ -222,7 +359,7 @@ pnpm's package store and public registry policy metadata are separate cache obje
 
 Preparation completes before stopping existing services. Switching and recovery require complete, consistent systemd state with both main/control PIDs zero. Failed/empty/contradictory state queries do not authorize cleanup. Every ambiguous failure retains evidence. The stop-confirmed recovery step updates the gateway journal under the gateway UID: pending operations become not_sent, dispatching operations become unknown, and the old activity barrier is cleared. Unknown operation records remain unknown and are never replayed. Recovery recognizes explicit complete schema contracts, including automations, automation runs, worktrees, indexes and retirement fences; unknown tables, views, triggers, changed columns/indexes or schema versions prevent any receipt update. Projects, automation/worktree state and retired-operation fences survive restart, release activation and trusted control restoration. Cross-language regression fixtures construct the real compiled JavaScript Ledger, recover it as its Linux owner, and reopen it with that same class; run `pnpm build:server` before those fixtures.
 
-Successful build mounts are unmounted after import. Failed/uncertain stages retain their bounded workspaces and recovery files. At eight retained candidates, preparation refuses further work until an operator inspects and removes completed workspaces. No installer recursively deletes an uncertain running candidate or identity store.
+Successful build mounts are unmounted after import. Failed/uncertain stages retain their bounded workspaces and recovery files. At eight retained candidates, preparation refuses further work until an operator verifies and archives completed workspaces using the [stopped maintenance procedure](RECOVERY.md#archive-completed-build-candidates). A preparation record alone does not prove final unmount cleanup completed. No installer recursively deletes an uncertain running candidate or identity store.
 
 ## Gateway helper protocol
 
@@ -297,6 +434,8 @@ python3 -B -m unittest discover -s tests/deploy -p test_request_spool.py -v
 The real root-ownership transaction fixtures live separately in `tests/deploy/root/`. Run a selected file only on a disposable Linux test host, for example `sudo /usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/python3 -B -m unittest discover -s tests/deploy/root -p test_control_update.py -v`. These fixtures create their own temporary files and substitute service/process management commands; they still enforce actual root file ownership. They explicitly skip outside Linux root, and the test runner treats that skip as a nonzero coverage gap. The ordinary control-command, HTTPS rendering, installation-state and preflight checks remain unprivileged.
 
 Affected selection reports `deploy` and `deploy-root` as separate groups; changing either half of a split fixture selects its counterpart too. CI runs ordinary deployment checks as the hosted runner user, then passes the exact selected root-file list to a separate disposable `ubuntu-24.04` job. That job checks the hosted environment, uses only the OS-installed `/usr/bin/python3` through a clean `sudo` environment, and refuses missing, duplicate, empty or non-root-fixture selections. It does not install dependencies as root. Every selected test must run without skips. The full-test inventory still contains both groups and retains the three-audit gate; separating identities does not reduce full coverage.
+
+The sealed DNS Caddy package also belongs to the `go` affected-test group and the full inventory. Its behavior tests, executable compilation, and version/plugin probe run on both ordinary Linux and Windows CI runners. Prepare the fixed Go toolchain and authenticated public modules explicitly with `python -B scripts/prepare-ci-go.py`, then run `pnpm test:targeted deploy/caddy_dns_source/main_test.go`. Preparation uses only official downloads; an existing task-owned archive and module cache can instead be supplied with `--archive` and `--seed-cache` for offline preparation. Each execution copies those modules into a separate test cache, isolates its home, disables toolchain downloads, and runs verification, tests, build, and probe offline. Missing preparation is a nonzero prerequisite skip; failed, incomplete, or uncompiled Go evidence cannot pass CI reconciliation. No deployment, service mounts, DNS credentials, or live certificate orders are involved.
 
 The control-update fixture tests cover real directory/journal transitions with substituted systemd/process operations: independent active/enabled sets, initialized but never started instances, transient-stop coverage, uncertain stop and escaped-process retention, startup/health/reload failures, power loss around rename/journal boundaries, integrity failures, persistent recovery barriers, source-argument rejection, exact instance-name matching, and preserving edge binaries during update and rollback. These tests do not establish real systemd condition behavior, `/proc` visibility or recovery across an actual host reboot; validate those on the disposable Linux instance before production use.
 

@@ -6,17 +6,21 @@ import hashlib
 import json
 import os
 import re
+import ssl
 import stat
 import urllib.request
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .build import architecture
+from .edge_defaults import DEFAULT_HTTP_PORT, DEFAULT_HTTPS_PORT
+from .dns_providers import PROVIDERS, caddy_dns_block
 from .common import DeployError, Layout, atomic_write, canonical, fsync_directory, mkdir, read_json, require, write_json
 from .install import ensure_account
-from .safe_fs import extract_tar, stable_identity
+from .safe_fs import durable_tree, extract_tar, stable_identity
 from .system import run
-from .units import render_units, render_edge_units
+from .units import render_units, render_edge_units, validate_origin
 from .ownership import require_owned, regular, present
 from .accounts import verify_account_login
 
@@ -38,28 +42,52 @@ def site_origin(host: str, port: int) -> str:
     return "https://" + host + (":" + str(port) if port != 443 else "")
 
 
+def browser_origin(host: str, https_port: int, public_origin: str | None = None) -> str:
+    origin = site_origin(host, https_port) if public_origin is None else validate_origin(public_origin)
+    parsed = urlsplit(origin)
+    require(parsed.scheme == "https" and parsed.hostname == host,
+            "Public origin must use HTTPS and the exact --host hostname")
+    return origin
+
+
 def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port: int, *, tls: str = "acme",
-                 http_port: int = 80, https_port: int = 443, certificate: str | None = None, private_key: str | None = None) -> str:
+                 http_port: int = DEFAULT_HTTP_PORT, https_port: int = DEFAULT_HTTPS_PORT, certificate: str | None = None, private_key: str | None = None,
+                 public_origin: str | None = None, explicit_redirect: bool = False, dns_provider: str | None = None) -> str:
     domain_name(host)
     if auth_host is not None:
         domain_name(auth_host)
     require(type(gateway_port) is int and 1024 <= gateway_port <= 65535, "Invalid gateway port")
     require(tls in ("acme", "internal", "provided"), "Unknown TLS mode")
+    require((dns_provider is None or isinstance(dns_provider, str) and dns_provider in PROVIDERS) and
+            (dns_provider is None or tls == "acme" and auth_host is None),
+            "DNS validation requires built-in ACME HTTPS")
     require(type(http_port) is int and 1 <= http_port <= 65535 and http_port != https_port, "Invalid HTTP port")
+    origin = browser_origin(host, https_port, public_origin)
+    redirected = explicit_redirect or origin != site_origin(host, https_port)
+    require(not redirected or auth_host is None, "Explicit origin redirects require built-in authentication")
     tls_line = ""
-    if tls == "internal":
+    if dns_provider is not None:
+        tls_line = "    tls {\n        issuer acme {\n" + caddy_dns_block(dns_provider) + """\
+            disable_http_challenge
+            disable_tlsalpn_challenge
+        }
+    }
+"""
+    elif tls == "internal":
         tls_line = "    tls internal\n"
     elif tls == "provided":
         require(certificate is not None and private_key is not None and
                 all(re.fullmatch(r"/[a-zA-Z0-9/_.-]+", path) for path in (certificate, private_key)), "Invalid managed TLS paths")
         tls_line = f"    tls {certificate} {private_key}\n"
     trust_line = "    skip_install_trust\n" if tls == "internal" else ""
+    redirect_option = "    auto_https disable_redirects\n" if redirected else ""
+    redirect_site = (f"http://{host}:{http_port} {{\n    redir {origin}{{uri}} 308\n}}\n" if redirected else "")
     if auth_host is None:
         return f"""{{
     admin off
     http_port {http_port}
     https_port {https_port}
-{trust_line}}}
+{trust_line}{redirect_option}}}
 {site_origin(host, https_port)} {{
 {tls_line}    route {{
         request_header -Remote-User
@@ -69,6 +97,7 @@ def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port:
         reverse_proxy 127.0.0.1:{gateway_port}
     }}
 }}
+{redirect_site}\
 """
     return f"""{{
     admin off
@@ -104,6 +133,9 @@ def edge_binary(layout: Layout, kind: str) -> Path:
         require(not target.is_symlink() and target.stat().st_uid == 0 and not target.stat().st_mode & 0o022,
                 "Unsafe edge binary", "integrity")
         require(hashlib.sha256(target.read_bytes()).hexdigest() == read_json(manifest_path)["sha256"], "Edge binary changed", "integrity")
+        durable_tree(root)
+        fsync_directory(root.parent)
+        fsync_directory(root.parent.parent)
         return target
     version = CADDY_VERSION
     asset = f"caddy_{version}_linux_{arch}.tar.gz"
@@ -125,6 +157,7 @@ def edge_binary(layout: Layout, kind: str) -> Path:
     mkdir(root.parent)
     extract_tar(archive, root)
     require(target.is_file() and not target.is_symlink(), "Expected edge executable absent", "integrity")
+    fsync_directory(root.parent.parent)
     write_json(manifest_path, {"version": version, "sha256": hashlib.sha256(target.read_bytes()).hexdigest()})
     return target
 
@@ -259,7 +292,14 @@ def recover_https_transaction(manager, journal_path: Path, journal: dict) -> Non
         candidate_config = {**old_config, "origin": site_origin(metadata["host"], metadata.get("httpsPort", 443))}
     require(isinstance(candidate_config, dict) and {key: value for key, value in candidate_config.items() if key != "origin"} ==
             {key: value for key, value in old_config.items() if key != "origin"}, "Invalid HTTPS candidate configuration", "corrupt_state")
-    require_owned(manager.layout, candidate_config, prior_units={role: decoded[role] for role in EDGE_ROLES})
+    candidate_https = journal.get("candidateHttps")
+    if candidate_https is not None:
+        require(isinstance(candidate_https, dict) and candidate_https.get("authentication") == "builtin" and
+                candidate_config["origin"] == browser_origin(candidate_https["host"], candidate_https["httpsPort"],
+                                                              candidate_https.get("publicOrigin")),
+                "Invalid HTTPS candidate metadata", "corrupt_state")
+    candidate_dns = candidate_https if candidate_https is not None and candidate_https.get("dnsProvider") is not None else None
+    require_owned(manager.layout, candidate_config, prior_units={role: decoded[role] for role in EDGE_ROLES}, candidate_dns=candidate_dns)
     barriers = recovery_barriers(manager)
     manager.system.stop([manager.layout.unit(role) for role in EDGE_ROLES])
     manager.recover_control()
@@ -322,24 +362,147 @@ def stage_tls(layout: Layout, certificate: bytes, private_key: bytes, gid: int) 
             "privateKeySha256": hashlib.sha256(private_key).hexdigest()}
 
 
+def tls_ca_path(layout: Layout, metadata: dict) -> Path | None:
+    revision = metadata.get("tlsCaRevision")
+    if revision is None:
+        require("tlsCaSha256" not in metadata, "Incomplete TLS CA selection", "integrity")
+        return None
+    require(isinstance(revision, str) and bool(re.fullmatch(r"[0-9a-f]{32}", revision)),
+            "Invalid TLS CA revision", "integrity")
+    root = layout.config / "tls-ca"
+    for directory in (root, root / revision):
+        info = directory.lstat()
+        require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+                "Unsafe managed TLS CA directory", "integrity")
+    path = root / revision / "ca.pem"
+    info = path.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and
+            (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+            "Unsafe managed TLS CA", "integrity")
+    require(hashlib.sha256(read_pem(path, private=False)).hexdigest() == metadata.get("tlsCaSha256"),
+            "Retained TLS CA changed", "integrity")
+    return path
+
+
+def stage_tls_ca(layout: Layout, data: bytes) -> dict:
+    # Parse before creating a generation. The public trust anchor is copied;
+    # subsequent checks never follow the operator's mutable input file.
+    require(b"PRIVATE KEY-----" not in data, "TLS CA input must contain only public certificates", "invalid_input")
+    try:
+        ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT).load_verify_locations(cadata=data.decode("ascii"))
+    except (UnicodeError, ssl.SSLError) as exc:
+        raise DeployError("invalid_input", "TLS CA certificate is not a valid PEM trust bundle") from exc
+    root = layout.config / "tls-ca"
+    mkdir(root, 0o755, 0, 0)
+    require(len(list(root.iterdir())) < 130, "TLS CA generations reached retention budget", "budget")
+    revision = uuid.uuid4().hex
+    directory = root / revision
+    require(not present(directory), "TLS CA generation collision", "collision")
+    mkdir(directory, 0o755, 0, 0)
+    atomic_write(directory / "ca.pem", data, 0o644, 0, 0)
+    return {"tlsCaRevision": revision, "tlsCaSha256": hashlib.sha256(data).hexdigest()}
+
+
+def read_https_metadata(layout: Layout) -> dict:
+    path = layout.config / "https.json"
+    require(present(path), "This instance has no HTTPS configuration", "not_installed")
+    info = path.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 1024 * 1024 and
+            (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+            "Unsafe HTTPS metadata", "integrity")
+    value = read_json(path)
+    require(isinstance(value, dict), "Invalid HTTPS metadata", "integrity")
+    return value
+
+
+def https_revision(metadata: dict) -> str:
+    # Bind every retained TLS and identity field, without printing private-key
+    # fingerprints or relying on the JSON file's whitespace/key ordering.
+    return hashlib.sha256(canonical(metadata)).hexdigest()
+
+
+def read_https(manager) -> dict:
+    manager.require_service_ownership()
+    metadata = read_https_metadata(manager.layout)
+    from .https_guidance import certificate_guidance
+    return {"origin": manager.config["origin"], "httpsRevision": https_revision(metadata),
+            "settings": {key: metadata.get(key) for key in
+                         ("host", "tls", "httpPort", "httpsPort", "publicOrigin", "redirectPolicy", "authentication", "phase", "dnsProvider")},
+            **certificate_guidance(tls=metadata.get("tls"), dns_provider=metadata.get("dnsProvider"),
+                                   http_port=metadata.get("httpPort", 80), https_port=metadata.get("httpsPort", 443))}
+
+
+def caddy_configuration(layout: Layout, config: dict, metadata: dict) -> str:
+    certificate, private_key = tls_paths(layout, metadata) if metadata["tls"] == "provided" else (None, None)
+    identity_host = metadata.get("authHost") if metadata.get("authentication") != "builtin" else None
+    translated = {"public_origin": metadata["publicOrigin"]} if "publicOrigin" in metadata else {}
+    require(metadata.get("redirectPolicy") in (None, "origin-v1"), "Unknown HTTPS redirect policy", "integrity")
+    if metadata.get("redirectPolicy") == "origin-v1":
+        translated["explicit_redirect"] = True
+    if metadata.get("dnsProvider") is not None:
+        translated["dns_provider"] = metadata["dnsProvider"]
+    return render_caddy(metadata["host"], identity_host, config["port"], metadata.get("authPort", 9091),
+                        tls=metadata["tls"], http_port=metadata["httpPort"], https_port=metadata["httpsPort"],
+                        certificate=str(certificate) if certificate else None,
+                        private_key=str(private_key) if private_key else None, **translated)
+
+
 def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str | None = None,
                 username: str = "admin", email: str | None = None, auth_port: int | None = None,
                 password: str | None = None, otp: str | None = None,
                 tls: str = "acme", certificate: Path | None = None, private_key: Path | None = None,
-                http_port: int = 80, https_port: int = 443) -> dict:
+                http_port: int = DEFAULT_HTTP_PORT, https_port: int = DEFAULT_HTTPS_PORT,
+                public_origin: str | None = None, tls_ca_certificate: Path | None = None, tls_system_ca: bool = False,
+                dns_provider: str | None = None, dns_credentials: Path | None = None,
+                download_proxy: str | None = None, progress=None,
+                expected_origin: str | None = None, expected_https_revision: str | None = None) -> dict:
     layout = manager.layout
     manager.require_recovered_transactions(None)
     manager.require_service_ownership()
     domain_name(host)
     require(tls in ("acme", "internal", "provided"), "Unknown TLS mode")
+    require(type(tls_system_ca) is bool and not (tls_system_ca and tls_ca_certificate is not None),
+            "Choose either the system trust store or an explicit TLS CA certificate")
     require(type(http_port) is int and type(https_port) is int and 1 <= http_port <= 65535 and 1 <= https_port <= 65535 and
             len({http_port, https_port, manager.config["port"]}) == 3, "Edge and backend ports must be distinct")
     metadata_path = layout.config / "https.json"
+    origin = browser_origin(host, https_port, public_origin)
     wanted = {"host": host, "tls": tls, "httpPort": http_port, "httpsPort": https_port}
-    reused = metadata_path.exists()
-    metadata = read_json(metadata_path) if reused else {**wanted, "authentication": "builtin", "phase": "prepared"}
-    require(all(metadata.get(key) == value for key, value in wanted.items()),
-            "Existing HTTPS address is preserved; address changes require an explicit migration", "identity_conflict")
+    if public_origin is not None:
+        wanted["publicOrigin"] = origin
+    reused = present(metadata_path)
+    metadata = read_https_metadata(layout) if reused else {**wanted, "authentication": "builtin", "phase": "prepared"}
+    from .dns_tls import (SELECTION_FIELDS, read_dns_credentials, stage_dns_credentials,
+                          validate_dns_caddy, validate_dns_selection)
+    require(dns_provider is None or isinstance(dns_provider, str) and dns_provider in (*PROVIDERS, "none"), "Unknown DNS validation provider")
+    selected_dns = metadata.get("dnsProvider") if dns_provider is None and tls == "acme" else dns_provider
+    if selected_dns == "none":
+        selected_dns = None
+    require(selected_dns is None or tls == "acme", "DNS validation applies only to ACME TLS")
+    require(dns_credentials is None or selected_dns is not None, "Choose --dns-provider before supplying DNS credentials")
+    require(download_proxy is None or selected_dns is not None, "Download proxy applies only to the DNS component build")
+    if selected_dns is not None:
+        wanted["dnsProvider"] = selected_dns
+    if not reused:
+        metadata.update(wanted)
+    migration = expected_origin is not None or expected_https_revision is not None
+    if migration:
+        require(reused and isinstance(expected_origin, str) and isinstance(expected_https_revision, str) and
+                bool(re.fullmatch(r"[0-9a-f]{64}", expected_https_revision)),
+                "HTTPS migration requires the current origin and HTTPS revision from https-read")
+        require(expected_origin == manager.config["origin"] and expected_https_revision == https_revision(metadata),
+                "HTTPS configuration changed; inspect https-read before migrating", "conflict")
+        require(metadata.get("authentication") == "builtin" and metadata.get("phase") == "active",
+                "Address migration requires an active built-in HTTPS configuration", "identity_conflict")
+        require(manager.config["origin"] == browser_origin(metadata["host"], metadata["httpsPort"], metadata.get("publicOrigin")),
+                "Existing HTTPS origin differs from its retained configuration", "identity_conflict")
+        require(present(layout.config / "Caddyfile") and present(layout.units / layout.unit("caddy")),
+                "Existing HTTPS configuration is incomplete", "identity_conflict")
+    else:
+        require(all(metadata.get(key) == value for key, value in wanted.items()) and
+                metadata.get("publicOrigin") == wanted.get("publicOrigin") and
+                metadata.get("dnsProvider") == selected_dns,
+                "Existing HTTPS address is preserved; address changes require an explicit migration", "identity_conflict")
     require(metadata.get("authentication") in (None, "builtin"), "Unknown HTTPS authentication mode", "integrity")
     legacy = reused and metadata.get("authentication") != "builtin"
     # Old CLI arguments may be supplied during migration, but may not point at a
@@ -352,14 +515,37 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
     else:
         require(auth_host is None and domain is None and email is None and auth_port is None,
                 "Built-in HTTPS needs only --host; legacy identity options are for migration only")
-    cert_data = key_data = None
+    cert_data = key_data = ca_data = None
+    dns_data = read_dns_credentials(dns_credentials, selected_dns) if dns_credentials is not None else None
+    if selected_dns is not None:
+        require(dns_data is not None or reused and metadata.get("dnsProvider") == selected_dns,
+                "DNS validation requires --dns-credentials with a protected JSON file")
+    if reused:
+        validate_dns_selection(layout, metadata)
+    previous_provided = reused and metadata.get("tls") == "provided"
     if tls == "provided":
         require((certificate is None) == (private_key is None), "Supply both --certificate and --private-key")
-        require(reused or certificate is not None, "Provided TLS requires --certificate and --private-key")
+        require(previous_provided or certificate is not None, "Provided TLS requires --certificate and --private-key")
         if certificate is not None:
             cert_data, key_data = read_pem(certificate, private=False), read_pem(private_key, private=True)
+        if tls_ca_certificate is not None:
+            ca_data = read_pem(tls_ca_certificate, private=False)
     else:
-        require(certificate is None and private_key is None, "Certificate paths are only valid with --tls provided")
+        require(certificate is None and private_key is None and tls_ca_certificate is None and not tls_system_ca,
+                "Certificate paths are only valid with --tls provided")
+    # Verify the retained edge and TLS pair before staging anything. In a
+    # migration these use the OLD host/mode/ports, never candidate arguments.
+    caddy_file = layout.config / "Caddyfile"
+    if present(caddy_file):
+        regular(caddy_file, {caddy_configuration(layout, manager.config, metadata).encode()})
+    if previous_provided:
+        old_cert, old_key = tls_paths(layout, metadata)
+        for path, field in ((old_cert, "certificateSha256"), (old_key, "privateKeySha256")):
+            require(hashlib.sha256(read_pem(path, private=field == "privateKeySha256")).hexdigest() == metadata.get(field),
+                    "Retained TLS material changed", "integrity")
+        tls_ca_path(layout, metadata)
+    from .ports import require_edge_ports_available
+    require_edge_ports_available(manager, http_port=http_port, https_port=https_port)
     # A ready endpoint alone is insufficient: prove that the operator can log in
     # before removing the external gate, then revoke that temporary session.
     require(password is not None, "Account password verification is required before HTTPS activation", "account_required")
@@ -367,51 +553,62 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
     caddy = edge_binary(layout, "caddy")
     caddy_uid, caddy_gid = ensure_account(layout.prefix + "-edge", layout.state / "caddy")
     mkdir(layout.state / "caddy", 0o700, caddy_uid, caddy_gid)
-    selected_metadata = {**metadata, "authentication": "builtin"}
+    selected_metadata = {**metadata, **wanted, "authentication": "builtin", "redirectPolicy": "origin-v1"}
+    if selected_dns is None:
+        for field in SELECTION_FIELDS:
+            selected_metadata.pop(field, None)
+    else:
+        from .dns_caddy_build import dns_caddy_path, provision_dns_caddy
+        selected_metadata.update(provision_dns_caddy(manager, download_proxy=download_proxy, progress=progress))
+        selected_metadata["dnsProvider"] = selected_dns
+        if dns_data is not None and hashlib.sha256(dns_data).hexdigest() != metadata.get("dnsCredentialsSha256"):
+            selected_metadata.update(stage_dns_credentials(layout, dns_data))
+        validate_dns_selection(layout, selected_metadata)
+        caddy = dns_caddy_path(layout, selected_metadata)
+    if public_origin is None:
+        selected_metadata.pop("publicOrigin", None)
+    if tls != "provided":
+        for field in ("tlsRevision", "certificateSha256", "privateKeySha256", "tlsCaRevision", "tlsCaSha256"):
+            selected_metadata.pop(field, None)
     if tls == "provided":
-        if reused:
-            old_cert, old_key = tls_paths(layout, metadata)
-            for path, field in ((old_cert, "certificateSha256"), (old_key, "privateKeySha256")):
-                require(hashlib.sha256(read_pem(path, private=field == "privateKeySha256")).hexdigest() == metadata.get(field),
-                        "Retained TLS material changed", "integrity")
-        if not reused or cert_data is not None and (hashlib.sha256(cert_data).hexdigest() != metadata["certificateSha256"] or
+        if not previous_provided or cert_data is not None and (hashlib.sha256(cert_data).hexdigest() != metadata["certificateSha256"] or
                                                     hashlib.sha256(key_data).hexdigest() != metadata["privateKeySha256"]):
             selected_metadata.update(stage_tls(layout, cert_data, key_data, caddy_gid))
+        if ca_data is not None and hashlib.sha256(ca_data).hexdigest() != metadata.get("tlsCaSha256"):
+            selected_metadata.update(stage_tls_ca(layout, ca_data))
+        if tls_system_ca:
+            selected_metadata.pop("tlsCaRevision", None)
+            selected_metadata.pop("tlsCaSha256", None)
     if not reused:
         # Persist first-setup TLS selection before validators create any state.
         metadata = dict(selected_metadata)
         write_json(metadata_path, metadata)
-    def caddy_configuration(selected):
-        certificate_path, key_path = tls_paths(layout, selected) if tls == "provided" else (None, None)
-        identity_host = selected.get("authHost") if selected.get("authentication") != "builtin" else None
-        return render_caddy(host, identity_host, manager.config["port"], selected.get("authPort", 9091), tls=tls,
-                            http_port=http_port, https_port=https_port,
-                            certificate=str(certificate_path) if certificate_path else None,
-                            private_key=str(key_path) if key_path else None)
-    rendered = caddy_configuration(selected_metadata)
-    caddy_file = layout.config / "Caddyfile"
-    if caddy_file.exists():
-        require(caddy_file.read_text() == caddy_configuration(metadata),
-                "Existing HTTPS configuration differs; inspect before replacing", "identity_conflict")
+    rendered = caddy_configuration(layout, manager.config, selected_metadata)
     pending_caddy = layout.config / "Caddyfile.pending"
     atomic_write(pending_caddy, rendered.encode(), 0o644)
-    run(["/usr/bin/setpriv", "--reuid", str(caddy_uid), "--regid", str(caddy_gid), "--clear-groups", "--no-new-privs",
-         "/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin",
-         str(caddy), "validate", "--config", str(pending_caddy), "--adapter", "caddyfile"])
+    if selected_dns is not None:
+        validate_dns_caddy(layout, selected_metadata, caddy, pending_caddy, caddy_uid, caddy_gid)
+    else:
+        run(["/usr/bin/setpriv", "--reuid", str(caddy_uid), "--regid", str(caddy_gid), "--clear-groups", "--no-new-privs",
+             "/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin",
+             str(caddy), "validate", "--config", str(pending_caddy), "--adapter", "caddyfile"])
+    require_edge_ports_available(manager, http_port=http_port, https_port=https_port)
     old_config = dict(manager.config)
-    new_config = {**old_config, "origin": site_origin(host, https_port)}
-    edge_units = render_edge_units(layout, builtin=True)
+    new_config = {**old_config, "origin": origin}
+    edge_units = render_edge_units(layout, builtin=True, dns_metadata=selected_metadata if selected_dns is not None else None)
     active, enabled = prior_service_state(manager)
     before = snapshot_configuration(layout)
     transaction = layout.state / "transactions" / uuid.uuid4().hex
     mkdir(transaction, 0o700)
     journal_path = transaction / "state.json"
-    journal = {"kind": "https", "phase": "prepared", "before": before, "active": active, "enabled": enabled, "candidateConfig": new_config}
+    journal = {"kind": "https", "phase": "prepared", "before": before, "active": active, "enabled": enabled,
+               "candidateConfig": new_config, "candidateHttps": dict(selected_metadata)}
     write_json(journal_path, journal)
     stop_units = [layout.unit(role) for role in EDGE_ROLES]
     active_roles = ["worker", "gateway", "caddy"]
     units = [layout.unit(role) for role in active_roles]
     try:
+        recovery_barriers(manager)
         manager.system.stop(stop_units)
         manager.recover_control()
         journal["phase"] = "stopped"
@@ -433,6 +630,7 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
         journal["phase"] = "selected"
         write_json(journal_path, journal)
         manager.system.reload()
+        recovery_barriers(manager, active_roles)
         manager.system.start(units)
         manager.config = new_config
         confirm_service_state(manager, active_roles)
@@ -441,19 +639,37 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
         status, _ = account_request(manager, "GET")
         require(status.get("authenticationMode") == "account" and status.get("initialized") is True,
                 "Built-in account was not restored after HTTPS activation", "account_required")
-        manager.system.enable(units)
+        from .https_health import require_https_ready
+        https_health = require_https_ready(manager, timeout=300 if selected_dns is not None else 120 if tls == "acme" else 30)
+        if not migration:
+            manager.system.enable(units)
+        else:
+            # An address change must not undo an operator's disabled-on-boot
+            # choice. Startup above is explicit; enablement is independent.
+            _, selected_enabled = prior_service_state(manager)
+            require(set(selected_enabled) == set(enabled), "HTTPS migration changed service enablement", "health")
         selected_metadata["phase"] = "active"
         write_json(metadata_path, selected_metadata)
-        journal["phase"] = "committed"
-        write_json(journal_path, journal)
+        for role in EDGE_ROLES:
+            (layout.config / "https-recovery" / role).unlink(missing_ok=True)
+        fsync_directory(layout.config / "https-recovery")
     except Exception:
         try:
             recover_https_transaction(manager, journal_path, journal)
         except Exception as recovery:
             raise DeployError("recovery_required", "HTTPS recovery is unconfirmed; configuration, identity and TLS pairs are retained. Run repair.") from recovery
         raise
+    # A directory-fsync error can follow successful terminal publication. The
+    # healthy candidate must stay running whether the retained phase is selected
+    # or committed; inspection/recovery decides the next action.
+    journal["phase"] = "committed"
+    write_json(journal_path, journal)
     return {"origin": new_config["origin"], "authentication": "builtin", "autheliaStopped": True,
             "identityPreserved": True, "migratedFromAuthelia": legacy,
+            "addressMigrated": migration, "previousOrigin": old_config["origin"],
+            "loginRequired": old_config["origin"] != new_config["origin"],
+            "httpsRevision": https_revision(selected_metadata),
+            "httpsHealth": https_health,
             "login": "Sign in directly with the Harness administrator account. Model account authorization remains separate.",
             "tlsMode": tls, "certificateChanged": tls == "provided" and (not reused or
                 selected_metadata.get("certificateSha256") != metadata.get("certificateSha256") or

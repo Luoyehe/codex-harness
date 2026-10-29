@@ -31,11 +31,15 @@ function readManager(
 }
 
 export function AdminSettings({ api, epoch }: { api: Api; epoch: string }) {
+  const [logService, setLogService] = useState('gateway');
   const status = useResource(epoch, (signal) => readManager(api, 'system/status', {}, signal));
-  const logs = useResource(epoch, (signal) =>
-    readManager(api, 'system/logs', { lines: 100 }, signal),
+  const logs = useResource(`${epoch}:${logService}`, (signal) =>
+    readManager(api, 'system/logs', { service: logService, lines: 100 }, signal),
   );
   const usage = object(status.data?.journalUsage);
+  const https = object(status.data?.https);
+  const certificate = object(https.certificate);
+  const renewal = object(https.renewal);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [restart, setRestart] = useState(false);
@@ -53,9 +57,27 @@ export function AdminSettings({ api, epoch }: { api: Api; epoch: string }) {
           {status.error}
         </p>
       )}
+      {https.configured === true && (
+        <div className="info-card stack" aria-label="HTTPS 状态">
+          <h3>HTTPS 与证书</h3>
+          <p>{https.ready === true ? '服务器上的 HTTPS 和实例身份验证通过。' : 'HTTPS 验证未通过，请查看 HTTPS 与证书日志。'}</p>
+          {typeof certificate.notAfter === 'string' && <p>证书有效期至：{certificate.notAfter}</p>}
+          {typeof certificate.daysRemaining === 'number' && certificate.daysRemaining < 14 && <p className="error">证书将在两周内到期，请确认续期是否正常。</p>}
+          <p>{renewal.automatic === true ? '由 Caddy 自动管理证书；未来续期仍依赖网络和证书服务可用。' : renewal.automatic === false && renewal.manager === 'operator' ? '证书由管理员提供，需要自行更新。' : '证书管理方式尚未确认，请检查配置。'}</p>
+          <p className="muted">此检查来自服务器本机。公网访问请再用手机移动网络等外部网络确认。</p>
+        </div>
+      )}
       <pre className="raw">{JSON.stringify(status.data, null, 2)}</pre>
       <div className="section-heading">
         <h3>最近日志</h3>
+        <label>
+          服务
+          <select aria-label="日志服务" value={logService} onChange={(event) => setLogService(event.target.value)}>
+            <option value="gateway">网页与账号</option>
+            <option value="worker">任务运行</option>
+            <option value="caddy">HTTPS 与证书</option>
+          </select>
+        </label>
         <button className="button" disabled={logs.loading} onClick={logs.refresh}>
           刷新日志
         </button>

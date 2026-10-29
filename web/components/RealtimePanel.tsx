@@ -440,7 +440,8 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
           !isArchivedReceipt(receipt))
       )
         throw new Error('语音原操作回执不匹配。');
-      reconcileOperation(attempt.operationId, receipt);
+      await reconcileOperation(attempt.operationId, receipt);
+      if (!current()) return;
       if (receipt.state === 'accepted') {
         updateAttempt({ ...attempt, state: 'accepted' });
         const row = accept(receipt.result);

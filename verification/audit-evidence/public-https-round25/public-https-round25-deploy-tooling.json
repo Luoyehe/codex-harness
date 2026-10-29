@@ -1,0 +1,1027 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round25",
+  "reviewerId": "audit25-deploy-tooling-independent-20261030",
+  "scopes": [
+    "deployment-release"
+  ],
+  "digest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "sourceDigestBefore": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "sourceDigestAfter": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "startedAt": "2026-10-29T18:59:41.9500608Z",
+  "completedAt": "2026-10-29T19:21:44.064237+00:00",
+  "complete": true,
+  "inspectedFiles": [
+    "deploy/README.md",
+    "deploy/RECOVERY.md",
+    "deploy/__init__.py",
+    "deploy/accounts.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/caddy_dns_source/go.mod",
+    "deploy/caddy_dns_source/go.sum",
+    "deploy/caddy_dns_source/main.go",
+    "deploy/caddy_dns_source/main_test.go",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/dns_caddy_build.py",
+    "deploy/dns_providers.py",
+    "deploy/dns_tls.py",
+    "deploy/edge_defaults.py",
+    "deploy/https.py",
+    "deploy/https_guidance.py",
+    "deploy/https_health.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/install_recovery.py",
+    "deploy/journal.py",
+    "deploy/journal_schema.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/ports.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/provider_lifecycle.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/sandbox.py",
+    "deploy/service_lifecycle.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/recovery_runbook_probe.py",
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_directory_durability.py",
+    "tests/deploy/root/test_dns_caddy_build.py",
+    "tests/deploy/root/test_edge_diagnostics.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_initialization_resume.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/root/test_service_lifecycle.py",
+    "tests/deploy/root/test_tree_durability.py",
+    "tests/deploy/test_accounts.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_directory_durability.py",
+    "tests/deploy/test_dns_caddy_build.py",
+    "tests/deploy/test_dns_tls.py",
+    "tests/deploy/test_edge_diagnostics.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_https_defaults.py",
+    "tests/deploy/test_https_guidance.py",
+    "tests/deploy/test_https_health.py",
+    "tests/deploy/test_https_ports.py",
+    "tests/deploy/test_initialization_resume.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_prepare_ci_go.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_provider_lifecycle.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_sandbox.py",
+    "tests/deploy/test_service_lifecycle.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_ack.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/security.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "scripts/ci-checks.mjs",
+    "scripts/compatibility-watch.mjs",
+    "scripts/go-tests.mjs",
+    "scripts/prepare-ci-go.py",
+    "scripts/prepare-ci-native.mjs",
+    "scripts/python-tests.py",
+    "scripts/release-audit.mjs",
+    "scripts/release-authorization.mjs",
+    "scripts/reviewed-history.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "scripts/test-environment.mjs",
+    "scripts/windows-controller-preflight.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/go-tests.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/test-environment.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/mcp-oauth-handoff.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ],
+  "inspectedFileHashes": {
+    "deploy/README.md": "565e33b162f490033710b89e0c5cbfb05b2c283954183d47aa27587e39f814c9",
+    "deploy/RECOVERY.md": "f6a80dd524f86d4577c5786602998ca37610d17591c1214968b10e70d53ad0ee",
+    "deploy/__init__.py": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+    "deploy/accounts.py": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+    "deploy/archive.py": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+    "deploy/build.py": "1f4c0733cbc7973c58594efb3c91e9c5847a1f02c3a943ceb3ebe7595d79b79c",
+    "deploy/caddy_dns_source/go.mod": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+    "deploy/caddy_dns_source/go.sum": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975",
+    "deploy/caddy_dns_source/main.go": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+    "deploy/caddy_dns_source/main_test.go": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+    "deploy/candidate_probe.py": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+    "deploy/catalog.py": "7cb1c1d833e28de8f21c5aa4d97e7994913affd4c3370327f30db3cbf0149240",
+    "deploy/cli.py": "cc553e67598f24f2dcd0a5383df18c5be7353465f481028ed1de4c8514c30029",
+    "deploy/common.py": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+    "deploy/config_layer.py": "e50d77eb2c58f5edf0668d880e9903d6e9a5ef4698f5a206add10a70eee82ca4",
+    "deploy/control_update.py": "5793a688d763b27a4d90665dc59fea8b82b9e390fa62b044328af01c5f7a2f59",
+    "deploy/dns_caddy_build.py": "88babaac6ea04d2e63df0c3bba128c1e7c987dad22eda8d188b3b6bb71e63c89",
+    "deploy/dns_providers.py": "e85f0d718dd911d1116c604d497bd637e7e7e3927cc4457eb6a8bbbcc76de167",
+    "deploy/dns_tls.py": "4b451e88758577d41507b3ef3c9fdeb69729b211650d6095d3cfadf9211db612",
+    "deploy/edge_defaults.py": "b2ee74b8c5fe22c095f13651cfc4a174449ab367e1d30bce78421fcc4c099ae1",
+    "deploy/https.py": "0c6d05e5f2233cd42ff1ee4fc112d6b736b62a32711edca5259e89dea4edc6d7",
+    "deploy/https_guidance.py": "143157050a8f0ffe69f6a214bc1d7cc7661968bee4c65b9b3f4511ff3db4b218",
+    "deploy/https_health.py": "1862f1c1373a582ea08a3627d2449e17ce998dc517bdd513b147d1e046ba1d90",
+    "deploy/install.py": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+    "deploy/install.sh": "5360324dca9dc76ad4cef7ba25245a2dc32ece30ccde18be8ae5406325cde5ca",
+    "deploy/install_recovery.py": "7195b20796ac0c301415c5c931292e131a5392d26e6b34a335f9c70355b85306",
+    "deploy/journal.py": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+    "deploy/journal_schema.py": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+    "deploy/manager.py": "65e1b6eeff135d86a8c9d80d2775c4a8afb21af0e5974743f577328301773a5d",
+    "deploy/native_launcher.py": "ce604b2424e012ba1dd2afeeb3f6f7ae08088f053b4a2b476f5e548ad795d75e",
+    "deploy/ownership.py": "5984bb21c541f7ad6f87e6a4b44052a4171e41c2eff876cb4944dafa49b74c6a",
+    "deploy/ports.py": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+    "deploy/provider.py": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+    "deploy/provider_bedrock.py": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+    "deploy/provider_gateway.py": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+    "deploy/provider_layers.py": "416a07709c4102b1768d7bbedecdcf65532debbdb7272168f59a970102cc96eb",
+    "deploy/provider_lifecycle.py": "6e73a0128f2ec608bbfefb9ce8c9b7dcc2631beacfe12a3cf0672eaac0d96021",
+    "deploy/requests.py": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+    "deploy/safe_fs.py": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+    "deploy/sandbox.py": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+    "deploy/service_lifecycle.py": "8930c198999fa857e58ad48de12793d9e2280d93f33cc2a11fc5d4f56b8b081c",
+    "deploy/system.py": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+    "deploy/transactions.py": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+    "deploy/units.py": "257385ab99a67bba12994a85100430ba59c7eef2b69b130942e152bd7c2298d2",
+    "deploy/workspace.py": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+    "deploy/workspace_commit.py": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+    "deploy/workspace_git.py": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+    "deploy/workspace_git_transaction.py": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+    "deploy/workspace_git_view.py": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+    "deploy/workspace_index.py": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+    "deploy/workspace_index_store.py": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+    "deploy/workspace_paths.py": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+    "deploy/workspace_recovery.py": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+    "deploy/workspace_resources.py": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+    "deploy/workspace_search.py": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+    "deploy/workspace_store.py": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+    "deploy/workspace_worktrees.py": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+    "tests/deploy/linux_isolation.py": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+    "tests/deploy/linux_native_boundary.py": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+    "tests/deploy/recovery_runbook_probe.py": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+    "tests/deploy/root/test_account_recovery.py": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+    "tests/deploy/root/test_accounts.py": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+    "tests/deploy/root/test_config_layer.py": "d2fd67c2ddfbe727c7b9788f8c8a47c84fec87ba05a122249432d7b49fa64bc2",
+    "tests/deploy/root/test_control_update.py": "3e785369e24808977b71edcd41ef24b906938c2f38db2cb1914141d0a76418a7",
+    "tests/deploy/root/test_directory_durability.py": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+    "tests/deploy/root/test_dns_caddy_build.py": "f9566f96a8faadb17e6c34c7202553e66fc888c8d6b30519e4a0778cfe2f1107",
+    "tests/deploy/root/test_edge_diagnostics.py": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+    "tests/deploy/root/test_https.py": "2ef68e181950585f39aa62a51ce83f4dcc0572f10a84bb37c6c131dcba473133",
+    "tests/deploy/root/test_initialization_resume.py": "6899ed54037018616ec35fe0bb40727e01f21a2dbc1a8bdc12310874768907e8",
+    "tests/deploy/root/test_journal_recovery.py": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+    "tests/deploy/root/test_management_boundaries.py": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+    "tests/deploy/root/test_provider_extended.py": "be08a560c1f44730755a0305bf702093d6deb059f76396a4c868f2d866628c49",
+    "tests/deploy/root/test_provider_layers.py": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+    "tests/deploy/root/test_release_reuse.py": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+    "tests/deploy/root/test_request_spool.py": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+    "tests/deploy/root/test_service_lifecycle.py": "892aea63c1657ba1563c128c23d7a9b36827b8915abba4aac84b0a4181b0bbc6",
+    "tests/deploy/root/test_tree_durability.py": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+    "tests/deploy/test_accounts.py": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+    "tests/deploy/test_control_update.py": "ddff9786433e9192aaa07df309ccc8c87e84a9bd814e70fa87831b46d9ef5c5e",
+    "tests/deploy/test_dependency_lock.py": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+    "tests/deploy/test_deployment.py": "4ac0128c196ae33cd2e486d3bc29b91edc3b41cad0dfe7551f3bab7a4ba90a79",
+    "tests/deploy/test_directory_durability.py": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+    "tests/deploy/test_dns_caddy_build.py": "5faf7d10a41d8942d9bf5f52c79d85d2e928b1a59d2357322098e5d3c4293ae9",
+    "tests/deploy/test_dns_tls.py": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+    "tests/deploy/test_edge_diagnostics.py": "43d8f3e4c73f2e19c611151acfa969d7fac441bcea7caaaaae6568dd83b780a8",
+    "tests/deploy/test_https.py": "33e7f111cb83dd7e175b10fe9429c0a98634be092f969725f3b2f937ac34290d",
+    "tests/deploy/test_https_defaults.py": "3939b56ba536286c41e25b1386f4b7942e020d8caeefb42f41674e3d4971a6e5",
+    "tests/deploy/test_https_guidance.py": "691002a67f5ae2f25223eee2bf6943a6f1e82f2f74bb7203eecf9bdb8efcb7b2",
+    "tests/deploy/test_https_health.py": "c9240ed35987f31b9d4138b14a57087101e440dddefbc63373722f03182e5d9d",
+    "tests/deploy/test_https_ports.py": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+    "tests/deploy/test_initialization_resume.py": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+    "tests/deploy/test_install_recovery.py": "6d0a9a326bf67c77dc1bcd4e3a9058a8de1d4e1b235a447fc64a61da590da2b1",
+    "tests/deploy/test_journal_schema.py": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+    "tests/deploy/test_management_boundaries.py": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+    "tests/deploy/test_native_shutdown.py": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+    "tests/deploy/test_origins.py": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+    "tests/deploy/test_prepare_ci_go.py": "75f3a08ba30dc76a97d8013d847855983921eb18cdc536355a5747b621eb9c8f",
+    "tests/deploy/test_provider_bedrock.py": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+    "tests/deploy/test_provider_gateway.py": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+    "tests/deploy/test_provider_layers.py": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+    "tests/deploy/test_provider_lifecycle.py": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+    "tests/deploy/test_request_spool.py": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+    "tests/deploy/test_sandbox.py": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+    "tests/deploy/test_service_lifecycle.py": "4e1fbf7a4938e0c566b66aa0fddeddf693e73ac25913bbda38c065ec30850b85",
+    "tests/deploy/test_workspace.py": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+    "tests/deploy/test_workspace_ack.py": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+    "tests/deploy/test_workspace_commit.py": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+    "tests/deploy/test_workspace_index.py": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+    "tests/deploy/test_workspace_recovery.py": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+    "tests/deploy/test_workspace_resources.py": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+    "tests/deploy/test_workspace_search.py": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+    "tests/deploy/test_workspace_worktrees.py": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+    "tests/deploy/vision_stdio_probe.mjs": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+    ".gitattributes": "1bf09ac7aa77483d2a6007d105e24ed6b9db15c6515fb5b0b7e15899e92f71aa",
+    ".github/workflows/affected.yml": "86a8ae49324c920ee022bdf090842d355232ad6dab1e284648f1ec0e8d62013e",
+    ".github/workflows/compatibility.yml": "cb55e41310593ecb6cd473fffb85fcd8d6949ad106f21439b483baf46c79a339",
+    ".github/workflows/security.yml": "7a4735508518d42ee7b1baf9eb3a0ed6880a0914847a920e07d3fd028656d947",
+    ".gitignore": "c24ba9f44fb5ac5c39af31bc2dbb5d4e8ca92bd777d9f2184d32c316c8ab480c",
+    "AGENTS.md": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+    "ARCHITECTURE.md": "9dc5a340d6409f9cfbccf4fe09e0a9d6708465a731c0f4351ea27128aebfeb5c",
+    "FEATURES.md": "ee0865ce89d917996e5889cc492ebe0224795b2b9266f5c755a4e278bec18693",
+    "LICENSE": "98e0ca7419f338882af4a463a8e92d58b95da2f808c6084bd1715bcaaf640e7d",
+    "NOTICE.md": "403b29c9250ac716e123f8164a7f187049a278afd9f9d940b3f8e0cb686a5faa",
+    "PROBLEM-ACCEPTANCE.md": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e",
+    "README.md": "4df791baf75fc7cb05ccc3df893ee4f1bf35da8832aef41bac5f69b3b2ea81a3",
+    "package.json": "26adcbeb334a5ca6e92ce14be34e428e726fc22ff5a9dd11ee4ceab515ee720e",
+    "pnpm-lock.yaml": "9601e968bb5a808e6c44f345710929132a8451a916d63182b6a49cd2a7c55c47",
+    "pnpm-workspace.yaml": "acef6f475d96438e25719bb19304e5b8eb05822e3dc70f4a1cb708a051066c16",
+    "scripts/ci-checks.mjs": "786c57ad8c8ea047e6a607f239d0030b23bb7ce3dcdc32094bc847a3a6b1717f",
+    "scripts/compatibility-watch.mjs": "a474298e01e90fd87f364327e99f336e77f33d2398faaca9c2744ef98aa3bf6f",
+    "scripts/go-tests.mjs": "56a3556da7833399f4979b5011b1f0ee3a81af4ea055aac76481992e8b721a45",
+    "scripts/prepare-ci-go.py": "ab7e7693ecfb7df6f1f5d67b79ae39607db499c956a6dee124e5cb9b8bc89ae5",
+    "scripts/prepare-ci-native.mjs": "330ac0475fde81efd586d525127e74b3e2f833980df53e3089ae58fcc323925d",
+    "scripts/python-tests.py": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab",
+    "scripts/release-audit.mjs": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b",
+    "scripts/release-authorization.mjs": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e",
+    "scripts/reviewed-history.mjs": "a7f5201a2ece3bbf15b526f8e6c60cc288e8c7a066fa87af5504979efc31a4e2",
+    "scripts/run-tests.mjs": "f922d6caeb89fb7631071b4b1f8c5e521c5dd83d8afe0436f111ab264fde2a40",
+    "scripts/select-tests.mjs": "de8f5cf999b3f3262fa5061592def3e43c202db8bdaf62e7d6dd99ebb5153ca9",
+    "scripts/snapshot.mjs": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432",
+    "scripts/test-environment.mjs": "156ce382187684f60bf3f08c7f12f1acfe13110ec7b21a230f21a3d09e4cffe4",
+    "scripts/windows-controller-preflight.mjs": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d",
+    "tests/fixtures/native-env.ts": "3f2e70c6a85bf7e780ff3013e1d0844cb9118273f79c31551c03c9ad9cbf3c31",
+    "tests/tooling/ci-checks.test.ts": "2fa398365b287ee7eaf3292682c7c17df86aa8527ca7800a33c9a8061ee2b909",
+    "tests/tooling/compatibility-watch.test.ts": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89",
+    "tests/tooling/go-tests.test.ts": "112457e214569432f5b2de19a0e79034cb4f88b0701914204fa44c78472881e4",
+    "tests/tooling/prepare-ci-native.test.ts": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371",
+    "tests/tooling/release-audit.test.ts": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+    "tests/tooling/reviewed-history.test.ts": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5",
+    "tests/tooling/run-tests.test.ts": "bed3c9a1c47770120417bc12cfec47ed076ceab89bc310dde20f69075b1f36ad",
+    "tests/tooling/select-tests.test.ts": "2fd376fbeeee28bced8fcc57db7cf6da7f755d3e439342c4e97deec2d38a0f99",
+    "tests/tooling/test-environment.test.ts": "b4e0884156216c6a5a8442563c860b7d2963242595ba64af80943af07f4de7ea",
+    "tests/tooling/windows-controller-preflight.test.ts": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e",
+    "tsconfig.server.json": "848ce47eaea990c9cda7bf3efecd3aa561c31035fbf4936cfbbee11f4b71c558",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md": "2cd452d823265035bdfd2a8bbb63b5878b65301662d15e346d704e488a03cd19",
+    "verification/feature-evidence/account-watch-index-boundaries.json": "2f948165437a7b6b9e0b80843e6773aca62c7821b48486540164786a83ed518d",
+    "verification/feature-evidence/attachments-linux.json": "c082938f0e33b6edc80622db13295fad255bfc03079501e17ec336f310730360",
+    "verification/feature-evidence/automation-scheduler.json": "fccf009866fd7e09300d29d6a5c08bac0856b3662967f7e52289f7a6fff7e5de",
+    "verification/feature-evidence/capability-coverage.json": "f6ffcf29b4e1a1c16f0cd997789d0ede5196260bc2b9d9d5f63e0646eaafef98",
+    "verification/feature-evidence/extensions-foundation.json": "59fade19360d539eecb7a88ccc31a85f10e1b11ee4aae84b9bffab871852cfc3",
+    "verification/feature-evidence/linux-cli-crossuid.json": "00ad2f8976dc0ec547d38d7e8bf9e059f96ffc0566e139bca2d9eb10b8c301e8",
+    "verification/feature-evidence/mcp-configuration.json": "c8b34bda9090a2b0a64cb39899768f886e8f7bf058dcd0ca3d6e34f4f814a3ec",
+    "verification/feature-evidence/mcp-oauth-handoff.json": "0d5003f24e36316cadfe8204a63e8c18608c5b79ce932a2d9605a02d56a5b402",
+    "verification/feature-evidence/migration-imports.json": "0efcf1987db43c0ba5525290ac3542f6605bce733151cbebf2fc5f8354eae327",
+    "verification/feature-evidence/native-managed-config-probe.json": "f37043fede87a402f4e15a11ddd46e9c4f8c185c14581d33761fc5f022681e68",
+    "verification/feature-evidence/prediction-cloud-native.json": "2aa2ade9a3f11c16fbc935e3cec41b06b5769fd9a51de955a5eecc6f801cb9f7",
+    "verification/feature-evidence/private-account-media.json": "904643ba575d6cdf88a18bc37d8e16b5e4a6a17fbec14e52adc72bd43fbc333e",
+    "verification/feature-evidence/process-remote-search-ui.json": "d9161855872476f9f58769a2b210d087ac72b936d437351d2823d2ddaff78739",
+    "verification/feature-evidence/provider-boundary-and-host-check.json": "b4b0bb77f7c52c0f9186373c4a72e686444410920f7ed8b3abd4f365b34b3edf",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json": "a996da07fc37936341316032e16062903d6c926651123b73209ad812412157a9",
+    "verification/feature-evidence/sharing-feedback-and-trust.json": "f392937d40772657aeb05b0544c4d2a28343bc31eeee8fc0f365d02e2277f6fb",
+    "verification/feature-evidence/timeline-wire-contract.json": "93a76c298224852aafeecabb0df59a629195e1023a742da78543a677806d3bca",
+    "verification/feature-evidence/workspace-foundation-linux.json": "46bdb5fa5c92230b17189f966264c75e8f00fe7e54d6bd2c558ed067ae558ac9",
+    "verification/feature-evidence/workspace-positive-witness.json": "2bd493a00e26a41c2a693db310b85def2d14fb60d7e944e81bc1ba6f4b6429a1",
+    "verification/feature-evidence/worktree-registration.json": "26b024802688c5a142ce579155dd2f43ff038095a31082d3b67b10a4223a0d69",
+    "vitest.config.ts": "31c85d49d547840df538d032953a2cabd13271d768cefb8fbcc8d7687082037f"
+  },
+  "findings": [],
+  "skipped": [],
+  "coverage": {
+    "deploymentFiles": 113,
+    "toolingAndCurrentDocumentationFiles": 63,
+    "totalAssignedFiles": 176,
+    "totalAssignedRawBytes": 2336832,
+    "semanticSourceTestAndFreeTextRead": "Complete for all assigned source, tests, workflow definitions, documentation and feature-evidence prose. Chunked reads covered entire files; truncated outputs were supplemented before completion.",
+    "structuredLockDataExceptions": [
+      "pnpm-lock.yaml",
+      "deploy/caddy_dns_source/go.sum"
+    ],
+    "structuredLockDataTreatment": "Complete-byte strict parse plus every-record/field validation, integrity encoding checks and the applicable dependency closure checks; all unique engine/peer/platform values and any free-text fields were also inspected. This is static review, not dependency execution.",
+    "capabilityCoverage": {
+      "methodsRead": 178,
+      "evidenceGroupsRead": 50,
+      "additionalWorkflowsRead": 15,
+      "metadataCountsPendingAcceptanceAndLimitationsRead": true
+    }
+  },
+  "method": "[\"Started from the supplied current inventory and AGENTS.md. Independently compared raw SHA-256 for every one of the 1911 inventory files and ran scripts/snapshot.mjs using the specified fixed Node executable before semantic review. Repeated both boundary checks after completing every assigned file and lock-data analysis.\",\"Read all assigned deployment implementation and tests, including portable and Linux-root test bodies, native probes, Go wrapper/tests, deployment README and recovery runbook. Traced path/identity validation, durable writes and directory fsync, ownership, archive extraction limits, install resume, account activation/revocation, request admission and receipts, service enable/activity restoration, unknown-outcome retention, control updates and uninstall preservation.\",\"Reviewed native/control UID separation, sanitized child environments, pinned fetch and offline build stages, resource bounds, retained release/store/cache material, candidate probes, workspace path containment, Git index/ref transactions, worktree registration/recovery and bounded search/resource enumeration together with their negative and race-condition test cases.\",\"Reviewed all six DNS-provider schemas, immutable credential generations and service exposure, pinned Caddy/Go source recipe and build proof, the AliDNS HTTP transport wrapper, TLS mode/config migration, hostname/origin/port constraints, certificate/health checks, diagnostics and recovery/rollback barriers. No provider, ACME, DNS or production endpoint was contacted.\",\"Read every assigned CI workflow, release/security/snapshot/authorization/test-selection script and tooling test. Traced changed-file scope, source-bound authorization, full-suite gating, explicit Git base/head checks, per-case result accounting and Linux/Windows reconciliation, Go/native prerequisite evidence, subprocess/reporting failures, safe environment creation, package/source release scanning and bounded history-scanner implementation.\",\"Read all assigned current root documentation and feature-evidence text. The capability inventory was read in complete compact chunks, including all 178 method records, 50 groups and 15 additional workflows. Historical test/result claims and hashes in these current files were treated only as documentation data, never as independently established findings or present test results; historical references were not followed.\",\"Ran only an isolated static-data parser written under .work. Its conservative complete-consuming YAML subset parser rejects unsupported syntax and duplicate keys, validates all 337 package integrity fields, all package/snapshot field kinds, all 22 importer roots against package.json, all 623 dependency edges, reachability of all 337 snapshots and package/snapshot correspondence. It parses all 1545 go.sum records with canonical h1 checksums, rejects duplicate module/version keys and verifies archive plus go.mod checksums for every one of the 193 current go.mod requires. It also strict-parses all 22 assigned JSON files and cross-checks capability counts/group links.\",\"No implementation, test or contract source was edited. Only new ignored audit-helper/evidence/report files under .work were written. No previous audit reports, WORKLOG, historical summaries or old implementation/Git historical code were read. No full or targeted suite, application operation, dependency install, build or minimal defect probe was performed.\"]",
+  "boundaryEvidence": {
+    "before": {
+      "recordedAt": "2026-10-29T18:59:41.9500608Z",
+      "rawFilesCompared": 1911,
+      "rawMismatches": [],
+      "snapshot": {
+        "files": 1911,
+        "digest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281"
+      },
+      "record": "Independent raw-hash comparison and fixed-Node snapshot command output in this reviewer session. The PowerShell initial property-count display expanded to a list; the loop nevertheless iterated all inventory hash properties. The final check explicitly materialized the properties and confirmed numeric count 1911."
+    },
+    "after": {
+      "completedAt": "2026-10-29T19:19:56.9737320+00:00",
+      "rawFilesChecked": 1911,
+      "rawMismatches": [],
+      "inventorySha256": "2dc01be77c9b42fadebaf77f7e84f702c541363aedca0de5e4631a90d60c0e54",
+      "nodeSha256": "d702daa815eabbff763c7d3808e235cf031cf2ca70211b56847bc72f51e240e5",
+      "snapshotScriptSha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432",
+      "lockReviewSha256": "6ea66748934cd88269b3850d671ffa10fbb48cbe4df93499b462575b1e779f0f",
+      "lockReviewHelperSha256": "dd7f40367c3957fe2e9dbae0507298a570c1f026e1246d4d4d2145dd6d92a919",
+      "snapshot": {
+        "files": 1911,
+        "digest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281"
+      }
+    },
+    "snapshotCommand": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/snapshot.mjs",
+    "inventory": {
+      "path": ".work/public-https-round25-inventory.json",
+      "sha256": "2dc01be77c9b42fadebaf77f7e84f702c541363aedca0de5e4631a90d60c0e54"
+    },
+    "afterRawHashEvidence": {
+      "path": ".work/public-https-round25-deploy-tooling-boundary-after.json",
+      "sha256": "398547024323b1caf1c545f6cadf6d5e3dbcc343b2b67b55ab6d71982bcd51df"
+    },
+    "staticLockReview": {
+      "path": ".work/public-https-round25-lock-review.json",
+      "sha256": "6ea66748934cd88269b3850d671ffa10fbb48cbe4df93499b462575b1e779f0f"
+    },
+    "staticLockReviewHelper": {
+      "path": ".work/public-https-round25-lock-review.py",
+      "sha256": "dd7f40367c3957fe2e9dbae0507298a570c1f026e1246d4d4d2145dd6d92a919"
+    }
+  },
+  "structuredDataResults": {
+    "kind": "offline-static-structure-not-tests",
+    "pnpm": {
+      "rawBytes": 102516,
+      "sha256": "9601e968bb5a808e6c44f345710929132a8451a916d63182b6a49cd2a7c55c47",
+      "physicalLines": 3120,
+      "consumedNonemptyLines": 2440,
+      "packages": 337,
+      "snapshots": 337,
+      "importerRoots": 22,
+      "dependencyEdges": 623,
+      "allSnapshotsReachable": true,
+      "packageFields": {
+        "resolution": 337,
+        "engines": 179,
+        "hasBin": 11,
+        "peerDependencies": 23,
+        "peerDependenciesMeta": 13,
+        "cpu": 46,
+        "os": 47,
+        "libc": 10
+      },
+      "snapshotFields": {
+        "dependencies": 148,
+        "optionalDependencies": 10,
+        "transitivePeerDependencies": 28,
+        "optional": 47
+      },
+      "engines": [
+        [
+          "node",
+          "20 || >=22"
+        ],
+        [
+          "node",
+          ">= 0.10"
+        ],
+        [
+          "node",
+          ">= 0.4"
+        ],
+        [
+          "node",
+          ">= 0.6"
+        ],
+        [
+          "node",
+          ">= 0.8"
+        ],
+        [
+          "node",
+          ">= 12"
+        ],
+        [
+          "node",
+          ">= 12.0.0"
+        ],
+        [
+          "node",
+          ">= 16"
+        ],
+        [
+          "node",
+          ">= 18"
+        ],
+        [
+          "node",
+          ">= 18.0.0"
+        ],
+        [
+          "node",
+          ">= 8"
+        ],
+        [
+          "node",
+          ">=0.10.0"
+        ],
+        [
+          "node",
+          ">=0.6"
+        ],
+        [
+          "node",
+          ">=10"
+        ],
+        [
+          "node",
+          ">=10.0.0"
+        ],
+        [
+          "node",
+          ">=12"
+        ],
+        [
+          "node",
+          ">=12.0.0"
+        ],
+        [
+          "node",
+          ">=12.20.0"
+        ],
+        [
+          "node",
+          ">=16"
+        ],
+        [
+          "node",
+          ">=16.20.0"
+        ],
+        [
+          "node",
+          ">=16.9.0"
+        ],
+        [
+          "node",
+          ">=18"
+        ],
+        [
+          "node",
+          ">=18.0.0"
+        ],
+        [
+          "node",
+          ">=18.14.1"
+        ],
+        [
+          "node",
+          ">=20"
+        ],
+        [
+          "node",
+          ">=20.0.0"
+        ],
+        [
+          "node",
+          ">=20.11"
+        ],
+        [
+          "node",
+          ">=20.19.0"
+        ],
+        [
+          "node",
+          ">=22.19.0"
+        ],
+        [
+          "node",
+          ">=6"
+        ],
+        [
+          "node",
+          ">=6.0"
+        ],
+        [
+          "node",
+          ">=6.0.0"
+        ],
+        [
+          "node",
+          ">=6.6.0"
+        ],
+        [
+          "node",
+          ">=6.9.0"
+        ],
+        [
+          "node",
+          ">=8"
+        ],
+        [
+          "node",
+          ">=v12.22.7"
+        ],
+        [
+          "node",
+          "^10 || ^12 || >=14"
+        ],
+        [
+          "node",
+          "^10 || ^12 || ^13.7 || ^14 || >=15.0.1"
+        ],
+        [
+          "node",
+          "^10 || ^12.20.0 || ^14.13.0 || >=15.0.0"
+        ],
+        [
+          "node",
+          "^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0"
+        ],
+        [
+          "node",
+          "^20.19.0 || >=22.12.0"
+        ],
+        [
+          "node",
+          "^20.19.0 || ^22.12.0 || >=24.0.0"
+        ],
+        [
+          "node",
+          "^22.12.0 || ^24.0.0 || >=26.0.0"
+        ],
+        [
+          "node",
+          "^22.13.0 || >=24.0.0"
+        ],
+        [
+          "node",
+          "^22.14.0 || >=24.0.0"
+        ],
+        [
+          "node",
+          "^22.22.2 || ^24.15.0 || >=26.0.0"
+        ],
+        [
+          "node",
+          "^8.16.0 || ^10.6.0 || >=11.0.0"
+        ],
+        [
+          "npm",
+          ">=6"
+        ]
+      ],
+      "peerConstraints": [
+        [
+          "@cfworker/json-schema",
+          "^4.1.1"
+        ],
+        [
+          "@csstools/css-parser-algorithms",
+          "^4.0.2"
+        ],
+        [
+          "@csstools/css-tokenizer",
+          "^4.0.2"
+        ],
+        [
+          "@edge-runtime/vm",
+          "*"
+        ],
+        [
+          "@noble/hashes",
+          "^1.8.0 || ^2.0.0"
+        ],
+        [
+          "@opentelemetry/api",
+          "^1.9.0"
+        ],
+        [
+          "@rolldown/plugin-babel",
+          "^0.1.7 || ^0.2.0"
+        ],
+        [
+          "@testing-library/dom",
+          ">=7.21.4"
+        ],
+        [
+          "@testing-library/dom",
+          "^10.0.0"
+        ],
+        [
+          "@types/node",
+          "^20.19.0 || >=22.12.0"
+        ],
+        [
+          "@types/node",
+          "^22.0.0 || >=24.0.0"
+        ],
+        [
+          "@types/react",
+          ">=18"
+        ],
+        [
+          "@types/react",
+          "^18.0.0 || ^19.0.0"
+        ],
+        [
+          "@types/react",
+          "^19.3.0"
+        ],
+        [
+          "@types/react-dom",
+          "^18.0.0 || ^19.0.0"
+        ],
+        [
+          "@vitejs/devtools",
+          "^0.7.1 || ^0.8.0"
+        ],
+        [
+          "@vitest/browser-playwright",
+          "5.0.5"
+        ],
+        [
+          "@vitest/browser-preview",
+          "5.0.5"
+        ],
+        [
+          "@vitest/browser-webdriverio",
+          "^5.0.0-beta.5 || >=5.0.0"
+        ],
+        [
+          "@vitest/coverage-istanbul",
+          "5.0.5"
+        ],
+        [
+          "@vitest/coverage-v8",
+          "5.0.5"
+        ],
+        [
+          "@vitest/ui",
+          "5.0.5"
+        ],
+        [
+          "ajv",
+          "^8.0.0"
+        ],
+        [
+          "babel-plugin-react-compiler",
+          "^1.0.0"
+        ],
+        [
+          "bufferutil",
+          "^4.0.1"
+        ],
+        [
+          "canvas",
+          "^3.2.3"
+        ],
+        [
+          "css-tree",
+          "^3.2.1"
+        ],
+        [
+          "esbuild",
+          "^0.27.0 || ^0.28.0"
+        ],
+        [
+          "express",
+          ">= 4.11"
+        ],
+        [
+          "happy-dom",
+          "*"
+        ],
+        [
+          "hono",
+          "^4"
+        ],
+        [
+          "jiti",
+          ">=1.21.0"
+        ],
+        [
+          "jsdom",
+          "*"
+        ],
+        [
+          "less",
+          "^4.0.0"
+        ],
+        [
+          "msw",
+          "^2.4.9 || ^3.0.0"
+        ],
+        [
+          "oxc-transform-react",
+          "^0.152.0"
+        ],
+        [
+          "picomatch",
+          "^3 || ^4"
+        ],
+        [
+          "react",
+          ">=18"
+        ],
+        [
+          "react",
+          "^18.0.0 || ^19.0.0"
+        ],
+        [
+          "react",
+          "^19.3.1"
+        ],
+        [
+          "react-dom",
+          "^18.0.0 || ^19.0.0"
+        ],
+        [
+          "sass",
+          "^1.70.0"
+        ],
+        [
+          "sass-embedded",
+          "^1.70.0"
+        ],
+        [
+          "stylus",
+          ">=0.54.8"
+        ],
+        [
+          "sugarss",
+          "^5.0.0"
+        ],
+        [
+          "supports-color",
+          "*"
+        ],
+        [
+          "terser",
+          "^5.16.0"
+        ],
+        [
+          "tsx",
+          "^4.8.1"
+        ],
+        [
+          "utf-8-validate",
+          ">=5.0.2"
+        ],
+        [
+          "vite",
+          "^6.0.0 || ^7.0.0 || ^8.0.0"
+        ],
+        [
+          "vite",
+          "^6.4.0 || ^7.0.0 || ^8.0.0"
+        ],
+        [
+          "vite",
+          "^8.0.0"
+        ],
+        [
+          "yaml",
+          "^2.4.2"
+        ],
+        [
+          "zod",
+          "4.6.7"
+        ]
+      ],
+      "platforms": [
+        [
+          "cpu",
+          "arm"
+        ],
+        [
+          "cpu",
+          "arm64"
+        ],
+        [
+          "cpu",
+          "loong64"
+        ],
+        [
+          "cpu",
+          "mips64el"
+        ],
+        [
+          "cpu",
+          "ppc64"
+        ],
+        [
+          "cpu",
+          "riscv64"
+        ],
+        [
+          "cpu",
+          "s390x"
+        ],
+        [
+          "cpu",
+          "x64"
+        ],
+        [
+          "libc",
+          "glibc"
+        ],
+        [
+          "libc",
+          "musl"
+        ],
+        [
+          "os",
+          "aix"
+        ],
+        [
+          "os",
+          "android"
+        ],
+        [
+          "os",
+          "darwin"
+        ],
+        [
+          "os",
+          "freebsd"
+        ],
+        [
+          "os",
+          "linux"
+        ],
+        [
+          "os",
+          "netbsd"
+        ],
+        [
+          "os",
+          "openbsd"
+        ],
+        [
+          "os",
+          "openharmony"
+        ],
+        [
+          "os",
+          "sunos"
+        ],
+        [
+          "os",
+          "win32"
+        ]
+      ],
+      "transitivePeers": [
+        "@cfworker/json-schema",
+        "@noble/hashes",
+        "msw",
+        "supports-color"
+      ],
+      "freeText": []
+    },
+    "go": {
+      "rawBytes": 151582,
+      "sha256": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975",
+      "sumRecords": 1545,
+      "requiredModules": 193,
+      "allRequiredArchiveAndModHashesPresent": true,
+      "sumModuleVersions": 1306
+    },
+    "json": {
+      "strictParsedFiles": [
+        "package.json",
+        "tsconfig.server.json",
+        "verification/feature-evidence/account-watch-index-boundaries.json",
+        "verification/feature-evidence/attachments-linux.json",
+        "verification/feature-evidence/automation-scheduler.json",
+        "verification/feature-evidence/capability-coverage.json",
+        "verification/feature-evidence/extensions-foundation.json",
+        "verification/feature-evidence/linux-cli-crossuid.json",
+        "verification/feature-evidence/mcp-configuration.json",
+        "verification/feature-evidence/mcp-oauth-handoff.json",
+        "verification/feature-evidence/migration-imports.json",
+        "verification/feature-evidence/native-managed-config-probe.json",
+        "verification/feature-evidence/prediction-cloud-native.json",
+        "verification/feature-evidence/private-account-media.json",
+        "verification/feature-evidence/process-remote-search-ui.json",
+        "verification/feature-evidence/provider-boundary-and-host-check.json",
+        "verification/feature-evidence/runtime-guardian-cli-audio.json",
+        "verification/feature-evidence/sharing-feedback-and-trust.json",
+        "verification/feature-evidence/timeline-wire-contract.json",
+        "verification/feature-evidence/workspace-foundation-linux.json",
+        "verification/feature-evidence/workspace-positive-witness.json",
+        "verification/feature-evidence/worktree-registration.json"
+      ],
+      "capabilityMethods": 178,
+      "evidenceGroups": 50,
+      "additionalWorkflows": 15,
+      "countsAndGroupLinksConsistent": true
+    },
+    "limitations": [
+      "Package/module digest strings are structurally checked, not recomputed from unavailable dependency archives.",
+      "Go transitive closure cannot be proven from go.sum alone; all current go.mod requires have archive and go.mod checksums.",
+      "No dependency installation, build, test suite, external vulnerability query or network was performed."
+    ]
+  },
+  "limitations": [
+    "This is the deployment/tooling/documentation partition of an independent static repository audit. The other source partitions and the final repository-wide reconciliation are outside this report; no clean-round count or suite authorization is decided here.",
+    "No full/targeted test suite, build, dependency installation or runtime defect probe was run. Reading test code is evidence about intended coverage, not evidence that those tests pass on this snapshot.",
+    "Linux root/systemd/bubblewrap behavior, real cross-UID lifecycle and recovery, Windows process ownership, live HTTP/TLS/DNS/ACME behavior and real cloud providers were assessed from current source and tests, without runtime reenactment or credentials.",
+    "Dependency checksum text was validated structurally and for current manifest/lock consistency; package/module archives were not fetched or rehashed. Go transitive dependency closure cannot be proven from go.sum alone. No claim of current upstream safety, vulnerability-free dependencies or real provider compatibility is made.",
+    "The lock parser is a deliberately restricted parser for the complete syntax actually present, not a general YAML conformance implementation. It fails on unknown syntax/fields rather than ignoring them. Peer/engine constraint values were read; dependency-edge closure was verified, but a general independent semver peer solver was not executed.",
+    "Current feature-evidence documents contain historical execution claims. They were read for contract/traceability consistency only and were not accepted as freshly verified execution evidence.",
+    "No old implementation, historical Git code, prior audit report, WORKLOG or previous review conclusion was used. Hash equality establishes the reviewed frozen source boundary, not correctness by itself."
+  ],
+  "methodDetails": [
+    "Started from the supplied current inventory and AGENTS.md. Independently compared raw SHA-256 for every one of the 1911 inventory files and ran scripts/snapshot.mjs using the specified fixed Node executable before semantic review. Repeated both boundary checks after completing every assigned file and lock-data analysis.",
+    "Read all assigned deployment implementation and tests, including portable and Linux-root test bodies, native probes, Go wrapper/tests, deployment README and recovery runbook. Traced path/identity validation, durable writes and directory fsync, ownership, archive extraction limits, install resume, account activation/revocation, request admission and receipts, service enable/activity restoration, unknown-outcome retention, control updates and uninstall preservation.",
+    "Reviewed native/control UID separation, sanitized child environments, pinned fetch and offline build stages, resource bounds, retained release/store/cache material, candidate probes, workspace path containment, Git index/ref transactions, worktree registration/recovery and bounded search/resource enumeration together with their negative and race-condition test cases.",
+    "Reviewed all six DNS-provider schemas, immutable credential generations and service exposure, pinned Caddy/Go source recipe and build proof, the AliDNS HTTP transport wrapper, TLS mode/config migration, hostname/origin/port constraints, certificate/health checks, diagnostics and recovery/rollback barriers. No provider, ACME, DNS or production endpoint was contacted.",
+    "Read every assigned CI workflow, release/security/snapshot/authorization/test-selection script and tooling test. Traced changed-file scope, source-bound authorization, full-suite gating, explicit Git base/head checks, per-case result accounting and Linux/Windows reconciliation, Go/native prerequisite evidence, subprocess/reporting failures, safe environment creation, package/source release scanning and bounded history-scanner implementation.",
+    "Read all assigned current root documentation and feature-evidence text. The capability inventory was read in complete compact chunks, including all 178 method records, 50 groups and 15 additional workflows. Historical test/result claims and hashes in these current files were treated only as documentation data, never as independently established findings or present test results; historical references were not followed.",
+    "Ran only an isolated static-data parser written under .work. Its conservative complete-consuming YAML subset parser rejects unsupported syntax and duplicate keys, validates all 337 package integrity fields, all package/snapshot field kinds, all 22 importer roots against package.json, all 623 dependency edges, reachability of all 337 snapshots and package/snapshot correspondence. It parses all 1545 go.sum records with canonical h1 checksums, rejects duplicate module/version keys and verifies archive plus go.mod checksums for every one of the 193 current go.mod requires. It also strict-parses all 22 assigned JSON files and cross-checks capability counts/group links.",
+    "No implementation, test or contract source was edited. Only new ignored audit-helper/evidence/report files under .work were written. No previous audit reports, WORKLOG, historical summaries or old implementation/Git historical code were read. No full or targeted suite, application operation, dependency install, build or minimal defect probe was performed."
+  ]
+}

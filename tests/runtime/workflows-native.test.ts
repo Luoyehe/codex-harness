@@ -8,6 +8,7 @@ import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { withFixtureCleanup } from './fixture-cleanup.js';
 
 // The provider is a local protocol substitute. No commercial model or MCP call
 // is made; the real pinned CLI owns queue, goal, history and lifecycle state.
@@ -18,7 +19,7 @@ function answer(res: ServerResponse, id: number): void {
   const events = [{ type: 'response.created', response: { ...response, status: 'in_progress', output: [] } }, { type: 'response.output_item.added', output_index: 0, item }, { type: 'response.output_item.done', output_index: 0, item }, { type: 'response.completed', response }];
   for (const [index, event] of events.entries()) res.write(`event: ${event.type}\ndata: ${JSON.stringify({ ...event, sequence_number: index })}\n\n`); res.end();
 }
-test('official CLI persists queues and goals, steers active turns, forks/reverts history and starts inline reviews using loopback only', async () => {
+test('official CLI persists queues and goals, steers active turns, forks/reverts history and starts inline reviews using loopback only', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/workflows-native'); mkdirSync(parent, { recursive: true }); const home = mkdtempSync(path.join(parent, 'home-')); const codex = path.join(home, 'codex'); const project = path.join(home, 'project'); const temporary = path.join(home, 'tmp'); mkdirSync(codex); mkdirSync(project); mkdirSync(temporary);
   const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
@@ -30,8 +31,11 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
     requests++; if (hold) { held.add(res); res.on('close', () => held.delete(res)); res.writeHead(200, { 'Content-Type': 'text/event-stream' }); res.write(`event: response.created\ndata: ${JSON.stringify({ type: 'response.created', sequence_number: 0, response: { id: `held_${requests}`, object: 'response', status: 'in_progress', model: 'harness-loopback-fixture', output: [] } })}\n\n`); } else answer(res, requests);
   })().catch(error => { errors.push(String(error)); res.destroy(); }); });
   let runtime: RuntimeService | undefined; const events: RuntimeEvent[] = []; const context = { clientId: 'native-workflows' }; const pids: number[] = [];
-  try {
-    await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve)); const port = (provider.address() as AddressInfo).port; const catalog = path.join(home, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
+    await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve));
+    defer(async () => { for (const item of held) item.destroy(); const closed = new Promise<void>((resolve, reject) => provider.close(error => error ? reject(error) : resolve())); provider.closeAllConnections(); await closed; expect(provider.listening).toBe(false); });
+    defer(() => { for (const pid of pids) expect(() => process.kill(pid, 0)).toThrow(); });
+    defer(() => runtime?.close());
+    const port = (provider.address() as AddressInfo).port; const catalog = path.join(home, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
     writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = "http://127.0.0.1:${port}/v1"`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
     const create = async () => { const service = await RuntimeService.create({ bin, home: codex, workerHome: home, cwd: project, env, dev: true }); pids.push(service.native.processId!); service.on('event', event => events.push(event)); return service; };
     runtime = await create();
@@ -88,8 +92,4 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
     expect(await runtime.call('thread/session', { threadId: forkId }, context)).toEqual({ requiresResume: true }); await runtime.call('thread/history', { threadId: forkId }, context);
     await runtime.call('thread/delete', { threadId: forkId }, context); await expect(runtime.call('thread/read', { threadId: forkId }, context)).rejects.toMatchObject({ code: 'native_error' });
     expect(errors).toEqual([]); expect(requests).toBeGreaterThanOrEqual(4);
-  } finally {
-    await runtime?.close(); for (const item of held) item.destroy(); await new Promise<void>(resolve => { provider.close(() => resolve()); provider.closeAllConnections(); });
-    for (const pid of pids) expect(() => process.kill(pid, 0)).toThrow(); expect(provider.listening).toBe(false);
-  }
-}, 60000);
+}), 60000);

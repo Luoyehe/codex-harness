@@ -362,7 +362,7 @@ it('sends the full context through the actual App new-conversation path and clea
         status: 200,
         json: async () => (url === '/api/session' ? result : { ok: true, result }),
       });
-      if (url === '/api/session') return ok({ authenticated: true, csrf: 'test' });
+      if (url === '/api/session') return ok({ authenticated: true, operationRecoveryProtocol: 2, csrf: 'test' });
       const call: Call = JSON.parse(init.body);
       calls.push(call);
       const data: Record<string, unknown> = {

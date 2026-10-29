@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "findingId": "R23-FIX-WEB-001",
+  "status": "implemented-awaiting-independent-review",
+  "completedAt": "2026-10-29T18:35:30.963Z",
+  "previousEvidence": ".work/public-r23-handoff-fix.json",
+  "previousEvidenceSha256": "5c0365a3eaf8a2142c80d4b71990c9491177d4ed46eb2ce779dad55ce32b0efe",
+  "previousEvidencePreserved": true,
+  "fullAuditRound": false,
+  "countsTowardFullAuditGate": false,
+  "sourceDigestBeforeRecheck": "956ad29e7c96ebd29aeb7b02f02f2a919af2bd4bc3acb999215e4dff9f71dd5b",
+  "sourceDigestAfter": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "snapshotFiles": 1911,
+  "changedFiles": [
+    "web/Workspace.tsx",
+    "web/hooks/useDraft.ts",
+    "web/components/HistoryTools.tsx",
+    "web/tests/workspace-handoff.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/drafts.test.tsx"
+  ],
+  "sourceSha256": {
+    "web/Workspace.tsx": "8e88ae00113ca9e59c164239af2df60aec29b14aefe320ff2b80f639628a9f31",
+    "web/hooks/useDraft.ts": "c70446d7bf66ee00ff80adfabba6c565e574574ccaa9871d905630d6033dd3de",
+    "web/components/HistoryTools.tsx": "cec0eb634fbf37dc81a9fda22b45363d1b3cc670c642c74e023f57422ca69f6c",
+    "web/tests/workspace-handoff.test.tsx": "6a669e5360f49d5fa3a627cde73e5ba97c599ce37bdad99fb388ddaa3ec58c67",
+    "web/tests/workflows.test.tsx": "27911cb929fdf7d59c9244c21a998bba61b3969db00f6b79d1c05aedc1e082c8",
+    "web/tests/drafts.test.tsx": "9c567b8d0925a66a8afd8eaa3a067397ef8fa5e4bd3b28844a85e27c846d752e"
+  },
+  "allChangedSourceUsesLF": true,
+  "changesSincePreviousEvidence": [
+    "Only the first-DOM-commit regression test changed: awaited outer async act around rendering; native textarea value setter plus bubbling input event inside the first layout effect avoids nested synchronous fireEvent act. The input still occurs after a real DOM commit and before passive loading, with the original input/warning/storage assertions unchanged. No production code changed since previous evidence."
+  ],
+  "verification": {
+    "firstRecheck": {
+      "log": ".work/public-r23-handoff-green-final-recheck.log",
+      "vitestJson": ".work/test-results/run-Tldq7F/vitest.json",
+      "exitCode": 0,
+      "passed": 109,
+      "warning": "Outer async act alone retained nested synchronous fireEvent warning."
+    },
+    "focusedDraftRecheck": {
+      "log": ".work/public-r23-handoff-draft-commit-recheck.log",
+      "vitestJson": ".work/test-results/run-m5xAJ6/vitest.json",
+      "exitCode": 0,
+      "passed": 22,
+      "failed": 0,
+      "actWarning": false
+    },
+    "finalTargeted": {
+      "log": ".work/public-r23-handoff-green-final-clean-act.log",
+      "vitestJson": ".work/test-results/run-RAj9Bl/vitest.json",
+      "exitCode": 0,
+      "files": 4,
+      "passed": 109,
+      "failed": 0,
+      "skipped": 0,
+      "actWarning": false
+    },
+    "webTypecheck": {
+      "log": ".work/public-r23-handoff-web-tsc-final-recheck.log",
+      "exitCode": 0
+    }
+  },
+  "affectedTestFiles": [
+    "web/tests/workspace-handoff.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/modal-mutations.test.tsx"
+  ],
+  "runtime": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+  "limitations": [
+    "Not a full audit or full suite; no new clean audit round.",
+    "Synthetic fetch, jsdom and isolated IndexedDB/home only; no live integration, deployment/runtime changes, credentials, paid calls, old implementation or Git history.",
+    "Only remaining test diagnostic is jsdom unsupported HTMLCanvasElement.getContext from an imported UI dependency; no failures or skips."
+  ]
+}

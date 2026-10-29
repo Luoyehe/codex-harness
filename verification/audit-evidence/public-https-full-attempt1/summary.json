@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "full-test-attempt",
+  "sourceDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "status": "failed",
+  "fullSuitePassed": false,
+  "auditRounds": [
+    "public-https-round14",
+    "public-https-round15"
+  ],
+  "authorizationSha256": "2f80e8c090f1fa9ecb1ab378e6e19f7532e73cf9a7136b6426f571915bc65472",
+  "planSha256": "f944c89bae33f2574d5154323834e9d5aaf8aa460492a7a82dedd334339cd322",
+  "windows": {
+    "cases": 1807,
+    "passed": 1705,
+    "skipped": 102,
+    "failed": 0,
+    "ownedExitCode": 3,
+    "controllerExit": 0,
+    "outerPowerShellExitCode": 1,
+    "stopConfirmed": true,
+    "reportSha256": "fac716947479fbcee8589f916971ec2b4fd7a88360830b356c03274377b17e79",
+    "note": "The authenticated Job and platform report return skip exit3; outer PowerShell invocation reported1. No platform pass is inferred from outer shell status."
+  },
+  "linux": {
+    "phase": "nobody",
+    "exitCode": 1,
+    "vitest": {
+      "passed": 1411,
+      "failed": 1,
+      "skipped": 15,
+      "total": 1427,
+      "rawReportSha256": "7843e20166ba0010a91fffb5c504d6f1b47c3eef6ff81053f58b369080fcd055"
+    },
+    "python": {
+      "total": 373,
+      "failedMethods": 13,
+      "failureEvents": 15,
+      "errorEvents": 3,
+      "skipped": 1
+    },
+    "go": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "requiredChecksPassed": 5
+    },
+    "platformReportCases": 380,
+    "platformReportSha256": "120ce4a7126134198d47f1ddaa36e3a39e67cdc16c854db43bd5add440ef8ffc",
+    "platformReportLimitation": "Failed Vitest group omits individual cases in the platform report; its retained raw JSON supplies the engine summary. This evidence is not eligible for successful reconciliation.",
+    "rootPhaseExecuted": false,
+    "stopAndCollectionConfirmed": true,
+    "mainServicesUnchanged": true
+  },
+  "diagnosis": [
+    "Standard helper RestrictSUIDSGID blocks legitimate SGID directory creation; production modes and zero-capability identity should remain intact.",
+    "Several portable deployment fixtures use files requiring true root ownership; they must be separated from root filesystem contracts.",
+    "Operator envelope test must relocate its Layout rather than touch masked host initialization paths."
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "findingId": "R23-FIX-WEB-001",
+  "status": "implemented-awaiting-independent-review",
+  "completedAt": "2026-10-29T18:34:00.113Z",
+  "fullAuditRound": false,
+  "countsTowardFullAuditGate": false,
+  "gate": "User override requires two consecutive independent clean full-source audits. This implementation and targeted verification contribute zero clean rounds.",
+  "sourceDigestBefore": "cf26b18ba3fb1603c64a6ed90d35b6855d4337fc612d0af12c9d9409e0cf7910",
+  "sourceDigestAfter": "956ad29e7c96ebd29aeb7b02f02f2a919af2bd4bc3acb999215e4dff9f71dd5b",
+  "snapshotFiles": 1911,
+  "changedFiles": [
+    "web/Workspace.tsx",
+    "web/hooks/useDraft.ts",
+    "web/components/HistoryTools.tsx",
+    "web/tests/workspace-handoff.test.tsx",
+    "web/tests/workflows.test.tsx"
+  ],
+  "sourceSha256": {
+    "web/Workspace.tsx": "8e88ae00113ca9e59c164239af2df60aec29b14aefe320ff2b80f639628a9f31",
+    "web/hooks/useDraft.ts": "c70446d7bf66ee00ff80adfabba6c565e574574ccaa9871d905630d6033dd3de",
+    "web/components/HistoryTools.tsx": "cec0eb634fbf37dc81a9fda22b45363d1b3cc670c642c74e023f57422ca69f6c",
+    "web/tests/workspace-handoff.test.tsx": "6a669e5360f49d5fa3a627cde73e5ba97c599ce37bdad99fb388ddaa3ec58c67",
+    "web/tests/workflows.test.tsx": "27911cb929fdf7d59c9244c21a998bba61b3969db00f6b79d1c05aedc1e082c8"
+  },
+  "preservedR23FilesSha256": {
+    "web/lib/drafts.ts": "36ea35387bc923e404e501ed1ae0bde57feba220f6f13ed887611fe8050f736c",
+    "web/tests/drafts.test.tsx": "130138296b9a853f01f0c1ca3c1316662b412019d53cf0e29659cc1e428826a8"
+  },
+  "allChangedSourceUsesLF": true,
+  "changes": [
+    "useDraft exposes synchronous visit-and-revision predicates. canLeave requires a saved unchanged snapshot for non-input operations. canLeaveAfterAcceptance additionally recognizes the exact accepted snapshot cleanup successor. persist revokes accepted-clear provenance immediately; no render timing or text equality is used to identify edits.",
+    "Workspace captures the sending-render predicate before conversation/start and checks it together with navigation identity before automatic handoff. Newer fields or ABA keep their original mounted owner and warning. Accepted receipts and thread-list refresh still occur; a visible completed-result button provides deliberate navigation.",
+    "Archive/unarchive completion uses the non-input predicate, including save failures that existed before archive began. Archive state updates locally when a draft prevents navigation.",
+    "BranchDialog and ReviewDialog expose optional automatic-completion callbacks separately from explicit recovery/open callbacks. Workspace applies draft protection only to automatic creation handoffs. Existing fallback callers and explicit navigation preserve their behavior.",
+    "Added 24 Workspace-level regression cases and two real-dialog callback-routing regressions. The original 22 draft cases are unchanged and pass."
+  ],
+  "evidence": {
+    "red": {
+      "log": ".work/public-r23-handoff-red.log",
+      "vitestJson": ".work/test-results/run-154sOt/vitest.json",
+      "exitCode": 1,
+      "passed": 7,
+      "failed": 9,
+      "scope": "Actual Workspace rendered against original send callback; real useDraft, Api and receipt modules. Only resource readers and presentational controls substituted. Memory-only B, text ABA, every mutable field and persisted B all auto-navigated away."
+    },
+    "archiveRed": {
+      "log": ".work/public-r23-handoff-archive-red.log",
+      "vitestJson": ".work/test-results/run-v0GSy9/vitest.json",
+      "exitCode": 1,
+      "passed": 20,
+      "failed": 2,
+      "scope": "Actual archive mutation, HTTP acceptance and automatic navigation. Both pre-existing unsaved B and B entered while awaiting archive were lost."
+    },
+    "workflowRed": {
+      "log": ".work/public-r23-handoff-workflows-red.log",
+      "vitestJson": ".work/test-results/run-e9hvJk/vitest.json",
+      "exitCode": 1,
+      "passed": 22,
+      "failed": 2,
+      "scope": "Actual Workspace callbacks passed to ReviewDialog and BranchDialog, with display dialogs replaced. Existing volatile composer B lost on successful created-thread completion."
+    },
+    "green": {
+      "log": ".work/public-r23-handoff-green-final.log",
+      "vitestJson": ".work/test-results/run-oI2cNQ/vitest.json",
+      "exitCode": 0,
+      "files": 4,
+      "passed": 109,
+      "failed": 0,
+      "skipped": 0
+    },
+    "webTypecheck": {
+      "log": ".work/public-r23-handoff-web-tsc-final.log",
+      "exitCode": 0
+    }
+  },
+  "preservedEvidenceSha256": {
+    ".work/public-r23-draft-independent-review.json": "fbe8c9125b0be6a3425f514264a4699c40933ac022f02c7275c3ee03c3a2238e",
+    ".work/public-r23-draft-review-probe.mjs": "8ae880fa2a8e4b456bbecedc2a98281fdc87e3b41b81fc2b2c26bc30972f4ce8",
+    ".work/public-r23-draft-review-probe.json": "c77237d101237ea9266052661652282abfb7d751cde090f20db31e9724b12daf",
+    ".work/public-r23-handoff-red.log": "dc0e1ade8588eb87c4fd7f30c95fb5e2896b7ab31648fd6e05ffcf7e59a0c1bb",
+    ".work/public-r23-handoff-archive-red.log": "d84fe948b534858912245a54b973f79cc02db5b2fe0040f3d96fde04608c1927",
+    ".work/public-r23-handoff-workflows-red.log": "af74473be801a7cd23bc23761f3d272c9d66a2f4171726bc5bc46b112eba950d",
+    ".work/public-r23-handoff-green-final.log": "85ff853e82f188a96863a25a51aec49cf44cf9417b45181d695e6089e1a862bd",
+    ".work/public-r23-handoff-web-tsc-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+  "affectedTestFiles": [
+    "web/tests/workspace-handoff.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/modal-mutations.test.tsx"
+  ],
+  "commands": [
+    ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted web/tests/workspace-handoff.test.tsx",
+    ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted web/tests/workspace-handoff.test.tsx web/tests/drafts.test.tsx web/tests/workflows.test.tsx web/tests/modal-mutations.test.tsx",
+    "Pinned Node launches node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit through spawnSync with isolatedTestEnvironment(process.cwd()).",
+    ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe .work/public-r23-handoff-evidence.mjs"
+  ],
+  "limitations": [
+    "Targeted jsdom/component tests with synthetic fetch and isolated fake IndexedDB. Not a complete real-browser or live service run.",
+    "No full suite, deployment/runtime modification, real service, credential access, paid inference or external MCP calls. Only current rewrite source and current evidence were inspected; no archival checkout or old Git implementation.",
+    "Storage failures still require the user to keep the current page or copy input; deliberate user navigation and page closure are not changed.",
+    "The green log retains a React act warning from an unchanged draft test and a jsdom canvas getContext unsupported warning from imported UI dependencies. No test failed or skipped.",
+    "Scope is confirmed new-conversation, archive/unarchive, review creation and branch creation completion handoffs. This is not a full navigation-surface audit."
+  ]
+}

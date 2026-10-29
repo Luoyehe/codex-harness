@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "version": "2.1.1",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "recordedAt": "2026-10-29T21:06:19.436Z",
+  "status": "passed",
+  "httpsPort": 10000,
+  "checks": {
+    "existingAccountLogin": true,
+    "realWebSocketConnected": true,
+    "projectAndModelCatalogLoaded": true,
+    "automaticReconnectAfterManagedRestart": true,
+    "sessionRetainedAfterRefresh": true,
+    "settingsOpened": true,
+    "logoutReturnedToLogin": true
+  },
+  "screenshotSha256": "4c64027a33f68e12a40ab7546ac0f081e521ef64091854de72d2bcb9c7e19f23",
+  "screenshotPublished": false,
+  "transientObservations": [
+    "Initial effective-default probe and connection readiness messages cleared when loading completed; settled views showed the connected workbench and project defaults."
+  ],
+  "limits": [
+    "Browser route was a local gateway/hairpin; independent public route is recorded separately.",
+    "No model turn, external MCP task, account credential change or persistent project mutation was performed."
+  ],
+  "cleanup": {
+    "testBrowserSessionLoggedOut": true,
+    "serviceKeptRunning": true
+  },
+  "auditRoundCredit": 0
+}

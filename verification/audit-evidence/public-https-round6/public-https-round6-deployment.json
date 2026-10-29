@@ -1,0 +1,921 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round6",
+  "reviewerId": "public_r6_deployment_independent",
+  "scopes": [
+    "deployment-release"
+  ],
+  "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "sourceDigestAfter": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "startedAt": "2026-10-27T03:41:10.5748713Z",
+  "completedAt": "2026-10-27T03:55:04.451Z",
+  "complete": true,
+  "inspectedFiles": [
+    "deploy/README.md",
+    "deploy/RECOVERY.md",
+    "deploy/__init__.py",
+    "deploy/accounts.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/https_health.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/install_recovery.py",
+    "deploy/journal.py",
+    "deploy/journal_schema.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/ownership.py",
+    "deploy/ports.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/provider_lifecycle.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/sandbox.py",
+    "deploy/service_lifecycle.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/recovery_runbook_probe.py",
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_directory_durability.py",
+    "tests/deploy/root/test_edge_diagnostics.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_initialization_resume.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/root/test_service_lifecycle.py",
+    "tests/deploy/root/test_tree_durability.py",
+    "tests/deploy/test_accounts.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_directory_durability.py",
+    "tests/deploy/test_edge_diagnostics.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_https_health.py",
+    "tests/deploy/test_https_ports.py",
+    "tests/deploy/test_initialization_resume.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_provider_lifecycle.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_sandbox.py",
+    "tests/deploy/test_service_lifecycle.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_ack.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs"
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "{\"kind\":\"independent-static-semantic-and-ast-contract-audit\",\"cleanRoom\":\"Read current implementation and current frozen inventory only; did not access prior audit reports, repository history, archived implementation, personal credentials, host 110, or services on host 120. Historical validation claims in the two assigned deployment documents were read as documentation only, not adopted as evidence.\",\"productionAndDocumentation\":{\"count\":48,\"mode\":\"Complete semantic reading of every deploy/ source and documentation file, including the full installation/recovery runbooks and embedded shell/Python material.\",\"files\":[\"deploy/README.md\",\"deploy/RECOVERY.md\",\"deploy/__init__.py\",\"deploy/accounts.py\",\"deploy/archive.py\",\"deploy/build.py\",\"deploy/candidate_probe.py\",\"deploy/catalog.py\",\"deploy/cli.py\",\"deploy/common.py\",\"deploy/config_layer.py\",\"deploy/control_update.py\",\"deploy/https.py\",\"deploy/https_health.py\",\"deploy/install.py\",\"deploy/install.sh\",\"deploy/install_recovery.py\",\"deploy/journal.py\",\"deploy/journal_schema.py\",\"deploy/manager.py\",\"deploy/native_launcher.py\",\"deploy/ownership.py\",\"deploy/ports.py\",\"deploy/provider.py\",\"deploy/provider_bedrock.py\",\"deploy/provider_gateway.py\",\"deploy/provider_layers.py\",\"deploy/provider_lifecycle.py\",\"deploy/requests.py\",\"deploy/safe_fs.py\",\"deploy/sandbox.py\",\"deploy/service_lifecycle.py\",\"deploy/system.py\",\"deploy/transactions.py\",\"deploy/units.py\",\"deploy/workspace.py\",\"deploy/workspace_commit.py\",\"deploy/workspace_git.py\",\"deploy/workspace_git_transaction.py\",\"deploy/workspace_git_view.py\",\"deploy/workspace_index.py\",\"deploy/workspace_index_store.py\",\"deploy/workspace_paths.py\",\"deploy/workspace_recovery.py\",\"deploy/workspace_resources.py\",\"deploy/workspace_search.py\",\"deploy/workspace_store.py\",\"deploy/workspace_worktrees.py\"]},\"tests\":{\"count\":50,\"pythonAstFiles\":49,\"pythonAstNodesVisited\":95054,\"pythonFunctionsEnumerated\":871,\"mode\":\"Parsed all 49 Python test files in full and traversed every AST node; manually reviewed extracted test/fixture function contracts, assertions, helper call structure and long embedded scripts. This is structural/contract review, not a claim of full line-by-line semantic reading of all test files. Additionally read the listed high-risk tests/probes in full, including all embedded scripts. Read the embedded native-launcher scripts in test_deployment.py and the cross-language Node probe in test_journal_schema.py.\",\"fullTextFiles\":[\"tests/deploy/linux_isolation.py\",\"tests/deploy/linux_native_boundary.py\",\"tests/deploy/recovery_runbook_probe.py\",\"tests/deploy/root/test_https.py\",\"tests/deploy/test_https.py\",\"tests/deploy/test_https_health.py\",\"tests/deploy/test_https_ports.py\",\"tests/deploy/test_native_shutdown.py\",\"tests/deploy/test_journal_schema.py\",\"tests/deploy/vision_stdio_probe.mjs\"],\"astEvidence\":\".work/public-https-round6-deployment-contracts.json\"},\"focus\":[\"HTTPS/ACME/provided/internal trust and port modes\",\"legacy/public-entry migration confirmation and compensation\",\"persistent stop/restore barriers and unit enablement\",\"account recovery, state retention, ownership and permissions\",\"build/release/import integrity and no-overwrite durability\",\"request idempotency and native cleanup acknowledgement\",\"workspace/Git/worktree bounds, retention and recovery\",\"documented administrator and end-user workflows\"],\"executed\":[\"Read-only source inspection\",\"Python AST parsing/extraction using bundled Python with -B\",\"Independent source snapshot and SHA-256 verification\"],\"notExecuted\":[\"No test suite or targeted integration test was run\",\"No live Linux/systemd, host 120, public DNS, ACME, certificate issuance or external HTTPS endpoint validation was performed\",\"No external inference, credential or old-host access\"],\"supportFiles\":[\"AGENTS.md\",\"scripts/snapshot.mjs\",\".work/public-freeze.mjs\"],\"startSummary\":\"Began independent reading at startedAt with AGENTS.md and the assigned frozen inventory. First complete 98-file hash capture occurred at hashVerification.startedHashCheckAt; it was not simultaneous with the first source read.\",\"endSummary\":\"Completed all 98 assigned files using the stated full-source and AST-contract methods; no reproducible actionable defect was confirmed in this scope. Full current-source snapshot and all frozen per-file hashes matched at completion. Findings absence is a static-review result, not live-deployment acceptance.\"}",
+  "hashVerification": {
+    "startedHashCheckAt": "2026-10-27T03:42:32.7826154Z",
+    "completedHashCheckAt": "2026-10-27T03:55:04.454Z",
+    "scopeFileCount": 98,
+    "scopeFilesMatched": 98,
+    "fullInventoryFileCount": 1880,
+    "currentFileCount": 1880,
+    "fullInventoryHashesMatched": 1880,
+    "mismatches": [],
+    "addedFiles": [],
+    "digestAlgorithm": "scripts/snapshot.mjs snapshot(undefined,true): SHA-256 of JSON-serialized ordered [relative path, executable mode bits, content SHA-256] tuples",
+    "fileHashes": [
+      {
+        "path": "deploy/README.md",
+        "expected": "b248f95de3b7bf5aa5725167879161f4211f46784c72e5f0a5fb87c66ae2600c",
+        "start": "b248f95de3b7bf5aa5725167879161f4211f46784c72e5f0a5fb87c66ae2600c",
+        "end": "b248f95de3b7bf5aa5725167879161f4211f46784c72e5f0a5fb87c66ae2600c",
+        "matches": true
+      },
+      {
+        "path": "deploy/RECOVERY.md",
+        "expected": "ea3b1ef50a6be723c743bfb81fc670c92911fbcd18b25781a4824bf1276ad3b4",
+        "start": "ea3b1ef50a6be723c743bfb81fc670c92911fbcd18b25781a4824bf1276ad3b4",
+        "end": "ea3b1ef50a6be723c743bfb81fc670c92911fbcd18b25781a4824bf1276ad3b4",
+        "matches": true
+      },
+      {
+        "path": "deploy/__init__.py",
+        "expected": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+        "start": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+        "end": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+        "matches": true
+      },
+      {
+        "path": "deploy/accounts.py",
+        "expected": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+        "start": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+        "end": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+        "matches": true
+      },
+      {
+        "path": "deploy/archive.py",
+        "expected": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+        "start": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+        "end": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+        "matches": true
+      },
+      {
+        "path": "deploy/build.py",
+        "expected": "1f4c0733cbc7973c58594efb3c91e9c5847a1f02c3a943ceb3ebe7595d79b79c",
+        "start": "1f4c0733cbc7973c58594efb3c91e9c5847a1f02c3a943ceb3ebe7595d79b79c",
+        "end": "1f4c0733cbc7973c58594efb3c91e9c5847a1f02c3a943ceb3ebe7595d79b79c",
+        "matches": true
+      },
+      {
+        "path": "deploy/candidate_probe.py",
+        "expected": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+        "start": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+        "end": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+        "matches": true
+      },
+      {
+        "path": "deploy/catalog.py",
+        "expected": "7cb1c1d833e28de8f21c5aa4d97e7994913affd4c3370327f30db3cbf0149240",
+        "start": "7cb1c1d833e28de8f21c5aa4d97e7994913affd4c3370327f30db3cbf0149240",
+        "end": "7cb1c1d833e28de8f21c5aa4d97e7994913affd4c3370327f30db3cbf0149240",
+        "matches": true
+      },
+      {
+        "path": "deploy/cli.py",
+        "expected": "f0f734798dfc8d09424d79392580c04686214a02f972d02a5de5b10240783464",
+        "start": "f0f734798dfc8d09424d79392580c04686214a02f972d02a5de5b10240783464",
+        "end": "f0f734798dfc8d09424d79392580c04686214a02f972d02a5de5b10240783464",
+        "matches": true
+      },
+      {
+        "path": "deploy/common.py",
+        "expected": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+        "start": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+        "end": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+        "matches": true
+      },
+      {
+        "path": "deploy/config_layer.py",
+        "expected": "e50d77eb2c58f5edf0668d880e9903d6e9a5ef4698f5a206add10a70eee82ca4",
+        "start": "e50d77eb2c58f5edf0668d880e9903d6e9a5ef4698f5a206add10a70eee82ca4",
+        "end": "e50d77eb2c58f5edf0668d880e9903d6e9a5ef4698f5a206add10a70eee82ca4",
+        "matches": true
+      },
+      {
+        "path": "deploy/control_update.py",
+        "expected": "eaa5e5621342536a53ab35adfbe44335e9676b2df4b05dcd7e42c641d1b19084",
+        "start": "eaa5e5621342536a53ab35adfbe44335e9676b2df4b05dcd7e42c641d1b19084",
+        "end": "eaa5e5621342536a53ab35adfbe44335e9676b2df4b05dcd7e42c641d1b19084",
+        "matches": true
+      },
+      {
+        "path": "deploy/https.py",
+        "expected": "c699948bb2883026a4513d96f1f9f275aaf781912cdc9b6e25c4863844b61f23",
+        "start": "c699948bb2883026a4513d96f1f9f275aaf781912cdc9b6e25c4863844b61f23",
+        "end": "c699948bb2883026a4513d96f1f9f275aaf781912cdc9b6e25c4863844b61f23",
+        "matches": true
+      },
+      {
+        "path": "deploy/https_health.py",
+        "expected": "99c0e8592972b55270f9adc5524bb8c461ea77bc0d907a317c2ed1453d55f18c",
+        "start": "99c0e8592972b55270f9adc5524bb8c461ea77bc0d907a317c2ed1453d55f18c",
+        "end": "99c0e8592972b55270f9adc5524bb8c461ea77bc0d907a317c2ed1453d55f18c",
+        "matches": true
+      },
+      {
+        "path": "deploy/install.py",
+        "expected": "2a58bf8e11a4874a26ecd20a9c73ca33a6965f5014e0b95815379683f84971b9",
+        "start": "2a58bf8e11a4874a26ecd20a9c73ca33a6965f5014e0b95815379683f84971b9",
+        "end": "2a58bf8e11a4874a26ecd20a9c73ca33a6965f5014e0b95815379683f84971b9",
+        "matches": true
+      },
+      {
+        "path": "deploy/install.sh",
+        "expected": "5360324dca9dc76ad4cef7ba25245a2dc32ece30ccde18be8ae5406325cde5ca",
+        "start": "5360324dca9dc76ad4cef7ba25245a2dc32ece30ccde18be8ae5406325cde5ca",
+        "end": "5360324dca9dc76ad4cef7ba25245a2dc32ece30ccde18be8ae5406325cde5ca",
+        "matches": true
+      },
+      {
+        "path": "deploy/install_recovery.py",
+        "expected": "8c2f9cec65471be9d80b18f78a6bd0f3f686d168067be2fa83edddf526dc4c8f",
+        "start": "8c2f9cec65471be9d80b18f78a6bd0f3f686d168067be2fa83edddf526dc4c8f",
+        "end": "8c2f9cec65471be9d80b18f78a6bd0f3f686d168067be2fa83edddf526dc4c8f",
+        "matches": true
+      },
+      {
+        "path": "deploy/journal.py",
+        "expected": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+        "start": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+        "end": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+        "matches": true
+      },
+      {
+        "path": "deploy/journal_schema.py",
+        "expected": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+        "start": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+        "end": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+        "matches": true
+      },
+      {
+        "path": "deploy/manager.py",
+        "expected": "f4335689ebadea0621cb89b198371cdcdb9e197f3e104d4c335735d269a338f9",
+        "start": "f4335689ebadea0621cb89b198371cdcdb9e197f3e104d4c335735d269a338f9",
+        "end": "f4335689ebadea0621cb89b198371cdcdb9e197f3e104d4c335735d269a338f9",
+        "matches": true
+      },
+      {
+        "path": "deploy/native_launcher.py",
+        "expected": "ce604b2424e012ba1dd2afeeb3f6f7ae08088f053b4a2b476f5e548ad795d75e",
+        "start": "ce604b2424e012ba1dd2afeeb3f6f7ae08088f053b4a2b476f5e548ad795d75e",
+        "end": "ce604b2424e012ba1dd2afeeb3f6f7ae08088f053b4a2b476f5e548ad795d75e",
+        "matches": true
+      },
+      {
+        "path": "deploy/ownership.py",
+        "expected": "54c18f773ca36693246e29b42549a5b84eda4373fad584747a81639bc372707b",
+        "start": "54c18f773ca36693246e29b42549a5b84eda4373fad584747a81639bc372707b",
+        "end": "54c18f773ca36693246e29b42549a5b84eda4373fad584747a81639bc372707b",
+        "matches": true
+      },
+      {
+        "path": "deploy/ports.py",
+        "expected": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+        "start": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+        "end": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+        "matches": true
+      },
+      {
+        "path": "deploy/provider.py",
+        "expected": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+        "start": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+        "end": "498dd8858e7c5aeebc7bd02a6c7e21e50f9cbb798e8323a992269f0226de1b9d",
+        "matches": true
+      },
+      {
+        "path": "deploy/provider_bedrock.py",
+        "expected": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+        "start": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+        "end": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+        "matches": true
+      },
+      {
+        "path": "deploy/provider_gateway.py",
+        "expected": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+        "start": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+        "end": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+        "matches": true
+      },
+      {
+        "path": "deploy/provider_layers.py",
+        "expected": "416a07709c4102b1768d7bbedecdcf65532debbdb7272168f59a970102cc96eb",
+        "start": "416a07709c4102b1768d7bbedecdcf65532debbdb7272168f59a970102cc96eb",
+        "end": "416a07709c4102b1768d7bbedecdcf65532debbdb7272168f59a970102cc96eb",
+        "matches": true
+      },
+      {
+        "path": "deploy/provider_lifecycle.py",
+        "expected": "6e73a0128f2ec608bbfefb9ce8c9b7dcc2631beacfe12a3cf0672eaac0d96021",
+        "start": "6e73a0128f2ec608bbfefb9ce8c9b7dcc2631beacfe12a3cf0672eaac0d96021",
+        "end": "6e73a0128f2ec608bbfefb9ce8c9b7dcc2631beacfe12a3cf0672eaac0d96021",
+        "matches": true
+      },
+      {
+        "path": "deploy/requests.py",
+        "expected": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+        "start": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+        "end": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+        "matches": true
+      },
+      {
+        "path": "deploy/safe_fs.py",
+        "expected": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+        "start": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+        "end": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+        "matches": true
+      },
+      {
+        "path": "deploy/sandbox.py",
+        "expected": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+        "start": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+        "end": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+        "matches": true
+      },
+      {
+        "path": "deploy/service_lifecycle.py",
+        "expected": "7c27d9b0f65209b760cb9c4e3de08b59d45d3509506d0fc05d5584adfa291bcd",
+        "start": "7c27d9b0f65209b760cb9c4e3de08b59d45d3509506d0fc05d5584adfa291bcd",
+        "end": "7c27d9b0f65209b760cb9c4e3de08b59d45d3509506d0fc05d5584adfa291bcd",
+        "matches": true
+      },
+      {
+        "path": "deploy/system.py",
+        "expected": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+        "start": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+        "end": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+        "matches": true
+      },
+      {
+        "path": "deploy/transactions.py",
+        "expected": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+        "start": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+        "end": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+        "matches": true
+      },
+      {
+        "path": "deploy/units.py",
+        "expected": "437b39b40a9f89ead08844bd834a5a7379baade1fdd9c388ee7caddfe8d08d53",
+        "start": "437b39b40a9f89ead08844bd834a5a7379baade1fdd9c388ee7caddfe8d08d53",
+        "end": "437b39b40a9f89ead08844bd834a5a7379baade1fdd9c388ee7caddfe8d08d53",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace.py",
+        "expected": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+        "start": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+        "end": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_commit.py",
+        "expected": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+        "start": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+        "end": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_git.py",
+        "expected": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+        "start": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+        "end": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_git_transaction.py",
+        "expected": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+        "start": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+        "end": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_git_view.py",
+        "expected": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+        "start": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+        "end": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_index.py",
+        "expected": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+        "start": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+        "end": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_index_store.py",
+        "expected": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+        "start": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+        "end": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_paths.py",
+        "expected": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+        "start": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+        "end": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_recovery.py",
+        "expected": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+        "start": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+        "end": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_resources.py",
+        "expected": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+        "start": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+        "end": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_search.py",
+        "expected": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+        "start": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+        "end": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_store.py",
+        "expected": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+        "start": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+        "end": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+        "matches": true
+      },
+      {
+        "path": "deploy/workspace_worktrees.py",
+        "expected": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+        "start": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+        "end": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/linux_isolation.py",
+        "expected": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+        "start": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+        "end": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/linux_native_boundary.py",
+        "expected": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+        "start": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+        "end": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/recovery_runbook_probe.py",
+        "expected": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+        "start": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+        "end": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_account_recovery.py",
+        "expected": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+        "start": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+        "end": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_accounts.py",
+        "expected": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+        "start": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+        "end": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_config_layer.py",
+        "expected": "d2fd67c2ddfbe727c7b9788f8c8a47c84fec87ba05a122249432d7b49fa64bc2",
+        "start": "d2fd67c2ddfbe727c7b9788f8c8a47c84fec87ba05a122249432d7b49fa64bc2",
+        "end": "d2fd67c2ddfbe727c7b9788f8c8a47c84fec87ba05a122249432d7b49fa64bc2",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_control_update.py",
+        "expected": "3010452c99cc789b088fad41483fc8c3d42960e154b0c0511a2cc35e65102cad",
+        "start": "3010452c99cc789b088fad41483fc8c3d42960e154b0c0511a2cc35e65102cad",
+        "end": "3010452c99cc789b088fad41483fc8c3d42960e154b0c0511a2cc35e65102cad",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_directory_durability.py",
+        "expected": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+        "start": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+        "end": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_edge_diagnostics.py",
+        "expected": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+        "start": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+        "end": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_https.py",
+        "expected": "3e1a45516fd97030ea691ae70dd7d26cdd946026808522e741d10ba60fb0b2ae",
+        "start": "3e1a45516fd97030ea691ae70dd7d26cdd946026808522e741d10ba60fb0b2ae",
+        "end": "3e1a45516fd97030ea691ae70dd7d26cdd946026808522e741d10ba60fb0b2ae",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_initialization_resume.py",
+        "expected": "a25a9ee6a019fce488aa18b09b38686f850d654fb4ab0e0a83174018e3b4fa97",
+        "start": "a25a9ee6a019fce488aa18b09b38686f850d654fb4ab0e0a83174018e3b4fa97",
+        "end": "a25a9ee6a019fce488aa18b09b38686f850d654fb4ab0e0a83174018e3b4fa97",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_journal_recovery.py",
+        "expected": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+        "start": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+        "end": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_management_boundaries.py",
+        "expected": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+        "start": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+        "end": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_provider_extended.py",
+        "expected": "be08a560c1f44730755a0305bf702093d6deb059f76396a4c868f2d866628c49",
+        "start": "be08a560c1f44730755a0305bf702093d6deb059f76396a4c868f2d866628c49",
+        "end": "be08a560c1f44730755a0305bf702093d6deb059f76396a4c868f2d866628c49",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_provider_layers.py",
+        "expected": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+        "start": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+        "end": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_release_reuse.py",
+        "expected": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+        "start": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+        "end": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_request_spool.py",
+        "expected": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+        "start": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+        "end": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_service_lifecycle.py",
+        "expected": "892aea63c1657ba1563c128c23d7a9b36827b8915abba4aac84b0a4181b0bbc6",
+        "start": "892aea63c1657ba1563c128c23d7a9b36827b8915abba4aac84b0a4181b0bbc6",
+        "end": "892aea63c1657ba1563c128c23d7a9b36827b8915abba4aac84b0a4181b0bbc6",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/root/test_tree_durability.py",
+        "expected": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+        "start": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+        "end": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_accounts.py",
+        "expected": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+        "start": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+        "end": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_control_update.py",
+        "expected": "b193999aadb76c6f93266599271b658565cc42806882f7e4b45a965889a631aa",
+        "start": "b193999aadb76c6f93266599271b658565cc42806882f7e4b45a965889a631aa",
+        "end": "b193999aadb76c6f93266599271b658565cc42806882f7e4b45a965889a631aa",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_dependency_lock.py",
+        "expected": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+        "start": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+        "end": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_deployment.py",
+        "expected": "4ac0128c196ae33cd2e486d3bc29b91edc3b41cad0dfe7551f3bab7a4ba90a79",
+        "start": "4ac0128c196ae33cd2e486d3bc29b91edc3b41cad0dfe7551f3bab7a4ba90a79",
+        "end": "4ac0128c196ae33cd2e486d3bc29b91edc3b41cad0dfe7551f3bab7a4ba90a79",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_directory_durability.py",
+        "expected": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+        "start": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+        "end": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_edge_diagnostics.py",
+        "expected": "43d8f3e4c73f2e19c611151acfa969d7fac441bcea7caaaaae6568dd83b780a8",
+        "start": "43d8f3e4c73f2e19c611151acfa969d7fac441bcea7caaaaae6568dd83b780a8",
+        "end": "43d8f3e4c73f2e19c611151acfa969d7fac441bcea7caaaaae6568dd83b780a8",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_https.py",
+        "expected": "282e11c6a1a3db6df47bb8c9e2d6934045eb21b67f4781d6055a7f44dea94ec5",
+        "start": "282e11c6a1a3db6df47bb8c9e2d6934045eb21b67f4781d6055a7f44dea94ec5",
+        "end": "282e11c6a1a3db6df47bb8c9e2d6934045eb21b67f4781d6055a7f44dea94ec5",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_https_health.py",
+        "expected": "1ab5f98d21c2f4ffc29ec92d7e97af7aa1837c5dee788b353524973bc19079b1",
+        "start": "1ab5f98d21c2f4ffc29ec92d7e97af7aa1837c5dee788b353524973bc19079b1",
+        "end": "1ab5f98d21c2f4ffc29ec92d7e97af7aa1837c5dee788b353524973bc19079b1",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_https_ports.py",
+        "expected": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+        "start": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+        "end": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_initialization_resume.py",
+        "expected": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+        "start": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+        "end": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_install_recovery.py",
+        "expected": "00ced28c7e592b033d77df028979f8d8b95672455ad59d4eb4c1367532b6e8fd",
+        "start": "00ced28c7e592b033d77df028979f8d8b95672455ad59d4eb4c1367532b6e8fd",
+        "end": "00ced28c7e592b033d77df028979f8d8b95672455ad59d4eb4c1367532b6e8fd",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_journal_schema.py",
+        "expected": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+        "start": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+        "end": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_management_boundaries.py",
+        "expected": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+        "start": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+        "end": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_native_shutdown.py",
+        "expected": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+        "start": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+        "end": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_origins.py",
+        "expected": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+        "start": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+        "end": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_provider_bedrock.py",
+        "expected": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+        "start": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+        "end": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_provider_gateway.py",
+        "expected": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+        "start": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+        "end": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_provider_layers.py",
+        "expected": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+        "start": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+        "end": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_provider_lifecycle.py",
+        "expected": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+        "start": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+        "end": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_request_spool.py",
+        "expected": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+        "start": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+        "end": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_sandbox.py",
+        "expected": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+        "start": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+        "end": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_service_lifecycle.py",
+        "expected": "f09ff8038cbb63cb79e8846b65e91828d56a7def8e5b9b2d37314ba677c3050e",
+        "start": "f09ff8038cbb63cb79e8846b65e91828d56a7def8e5b9b2d37314ba677c3050e",
+        "end": "f09ff8038cbb63cb79e8846b65e91828d56a7def8e5b9b2d37314ba677c3050e",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace.py",
+        "expected": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+        "start": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+        "end": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace_ack.py",
+        "expected": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+        "start": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+        "end": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace_commit.py",
+        "expected": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+        "start": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+        "end": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace_index.py",
+        "expected": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+        "start": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+        "end": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace_recovery.py",
+        "expected": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+        "start": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+        "end": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace_resources.py",
+        "expected": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+        "start": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+        "end": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace_search.py",
+        "expected": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+        "start": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+        "end": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/test_workspace_worktrees.py",
+        "expected": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+        "start": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+        "end": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+        "matches": true
+      },
+      {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "expected": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "start": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "end": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "matches": true
+      }
+    ]
+  },
+  "methodDetails": {
+    "kind": "independent-static-semantic-and-ast-contract-audit",
+    "cleanRoom": "Read current implementation and current frozen inventory only; did not access prior audit reports, repository history, archived implementation, personal credentials, host 110, or services on host 120. Historical validation claims in the two assigned deployment documents were read as documentation only, not adopted as evidence.",
+    "productionAndDocumentation": {
+      "count": 48,
+      "mode": "Complete semantic reading of every deploy/ source and documentation file, including the full installation/recovery runbooks and embedded shell/Python material.",
+      "files": [
+        "deploy/README.md",
+        "deploy/RECOVERY.md",
+        "deploy/__init__.py",
+        "deploy/accounts.py",
+        "deploy/archive.py",
+        "deploy/build.py",
+        "deploy/candidate_probe.py",
+        "deploy/catalog.py",
+        "deploy/cli.py",
+        "deploy/common.py",
+        "deploy/config_layer.py",
+        "deploy/control_update.py",
+        "deploy/https.py",
+        "deploy/https_health.py",
+        "deploy/install.py",
+        "deploy/install.sh",
+        "deploy/install_recovery.py",
+        "deploy/journal.py",
+        "deploy/journal_schema.py",
+        "deploy/manager.py",
+        "deploy/native_launcher.py",
+        "deploy/ownership.py",
+        "deploy/ports.py",
+        "deploy/provider.py",
+        "deploy/provider_bedrock.py",
+        "deploy/provider_gateway.py",
+        "deploy/provider_layers.py",
+        "deploy/provider_lifecycle.py",
+        "deploy/requests.py",
+        "deploy/safe_fs.py",
+        "deploy/sandbox.py",
+        "deploy/service_lifecycle.py",
+        "deploy/system.py",
+        "deploy/transactions.py",
+        "deploy/units.py",
+        "deploy/workspace.py",
+        "deploy/workspace_commit.py",
+        "deploy/workspace_git.py",
+        "deploy/workspace_git_transaction.py",
+        "deploy/workspace_git_view.py",
+        "deploy/workspace_index.py",
+        "deploy/workspace_index_store.py",
+        "deploy/workspace_paths.py",
+        "deploy/workspace_recovery.py",
+        "deploy/workspace_resources.py",
+        "deploy/workspace_search.py",
+        "deploy/workspace_store.py",
+        "deploy/workspace_worktrees.py"
+      ]
+    },
+    "tests": {
+      "count": 50,
+      "pythonAstFiles": 49,
+      "pythonAstNodesVisited": 95054,
+      "pythonFunctionsEnumerated": 871,
+      "mode": "Parsed all 49 Python test files in full and traversed every AST node; manually reviewed extracted test/fixture function contracts, assertions, helper call structure and long embedded scripts. This is structural/contract review, not a claim of full line-by-line semantic reading of all test files. Additionally read the listed high-risk tests/probes in full, including all embedded scripts. Read the embedded native-launcher scripts in test_deployment.py and the cross-language Node probe in test_journal_schema.py.",
+      "fullTextFiles": [
+        "tests/deploy/linux_isolation.py",
+        "tests/deploy/linux_native_boundary.py",
+        "tests/deploy/recovery_runbook_probe.py",
+        "tests/deploy/root/test_https.py",
+        "tests/deploy/test_https.py",
+        "tests/deploy/test_https_health.py",
+        "tests/deploy/test_https_ports.py",
+        "tests/deploy/test_native_shutdown.py",
+        "tests/deploy/test_journal_schema.py",
+        "tests/deploy/vision_stdio_probe.mjs"
+      ],
+      "astEvidence": ".work/public-https-round6-deployment-contracts.json"
+    },
+    "focus": [
+      "HTTPS/ACME/provided/internal trust and port modes",
+      "legacy/public-entry migration confirmation and compensation",
+      "persistent stop/restore barriers and unit enablement",
+      "account recovery, state retention, ownership and permissions",
+      "build/release/import integrity and no-overwrite durability",
+      "request idempotency and native cleanup acknowledgement",
+      "workspace/Git/worktree bounds, retention and recovery",
+      "documented administrator and end-user workflows"
+    ],
+    "executed": [
+      "Read-only source inspection",
+      "Python AST parsing/extraction using bundled Python with -B",
+      "Independent source snapshot and SHA-256 verification"
+    ],
+    "notExecuted": [
+      "No test suite or targeted integration test was run",
+      "No live Linux/systemd, host 120, public DNS, ACME, certificate issuance or external HTTPS endpoint validation was performed",
+      "No external inference, credential or old-host access"
+    ],
+    "supportFiles": [
+      "AGENTS.md",
+      "scripts/snapshot.mjs",
+      ".work/public-freeze.mjs"
+    ],
+    "startSummary": "Began independent reading at startedAt with AGENTS.md and the assigned frozen inventory. First complete 98-file hash capture occurred at hashVerification.startedHashCheckAt; it was not simultaneous with the first source read.",
+    "endSummary": "Completed all 98 assigned files using the stated full-source and AST-contract methods; no reproducible actionable defect was confirmed in this scope. Full current-source snapshot and all frozen per-file hashes matched at completion. Findings absence is a static-review result, not live-deployment acceptance."
+  }
+}

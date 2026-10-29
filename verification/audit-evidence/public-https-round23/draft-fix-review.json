@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "public-r23-draft-independent-review",
+  "reviewedFindingId": "R23-WEB-001",
+  "kind": "targeted-fix-review",
+  "fullAuditRound": false,
+  "countsTowardFullAuditGate": false,
+  "gate": "User override requires two consecutive independent clean full audits; this targeted review contributes zero rounds.",
+  "completedAt": "2026-10-29T00:08:03.350Z",
+  "status": "changes-required",
+  "complete": true,
+  "sourceSha256Before": {
+    "web/hooks/useDraft.ts": "f0fad0fa603ba176dc6dcaf8c0c0617af73dace69b8c868e0f7cd733a0f2c1d8",
+    "web/lib/drafts.ts": "36ea35387bc923e404e501ed1ae0bde57feba220f6f13ed887611fe8050f736c",
+    "web/tests/drafts.test.tsx": "130138296b9a853f01f0c1ca3c1316662b412019d53cf0e29659cc1e428826a8"
+  },
+  "sourceSha256After": {
+    "web/hooks/useDraft.ts": "f0fad0fa603ba176dc6dcaf8c0c0617af73dace69b8c868e0f7cd733a0f2c1d8",
+    "web/lib/drafts.ts": "36ea35387bc923e404e501ed1ae0bde57feba220f6f13ed887611fe8050f736c",
+    "web/tests/drafts.test.tsx": "130138296b9a853f01f0c1ca3c1316662b412019d53cf0e29659cc1e428826a8"
+  },
+  "sourceFilesUnchangedDuringReview": true,
+  "sourceReadPolicy": "Current rewrite source only. No archival repository or Git history. R23 report and repair summary used only for acceptance scope; conclusions independently derived from implementation and current-source probe.",
+  "inspected": [
+    {
+      "path": "AGENTS.md",
+      "scope": "complete; applied user override of two full audit rounds"
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "scope": "complete"
+    },
+    {
+      "path": "web/lib/drafts.ts",
+      "scope": "complete"
+    },
+    {
+      "path": "web/tests/drafts.test.tsx",
+      "scope": "complete; assertions read, not re-executed"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "scope": "complete; editable input during send and delayed attachment-removal callbacks"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "scope": "complete; updateOperation, acknowledgeOperation, reconcileOperation cleanup paths"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "scope": "imports, mutate and beginMutation including draft identity capture, dispatch, accepted cleanup; lines 375-469"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "scope": "draft owner and key setup lines 80-96; navigate lines 427-440; complete send lines 462-538; warning lines 907-910; prediction/reference callbacks; Composer wiring lines 1172-1251; branch handoff lines 1497-1517"
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "scope": "BranchDialog initialization, local draft persistence, finish and submit paths"
+    },
+    {
+      "path": "web/components/DraftsSettings.tsx",
+      "scope": "complete; generic draft event listener and explicit discard"
+    },
+    {
+      "path": "web/lib/ids.ts",
+      "scope": "complete"
+    },
+    {
+      "path": "web/tests/operation-setup.ts",
+      "scope": "complete"
+    },
+    {
+      "path": "scripts/test-environment.mjs",
+      "scope": "complete; used isolated home and environment for local probe"
+    },
+    {
+      "path": "vitest.config.ts",
+      "scope": "complete; setup and mock restoration"
+    },
+    {
+      "path": ".work/public-https-round23-web.json",
+      "scope": "R23-WEB-001 acceptance boundary"
+    },
+    {
+      "path": ".work/public-r23-draft-fix.json",
+      "scope": "final claimed repair scope and hashes; not substituted for code judgment"
+    }
+  ],
+  "candidateVerification": [
+    {
+      "candidate": "Old accepted A must not clear memory-only B, including all fields and text A-B-A",
+      "result": "implementation supports same-owner case",
+      "evidence": "Every setter replaces revision; persist keeps all current fields and marks unsaved before write. snapshot-cleared compares the current revision to the accepted revision; newer content/revision and save warning remain unchanged. draftFields/editEveryField tests cover text, options, attachments, references, context, schema and metadata."
+    },
+    {
+      "candidate": "HTTP, receipt reconciliation and acknowledgement share safe revision cleanup",
+      "result": "implementation supports same-owner case",
+      "evidence": "Api.beginMutation captures persisted draft revision before dispatch; updateOperation and acknowledgeOperation call clearDraftSnapshot; reconcileOperation delegates to updateOperation. clearDraftSnapshot emits revision-bearing event only for matching stored revision."
+    },
+    {
+      "candidate": "Generic same-key refresh and actual aggregate-capacity failure",
+      "result": "implementation supports same-owner case",
+      "evidence": "load rejects overwrite while current key matches and unsaved revision is not the explicitly cleared revision; no setError occurs on this early return. Existing natural capacity regression was read."
+    },
+    {
+      "candidate": "Same-key read failure retains current state; new-key and ABA loads isolate owners",
+      "result": "implementation supports specified load behavior",
+      "evidence": "load catch replaces current only if its key differs, otherwise retains current draft. visit identity changes with key and revokes ordinary stale setters, including a later return to A."
+    },
+    {
+      "candidate": "Initial first DOM commit input can precede passive load",
+      "result": "initial-mount implementation and regression support requirement",
+      "evidence": "The hook layout effect activates ownership before the test's following layout input callback. persist marks the current revision unsaved, and the guard is inside load, covering the initial passive load itself."
+    },
+    {
+      "candidate": "Old unmounted attachment callback read/write failure must merge only the deletion",
+      "result": "implementation supports requirement",
+      "evidence": "removeAttachment always emits attachment-removed in finally. Active matching listener removes only its attachmentId from current fields and persists the merged draft. Failed persistence retains merged current fields with a save warning; other-key listener ignores the event."
+    },
+    {
+      "candidate": "Normal exact accepted snapshot clears; later successful persistence unlocks reload",
+      "result": "implementation supports requirement",
+      "evidence": "Exact revision event passes clearedRevision into load, permitting cleanup; successful persist resets unsaved and error, so a subsequent generic refresh is permitted."
+    },
+    {
+      "candidate": "New conversation acceptance must not discard newer memory-only input through navigation",
+      "result": "confirmed actionable data loss",
+      "evidence": ".work/public-r23-draft-review-probe.json; exact current Workspace.send expression plus real hook/API/receipt modules reproduces accepted-only automatic navigation replacing B."
+    }
+  ],
+  "findings": [
+    {
+      "id": "R23-FIX-WEB-001",
+      "severity": "P2",
+      "title": "New-conversation acceptance still erases a newer unsaved draft during automatic navigation",
+      "location": {
+        "path": "web/Workspace.tsx",
+        "startLine": 499,
+        "endLine": 499
+      },
+      "relatedLocations": [
+        {
+          "path": "web/Workspace.tsx",
+          "startLine": 92,
+          "endLine": 95
+        },
+        {
+          "path": "web/Workspace.tsx",
+          "startLine": 427,
+          "endLine": 440
+        },
+        {
+          "path": "web/hooks/useDraft.ts",
+          "startLine": 57,
+          "endLine": 68
+        }
+      ],
+      "description": "The revision-bearing accepted event correctly preserves B while its original new:<project> owner is mounted. However, Workspace.send always navigates to the newly created thread after conversation/start succeeds if navigation.current is unchanged. Typing B changes the draft revision, not navigation.current. The automatic key switch then reads an empty draft for the new thread and replaces the only in-page B copy and its warning. Thus the same R23 input-loss guarantee remains unfulfilled for the new-conversation entry point.",
+      "trigger": "Persist A under new:p, start conversation/start, keep response pending, type B while draft setItem throws QuotaExceededError, then return accepted with created-thread ID.",
+      "observed": {
+        "requests": 1,
+        "requestText": "submitted A",
+        "before": {
+          "key": "new:p",
+          "text": "unsent B memory only",
+          "warningVisible": true,
+          "storedText": "submitted A"
+        },
+        "after": {
+          "key": "created-thread",
+          "text": "",
+          "warning": "",
+          "oldStoredText": "",
+          "newStoredText": "",
+          "receiptState": "accepted"
+        }
+      },
+      "validation": {
+        "runtime": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+        "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe .work/public-r23-draft-review-probe.mjs",
+        "exitCode": 0,
+        "executedAt": "2026-10-29T00:06:47.882Z",
+        "method": "Real current useDraft, Api, drafts and operation modules transformed in memory with Node's TypeScript transformer. The exact Workspace.send source expression is extracted unchanged. Unrelated UI dependencies are inert substitutes; navigate reproduces its navigation counter and setThreadId behavior. Synthetic fetch, isolated jsdom, fresh fake IndexedDB. This is a focused source-level integration probe, not a full Workspace browser test."
+      },
+      "evidence": [
+        ".work/public-r23-draft-review-probe.mjs",
+        ".work/public-r23-draft-review-probe.json"
+      ],
+      "repairBoundary": "Make post-acceptance new-conversation handoff conditional on preserving the current draft owner, or implement a safe explicit handoff of newer memory state. Do not weaken new-key isolation or erase all current fields. Add a focused actual new-conversation send/acceptance regression with memory-only B and its warning."
+    }
+  ],
+  "verification": {
+    "independentlyExecuted": "One focused offline source-level integration probe, rerun once after removing an unrelated exploratory case and making all act calls awaited; final run exit 0 with only Node's TypeScript experimental warning.",
+    "existingTests": "109 passing tests across 7 files and web tsc exit 0 were supplied as prior implementation evidence. No targeted suite or typecheck was rerun because the confirmed new-conversation gap required a narrower independent probe.",
+    "fullSuiteExecuted": false,
+    "liveServiceOrNetworkCalls": false,
+    "credentialsAccessed": false,
+    "sourceMutated": false
+  },
+  "limitations": [
+    "This is a targeted fix review, not a full-repository audit, and it must not increment the consecutive clean audit count.",
+    "No deployed service, real browser, native runtime, provider, external MCP endpoint or personal credential was accessed.",
+    "Probe uses the unmodified current Workspace.send expression with a small stateful harness, not the entire Workspace UI; source inspection confirms the real caller uses the same key transition and editable composer.",
+    "Three primary source files retained identical beginning/end SHA256 values; unrelated repository files were not re-hashed as a full snapshot."
+  ]
+}

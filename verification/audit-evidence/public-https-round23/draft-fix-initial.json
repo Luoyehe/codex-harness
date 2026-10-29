@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "findingId": "R23-WEB-001",
+  "status": "implemented-awaiting-independent-review",
+  "completedAt": "2026-10-29T00:02:35.6602834Z",
+  "sourceDigestBefore": "b0ff300296c5d9c9865c7de465383a7e66604532b1e55ffbfcacb818a9fcb858",
+  "sourceDigestAfter": "cf26b18ba3fb1603c64a6ed90d35b6855d4337fc612d0af12c9d9409e0cf7910",
+  "snapshotFiles": 1910,
+  "changedFiles": [
+    "web/hooks/useDraft.ts",
+    "web/lib/drafts.ts",
+    "web/tests/drafts.test.tsx"
+  ],
+  "sourceSha256": {
+    "web/hooks/useDraft.ts": "f0fad0fa603ba176dc6dcaf8c0c0617af73dace69b8c868e0f7cd733a0f2c1d8",
+    "web/lib/drafts.ts": "36ea35387bc923e404e501ed1ae0bde57feba220f6f13ed887611fe8050f736c",
+    "web/tests/drafts.test.tsx": "130138296b9a853f01f0c1ca3c1316662b412019d53cf0e29659cc1e428826a8"
+  },
+  "allChangedSourceUsesLF": true,
+  "changes": [
+    "Draft notifications now carry the acknowledged snapshot revision or the exact removed attachment ID. Accepted cleanup reloads a mounted draft only when its current revision matches.",
+    "useDraft tracks unsaved current-instance state and protects it inside load itself, including input committed before the initial passive load. Generic refresh cannot erase unsaved fields or their save-failure warning. A successful save restores normal refresh behavior.",
+    "Same-key read failures preserve valid current memory; new-key and ABA loads remain isolated. No global draft cache or automatic request replay was introduced.",
+    "Confirmed attachment removal is broadcast even if an old unmounted instance cannot read/write storage. The active owner removes only that attachment from its current draft and attempts to save the merged fields, retaining a warning on failure.",
+    "Added 11 meaningful draft regression cases, including all fields with text ABA, three accepted-receipt cleanup paths, natural aggregate capacity failure, generic refresh, same-key read failure/new-key isolation, old-instance attachment merge, successful persistence recovery, and first DOM commit input."
+  ],
+  "evidence": {
+    "originalAuditReport": ".work/public-https-round23-web.json",
+    "originalRepro": ".work/public-https-round23-draft-quota-repro.mjs",
+    "originalReproEvidence": ".work/public-https-round23-draft-quota-evidence.json",
+    "originalEvidencePreserved": true,
+    "red": {
+      "log": ".work/public-r23-draft-red.log",
+      "vitestJson": ".work/test-results/run-CWyKVN/vitest.json",
+      "exitCode": 1,
+      "files": 1,
+      "passed": 11,
+      "failed": 9,
+      "source": "original frozen implementation, new regressions only"
+    },
+    "initialLoadRed": {
+      "log": ".work/public-r23-draft-initial-load-red.log",
+      "vitestJson": ".work/test-results/run-68Ty1J/vitest.json",
+      "exitCode": 1,
+      "files": 1,
+      "passed": 21,
+      "failed": 1,
+      "source": "initial fix before moving volatile guard into load",
+      "observed": "Actual mounted textarea change from layout effect produced B before passive load, then old stored A replaced it."
+    },
+    "green": {
+      "log": ".work/public-r23-draft-green-final.log",
+      "vitestJson": ".work/test-results/run-G3wDU7/vitest.json",
+      "exitCode": 0,
+      "files": 7,
+      "passed": 109,
+      "failed": 0,
+      "skipped": 0
+    },
+    "webTypecheck": {
+      "log": ".work/public-r23-draft-web-tsc-final.log",
+      "exitCode": 0
+    }
+  },
+  "runtime": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+  "commands": [
+    ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted web/tests/drafts.test.tsx",
+    ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted web/tests/drafts.test.tsx web/tests/composer.test.tsx web/tests/input-context.test.tsx web/tests/operations.test.ts web/tests/recovery.test.tsx web/tests/workflows.test.tsx web/tests/prediction.test.tsx",
+    ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+    ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/snapshot.mjs"
+  ],
+  "affectedTestFiles": [
+    "web/tests/drafts.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/operations.test.ts",
+    "web/tests/recovery.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/prediction.test.tsx"
+  ],
+  "reviewNotes": [
+    "All 1910 inventory raw hashes were rechecked after implementation; exactly the three owned files changed.",
+    "Only selected affected files ran through the required targeted test runner, which isolates test homes. Web tsc was the only type/build check.",
+    "A storage failure still cannot promise persistence across page closure; the fix preserves the active page copy and warning instead of pretending the save succeeded.",
+    "The original round-23 audit remains a finding round and is unchanged; independent full audits are still required for any clean-count gate."
+  ],
+  "limitations": [
+    "No full suite, deployed service, live provider, credential, native-runtime or real-browser integration was exercised.",
+    "Independent review of the implementation is pending; targeted tests establish only the documented affected behavior."
+  ]
+}

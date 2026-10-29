@@ -179,7 +179,7 @@ it('keeps unknown authorization blocked and recovers only the original receipt',
   consent();
   approve();
   fireEvent.click(await screen.findByRole('button', { name: '查询原一次重试授权回执' }));
-  await waitFor(() => expect(listOperations().find((op) => op.id === id)?.state).toBe('accepted'));
+  await waitFor(async () => expect((await listOperations()).find((op) => op.id === id)?.state).toBe('accepted'));
   expect(s.calls.filter((c) => c.method === 'thread/approveGuardianDeniedAction')).toHaveLength(1);
 });
 it('removes a captured authorization after context changes and does not retain consent for new content', async () => {

@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "public-r23-handoff-independent-review",
+  "reviewedFindingId": "R23-FIX-WEB-001",
+  "kind": "targeted-fix-review",
+  "fullAuditRound": false,
+  "countsTowardFullAuditGate": false,
+  "gate": "User override requires two consecutive independent clean full-source audits. This targeted review contributes zero clean audit rounds.",
+  "completedAt": "2026-10-29T18:39:35.478Z",
+  "status": "clean",
+  "complete": true,
+  "conclusion": "No new actionable finding identified in the reviewed conversation/start, archive/unarchive, review creation and branch creation automatic handoff paths.",
+  "findings": [],
+  "sourceSha256Before": {
+    "web/Workspace.tsx": "8e88ae00113ca9e59c164239af2df60aec29b14aefe320ff2b80f639628a9f31",
+    "web/hooks/useDraft.ts": "c70446d7bf66ee00ff80adfabba6c565e574574ccaa9871d905630d6033dd3de",
+    "web/components/HistoryTools.tsx": "cec0eb634fbf37dc81a9fda22b45363d1b3cc670c642c74e023f57422ca69f6c"
+  },
+  "sourceSha256After": {
+    "web/Workspace.tsx": "8e88ae00113ca9e59c164239af2df60aec29b14aefe320ff2b80f639628a9f31",
+    "web/hooks/useDraft.ts": "c70446d7bf66ee00ff80adfabba6c565e574574ccaa9871d905630d6033dd3de",
+    "web/components/HistoryTools.tsx": "cec0eb634fbf37dc81a9fda22b45363d1b3cc670c642c74e023f57422ca69f6c"
+  },
+  "sourceFilesUnchangedDuringReview": true,
+  "finalTestSha256": {
+    "web/tests/workspace-handoff.test.tsx": "6a669e5360f49d5fa3a627cde73e5ba97c599ce37bdad99fb388ddaa3ec58c67",
+    "web/tests/workflows.test.tsx": "27911cb929fdf7d59c9244c21a998bba61b3969db00f6b79d1c05aedc1e082c8",
+    "web/tests/drafts.test.tsx": "9c567b8d0925a66a8afd8eaa3a067397ef8fa5e4bd3b28844a85e27c846d752e"
+  },
+  "preservedDraftLibrarySha256": "36ea35387bc923e404e501ed1ae0bde57feba220f6f13ed887611fe8050f736c",
+  "claimedFinalSnapshot": {
+    "digest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+    "files": 1911,
+    "provenance": ".work/public-r23-handoff-final-recheck.json",
+    "independentlyRehashedFullSnapshot": false
+  },
+  "sourceReadPolicy": "Current rewrite source and current task evidence only; no archival checkout source or previous Git implementation/history was opened. Repair reports supplied acceptance scope and prior execution evidence, not the implementation conclusion.",
+  "inspected": [
+    {
+      "path": "AGENTS.md",
+      "scope": "complete; applied user override requiring two clean full audits"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "scope": "complete (1562 lines); draft owner, all navigation helpers, send, archive/unarchive, workflow callbacks, notices, actual Composer/ReviewDialog/BranchDialog wiring"
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "scope": "complete; visit lifecycle, current/unsaved/acceptedClear ownership, every setter, reload/event paths, removal exception and both handoff predicates"
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "scope": "complete; real branch/review automatic vs explicit callbacks, pending freeze, snapshot cleanup, recovery and remaining HistoryTools component"
+    },
+    {
+      "path": "web/lib/drafts.ts",
+      "scope": "complete; revision-bearing clear notifications, key-scoped refresh/removal notifications and storage constraints"
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "scope": "complete; async owner checks, unmount fence, result return, accepted-proof recovery"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "scope": "mutate/beginMutation lines 367-468; persisted draft identity capture, dispatch, acceptance and acknowledgement"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "scope": "operation identity/storage and complete updateOperation/acknowledgeOperation/reconcileOperation cleanup paths"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "scope": "attachment ownership and send continuation lines 122-189; change/removal wiring located and traced to Workspace"
+    },
+    {
+      "path": "web/components/DraftsSettings.tsx",
+      "scope": "complete; event observer only reads drafts; explicit discard/open paths"
+    },
+    {
+      "path": "web/tests/workspace-handoff.test.tsx",
+      "scope": "complete; 24 regression cases and actual Workspace/real draft/API/receipt vs mocked resource/presentation boundaries"
+    },
+    {
+      "path": "web/tests/drafts.test.tsx",
+      "scope": "all 22 case bodies; final first-DOM-commit native textarea setter plus bubbling input implementation read after fix"
+    },
+    {
+      "path": "web/tests/workflows.test.tsx",
+      "scope": "branch/review tests lines 668-827; automatic/explicit routing, retry, recovered proof, source corruption and unmounted ownership"
+    },
+    {
+      "path": "web/tests/modal-mutations.test.tsx",
+      "scope": "setup and branch cases lines 1-208; deferred real API, source revision preservation, exact cleanup, unknown recovery and unmount"
+    },
+    {
+      "path": "web/tests/operation-setup.ts",
+      "scope": "complete; fresh fake IndexedDB and operation initialization"
+    },
+    {
+      "path": "vitest.config.ts",
+      "scope": "complete; setup, environment and restoration"
+    },
+    {
+      "path": "scripts/test-environment.mjs",
+      "scope": "complete; isolated home/environment contract"
+    },
+    {
+      "path": ".work/public-r23-draft-independent-review.json",
+      "scope": "prior confirmed finding and acceptance boundary"
+    },
+    {
+      "path": ".work/public-r23-handoff-fix.json",
+      "scope": "repair summary and earlier source hashes"
+    },
+    {
+      "path": ".work/public-r23-handoff-final-recheck.json",
+      "scope": "final test-only adjustment, final source/test hashes and recorded checks"
+    },
+    {
+      "path": ".work/public-r23-handoff-green-final-clean-act.log",
+      "scope": "final execution header and test summaries; 4 files / 109 cases passed"
+    },
+    {
+      "path": ".work/test-results/run-RAj9Bl/vitest.json",
+      "scope": "machine-readable aggregate verified: success=true, 109 passed, 0 failed, 0 pending"
+    },
+    {
+      "path": ".work/public-r23-handoff-web-tsc-final-recheck.log",
+      "scope": "verified present and empty; exit 0 is recorded by final recheck evidence"
+    }
+  ],
+  "candidateVerification": [
+    {
+      "candidate": "Unchanged new-conversation input still navigates after HTTP acceptance or receipt-first cleanup and intervening render",
+      "result": "supported",
+      "evidence": "Workspace captures the sending render's canLeaveAfterAcceptance before awaiting. Exact accepted cleanup records before=A revision, after=the newly loaded empty revision; the captured predicate accepts that one successor even after setDraft causes a render. A later HTTP update finding no stored A does not emit a second clear. The two unchanged-A regressions cover HTTP and receipt first."
+    },
+    {
+      "candidate": "New memory-only B, persisted B, all mutable fields, metadata changes and text ABA must stay with the original new-conversation owner",
+      "result": "supported",
+      "evidence": "All setters replace revision synchronously and persist immediately revokes acceptedClear before attempting storage. The captured send predicate compares current revision rather than text equality or render timing. The rejected handoff only installs a completion notice and refreshes the list; it does not change the draft key. The 24-case Workspace suite covers B, ABA, options, attachments, references, context, output schema, metadata and same-response-batch edits."
+    },
+    {
+      "candidate": "Accepted-clear provenance must be restricted to the original input and its cleanup successor",
+      "result": "supported",
+      "evidence": "snapshot-cleared is honored only when event key and live revision match the current owner. load records before/after only for that exact cleared revision; a normal load drops provenance and every persist revokes it. canLeaveAfterAcceptance additionally requires the captured visit to remain active and live key equality. New edits after receipt clearance fail the old predicate."
+    },
+    {
+      "candidate": "Pre-existing save failure and edits during Archive/Review/Branch operations must block automatic navigation",
+      "result": "supported",
+      "evidence": "Non-input canLeave requires !unsaved and exact captured revision as well as active visit/key. Archive captures it at operation start; Review/Branch async submits retain their submitting-render callbacks. Archive updates local archive selection and shows a manual-open notice when denied. New review/branch callbacks go through workflowHandoff; prior save failures cannot be bypassed merely by opening a fresh dialog."
+    },
+    {
+      "candidate": "Manual open/recovery and original dialog callback contracts retain their intended behavior",
+      "result": "supported",
+      "evidence": "workflowOpenThread remains explicitly navigational with the existing navigation guard. Completed-result buttons call openThread directly. Real dialogs route only fresh successful creation through onCreatedThread/onCreatedFork; recovered review opening and branch retry use the original onOpenThread/onFork. Optional callbacks default to the original callbacks, preserving other callers. Existing real-dialog routing tests assert these distinctions."
+    },
+    {
+      "candidate": "Navigation away and ABA return must not let old automatic responses pull the user back",
+      "result": "supported",
+      "evidence": "navigate and popstate increment navigation.current. send, archive and workflow handoffs compare their captured navigation identity; useDraft visit objects never regain activity on a later same-key visit. Real useWorkflow suppresses results once its dialog unmounts or owner changes. Workspace new-conversation leave/return tests and real-dialog unmount tests cover the relevant fences."
+    },
+    {
+      "candidate": "Branch target text must be saved without replacing source composer data or losing branch source on write failure",
+      "result": "supported",
+      "evidence": "finishBranch writes the edit text under the returned target id and emits a notification with that id before attempting the handoff. The original composer's hook rejects another key's event. A target write failure returns false, so BranchDialog retains text and does not clear its source snapshot or close. On successful copy, only the exact saved branch source revision is cleared; a newer source revision survives. Denied automatic navigation can still close the dialog safely because the target text is durable and the original composer owner remains mounted."
+    },
+    {
+      "candidate": "Cross-key draft notifications or old attachment cleanup must not replace volatile current input",
+      "result": "supported",
+      "evidence": "The hook rejects events for other keys. Same-key generic reload refuses to replace unsaved state. Attachment removal merges the deletion into current fields and preserves the storage-failure warning; snapshot clearing compares exact revisions. DraftsSettings' event listener reads and displays drafts only and does not write or re-dispatch."
+    },
+    {
+      "candidate": "The first-commit regression still exercises the original race after act-warning cleanup",
+      "result": "supported",
+      "evidence": "The final test uses a real mounted textarea, a native value setter and bubbling input event in its layout effect. Hook layout activation precedes that input; passive load follows. The final assertions still require visible B, a save warning and unchanged stored A. Its final hash matches the final recheck record."
+    }
+  ],
+  "verification": {
+    "independentlyExecuted": "Source/call-site review, beginning/end SHA256 checks for all three production files, final test hashes, and machine-readable regression result verification. No new probe or test execution was needed after source inspection; the already-green suites were not rerun.",
+    "recordedFinalTargeted": {
+      "source": ".work/test-results/run-RAj9Bl/vitest.json",
+      "log": ".work/public-r23-handoff-green-final-clean-act.log",
+      "testFiles": 4,
+      "passed": 109,
+      "failed": 0,
+      "pending": 0,
+      "actWarning": false,
+      "executedBy": "repair agent; current reviewer verified saved results"
+    },
+    "recordedWebTypecheck": {
+      "log": ".work/public-r23-handoff-web-tsc-final-recheck.log",
+      "exitCode": 0,
+      "executedBy": "repair agent; exit status from final recheck report, empty log verified"
+    },
+    "fullSuiteExecuted": false,
+    "liveServiceOrNetworkCalls": false,
+    "credentialsAccessed": false,
+    "productionSourceMutated": false,
+    "testsMutatedByReviewer": false,
+    "reviewOutputOnly": ".work/public-r23-handoff-independent-review.json"
+  },
+  "limitations": [
+    "This is a targeted fix review, not a full-repository audit or full navigation-surface audit, and contributes zero clean audit rounds.",
+    "Only the three designated production files received beginning/end hash comparisons. The 1911-file overall snapshot digest is supplied by final repair evidence rather than independently recomputed.",
+    "Existing runtime verification uses jsdom, synthetic fetch and isolated fake IndexedDB. No real browser, live service, deployment, native runtime, provider, external MCP or credentials were accessed.",
+    "The current reviewer did not re-execute tests or typechecking. Source judgment is independent; supplied 109-pass results were checked against the current test hashes and parsed saved results.",
+    "Archive/unarchive share the reviewed implementation; the dedicated archive regression exercises archive, not a separate live unarchive flow.",
+    "Workspace's branch completion tests substitute the dialog and use fork without edit text. The edit-text transfer boundary was checked in production source together with real BranchDialog source-revision and failure/retry regressions, rather than a new end-to-end Workspace plus real-dialog runtime test.",
+    "Deliberate user navigation and page closure remain able to leave unsaved input, as intended by the existing manual-navigation contract.",
+    "The remaining saved test diagnostic is jsdom's unsupported HTMLCanvasElement.getContext from an imported UI dependency; the final log has no act warning and no failed or skipped cases."
+  ]
+}

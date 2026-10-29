@@ -1,0 +1,1407 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round6",
+  "reviewerId": "public_r6_web_semantic",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "sourceDigestAfter": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "startedAt": "2026-10-27T03:41:01Z",
+  "completedAt": "2026-10-27T03:58:02.870Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpAuthorization.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "findings": [
+    {
+      "id": "WEB-R6-001",
+      "priority": "P2",
+      "title": "会话组织类别切换无提示丢弃未提交编辑",
+      "file": "web/components/OrganizationPanel.tsx",
+      "startLine": 59,
+      "endLine": 72,
+      "body": "项目、分区、当前会话使用互斥组件分支。切换类别卸载编辑器，项目草稿和分区编辑仅保存在子组件 useState；再次返回重新初始化，已输入内容无提示丢失。",
+      "reproduction": [
+        "打开会话组织 → 会话项目 → 创建或编辑项目，输入名称/元数据但不保存。",
+        "切换分区或当前会话，再返回会话项目；编辑表单及输入消失。",
+        "在分区新增或编辑名称/图标/颜色时执行相同切换，也会丢失。"
+      ],
+      "evidence": [
+        "OrganizationPanel.tsx:50 changes the category unconditionally; lines 59-86 render mutually exclusive children.",
+        "NativeProjects.tsx:39-43 stores selected/draft locally; draft fields at 250-395.",
+        "ThreadOrganization.tsx:34 stores SectionSettings edit locally; edit form at 86-135."
+      ],
+      "exclusions": [
+        "不把主动关闭对话框或明确更换操作目标计作此缺陷。",
+        "子组件仅作定向证据核验，全文覆盖归根代理单独报告。"
+      ],
+      "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit."
+    },
+    {
+      "id": "WEB-R6-002",
+      "priority": "P2",
+      "title": "设置类别切换会丢失供应商和连接编辑",
+      "file": "web/components/Settings.tsx",
+      "startLine": 151,
+      "endLine": 159,
+      "body": "除模型账户外，设置页按类别条件卸载其面板。用户在供应商页面填写非敏感配置后切换类别核对账户或其他配置，再返回时这些输入被服务端已保存值覆盖；MCP 配置和远端环境登记也有相同卸载路径。刷新时的 dirty 检查不能保护跨卸载编辑。",
+      "reproduction": [
+        "设置 → 模型供应商，修改端点、模型、推理强度或 OAuth 公共配置但不保存。",
+        "切到通用/模型账户，再切回模型供应商；输入恢复为读取到的已保存配置。",
+        "MCP 中编辑配置，或远端环境登记中输入名称/地址后切换设置类别再返回，未保存编辑同样消失。"
+      ],
+      "evidence": [
+        "Settings.tsx:89 unconditionally changes category; lines 151-159, 182-220 conditionally mount affected panels.",
+        "ProviderSettings.tsx:43-56 stores form and dirty marker inside component; lines 65-86 initialize from read data after mount.",
+        "McpConfiguration.tsx:136-140 stores edit locally; RemoteSettings.tsx:54-58 stores registration name/url locally."
+      ],
+      "exclusions": [
+        "Settings accountMounted branch retains AccountSettings/AccountToolsPanel and is excluded.",
+        "授权勾选、密码、token 可在切换时按策略清空；本问题要求保护非敏感输入或给出明确弃改提示，不要求保留秘密或自动确认。",
+        "ConfigSettings has a module drafts Map and does retain its configuration edits."
+      ],
+      "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit."
+    },
+    {
+      "id": "WEB-R6-003",
+      "priority": "P2",
+      "title": "扩展分类切换丢弃技能正文与共享编辑",
+      "file": "web/components/ExtensionsPanel.tsx",
+      "startLine": 112,
+      "endLine": 133,
+      "body": "扩展类别使用互斥子组件。即使项目范围未变，切换到其他类别核对信息也会卸载 SkillSettings/PluginSettings/PluginSharing，使尚未提交的技能正文、市场来源或接收者编辑全部丢失，界面没有脏编辑保护。",
+      "reproduction": [
+        "设置 → 扩展与配置 → 技能与 Hooks，展开新建/导入技能，填写目录名和多行 SKILL.md 正文，尚未点保存本地草稿。",
+        "切换 Apps/配置与功能，再返回技能与 Hooks；目录名和正文为空。",
+        "插件与市场中输入市场 URL/ref，或插件共享中编辑接收者后执行类别往返，同样清空。"
+      ],
+      "evidence": [
+        "ExtensionsPanel.tsx:63 switches category with no dirty check; lines 74-153 unmount alternate category components.",
+        "SkillSettings.tsx:58-64 nests SkillCreator; SkillLibraryTools.tsx:187-194 holds unprepared slug/text only in useState.",
+        "PluginSettings.tsx:31-36 stores market source/ref locally; PluginSharing.tsx:143-153 and 300-309 stores audience locally."
+      ],
+      "exclusions": [
+        "已经点击保存本地草稿的 SkillCreator 内容通过 file-drafts 持久保留，排除该阶段。",
+        "ConfigSettings edits use a module drafts Map and are excluded.",
+        "仅在同一项目内切换类别复现，不把明确改变项目/插件目标作为本条触发。"
+      ],
+      "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit."
+    },
+    {
+      "id": "WEB-R6-004",
+      "priority": "P2",
+      "title": "切换 MCP 工具和资源类别清空工具参数",
+      "file": "web/components/McpPanel.tsx",
+      "startLine": 470,
+      "endLine": 501,
+      "body": "工具类别中的 McpArguments 在切换资源或事件订阅时被卸载。选中的服务和工具保留在父层，因此返回时仍显示同一个工具，却重新创建空参数编辑器；先填写参数再查看资源的正常流程丢失输入。",
+      "reproduction": [
+        "在已发现工具的 MCP 服务中选一个工具，填写普通 Schema 字段或 JSON 参数但不调用。",
+        "切换资源或事件订阅，然后返回工具；仍选中原工具，但所有参数变为空值或 {}。"
+      ],
+      "evidence": [
+        "McpPanel.tsx:91-106 holds selected/tool/template/URI/stream input in parent state.",
+        "McpPanel.tsx:464 changes tab; lines 470-501 conditionally mount McpArguments.",
+        "McpArguments.tsx:34-38 holds values/raw/advanced only in local state."
+      ],
+      "exclusions": [
+        "MCP resource URI and event-stream text are parent-owned and survive internal category switches.",
+        "明确切换到不同工具或不同服务可重新初始化；本复现保持同一工具与服务。",
+        "调用授权应重新核对；本条不要求保留授权确认。"
+      ],
+      "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit."
+    },
+    {
+      "id": "WEB-R6-005",
+      "priority": "P2",
+      "title": "切换项目文件与 Git 页面丢弃提交说明",
+      "file": "web/components/WorkspacePanel.tsx",
+      "startLine": 441,
+      "endLine": 451,
+      "body": "Git 面板只在当前类别为 git 时挂载，WorkspaceCommit 的作者、邮箱和提交说明没有上提或缓存。用户编写提交说明后进入文件视图核对改动，再回到 Git 时所有字段被清空，长提交说明无法恢复。",
+      "reproduction": [
+        "同一项目打开 Git，展开提交已暂存的修改，输入作者、邮箱及多行提交说明，但不提交。",
+        "切到文件查看改动，再回 Git；提交表单重新挂载，作者、邮箱和说明均为空。"
+      ],
+      "evidence": [
+        "WorkspacePanel.tsx:359/366 changes files/git tab; lines 416-451 render mutually exclusive panels.",
+        "WorkspaceGit.tsx:175-186 mounts WorkspaceCommit.",
+        "WorkspaceCommit.tsx:20-26 stores name/email/text/confirmation only in local state."
+      ],
+      "exclusions": [
+        "FileEditor uses its explicit file-draft cache and is excluded.",
+        "Workspace top-level files/terminal/process navigation uses hidden retained slots and is not the cause.",
+        "暂存区快照与提交确认应重新校验；需要保留的是文本草稿。"
+      ],
+      "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit."
+    }
+  ],
+  "skipped": [],
+  "method": "Full manual semantic reading of all 124 assigned non-test web files, including every component/hook/library implementation, seven CSS files, entry/configuration files and VERIFICATION.md. Traced async ownership, stale completion, mutation/receipt/approval boundaries, draft lifetime, user navigation and accessibility controls. VERIFICATION.md was inspected as current source documentation only; its historical audit/test claims were not used as current correctness evidence. A follow-up cross-cutting scan of every setTab/setView category container confirmed five source-reproducible lost-edit paths and excluded parent-owned/cached/retained views. No tests, browser sessions, type/build checks or live integrations were executed by this reviewer. The 65 web tests and four explicitly delegated components are covered only by separate root reports.",
+  "coverageBatches": [
+    {
+      "at": "2026-10-27T03:42:11.4242949Z",
+      "method": "full semantic source reading",
+      "files": [
+        "web/App.tsx",
+        "web/lib/api.ts",
+        "web/lib/operations.ts",
+        "web/hooks/useConversation.ts",
+        "web/hooks/useDraft.ts",
+        "web/hooks/useEvents.ts",
+        "web/hooks/useResource.ts",
+        "web/hooks/usePaged.ts",
+        "web/hooks/useResume.ts",
+        "web/hooks/usePrompts.ts",
+        "web/hooks/useWorkflow.ts",
+        "web/hooks/useWorkspaceWatch.ts",
+        "web/hooks/useAutomationRuns.ts",
+        "web/lib/history.ts",
+        "web/lib/timeline.ts",
+        "web/lib/stream-items.ts",
+        "web/lib/types.ts",
+        "web/lib/events.ts"
+      ]
+    },
+    {
+      "at": "2026-10-27T03:43:00.6368550Z",
+      "method": "full semantic source reading",
+      "files": [
+        "web/Workspace.tsx",
+        "web/lib/drafts.ts",
+        "web/lib/file-drafts.ts",
+        "web/lib/workflows.ts",
+        "web/lib/input-context.ts",
+        "web/components/Composer.tsx",
+        "web/components/AttachmentButton.tsx",
+        "web/components/ComposerOptions.tsx",
+        "web/components/InputPreferences.tsx",
+        "web/components/CompactThreshold.tsx",
+        "web/lib/input-modalities.ts",
+        "web/lib/input-preference.ts",
+        "web/components/Login.tsx",
+        "web/components/Dialog.tsx",
+        "web/components/Sidebar.tsx",
+        "web/components/Welcome.tsx",
+        "web/components/RenameDialog.tsx",
+        "web/components/ProjectDialog.tsx",
+        "web/components/ArchiveActions.tsx",
+        "web/components/Icon.tsx",
+        "web/lib/ids.ts",
+        "web/main.tsx",
+        "web/index.html",
+        "web/tsconfig.json",
+        "web/vite.config.ts",
+        "web/lib/media.ts",
+        "web/lib/realtime-media.ts",
+        "web/lib/download.ts",
+        "web/components/SafeMarkdown.tsx",
+        "web/components/MessageMedia.tsx",
+        "web/components/MessageItem.tsx",
+        "web/components/Messages.tsx",
+        "web/lib/prompt-validation.ts",
+        "web/components/PromptFields.tsx"
+      ]
+    },
+    {
+      "at": "2026-10-27T03:49:36.9160143Z",
+      "method": "full semantic source reading",
+      "files": [
+        "web/components/Prompts.tsx",
+        "web/components/Recovery.tsx",
+        "web/components/ReceiptMaintenance.tsx",
+        "web/lib/receipt-archive.ts",
+        "web/lib/form-values.ts",
+        "web/components/HistoryTools.tsx",
+        "web/components/FileEditor.tsx",
+        "web/lib/workspace.ts",
+        "web/components/WorkspaceDownload.tsx",
+        "web/components/WorkspaceSearch.tsx",
+        "web/components/WorkspacePanel.tsx",
+        "web/components/WorkspaceGit.tsx",
+        "web/lib/git-state.ts",
+        "web/components/WorkspaceCommit.tsx",
+        "web/components/WorkspaceIndex.tsx",
+        "web/components/WorkspaceIndexRecovery.tsx",
+        "web/components/WorkspaceRecovery.tsx",
+        "web/components/WorkspaceWorktrees.tsx",
+        "web/components/ExtensionControls.tsx",
+        "web/components/Settings.tsx",
+        "web/components/EnvironmentPicker.tsx",
+        "web/components/DraftsSettings.tsx",
+        "web/components/ProjectTrustSettings.tsx",
+        "web/components/ProviderProfiles.tsx"
+      ]
+    },
+    {
+      "at": "2026-10-27T03:50:41.7601775Z",
+      "method": "full semantic source reading",
+      "files": [
+        "web/components/SecuritySettings.tsx",
+        "web/components/AccountSettings.tsx",
+        "web/components/ProviderSettings.tsx",
+        "web/components/ModelCatalog.tsx",
+        "web/components/AdminSettings.tsx",
+        "web/components/CliDiagnosticsPanel.tsx",
+        "web/components/DiagnosticsPanel.tsx",
+        "web/components/RuntimeInsights.tsx",
+        "web/components/ExtensionsPanel.tsx",
+        "web/components/MemorySettings.tsx",
+        "web/components/SkillSettings.tsx",
+        "web/lib/organization.ts",
+        "web/lib/imports.ts",
+        "web/lib/automations.ts",
+        "web/components/TerminalPanel.tsx",
+        "web/components/ProcessPanel.tsx",
+        "web/components/ThreadTerminals.tsx",
+        "web/components/LoadedThreadsPanel.tsx",
+        "web/components/RealtimePanel.tsx",
+        "web/components/HookEventsPanel.tsx"
+      ]
+    },
+    {
+      "at": "2026-10-27T03:53:06.1356004Z",
+      "method": "full semantic source reading",
+      "files": [
+        "web/components/McpArguments.tsx",
+        "web/components/McpAuthorization.tsx",
+        "web/lib/mcp-session.ts",
+        "web/components/McpContent.tsx",
+        "web/components/McpConfiguration.tsx",
+        "web/components/McpPanel.tsx",
+        "web/components/AccountToolsPanel.tsx",
+        "web/components/CreditNudge.tsx",
+        "web/components/PredictionPanel.tsx",
+        "web/components/GuardianReviewPanel.tsx"
+      ]
+    },
+    {
+      "at": "2026-10-27T03:53:55.4359436Z",
+      "method": "full semantic source reading",
+      "files": [
+        "web/components/RemoteSettings.tsx",
+        "web/components/OrganizationPanel.tsx",
+        "web/components/ImportPanel.tsx",
+        "web/components/InputContextPicker.tsx",
+        "web/components/ConfigSettings.tsx",
+        "web/components/PluginSettings.tsx",
+        "web/components/PluginSharing.tsx",
+        "web/components/SkillLibraryTools.tsx"
+      ]
+    },
+    {
+      "at": "2026-10-27T03:55:42.7661681Z",
+      "method": "full semantic source reading; VERIFICATION.md current-document consistency only, historical conclusions not adopted",
+      "files": [
+        "web/components/AutomationForm.tsx",
+        "web/components/AutomationsPanel.tsx",
+        "web/VERIFICATION.md",
+        "web/styles-automations.css",
+        "web/styles-input-context.css",
+        "web/styles-responsive.css",
+        "web/styles-workflows.css",
+        "web/styles-extensions.css",
+        "web/styles-workspace.css",
+        "web/styles.css"
+      ]
+    }
+  ],
+  "initialSnapshot": {
+    "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+    "initiallyHashedWebFiles": 193,
+    "allInitialWebHashesMatched": true
+  },
+  "finalSnapshot": {
+    "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+    "fileCount": 1880,
+    "frozenFileCount": 1880,
+    "allFrozenFileHashesChecked": 1880,
+    "mismatches": [],
+    "sourceNamesMatched": true
+  },
+  "perFileHashVerification": [
+    {
+      "path": "web/App.tsx",
+      "expected": "91a89559632136bd3bfa72cdae87278b43c563bcce97d7edba68b4265a685e9f",
+      "before": "91a89559632136bd3bfa72cdae87278b43c563bcce97d7edba68b4265a685e9f",
+      "after": "91a89559632136bd3bfa72cdae87278b43c563bcce97d7edba68b4265a685e9f",
+      "matches": true
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "expected": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571",
+      "before": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571",
+      "after": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571",
+      "matches": true
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "expected": "83a2e3919b18e2650f44e1dc0ea483bed80f8535ccd8d0dd71496d1bd0b3dbcb",
+      "before": "83a2e3919b18e2650f44e1dc0ea483bed80f8535ccd8d0dd71496d1bd0b3dbcb",
+      "after": "83a2e3919b18e2650f44e1dc0ea483bed80f8535ccd8d0dd71496d1bd0b3dbcb",
+      "matches": true
+    },
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "expected": "b4491e413371b3337bc9d9c52dfaa3ea8cd5d12bec9491504bdccf7f369d65aa",
+      "before": "b4491e413371b3337bc9d9c52dfaa3ea8cd5d12bec9491504bdccf7f369d65aa",
+      "after": "b4491e413371b3337bc9d9c52dfaa3ea8cd5d12bec9491504bdccf7f369d65aa",
+      "matches": true
+    },
+    {
+      "path": "web/components/AccountToolsPanel.tsx",
+      "expected": "3f21a43499727e83813b27e5d3f29d0018095b00f41e96c9e78c68a3e2891c55",
+      "before": "3f21a43499727e83813b27e5d3f29d0018095b00f41e96c9e78c68a3e2891c55",
+      "after": "3f21a43499727e83813b27e5d3f29d0018095b00f41e96c9e78c68a3e2891c55",
+      "matches": true
+    },
+    {
+      "path": "web/components/AdminSettings.tsx",
+      "expected": "7de67def03f22a9721f1cb5383f20bea1d3393063077bb6d319599b45e3304b4",
+      "before": "7de67def03f22a9721f1cb5383f20bea1d3393063077bb6d319599b45e3304b4",
+      "after": "7de67def03f22a9721f1cb5383f20bea1d3393063077bb6d319599b45e3304b4",
+      "matches": true
+    },
+    {
+      "path": "web/components/ArchiveActions.tsx",
+      "expected": "f4c8e6dd710ec398484683b8dfd9bb8aa1625c643fc2b51e8301d3a96c171a25",
+      "before": "f4c8e6dd710ec398484683b8dfd9bb8aa1625c643fc2b51e8301d3a96c171a25",
+      "after": "f4c8e6dd710ec398484683b8dfd9bb8aa1625c643fc2b51e8301d3a96c171a25",
+      "matches": true
+    },
+    {
+      "path": "web/components/AttachmentButton.tsx",
+      "expected": "54e3f7a50f0ef98025a7151587ffc9b964f5310d703dba782e82b169460e7f66",
+      "before": "54e3f7a50f0ef98025a7151587ffc9b964f5310d703dba782e82b169460e7f66",
+      "after": "54e3f7a50f0ef98025a7151587ffc9b964f5310d703dba782e82b169460e7f66",
+      "matches": true
+    },
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "expected": "3a1c887626f7d85bde34e8b12c78bed384bc453fc7f8ee6dbb48f28ffc71e3be",
+      "before": "3a1c887626f7d85bde34e8b12c78bed384bc453fc7f8ee6dbb48f28ffc71e3be",
+      "after": "3a1c887626f7d85bde34e8b12c78bed384bc453fc7f8ee6dbb48f28ffc71e3be",
+      "matches": true
+    },
+    {
+      "path": "web/components/AutomationsPanel.tsx",
+      "expected": "1b8c11f808c6101eb2a01dc3765c1ad5efe4abe09e7e108f39825b505ae7e970",
+      "before": "1b8c11f808c6101eb2a01dc3765c1ad5efe4abe09e7e108f39825b505ae7e970",
+      "after": "1b8c11f808c6101eb2a01dc3765c1ad5efe4abe09e7e108f39825b505ae7e970",
+      "matches": true
+    },
+    {
+      "path": "web/components/CliDiagnosticsPanel.tsx",
+      "expected": "0df99646ee6aa93898cefa54d35b47c3ddfcca33d33c6b59b11550f245d60f99",
+      "before": "0df99646ee6aa93898cefa54d35b47c3ddfcca33d33c6b59b11550f245d60f99",
+      "after": "0df99646ee6aa93898cefa54d35b47c3ddfcca33d33c6b59b11550f245d60f99",
+      "matches": true
+    },
+    {
+      "path": "web/components/CompactThreshold.tsx",
+      "expected": "525c896550f17df6449a09e4d07d7e71bf8c5df183618043160c76d1c1005206",
+      "before": "525c896550f17df6449a09e4d07d7e71bf8c5df183618043160c76d1c1005206",
+      "after": "525c896550f17df6449a09e4d07d7e71bf8c5df183618043160c76d1c1005206",
+      "matches": true
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "expected": "841dff16c6bffffa2e594d8e610b118db577d862928cfed78cfb8c6f7ffc0a94",
+      "before": "841dff16c6bffffa2e594d8e610b118db577d862928cfed78cfb8c6f7ffc0a94",
+      "after": "841dff16c6bffffa2e594d8e610b118db577d862928cfed78cfb8c6f7ffc0a94",
+      "matches": true
+    },
+    {
+      "path": "web/components/ComposerOptions.tsx",
+      "expected": "bc95f520889047ebeeac725a04f3ebda3e94ab9f0782f3aec8e73f33c1fb6f96",
+      "before": "bc95f520889047ebeeac725a04f3ebda3e94ab9f0782f3aec8e73f33c1fb6f96",
+      "after": "bc95f520889047ebeeac725a04f3ebda3e94ab9f0782f3aec8e73f33c1fb6f96",
+      "matches": true
+    },
+    {
+      "path": "web/components/ConfigSettings.tsx",
+      "expected": "87b49472bc8ed3ee4eecad3204c25307737772d1e3870b5b5ef0cc2d67a91042",
+      "before": "87b49472bc8ed3ee4eecad3204c25307737772d1e3870b5b5ef0cc2d67a91042",
+      "after": "87b49472bc8ed3ee4eecad3204c25307737772d1e3870b5b5ef0cc2d67a91042",
+      "matches": true
+    },
+    {
+      "path": "web/components/CreditNudge.tsx",
+      "expected": "0582f6d8f01a13d245a1885ce795b697ed3e33c86145c9ca264b5efcae7dc11e",
+      "before": "0582f6d8f01a13d245a1885ce795b697ed3e33c86145c9ca264b5efcae7dc11e",
+      "after": "0582f6d8f01a13d245a1885ce795b697ed3e33c86145c9ca264b5efcae7dc11e",
+      "matches": true
+    },
+    {
+      "path": "web/components/DiagnosticsPanel.tsx",
+      "expected": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916",
+      "before": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916",
+      "after": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916",
+      "matches": true
+    },
+    {
+      "path": "web/components/Dialog.tsx",
+      "expected": "27f42ab0524dbb1faf42ef191587461205e0edec339cf275967e75de98800228",
+      "before": "27f42ab0524dbb1faf42ef191587461205e0edec339cf275967e75de98800228",
+      "after": "27f42ab0524dbb1faf42ef191587461205e0edec339cf275967e75de98800228",
+      "matches": true
+    },
+    {
+      "path": "web/components/DraftsSettings.tsx",
+      "expected": "5808f941af259d3b152762358e80802ecdbca1495d9b715a753f4d4fa2cddc18",
+      "before": "5808f941af259d3b152762358e80802ecdbca1495d9b715a753f4d4fa2cddc18",
+      "after": "5808f941af259d3b152762358e80802ecdbca1495d9b715a753f4d4fa2cddc18",
+      "matches": true
+    },
+    {
+      "path": "web/components/EnvironmentPicker.tsx",
+      "expected": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4",
+      "before": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4",
+      "after": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4",
+      "matches": true
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "expected": "044ddf20fd959c373b0dc2fe5c32a473da90e2b463e6a733a1eb1f981f1c53f1",
+      "before": "044ddf20fd959c373b0dc2fe5c32a473da90e2b463e6a733a1eb1f981f1c53f1",
+      "after": "044ddf20fd959c373b0dc2fe5c32a473da90e2b463e6a733a1eb1f981f1c53f1",
+      "matches": true
+    },
+    {
+      "path": "web/components/ExtensionsPanel.tsx",
+      "expected": "0a7d79335526252dc8e6cc85d66b8cda237bb8f48e7908f53d174ccb0078b969",
+      "before": "0a7d79335526252dc8e6cc85d66b8cda237bb8f48e7908f53d174ccb0078b969",
+      "after": "0a7d79335526252dc8e6cc85d66b8cda237bb8f48e7908f53d174ccb0078b969",
+      "matches": true
+    },
+    {
+      "path": "web/components/FileEditor.tsx",
+      "expected": "19c6e8f1fa143349462075e4a88921d75da64e5d5dd4e7c68506a8ef24c7d594",
+      "before": "19c6e8f1fa143349462075e4a88921d75da64e5d5dd4e7c68506a8ef24c7d594",
+      "after": "19c6e8f1fa143349462075e4a88921d75da64e5d5dd4e7c68506a8ef24c7d594",
+      "matches": true
+    },
+    {
+      "path": "web/components/GuardianReviewPanel.tsx",
+      "expected": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6",
+      "before": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6",
+      "after": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6",
+      "matches": true
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "expected": "d2ebb85323b008d4403902691e2d6a6cdaf3f903914c8aa7038f5c5a0d206e55",
+      "before": "d2ebb85323b008d4403902691e2d6a6cdaf3f903914c8aa7038f5c5a0d206e55",
+      "after": "d2ebb85323b008d4403902691e2d6a6cdaf3f903914c8aa7038f5c5a0d206e55",
+      "matches": true
+    },
+    {
+      "path": "web/components/HookEventsPanel.tsx",
+      "expected": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f",
+      "before": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f",
+      "after": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f",
+      "matches": true
+    },
+    {
+      "path": "web/components/Icon.tsx",
+      "expected": "ec958b738c8d362b203b189df4b13842c5dbf6aecbc50c268890c53572136c35",
+      "before": "ec958b738c8d362b203b189df4b13842c5dbf6aecbc50c268890c53572136c35",
+      "after": "ec958b738c8d362b203b189df4b13842c5dbf6aecbc50c268890c53572136c35",
+      "matches": true
+    },
+    {
+      "path": "web/components/ImportPanel.tsx",
+      "expected": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d",
+      "before": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d",
+      "after": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d",
+      "matches": true
+    },
+    {
+      "path": "web/components/InputContextPicker.tsx",
+      "expected": "1a0398c76f8aaff0b53f4b8bce70e9a68f92e25f1bf4ba957aaec689d4e1c2c3",
+      "before": "1a0398c76f8aaff0b53f4b8bce70e9a68f92e25f1bf4ba957aaec689d4e1c2c3",
+      "after": "1a0398c76f8aaff0b53f4b8bce70e9a68f92e25f1bf4ba957aaec689d4e1c2c3",
+      "matches": true
+    },
+    {
+      "path": "web/components/InputPreferences.tsx",
+      "expected": "2532173fc09717411399d4dc1a0387b575e6b467eefc35dcea8672f4292f9e3f",
+      "before": "2532173fc09717411399d4dc1a0387b575e6b467eefc35dcea8672f4292f9e3f",
+      "after": "2532173fc09717411399d4dc1a0387b575e6b467eefc35dcea8672f4292f9e3f",
+      "matches": true
+    },
+    {
+      "path": "web/components/LoadedThreadsPanel.tsx",
+      "expected": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db",
+      "before": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db",
+      "after": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db",
+      "matches": true
+    },
+    {
+      "path": "web/components/Login.tsx",
+      "expected": "40d5ac7e3d5cca4a0d90986ff865d371846d6ac4849546672545360ec1cca089",
+      "before": "40d5ac7e3d5cca4a0d90986ff865d371846d6ac4849546672545360ec1cca089",
+      "after": "40d5ac7e3d5cca4a0d90986ff865d371846d6ac4849546672545360ec1cca089",
+      "matches": true
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "expected": "0107c372a6ae2b6ec785ae9148b294043747c9c521cea4835170ca144913f22f",
+      "before": "0107c372a6ae2b6ec785ae9148b294043747c9c521cea4835170ca144913f22f",
+      "after": "0107c372a6ae2b6ec785ae9148b294043747c9c521cea4835170ca144913f22f",
+      "matches": true
+    },
+    {
+      "path": "web/components/McpAuthorization.tsx",
+      "expected": "9bcbddec467a80cfc31d2e5b9d6939b240470054316592d97d3644fd0a63f5a5",
+      "before": "9bcbddec467a80cfc31d2e5b9d6939b240470054316592d97d3644fd0a63f5a5",
+      "after": "9bcbddec467a80cfc31d2e5b9d6939b240470054316592d97d3644fd0a63f5a5",
+      "matches": true
+    },
+    {
+      "path": "web/components/McpConfiguration.tsx",
+      "expected": "7ae6faae86dd4f0f1bee1dd7f37926b028f8e1c4717299f69b3d4b723dcb3235",
+      "before": "7ae6faae86dd4f0f1bee1dd7f37926b028f8e1c4717299f69b3d4b723dcb3235",
+      "after": "7ae6faae86dd4f0f1bee1dd7f37926b028f8e1c4717299f69b3d4b723dcb3235",
+      "matches": true
+    },
+    {
+      "path": "web/components/McpContent.tsx",
+      "expected": "6f167a68daf53902af5887ecba8d847b38833fc07a91c69df5acf6aef91945e7",
+      "before": "6f167a68daf53902af5887ecba8d847b38833fc07a91c69df5acf6aef91945e7",
+      "after": "6f167a68daf53902af5887ecba8d847b38833fc07a91c69df5acf6aef91945e7",
+      "matches": true
+    },
+    {
+      "path": "web/components/McpPanel.tsx",
+      "expected": "9f66fa89834a311ffadfdf582f2f424f82c1dbf7d7c816459c7f6eef71d650c9",
+      "before": "9f66fa89834a311ffadfdf582f2f424f82c1dbf7d7c816459c7f6eef71d650c9",
+      "after": "9f66fa89834a311ffadfdf582f2f424f82c1dbf7d7c816459c7f6eef71d650c9",
+      "matches": true
+    },
+    {
+      "path": "web/components/MemorySettings.tsx",
+      "expected": "f04b8722ca2251f45cac83c771165c40178f3d7376214f643a3bb32df9a1af95",
+      "before": "f04b8722ca2251f45cac83c771165c40178f3d7376214f643a3bb32df9a1af95",
+      "after": "f04b8722ca2251f45cac83c771165c40178f3d7376214f643a3bb32df9a1af95",
+      "matches": true
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "expected": "bb4595e66acb8920a01ffa57c6b8c706fde04371b1d7f91202844825548a93c1",
+      "before": "bb4595e66acb8920a01ffa57c6b8c706fde04371b1d7f91202844825548a93c1",
+      "after": "bb4595e66acb8920a01ffa57c6b8c706fde04371b1d7f91202844825548a93c1",
+      "matches": true
+    },
+    {
+      "path": "web/components/MessageMedia.tsx",
+      "expected": "4e14e590d9b38e645d9eeee3f59b543f999a83f62bfcc00fe60e767328aab40e",
+      "before": "4e14e590d9b38e645d9eeee3f59b543f999a83f62bfcc00fe60e767328aab40e",
+      "after": "4e14e590d9b38e645d9eeee3f59b543f999a83f62bfcc00fe60e767328aab40e",
+      "matches": true
+    },
+    {
+      "path": "web/components/Messages.tsx",
+      "expected": "e5b73b1315101ddd60f5e90ee57c8039e57415aaa05463fb23489d5223f52888",
+      "before": "e5b73b1315101ddd60f5e90ee57c8039e57415aaa05463fb23489d5223f52888",
+      "after": "e5b73b1315101ddd60f5e90ee57c8039e57415aaa05463fb23489d5223f52888",
+      "matches": true
+    },
+    {
+      "path": "web/components/ModelCatalog.tsx",
+      "expected": "27761638fe22d42a2385469edb65545210ad3da518165da09c172ac87bc12363",
+      "before": "27761638fe22d42a2385469edb65545210ad3da518165da09c172ac87bc12363",
+      "after": "27761638fe22d42a2385469edb65545210ad3da518165da09c172ac87bc12363",
+      "matches": true
+    },
+    {
+      "path": "web/components/OrganizationPanel.tsx",
+      "expected": "0af8d61df37e423a0ddfa766b1a13656878464134682ff08778a56b90d4951d5",
+      "before": "0af8d61df37e423a0ddfa766b1a13656878464134682ff08778a56b90d4951d5",
+      "after": "0af8d61df37e423a0ddfa766b1a13656878464134682ff08778a56b90d4951d5",
+      "matches": true
+    },
+    {
+      "path": "web/components/PluginSettings.tsx",
+      "expected": "30905ac0e8015697762e8bd4287586d6baa61bf70cc85237ce8274de9c9cf064",
+      "before": "30905ac0e8015697762e8bd4287586d6baa61bf70cc85237ce8274de9c9cf064",
+      "after": "30905ac0e8015697762e8bd4287586d6baa61bf70cc85237ce8274de9c9cf064",
+      "matches": true
+    },
+    {
+      "path": "web/components/PluginSharing.tsx",
+      "expected": "815b6a036f7de66ee132b17a2f9270db8fc42d44b6fe602d5b4acdac40d20a4f",
+      "before": "815b6a036f7de66ee132b17a2f9270db8fc42d44b6fe602d5b4acdac40d20a4f",
+      "after": "815b6a036f7de66ee132b17a2f9270db8fc42d44b6fe602d5b4acdac40d20a4f",
+      "matches": true
+    },
+    {
+      "path": "web/components/PredictionPanel.tsx",
+      "expected": "00dd87a7297a4fee66e1aff896125c9f06c547346aa0942bf9b2d34cef7c917f",
+      "before": "00dd87a7297a4fee66e1aff896125c9f06c547346aa0942bf9b2d34cef7c917f",
+      "after": "00dd87a7297a4fee66e1aff896125c9f06c547346aa0942bf9b2d34cef7c917f",
+      "matches": true
+    },
+    {
+      "path": "web/components/ProcessPanel.tsx",
+      "expected": "f5f86f43f8104fb8fb039ffa550981f6cff9603bc6e9f3c29bf46c5232b461c0",
+      "before": "f5f86f43f8104fb8fb039ffa550981f6cff9603bc6e9f3c29bf46c5232b461c0",
+      "after": "f5f86f43f8104fb8fb039ffa550981f6cff9603bc6e9f3c29bf46c5232b461c0",
+      "matches": true
+    },
+    {
+      "path": "web/components/ProjectDialog.tsx",
+      "expected": "c6b522602700eef9bc8979beca1c1f49b725b6c3b51f66492567998b109135b0",
+      "before": "c6b522602700eef9bc8979beca1c1f49b725b6c3b51f66492567998b109135b0",
+      "after": "c6b522602700eef9bc8979beca1c1f49b725b6c3b51f66492567998b109135b0",
+      "matches": true
+    },
+    {
+      "path": "web/components/ProjectTrustSettings.tsx",
+      "expected": "1664881a8a5e899c1ac4b863bfa7a4b3a76057d6a3dc7d9db4fc93731e2ef88f",
+      "before": "1664881a8a5e899c1ac4b863bfa7a4b3a76057d6a3dc7d9db4fc93731e2ef88f",
+      "after": "1664881a8a5e899c1ac4b863bfa7a4b3a76057d6a3dc7d9db4fc93731e2ef88f",
+      "matches": true
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "expected": "710468a00100aac797b287d05636630d6a2c859bfe65a32dc3e145cee1454fd9",
+      "before": "710468a00100aac797b287d05636630d6a2c859bfe65a32dc3e145cee1454fd9",
+      "after": "710468a00100aac797b287d05636630d6a2c859bfe65a32dc3e145cee1454fd9",
+      "matches": true
+    },
+    {
+      "path": "web/components/Prompts.tsx",
+      "expected": "4eb8808bb298b92c4e487b115dd22bed83ae331f23fd00932ee3c45d805a6827",
+      "before": "4eb8808bb298b92c4e487b115dd22bed83ae331f23fd00932ee3c45d805a6827",
+      "after": "4eb8808bb298b92c4e487b115dd22bed83ae331f23fd00932ee3c45d805a6827",
+      "matches": true
+    },
+    {
+      "path": "web/components/ProviderProfiles.tsx",
+      "expected": "88ff150d601e94a9d10eb7d4c73c1c7266a1bdc4fa96b06731c78dc79bd2cc4b",
+      "before": "88ff150d601e94a9d10eb7d4c73c1c7266a1bdc4fa96b06731c78dc79bd2cc4b",
+      "after": "88ff150d601e94a9d10eb7d4c73c1c7266a1bdc4fa96b06731c78dc79bd2cc4b",
+      "matches": true
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "expected": "d5032af6022970282cff86f6d9157490f6fc5f88c263b1e24ad858bfa510d11e",
+      "before": "d5032af6022970282cff86f6d9157490f6fc5f88c263b1e24ad858bfa510d11e",
+      "after": "d5032af6022970282cff86f6d9157490f6fc5f88c263b1e24ad858bfa510d11e",
+      "matches": true
+    },
+    {
+      "path": "web/components/RealtimePanel.tsx",
+      "expected": "5cc9ba57a8f63585eaa45242a0d57d35329771917a105e9dca4e61aed581e1e8",
+      "before": "5cc9ba57a8f63585eaa45242a0d57d35329771917a105e9dca4e61aed581e1e8",
+      "after": "5cc9ba57a8f63585eaa45242a0d57d35329771917a105e9dca4e61aed581e1e8",
+      "matches": true
+    },
+    {
+      "path": "web/components/ReceiptMaintenance.tsx",
+      "expected": "c78781236964ce8d63a6ff94dd2b91a5c03f3d12ab3cc0b1e1210d34cfae72d5",
+      "before": "c78781236964ce8d63a6ff94dd2b91a5c03f3d12ab3cc0b1e1210d34cfae72d5",
+      "after": "c78781236964ce8d63a6ff94dd2b91a5c03f3d12ab3cc0b1e1210d34cfae72d5",
+      "matches": true
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "expected": "e47bc9d3cdfaa7cae2c16d8982afb1f925a3d6e2cabd640513c068a83a86c61f",
+      "before": "e47bc9d3cdfaa7cae2c16d8982afb1f925a3d6e2cabd640513c068a83a86c61f",
+      "after": "e47bc9d3cdfaa7cae2c16d8982afb1f925a3d6e2cabd640513c068a83a86c61f",
+      "matches": true
+    },
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "expected": "1e27b2ad1b6afef09a3066145a6a1834c35d5a45b6881ad83e00ee2502c3b399",
+      "before": "1e27b2ad1b6afef09a3066145a6a1834c35d5a45b6881ad83e00ee2502c3b399",
+      "after": "1e27b2ad1b6afef09a3066145a6a1834c35d5a45b6881ad83e00ee2502c3b399",
+      "matches": true
+    },
+    {
+      "path": "web/components/RenameDialog.tsx",
+      "expected": "e52d346a6a900fb171c3d387eb48156dc62145204ea66ae6f9f0fea47e6a2893",
+      "before": "e52d346a6a900fb171c3d387eb48156dc62145204ea66ae6f9f0fea47e6a2893",
+      "after": "e52d346a6a900fb171c3d387eb48156dc62145204ea66ae6f9f0fea47e6a2893",
+      "matches": true
+    },
+    {
+      "path": "web/components/RuntimeInsights.tsx",
+      "expected": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a",
+      "before": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a",
+      "after": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a",
+      "matches": true
+    },
+    {
+      "path": "web/components/SafeMarkdown.tsx",
+      "expected": "20a64b0068bb207f5596b545228551311474eb05541e47559c3c38619b3563e2",
+      "before": "20a64b0068bb207f5596b545228551311474eb05541e47559c3c38619b3563e2",
+      "after": "20a64b0068bb207f5596b545228551311474eb05541e47559c3c38619b3563e2",
+      "matches": true
+    },
+    {
+      "path": "web/components/SecuritySettings.tsx",
+      "expected": "36d3b90e1d2fb7087d57897a48835a67dca072f505fa2bfd4e59f1a6330bcb2c",
+      "before": "36d3b90e1d2fb7087d57897a48835a67dca072f505fa2bfd4e59f1a6330bcb2c",
+      "after": "36d3b90e1d2fb7087d57897a48835a67dca072f505fa2bfd4e59f1a6330bcb2c",
+      "matches": true
+    },
+    {
+      "path": "web/components/Settings.tsx",
+      "expected": "81851886bc042c17a59634a77bd7a6bc446b4cf294772d2ec7aff0221b1d2319",
+      "before": "81851886bc042c17a59634a77bd7a6bc446b4cf294772d2ec7aff0221b1d2319",
+      "after": "81851886bc042c17a59634a77bd7a6bc446b4cf294772d2ec7aff0221b1d2319",
+      "matches": true
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "expected": "18983bf677a7ae99d313d21142fa929c944c47248cbe05ab815e271197f5dcae",
+      "before": "18983bf677a7ae99d313d21142fa929c944c47248cbe05ab815e271197f5dcae",
+      "after": "18983bf677a7ae99d313d21142fa929c944c47248cbe05ab815e271197f5dcae",
+      "matches": true
+    },
+    {
+      "path": "web/components/SkillLibraryTools.tsx",
+      "expected": "91057e428ef5815a322f64254b73e224174351f7a411481cd4b0821034021ddf",
+      "before": "91057e428ef5815a322f64254b73e224174351f7a411481cd4b0821034021ddf",
+      "after": "91057e428ef5815a322f64254b73e224174351f7a411481cd4b0821034021ddf",
+      "matches": true
+    },
+    {
+      "path": "web/components/SkillSettings.tsx",
+      "expected": "8e496add42cab950c4f3625e01315a99f6727446595c501cfd374d9a4cbb5eeb",
+      "before": "8e496add42cab950c4f3625e01315a99f6727446595c501cfd374d9a4cbb5eeb",
+      "after": "8e496add42cab950c4f3625e01315a99f6727446595c501cfd374d9a4cbb5eeb",
+      "matches": true
+    },
+    {
+      "path": "web/components/TerminalPanel.tsx",
+      "expected": "428ff45d7d79334de715fa784b465962523a2bcbda18022be111571e35d75fff",
+      "before": "428ff45d7d79334de715fa784b465962523a2bcbda18022be111571e35d75fff",
+      "after": "428ff45d7d79334de715fa784b465962523a2bcbda18022be111571e35d75fff",
+      "matches": true
+    },
+    {
+      "path": "web/components/ThreadTerminals.tsx",
+      "expected": "984cf27cde2a740e7eeb32bd1b829166a05b87dc0b234f09875abf85e3f2e0e7",
+      "before": "984cf27cde2a740e7eeb32bd1b829166a05b87dc0b234f09875abf85e3f2e0e7",
+      "after": "984cf27cde2a740e7eeb32bd1b829166a05b87dc0b234f09875abf85e3f2e0e7",
+      "matches": true
+    },
+    {
+      "path": "web/components/Welcome.tsx",
+      "expected": "790850a8ae4d371998ee6924e149cd6d07725803c7bd8e594d1514a8a5128ae8",
+      "before": "790850a8ae4d371998ee6924e149cd6d07725803c7bd8e594d1514a8a5128ae8",
+      "after": "790850a8ae4d371998ee6924e149cd6d07725803c7bd8e594d1514a8a5128ae8",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceCommit.tsx",
+      "expected": "004902020caf0641f148be9cde9c66577631c60ab09254add6d109f7e2299f8c",
+      "before": "004902020caf0641f148be9cde9c66577631c60ab09254add6d109f7e2299f8c",
+      "after": "004902020caf0641f148be9cde9c66577631c60ab09254add6d109f7e2299f8c",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceDownload.tsx",
+      "expected": "ecde699159eb97d5d02ff3bfcd1bc0093a097b753c38697d23ec1bd90a4b1135",
+      "before": "ecde699159eb97d5d02ff3bfcd1bc0093a097b753c38697d23ec1bd90a4b1135",
+      "after": "ecde699159eb97d5d02ff3bfcd1bc0093a097b753c38697d23ec1bd90a4b1135",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceGit.tsx",
+      "expected": "93c82d98ead10c864882a0b7ddee246cb501947d0e6dd5a3e930cbdbb776ec83",
+      "before": "93c82d98ead10c864882a0b7ddee246cb501947d0e6dd5a3e930cbdbb776ec83",
+      "after": "93c82d98ead10c864882a0b7ddee246cb501947d0e6dd5a3e930cbdbb776ec83",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceIndex.tsx",
+      "expected": "a2d1a6aac59dc431e0f38ae3c445605686a0f5b0b08d7e0af6aa7704deb9d0ce",
+      "before": "a2d1a6aac59dc431e0f38ae3c445605686a0f5b0b08d7e0af6aa7704deb9d0ce",
+      "after": "a2d1a6aac59dc431e0f38ae3c445605686a0f5b0b08d7e0af6aa7704deb9d0ce",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceIndexRecovery.tsx",
+      "expected": "f05e5fb6fe652a2eed017d347e7c715b4b5cc1972619a3363c81a110fce9b96f",
+      "before": "f05e5fb6fe652a2eed017d347e7c715b4b5cc1972619a3363c81a110fce9b96f",
+      "after": "f05e5fb6fe652a2eed017d347e7c715b4b5cc1972619a3363c81a110fce9b96f",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspacePanel.tsx",
+      "expected": "1300dcdf6cd0a9663068d84812c150ec7ec04217611411e650f8d3143834bfd3",
+      "before": "1300dcdf6cd0a9663068d84812c150ec7ec04217611411e650f8d3143834bfd3",
+      "after": "1300dcdf6cd0a9663068d84812c150ec7ec04217611411e650f8d3143834bfd3",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceRecovery.tsx",
+      "expected": "2913c69e0ac69b76b9d3ea119268dc69c887ccf1a3ca27db5b2c30c21dc68a75",
+      "before": "2913c69e0ac69b76b9d3ea119268dc69c887ccf1a3ca27db5b2c30c21dc68a75",
+      "after": "2913c69e0ac69b76b9d3ea119268dc69c887ccf1a3ca27db5b2c30c21dc68a75",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceSearch.tsx",
+      "expected": "128fa4b17135e355fe6e948aac90945e246e71e27f17878a8d78fbee00ce06c3",
+      "before": "128fa4b17135e355fe6e948aac90945e246e71e27f17878a8d78fbee00ce06c3",
+      "after": "128fa4b17135e355fe6e948aac90945e246e71e27f17878a8d78fbee00ce06c3",
+      "matches": true
+    },
+    {
+      "path": "web/components/WorkspaceWorktrees.tsx",
+      "expected": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb",
+      "before": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb",
+      "after": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useAutomationRuns.ts",
+      "expected": "2282f3aff02c49ccf012959964526db1cff674c898748738269329ca4141fc79",
+      "before": "2282f3aff02c49ccf012959964526db1cff674c898748738269329ca4141fc79",
+      "after": "2282f3aff02c49ccf012959964526db1cff674c898748738269329ca4141fc79",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useConversation.ts",
+      "expected": "8b251b4d4513d6511d9db6780c9dba47ad07bcbe08cfd371723f3f2fbd4d7ff2",
+      "before": "8b251b4d4513d6511d9db6780c9dba47ad07bcbe08cfd371723f3f2fbd4d7ff2",
+      "after": "8b251b4d4513d6511d9db6780c9dba47ad07bcbe08cfd371723f3f2fbd4d7ff2",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "expected": "208e9778e9d5191963807a66aa7d25510b20873499d5e40a8308a1bbbfb887a3",
+      "before": "208e9778e9d5191963807a66aa7d25510b20873499d5e40a8308a1bbbfb887a3",
+      "after": "208e9778e9d5191963807a66aa7d25510b20873499d5e40a8308a1bbbfb887a3",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useEvents.ts",
+      "expected": "d63a5091a9ebfb984f132e5390e2730722b7ed6a703f8e8fadeb88649f810e5f",
+      "before": "d63a5091a9ebfb984f132e5390e2730722b7ed6a703f8e8fadeb88649f810e5f",
+      "after": "d63a5091a9ebfb984f132e5390e2730722b7ed6a703f8e8fadeb88649f810e5f",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "expected": "faf28e89a288735eb27bf6449256e805a3ae37ea7c8c9eed68ae18ce8c3038c3",
+      "before": "faf28e89a288735eb27bf6449256e805a3ae37ea7c8c9eed68ae18ce8c3038c3",
+      "after": "faf28e89a288735eb27bf6449256e805a3ae37ea7c8c9eed68ae18ce8c3038c3",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/usePrompts.ts",
+      "expected": "b13628ce86618553bcd09f3c475c9ce408fbe564cc45d66ed5605400bac39ada",
+      "before": "b13628ce86618553bcd09f3c475c9ce408fbe564cc45d66ed5605400bac39ada",
+      "after": "b13628ce86618553bcd09f3c475c9ce408fbe564cc45d66ed5605400bac39ada",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "expected": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882",
+      "before": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882",
+      "after": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useResume.ts",
+      "expected": "6a56e7afe50f82279617831b9d92ae2ad5ed7b542c29b2ec5e02c0111fa40031",
+      "before": "6a56e7afe50f82279617831b9d92ae2ad5ed7b542c29b2ec5e02c0111fa40031",
+      "after": "6a56e7afe50f82279617831b9d92ae2ad5ed7b542c29b2ec5e02c0111fa40031",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "expected": "de1847284c0bbba6f5a796bf5becf78df5643b45591079174c7c6c6ed23b64b2",
+      "before": "de1847284c0bbba6f5a796bf5becf78df5643b45591079174c7c6c6ed23b64b2",
+      "after": "de1847284c0bbba6f5a796bf5becf78df5643b45591079174c7c6c6ed23b64b2",
+      "matches": true
+    },
+    {
+      "path": "web/hooks/useWorkspaceWatch.ts",
+      "expected": "3124afd820bec9be3cae5055def2fd1eeabcfba3e1e56d2a546a5adcddb017ba",
+      "before": "3124afd820bec9be3cae5055def2fd1eeabcfba3e1e56d2a546a5adcddb017ba",
+      "after": "3124afd820bec9be3cae5055def2fd1eeabcfba3e1e56d2a546a5adcddb017ba",
+      "matches": true
+    },
+    {
+      "path": "web/index.html",
+      "expected": "e87a9b75a52a29b482759e8f03be846b573901d5aeeefa9977ab6cc735aa3d3d",
+      "before": "e87a9b75a52a29b482759e8f03be846b573901d5aeeefa9977ab6cc735aa3d3d",
+      "after": "e87a9b75a52a29b482759e8f03be846b573901d5aeeefa9977ab6cc735aa3d3d",
+      "matches": true
+    },
+    {
+      "path": "web/lib/api.ts",
+      "expected": "c9bd078ebd5c2573eb763a4c89c268ea8ee9225b6861265e925ec5468ad87cb3",
+      "before": "c9bd078ebd5c2573eb763a4c89c268ea8ee9225b6861265e925ec5468ad87cb3",
+      "after": "c9bd078ebd5c2573eb763a4c89c268ea8ee9225b6861265e925ec5468ad87cb3",
+      "matches": true
+    },
+    {
+      "path": "web/lib/automations.ts",
+      "expected": "cc60224d88c03596e463e138f0b665adc3da956483cf4fc4b356ce15f9032484",
+      "before": "cc60224d88c03596e463e138f0b665adc3da956483cf4fc4b356ce15f9032484",
+      "after": "cc60224d88c03596e463e138f0b665adc3da956483cf4fc4b356ce15f9032484",
+      "matches": true
+    },
+    {
+      "path": "web/lib/download.ts",
+      "expected": "2263f60c277ca4ef7ca0de93cdeb03c988ff666d1044483f4f8abbf78c95b6a1",
+      "before": "2263f60c277ca4ef7ca0de93cdeb03c988ff666d1044483f4f8abbf78c95b6a1",
+      "after": "2263f60c277ca4ef7ca0de93cdeb03c988ff666d1044483f4f8abbf78c95b6a1",
+      "matches": true
+    },
+    {
+      "path": "web/lib/drafts.ts",
+      "expected": "bfce48cb58d12aa3777c183235ac5c91f6d250e967c47c3a64e96de7824a7716",
+      "before": "bfce48cb58d12aa3777c183235ac5c91f6d250e967c47c3a64e96de7824a7716",
+      "after": "bfce48cb58d12aa3777c183235ac5c91f6d250e967c47c3a64e96de7824a7716",
+      "matches": true
+    },
+    {
+      "path": "web/lib/events.ts",
+      "expected": "387fc1c1e000376d0cd58ebe9c996118b3a596d1b3e77dbf36e31cd1160e4429",
+      "before": "387fc1c1e000376d0cd58ebe9c996118b3a596d1b3e77dbf36e31cd1160e4429",
+      "after": "387fc1c1e000376d0cd58ebe9c996118b3a596d1b3e77dbf36e31cd1160e4429",
+      "matches": true
+    },
+    {
+      "path": "web/lib/file-drafts.ts",
+      "expected": "2b4a86b951fa0700b12954773736784e4603c26743fc1fcce03bd78656a3696b",
+      "before": "2b4a86b951fa0700b12954773736784e4603c26743fc1fcce03bd78656a3696b",
+      "after": "2b4a86b951fa0700b12954773736784e4603c26743fc1fcce03bd78656a3696b",
+      "matches": true
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "expected": "9c3ca836c163fd13dbb67717e881d5dc38768c0b80c38e9c51e9c264a0befded",
+      "before": "9c3ca836c163fd13dbb67717e881d5dc38768c0b80c38e9c51e9c264a0befded",
+      "after": "9c3ca836c163fd13dbb67717e881d5dc38768c0b80c38e9c51e9c264a0befded",
+      "matches": true
+    },
+    {
+      "path": "web/lib/git-state.ts",
+      "expected": "5ed7132f44dd1edada75866cfb54228cb89c33809ea6b019ee8fb68b69c94e5b",
+      "before": "5ed7132f44dd1edada75866cfb54228cb89c33809ea6b019ee8fb68b69c94e5b",
+      "after": "5ed7132f44dd1edada75866cfb54228cb89c33809ea6b019ee8fb68b69c94e5b",
+      "matches": true
+    },
+    {
+      "path": "web/lib/history.ts",
+      "expected": "0a48a2aacc2dce9e239f6dfa0fad4cd3ab8fafe42c7fbda1a1dd6163e5f80d0f",
+      "before": "0a48a2aacc2dce9e239f6dfa0fad4cd3ab8fafe42c7fbda1a1dd6163e5f80d0f",
+      "after": "0a48a2aacc2dce9e239f6dfa0fad4cd3ab8fafe42c7fbda1a1dd6163e5f80d0f",
+      "matches": true
+    },
+    {
+      "path": "web/lib/ids.ts",
+      "expected": "1879581127de9597673785e32fb4f3efc3cce012f94cf881332abc859406baa4",
+      "before": "1879581127de9597673785e32fb4f3efc3cce012f94cf881332abc859406baa4",
+      "after": "1879581127de9597673785e32fb4f3efc3cce012f94cf881332abc859406baa4",
+      "matches": true
+    },
+    {
+      "path": "web/lib/imports.ts",
+      "expected": "4ca6c964e1e1f1d7f066a4bc953232365493d380911854de71766d2b8f0e408f",
+      "before": "4ca6c964e1e1f1d7f066a4bc953232365493d380911854de71766d2b8f0e408f",
+      "after": "4ca6c964e1e1f1d7f066a4bc953232365493d380911854de71766d2b8f0e408f",
+      "matches": true
+    },
+    {
+      "path": "web/lib/input-context.ts",
+      "expected": "f7e5181d7ef801414eac64940720833483aaf73ce41f4d8ff27faf89e3a3d27c",
+      "before": "f7e5181d7ef801414eac64940720833483aaf73ce41f4d8ff27faf89e3a3d27c",
+      "after": "f7e5181d7ef801414eac64940720833483aaf73ce41f4d8ff27faf89e3a3d27c",
+      "matches": true
+    },
+    {
+      "path": "web/lib/input-modalities.ts",
+      "expected": "aac74b51e676a56c71ea66a4066ad5613bfb3e69b61e60e6807e5eff0e057cbf",
+      "before": "aac74b51e676a56c71ea66a4066ad5613bfb3e69b61e60e6807e5eff0e057cbf",
+      "after": "aac74b51e676a56c71ea66a4066ad5613bfb3e69b61e60e6807e5eff0e057cbf",
+      "matches": true
+    },
+    {
+      "path": "web/lib/input-preference.ts",
+      "expected": "2bbd70f35803c0377a67f7bfc8780ac97461c5d317972661476e4335a09b6d90",
+      "before": "2bbd70f35803c0377a67f7bfc8780ac97461c5d317972661476e4335a09b6d90",
+      "after": "2bbd70f35803c0377a67f7bfc8780ac97461c5d317972661476e4335a09b6d90",
+      "matches": true
+    },
+    {
+      "path": "web/lib/mcp-session.ts",
+      "expected": "2203ce64e5844d5cd53c97563a0a95b2783b11e5da87a88aef66cd7e3ff6aad6",
+      "before": "2203ce64e5844d5cd53c97563a0a95b2783b11e5da87a88aef66cd7e3ff6aad6",
+      "after": "2203ce64e5844d5cd53c97563a0a95b2783b11e5da87a88aef66cd7e3ff6aad6",
+      "matches": true
+    },
+    {
+      "path": "web/lib/media.ts",
+      "expected": "08a6206948c9120eaa4a37478cb6fb6a3f1c6426b366ab20147bfca991718c6a",
+      "before": "08a6206948c9120eaa4a37478cb6fb6a3f1c6426b366ab20147bfca991718c6a",
+      "after": "08a6206948c9120eaa4a37478cb6fb6a3f1c6426b366ab20147bfca991718c6a",
+      "matches": true
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "expected": "004c7e4216da14d869abce24f47c8bafcfbe76fc0f2d45747b236be00539f767",
+      "before": "004c7e4216da14d869abce24f47c8bafcfbe76fc0f2d45747b236be00539f767",
+      "after": "004c7e4216da14d869abce24f47c8bafcfbe76fc0f2d45747b236be00539f767",
+      "matches": true
+    },
+    {
+      "path": "web/lib/organization.ts",
+      "expected": "126eae596f9b5141ed9553f471e3d1bd717733178138229677988606913abd3b",
+      "before": "126eae596f9b5141ed9553f471e3d1bd717733178138229677988606913abd3b",
+      "after": "126eae596f9b5141ed9553f471e3d1bd717733178138229677988606913abd3b",
+      "matches": true
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "expected": "eed59f8770a3efde470b67cd7179bbc260dbe2f47f19ceb241af6fa429c266d4",
+      "before": "eed59f8770a3efde470b67cd7179bbc260dbe2f47f19ceb241af6fa429c266d4",
+      "after": "eed59f8770a3efde470b67cd7179bbc260dbe2f47f19ceb241af6fa429c266d4",
+      "matches": true
+    },
+    {
+      "path": "web/lib/realtime-media.ts",
+      "expected": "0989bc01d884061ecbe32a4ce93dc82bf5f2825550ac5ecb80be2f44aa3ac0cd",
+      "before": "0989bc01d884061ecbe32a4ce93dc82bf5f2825550ac5ecb80be2f44aa3ac0cd",
+      "after": "0989bc01d884061ecbe32a4ce93dc82bf5f2825550ac5ecb80be2f44aa3ac0cd",
+      "matches": true
+    },
+    {
+      "path": "web/lib/receipt-archive.ts",
+      "expected": "1203a9f6627e9fe8252907e2faae903741ca2ae44a03a4528a363cac47fed472",
+      "before": "1203a9f6627e9fe8252907e2faae903741ca2ae44a03a4528a363cac47fed472",
+      "after": "1203a9f6627e9fe8252907e2faae903741ca2ae44a03a4528a363cac47fed472",
+      "matches": true
+    },
+    {
+      "path": "web/lib/stream-items.ts",
+      "expected": "a5e1b533f8dff0c8eac43932d2c932f79c38583e4643e379bd4d50ce27525b5a",
+      "before": "a5e1b533f8dff0c8eac43932d2c932f79c38583e4643e379bd4d50ce27525b5a",
+      "after": "a5e1b533f8dff0c8eac43932d2c932f79c38583e4643e379bd4d50ce27525b5a",
+      "matches": true
+    },
+    {
+      "path": "web/lib/timeline.ts",
+      "expected": "40372ce0338f6a464bb2b44fd39dc081e414688063a4892eefbe8358118bd218",
+      "before": "40372ce0338f6a464bb2b44fd39dc081e414688063a4892eefbe8358118bd218",
+      "after": "40372ce0338f6a464bb2b44fd39dc081e414688063a4892eefbe8358118bd218",
+      "matches": true
+    },
+    {
+      "path": "web/lib/types.ts",
+      "expected": "612e29d5541f7312ef3ef06ab9a40e8c5470ed532d7a9c295c4c8bbb7909a6c2",
+      "before": "612e29d5541f7312ef3ef06ab9a40e8c5470ed532d7a9c295c4c8bbb7909a6c2",
+      "after": "612e29d5541f7312ef3ef06ab9a40e8c5470ed532d7a9c295c4c8bbb7909a6c2",
+      "matches": true
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "expected": "00860097b0af141a87f639551d4ad0158c04faf3424f07b51467e6523cd85b6b",
+      "before": "00860097b0af141a87f639551d4ad0158c04faf3424f07b51467e6523cd85b6b",
+      "after": "00860097b0af141a87f639551d4ad0158c04faf3424f07b51467e6523cd85b6b",
+      "matches": true
+    },
+    {
+      "path": "web/lib/workspace.ts",
+      "expected": "7d1e147904b5a94feec6ac35c726174253b093cdef896a3df81f1bf6f5e6e5d5",
+      "before": "7d1e147904b5a94feec6ac35c726174253b093cdef896a3df81f1bf6f5e6e5d5",
+      "after": "7d1e147904b5a94feec6ac35c726174253b093cdef896a3df81f1bf6f5e6e5d5",
+      "matches": true
+    },
+    {
+      "path": "web/main.tsx",
+      "expected": "01250f924757d9567c7a8471ac1930d8ba01109f9a72f38a869ecd9300678807",
+      "before": "01250f924757d9567c7a8471ac1930d8ba01109f9a72f38a869ecd9300678807",
+      "after": "01250f924757d9567c7a8471ac1930d8ba01109f9a72f38a869ecd9300678807",
+      "matches": true
+    },
+    {
+      "path": "web/styles-automations.css",
+      "expected": "824c6f8b0faa40f70d6d360dd1aaca502c5b1556d5df28ed51c2cba96dbc5da9",
+      "before": "824c6f8b0faa40f70d6d360dd1aaca502c5b1556d5df28ed51c2cba96dbc5da9",
+      "after": "824c6f8b0faa40f70d6d360dd1aaca502c5b1556d5df28ed51c2cba96dbc5da9",
+      "matches": true
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "expected": "c4190a8ed5de06d796cada2a3f5e510cc3caad97c4d38eab6009848f8f7b5a3c",
+      "before": "c4190a8ed5de06d796cada2a3f5e510cc3caad97c4d38eab6009848f8f7b5a3c",
+      "after": "c4190a8ed5de06d796cada2a3f5e510cc3caad97c4d38eab6009848f8f7b5a3c",
+      "matches": true
+    },
+    {
+      "path": "web/styles-input-context.css",
+      "expected": "1796957fc6fa10b44a9a1cfdd98ea69a5ac2c7d09852a14d50f03ff6403b52e0",
+      "before": "1796957fc6fa10b44a9a1cfdd98ea69a5ac2c7d09852a14d50f03ff6403b52e0",
+      "after": "1796957fc6fa10b44a9a1cfdd98ea69a5ac2c7d09852a14d50f03ff6403b52e0",
+      "matches": true
+    },
+    {
+      "path": "web/styles-responsive.css",
+      "expected": "cebba932e38e7f346584d1c035092977d80ab4f33c146e90cd11d8021f5c6223",
+      "before": "cebba932e38e7f346584d1c035092977d80ab4f33c146e90cd11d8021f5c6223",
+      "after": "cebba932e38e7f346584d1c035092977d80ab4f33c146e90cd11d8021f5c6223",
+      "matches": true
+    },
+    {
+      "path": "web/styles-workflows.css",
+      "expected": "63542d4b26c70b47016e38945ab87285685056c2ca72a75408f3f45bb0539904",
+      "before": "63542d4b26c70b47016e38945ab87285685056c2ca72a75408f3f45bb0539904",
+      "after": "63542d4b26c70b47016e38945ab87285685056c2ca72a75408f3f45bb0539904",
+      "matches": true
+    },
+    {
+      "path": "web/styles-workspace.css",
+      "expected": "943da6d607a9f77a949180792f79b1c4decc40ef44acf17d6ad1c95670228046",
+      "before": "943da6d607a9f77a949180792f79b1c4decc40ef44acf17d6ad1c95670228046",
+      "after": "943da6d607a9f77a949180792f79b1c4decc40ef44acf17d6ad1c95670228046",
+      "matches": true
+    },
+    {
+      "path": "web/styles.css",
+      "expected": "3a11c8b921d0e709bdbee88a11091acacdd07b2ed75d43f9a5ddf129ba73f68b",
+      "before": "3a11c8b921d0e709bdbee88a11091acacdd07b2ed75d43f9a5ddf129ba73f68b",
+      "after": "3a11c8b921d0e709bdbee88a11091acacdd07b2ed75d43f9a5ddf129ba73f68b",
+      "matches": true
+    },
+    {
+      "path": "web/tsconfig.json",
+      "expected": "efd877301f02127f32d2a954ae07d485795fa317d1917f384a4782f8fe72ee09",
+      "before": "efd877301f02127f32d2a954ae07d485795fa317d1917f384a4782f8fe72ee09",
+      "after": "efd877301f02127f32d2a954ae07d485795fa317d1917f384a4782f8fe72ee09",
+      "matches": true
+    },
+    {
+      "path": "web/vite.config.ts",
+      "expected": "ee2c8cacb1a7f4cc94ac3dcc7a16f3e40e062ce07a78cf867c58451b0b11e12e",
+      "before": "ee2c8cacb1a7f4cc94ac3dcc7a16f3e40e062ce07a78cf867c58451b0b11e12e",
+      "after": "ee2c8cacb1a7f4cc94ac3dcc7a16f3e40e062ce07a78cf867c58451b0b11e12e",
+      "matches": true
+    }
+  ],
+  "delegatedScope": {
+    "tests": [
+      "web/tests/account-app.test.tsx",
+      "web/tests/account-tools.test.tsx",
+      "web/tests/app-lifecycle.test.tsx",
+      "web/tests/attachments.test.tsx",
+      "web/tests/automations.test.tsx",
+      "web/tests/builtin-auth.test.tsx",
+      "web/tests/cli-diagnostics.test.tsx",
+      "web/tests/compact-threshold.test.tsx",
+      "web/tests/composer.test.tsx",
+      "web/tests/conversation.test.tsx",
+      "web/tests/credit-nudge.test.tsx",
+      "web/tests/defaults.test.tsx",
+      "web/tests/device-login.test.tsx",
+      "web/tests/dialog.test.tsx",
+      "web/tests/drafts.test.tsx",
+      "web/tests/environment-picker.test.tsx",
+      "web/tests/events.test.tsx",
+      "web/tests/execution-settings.test.tsx",
+      "web/tests/extensions.test.tsx",
+      "web/tests/git-index-ui.test.tsx",
+      "web/tests/guardian-review.test.tsx",
+      "web/tests/history.test.ts",
+      "web/tests/hook-events.test.tsx",
+      "web/tests/import-ui.test.tsx",
+      "web/tests/input-context.test.tsx",
+      "web/tests/input-modalities.test.tsx",
+      "web/tests/input-preference.test.tsx",
+      "web/tests/loaded-threads.test.tsx",
+      "web/tests/mcp-media.test.tsx",
+      "web/tests/mcp-oauth.test.tsx",
+      "web/tests/mcp-ui.test.tsx",
+      "web/tests/memory-settings.test.tsx",
+      "web/tests/message-media.test.tsx",
+      "web/tests/modal-mutations.test.tsx",
+      "web/tests/operation-generation.test.ts",
+      "web/tests/operations.test.ts",
+      "web/tests/organization.test.tsx",
+      "web/tests/prediction.test.tsx",
+      "web/tests/preview-server.mjs",
+      "web/tests/process-remote.test.tsx",
+      "web/tests/prompt-fields.test.tsx",
+      "web/tests/prompts.test.tsx",
+      "web/tests/provider-advanced.test.tsx",
+      "web/tests/provider-catalog.test.tsx",
+      "web/tests/provider-profiles.test.tsx",
+      "web/tests/provider.test.tsx",
+      "web/tests/realtime.test.tsx",
+      "web/tests/receipt-maintenance.test.tsx",
+      "web/tests/recovery.test.tsx",
+      "web/tests/render-budget.test.tsx",
+      "web/tests/resources.test.tsx",
+      "web/tests/resume.test.tsx",
+      "web/tests/session.test.ts",
+      "web/tests/settings.test.tsx",
+      "web/tests/sharing-diagnostics.test.tsx",
+      "web/tests/skill-library.test.tsx",
+      "web/tests/stream-items.test.ts",
+      "web/tests/terminal.test.tsx",
+      "web/tests/thread-terminals.test.tsx",
+      "web/tests/timeline-history.test.tsx",
+      "web/tests/workflows.test.tsx",
+      "web/tests/workspace-management.test.tsx",
+      "web/tests/workspace-search.test.tsx",
+      "web/tests/workspace-ui.test.tsx",
+      "web/tests/workspace-watch.test.tsx"
+    ],
+    "components": [
+      "web/components/TaskPanel.tsx",
+      "web/components/ThreadExecutionSettings.tsx",
+      "web/components/ThreadOrganization.tsx",
+      "web/components/NativeProjects.tsx"
+    ],
+    "reports": [
+      ".work/public-https-round6-web-tests.json",
+      ".work/public-https-round6-web-components-root.json"
+    ]
+  },
+  "supplementaryTargetedReading": [
+    "NativeProjects.tsx draft state and form; ThreadOrganization.tsx SectionSettings edit state and form; TaskPanel.tsx retained-tab rendering; scripts/snapshot.mjs and .work/public-freeze.mjs for exact digest reconstruction. These are not claimed as additional full audit coverage."
+  ],
+  "executedChecks": [
+    "Initial SHA-256 comparison for 193 web inventory entries.",
+    "Exact assigned coverage reconciliation: 124 expected, 124 fully read, zero missing/extra.",
+    "Final snapshot(undefined,true) plus SHA-256 comparison for all 1,880 frozen files; no test execution."
+  ],
+  "limitations": [
+    "Static semantic audit only; five reproduction sequences are established by source ownership and React component lifetime, not claimed as browser-executed.",
+    "No personal credential access, model inference, external MCP, deployment or retired-host access. No product code modified."
+  ]
+}

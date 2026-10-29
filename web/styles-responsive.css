@@ -8,6 +8,7 @@
     --muted: #8c998f;
     --line: #333a35;
     --accent: #81ab97;
+    --on-accent: #1c201f;
     --accent-soft: #2a3c32;
     --danger: #df9388;
     color-scheme: dark;
@@ -47,6 +48,7 @@
   --muted: #8c998f;
   --line: #333a35;
   --accent: #81ab97;
+  --on-accent: #1c201f;
   --accent-soft: #2a3c32;
   --danger: #df9388;
   color-scheme: dark;

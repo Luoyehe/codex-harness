@@ -132,41 +132,68 @@ it('preserves a conflicting draft and writes only after explicit rebase to the l
   expect(readFileDraft(project.id, 'file.txt')).toBeUndefined();
   expect(props.cache.size).toBe(0);
 });
-it('retains edits typed while a prior save is in flight and rebases them only on verified readback', async () => {
-  const api = new Api(),
-    props = editorProps(api);
-  let finish!: () => void;
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockImplementation((_url, init: RequestInit) => {
-      const call = JSON.parse(String(init.body));
-      if (call.method === 'workspace/write')
-        return new Promise((resolve) => {
-          finish = () => resolve(response({ path: 'file.txt', revision: b, bytes: 6 }));
-        });
-      return Promise.resolve(response(snapshot('sent-v1', b)));
-    }),
-  );
-  render(<FileEditor {...props} />);
-  fireEvent.change(await screen.findByRole('textbox', { name: '文件内容' }), {
-    target: { value: 'sent-v1' },
-  });
+it.each(['before dispatch', 'after dispatch'])(
+  'retains edits typed %s and rebases them only on verified readback', async (timing) => {
+    const api = new Api(),
+      props = editorProps(api), calls: Call[] = [];
+    let finish!: () => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url, init: RequestInit) => {
+        const call = JSON.parse(String(init.body));
+        calls.push(call);
+        if (call.method === 'workspace/write')
+          return new Promise((resolve) => {
+            finish = () => resolve(response({ path: 'file.txt', revision: b, bytes: 6 }));
+          });
+        return Promise.resolve(response(snapshot('sent-v1', b)));
+      }),
+    );
+    render(<FileEditor {...props} />);
+    fireEvent.change(await screen.findByRole('textbox', { name: '文件内容' }), {
+      target: { value: 'sent-v1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '保存文件' }));
+    if (timing === 'after dispatch') await waitFor(() => expect(finish).toBeTypeOf('function'));
+    else expect(calls).toHaveLength(0);
+    fireEvent.change(screen.getByRole('textbox', { name: '文件内容' }), {
+      target: { value: 'newer-v2' },
+    });
+    await waitFor(() => expect(finish).toBeTypeOf('function'));
+    expect(readFileDraft(project.id, 'file.txt')).toMatchObject({
+      text: 'newer-v2', pending: { submittedText: 'sent-v1' },
+    });
+    expect(calls.filter(call => call.method === 'workspace/write')).toMatchObject([
+      { params: { text: 'sent-v1', expectedRevision: a } },
+    ]);
+    await act(async () => finish());
+    await screen.findByText('保存结果已读取核对。');
+    expect((screen.getByRole('textbox', { name: '文件内容' }) as HTMLTextAreaElement).value).toBe(
+      'newer-v2',
+    );
+    expect(readFileDraft(project.id, 'file.txt')).toMatchObject({
+      baseRevision: b,
+      baseText: 'sent-v1',
+      text: 'newer-v2',
+    });
+    expect(readFileDraft(project.id, 'file.txt')?.pending).toBeUndefined();
+  },
+);
+it('does not dispatch or overwrite a reopened editor after leaving during durable admission', async () => {
+  const api = new Api(), props = editorProps(api), fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  const old = render(<FileEditor {...props} />);
+  fireEvent.change(screen.getByRole('textbox', { name: '文件内容' }), { target: { value: 'old save' } });
   fireEvent.click(screen.getByRole('button', { name: '保存文件' }));
-  await waitFor(() => expect(finish).toBeTypeOf('function'));
-  fireEvent.change(screen.getByRole('textbox', { name: '文件内容' }), {
-    target: { value: 'newer-v2' },
-  });
-  await act(async () => finish());
-  await screen.findByText('保存结果已读取核对。');
-  expect((screen.getByRole('textbox', { name: '文件内容' }) as HTMLTextAreaElement).value).toBe(
-    'newer-v2',
-  );
-  expect(readFileDraft(project.id, 'file.txt')).toMatchObject({
-    baseRevision: b,
-    baseText: 'sent-v1',
-    text: 'newer-v2',
-  });
+  expect(fetcher).not.toHaveBeenCalled();
+  old.unmount();
+  render(<FileEditor {...props} />);
+  fireEvent.change(screen.getByRole('textbox', { name: '文件内容' }), { target: { value: 'reopened draft' } });
+  await waitFor(async () => expect((await listOperations())[0]?.state).toBe('not_sent'));
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(readFileDraft(project.id, 'file.txt')).toMatchObject({ text: 'reopened draft' });
   expect(readFileDraft(project.id, 'file.txt')?.pending).toBeUndefined();
+  expect((screen.getByRole('textbox', { name: '文件内容' }) as HTMLTextAreaElement).value).toBe('reopened draft');
 });
 it('queries the original uncertain save and never repeats the file write', async () => {
   const api = new Api(),
@@ -210,7 +237,7 @@ it('queries the original uncertain save and never repeats the file write', async
   expect(calls.find((call) => call.method === 'operation/read')?.params).toEqual({
     operationId: identity,
   });
-  expect(listOperations().find((op) => op.id === identity)?.state).toBe('accepted');
+  expect((await listOperations()).find((op) => op.id === identity)?.state).toBe('accepted');
 });
 it('does not turn an unknown native outcome or missing receipt into retry permission', async () => {
   const api = new Api(),
@@ -266,7 +293,7 @@ it('does not dispatch when saving the local write intent fails', async () => {
     'memory only',
   );
   expect(readFileDraft(project.id, 'file.txt')?.text).toBe('memory only');
-  expect(listOperations()[0]?.state).toBe('not_sent');
+  expect((await listOperations())[0]?.state).toBe('not_sent');
 });
 it('keeps a creation revision null and preserves its draft on navigation before acceptance', async () => {
   const api = new Api(),

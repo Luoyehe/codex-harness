@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PluginListResponse } from '../../protocol/ts/v2/PluginListResponse';
 import type { PluginShareListItem } from '../../protocol/ts/v2/PluginShareListItem';
 import type { PluginShareTarget } from '../../protocol/ts/v2/PluginShareTarget';
@@ -135,7 +135,9 @@ function Audience({
 function SharedDetails({
   row,
   action,
+  visible,
 }: {
+  visible: boolean;
   row: Shared;
   action: ReturnType<typeof useExtensionAction>;
 }) {
@@ -153,6 +155,8 @@ function SharedDetails({
   const [confirmed, setConfirmed] = useState(false),
     [remove, setRemove] = useState(''),
     [checkout, setCheckout] = useState(false);
+  useEffect(() => { setConfirmed(false); setRemove(''); setCheckout(false); },
+    [visible, row.previewHash, action.disabled]);
   const id = remoteId(row),
     common = { remotePluginId: id, previewHash: row.previewHash, confirm: true };
   return (
@@ -205,6 +209,7 @@ function SharedDetails({
               audience.targets.some((target) => !target.principalId.trim())
             }
             onClick={async () => {
+              if (!visible || action.disabled || !confirmed) return;
               if (
                 await action.run('plugin/share/updateTargets', {
                   ...common,
@@ -237,6 +242,7 @@ function SharedDetails({
             className="button"
             disabled={action.disabled || !checkout || !id}
             onClick={async () => {
+              if (!visible || action.disabled || !checkout) return;
               if (
                 await action.run(
                   'plugin/share/checkout',
@@ -262,7 +268,7 @@ function SharedDetails({
           <button
             className="button danger"
             disabled={action.disabled || remove !== '删除共享' || !id}
-            onClick={() => void action.run('plugin/share/delete', common)}
+            onClick={() => { if (visible && !action.disabled && remove === '删除共享') void action.run('plugin/share/delete', common); }}
           >
             删除此远程共享
           </button>
@@ -277,17 +283,19 @@ export function PluginSharing({
   enabled,
   onChanged,
   project,
+  visible = true,
 }: {
+  visible?: boolean;
   api: Api;
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
   project?: Project;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged, `${project?.id}:${epoch}`),
     key = `${epoch}:${project?.id}:${action.revision}`;
   const shared = useResource(key, (signal) =>
-    api.call<{ data: Shared[] }>('plugin/share/list', {}, signal),
+    api.call<{ data: Shared[] }>('plugin/share/list', {}, signal), visible,
   );
   const catalog = useResource(
     key,
@@ -297,7 +305,7 @@ export function PluginSharing({
         { projectId: project!.id, marketplaceKinds: ['local'] },
         signal,
       ),
-    Boolean(project),
+    visible && Boolean(project),
   );
   const [selected, setSelected] = useState(''),
     [selectedRemote, setSelectedRemote] = useState(''),
@@ -312,18 +320,24 @@ export function PluginSharing({
         { projectId: project!.id, pluginId: selected },
         signal,
       ),
-    Boolean(project && selected),
+    visible && Boolean(project && selected),
   );
   const local =
       catalog.data?.marketplaces
         .flatMap((market) => market.plugins)
         .filter((plugin) => plugin.source.type === 'local') ?? [],
-    row = shared.data?.data.find((item) => remoteId(item) === selectedRemote),
+    currentRow = shared.data?.data.find((item) => remoteId(item) === selectedRemote),
     replace = shared.data?.data.find((item) => remoteId(item) === destination);
   const confirmationKey = `${preview.data?.previewHash}:${destination}:${replace?.previewHash}:${JSON.stringify(audience)}`,
     [confirmedKey, setConfirmedKey] = useState('');
+  const retainedRow = useRef<{ selected: string; row?: Shared } | undefined>(undefined);
+  if (shared.data || retainedRow.current?.selected !== selectedRemote)
+    retainedRow.current = { selected: selectedRemote, row: currentRow };
+  const row = currentRow ?? retainedRow.current?.row;
+  useEffect(() => { setConfirmed(false); setConfirmedKey(''); }, [visible, enabled]);
   return (
-    <section className="stack">
+    <section className="stack" hidden={!visible} inert={!visible}
+      onClickCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}>
       <div className="section-heading">
         <h3>插件共享</h3>
         <button className="button small" onClick={action.refresh}>
@@ -349,7 +363,8 @@ export function PluginSharing({
         ))}
       </div>
       {row && (
-        <SharedDetails key={remoteId(row) + ':' + row.previewHash} row={row} action={action} />
+        <SharedDetails key={remoteId(row)} row={row} visible={visible}
+          action={{ ...action, disabled: action.disabled || !shared.data || shared.loading }} />
       )}{' '}
       {shared.data?.data.length === 0 && <p className="muted">当前共享目录为空。</p>}
       <details className="info-card">

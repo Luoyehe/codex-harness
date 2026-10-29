@@ -37,7 +37,7 @@ it('refreshes inherited thread settings after an accepted override and hides old
         ok: true,
         json: async () => (url === '/api/session' ? result : { ok: true, result }),
       });
-      if (url === '/api/session') return ok({ authenticated: true, csrf: 'fixture-only' });
+      if (url === '/api/session') return ok({ authenticated: true, operationRecoveryProtocol: 2, csrf: 'fixture-only' });
       const request = JSON.parse(String(init?.body)),
         p = request.params;
       switch (request.method) {

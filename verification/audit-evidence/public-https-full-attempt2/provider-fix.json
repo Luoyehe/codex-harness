@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-28T23:25:03.262Z",
+  "status": "product_defect_fixed_targeted_checks_passed_full_not_rerun",
+  "baselineDigest": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+  "observedFailure": {
+    "path": ".work/test-results/run-aXBEZZ/vitest.json",
+    "test": "web/tests/provider-advanced.test.tsx::changing the Bedrock region clears an unsent key and submits the selected native provider without an arbitrary endpoint",
+    "assertionLineAtFailure": 156,
+    "symptom": "No system/provider/write request; DOM displays saved-configuration-changed conflict with the draft retained."
+  },
+  "classification": "product_initial_hydration_race_not_fixture_receipt_protocol_failure",
+  "rootCause": [
+    "The first resource.data commit exposed ModelCatalog and enabled the editor before the passive hydration effect assigned baseRevision and synchronized the input values.",
+    "A change event at this observable DOM commit sets dirty.current=true while baseRevision.current is still undefined.",
+    "The hydration effect then takes its dirty branch and compares the sole fixture revision r with undefined, incorrectly setting conflict=true. Save is blocked before Api.mutate or any write RPC.",
+    "The same editor was also enabled while the initial read was pending. Constant revision r and zero writes rule out actual external revision changes and mutation receipt validation as the cause of the observed failure.",
+    "Ordinary isolated reruns, including 100 repetitions, passed and therefore did not constitute a resolution. A MutationObserver at the first exposed editor commit deterministically reproduced the same conflict without sleep or retries."
+  ],
+  "evidenceLinesAtFrozenSource": [
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "lines": "70-72",
+      "fact": "dirty false and baseRevision undefined initially"
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "lines": "93-114",
+      "fact": "passive hydration checks dirty before assigning baseline"
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "lines": "159-162,171",
+      "fact": "change marks dirty; initial read does not disable fieldset"
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "lines": "379-402",
+      "fact": "profile and catalog panels appear as soon as provider data exists"
+    },
+    {
+      "path": "web/tests/provider-advanced.test.tsx",
+      "lines": "143-147",
+      "fact": "constant revision r; wait observes the discovery button, then inputs begin immediately"
+    }
+  ],
+  "implementation": [
+    "Add an initialized state belonging to ProviderSettingsForm. Set it only after baseline revision and all displayed values have been hydrated.",
+    "Disable initial editors and save; do not expose ProviderProfiles/ModelCatalog until initialization is complete. Save independently checks initialized.",
+    "Move read/loading status and the retry button outside the disabled fieldset; retain busy/visibility disabling on retry so the initial failure remains recoverable.",
+    "Keep the dirty branch, original revision comparison, API/CSRF owner remount, epoch/visibility secret-clearing effects, and retained editors during subsequent refreshes unchanged.",
+    "Add three deterministic tests for delayed first read, input at the first observed editor DOM commit including Bedrock key clearing, and reachable retry after an initial read error."
+  ],
+  "changedFiles": [
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "originalSha256": "3d6ab621ea57a5079d47b46b0e133af4ee5df982d5e44ba8bdf27acb9d62e788",
+      "sha256": "351f4f42b9fcf2507a594b03cb614bb92325e76249e39dd3cc47b26a8a5968e9",
+      "crlfCount": 0,
+      "patchPath": ".work/public-provider-diagnosis/ProviderSettings.tsx.patch"
+    },
+    {
+      "path": "web/tests/provider-advanced.test.tsx",
+      "originalSha256": "c54ef213d30e8d6521dc3aa8b393081d18c89e4e699003dff72034cfba405984",
+      "sha256": "cfe296cb0cd602e79212f820e57adcf7b1b60ead4e2d1b295c4375cad4b63895",
+      "crlfCount": 0,
+      "patchPath": ".work/public-provider-diagnosis/provider-advanced.test.tsx.patch"
+    }
+  ],
+  "sourceChangesFromAttempt2": [
+    "web/components/ProviderSettings.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/realtime.test.tsx"
+  ],
+  "verification": {
+    "runtime": {
+      "path": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+      "version": "v24.22.1"
+    },
+    "originalOrdinaryRun": {
+      "path": ".work/public-provider-diagnosis/original-run.json",
+      "sha256": "1593f37743ce4cf1ea293d8890bc75c61703cbca17311860eafea547b3db2aeb",
+      "success": true,
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "suiteErrors": []
+    },
+    "originalStress": {
+      "path": ".work/public-provider-diagnosis/stress-original.json",
+      "sha256": "024b0459b554b280a979bded1fe58c1fd840246dca7b7b754406da939a00538a",
+      "success": true,
+      "total": 103,
+      "passed": 103,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "suiteErrors": []
+    },
+    "deterministicOriginalProbe": {
+      "path": ".work/public-provider-diagnosis/hydration-original.json",
+      "sha256": "7ee06f392ec0caba32499a91052041a09634ce08ee3c19be6b6f84d03ed7c838",
+      "success": false,
+      "total": 3,
+      "passed": 1,
+      "failed": 2,
+      "pending": 0,
+      "failures": [
+        {
+          "name": "initial read keeps controls unavailable until their baseline exists",
+          "reason": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "name": "an editor first exposed by read commit has an initialized baseline before input",
+          "reason": "AssertionError: expected <p role=\"alert\" class=\"error\">…(1)</p> to be null"
+        }
+      ],
+      "suiteErrors": []
+    },
+    "candidateProbeAndStress": {
+      "path": ".work/public-provider-diagnosis/hydration-candidate.json",
+      "sha256": "e789cab760c07644d56fb8e892a4c7f4b2576a2e2ba3885652ab2f8541d96dd9",
+      "success": true,
+      "total": 110,
+      "passed": 110,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "suiteErrors": []
+    },
+    "candidateAffectedRun": {
+      "path": ".work/public-provider-diagnosis/affected-candidate.json",
+      "sha256": "d11beec95bafca7aeb7bf069f6eb7e1dc7e3303ae563de8c574b5425640f6ac8",
+      "success": false,
+      "total": 125,
+      "passed": 125,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "suiteErrors": [
+        {
+          "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/public-provider-diagnosis/web/tests/provider-catalog.test.tsx",
+          "message": "Failed to resolve import \"./enabled-button\" from \".work/public-provider-diagnosis/web/tests/provider-catalog.test.tsx\". Does the file exist?"
+        }
+      ],
+      "limitation": "One suite initially could not resolve enabled-button.ts because the isolated copy omitted the helper. It was copied unchanged and that exact suite reran successfully."
+    },
+    "candidateCatalogAfterHelperCopied": {
+      "path": ".work/public-provider-diagnosis/catalog-candidate.json",
+      "sha256": "4b001a4a868ec31bbeb87dd845eff8913797e7138772d6a140a3b5267b8abe61",
+      "success": true,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "suiteErrors": []
+    },
+    "exactFinalRegressionsAgainstOriginal": {
+      "path": ".work/public-provider-diagnosis/regression-final-against-original.json",
+      "sha256": "55adcece52729fdc1086e47f8e7115cfb827b6de8a6ab55c3b8e4574321c0241",
+      "success": false,
+      "total": 7,
+      "passed": 4,
+      "failed": 3,
+      "pending": 0,
+      "failures": [
+        {
+          "name": "initial provider read keeps editors unavailable until their baseline exists",
+          "reason": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "name": "the first exposed provider editor binds immediate input to its initialized revision",
+          "reason": "AssertionError: expected <p role=\"alert\" class=\"error\">…(1)</p> to be null"
+        },
+        {
+          "name": "an initial provider read failure keeps retry reachable outside the disabled editors",
+          "reason": "AssertionError: expected false to be true // Object.is equality"
+        }
+      ],
+      "suiteErrors": []
+    },
+    "finalOfficialTargeted": {
+      "path": ".work/test-results/run-5hbAPm/vitest.json",
+      "sha256": "9a39ff3537065352846ba6e16d99fe94d7dbd5b69b5fa6ee494792e2557d6aee",
+      "success": true,
+      "total": 40,
+      "passed": 40,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "suiteErrors": [],
+      "command": "fixed-node scripts/run-tests.mjs --targeted web/tests/provider-advanced.test.tsx web/tests/provider-catalog.test.tsx web/tests/provider-profiles.test.tsx web/tests/provider.test.tsx web/tests/settings-drafts.test.tsx",
+      "exitCode": 0
+    },
+    "webTypecheck": {
+      "command": "fixed-node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "log": ".work/public-provider-diagnosis/web-typecheck-final.log"
+    },
+    "diffCheck": {
+      "command": "git diff --check -- web/components/ProviderSettings.tsx web/tests/provider-advanced.test.tsx",
+      "exitCode": 0
+    }
+  },
+  "preservedBehaviorVerified": [
+    "Dirty draft remains intact and save remains blocked after real r1 to r2 external revision change; explicit reload restores the external state.",
+    "API and CSRF ABA changes isolate provider drafts and delayed reads; epoch/visibility ABA completions do not publish stale saves.",
+    "Navigation preserves public draft/profile/catalog text and clears unsaved API key and gateway consent.",
+    "Region changes clear unsent Bedrock key; exactly one write sends the selected kind, region, newly entered key, and revision r without baseUrl or gatewayOAuth.",
+    "Unknown provider writes clear secrets and recover the original receipt without a second write; catalog revision/identity and deferred-edit protections pass."
+  ],
+  "constraints": {
+    "sourceWasNotModifiedUntilParentConfirmedBothFullRunsExited": true,
+    "fullSuiteRunByThisAgent": false,
+    "realCredentialsOrExternalProviderCalls": false,
+    "originalFailureRetained": true,
+    "noRetryOrTimeoutIncreaseUsedToMaskFailure": true
+  },
+  "remaining": [
+    "The source snapshot changed. The parent must restart the requested two independent clean audit rounds before another full run.",
+    "Only the five directly affected test files and web TypeScript check were run after the change; no post-fix full-suite or Linux/browser integration completion is claimed.",
+    "The deterministic scheduling regression uses jsdom MutationObserver. No live AWS service or paid model endpoint was contacted."
+  ]
+}

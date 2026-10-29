@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 
 from .common import CODEX_VERSION, NODE_VERSION, PNPM_VERSION, DeployError, Layout, canonical, digest, fsync_directory, mkdir, read_json, require, write_json
-from .safe_fs import extract_tar, inspect_tree, snapshot, stable_identity
+from .safe_fs import durable_tree, extract_tar, inspect_tree, snapshot, stable_identity
 from .system import System, run
 
 NODE_HASHES = {
@@ -192,10 +192,18 @@ def publish_release(layout: Layout, export: Path, manifest: dict) -> str:
             require(read_json(record, 64 * 1024**2) == manifest, "Existing release manifest changed", "integrity")
         # A crash after rename but before manifest publication is recoverable
         # only by independently producing and verifying that exact tree again.
+        durable_tree(target)
+        fsync_directory(target.parent)
     else:
         require(not record.exists(), "Manifest exists without its release", "integrity")
+        durable_tree(export)
         os.rename(export, target)
         fsync_directory(target.parent)
+        if export.parent != target.parent:
+            fsync_directory(export.parent)
+    # The first build creates releases; persisting entries inside it alone does
+    # not persist that directory's name in the already installed application.
+    fsync_directory(layout.app)
     write_json(record, manifest)
     return release
 
@@ -223,9 +231,16 @@ class Builder:
         if root.exists():
             actual = inspect_tree(root, root_owned=True)
             require(actual == read_json(self.layout.config / "toolchain-manifest.json", 32 * 1024**2), "Toolchain changed", "integrity")
+            durable_tree(root)
+            fsync_directory(root.parent)
+            fsync_directory(self.layout.work.parent)
+            fsync_directory(self.layout.work.parent.parent)
             return root
         arch = architecture()
         mkdir(self.layout.work, 0o755)
+        # Both the per-instance cache and its codex-harness parent may be new.
+        fsync_directory(self.layout.work.parent)
+        fsync_directory(self.layout.work.parent.parent)
         incoming = self.layout.work / ("tools-" + uuid.uuid4().hex)
         mkdir(incoming)
         node_file = incoming / "node.tar.xz"
@@ -241,8 +256,11 @@ class Builder:
         # The complete official platform package is the CLI runtime object. It is
         # installed as-is, not projected to just its executable/vendor subtree.
         extract_tar(codex_file, assembled / "codex", strip=1)
+        durable_tree(assembled)
         write_json(self.layout.config / "toolchain-manifest.json", inspect_tree(assembled, root_owned=True))
         os.rename(assembled, root)
+        fsync_directory(root.parent)
+        fsync_directory(assembled.parent)
         return root
 
     def prepare(self, source_archive: Path) -> str:

@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round6",
+  "reviewerId": "public_r6_tooling_data_independent",
+  "scopes": [
+    "deployment-release"
+  ],
+  "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "sourceDigestAfter": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "startedAt": "2026-10-27T03:55:22.8617294Z",
+  "completedAt": "2026-10-27T04:00:28.770Z",
+  "complete": true,
+  "inspectedFiles": [
+    "pnpm-lock.yaml",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/mcp-oauth-handoff.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json"
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "{\"kind\":\"independent-complete-data-structure-contract-and-provenance-review\",\"coverage\":\"Reviewed pnpm-lock.yaml plus all 21 current verification/feature-evidence artifacts. This is complete structural/contract coverage of the assigned data; it is not a new execution of the historical tests or a claim to re-establish every feature implementation.\",\"lock\":{\"mode\":\"Consumed all 3111 lines with a strict reader for the concrete lock grammar, rejecting duplicate keys or unconsumed syntax. Reviewed header/importers and metadata rules; checked every package, snapshot and dependency edge, exact package.json direct versions, registry SHA-512 integrity syntax/length, security overrides, package/snapshot closure and declared Node engine ranges.\",\"lines\":3111,\"nonemptyLinesParsed\":2433,\"packages\":336,\"snapshots\":336,\"dependencyEdges\":623,\"directDependencies\":21,\"engines\":[\"20 || >=22\",\">= 0.10\",\">= 0.4\",\">= 0.6\",\">= 0.8\",\">= 12\",\">= 12.0.0\",\">= 16\",\">= 18\",\">= 18.0.0\",\">= 8\",\">=0.10.0\",\">=0.6\",\">=10\",\">=10.0.0\",\">=12\",\">=12.0.0\",\">=12.20.0\",\">=16\",\">=16.20.0\",\">=16.9.0\",\">=18\",\">=18.0.0\",\">=18.14.1\",\">=20\",\">=20.0.0\",\">=20.11\",\">=20.19.0\",\">=22.19.0\",\">=6\",\">=6.0\",\">=6.0.0\",\">=6.6.0\",\">=6.9.0\",\">=8\",\">=v12.22.7\",\"^10 || ^12 || >=14\",\"^10 || ^12 || ^13.7 || ^14 || >=15.0.1\",\"^10 || ^12.20.0 || ^14.13.0 || >=15.0.0\",\"^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0\",\"^20.19.0 || >=22.12.0\",\"^20.19.0 || ^22.12.0 || >=24.0.0\",\"^22.12.0 || ^24.0.0 || >=26.0.0\",\"^22.13.0 || >=24.0.0\",\"^22.14.0 || >=24.0.0\",\"^22.22.2 || ^24.15.0 || >=26.0.0\",\"^8.16.0 || ^10.6.0 || >=11.0.0\"]},\"featureData\":{\"mode\":\"Parsed all 20 JSON files with duplicate-key rejection and recursively visited all 8346 values. Read CAPABILITY-COVERAGE.md and 18 smaller JSON records in full. For capability-coverage.json, read all 178 method assessments, all 50 evidence-group assessments, all 15 additional workflow assessments and common navigation/boundary statements; mechanically checked the full source/provenance metadata tree. For linux-cli-crossuid.json, read setup/checks, outcome/cleanup/provenance/limitations and epoch summaries; raw repeated process observations were structurally traversed rather than claimed as a full independent semantic reconstruction.\",\"jsonFiles\":20,\"jsonNodes\":8346,\"contractChecks\":\"178 unique method identities exactly match current protocol/ts/ClientRequest.ts; 175 JSON identities and all JSON pointers match current protocol/json/ClientRequest.json; 106 stable identities match the separately generated current local stable-schema capture. Classification/status counts and each of the 50 group memberships are internally consistent.\",\"sourceReferences\":851,\"missingSourceReferences\":[],\"invalidHashes\":[],\"priorArtifactPathReferences\":{\"total\":226,\"missing\":[],\"method\":\"Existence metadata only; prior reports, archives and probes were not opened or executed.\"},\"historicalSourceHashReferences\":{\"total\":638,\"matchCurrent\":358,\"differFromCurrent\":280,\"interpretation\":\"Explicit historical point-in-time evidence; not current-snapshot validation. Compared only to frozen current inventory hashes; no old source or old audit report opened.\"}},\"independence\":\"Historical statements and finding identifiers inside the assigned current feature-evidence data were inspected as data, never adopted as the new audit conclusion. No prior audit reports, prior test-report contents, prior repository implementation or Git history were opened. Historical reference targets were only checked for existence; declared source hashes were compared to the frozen current inventory.\",\"supportFiles\":[\"package.json\",\"protocol/ts/ClientRequest.ts\",\"protocol/json/ClientRequest.json\",\".work/cli-feature-stable/ClientRequest.json\",\"scripts/snapshot.mjs\"],\"executed\":[\"Read-only strict lock and JSON structure validation\",\"Current generated-protocol identity/pointer comparison\",\"Independent source snapshot and full 1880-file content SHA-256 comparison\"],\"notExecuted\":[\"No package install/fetch, lifecycle scripts, registry/network validation, dependency vulnerability scan, or lock tarball re-download\",\"No historical test replay, full test suite, targeted integration test, real CLI/provider/ACME, host 120 service or retired 110 access\",\"No independent live verification of historical external-service or deployment claims\"],\"startSummary\":\"Started this supplementary 22-file assignment at startedAt and recorded all 22 start hashes before substantive inspection.\",\"endSummary\":\"All 22 assigned data files were completely covered by the stated methods. No reproducible actionable data/contract defect was confirmed. Historical hashes differ in 280 of 638 references and are explicitly not current acceptance evidence. Current frozen source digest and all 1880 hashes remain identical.\"}",
+  "hashVerification": {
+    "startedHashCheckAt": "2026-10-27T03:55:22.8617294Z",
+    "completedHashCheckAt": "2026-10-27T04:00:28.771Z",
+    "scopeFileCount": 22,
+    "scopeFilesMatched": 22,
+    "fullInventoryFileCount": 1880,
+    "currentFileCount": 1880,
+    "fullInventoryHashesMatched": 1880,
+    "mismatches": [],
+    "addedFiles": [],
+    "digestAlgorithm": "scripts/snapshot.mjs snapshot(undefined,true): SHA-256 of JSON-serialized ordered [relative path, executable mode bits, content SHA-256] tuples",
+    "fileHashes": [
+      {
+        "path": "pnpm-lock.yaml",
+        "expected": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63",
+        "start": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63",
+        "end": "be7127d3f6d3cc306bbaca4b15c45c9c903ca2df61b060f14c116f79ee91eb63",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+        "expected": "2cd452d823265035bdfd2a8bbb63b5878b65301662d15e346d704e488a03cd19",
+        "start": "2cd452d823265035bdfd2a8bbb63b5878b65301662d15e346d704e488a03cd19",
+        "end": "2cd452d823265035bdfd2a8bbb63b5878b65301662d15e346d704e488a03cd19",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/account-watch-index-boundaries.json",
+        "expected": "2f948165437a7b6b9e0b80843e6773aca62c7821b48486540164786a83ed518d",
+        "start": "2f948165437a7b6b9e0b80843e6773aca62c7821b48486540164786a83ed518d",
+        "end": "2f948165437a7b6b9e0b80843e6773aca62c7821b48486540164786a83ed518d",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/attachments-linux.json",
+        "expected": "c082938f0e33b6edc80622db13295fad255bfc03079501e17ec336f310730360",
+        "start": "c082938f0e33b6edc80622db13295fad255bfc03079501e17ec336f310730360",
+        "end": "c082938f0e33b6edc80622db13295fad255bfc03079501e17ec336f310730360",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/automation-scheduler.json",
+        "expected": "fccf009866fd7e09300d29d6a5c08bac0856b3662967f7e52289f7a6fff7e5de",
+        "start": "fccf009866fd7e09300d29d6a5c08bac0856b3662967f7e52289f7a6fff7e5de",
+        "end": "fccf009866fd7e09300d29d6a5c08bac0856b3662967f7e52289f7a6fff7e5de",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/capability-coverage.json",
+        "expected": "f6ffcf29b4e1a1c16f0cd997789d0ede5196260bc2b9d9d5f63e0646eaafef98",
+        "start": "f6ffcf29b4e1a1c16f0cd997789d0ede5196260bc2b9d9d5f63e0646eaafef98",
+        "end": "f6ffcf29b4e1a1c16f0cd997789d0ede5196260bc2b9d9d5f63e0646eaafef98",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/extensions-foundation.json",
+        "expected": "59fade19360d539eecb7a88ccc31a85f10e1b11ee4aae84b9bffab871852cfc3",
+        "start": "59fade19360d539eecb7a88ccc31a85f10e1b11ee4aae84b9bffab871852cfc3",
+        "end": "59fade19360d539eecb7a88ccc31a85f10e1b11ee4aae84b9bffab871852cfc3",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/linux-cli-crossuid.json",
+        "expected": "00ad2f8976dc0ec547d38d7e8bf9e059f96ffc0566e139bca2d9eb10b8c301e8",
+        "start": "00ad2f8976dc0ec547d38d7e8bf9e059f96ffc0566e139bca2d9eb10b8c301e8",
+        "end": "00ad2f8976dc0ec547d38d7e8bf9e059f96ffc0566e139bca2d9eb10b8c301e8",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/mcp-configuration.json",
+        "expected": "c8b34bda9090a2b0a64cb39899768f886e8f7bf058dcd0ca3d6e34f4f814a3ec",
+        "start": "c8b34bda9090a2b0a64cb39899768f886e8f7bf058dcd0ca3d6e34f4f814a3ec",
+        "end": "c8b34bda9090a2b0a64cb39899768f886e8f7bf058dcd0ca3d6e34f4f814a3ec",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/mcp-oauth-handoff.json",
+        "expected": "0d5003f24e36316cadfe8204a63e8c18608c5b79ce932a2d9605a02d56a5b402",
+        "start": "0d5003f24e36316cadfe8204a63e8c18608c5b79ce932a2d9605a02d56a5b402",
+        "end": "0d5003f24e36316cadfe8204a63e8c18608c5b79ce932a2d9605a02d56a5b402",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/migration-imports.json",
+        "expected": "0efcf1987db43c0ba5525290ac3542f6605bce733151cbebf2fc5f8354eae327",
+        "start": "0efcf1987db43c0ba5525290ac3542f6605bce733151cbebf2fc5f8354eae327",
+        "end": "0efcf1987db43c0ba5525290ac3542f6605bce733151cbebf2fc5f8354eae327",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/native-managed-config-probe.json",
+        "expected": "f37043fede87a402f4e15a11ddd46e9c4f8c185c14581d33761fc5f022681e68",
+        "start": "f37043fede87a402f4e15a11ddd46e9c4f8c185c14581d33761fc5f022681e68",
+        "end": "f37043fede87a402f4e15a11ddd46e9c4f8c185c14581d33761fc5f022681e68",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/prediction-cloud-native.json",
+        "expected": "2aa2ade9a3f11c16fbc935e3cec41b06b5769fd9a51de955a5eecc6f801cb9f7",
+        "start": "2aa2ade9a3f11c16fbc935e3cec41b06b5769fd9a51de955a5eecc6f801cb9f7",
+        "end": "2aa2ade9a3f11c16fbc935e3cec41b06b5769fd9a51de955a5eecc6f801cb9f7",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/private-account-media.json",
+        "expected": "904643ba575d6cdf88a18bc37d8e16b5e4a6a17fbec14e52adc72bd43fbc333e",
+        "start": "904643ba575d6cdf88a18bc37d8e16b5e4a6a17fbec14e52adc72bd43fbc333e",
+        "end": "904643ba575d6cdf88a18bc37d8e16b5e4a6a17fbec14e52adc72bd43fbc333e",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/process-remote-search-ui.json",
+        "expected": "d9161855872476f9f58769a2b210d087ac72b936d437351d2823d2ddaff78739",
+        "start": "d9161855872476f9f58769a2b210d087ac72b936d437351d2823d2ddaff78739",
+        "end": "d9161855872476f9f58769a2b210d087ac72b936d437351d2823d2ddaff78739",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/provider-boundary-and-host-check.json",
+        "expected": "b4b0bb77f7c52c0f9186373c4a72e686444410920f7ed8b3abd4f365b34b3edf",
+        "start": "b4b0bb77f7c52c0f9186373c4a72e686444410920f7ed8b3abd4f365b34b3edf",
+        "end": "b4b0bb77f7c52c0f9186373c4a72e686444410920f7ed8b3abd4f365b34b3edf",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/runtime-guardian-cli-audio.json",
+        "expected": "a996da07fc37936341316032e16062903d6c926651123b73209ad812412157a9",
+        "start": "a996da07fc37936341316032e16062903d6c926651123b73209ad812412157a9",
+        "end": "a996da07fc37936341316032e16062903d6c926651123b73209ad812412157a9",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/sharing-feedback-and-trust.json",
+        "expected": "f392937d40772657aeb05b0544c4d2a28343bc31eeee8fc0f365d02e2277f6fb",
+        "start": "f392937d40772657aeb05b0544c4d2a28343bc31eeee8fc0f365d02e2277f6fb",
+        "end": "f392937d40772657aeb05b0544c4d2a28343bc31eeee8fc0f365d02e2277f6fb",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/timeline-wire-contract.json",
+        "expected": "93a76c298224852aafeecabb0df59a629195e1023a742da78543a677806d3bca",
+        "start": "93a76c298224852aafeecabb0df59a629195e1023a742da78543a677806d3bca",
+        "end": "93a76c298224852aafeecabb0df59a629195e1023a742da78543a677806d3bca",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/workspace-foundation-linux.json",
+        "expected": "46bdb5fa5c92230b17189f966264c75e8f00fe7e54d6bd2c558ed067ae558ac9",
+        "start": "46bdb5fa5c92230b17189f966264c75e8f00fe7e54d6bd2c558ed067ae558ac9",
+        "end": "46bdb5fa5c92230b17189f966264c75e8f00fe7e54d6bd2c558ed067ae558ac9",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/workspace-positive-witness.json",
+        "expected": "2bd493a00e26a41c2a693db310b85def2d14fb60d7e944e81bc1ba6f4b6429a1",
+        "start": "2bd493a00e26a41c2a693db310b85def2d14fb60d7e944e81bc1ba6f4b6429a1",
+        "end": "2bd493a00e26a41c2a693db310b85def2d14fb60d7e944e81bc1ba6f4b6429a1",
+        "matches": true
+      },
+      {
+        "path": "verification/feature-evidence/worktree-registration.json",
+        "expected": "26b024802688c5a142ce579155dd2f43ff038095a31082d3b67b10a4223a0d69",
+        "start": "26b024802688c5a142ce579155dd2f43ff038095a31082d3b67b10a4223a0d69",
+        "end": "26b024802688c5a142ce579155dd2f43ff038095a31082d3b67b10a4223a0d69",
+        "matches": true
+      }
+    ]
+  },
+  "structureEvidence": ".work/public-https-round6-tooling-data-structure.json",
+  "methodDetails": {
+    "kind": "independent-complete-data-structure-contract-and-provenance-review",
+    "coverage": "Reviewed pnpm-lock.yaml plus all 21 current verification/feature-evidence artifacts. This is complete structural/contract coverage of the assigned data; it is not a new execution of the historical tests or a claim to re-establish every feature implementation.",
+    "lock": {
+      "mode": "Consumed all 3111 lines with a strict reader for the concrete lock grammar, rejecting duplicate keys or unconsumed syntax. Reviewed header/importers and metadata rules; checked every package, snapshot and dependency edge, exact package.json direct versions, registry SHA-512 integrity syntax/length, security overrides, package/snapshot closure and declared Node engine ranges.",
+      "lines": 3111,
+      "nonemptyLinesParsed": 2433,
+      "packages": 336,
+      "snapshots": 336,
+      "dependencyEdges": 623,
+      "directDependencies": 21,
+      "engines": [
+        "20 || >=22",
+        ">= 0.10",
+        ">= 0.4",
+        ">= 0.6",
+        ">= 0.8",
+        ">= 12",
+        ">= 12.0.0",
+        ">= 16",
+        ">= 18",
+        ">= 18.0.0",
+        ">= 8",
+        ">=0.10.0",
+        ">=0.6",
+        ">=10",
+        ">=10.0.0",
+        ">=12",
+        ">=12.0.0",
+        ">=12.20.0",
+        ">=16",
+        ">=16.20.0",
+        ">=16.9.0",
+        ">=18",
+        ">=18.0.0",
+        ">=18.14.1",
+        ">=20",
+        ">=20.0.0",
+        ">=20.11",
+        ">=20.19.0",
+        ">=22.19.0",
+        ">=6",
+        ">=6.0",
+        ">=6.0.0",
+        ">=6.6.0",
+        ">=6.9.0",
+        ">=8",
+        ">=v12.22.7",
+        "^10 || ^12 || >=14",
+        "^10 || ^12 || ^13.7 || ^14 || >=15.0.1",
+        "^10 || ^12.20.0 || ^14.13.0 || >=15.0.0",
+        "^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0",
+        "^20.19.0 || >=22.12.0",
+        "^20.19.0 || ^22.12.0 || >=24.0.0",
+        "^22.12.0 || ^24.0.0 || >=26.0.0",
+        "^22.13.0 || >=24.0.0",
+        "^22.14.0 || >=24.0.0",
+        "^22.22.2 || ^24.15.0 || >=26.0.0",
+        "^8.16.0 || ^10.6.0 || >=11.0.0"
+      ]
+    },
+    "featureData": {
+      "mode": "Parsed all 20 JSON files with duplicate-key rejection and recursively visited all 8346 values. Read CAPABILITY-COVERAGE.md and 18 smaller JSON records in full. For capability-coverage.json, read all 178 method assessments, all 50 evidence-group assessments, all 15 additional workflow assessments and common navigation/boundary statements; mechanically checked the full source/provenance metadata tree. For linux-cli-crossuid.json, read setup/checks, outcome/cleanup/provenance/limitations and epoch summaries; raw repeated process observations were structurally traversed rather than claimed as a full independent semantic reconstruction.",
+      "jsonFiles": 20,
+      "jsonNodes": 8346,
+      "contractChecks": "178 unique method identities exactly match current protocol/ts/ClientRequest.ts; 175 JSON identities and all JSON pointers match current protocol/json/ClientRequest.json; 106 stable identities match the separately generated current local stable-schema capture. Classification/status counts and each of the 50 group memberships are internally consistent.",
+      "sourceReferences": 851,
+      "missingSourceReferences": [],
+      "invalidHashes": [],
+      "priorArtifactPathReferences": {
+        "total": 226,
+        "missing": [],
+        "method": "Existence metadata only; prior reports, archives and probes were not opened or executed."
+      },
+      "historicalSourceHashReferences": {
+        "total": 638,
+        "matchCurrent": 358,
+        "differFromCurrent": 280,
+        "interpretation": "Explicit historical point-in-time evidence; not current-snapshot validation. Compared only to frozen current inventory hashes; no old source or old audit report opened."
+      }
+    },
+    "independence": "Historical statements and finding identifiers inside the assigned current feature-evidence data were inspected as data, never adopted as the new audit conclusion. No prior audit reports, prior test-report contents, prior repository implementation or Git history were opened. Historical reference targets were only checked for existence; declared source hashes were compared to the frozen current inventory.",
+    "supportFiles": [
+      "package.json",
+      "protocol/ts/ClientRequest.ts",
+      "protocol/json/ClientRequest.json",
+      ".work/cli-feature-stable/ClientRequest.json",
+      "scripts/snapshot.mjs"
+    ],
+    "executed": [
+      "Read-only strict lock and JSON structure validation",
+      "Current generated-protocol identity/pointer comparison",
+      "Independent source snapshot and full 1880-file content SHA-256 comparison"
+    ],
+    "notExecuted": [
+      "No package install/fetch, lifecycle scripts, registry/network validation, dependency vulnerability scan, or lock tarball re-download",
+      "No historical test replay, full test suite, targeted integration test, real CLI/provider/ACME, host 120 service or retired 110 access",
+      "No independent live verification of historical external-service or deployment claims"
+    ],
+    "startSummary": "Started this supplementary 22-file assignment at startedAt and recorded all 22 start hashes before substantive inspection.",
+    "endSummary": "All 22 assigned data files were completely covered by the stated methods. No reproducible actionable data/contract defect was confirmed. Historical hashes differ in 280 of 638 references and are explicitly not current acceptance evidence. Current frozen source digest and all 1880 hashes remain identical."
+  }
+}

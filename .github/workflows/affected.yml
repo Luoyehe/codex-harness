@@ -34,6 +34,7 @@ jobs:
       tests: ${{ steps.plan.outputs.tests }}
       standard: ${{ steps.plan.outputs.standard }}
       root: ${{ steps.plan.outputs.root }}
+      go: ${{ steps.plan.outputs.go }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -114,6 +115,9 @@ jobs:
           npm pack "@openai/codex@$CODEX_PACKAGE_VERSION" --registry=https://registry.npmjs.org --pack-destination reference/runtime/ci-codex --json > reference/runtime/ci-codex/pack.json
           node scripts/prepare-ci-native.mjs
           python -c 'import os,sys; open(os.environ["GITHUB_ENV"],"a",encoding="utf-8").write("HARNESS_TEST_PYTHON="+sys.executable+"\n")'
+      - name: Prepare pinned Go and authenticated public modules
+        if: needs.plan.outputs.go == 'true'
+        run: python -B scripts/prepare-ci-go.py
       - name: Verify isolated Windows process controllers before native tests
         if: runner.os == 'Windows'
         run: node scripts/windows-controller-preflight.mjs .work/windows-controller-preflight.json

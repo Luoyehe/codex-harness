@@ -1,5 +1,5 @@
 import { isArchivedReceipt } from '../lib/operations';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import type { McpServerStatus } from '../../protocol/ts/v2/McpServerStatus';
 import type { McpResourceReadResponse } from '../../protocol/ts/v2/McpResourceReadResponse';
 import { Api, RpcError } from '../lib/api';
@@ -61,7 +61,7 @@ export function McpEventBridge({
   );
   return null;
 }
-export function McpPanel({
+function McpPanelContent({
   api,
   events,
   epoch,
@@ -73,7 +73,13 @@ export function McpPanel({
   threadIdle,
   configurationReady,
   projectId,
+  visible = true,
+  tab,
+  setTab,
 }: {
+  tab: 'tools' | 'resources' | 'streams';
+  setTab: (tab: 'tools' | 'resources' | 'streams') => void;
+  visible?: boolean;
   projectId: string;
   api: Api;
   events: Events;
@@ -90,8 +96,7 @@ export function McpPanel({
     [, render] = useState(0),
     [revision, setRevision] = useState(0),
     [selected, setSelected] = useState(''),
-    [tool, setTool] = useState(''),
-    [tab, setTab] = useState<'tools' | 'resources' | 'streams'>('tools');
+    [tool, setTool] = useState('');
   const [pendingRequest, setPendingRequest] = useState<PendingRequest>(),
     [error, setError] = useState(''),
     [resource, setResource] = useState<{
@@ -105,20 +110,20 @@ export function McpPanel({
     [streamName, setStreamName] = useState(''),
     [streamArguments, setStreamArguments] = useState('{}'),
     [streamConfirmation, setStreamConfirmation] = useState<object>();
-  const streamScope = useMemo(() => ({}), [api, session, epoch, threadId, selected, connected]);
+  const streamScope = useMemo(() => ({}), [api, session, epoch, threadId, selected, connected, visible, tab]);
   const streamConsent = streamConfirmation === streamScope,
     setStreamConsent = (value: boolean) => setStreamConfirmation(value ? streamScope : undefined);
   const running = useRef<PendingRequest | undefined>(undefined),
     activeRequest = useRef<PendingRequest | undefined>(undefined),
     mounted = useRef(true),
-    owner = useRef({ session, connected, scope: streamScope });
-  owner.current = { session, connected, scope: streamScope };
+    owner = useRef({ session, connected, visible, scope: streamScope });
+  owner.current = { session, connected, visible, scope: streamScope };
   const busy = pendingRequest?.scope === streamScope ? pendingRequest.label : '';
   const refresh = useCallback(() => setRevision((value) => value + 1), []),
     flow = useWorkflow(
       api,
       '',
-      connected,
+      connected && visible,
       refresh,
       JSON.stringify([epoch, lease, threadId, connected]),
     ),
@@ -129,25 +134,32 @@ export function McpPanel({
     'mcp/list',
     { ...(threadReady && threadId ? { threadId } : {}), detail: 'full' },
     key,
-    connected,
+    connected && visible,
   );
   const streams = useResource(
     `${lease}:${revision}`,
     (signal) => api.call<{ data: McpStream[] }>('mcp/stream/list', {}, signal),
-    connected,
+    connected && visible,
   );
-  const server = servers.items.find((server) => server.name === selected),
+  // A refresh temporarily removes hook data. Keep the editor mounted, but require
+  // current discovery before authorizing a new call.
+  const lastServers = useRef<McpServerStatus[]>([]);
+  if (servers.snapshotKey === key) lastServers.current = servers.items;
+  const displayedServers = servers.snapshotKey === key ? servers.items : lastServers.current;
+  const server = displayedServers.find((server) => server.name === selected),
     descriptor = server?.tools[tool];
   const pending =
     session.attempts.some((attempt) => ['pending', 'unknown'].includes(attempt.state)) ||
     operations.operations.some((operation) => ['pending', 'unknown'].includes(operation.state));
   const allowed =
+    visible &&
     connected &&
     threadReady &&
     Boolean(threadId) &&
     !pending &&
     !busy &&
     !operations.error &&
+    !servers.loading && !servers.error && servers.snapshotKey === key &&
     server?.runtimeStatus === 'connected';
   useEffect(() => {
     const notify = () => render((value) => value + 1);
@@ -203,6 +215,7 @@ export function McpPanel({
     !request.controller.signal.aborted;
   const begin = (label: string) => {
     if (
+      !visible || !owner.current.visible ||
       !mounted.current ||
       !current() ||
       owner.current.scope !== streamScope ||
@@ -327,7 +340,7 @@ export function McpPanel({
         attempt.state = 'not_sent';
         attempt.error = undefined;
       }
-      reconcileOperation(attempt.operationId, receipt);
+      await reconcileOperation(attempt.operationId, receipt);
       changedMcpSession(session);
       if (owns(request)) refresh();
       if (attempt.resultId) await readBody(attempt, request);
@@ -388,8 +401,10 @@ export function McpPanel({
     }
   };
   return (
-    <McpMediaProvider scope={streamScope} enabled={connected}>
-      <section className="mcp-panel stack">
+    <McpMediaProvider scope={streamScope} enabled={connected && visible}>
+      <section className="mcp-panel stack" hidden={!visible} inert={!visible}
+        onClickCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}
+        onSubmitCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}>
         <div className="section-heading">
           <h3>MCP 服务与工具</h3>
           <button className="button small" disabled={!connected} onClick={refresh}>
@@ -449,7 +464,8 @@ export function McpPanel({
               {server.pluginId && <p className="small muted">来源插件：{server.pluginId}</p>}
               <McpAuthorization key={JSON.stringify([lease, epoch, runtimeEpoch, server.name, threadId, threadReady, connected])}
                 api={api} events={events} session={session} epoch={runtimeEpoch} name={server.name}
-                threadId={threadReady && threadId ? threadId : null} connected={connected} />
+                threadId={threadReady && threadId ? threadId : null} connected={connected}
+                visible={visible && !servers.loading && !servers.error && servers.snapshotKey === key} />
             </div>
             <nav className="extension-tabs" aria-label="MCP 操作类别">
               {[
@@ -467,8 +483,7 @@ export function McpPanel({
                 </button>
               ))}
             </nav>
-            {tab === 'tools' && (
-              <>
+            <section hidden={tab !== 'tools'} inert={tab !== 'tools'}>
                 {server.toolsError && (
                   <p className="error" role="alert">
                     工具发现失败：{server.toolsError}
@@ -489,6 +504,7 @@ export function McpPanel({
                   <McpArguments
                     key={`${lease}:${threadId}:${server.name}:${tool}`}
                     tool={descriptor}
+                    visible={visible && tab === 'tools'}
                     disabled={
                       !allowed ||
                       !threadIdle ||
@@ -498,8 +514,7 @@ export function McpPanel({
                     onCall={(arguments_) => void start('mcp/tool/call', tool, arguments_)}
                   />
                 )}
-              </>
-            )}
+            </section>
             {tab === 'resources' && (
               <>
                 <h4>已发现资源</h4>
@@ -809,10 +824,21 @@ export function McpPanel({
             projectId={projectId}
             epoch={epoch}
             enabled={configurationReady}
+            visible={visible}
             onChanged={refresh}
           />
         </details>
       </section>
     </McpMediaProvider>
   );
+}
+
+export function McpPanel(props: Omit<ComponentProps<typeof McpPanelContent>, 'tab' | 'setTab'>) {
+  const [tab, setTab] = useState<'tools' | 'resources' | 'streams'>('tools');
+  const identity = JSON.stringify([props.epoch, props.runtimeEpoch ?? props.epoch, props.lease,
+    props.threadId, props.projectId, props.connected]);
+  const owner = useRef({ api: props.api, identity, generation: 0 });
+  if (owner.current.api !== props.api || owner.current.identity !== identity)
+    owner.current = { api: props.api, identity, generation: owner.current.generation + 1 };
+  return <McpPanelContent key={owner.current.generation} {...props} tab={tab} setTab={setTab} />;
 }

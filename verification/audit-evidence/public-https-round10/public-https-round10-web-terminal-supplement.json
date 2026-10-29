@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round10",
+  "reviewerId": "public-https-r10-root-terminal-tests-20261027",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "sourceDigestAfter": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "startedAt": "2026-10-27T05:28:08.387Z",
+  "completedAt": "2026-10-27T05:28:33.142Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx"
+  ],
+  "fileHashes": {
+    "web/tests/terminal.test.tsx": "39643c1034fbf966d21a3eee1dd04522ebe9e1ea6cd219d6e88e92645c6b8d57",
+    "web/tests/thread-terminals.test.tsx": "b15494e940f1918409023bb70873c87780783698358bd07993d71cbb68674262"
+  },
+  "method": "Full current-source body read of the two exact terminal tests, including fixtures, all parameterized branches, hooks and assertions. Checked bounded startup buffering and geometry/input budgets, reconnect and project ownership, no second open after lost response, positive receipt projection, explicit retry of closure, native CLI resynchronization, discovered process identities and whole-list confirmation, shell draft changes and unknown receipt recovery. Truncated output gaps were read in bounded segments. This supplements the web reviewer's fresh AST contracts. The separate process-remote test was explicitly delegated to the runtime reviewer and is not claimed here.",
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "Source inspection, no actual terminal, model, process or browser session started."
+  ]
+}

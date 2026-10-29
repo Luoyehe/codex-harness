@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
 import { uuid } from '../lib/ids';
@@ -24,6 +24,7 @@ export function NativeProjects({
   threadEnabled,
   idle,
   enabled,
+  visible = true,
   onChanged,
 }: {
   api: Api;
@@ -33,9 +34,10 @@ export function NativeProjects({
   threadEnabled: boolean;
   idle: boolean;
   enabled: boolean;
+  visible?: boolean;
   onChanged: () => void;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     [selected, setSelected] = useState(''),
     [draft, setDraft] = useState<Draft>(),
     [remove, setRemove] = useState(false),
@@ -47,6 +49,7 @@ export function NativeProjects({
       'nativeProject/list',
       { sortKey: 'position', sortDirection: 'asc' },
       key,
+      visible,
     ),
     detail = useResource(
       `${key}:${selected}`,
@@ -56,8 +59,11 @@ export function NativeProjects({
           { nativeProjectId: selected },
           signal,
         ),
-      Boolean(selected),
+      visible && Boolean(selected),
     );
+  useEffect(() => {
+    if (!visible) setRemove(false);
+  }, [visible]);
   const project = detail.data?.project;
   const begin = (project?: NativeProject) => {
     setError('');

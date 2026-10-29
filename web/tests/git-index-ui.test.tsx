@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
 import { WorkspaceIndex } from '../components/WorkspaceIndex';
@@ -82,11 +82,18 @@ async function selectBackup() {
   });
   await screen.findByText(/原先没有索引/, { selector: 'p' });
 }
+let settleMutations = async () => {};
 beforeEach(() => {
+  const mutations = vi.spyOn(Api.prototype, 'beginMutation');
+  settleMutations = async () => {
+    await Promise.allSettled(mutations.mock.results.flatMap(result =>
+      result.type === 'return' ? [result.value.result] : []));
+  };
   sessionStorage.clear();
   localStorage.clear();
 });
-afterEach(() => {
+afterEach(async () => {
+  await act(settleMutations);
   cleanup();
   vi.unstubAllGlobals();
 });
@@ -200,7 +207,7 @@ it('recovers unknown staging only by querying the original receipt', async () =>
   fireEvent.click(screen.getByRole('checkbox', { name: /确认以上路径与版本/ }));
   fireEvent.click(screen.getByRole('button', { name: '确认暂存所选版本' }));
   fireEvent.click(await screen.findByRole('button', { name: '查询原暂存操作回执' }));
-  await waitFor(() => expect(listOperations().find((op) => op.id === id)?.state).toBe('accepted'));
+  await waitFor(async () => expect((await listOperations()).find((op) => op.id === id)?.state).toBe('accepted'));
   expect(calls.filter((call) => call.method === 'workspace/git/stage')).toHaveLength(1);
 });
 it('restores the selected whole-index slot only after binding current HEAD and index', async () => {
@@ -228,16 +235,19 @@ it('restores the selected whole-index slot only after binding current HEAD and i
     }),
   );
 });
-it('does not turn backup-local completed into global accepted and binds discard to manifest', async () => {
-  const op = createOperation('workspace/git/stage', { projectId: 'project' });
-  updateOperation(op.id, 'unknown');
+it('does not turn backup-local completed into global accepted', async () => {
+  const op = (await createOperation('workspace/git/stage', { projectId: 'project' }));
+  (await updateOperation(op.id, 'unknown'));
   const first = setup();
-  const view = render(<WorkspaceIndexRecovery {...recovery(first.api)} />);
+  render(<WorkspaceIndexRecovery {...recovery(first.api)} />);
   await selectBackup();
-  expect(listOperations().find((saved) => saved.id === op.id)?.state).toBe('unknown');
+  expect((await listOperations()).find((saved) => saved.id === op.id)?.state).toBe('unknown');
   expect(first.calls.some((call) => call.method === 'operation/read')).toBe(false);
-  view.unmount();
-  localStorage.clear();
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认永久清理/ }));
+  expect(screen.getByRole('button', { name: '清理所选索引备份' }).matches(':disabled')).toBe(true);
+  expect(first.calls.some((call) => call.method === 'workspace/git/index/recovery/discard')).toBe(false);
+});
+it('binds discard of a completed backup to its manifest', async () => {
   const second = setup();
   render(<WorkspaceIndexRecovery {...recovery(second.api)} />);
   await selectBackup();

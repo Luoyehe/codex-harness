@@ -234,7 +234,7 @@ it('uses 110-second timeout only for bounded long mutations and preserves unknow
   });
   expect(timeout).toHaveBeenLastCalledWith(110_000);
   expect(calls.filter((call) => call.method === 'import/apply')).toHaveLength(1);
-  expect(listOperations().find((operation) => operation.method === 'import/apply')?.state).toBe(
+  expect((await listOperations()).find((operation) => operation.method === 'import/apply')?.state).toBe(
     'unknown',
   );
   await api.call('workspace/worktree/archive');

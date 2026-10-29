@@ -9,6 +9,7 @@ import { nativePrerequisite, nativeTestFiles, pythonPrerequisite, runPythonTests
 import { validateRelative } from './release-audit.mjs';
 import { releaseAuthorization } from './release-authorization.mjs';
 import { isolatedTestEnvironment, isolateTestProcess } from './test-environment.mjs';
+import { goPrerequisite, goTestFile, goTestPattern, runGoTests } from './go-tests.mjs';
 
 const requiredScopes = ['gateway-core', 'runtime-protocol', 'web-ux', 'deployment-release'];
 const scopeAreas = {
@@ -69,7 +70,7 @@ export function prepareRun(mode, args, base = root) {
     if (!args.length) throw new Error('Provide explicit affected test files; an empty selection is not a full-test shortcut');
     files = [...new Set(args.map(validateRelative))].sort();
     for (const name of files) {
-      if ((!jsTest.test(name) && !pyTest.test(name)) || !all.has(name)) throw new Error('Targeted tests require existing exact repository-relative test files');
+      if ((!jsTest.test(name) && !pyTest.test(name) && !goTestPattern.test(name)) || !all.has(name)) throw new Error('Targeted tests require existing exact repository-relative test files');
       ordinaryFile(base, name);
     }
     const jsInventory = available.filter(name => jsTest.test(name));
@@ -84,7 +85,7 @@ export function prepareRun(mode, args, base = root) {
       auditRounds = validateAuditRecord(record, current, base);
     }
     files = available;
-    if (!files.some(name => pyTest.test(name)) || ![...nativeNames].every(name => files.includes(name))) throw new Error('Full inventory must include deployment and native regressions');
+    if (!files.some(name => pyTest.test(name)) || ![...nativeNames].every(name => files.includes(name)) || !files.includes(goTestFile)) throw new Error('Full inventory must include deployment, native and Go regressions');
   } else throw new Error('Use --targeted <files...> or the audited --full mode');
   return { mode, files, ...(auditRounds ? { auditRounds } : {}), ...(authorization ? { authorization } : {}) };
 }
@@ -116,16 +117,19 @@ export function runVitest(files, base = root, env = isolatedTestEnvironment(base
 
 export function executePlan(plan, base = root, dependencies = {}, env = isolatedTestEnvironment(base)) {
   const js = plan.files.filter(name => jsTest.test(name)); const python = plan.files.filter(name => pyTest.test(name));
+  const go = plan.files.filter(name => goTestPattern.test(name));
   const hasNative = js.some(name => nativeNames.has(name)); const prerequisites = [];
   if (hasNative) {
     const native = (dependencies.nativePrerequisite ?? nativePrerequisite)(base, env.HARNESS_TEST_CODEX_BIN, env); prerequisites.push({ group: 'native', ...native });
     if (native.status === 'ready') env.HARNESS_TEST_CODEX_BIN = native.binary;
   }
   if (python.length) prerequisites.push({ group: 'deploy', ...(dependencies.pythonPrerequisite ?? pythonPrerequisite)(env) });
+  if (go.length) prerequisites.push({ group: 'go', ...(dependencies.goPrerequisite ?? goPrerequisite)(base, env) });
   if (prerequisites.some(item => item.status !== 'ready')) return { status: prerequisites.some(item => item.status === 'failed') ? 'failed' : 'skipped', exitCode: prerequisites.some(item => item.status === 'failed') ? 1 : 3, prerequisites, results: [] };
   const results = [];
   if (js.length) results.push({ group: 'javascript', ...(dependencies.runVitest ?? runVitest)(js, base, env) });
   if (python.length) results.push({ group: 'deploy', ...(dependencies.runPythonTests ?? runPythonTests)(python, base, env) });
+  if (go.length) results.push({ group: 'go', ...(dependencies.runGoTests ?? runGoTests)(go, base, env) });
   const exitCode = results.some(result => result.exitCode === 1) ? 1 : results.some(result => result.exitCode) ? 3 : 0;
   return { status: exitCode === 0 ? 'passed' : exitCode === 3 ? 'skipped' : 'failed', exitCode, prerequisites, results };
 }

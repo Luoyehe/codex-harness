@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { array, object } from '../lib/types';
 import type { useExtensionAction } from './ExtensionControls';
 
@@ -28,6 +28,7 @@ export function ProviderProfiles({
     [selected, setSelected] = useState(''),
     [confirm, setConfirm] = useState('');
   const profile = profiles.find((profile) => profile.id === selected);
+  useEffect(() => setConfirm(''), [action.scope]);
   const trimmedName = name.trim(),
     nameTooLong = Array.from(trimmedName).length > 64;
   const disabled = action.disabled || hasDraft || typeof provider.revision !== 'string';

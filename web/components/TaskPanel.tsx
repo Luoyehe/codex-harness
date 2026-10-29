@@ -25,6 +25,7 @@ type Props = {
   onChanged: () => void;
   onClose: () => void;
 };
+type PanelProps = Props & { resourceKey: string; visible: boolean };
 function ActionState({ action }: { action: ReturnType<typeof useWorkflow> }) {
   return (
     <>
@@ -164,14 +165,15 @@ function QueueEntry({
     </li>
   );
 }
-function QueuePanel(props: Props & { resourceKey: string }) {
+function QueuePanel(props: PanelProps) {
   const queue = usePaged<QueuedSubmission>(
     props.api,
     'thread/queue/list',
     { threadId: props.threadId },
     props.resourceKey,
+    props.visible,
   );
-  const action = useWorkflow(props.api, props.threadId, props.enabled, () => {
+  const action = useWorkflow(props.api, props.threadId, props.enabled && props.visible, () => {
     queue.refresh();
     props.onChanged();
   });
@@ -180,7 +182,8 @@ function QueuePanel(props: Props & { resourceKey: string }) {
   const [, renderDrafts] = useState(0),
     [draftError, setDraftError] = useState(''),
     [savingId, setSavingId] = useState('');
-  const ready = queue.snapshotKey === props.resourceKey && !queue.loading && !queue.error;
+  const ready =
+    props.visible && queue.snapshotKey === props.resourceKey && !queue.loading && !queue.error;
   const changeDraft = (id: string, text: string) => {
     if (pending.current === id) return;
     const next = new Map(drafts.current);
@@ -346,13 +349,16 @@ const goalStatuses: Record<string, string> = {
   budgetLimited: '已达到预算限制',
   complete: '目标已完成',
 };
-function GoalPanel(props: Props & { resourceKey: string }) {
-  const resource = useResource(props.resourceKey, (signal) =>
-    props.api.call<{ goal: ThreadGoal | null }>(
-      'thread/goal/get',
-      { threadId: props.threadId },
-      signal,
-    ),
+function GoalPanel(props: PanelProps) {
+  const resource = useResource(
+    props.resourceKey,
+    (signal) =>
+      props.api.call<{ goal: ThreadGoal | null }>(
+        'thread/goal/get',
+        { threadId: props.threadId },
+        signal,
+      ),
+    props.visible,
   );
   const goal = resource.data?.goal;
   const [editing, setEditing] = useState(false),
@@ -362,7 +368,7 @@ function GoalPanel(props: Props & { resourceKey: string }) {
   const action = useWorkflow(
     props.api,
     props.threadId,
-    props.enabled && !resource.loading && !resource.error,
+    props.enabled && props.visible && !resource.loading && !resource.error,
     () => {
       resource.refresh();
       props.onChanged();
@@ -562,14 +568,15 @@ function GoalPanel(props: Props & { resourceKey: string }) {
     </section>
   );
 }
-function AgentsPanel(props: Props & { resourceKey: string }) {
+function AgentsPanel(props: PanelProps) {
   const agents = usePaged<Thread>(
     props.api,
     'thread/agents/list',
     { threadId: props.threadId },
     props.resourceKey,
+    props.visible,
   );
-  const action = useWorkflow(props.api, props.threadId, props.enabled, () => {
+  const action = useWorkflow(props.api, props.threadId, props.enabled && props.visible, () => {
     agents.refresh();
     props.onChanged();
   });
@@ -659,46 +666,70 @@ function AgentsPanel(props: Props & { resourceKey: string }) {
     </section>
   );
 }
-export function TaskPanel(props: Props) {
-  const [tab, setTab] = useState<'queue' | 'goal' | 'agents'>('queue'),
+type TaskTab = 'queue' | 'goal' | 'agents';
+function TaskSession(props: Props) {
+  const [tab, setTab] = useState<TaskTab>('queue'),
+    [visited, setVisited] = useState({ queue: true, goal: false, agents: false }),
     changes = useWorkflowRevision(props.events, props.threadId);
   const resourceKey = `${props.epoch}:${props.threadId}:${changes.revision}`;
+  const visit = (next: TaskTab) => {
+    setVisited((previous) => (previous[next] ? previous : { ...previous, [next]: true }));
+    setTab(next);
+  };
   return (
     <Dialog title="任务工作流" wide onClose={props.onClose}>
       <div className="workflow-tabs" role="group" aria-label="任务工具">
         <button
           className={`button ${tab === 'queue' ? 'selected' : ''}`}
           aria-pressed={tab === 'queue'}
-          onClick={() => setTab('queue')}
+          onClick={() => visit('queue')}
         >
           消息队列
         </button>
         <button
           className={`button ${tab === 'goal' ? 'selected' : ''}`}
           aria-pressed={tab === 'goal'}
-          onClick={() => setTab('goal')}
+          onClick={() => visit('goal')}
         >
           目标与预算
         </button>
         <button
           className={`button ${tab === 'agents' ? 'selected' : ''}`}
           aria-pressed={tab === 'agents'}
-          onClick={() => setTab('agents')}
+          onClick={() => visit('agents')}
         >
           Agents
         </button>
       </div>
-      {tab === 'queue' ? (
-        <QueuePanel
-          key={JSON.stringify([props.epoch, props.threadId])}
-          {...props}
-          resourceKey={resourceKey}
-        />
-      ) : tab === 'goal' ? (
-        <GoalPanel {...props} resourceKey={resourceKey} />
-      ) : (
-        <AgentsPanel {...props} resourceKey={resourceKey} />
+      <div hidden={tab !== 'queue'} inert={tab !== 'queue'}>
+        <QueuePanel {...props} resourceKey={resourceKey} visible={tab === 'queue'} />
+      </div>
+      {visited.goal && (
+        <div hidden={tab !== 'goal'} inert={tab !== 'goal'}>
+          <GoalPanel {...props} resourceKey={resourceKey} visible={tab === 'goal'} />
+        </div>
+      )}
+      {visited.agents && (
+        <div hidden={tab !== 'agents'} inert={tab !== 'agents'}>
+          <AgentsPanel {...props} resourceKey={resourceKey} visible={tab === 'agents'} />
+        </div>
       )}
     </Dialog>
   );
+}
+export function TaskPanel(props: Props) {
+  // A new owner gets fresh drafts even when this component is reused without a parent key.
+  const owner = useRef({ api: props.api, threadId: props.threadId, epoch: props.epoch, revision: 0 });
+  if (
+    owner.current.api !== props.api ||
+    owner.current.threadId !== props.threadId ||
+    owner.current.epoch !== props.epoch
+  )
+    owner.current = {
+      api: props.api,
+      threadId: props.threadId,
+      epoch: props.epoch,
+      revision: owner.current.revision + 1,
+    };
+  return <TaskSession key={owner.current.revision} {...props} />;
 }

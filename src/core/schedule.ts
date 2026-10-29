@@ -28,7 +28,9 @@ export function nextScheduled(plan: Schedule, after: number): number | null {
   if (plan.kind === 'interval') { const step = plan.hours * 3_600_000; return plan.anchor > after ? plan.anchor : plan.anchor + (Math.floor((after - plan.anchor) / step) + 1) * step; }
   const format = new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', { timeZone: plan.timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const local = parts(format, after), [hour, minute] = plan.time.split(':').map(Number);
-  for (let day = 0; day <= 8; day++) {
+  // A missing weekly wall time can put the next occurrence exactly two weeks
+  // after the prior one. Include day 14 when calculating from that occurrence.
+  for (let day = 0; day <= 14; day++) {
     const date = new Date(Date.UTC(local[0]!, local[1]! - 1, local[2]! + day, hour, minute));
     if (!plan.days.includes(date.getUTCDay())) continue;
     const target = date.getTime(), offsets = new Set<number>();

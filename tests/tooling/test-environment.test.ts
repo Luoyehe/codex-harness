@@ -79,7 +79,7 @@ test('the real targeted CLI isolates JavaScript and Python Git fixtures from art
   git(control, controlEnv, 'init', '-q'); put(control, 'fixture.txt', 'fixture'); git(control, controlEnv, 'add', '.');
   git(control, controlEnv, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'positive-control');
   expect(readFileSync(path.join(control, 'hook-marker'), 'utf8')).toBe('fixture-hook-ran\n');
-  for (const file of ['run-tests.mjs', 'select-tests.mjs', 'test-environment.mjs', 'snapshot.mjs', 'release-audit.mjs', 'release-authorization.mjs', 'python-tests.py']) put(base, 'scripts/' + file, readFileSync(path.resolve('scripts', file), 'utf8'));
+  for (const file of ['run-tests.mjs', 'select-tests.mjs', 'test-environment.mjs', 'go-tests.mjs', 'snapshot.mjs', 'release-audit.mjs', 'release-authorization.mjs', 'python-tests.py']) put(base, 'scripts/' + file, readFileSync(path.resolve('scripts', file), 'utf8'));
   put(base, 'package.json', JSON.stringify({ type: 'module', scripts: { 'test:targeted': 'node scripts/run-tests.mjs --targeted' } }));
   put(base, 'vitest.config.mjs', "export default { test: { include: ['tests/**/*.test.ts'], maxWorkers: 1 } };\n");
   put(base, 'tests/tooling/unselected.test.ts', "throw Error('unselected fixture must not run');\n");

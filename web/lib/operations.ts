@@ -1,228 +1,254 @@
 import { operationId } from './ids';
 import { INPUT_METHODS } from './workflows';
+import { clearDraftSnapshot } from './drafts';
+import { operationTransaction, stored } from './operation-store';
 export type OperationState = 'pending' | 'unknown' | 'accepted' | 'not_sent';
-export function isArchivedReceipt(receipt: Record<string, unknown>): boolean {
-  const error = receipt.error as Record<string, unknown> | undefined;
-  return (
-    typeof receipt.operationId === 'string' &&
-    receipt.scope === `operation:${receipt.operationId}` &&
-    receipt.method === 'operation/archived' &&
-    receipt.state === 'unknown' &&
-    error?.code === 'operation_archived'
-  );
-}
 export type TerminalResult = { terminalId: string };
 export type TerminalOwner = { clientId: string; connectionId: string };
 export type Operation = {
-  id: string;
-  method: string;
-  threadId?: string;
-  projectId?: string;
-  resourceId?: string;
-  draftKey?: string;
-  draftRevision?: string;
-  createdAt: number;
-  state: OperationState;
-  resolvedThreadId?: string;
-  terminalOwner?: TerminalOwner;
-  terminalResult?: TerminalResult;
+  id: string; method: string; threadId?: string; projectId?: string; resourceId?: string;
+  draftKey?: string; draftRevision?: string; createdAt: number; state: OperationState;
+  resolvedThreadId?: string; terminalOwner?: TerminalOwner; terminalResult?: TerminalResult;
+  /** Legacy JavaScript cannot join our transactions; retain its draft conservatively. */
+  legacy?: true;
 };
+type Scope = Pick<Operation, 'threadId' | 'projectId' | 'resourceId' | 'draftKey' | 'draftRevision' | 'terminalOwner'>;
+export function isArchivedReceipt(receipt: Record<string, unknown>): boolean {
+  const error = receipt.error as Record<string, unknown> | undefined;
+  return typeof receipt.operationId === 'string' && receipt.scope === `operation:${receipt.operationId}` &&
+    receipt.method === 'operation/archived' && receipt.state === 'unknown' && error?.code === 'operation_archived';
+}
 export function checkedTerminalResult(value: unknown): TerminalResult {
   const id = value && typeof value === 'object' ? (value as TerminalResult).terminalId : undefined;
   if (typeof id !== 'string' || !id || id.length > 256 || /[\x00-\x1f\x7f\ud800-\udfff]/u.test(id))
     throw new Error('终端已受理，但回执缺少有效终端标识。请查询原操作回执。');
   return { terminalId: id };
 }
-const prefix = 'harness.operation.v1.';
+function checkedOperation(value: unknown, id?: string): Operation {
+  if (!value || typeof value !== 'object') throw new Error('操作恢复记录损坏，已暂停新操作。');
+  const record = value as Operation;
+  if (typeof record.id !== 'string' || (id !== undefined && id !== record.id) ||
+      typeof record.method !== 'string' || !Number.isFinite(record.createdAt) ||
+      ['threadId', 'projectId', 'resourceId', 'draftKey', 'draftRevision', 'resolvedThreadId'].some((field) =>
+        (value as Record<string, unknown>)[field] !== undefined && typeof (value as Record<string, unknown>)[field] !== 'string') ||
+      !['pending', 'unknown', 'accepted', 'not_sent'].includes(record.state) ||
+      (record.legacy !== undefined && record.legacy !== true) ||
+      (record.terminalOwner !== undefined && (!record.terminalOwner ||
+        typeof record.terminalOwner.clientId !== 'string' || !record.terminalOwner.clientId ||
+        typeof record.terminalOwner.connectionId !== 'string' || !record.terminalOwner.connectionId)))
+    throw new Error('操作恢复记录损坏，已暂停新操作。');
+  if (record.terminalResult !== undefined) checkedTerminalResult(record.terminalResult);
+  return record;
+}
+const legacyPrefix = 'harness.operation.v1.';
 const acceptedPrefix = 'harness.accepted.v1.';
 const notSentPrefix = 'harness.not-sent.v1.';
 const acknowledgedPrefix = 'harness.acknowledged.v1.';
-const changed = () => window.dispatchEvent(new Event('harness-operations'));
-const isOperation = (v: unknown): v is Operation => {
-  if (!v || typeof v !== 'object') return false;
-  const r = v as Operation;
-  if (
-    r.terminalOwner !== undefined &&
-    (!r.terminalOwner ||
-      typeof r.terminalOwner.clientId !== 'string' ||
-      !r.terminalOwner.clientId ||
-      typeof r.terminalOwner.connectionId !== 'string' ||
-      !r.terminalOwner.connectionId)
-  )
-    return false;
-  if (r.terminalResult !== undefined) {
-    try {
-      checkedTerminalResult(r.terminalResult);
-    } catch {
-      return false;
+const sentinel = legacyPrefix + 'client-update-required';
+const seal = 'legacy-sealed';
+let authorized = false;
+let initialization: Promise<void> | undefined;
+let initializedFactory: IDBFactory | undefined;
+let storageWarning = '';
+let channel: BroadcastChannel | undefined;
+let subscribers = 0;
+const changed = () => { window.dispatchEvent(new Event('harness-operations')); channel?.postMessage('changed'); };
+export const operationStorageWarning = () => storageWarning;
+export function reportOperationStorageError(error: unknown) {
+  storageWarning = `操作恢复存储需要检查：${error instanceof Error ? error.message : String(error)}`;
+  changed();
+}
+export function subscribeOperations(listener: () => void) {
+  subscribers++;
+  if (typeof BroadcastChannel !== 'undefined' && !channel) {
+    channel = new BroadcastChannel('harness-operation-recovery-v2');
+    channel.onmessage = () => window.dispatchEvent(new Event('harness-operations'));
+  }
+  window.addEventListener('harness-operations', listener);
+  window.addEventListener('storage', listener);
+  window.addEventListener('focus', listener);
+  return () => {
+    window.removeEventListener('harness-operations', listener);
+    window.removeEventListener('storage', listener);
+    window.removeEventListener('focus', listener);
+    if (--subscribers === 0) { channel?.close(); channel = undefined; }
+  };
+}
+function legacyKeys(storage: Storage): string[] {
+  // Capture names once: key(i) indices can shift when another document acknowledges a record.
+  return Object.keys(storage).filter((key) => key !== sentinel &&
+    [legacyPrefix, acceptedPrefix, notSentPrefix, acknowledgedPrefix].some((prefix) => key.startsWith(prefix)));
+}
+async function consumeLegacyClosures(records: IDBObjectStore, storage: Storage) {
+  const consumed: string[] = [];
+  for (const value of await stored(records.getAll()) as unknown[]) {
+    const record = checkedOperation(value);
+    if (record.legacy && storage.getItem(acknowledgedPrefix + record.id) === '1') {
+      await stored(records.delete(record.id));
+      consumed.push(acknowledgedPrefix + record.id);
     }
   }
-  return (
-    typeof r.id === 'string' &&
-    typeof r.method === 'string' &&
-    Number.isFinite(r.createdAt) &&
-    ['pending', 'unknown', 'accepted', 'not_sent'].includes(r.state)
-  );
-};
-export function listOperations(storage: Storage = localStorage): Operation[] {
-  const result: Operation[] = [];
-  for (let i = 0; i < storage.length; i++) {
-    const key = storage.key(i);
-    if (!key?.startsWith(prefix)) continue;
-    const id = key.slice(prefix.length);
-    if (storage.getItem(acknowledgedPrefix + id) === '1') continue;
-    const parsed: unknown = JSON.parse(storage.getItem(key) ?? 'null');
-    if (!isOperation(parsed) || key !== prefix + parsed.id)
-      throw new Error('操作恢复记录损坏。为避免重复提交，已暂停新操作。');
-    const accepted = storage.getItem(acceptedPrefix + id),
-      proof = accepted ?? storage.getItem(notSentPrefix + id);
-    if (proof !== null) {
-      const value: unknown = JSON.parse(proof);
-      if (
-        !isOperation(value) ||
-        value.id !== id ||
-        value.state !== (accepted !== null ? 'accepted' : 'not_sent')
-      )
-        throw new Error('操作的证明记录损坏。');
-      result.push(value);
-    } else result.push(parsed);
-  }
-  return result.sort((a, b) => a.createdAt - b.createdAt);
+  return consumed;
 }
-export function createOperation(
-  method: string,
-  scope: {
-    threadId?: string;
-    projectId?: string;
-    resourceId?: string;
-    draftKey?: string;
-    draftRevision?: string;
-    terminalOwner?: TerminalOwner;
-  },
-  storage: Storage = localStorage,
-  generation = 0,
-): Operation {
-  const records = listOperations(storage);
-  if (records.length >= 200) throw new Error('恢复记录已达到 200 条上限。请先处理已完成的记录。');
-  if (
-    records.some(
-      (r) =>
-        ['pending', 'unknown'].includes(r.state) &&
-        (r.method === method ||
-          (INPUT_METHODS.includes(r.method) && INPUT_METHODS.includes(method))) &&
-        r.threadId === scope.threadId &&
-        r.projectId === scope.projectId &&
-        r.resourceId === scope.resourceId &&
-        (method !== 'terminal/open' ||
-          (r.terminalOwner?.clientId === scope.terminalOwner?.clientId &&
-            r.terminalOwner?.connectionId === scope.terminalOwner?.connectionId)),
-    )
-  )
-    throw new Error('此操作还有待确认的请求。请先查询回执。');
-  const record: Operation = {
-    id: operationId(generation),
-    method,
-    ...scope,
-    createdAt: Date.now(),
-    state: 'pending',
+/** Only an authenticated gateway capability confirms the legacy admission fence. */
+export async function initializeOperations(protocol: unknown, retry = false): Promise<void> {
+  if (initializedFactory !== globalThis.indexedDB) {
+    initialization = undefined;
+    initializedFactory = globalThis.indexedDB;
+  }
+  authorized = protocol === 2;
+  if (!authorized) {
+    initialization = undefined;
+    throw new Error('服务尚未确认安全的操作恢复协议，请更新服务并重新检查登录状态。');
+  }
+  if (retry) initialization = undefined;
+  if (initialization) return initialization;
+  const initialize = async () => {
+    const storage = localStorage;
+    const cleaned = await operationTransaction(async (records, metadata) => {
+      const alreadySealed = await stored(metadata.get(seal));
+      const keys = legacyKeys(storage);
+      if (alreadySealed !== true) {
+        if (alreadySealed !== undefined) throw new Error('操作恢复迁移标记损坏。');
+        for (const key of keys.filter((item) => item.startsWith(legacyPrefix))) {
+          const id = key.slice(legacyPrefix.length);
+          if (storage.getItem(acknowledgedPrefix + id) === '1') continue;
+          const raw = storage.getItem(key);
+          if (raw === null) continue; // A legacy acknowledgement removed it after the name snapshot.
+          const record = checkedOperation(JSON.parse(raw), id);
+          const accepted = storage.getItem(acceptedPrefix + id);
+          const proof = accepted ?? storage.getItem(notSentPrefix + id);
+          const latest = proof === null ? record : checkedOperation(JSON.parse(proof), id);
+          if (proof !== null && latest.state !== (accepted !== null ? 'accepted' : 'not_sent'))
+            throw new Error('操作的证明记录损坏。');
+          if (proof !== null && (['id', 'method', 'threadId', 'projectId', 'resourceId', 'draftKey', 'draftRevision', 'createdAt']
+            .some((field) => record[field as keyof Operation] !== latest[field as keyof Operation]) ||
+            record.terminalOwner?.clientId !== latest.terminalOwner?.clientId ||
+            record.terminalOwner?.connectionId !== latest.terminalOwner?.connectionId))
+            throw new Error('操作证明与原请求身份不一致，已保留原记录。');
+          await stored(records.add({ ...latest, legacy: true }));
+        }
+        await stored(metadata.put(true, seal));
+      }
+      await consumeLegacyClosures(records, storage);
+      return keys;
+    });
+    // Source removal follows the committed identities + seal, never request success alone.
+    storageWarning = '';
+    try {
+      for (const key of cleaned) storage.removeItem(key);
+      storage.setItem(sentinel, JSON.stringify({ error: '请刷新页面以升级操作恢复存储。' }));
+      if (storage.getItem(sentinel) === null) throw new Error('旧页面刷新提示尚未保存。');
+    } catch (error) {
+      // The server admission fence + committed seal provide safety. This UX sentinel is optional.
+      reportOperationStorageError(error);
+    }
+    changed();
   };
-  storage.setItem(prefix + record.id, JSON.stringify(record));
-  if (storage.getItem(prefix + record.id) !== JSON.stringify(record))
-    throw new Error('无法持久保存操作标识，尚未发送请求。');
+  const pending = initialize();
+  initialization = pending;
+  try { await pending; }
+  catch (error) { if (initialization === pending) initialization = undefined; throw error; }
+}
+async function ready() {
+  if (!authorized) throw new Error('操作恢复尚未完成安全初始化，请重新检查登录状态。');
+  await initializeOperations(2);
+}
+async function transact<T>(run: (records: IDBObjectStore) => Promise<T>): Promise<T> {
+  await ready();
+  const storage = localStorage;
+  const result = await operationTransaction(async (records) => {
+    const consumed = await consumeLegacyClosures(records, storage);
+    return { value: await run(records), consumed };
+  });
+  try { for (const key of result.consumed) storage.removeItem(key); }
+  catch (error) { reportOperationStorageError(error); }
+  return result.value;
+}
+export async function listOperations(): Promise<Operation[]> {
+  return transact(async (records) => (await stored(records.getAll()) as unknown[])
+    .map((record) => checkedOperation(record)).sort((a, b) => a.createdAt - b.createdAt));
+}
+/** Allocating an ID is separate from committing it; only this promise permits dispatch. */
+export async function createOperation(
+  method: string, scope: Scope, generation = 0, id = operationId(generation),
+): Promise<Operation> {
+  const record: Operation = structuredClone({ id, method, ...scope, createdAt: Date.now(), state: 'pending' });
+  await transact(async (store) => {
+    const records = (await stored(store.getAll()) as unknown[]).map((value) => checkedOperation(value));
+    if (records.length >= 200) throw new Error('恢复记录已达到 200 条上限。请先处理已完成的记录。');
+    if (records.some((r) => ['pending', 'unknown'].includes(r.state) &&
+      (r.method === method || (INPUT_METHODS.includes(r.method) && INPUT_METHODS.includes(method))) &&
+      r.threadId === scope.threadId && r.projectId === scope.projectId && r.resourceId === scope.resourceId &&
+      (method !== 'terminal/open' || (r.terminalOwner?.clientId === scope.terminalOwner?.clientId &&
+        r.terminalOwner?.connectionId === scope.terminalOwner?.connectionId))))
+      throw new Error('此操作还有待确认的请求。请先查询回执。');
+    await stored(store.add(record));
+    if (JSON.stringify(await stored(store.get(id))) !== JSON.stringify(record))
+      throw new Error('无法持久保存操作标识，尚未发送请求。');
+  });
   changed();
   return record;
 }
-export function updateOperation(
-  id: string,
-  state: OperationState,
-  resolvedThreadId?: string,
-  storage: Storage = localStorage,
-  terminalResult?: TerminalResult,
+export async function updateOperation(
+  id: string, state: OperationState, resolvedThreadId?: string, terminalResult?: TerminalResult,
 ) {
-  if (storage.getItem(acknowledgedPrefix + id) === '1') return;
-  const raw = storage.getItem(prefix + id);
-  if (!raw) return;
-  const record: unknown = JSON.parse(
-    storage.getItem(acceptedPrefix + id) ?? storage.getItem(notSentPrefix + id) ?? raw,
-  );
-  if (!isOperation(record)) throw new Error('恢复记录无法读取。');
-  // An accepted receipt is a monotonic fact; stale failures cannot undo it.
-  if (
-    (record.state === 'accepted' || storage.getItem(acceptedPrefix + id) !== null) &&
-    state !== 'accepted'
-  )
-    return;
-  if (record.state === 'not_sent' && state === 'unknown') return;
-  const terminal =
-    state === 'accepted' && record.method === 'terminal/open' && terminalResult
-      ? checkedTerminalResult(terminalResult)
-      : undefined;
-  if (terminal && record.terminalResult && record.terminalResult.terminalId !== terminal.terminalId)
-    throw new Error('同一操作返回了不同的终端标识，已保留原回执。');
-  const next = JSON.stringify({
-    ...record,
-    state,
-    ...(resolvedThreadId ? { resolvedThreadId } : {}),
-    ...(terminal ? { terminalResult: terminal } : {}),
+  const updated = await transact(async (records) => {
+    const value: unknown = await stored(records.get(id));
+    if (value === undefined) return;
+    const record = checkedOperation(value, id);
+    if (record.state === 'accepted' && state !== 'accepted') return;
+    if (record.state === 'not_sent' && state === 'unknown') return;
+    const terminal = state === 'accepted' && record.method === 'terminal/open' && terminalResult
+      ? checkedTerminalResult(terminalResult) : undefined;
+    if (terminal && record.terminalResult && terminal.terminalId !== record.terminalResult.terminalId)
+      throw new Error('同一操作返回了不同的终端标识，已保留原回执。');
+    const next = { ...record, state, ...(resolvedThreadId ? { resolvedThreadId } : {}),
+      ...(terminal ? { terminalResult: terminal } : {}) };
+    await stored(records.put(next));
+    return next;
   });
-  // Separate immutable proof and acknowledgement keys survive cross-tab read/write races.
-  if (state === 'accepted') storage.setItem(acceptedPrefix + id, next);
-  if (state === 'not_sent') storage.setItem(notSentPrefix + id, next);
-  storage.setItem(prefix + id, next);
-  if (state === 'accepted' && record.draftKey && record.draftRevision)
-    clearDraftSnapshot(record.draftKey, record.draftRevision);
-  changed();
+  try {
+    if (updated?.state === 'accepted' && !updated.legacy && updated.draftKey && updated.draftRevision)
+      clearDraftSnapshot(updated.draftKey, updated.draftRevision);
+  } finally { changed(); }
 }
-export function acknowledgeOperation(id: string, storage: Storage = localStorage) {
-  const record = listOperations(storage).find((r) => r.id === id);
-  if (!record || !['accepted', 'not_sent'].includes(record.state))
-    throw new Error('未知操作仍需保留，不能据此重复发送。');
-  if (record.state === 'accepted' && record.draftKey && record.draftRevision)
-    clearDraftSnapshot(record.draftKey, record.draftRevision);
-  acknowledge(id, storage);
+export async function acknowledgeOperation(id: string) {
+  const removed = await transact(async (records) => {
+    const value: unknown = await stored(records.get(id));
+    if (value === undefined) return;
+    const record = checkedOperation(value, id);
+    if (!['accepted', 'not_sent'].includes(record.state)) throw new Error('未知操作仍需保留，不能据此重复发送。');
+    await stored(records.delete(id));
+    return record;
+  });
+  try {
+    if (removed?.state === 'accepted' && !removed.legacy && removed.draftKey && removed.draftRevision)
+      clearDraftSnapshot(removed.draftKey, removed.draftRevision);
+  } finally { changed(); }
 }
 /** Local closure only. It never changes the server receipt or clears an unsent draft. */
-export function stopUnknownRecovery(
-  id: string,
-  proof: Record<string, unknown>,
-  storage: Storage = localStorage,
-) {
-  const record = listOperations(storage).find((r) => r.id === id);
-  if (
-    proof.operationId !== id ||
-    proof.state !== 'unknown' ||
-    !record ||
-    record.state !== 'unknown'
-  )
-    throw new Error('需要当前操作的明确未知回执，不能根据暂未登记或处理中停止恢复。');
-  acknowledge(id, storage);
-}
-function acknowledge(id: string, storage: Storage) {
-  storage.setItem(acknowledgedPrefix + id, '1');
-  if (storage.getItem(acknowledgedPrefix + id) !== '1')
-    throw new Error('无法保存停止恢复标记，仍需保留此操作。');
-  storage.removeItem(prefix + id);
-  storage.removeItem(acceptedPrefix + id);
-  storage.removeItem(notSentPrefix + id);
+export async function stopUnknownRecovery(id: string, proof: Record<string, unknown>) {
+  await transact(async (records) => {
+    const value: unknown = await stored(records.get(id));
+    if (proof.operationId !== id || proof.state !== 'unknown' || value === undefined ||
+        checkedOperation(value, id).state !== 'unknown')
+      throw new Error('需要当前操作的明确未知回执，不能根据暂未登记或处理中停止恢复。');
+    await stored(records.delete(id));
+  });
   changed();
 }
-export function reconcileOperation(id: string, result: Record<string, unknown>) {
+export async function reconcileOperation(id: string, result: Record<string, unknown>) {
   const state = result.state ?? result.status ?? result.delivery;
   const details = result.result as Record<string, unknown> | undefined;
   const thread = details?.thread as { id?: string } | undefined;
-  if (state === 'accepted')
-    updateOperation(
-      id,
-      'accepted',
-      thread?.id ?? (typeof details?.threadId === 'string' ? details.threadId : undefined),
-      localStorage,
-      details && Object.hasOwn(details, 'terminalId') ? checkedTerminalResult(details) : undefined,
-    );
-  else if (state === 'not_sent') updateOperation(id, 'not_sent');
+  if (state === 'accepted') await updateOperation(id, 'accepted',
+    thread?.id ?? (typeof details?.threadId === 'string' ? details.threadId : undefined),
+    details && Object.hasOwn(details, 'terminalId') ? checkedTerminalResult(details) : undefined);
+  else if (state === 'not_sent') await updateOperation(id, 'not_sent');
   else {
-    const error = result.error as Record<string, unknown> | undefined,
-      data = error?.data as Record<string, unknown> | undefined;
-    updateOperation(id, 'unknown', typeof data?.threadId === 'string' ? data.threadId : undefined);
-  } // not_received is observation, never safe-to-retry evidence.
+    const error = result.error as Record<string, unknown> | undefined;
+    const data = error?.data as Record<string, unknown> | undefined;
+    await updateOperation(id, 'unknown', typeof data?.threadId === 'string' ? data.threadId : undefined);
+  }
 }
-import { clearDraftSnapshot } from './drafts';

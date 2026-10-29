@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import os
 import re
 import stat
@@ -61,7 +62,11 @@ def assert_reviewed_checkout(layout: Layout) -> None:
     require(not source.is_relative_to(layout.control.parent.resolve()),
             "Run control commands from a separate reviewed checkout, never an installed helper generation", "unsafe_path")
     trusted_ancestors(source)
-    for path in source.glob("*.py"):
+    from .dns_caddy_build import source_material
+    recipe = source / "caddy_dns_source"
+    trusted_ancestors(recipe)
+    paths = [*source.glob("*.py"), *(recipe / name for name in source_material())]
+    for path in paths:
         info = path.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o022 and info.st_nlink == 1,
                 "Reviewed deployment source must be exclusively root writable", "unsafe_path")
@@ -83,7 +88,7 @@ class ControlSystem(System):
             suffix = fields[0][len(prefix):-len(".service")]
             # Instance names may contain '-': a broad main-* glob must never
             # stop main-other's services. Known transient suffixes end in a UUID.
-            if suffix in (*ROLES, "config-check") or re.fullmatch(r"(?:manage|fetch|install|tsc|web|gateway-check|worker-check|runtime-probe|sandbox)-[0-9a-f]{32}", suffix):
+            if suffix in (*ROLES, "config-check") or re.fullmatch(r"(?:manage|fetch|install|tsc|web|gateway-check|worker-check|runtime-probe|sandbox|dns-fetch|dns-verify|dns-test|dns-build|dns-probe)-[0-9a-f]{32}", suffix):
                 units.append(fields[0])
         return units
 
@@ -262,8 +267,9 @@ class ControlUpdater:
     def preserve_edge(self, candidate: Path, transaction: Path, current: dict) -> None:
         # Edge binaries and their config-side verification records have their own
         # lifecycle. A Python rollback must not undo a later edge installation.
-        if (candidate / "edge").exists():
-            self.rename(candidate / "edge", transaction / "rollback-source-edge")
+        from .dns_caddy_build import verify_dns_caddy_generations
+        verify_dns_caddy_generations(self.layout)
+        self.validate_dns_selection()
         edge = self.layout.control / "edge"
         present = set(path.name for path in edge.iterdir()) if edge.exists() else set()
         require(present <= {"caddy", "authelia"}, "Unexpected managed edge binary directory", "integrity")
@@ -275,6 +281,8 @@ class ControlUpdater:
                 metadata = read_json(record)
                 require(current.get(relative, {}).get("type") == "file" and
                         current[relative]["sha256"] == metadata.get("sha256"), "Edge binary differs from its verified record", "integrity")
+        if (candidate / "edge").exists():
+            self.rename(candidate / "edge", transaction / "rollback-source-edge")
         if edge.exists():
             snapshot(edge, candidate / "edge", producer_stopped=True, expected_uid=0)
         durable_tree(candidate)
@@ -287,6 +295,7 @@ class ControlUpdater:
             fsync_directory(target.parent)
 
     def restore_services(self, state: dict) -> None:
+        self.validate_dns_selection()
         services = state["services"]
         for role in ROLES:
             require(self.system.enabled_state(self.layout.unit(role)) == services[role]["enabled"],
@@ -351,11 +360,13 @@ class ControlUpdater:
         capabilities = read_json(capability_file, 4096) if capability_file.exists() else {}
         try:
             self.require_account_guard(capabilities)
+            self.require_dns_guard(capabilities)
         except DeployError as error:
-            if error.code != "authentication_downgrade":
+            if error.code not in ("authentication_downgrade", "dns_downgrade"):
                 raise
-            raise DeployError("authentication_downgrade",
-                              "Previous control tools lack the account guard; recovery has not changed services or selected code. "
+            feature = "account guard" if error.code == "authentication_downgrade" else "selected DNS challenge support"
+            raise DeployError(error.code,
+                              "Previous control tools lack " + feature + "; recovery has not changed services or selected code. "
                               "Correct any runtime prerequisite, then run control-recover --target candidate to validate and resume the original candidate.") from error
         self.guard(state)
         self.stop_all()
@@ -408,7 +419,9 @@ class ControlUpdater:
         self.verify_generation(candidate, state["candidate"], blocked=True)
         self.verify_generation(previous, state["old"], blocked=True, legacy_cache=previous == self.layout.control)
         capabilities = candidate / "capabilities.json"
-        self.require_account_guard(read_json(capabilities, 4096) if capabilities.exists() else {})
+        selected_capabilities = read_json(capabilities, 4096) if capabilities.exists() else {}
+        self.require_account_guard(selected_capabilities)
+        self.require_dns_guard(selected_capabilities)
         self.guard(state)
         self.stop_all()
         self.verify_generation(candidate, state["candidate"], blocked=True)
@@ -424,11 +437,14 @@ class ControlUpdater:
             durable_tree(self.layout.control)
             self.save(path, state, "installed")
             self.restore_services(state)
-            self.save(path, state, "committed")
         except Exception:
             self.guard(state)
             self.stop_all()
             raise
+        # A replacement may publish the terminal journal before directory fsync
+        # reports failure. Never block or stop verified services after that
+        # publication; an earlier write failure retains the retryable phase.
+        self.save(path, state, "committed")
         return {"controlRecovered": True, "target": "candidate", "transaction": path.name,
                 "controlDigest": digest(state["candidate"])}
 
@@ -458,6 +474,69 @@ class ControlUpdater:
             require(not manager.release_accounts(selected),
                     "Rollback target lacks the built-in account downgrade guard", "authentication_downgrade")
 
+    def validate_dns_selection(self) -> None:
+        path = self.layout.config / "https.json"
+        if path.exists() or path.is_symlink():
+            from .https import read_https_metadata
+            from .dns_tls import validate_dns_selection
+            validate_dns_selection(self.layout, read_https_metadata(self.layout))
+
+    def require_dns_guard(self, capabilities: dict) -> None:
+        """Control selection cannot discard support for an installed DNS mode."""
+        require(isinstance(capabilities, dict), "Invalid retained control capabilities", "integrity")
+        from .dns_providers import PROVIDERS
+        supported = set()
+        if capabilities.get("dnsChallenge") == "caddy-dns-v1":
+            if "dnsProviders" not in capabilities:
+                # The original v1 implementation supported only AliDNS.
+                supported = {"alidns"}
+            else:
+                values = capabilities["dnsProviders"]
+                require(isinstance(values, list) and all(isinstance(value, str) and value in PROVIDERS for value in values) and
+                        len(values) == len(set(values)), "Invalid retained DNS provider capabilities", "integrity")
+                supported = set(values)
+        elif "dnsProviders" in capabilities:
+            raise DeployError("integrity", "DNS provider capabilities require the DNS challenge guard")
+
+        def require_selection(metadata: dict, message: str) -> None:
+            from .dns_tls import SELECTION_FIELDS
+            fields = {name for name in metadata if name.startswith("dns")}
+            if not fields:
+                return
+            provider = metadata.get("dnsProvider")
+            require(isinstance(provider, str) and provider in supported and fields == set(SELECTION_FIELDS) and
+                    metadata.get("tls") == "acme" and metadata.get("authentication") == "builtin" and
+                    all(isinstance(metadata.get(name), str) and re.fullmatch(pattern, metadata[name]) for name, pattern in (
+                        ("dnsCredentialsRevision", r"[0-9a-f]{32}"), ("dnsCredentialsSha256", r"[0-9a-f]{64}"),
+                        ("dnsBinaryRevision", r"[0-9a-f]{64}"), ("dnsBinarySha256", r"[0-9a-f]{64}"))),
+                    message, "dns_downgrade")
+
+        path = self.layout.config / "https.json"
+        if path.exists() or path.is_symlink():
+            from .https import read_https_metadata
+            metadata = read_https_metadata(self.layout)
+            require_selection(metadata, "Rollback target lacks the selected DNS challenge support or its selection is invalid")
+        # A pending HTTPS recovery may have already selected a non-DNS mode,
+        # while its rollback snapshot still needs DNS credentials and modules.
+        for record in (self.layout.state / "transactions").glob("*/state.json"):
+            state = read_json(record)
+            require(isinstance(state, dict), "Invalid management transaction", "corrupt_state")
+            if state.get("kind") != "https" or state.get("phase") in TERMINAL:
+                continue
+            candidate = state.get("candidateHttps")
+            if candidate is not None:
+                require(isinstance(candidate, dict), "Invalid candidate HTTPS metadata snapshot", "corrupt_state")
+                require_selection(candidate, "Rollback target lacks the pending DNS challenge recovery support or its selection is invalid")
+            before = state.get("before")
+            require(isinstance(before, dict) and isinstance(before.get("metadata"), dict),
+                    "Invalid retained HTTPS metadata snapshot", "corrupt_state")
+            try:
+                metadata = json.loads(base64.b64decode(before["metadata"]["data"], validate=True))
+            except (KeyError, TypeError, ValueError) as error:
+                raise DeployError("corrupt_state", "Invalid retained HTTPS metadata snapshot") from error
+            require(isinstance(metadata, dict), "Invalid retained HTTPS metadata snapshot", "corrupt_state")
+            require_selection(metadata, "Rollback target lacks the pending DNS challenge recovery support or its selection is invalid")
+
     def update(self, rollback: str | None = None) -> dict:
         require_recovered(self.layout)
         require_owned(self.layout, self.config)
@@ -476,6 +555,7 @@ class ControlUpdater:
             capability_file = retained / "old/capabilities.json"
             capabilities = read_json(capability_file, 4096) if capability_file.exists() else {}
             self.require_account_guard(capabilities)
+            self.require_dns_guard(capabilities)
             require(self.config.get("providerConfigLayer") is None or capabilities.get("providerConfigLayer") == "system-v1",
                     "Rollback target predates system provider layers; roll back the configuration layer first", "configuration_conflict")
             require(capabilities.get("nativeWorkspace") == 1 or
@@ -524,7 +604,6 @@ class ControlUpdater:
             self.rename(candidate, self.layout.control)
             self.save(path, state, "installed")
             self.restore_services(state)
-            self.save(path, state, "committed")
         except Exception as exc:
             # If any stop observation is uncertain, recover_transaction stops
             # here and preserves both generations, all barriers and the journal.
@@ -532,6 +611,10 @@ class ControlUpdater:
                 raise
             self.recover_transaction(path, state)
             raise
+        # Terminal publication is outside compensation: os.replace may succeed
+        # even when its following directory fsync fails. Both possible on-disk
+        # phases must describe these already verified services and generation.
+        self.save(path, state, "committed")
         return {"controlUpdated": True, "transaction": path.name, "controlDigest": digest(candidate_manifest),
                 "previousDigest": digest(old_manifest), "rollbackOf": rollback}
 

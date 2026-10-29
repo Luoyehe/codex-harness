@@ -229,10 +229,12 @@ function AutomationEditor({
       if (receipt.state === 'accepted') {
         const result = object(receipt.result);
         acceptedPlan(submission, result);
-        reconcileOperation(submission.operationId, receipt);
+        await reconcileOperation(submission.operationId, receipt);
+        if (!mounted.current || current.current.pending !== submission) return;
         accepted(submission, result);
       } else {
-        reconcileOperation(submission.operationId, receipt);
+        await reconcileOperation(submission.operationId, receipt);
+        if (!mounted.current || current.current.pending !== submission) return;
         if (receipt.state === 'not_sent') {
           publish({ ...current.current, pending: undefined });
           setConfirmed(false);

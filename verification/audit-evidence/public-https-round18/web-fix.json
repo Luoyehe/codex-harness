@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round18",
+  "findingId": "WEB18-001",
+  "reviewerId": "audit18-web-independent-20261029",
+  "status": "fixed-targeted-validation-passed",
+  "sourceChangedAt": "2026-10-28T21:58:43.5618286Z",
+  "completedAt": "2026-10-28T22:02:21.7168663Z",
+  "sourceDigestBefore": "fb2156c746a3033571691aff632a385ec923bdd6739b3fb798769741184a65a4",
+  "sourceDigestAfter": "a89d55d3c0a5f12a4f689dd3bbb0b98dced8342ca5d161d52205d8379a3a8d1c",
+  "sourceFiles": [
+    "web/components/Messages.tsx"
+  ],
+  "change": "仅删除 Messages.tsx 第155行分页工具栏 className 中误用的 history-window，保留 inline wrap 自然行布局；HistoryTools 与所有样式文件未改。",
+  "lineEndings": "Messages.tsx raw bytes contain no CR; LF preserved.",
+  "rawHashVerification": {
+    "verifiedAt": "2026-10-28T22:01:58.4172943Z",
+    "changedFiles": [
+      "web/components/Messages.tsx"
+    ],
+    "beforeSHA256": "e5b73b1315101ddd60f5e90ee57c8039e57415aaa05463fb23489d5223f52888",
+    "aggregateFiles": 1910,
+    "afterSHA256": "ee4b0eda0d6f6dc69b9231dd1f08f703fb528523792881e46f4968f69c9a4385",
+    "checkedFiles": 1910
+  },
+  "tests": {
+    "startedLocal": "2026-10-29 05:58:44 Asia/Shanghai",
+    "durationSeconds": 4.53,
+    "newUnitTests": 0,
+    "testsPassed": 105,
+    "result": "passed",
+    "filesPassed": 6,
+    "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe node_modules/vitest/vitest.mjs run web/tests/conversation.test.tsx web/tests/render-budget.test.tsx web/tests/message-media.test.tsx web/tests/timeline-history.test.tsx web/tests/workflows.test.tsx web/tests/modal-mutations.test.tsx"
+  },
+  "browserValidation": {
+    "startedAt": "2026-10-28T22:01:27.766Z",
+    "fixture": ".work/public-https-round18-layout-live/index.html",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "height": 900,
+        "mobile": false,
+        "pagination": {
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "height": 30.796875,
+          "width": 740,
+          "direction": "row",
+          "initialLabel": "已读取 401 条，显示第 252–401 条；其余内容仍保留。",
+          "buttons": [
+            {
+              "text": "显示较早内容",
+              "height": 30.796875,
+              "width": 94,
+              "left": 563.890625,
+              "right": 657.890625,
+              "disabled": false
+            },
+            {
+              "text": "显示较新内容",
+              "height": 30.796875,
+              "width": 94,
+              "left": 665.890625,
+              "right": 759.890625,
+              "disabled": true
+            }
+          ],
+          "afterPaging": "已读取 401 条，显示第 151–300 条；其余内容仍保留。"
+        },
+        "actualPointerClicks": {
+          "older1": {
+            "x": 610.890625,
+            "y": 78.9921875,
+            "reachable": true,
+            "text": "显示较早内容"
+          },
+          "older2": {
+            "x": 610.890625,
+            "y": 78.9921875,
+            "reachable": true,
+            "text": "显示较早内容"
+          },
+          "newer": {
+            "x": 699.953125,
+            "y": 78.9921875,
+            "reachable": true,
+            "text": "显示较新内容"
+          }
+        },
+        "preview": {
+          "height": 495,
+          "direction": "column",
+          "declaredHeight": "495px",
+          "expectedHeight": 495.00000000000006,
+          "text": "这是定位附近的只读片段，不是完整历史。完整导出仍从运行时单独读取。⌘CodexLocal search preview target↓ 回到最新",
+          "calls": [
+            {
+              "method": "thread/searchOccurrences",
+              "params": {
+                "threadId": "local-thread",
+                "searchTerm": "Local",
+                "limit": 50
+              }
+            },
+            {
+              "method": "thread/history/window",
+              "params": {
+                "threadId": "local-thread",
+                "turnCursor": "local-window",
+                "limit": 10
+              }
+            }
+          ]
+        },
+        "screenshots": [
+          "desktop-pagination.png",
+          "desktop-preview.png"
+        ]
+      },
+      {
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "mobile": true,
+        "pagination": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "height": 54.796875,
+          "width": 352,
+          "direction": "row",
+          "initialLabel": "已读取 401 条，显示第 252–401 条；其余内容仍保留。",
+          "buttons": [
+            {
+              "text": "显示较早内容",
+              "height": 30.796875,
+              "width": 94,
+              "left": 19,
+              "right": 113,
+              "disabled": false
+            },
+            {
+              "text": "显示较新内容",
+              "height": 30.796875,
+              "width": 94,
+              "left": 121,
+              "right": 215,
+              "disabled": true
+            }
+          ],
+          "afterPaging": "已读取 401 条，显示第 151–300 条；其余内容仍保留。"
+        },
+        "actualPointerClicks": {
+          "older1": {
+            "x": 66,
+            "y": 96.9921875,
+            "reachable": true,
+            "text": "显示较早内容"
+          },
+          "older2": {
+            "x": 66,
+            "y": 96.9921875,
+            "reachable": true,
+            "text": "显示较早内容"
+          },
+          "newer": {
+            "x": 168,
+            "y": 96.9921875,
+            "reachable": true,
+            "text": "显示较新内容"
+          }
+        },
+        "preview": {
+          "height": 464.1875,
+          "direction": "column",
+          "declaredHeight": "464.188px",
+          "expectedHeight": 464.20000000000005,
+          "text": "这是定位附近的只读片段，不是完整历史。完整导出仍从运行时单独读取。⌘CodexLocal search preview target↓ 回到最新",
+          "calls": [
+            {
+              "method": "thread/searchOccurrences",
+              "params": {
+                "threadId": "local-thread",
+                "searchTerm": "Local",
+                "limit": 50
+              }
+            },
+            {
+              "method": "thread/history/window",
+              "params": {
+                "threadId": "local-thread",
+                "turnCursor": "local-window",
+                "limit": 10
+              }
+            }
+          ]
+        },
+        "screenshots": [
+          "mobile-pagination.png",
+          "mobile-preview.png"
+        ]
+      }
+    ],
+    "exceptions": [],
+    "browser": "Chrome/156.0.8078.48",
+    "status": "passed",
+    "completedAt": "2026-10-28T22:01:29.89Z"
+  },
+  "visualReview": "实际打开查看 desktop-pagination、desktop-preview、mobile-pagination、mobile-preview 四张截图；分页栏紧凑、两个按钮可见且实际指针点击有效，预览容器保持列布局及55vh高度。",
+  "fixtureArtifacts": [
+    ".work/public-https-round18-layout-live.tsx",
+    ".work/public-https-round18-layout-build.mjs",
+    ".work/public-https-round18-layout-browser.mjs",
+    ".work/public-https-round18-layout-live/measurements.json",
+    ".work/public-https-round18-layout-live/desktop-pagination.png",
+    ".work/public-https-round18-layout-live/desktop-preview.png",
+    ".work/public-https-round18-layout-live/mobile-pagination.png",
+    ".work/public-https-round18-layout-live/mobile-preview.png"
+  ],
+  "fixtureCorrections": [
+    "首次浏览器夹具将400条消息误算为400行，实际还有1条turn行共401行；仅修正夹具页码期望102–251，无新增源码问题。",
+    "第二次启动读到了前次隔离profile的旧DevTools端口；改为每次新建独立.work profile后完成真实浏览器验证。"
+  ],
+  "limitations": [
+    "未执行full或整个Web测试集，未访问线上、真实provider/MCP或个人凭据。",
+    "浏览器使用当前真实React组件与全部当前CSS，API为本地确定性替身，仅验证此次样式改动相关分页与预览，不宣称外部端到端集成通过。",
+    "未新增源码测试；ignored .work 脚本用于实际浏览器测量，不作为镜像样式单元测试。"
+  ]
+}

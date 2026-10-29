@@ -29,7 +29,7 @@ def regular(path, expected: set[bytes]) -> None:
 
 
 def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
-                  prior_units: dict[str, bytes | None] | None = None) -> None:
+                  prior_units: dict[str, bytes | None] | None = None, candidate_dns: dict | None = None) -> None:
     expected = {**render_units(layout, config, config["codexRelative"]), **render_edge_units(layout), layout.unit("config-check"): render_config_check(layout)}
     worker_variants = {render_units(layout, config, config["codexRelative"], legacy_runtime_directory=runtime, legacy_native_home=home)[layout.unit("worker")].encode()
                        for runtime in (False, True) for home in (False, True)}
@@ -39,6 +39,13 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
         allowed = {expected[unit].encode()}
         if role == "caddy":
             allowed.add(render_edge_units(layout, builtin=True)[unit].encode())
+            if candidate_dns is not None:
+                allowed.add(render_edge_units(layout, builtin=True, dns_metadata=candidate_dns)[unit].encode())
+            if present(layout.config / "https.json"):
+                from .https import read_https_metadata
+                metadata = read_https_metadata(layout)
+                if metadata.get("dnsProvider") is not None:
+                    allowed.add(render_edge_units(layout, builtin=True, dns_metadata=metadata)[unit].encode())
         if role == "worker":
             allowed.update(worker_variants)
         if prior_units and prior_units.get(role) is not None:
@@ -63,6 +70,7 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
                 "90-codex-harness-control-maintenance.conf": f"[Unit]\nConditionPathExists=!{layout.config / 'control-maintenance' / role}\n".encode(),
                 "91-codex-harness-https-recovery.conf": f"[Unit]\nConditionPathExists=!{layout.config / 'https-recovery' / role}\n".encode(),
                 "92-codex-harness-config-layer.conf": f"[Unit]\nConditionPathExists=!{layout.config / 'config-layer-maintenance' / role}\n".encode(),
+                "93-codex-harness-service-lifecycle.conf": f"[Unit]\nConditionPathExists=!{layout.config / 'service-lifecycle' / role}\n".encode(),
             }
             for item in dropins.iterdir():
                 require(item.name in allowed_dropins, "Unrecognized service drop-in", "ownership_conflict")

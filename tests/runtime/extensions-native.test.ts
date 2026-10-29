@@ -6,8 +6,9 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonValue } from '../../src/runtime/types.js';
+import { withFixtureCleanup } from './fixture-cleanup.js';
 
-test('official CLI updates isolated user configuration with version conflicts, resolves skill toggles, and reports capabilities without inference', async () => {
+test('official CLI updates isolated user configuration with version conflicts, resolves skill toggles, and reports capabilities without inference', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'home-')); const codex = path.join(home, 'codex'); const project = path.join(home, 'project'); const temp = path.join(home, 'tmp');
   [codex, project, temp].forEach(folder => mkdirSync(folder));
@@ -25,8 +26,10 @@ test('official CLI updates isolated user configuration with version conflicts, r
   const deny = createServer((req, res) => { if (req.url?.endsWith('/responses')) modelRequests++; req.resume(); res.writeHead(503, { 'content-type': 'application/json' }); res.end('{"error":"isolated fixture denies network"}'); });
   deny.on('connect', (_req, socket) => { socket.end('HTTP/1.1 503 Denied\r\nContent-Length: 0\r\n\r\n'); });
   let runtime: RuntimeService | undefined; let pid: number | undefined;
-  try {
     await new Promise<void>(resolve => deny.listen(0, '127.0.0.1', resolve)); const url = 'http://127.0.0.1:'+(deny.address() as AddressInfo).port;
+    defer(async () => { const closed = new Promise<void>((resolve, reject) => deny.close(error => error ? reject(error) : resolve())); deny.closeAllConnections(); await closed; });
+    defer(() => { if (pid !== undefined) expect(() => process.kill(pid!, 0)).toThrow(); });
+    defer(() => runtime?.close());
     const catalog = path.join(home, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
     writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "fixture"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'model_reasoning_effort = "low"', 'check_for_update_on_startup = false', '[model_providers.fixture]', 'name = "Local fixture"', `base_url = "${url}/v1"`, 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0'].join('\n'));
     const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, CODEX_HOME: codex, TEMP: temp, TMP: temp, HTTP_PROXY: url, HTTPS_PROXY: url, ALL_PROXY: url, NO_PROXY: '127.0.0.1,localhost' };
@@ -96,8 +99,4 @@ test('official CLI updates isolated user configuration with version conflicts, r
     await expect(runtime.call('feedback/save', { cwd: project, threadId: feedbackThread.id!, classification: 'bug', includeLogs: false, confirm: true }, context)).rejects.toMatchObject({ delivery: 'not_sent' });
     expect(await runtime.call('rollout/compress', { confirm: true }, context)).toEqual({ triggered: true, completionConfirmed: false });
     expect(modelRequests).toBe(0);
-  } finally {
-    await runtime?.close(); await new Promise<void>(resolve => { deny.close(() => resolve()); deny.closeAllConnections(); });
-    if (pid !== undefined) expect(() => process.kill(pid!, 0)).toThrow();
-  }
-}, 60000);
+}), 60000);

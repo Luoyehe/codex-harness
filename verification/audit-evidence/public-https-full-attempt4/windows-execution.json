@@ -1,0 +1,81 @@
+{
+  "startedAt": "2026-10-29T20:12:24.592Z",
+  "completedAt": "2026-10-29T20:17:25.814Z",
+  "folder": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-windows-OGWGJK",
+  "digest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceDigestAfter": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "unchanged": true,
+  "auditRounds": [
+    "public-https-round24",
+    "public-https-round25"
+  ],
+  "authorizationSha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee",
+  "planSha256": "005983d030e89049c198b02740288138720e39c9782c3bc29ff43caaeec5708a",
+  "manifestSha256": "b836789513f62233f597c83a312f303e28e075b916be2504be906cb3ba347483",
+  "exitCode": 3,
+  "controllerExit": 0,
+  "stopProof": {
+    "confirmed": true,
+    "exitCode": 3
+  },
+  "logs": [
+    {
+      "stream": "stdout",
+      "flushed": true
+    },
+    {
+      "stream": "stderr",
+      "flushed": true
+    }
+  ],
+  "helperHashes": {
+    "public-full-gate.mjs": "73060725d76c93b0cd967a247a5e2e65d5e2b08fba6430831fa64f744a7dc193",
+    "public-full-windows-entry.mjs": "57690504008263a204b4412e55127c5e02fc34d8ee7da2b4bd8e71ef161a8270",
+    "windows-job": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0",
+    "windows-process": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2"
+  },
+  "error": null,
+  "build": {
+    "path": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-windows-OGWGJK\\build-windows.json",
+    "sha256": "d6c3b46c322e6ca4380b86433f75ac8e5662ec26122528f00e21f25386689c2f",
+    "status": "passed",
+    "checks": [
+      {
+        "name": "server-build",
+        "startedAt": "2026-10-29T20:12:26.745Z",
+        "completedAt": "2026-10-29T20:12:26.957Z",
+        "status": "passed",
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "name": "web-typecheck",
+        "startedAt": "2026-10-29T20:12:26.957Z",
+        "completedAt": "2026-10-29T20:12:27.414Z",
+        "status": "passed",
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "name": "web-build",
+        "startedAt": "2026-10-29T20:12:27.414Z",
+        "completedAt": "2026-10-29T20:12:27.918Z",
+        "status": "passed",
+        "exitCode": 0,
+        "signal": null
+      }
+    ],
+    "exitCode": 0
+  },
+  "report": {
+    "path": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-windows-OGWGJK\\result-windows.json",
+    "sha256": "a4d0076cec21eafd14fa41e48ce22d8a15eee6c969c0ef475b138f1ef2c2a4d9",
+    "cases": 1934,
+    "exitCode": 3
+  },
+  "fullSuitePassed": false,
+  "limits": [
+    "Windows evidence requires complementary Linux/root reports and repository reconciliation.",
+    "Windows uses denying proxy settings and fixture guards; it is not a kernel network namespace."
+  ]
+}

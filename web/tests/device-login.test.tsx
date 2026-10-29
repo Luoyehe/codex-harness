@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { enabledButton } from './enabled-button';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
@@ -107,14 +108,14 @@ it('recovers a lost login response through the original receipt without opening 
   });
   render(<AccountSettings {...props(s)} />);
   start();
-  const recover = await screen.findByRole('button', { name: '查询原账户操作回执' });
+  const recover = await enabledButton({ name: '查询原账户操作回执' });
   expect(
     (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
   ).toBe(true);
   fireEvent.click(recover);
   await screen.findByText('PRIVATE-DEVICE-CODE');
   expect(s.calls.filter((c) => c.method === 'account/login')).toHaveLength(1);
-  expect(listOperations()).toEqual([]);
+  expect((await listOperations())).toEqual([]);
 });
 it('does not revive a device code from a late handoff after native completion', async () => {
   let finish!: (v: unknown) => void;
@@ -228,6 +229,6 @@ it('retains the missing-identity recovery gate when the settings modal is reopen
   expect(
     (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
   ).toBe(true);
-  expect(screen.getByRole('button', { name: '查询原账户操作回执' })).toBeTruthy();
+  expect(await enabledButton({ name: '查询原账户操作回执' })).toBeTruthy();
   expect(s.calls.filter((c) => c.method === 'account/login')).toHaveLength(1);
 });

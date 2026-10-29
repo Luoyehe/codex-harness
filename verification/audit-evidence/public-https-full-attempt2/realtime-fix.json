@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-28T23:23:38.907Z",
+  "scope": "Linux full attempt 2 realtime regression diagnosis and authorized fixture correction",
+  "sourceDigestAtFailure": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+  "originalLinuxReport": ".work/public-full-attempt2-linux-vitest.json",
+  "regression": "does not apply an unmounted realtime owner acknowledgement to its replacement draft",
+  "classification": "Fixture did not await retired-owner stop cleanup; observed failure is not a stale acknowledgement mutating the replacement draft.",
+  "rootCause": [
+    "Rerender with a new lease unmounts the old owner; its layout-effect cleanup starts thread/realtime/stop.",
+    "The replacement useOperations hook initially renders an empty array while the old stop is being durably created and later accepted/acknowledged in IndexedDB.",
+    "The test waits for the audio start button to be enabled before switching mode, but that enabled state can precede publication of the stop pending record.",
+    "The text mode change can flush the pending-operation render. The test then clicks a disabled text start button, so no second start is dispatched.",
+    "The stop later completes and the DOM becomes enabled again, but there is no automatic replay; findByText(active) therefore times out before the stale acknowledgement assertion."
+  ],
+  "sourceEvidence": [
+    {
+      "file": "web/components/RealtimePanel.tsx",
+      "lines": "239-244",
+      "observation": "Unmount invokes stopRef.current()."
+    },
+    {
+      "file": "web/components/Recovery.tsx",
+      "lines": "15-36",
+      "observation": "useOperations starts with [] and asynchronously refreshes durable records."
+    },
+    {
+      "file": "web/lib/api.ts",
+      "lines": "422-468",
+      "observation": "Mutation result resolves after create, RPC, accepted write, and acknowledgement cleanup."
+    },
+    {
+      "file": "web/components/RealtimePanel.tsx",
+      "lines": "334-344,515-523",
+      "observation": "Pending operations intentionally block new realtime start and disable its button."
+    },
+    {
+      "file": "web/components/RealtimePanel.tsx",
+      "lines": "488-500",
+      "observation": "Append acknowledgement checks current owner before changing text."
+    }
+  ],
+  "reproductions": [
+    {
+      "mode": "repeated",
+      "sourceTestHash": "f333641a3797a4f1b3ec5618b163e502d9b68a7502d04a444a453f0f44b27541",
+      "exitCode": 1,
+      "report": ".work/public-realtime-diagnosis-repeated/vitest.json",
+      "log": ".work/public-realtime-diagnosis-repeated/run.log",
+      "selected": 30,
+      "passed": 29,
+      "failed": [
+        "does not apply an unmounted realtime owner acknowledgement to its replacement draft repetition 20"
+      ],
+      "scope": "Only the named regression was selected; other test-file cases are intentionally filtered out. This is not full-suite evidence."
+    },
+    {
+      "mode": "traced",
+      "sourceTestHash": "f333641a3797a4f1b3ec5618b163e502d9b68a7502d04a444a453f0f44b27541",
+      "exitCode": 1,
+      "report": ".work/public-realtime-diagnosis-traced/vitest.json",
+      "log": ".work/public-realtime-diagnosis-traced/run.log",
+      "selected": 30,
+      "passed": 27,
+      "failed": [
+        "does not apply an unmounted realtime owner acknowledgement to its replacement draft repetition 16",
+        "does not apply an unmounted realtime owner acknowledgement to its replacement draft repetition 20",
+        "does not apply an unmounted realtime owner acknowledgement to its replacement draft repetition 23"
+      ],
+      "scope": "Only the named regression was selected; other test-file cases are intentionally filtered out. This is not full-suite evidence."
+    },
+    {
+      "mode": "fixed",
+      "sourceTestHash": "f333641a3797a4f1b3ec5618b163e502d9b68a7502d04a444a453f0f44b27541",
+      "exitCode": 0,
+      "report": ".work/public-realtime-diagnosis-fixed/vitest.json",
+      "log": ".work/public-realtime-diagnosis-fixed/run.log",
+      "selected": 30,
+      "passed": 30,
+      "failed": [],
+      "scope": "Only the named regression was selected; other test-file cases are intentionally filtered out. This is not full-suite evidence."
+    },
+    {
+      "mode": "final-repeated",
+      "sourceTestHash": "faeb932f358e9e7afa0be6cec9db732c94b704f186d5415327d86b0810a71395",
+      "exitCode": 0,
+      "report": ".work/public-realtime-diagnosis-final-repeated/vitest.json",
+      "log": ".work/public-realtime-diagnosis-final-repeated/run.log",
+      "selected": 30,
+      "passed": 30,
+      "failed": [],
+      "scope": "Only the named regression was selected; other test-file cases are intentionally filtered out. This is not full-suite evidence."
+    }
+  ],
+  "clickTraceEvidence": {
+    "log": ".work/public-realtime-diagnosis-traced/run.log",
+    "failures": [
+      {
+        "repetition": 16,
+        "secondClickDisabled": true,
+        "oldStopAlreadyDispatched": true
+      },
+      {
+        "repetition": 20,
+        "secondClickDisabled": true,
+        "oldStopAlreadyDispatched": true
+      },
+      {
+        "repetition": 23,
+        "secondClickDisabled": true,
+        "oldStopAlreadyDispatched": true
+      }
+    ],
+    "observation": "All three traced failures clicked the second start with disabled=true. The original, uninstrumented test also failed 1/30 in isolation with the same line and final DOM as Linux."
+  },
+  "correction": {
+    "file": "web/tests/realtime.test.tsx",
+    "description": "Hold the retired-owner stop response explicitly; verify that its pending receipt disables replacement start; resolve it and await the actual beginMutation result inside act before starting the replacement. Assert exactly one retired-owner stop and exactly two starts. Preserve the late append acknowledgement and replacement-draft assertions.",
+    "usesBlindDelay": false,
+    "usesRetryToHideFailure": false,
+    "modifiesProductImplementation": false,
+    "hashBefore": "f333641a3797a4f1b3ec5618b163e502d9b68a7502d04a444a453f0f44b27541",
+    "hashAfter": "faeb932f358e9e7afa0be6cec9db732c94b704f186d5415327d86b0810a71395",
+    "lineEndings": "LF"
+  },
+  "productFileIntegrity": [
+    {
+      "file": "web/components/RealtimePanel.tsx",
+      "sha256": "ef18e85e7a11aa858ee8389f6027d2ce1e44207c554971bc7e960b863d247c7a",
+      "matchesFrozenDiagnosticCopy": true
+    },
+    {
+      "file": "web/components/Recovery.tsx",
+      "sha256": "b48b427b823f56c85a914534383827f43024121d58d86f1484adf4539c41c88a",
+      "matchesFrozenDiagnosticCopy": true
+    },
+    {
+      "file": "web/lib/api.ts",
+      "sha256": "fac6e251c9f1567110a1901bb815c192660c5fb3b5585a264ec59a0deb5bc639",
+      "matchesFrozenDiagnosticCopy": true
+    },
+    {
+      "file": "web/lib/operations.ts",
+      "sha256": "028242f7e288ce847caa8ebd97cce42e6085fe198bb031c1b0e81968cdb72a6d",
+      "matchesFrozenDiagnosticCopy": true
+    },
+    {
+      "file": "web/lib/operation-store.ts",
+      "sha256": "84471c85a2af28b1ae571fe5c4a1d2ca02d03c5206137e98aa58f6ecaf576e45",
+      "matchesFrozenDiagnosticCopy": true
+    }
+  ],
+  "validation": {
+    "node": {
+      "executable": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+      "version": "v24.22.1"
+    },
+    "targeted": {
+      "command": [
+        ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+        "scripts/run-tests.mjs",
+        "--targeted",
+        "web/tests/realtime.test.tsx"
+      ],
+      "exitCode": 0,
+      "log": ".work/public-full-attempt2-realtime-targeted.log",
+      "report": ".work/test-results/run-40JOhM/vitest.json",
+      "total": 21,
+      "passed": 21,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "typecheck": {
+      "command": [
+        ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "web/tsconfig.json",
+        "--noEmit"
+      ],
+      "exitCode": 0,
+      "log": ".work/public-full-attempt2-realtime-typecheck.log"
+    },
+    "fullSuiteExecutedByThisTask": false,
+    "realServicesOrCredentialsUsed": false,
+    "isolatedHomesAndBlockedExternalProxies": true
+  },
+  "limitations": [
+    "Final correction was tested locally on Windows with Node v24.22.1; Linux clean full validation remains for the parent task.",
+    "Diagnostic repetitions intentionally select one regression and are not clean full audit evidence."
+  ]
+}

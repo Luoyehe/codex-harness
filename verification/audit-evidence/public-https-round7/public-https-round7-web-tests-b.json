@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round7",
+  "reviewerId": "r7-web-tests-b-a7c135ea-4da7-4593-b251-0e63f8b3046b",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520",
+  "sourceDigestAfter": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520",
+  "startedAt": "2026-10-27T04:28:15.103Z",
+  "completedAt": "2026-10-27T04:30:18.209Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx",
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings-drafts.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx"
+  ],
+  "method": "Independent review of the assigned current Web test slice, indices 35 through 67 inclusive of the fresh .work/public-r7-web-contracts.json extraction. Read every file's test contracts, assertions, hooks and effect expressions. Expanded complete source for operations.test.ts, session.test.ts, realtime.test.tsx, terminal.test.tsx, receipt-maintenance.test.tsx, recovery.test.tsx and preview-server.mjs. Also read complete relevant high-risk bodies for workspace unknown write recovery/storage failure, worktree receipt recovery, reviewed HEAD/index commit races and download owner changes, and remote pairing expiration/identity reuse/late-response races. Examined explicit consent, owner and epoch transitions including ABA, asynchronous stale-result isolation, unknown outcome recovery without replay, immutable reviewed identities, bounded rendering/input, private data storage, and teardown/mock isolation. Verified current Vitest restoreMocks configuration to resolve a potential test-isolation concern. This covers all assigned files structurally with deeper selected full-source/body review; it does not claim every remaining test body was read linearly. SHA-256 comparison of all 33 sources and full source snapshot was performed after review, independently of semantic coverage. The recorded start is the actual completion boundary of the primary runtime review, immediately preceding this supplemental slice. No prior audit conclusions were consulted.",
+  "coverage": {
+    "assignedIndexStart": 35,
+    "assignedIndexEnd": 67,
+    "files": 33,
+    "extractedContractEntries": 332,
+    "extractedAssertionExpressions": 956,
+    "fullSourceFiles": [
+      "web/tests/operations.test.ts",
+      "web/tests/session.test.ts",
+      "web/tests/realtime.test.tsx",
+      "web/tests/terminal.test.tsx",
+      "web/tests/receipt-maintenance.test.tsx",
+      "web/tests/recovery.test.tsx",
+      "web/tests/preview-server.mjs"
+    ],
+    "supplementalConfigurationRead": [
+      "vitest.config.ts"
+    ]
+  },
+  "checks": [
+    {
+      "name": "inspected-file-sha256",
+      "files": 33,
+      "changed": []
+    },
+    {
+      "name": "full-source-snapshot",
+      "files": 1883,
+      "digest": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520"
+    }
+  ],
+  "limitations": [
+    "No browser, DOM test suite, full repository tests, real account access, real media/network provider session, paid inference or external MCP was executed.",
+    "Mocked test contracts are evidence of intended regression coverage, not proof that external integrations pass.",
+    "The code review of production Web modules belongs to the separately assigned reviewer; this report concerns only this test/fixture slice."
+  ],
+  "findings": [],
+  "skipped": [],
+  "inspectedFileHashes": {
+    "web/tests/operation-generation.test.ts": "36b788dce8966acf9e926bdfe6d7b0d7b897a487ecb35ea2a36810a1dfa347fa",
+    "web/tests/operations.test.ts": "8f378bd4e539343f184aa8cb6ca512b218889472ff770a5c8867a99688b7cb37",
+    "web/tests/organization.test.tsx": "1def3eaa606abd828fa3a8f2d861b7081c1c7ec9d92a271254c21be5013bf649",
+    "web/tests/prediction.test.tsx": "a9444a9e1412296e7955486d242ed97c4e56730ea9a9465b10e49bae7b3cee51",
+    "web/tests/preview-server.mjs": "c19a1c557f9336ba1a5751e73c60b4e7a513b746d49e367495c297d6229572a8",
+    "web/tests/process-remote.test.tsx": "37e3de47bef359ebcb05148c634a1c30e667ad26b1518d271ec38d42bc4f4e18",
+    "web/tests/prompt-fields.test.tsx": "d53ad05ad2567b7537fb6373be58a91e3b40b76c857e3605521506d2e8cbd349",
+    "web/tests/prompts.test.tsx": "0db1f10def4ee011495ab87abfd24284297ea875b570aeb0659e3a614942f000",
+    "web/tests/provider-advanced.test.tsx": "3b07d322c4d8c479298eb2b20f35cbacc26b5b6cb6e594b8a4ff3864420a20e2",
+    "web/tests/provider-catalog.test.tsx": "deec35ce8e03ec4d94e41f8a6ce8944840ba1abbaf0e2c2d98eb6bc36dac5e6b",
+    "web/tests/provider-profiles.test.tsx": "44749831acad541a19d7627cf7cfca79423a13c11f792e34da8d8c2450bd5f8c",
+    "web/tests/provider.test.tsx": "df991aa485bce7df582b4d420aa338ec20381330fdbb05650d5e5c8aa35dca9b",
+    "web/tests/realtime.test.tsx": "a4db30472332c0e86e34703fbddc7e187b6e3f86609fa8a253ac8bd7f6a617ee",
+    "web/tests/receipt-maintenance.test.tsx": "13bd364fa7b400d35059e368372d653d684dfcdeb444f2d16e807856ffd86247",
+    "web/tests/recovery.test.tsx": "3db7d4a7efd86a85b6d97b3edb48edb46dbe1996bd2e63c2eb5b59b6e707b9ce",
+    "web/tests/render-budget.test.tsx": "a0826c7edd93384f19caee4c66396a262ae6c83bb4854c7b2bd19a08aa480741",
+    "web/tests/resources.test.tsx": "a0714c97943b58c6fd83d4b61dc17cf2f9680e0872c9d49de9f26dd1f8697b4b",
+    "web/tests/resume.test.tsx": "50f46330c76463d12df96c177ff2b90c4127c736c224b46667dcff0edfa54ddc",
+    "web/tests/session.test.ts": "e5ccacc0f7331165aaed39fa758d9848684cf1e1a8eff9827db131da3bddcec0",
+    "web/tests/settings-drafts.test.tsx": "d6fab3b585e1175475cace4564fe5694eda42fc5879faff270e2d900528a33a5",
+    "web/tests/settings.test.tsx": "fe26544fbc5f2a19726eb663b5211e71fc0061772e39fece11ad519b135d5ca8",
+    "web/tests/sharing-diagnostics.test.tsx": "d5849a3805af5cf29fc1b3b4f9c807dfd0b96985e672f41d6ee612dbd00bb125",
+    "web/tests/skill-library.test.tsx": "9ae345caaf0a0247c116c7b9d829e2184644b695c9ebf625181b13fde7bdb8d6",
+    "web/tests/stream-items.test.ts": "09b4ace364935079cf3dec5e804f2a11da233cc81196052236aafd41a977babd",
+    "web/tests/terminal.test.tsx": "39643c1034fbf966d21a3eee1dd04522ebe9e1ea6cd219d6e88e92645c6b8d57",
+    "web/tests/thread-terminals.test.tsx": "b15494e940f1918409023bb70873c87780783698358bd07993d71cbb68674262",
+    "web/tests/timeline-history.test.tsx": "b325e6f8867508ad6f87c65649ed45088c852c1aa9e2c517ae4e13e1821617ea",
+    "web/tests/workflows.test.tsx": "02aedfe64f11e99ba77d073e0172e9cc1c3190c28459a3e938b7c7af3470142a",
+    "web/tests/workspace-git-drafts.test.tsx": "488073d489b6d2de844c27686235c53719160b47eb5b01225e79759d7ca60bc6",
+    "web/tests/workspace-management.test.tsx": "c510d02feedbbbc4bf8f95aad71e55412afd45788e08de213211aa990b32720c",
+    "web/tests/workspace-search.test.tsx": "92b88084b95e733b599e8d7d9dd48474aab384e0073369ef05749be20ffc8fad",
+    "web/tests/workspace-ui.test.tsx": "aa586345b2fc282159cffdc3587a7d6a260f6dbe7e0c9f3c0153636d9effc5ed",
+    "web/tests/workspace-watch.test.tsx": "e1b86716a526f288fab63c2911ecaab2040d97ebd8a8f5e8c5c1e8588417a891"
+  }
+}

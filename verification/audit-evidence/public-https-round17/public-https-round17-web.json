@@ -1,0 +1,336 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round17",
+  "reviewerId": "audit17-web-independent-20261029",
+  "digest": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+  "sourceDigestAfter": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+  "complete": true,
+  "scopes": [
+    "web-ux"
+  ],
+  "startedAt": "2026-10-28T20:57:46Z",
+  "completedAt": "2026-10-28T21:07:18.1803539Z",
+  "method": "Fresh current-source audit. Read complete authored bodies of all 129 non-test Web inventory files through bounded full-file/range reads, rereading output that was truncated. Traced auth/resource generations, operation durability and unknown outcomes, browser quota/migration recovery, ownership and late callbacks, stale state, error paths, media/Markdown boundaries, form confirmation, keyboard/focus and responsive CSS. Reviewed a focused independent peer-authored local reproduction of the source-discovered FileEditor race; no source modifications or suites were run by this reviewer. Source hashes were checked before review and after review against every raw-byte inventory hash; git path enumeration confirmed no source path additions/removals after excluding inventory-excluded audit records/WORKLOG/RELEASE-CHECKS.",
+  "assignment": {
+    "initialWebFiles": 201,
+    "finalAssignedFiles": 129,
+    "adjustment": "Parent delegated web/tests/** to fresh audit17_web_tests; this report covers every remaining Web file."
+  },
+  "inspectedFiles": [
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpAuthorization.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operation-store.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "extraInspectedFiles": [
+    "AGENTS.md",
+    "package.json"
+  ],
+  "additionalEvidenceRead": [
+    ".work/round17-web-tests-race.test.tsx",
+    ".work/round17-web-tests-repro-output.txt"
+  ],
+  "sourceVerification": {
+    "before": {
+      "rawAlgorithm": "SHA-256 via Get-FileHash, compared with inventory.hashes",
+      "mismatches": [],
+      "checkedFiles": 1910
+    },
+    "after": {
+      "rawAlgorithm": "SHA-256 via Get-FileHash, compared with inventory.hashes",
+      "checkedAt": "2026-10-28T21:05:12.3824347Z",
+      "mismatches": [],
+      "checkedFiles": 1910
+    },
+    "snapshotPathSetUnchanged": true,
+    "sourceDigestAfterBasis": "Every actual raw hash and inventory-scoped path equals the starting snapshot, so the deterministic inventory digest is unchanged."
+  },
+  "reviewEvidence": [
+    {
+      "files": [
+        "web/App.tsx",
+        "web/Workspace.tsx",
+        "web/lib/api.ts",
+        "web/lib/events.ts",
+        "web/hooks/useEvents.ts",
+        "web/hooks/useResource.ts",
+        "web/components/Dialog.tsx"
+      ],
+      "area": "Auth and ownership",
+      "proof": "Traced proxy 401 versus local authentication loss, csrf/session generation changes during login and durable-operation admission, per-document connection identity, retained login draft state, resource request cancellation/generation checks, and modal focus ownership."
+    },
+    {
+      "files": [
+        "web/lib/operation-store.ts",
+        "web/lib/operations.ts",
+        "web/lib/drafts.ts",
+        "web/lib/file-drafts.ts",
+        "web/components/Recovery.tsx",
+        "web/components/ReceiptMaintenance.tsx"
+      ],
+      "area": "Durability and browser bounds",
+      "proof": "Read migration and journal transaction bodies: protocol-2 capability/seal admission, strict IndexedDB commit preceding dispatch, cross-tab notifications, explicit not-sent/accepted/acknowledged proofs, unknown records without auto deletion, 200-operation cap, draft aggregate limits and corrupt-storage failures. Followed archive chunk/digest verification and uncertain rotation recovery."
+    },
+    {
+      "files": [
+        "web/lib/history.ts",
+        "web/lib/timeline.ts",
+        "web/lib/stream-items.ts",
+        "web/components/Messages.tsx",
+        "web/components/MessageItem.tsx",
+        "web/components/MessageMedia.tsx",
+        "web/components/SafeMarkdown.tsx",
+        "web/lib/media.ts"
+      ],
+      "area": "History and untrusted display",
+      "proof": "Checked version/cursor identity and complete dual text/timeline admission, bounded 2000-turn/8000-item/4M-character/80-page history, 150-row presentation, late completed-item suppression, separate unwatermarked live snapshots, bounded Markdown fallback and file-signature/type/size guarded blob previews."
+    },
+    {
+      "files": [
+        "web/components/FileEditor.tsx",
+        "web/components/WorkspacePanel.tsx",
+        "web/components/WorkspaceRecovery.tsx",
+        "web/components/WorkspaceIndexRecovery.tsx",
+        "web/components/WorkspaceCommit.tsx",
+        "web/components/WorkspaceWorktrees.tsx"
+      ],
+      "area": "Workspace and save ownership",
+      "proof": "Traced editor draft revisions from text change through deferred beginMutation prepare and applied readback; found the stale captured-draft overwrite below. Also read optimistic file revision checks, explicit deletion/recovery previews, Git index/HEAD snapshot binding, worktree intent receipt handling and filesystem path validation."
+    },
+    {
+      "files": [
+        "web/components/TerminalPanel.tsx",
+        "web/components/ThreadTerminals.tsx",
+        "web/components/ProcessPanel.tsx",
+        "web/components/RealtimePanel.tsx",
+        "web/components/McpPanel.tsx",
+        "web/lib/mcp-session.ts"
+      ],
+      "area": "Terminal, processes, media and MCP",
+      "proof": "Checked terminal owner invalidation, serialized bounded input and unknown-write stop, pre-open event buffer ownership/caps, live media cleanup, MCP server/thread/tool identity and retained per-Api leases, bounded resource/result previews and authorization-secret clearing on connection/visibility transitions."
+    },
+    {
+      "files": [
+        "web/components/ProviderSettings.tsx",
+        "web/components/McpConfiguration.tsx",
+        "web/components/RemoteSettings.tsx",
+        "web/components/SecuritySettings.tsx",
+        "web/components/PluginSharing.tsx",
+        "web/components/ImportPanel.tsx"
+      ],
+      "area": "Configuration and explicit external actions",
+      "proof": "Read complete secret clearing and optimistic version/conflict paths, endpoint-specific provider restoration, remote pairing owner/request generations, external-access and plugin-share content/audience confirmation keys, and import preview identity/result validation. No external operations were invoked."
+    },
+    {
+      "files": [
+        "web/components/TaskPanel.tsx",
+        "web/components/AutomationForm.tsx",
+        "web/components/AutomationsPanel.tsx",
+        "web/components/ThreadOrganization.tsx",
+        "web/components/NativeProjects.tsx",
+        "web/components/HistoryTools.tsx"
+      ],
+      "area": "Workflows, automation and organization",
+      "proof": "Checked queued text retention and complete-list reorder gating, target thread/turn controls, automation draft/accepted revision recovery and explicit activation previews, keyed form ownership, project/root membership, branch edit handoff retention and full-export validation."
+    },
+    {
+      "files": [
+        "web/index.html",
+        "web/main.tsx",
+        "web/styles.css",
+        "web/styles-responsive.css",
+        "web/styles-workspace.css",
+        "web/styles-workflows.css",
+        "web/styles-extensions.css",
+        "web/styles-input-context.css",
+        "web/styles-automations.css"
+      ],
+      "area": "Presentation and accessibility source",
+      "proof": "Read all CSS/HTML/bootstrap code, keyboard focus-visible rules, hidden/inert mounted panels, reduced-motion override, text wrapping and scroll bounds, desktop/mobile modal/sidebar/workspace breakpoints. This is source inspection, not a live visual/accessibility conformance run."
+    }
+  ],
+  "findings": [
+    {
+      "priority": 1,
+      "id": "WEB17-FILE-DRAFT-ADMISSION-RACE",
+      "file": "web/components/FileEditor.tsx",
+      "line": 161,
+      "endLine": 177,
+      "title": "Deferred save preparation overwrites text typed after Save",
+      "description": "save captures original before Api.beginMutation awaits createOperation. The editable textarea permits a newer edit while the IndexedDB operation transaction is pending, but prepare constructs next from original and replaces cache, current.current, React state and persisted file draft with the older text. Successful readback then sees the old submitted revision as unchanged and clears the retained draft, permanently losing the newer input.",
+      "relatedLocations": [
+        {
+          "endLine": 433,
+          "line": 424,
+          "file": "web/lib/api.ts"
+        },
+        {
+          "endLine": 130,
+          "line": 122,
+          "file": "web/components/FileEditor.tsx"
+        },
+        {
+          "endLine": 343,
+          "line": 329,
+          "file": "web/components/FileEditor.tsx"
+        }
+      ],
+      "repro": [
+        "Render actual FileEditor with actual Api and a valid base snapshot; type sent-v1 and click Save.",
+        "Before createOperation commits and before fetch is called, type newer-v2 into the still-enabled textarea; both UI and readFileDraft initially contain newer-v2.",
+        "Allow the normal IndexedDB admission to finish. prepare changes UI and stored text back to sent-v1.",
+        "Resolve the intercepted workspace/write and workspace/read with submitted sent-v1. The editor reports save verified, cache size becomes zero and persisted file draft is absent."
+      ],
+      "expected": "Keep the latest current draft text/revision while adding a pending record whose submittedText and submittedRevision refer to the save-click snapshot.",
+      "actualEvidence": {
+        "output": ".work/round17-web-tests-repro-output.txt",
+        "reproduction": ".work/round17-web-tests-race.test.tsx",
+        "result": "One focused test failed as expected: after durable commit textarea/stored were sent-v1; after readback textarea sent-v1 and cacheSize 0, with stored draft absent.",
+        "executedBy": "audit17_web_tests"
+      },
+      "recommendation": "Merge pending metadata into the latest draft owned by this editor, retaining the original submitted text/revision, or disallow editing throughout pre-dispatch admission. Preserve owner/unmount safety and add a regression covering this pre-fetch window."
+    }
+  ],
+  "skipped": [],
+  "tested": [
+    {
+      "kind": "source hash verification",
+      "result": "All 1910 actual raw hashes matched the frozen inventory before and after source review."
+    },
+    {
+      "kind": "targeted peer reproduction evidence review",
+      "result": "Inspected the complete fresh test and output using actual Api/FileEditor/IndexedDB path and stubbed network. It confirms the independently discovered draft-loss interleaving."
+    }
+  ],
+  "notTested": [
+    "No full test suite or build run by this reviewer.",
+    "No live browser rendering, production credentials, paid model/API calls, external MCP, deployment or native process execution.",
+    "web/tests/** semantics are assigned to the separate fresh test reviewer and are not claimed by this report."
+  ],
+  "independenceNote": "No previous checkout, Git history, WORKLOG, prior audit-report files or referenced repair evidence was opened. web/VERIFICATION.md is itself in the required source inventory; its complete body contains historical descriptions, which were not used as current-source correctness evidence."
+}

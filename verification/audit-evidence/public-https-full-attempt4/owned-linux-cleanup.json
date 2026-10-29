@@ -1,0 +1,299 @@
+{
+  "startedAt": "2026-10-29T20:16:58Z",
+  "stage": "/var/lib/crtest-public-full-dispatch-plsl1oyh",
+  "fixture": "/var/lib/crtest-public-full-offline-irwswa3i",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "mainBaseline": {
+    "codex-harness-crtest-rw-20261025-gateway.service": {
+      "MainPID": "2051745",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-gateway.service",
+      "Id": "codex-harness-crtest-rw-20261025-gateway.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820957"
+    },
+    "codex-harness-crtest-rw-20261025-worker.service": {
+      "MainPID": "2051743",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-worker.service",
+      "Id": "codex-harness-crtest-rw-20261025-worker.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820955"
+    },
+    "codex-harness-crtest-rw-20261025-caddy.service": {
+      "MainPID": "2050556",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-caddy.service",
+      "Id": "codex-harness-crtest-rw-20261025-caddy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195818264"
+    }
+  },
+  "mainBefore": {
+    "codex-harness-crtest-rw-20261025-gateway.service": {
+      "MainPID": "2051745",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-gateway.service",
+      "Id": "codex-harness-crtest-rw-20261025-gateway.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820957"
+    },
+    "codex-harness-crtest-rw-20261025-worker.service": {
+      "MainPID": "2051743",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-worker.service",
+      "Id": "codex-harness-crtest-rw-20261025-worker.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820955"
+    },
+    "codex-harness-crtest-rw-20261025-caddy.service": {
+      "MainPID": "2050556",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-caddy.service",
+      "Id": "codex-harness-crtest-rw-20261025-caddy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195818264"
+    }
+  },
+  "units": [
+    {
+      "unit": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+      "phase": "go-preparation",
+      "description": "codex-harness-public-go-prepare:b7cbb2ddbef44cb38ac057e36184420b:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "before": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "Description": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "cgroupBefore": {
+        "path": "/system.slice/crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "actions": [],
+      "after": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "Description": "crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "cgroupAfter": {
+        "path": "/system.slice/crtest-full-b7cbb2ddbef44cb38ac057e36184420b-nobody.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "confirmed": true
+    },
+    {
+      "unit": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+      "phase": "nobody",
+      "description": "codex-harness-public-full:5f7ac4733fb247d1b48a3bdef4a06691:nobody:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "before": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "Description": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "cgroupBefore": {
+        "path": "/system.slice/crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "actions": [],
+      "after": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "Description": "crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "cgroupAfter": {
+        "path": "/system.slice/crtest-full-5f7ac4733fb247d1b48a3bdef4a06691-nobody.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "confirmed": true
+    },
+    {
+      "unit": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+      "phase": "root",
+      "description": "codex-harness-public-full:030e44663e0f49e38ad3ad9244f5ce42:root:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "before": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "Description": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "cgroupBefore": {
+        "path": "/system.slice/crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "actions": [],
+      "after": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "Description": "crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "cgroupAfter": {
+        "path": "/system.slice/crtest-full-030e44663e0f49e38ad3ad9244f5ce42-root.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "confirmed": true
+    },
+    {
+      "unit": "crtest-public-full-coordinator-ce6fd49b521b45569d93e8645072ea29.service",
+      "phase": "coordinator",
+      "description": "codex-harness-full-attempt4:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+      "before": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-public-full-coordinator-ce6fd49b521b45569d93e8645072ea29.service",
+          "Description": "codex-harness-full-attempt4:99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+          "LoadState": "loaded",
+          "ActiveState": "active",
+          "SubState": "exited",
+          "FragmentPath": "/run/systemd/transient/crtest-public-full-coordinator-ce6fd49b521b45569d93e8645072ea29.service",
+          "Transient": "yes"
+        }
+      },
+      "cgroupBefore": {
+        "path": "/system.slice/crtest-public-full-coordinator-ce6fd49b521b45569d93e8645072ea29.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "actions": [
+        {
+          "action": "stop",
+          "exitCode": 0,
+          "stderr": ""
+        }
+      ],
+      "after": {
+        "queryExit": 0,
+        "state": {
+          "MainPID": "0",
+          "ControlPID": "0",
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ControlGroup": "",
+          "Id": "crtest-public-full-coordinator-ce6fd49b521b45569d93e8645072ea29.service",
+          "Description": "crtest-public-full-coordinator-ce6fd49b521b45569d93e8645072ea29.service",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "FragmentPath": "",
+          "Transient": "no"
+        }
+      },
+      "cgroupAfter": {
+        "path": "/system.slice/crtest-public-full-coordinator-ce6fd49b521b45569d93e8645072ea29.service",
+        "absent": true,
+        "confirmed": true
+      },
+      "confirmed": true
+    }
+  ],
+  "mainAfter": {
+    "codex-harness-crtest-rw-20261025-gateway.service": {
+      "MainPID": "2051745",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-gateway.service",
+      "Id": "codex-harness-crtest-rw-20261025-gateway.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820957"
+    },
+    "codex-harness-crtest-rw-20261025-worker.service": {
+      "MainPID": "2051743",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-worker.service",
+      "Id": "codex-harness-crtest-rw-20261025-worker.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195820955"
+    },
+    "codex-harness-crtest-rw-20261025-caddy.service": {
+      "MainPID": "2050556",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-caddy.service",
+      "Id": "codex-harness-crtest-rw-20261025-caddy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "startTicks": "195818264"
+    }
+  },
+  "mainUnchanged": true,
+  "confirmed": true,
+  "completedAt": "2026-10-29T20:16:58Z"
+}

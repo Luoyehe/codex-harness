@@ -1,0 +1,2204 @@
+{
+  "schemaVersion": 1,
+  "target": "linux-root",
+  "head": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceDigestAfter": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "files": [
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_directory_durability.py",
+    "tests/deploy/root/test_dns_caddy_build.py",
+    "tests/deploy/root/test_edge_diagnostics.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_initialization_resume.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/root/test_service_lifecycle.py",
+    "tests/deploy/root/test_tree_durability.py"
+  ],
+  "exitCode": 0,
+  "cases": [
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_can_resume_after_selection_record_interruption",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_health_failure_stops_and_retries_same_candidate_only",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_candidate_failure_restores_prior_account_release",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_repair_restores_prior_account_release",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_explicit_candidate_repair_finishes_blocked_legacy_to_account_upgrade",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_missing_candidate_file_rejects_candidate_repair_before_stop",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate",
+      "file": "tests/deploy/root/test_account_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_accounts.py::AccountPublicationTests.test_bootstrap_symlink_or_wrong_owner_never_gets_replaced",
+      "file": "tests/deploy/root/test_accounts.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_accounts.py::AccountPublicationTests.test_setup_publishes_private_hash_and_existing_account_is_not_overwritten",
+      "file": "tests/deploy/root/test_accounts.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_accounts.py::AccountPublicationTests.test_unconfirmed_reset_keeps_new_revision_and_reports_pending_without_automatic_retry",
+      "file": "tests/deploy/root/test_accounts.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_advanced_rollback_rejects_before_any_material_or_service_change",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_checks_its_generation_instead_of_the_current_pointer",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_publication_rechecks_policy_and_generation_identity",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_terminal_directory_fsync_failure_preserves_verified_services",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_terminal_replace_failure_keeps_recovery_retryable",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_change_terminal_directory_fsync_failure_preserves_verified_services",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_change_terminal_replace_failure_keeps_candidate_retryable",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_gateway_only_and_stopped_activity_are_preserved",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_generated_layer_tamper_blocks_check_and_is_not_silently_refreshed",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_host_conflict_rejects_before_stop_or_missing_target_creation",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_host_drift_blocks_check_and_explicit_refresh_rebuilds_new_generation",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_migrate_and_rollback_preserve_user_and_host_bytes_and_old_generation",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_completed_unsafe_downgrade_is_not_accepted_as_a_legacy_noop",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_terminal_directory_fsync_failure_preserves_verified_services",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_terminal_replace_failure_keeps_recovery_retryable",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_unsafe_candidates_reject_without_changes_and_old_recovery_still_works",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_power_loss_between_file_publications_can_finish_candidate",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_power_loss_journal_phases_are_recoverable",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_prior_unit_without_native_home_is_recognized_and_migrated_after_stop",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_start_failure_restores_original_files_pointer_and_activity",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_transaction_parent_failure_prevents_configuration_stop_and_selection",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_unknown_stop_never_publishes_pointer_config_units_or_sudo",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_user_config_change_after_stop_is_retained_and_invalid_bytes_abort",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_user_symlink_fifo_hardlink_and_parent_link_fail_without_follow_or_block",
+      "file": "tests/deploy/root/test_config_layer.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_account_compatible_control_rollback_succeeds_with_account_and_edge_markers",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_automatic_control_recovery_does_not_restore_account_incompatible_guard",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_browser_initialized_application_blocks_control_guard_downgrade_without_database_reads",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_builtin_https_blocks_control_guard_downgrade_before_any_mutation",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_health_failure_keeps_guard_and_can_repeat_after_prerequisite_repair",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_recovery_interrupted_between_renames_can_repeat",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_terminal_directory_fsync_failure_does_not_reblock_services",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_terminal_replace_failure_keeps_recovery_retryable",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_changed_application_declaration_cannot_hide_account_guard_requirement",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_compatible_control_recovery_restores_prior_generation_with_accounts",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_control_recover_cannot_restore_alidns_only_code_for_new_provider",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_control_recover_cannot_restore_dns_incompatible_old_code",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_control_recover_cannot_restore_legacy_guard_for_account_dependent_instance",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_crash_after_rename_before_phase_write_is_recovered_from_files",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_crashes_before_and_between_directory_renames_recover",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_dns_https_blocks_control_downgrade_before_any_mutation",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_dropin_collision_does_not_install_entrypoint_or_service_barriers",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_enablement_change_cannot_be_silently_committed",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_escaped_account_process_prevents_any_control_directory_rename",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_explicit_candidate_recovery_finishes_each_original_interruption_phase",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_gateway_only_restoration_does_not_start_previously_stopped_worker",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_health_failure_restores_old_code",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_incomplete_candidate_is_rejected_before_mutating_recovery_state",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_initial_legacy_control_upgrade_failure_still_recovers",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_initial_staging_accepts_user_owned_exact_recipe_and_rejects_tampering",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_initialized_instance_without_application_release_stays_stopped",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_launchers_are_durably_blocked_before_any_control_directory_rename",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_legacy_application_without_account_dependencies_allows_legacy_control_rollback",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_mismatched_edge_hash_aborts_before_services_stop",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_new_fixed_bootstrap_rejects_pending_transaction_before_importing_legacy_modules",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_new_provider_blocks_original_alidns_only_control_before_any_mutation",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_control_rollback_requires_legacy_namespace_and_sudo_first",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_control_without_layer_support_is_rejected_before_any_stop",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_helper_cache_written_during_stop_is_sealed_without_changing_source",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_terminal_directory_fsync_failure_does_not_reblock_services",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_terminal_replace_failure_keeps_recovery_retryable",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_probe_failure_never_stops_services_or_replaces_control",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_reload_failure_restores_old_activity_without_changing_code",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_rollback_restores_code_but_preserves_edge_installed_after_original_update",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_root_account_bootstrap_blocks_control_guard_downgrade_before_any_mutation",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_start_failure_restores_old_code_and_exact_activity",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_tampered_old_generation_blocks_recovery_and_leaves_every_service_stopped",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_tampered_unselected_dns_variant_prevents_control_update",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_unknown_stop_retains_trees_and_persistent_start_barriers",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_and_rollback_preserve_all_verified_dns_variants",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_preserves_edge_binary_and_config_binding",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_preserves_independent_active_and_enabled_sets_and_old_tree",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_terminal_directory_fsync_failure_does_not_restore_old_code",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_terminal_replace_failure_keeps_retryable_candidate",
+      "file": "tests/deploy/root/test_control_update.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_directory_replaced_with_symlink_between_create_and_open_is_rejected",
+      "file": "tests/deploy/root/test_directory_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_initialization_lock_parent_failure_blocks_lock_and_preserves_shared_mode",
+      "file": "tests/deploy/root/test_directory_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_interrupted_shared_creation_retry_requires_explicit_operator_mode_repair",
+      "file": "tests/deploy/root/test_directory_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_private_directory_parent_failure_closes_fd_and_existing_retry_syncs_again",
+      "file": "tests/deploy/root/test_directory_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_restrictive_umask_only_normalizes_new_directories",
+      "file": "tests/deploy/root/test_directory_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_shared_policy_checks_group_and_other_traversal_without_changing_existing_modes",
+      "file": "tests/deploy/root/test_directory_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_symlink_ancestor_and_final_symlink_never_change_external_metadata",
+      "file": "tests/deploy/root/test_directory_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_build_failure_does_not_publish_generation",
+      "file": "tests/deploy/root/test_dns_caddy_build.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_changed_binary_or_recipe_is_rejected",
+      "file": "tests/deploy/root/test_dns_caddy_build.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_existing_binary_reuse_checks_manifest_and_selection",
+      "file": "tests/deploy/root/test_dns_caddy_build.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_extra_entries_and_unselected_corrupt_generations_fail_closed",
+      "file": "tests/deploy/root/test_dns_caddy_build.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_initial_install_accepts_only_exact_pinned_user_owned_recipe",
+      "file": "tests/deploy/root/test_dns_caddy_build.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_selected_provider_is_bound_to_each_retained_generation",
+      "file": "tests/deploy/root/test_dns_caddy_build.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_symlinked_generation_file_is_rejected",
+      "file": "tests/deploy/root/test_dns_caddy_build.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_changed_caddy_routes_fail_before_health_probe",
+      "file": "tests/deploy/root/test_edge_diagnostics.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_preserving_stopped_edge_checks_config_without_attempting_tls",
+      "file": "tests/deploy/root/test_edge_diagnostics.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_stopped_verification_rejects_wrong_origin_or_modified_provided_material",
+      "file": "tests/deploy/root/test_edge_diagnostics.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_verify_rejects_invalid_tls_or_legacy_identity_even_if_edge_is_active",
+      "file": "tests/deploy/root/test_edge_diagnostics.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_directory_cannot_replace_metadata",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_group_or_world_writable_metadata_is_rejected",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_hardlinked_metadata_is_rejected",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_root_owned_ordinary_metadata_is_read",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_symlink_cannot_replace_metadata",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_user_owned_metadata_is_rejected_without_changing_it",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_account_support_lost_during_restart_restores_external_authentication",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_address_migration_preserves_disabled_on_boot_choice",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_builtin_internal_to_public_acme_changes_only_origin_and_edge_selection",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_candidate_validation_failure_does_not_stop_or_replace_the_old_pair",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_dns_credential_rotation_changes_only_selected_generation_and_preserves_old_one",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_dns_inputs_and_managed_generations_require_root_0600_and_reject_tampering",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_dns_unit_publication_before_metadata_failure_remains_recoverable",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_existing_dns_migration_failure_restores_selected_material_and_state",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_failed_first_edge_activation_restores_absent_units_and_http_origin",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_failed_provider_change_restores_old_provider_credentials_binary_and_services",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_first_builtin_setup_creates_no_authelia_unit_or_identity",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_gateway_only_recovery_does_not_follow_wants_to_stopped_worker",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_gateway_only_repair_preserves_control_maintenance_dropin",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_https_proof_failure_restores_original_address_and_all_persistent_state",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_initial_dns_activation_binds_protected_material_without_disclosing_values",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_internal_to_provided_requires_pair_and_retains_selected_immutable_pair",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_migration_preflight_conflict_and_tampered_old_edge_leave_services_running",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_new_provider_activation_binds_only_its_private_credentials",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_pending_first_dns_validation_retry_failure_restores_http_and_absent_units",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_prior_stopped_edge_services_are_not_started_by_recovery",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_process_interruption_after_snapshot_is_recoverable_by_repair",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_process_interruption_during_address_change_keeps_boot_barriers_until_repair",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provided_pair_rotation_is_validated_and_selected_together",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provided_public_ca_is_imported_and_input_changes_cannot_change_selected_trust",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provided_to_acme_retains_previous_pair_for_recovery_but_clears_selection",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provider_change_requires_new_credentials_and_retains_previous_generation",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_public_origin_translation_updates_gateway_and_is_retained_on_repair",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_tampered_dns_generation_blocks_migration_before_credentials_or_service_stop",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_terminal_publication_error_retains_verified_https_without_new_barriers",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_transaction_parent_sync_failure_precedes_https_stop_and_selection",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unchanged_explicit_pair_is_reused_and_partial_pair_is_rejected",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unit_write_reload_start_health_and_enable_failures_restore_previous_state",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unknown_dns_migration_stop_preserves_both_generations_until_repair",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unknown_recovery_stop_preserves_selected_material_and_repair_restores_it",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unpublished_terminal_record_leaves_a_verified_candidate_with_explicit_repair",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unverified_account_cannot_remove_external_authentication",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_verify_stopped_dns_edge_checks_selected_unit_and_actual_credential_binary_hashes",
+      "file": "tests/deploy/root/test_https.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_changed_recorded_material_is_not_overwritten",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_complete_files_without_initialized_commit_block_update_and_control_gate",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_dns_build_recipe_parent_is_planned_and_resumed",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_interrupted_shared_container_chmod_blocks_retry_until_operator_repairs_mode",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_known_partial_staging_write_is_replaced_without_new_secret",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_no_record_and_repeated_install_never_claim_existing_paths",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_private_journal_reserves_numeric_ids_before_any_account_is_created",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_directory_chmod_before_chown",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_early_directory_preserves_planned_identity_and_secret",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_file_chmod_before_chown",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_file_link_before_staging_unlink",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_partial_units_and_sudo_validation_failure",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_shared_container_parent_failure_blocks_identities_and_retries_existing_names",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_unclaimed_state_and_different_checkout_are_rejected",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_unknown_stop_precedes_creating_any_instance_material",
+      "file": "tests/deploy/root/test_initialization_resume.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_activation_recovers_before_candidate_start_and_preserves_previous",
+      "file": "tests/deploy/root/test_journal_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_control_update_restore_recovers_before_original_services_resume",
+      "file": "tests/deploy/root/test_journal_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_rejected_schema_leaves_services_stopped_and_receipts_unmodified",
+      "file": "tests/deploy/root/test_journal_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_restart_drops_gateway_uid_recovers_real_schema_then_reopens",
+      "file": "tests/deploy/root/test_journal_recovery.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_builtin_account_candidate_is_allowed_and_does_not_require_mutable_database_reads",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_completed_receipt_remains_queryable_during_pending_recovery",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_https_requires_verified_account_before_edge_preparation",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_known_control_dropins_are_preserved_but_unknown_overrides_are_rejected",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_pending_nonrelease_transaction_does_not_create_legacy_installation_marker",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_pending_transactions_block_all_new_write_entrypoints_without_new_receipts",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_recognized_runtime_group_unit_migrates_only_after_stop_and_reloads_on_retry",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_uninstall_and_resume_reject_unowned_service_before_stop_or_delete",
+      "file": "tests/deploy/root/test_management_boundaries.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_extended.py::ExtendedProviderGenerationTests.test_fixed_native_token_verb_returns_only_managed_token_and_root_is_denied",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_extended.py::ExtendedProviderGenerationTests.test_foreign_owned_environment_cannot_feed_token_command",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_extended.py::ExtendedProviderGenerationTests.test_generation_separates_bearer_from_config_and_clears_it_when_leaving_bedrock",
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_existing_files_never_overwritten_and_content_drift_changes_manifest",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_interrupted_mount_directory_parent_sync_is_repeated_without_mode_changes",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_interrupted_mount_file_sync_is_repeated_for_the_existing_target",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_missing_mount_targets_create_only_empty_files_and_keep_other_host_content",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_root_private_policy_is_not_copied_into_native_readable_generation",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_symlink_hardlink_and_native_writable_policy_are_rejected",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_target_appearing_after_preflight_is_not_replaced",
+      "file": "tests/deploy/root/test_provider_layers.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_release_reuse.py::ReleaseReuseTests.test_changed_existing_tree_or_manifest_is_not_overwritten",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_release_reuse.py::ReleaseReuseTests.test_identical_release_is_reused_without_replacing_it",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_release_reuse.py::ReleaseReuseTests.test_rename_before_manifest_interruption_is_recoverable",
+      "file": "tests/deploy/root/test_release_reuse.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_request_spool.py::RootRequestSpoolTests.test_foreign_owner_open_mode_links_and_symlinks_are_not_collectable",
+      "file": "tests/deploy/root/test_request_spool.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_request_spool.py::RootRequestSpoolTests.test_root_private_files_use_real_independent_nonblocking_locks",
+      "file": "tests/deploy/root/test_request_spool.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_failed_restore_health_retains_barriers_and_retry_succeeds",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_independent_activity_sets_preserve_stopped_dependencies_and_skip_live_probe",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_last_marker_failure_keeps_journal_pending_and_retry_restores",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_legacy_marker_and_unrelated_transaction_refuse_restoration",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_partial_uninstall_and_missing_convenience_marker_are_recoverable",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_roundtrip_restores_exact_activity_enablement_and_tls_material",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_second_uninstall_journal_precedes_new_marker_and_can_recover",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_tampered_configuration_and_foreign_units_are_not_overwritten",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_terminal_journal_published_then_error_does_not_stop_verified_services",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_transaction_parent_failure_prevents_uninstall_marker_stop_and_deletion",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_unknown_stop_preserves_definitions_and_blocks_restart_until_retry",
+      "file": "tests/deploy/root/test_service_lifecycle.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_edge_extract_fsync_failure_does_not_publish_manifest",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_edge_manifest_requires_durable_extracted_tree_and_container_parent",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_existing_release_is_verified_and_flushed_before_manifest_recovery",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_extract_persists_modes_links_nested_directories_and_parent",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_file_replaced_by_symlink_before_open_is_not_followed",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_import_flush_errors_do_not_return_success",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_release_flushes_composite_tree_and_both_rename_parents_before_manifest",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_release_fsync_failure_prevents_new_manifest_and_caller_activation",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_snapshot_persists_final_modes_nested_entries_and_destination_parent",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_special_file_and_symlink_root_are_rejected",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_syncs_files_read_only_then_all_directories_without_following_links",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_toolchain_sync_failure_prevents_manifest_and_rename",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_toolchain_syncs_assembly_before_manifest_and_rename_parents_afterwards",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    },
+    {
+      "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_traversal_and_fsync_errors_propagate",
+      "file": "tests/deploy/root/test_tree_durability.py",
+      "status": "passed"
+    }
+  ],
+  "results": [
+    {
+      "status": "passed",
+      "exitCode": 0,
+      "tests": [
+        "tests/deploy/root/test_account_recovery.py",
+        "tests/deploy/root/test_accounts.py",
+        "tests/deploy/root/test_config_layer.py",
+        "tests/deploy/root/test_control_update.py",
+        "tests/deploy/root/test_directory_durability.py",
+        "tests/deploy/root/test_dns_caddy_build.py",
+        "tests/deploy/root/test_edge_diagnostics.py",
+        "tests/deploy/root/test_https.py",
+        "tests/deploy/root/test_initialization_resume.py",
+        "tests/deploy/root/test_journal_recovery.py",
+        "tests/deploy/root/test_management_boundaries.py",
+        "tests/deploy/root/test_provider_extended.py",
+        "tests/deploy/root/test_provider_layers.py",
+        "tests/deploy/root/test_release_reuse.py",
+        "tests/deploy/root/test_request_spool.py",
+        "tests/deploy/root/test_service_lifecycle.py",
+        "tests/deploy/root/test_tree_durability.py"
+      ],
+      "cases": [
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_can_resume_after_selection_record_interruption",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_candidate_repair_health_failure_stops_and_retries_same_candidate_only",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_candidate_failure_restores_prior_account_release",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_compatible_account_repair_restores_prior_account_release",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_explicit_candidate_repair_finishes_blocked_legacy_to_account_upgrade",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_missing_candidate_file_rejects_candidate_repair_before_stop",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests.test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate",
+          "file": "tests/deploy/root/test_account_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_accounts.py::AccountPublicationTests.test_bootstrap_symlink_or_wrong_owner_never_gets_replaced",
+          "file": "tests/deploy/root/test_accounts.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_accounts.py::AccountPublicationTests.test_setup_publishes_private_hash_and_existing_account_is_not_overwritten",
+          "file": "tests/deploy/root/test_accounts.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_accounts.py::AccountPublicationTests.test_unconfirmed_reset_keeps_new_revision_and_reports_pending_without_automatic_retry",
+          "file": "tests/deploy/root/test_accounts.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_advanced_rollback_rejects_before_any_material_or_service_change",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_checks_its_generation_instead_of_the_current_pointer",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_publication_rechecks_policy_and_generation_identity",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_terminal_directory_fsync_failure_preserves_verified_services",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_candidate_terminal_replace_failure_keeps_recovery_retryable",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_change_terminal_directory_fsync_failure_preserves_verified_services",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_change_terminal_replace_failure_keeps_candidate_retryable",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_gateway_only_and_stopped_activity_are_preserved",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_generated_layer_tamper_blocks_check_and_is_not_silently_refreshed",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_host_conflict_rejects_before_stop_or_missing_target_creation",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_host_drift_blocks_check_and_explicit_refresh_rebuilds_new_generation",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_migrate_and_rollback_preserve_user_and_host_bytes_and_old_generation",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_completed_unsafe_downgrade_is_not_accepted_as_a_legacy_noop",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_terminal_directory_fsync_failure_preserves_verified_services",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_terminal_replace_failure_keeps_recovery_retryable",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_old_unsafe_candidates_reject_without_changes_and_old_recovery_still_works",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_power_loss_between_file_publications_can_finish_candidate",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_power_loss_journal_phases_are_recoverable",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_prior_unit_without_native_home_is_recognized_and_migrated_after_stop",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_start_failure_restores_original_files_pointer_and_activity",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_transaction_parent_failure_prevents_configuration_stop_and_selection",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_unknown_stop_never_publishes_pointer_config_units_or_sudo",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_user_config_change_after_stop_is_retained_and_invalid_bytes_abort",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_config_layer.py::ConfigurationLayerTests.test_user_symlink_fifo_hardlink_and_parent_link_fail_without_follow_or_block",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_account_compatible_control_rollback_succeeds_with_account_and_edge_markers",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_automatic_control_recovery_does_not_restore_account_incompatible_guard",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_browser_initialized_application_blocks_control_guard_downgrade_without_database_reads",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_builtin_https_blocks_control_guard_downgrade_before_any_mutation",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_health_failure_keeps_guard_and_can_repeat_after_prerequisite_repair",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_recovery_interrupted_between_renames_can_repeat",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_terminal_directory_fsync_failure_does_not_reblock_services",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_candidate_terminal_replace_failure_keeps_recovery_retryable",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_changed_application_declaration_cannot_hide_account_guard_requirement",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_compatible_control_recovery_restores_prior_generation_with_accounts",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_control_recover_cannot_restore_alidns_only_code_for_new_provider",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_control_recover_cannot_restore_dns_incompatible_old_code",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_control_recover_cannot_restore_legacy_guard_for_account_dependent_instance",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_crash_after_rename_before_phase_write_is_recovered_from_files",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_crashes_before_and_between_directory_renames_recover",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_dns_https_blocks_control_downgrade_before_any_mutation",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_dropin_collision_does_not_install_entrypoint_or_service_barriers",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_enablement_change_cannot_be_silently_committed",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_escaped_account_process_prevents_any_control_directory_rename",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_explicit_candidate_recovery_finishes_each_original_interruption_phase",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_gateway_only_restoration_does_not_start_previously_stopped_worker",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_health_failure_restores_old_code",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_incomplete_candidate_is_rejected_before_mutating_recovery_state",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_initial_legacy_control_upgrade_failure_still_recovers",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_initial_staging_accepts_user_owned_exact_recipe_and_rejects_tampering",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_initialized_instance_without_application_release_stays_stopped",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_launchers_are_durably_blocked_before_any_control_directory_rename",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_legacy_application_without_account_dependencies_allows_legacy_control_rollback",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_mismatched_edge_hash_aborts_before_services_stop",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_new_fixed_bootstrap_rejects_pending_transaction_before_importing_legacy_modules",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_new_provider_blocks_original_alidns_only_control_before_any_mutation",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_control_rollback_requires_legacy_namespace_and_sudo_first",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_control_without_layer_support_is_rejected_before_any_stop",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_helper_cache_written_during_stop_is_sealed_without_changing_source",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_terminal_directory_fsync_failure_does_not_reblock_services",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_old_terminal_replace_failure_keeps_recovery_retryable",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_probe_failure_never_stops_services_or_replaces_control",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_reload_failure_restores_old_activity_without_changing_code",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_rollback_restores_code_but_preserves_edge_installed_after_original_update",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_root_account_bootstrap_blocks_control_guard_downgrade_before_any_mutation",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_start_failure_restores_old_code_and_exact_activity",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_tampered_old_generation_blocks_recovery_and_leaves_every_service_stopped",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_tampered_unselected_dns_variant_prevents_control_update",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_unknown_stop_retains_trees_and_persistent_start_barriers",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_and_rollback_preserve_all_verified_dns_variants",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_preserves_edge_binary_and_config_binding",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_preserves_independent_active_and_enabled_sets_and_old_tree",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_terminal_directory_fsync_failure_does_not_restore_old_code",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_control_update.py::ControlUpdateTests.test_update_terminal_replace_failure_keeps_retryable_candidate",
+          "file": "tests/deploy/root/test_control_update.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_directory_replaced_with_symlink_between_create_and_open_is_rejected",
+          "file": "tests/deploy/root/test_directory_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_initialization_lock_parent_failure_blocks_lock_and_preserves_shared_mode",
+          "file": "tests/deploy/root/test_directory_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_interrupted_shared_creation_retry_requires_explicit_operator_mode_repair",
+          "file": "tests/deploy/root/test_directory_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_private_directory_parent_failure_closes_fd_and_existing_retry_syncs_again",
+          "file": "tests/deploy/root/test_directory_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_restrictive_umask_only_normalizes_new_directories",
+          "file": "tests/deploy/root/test_directory_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_shared_policy_checks_group_and_other_traversal_without_changing_existing_modes",
+          "file": "tests/deploy/root/test_directory_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_directory_durability.py::DirectoryDescriptorTests.test_symlink_ancestor_and_final_symlink_never_change_external_metadata",
+          "file": "tests/deploy/root/test_directory_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_build_failure_does_not_publish_generation",
+          "file": "tests/deploy/root/test_dns_caddy_build.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_changed_binary_or_recipe_is_rejected",
+          "file": "tests/deploy/root/test_dns_caddy_build.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_existing_binary_reuse_checks_manifest_and_selection",
+          "file": "tests/deploy/root/test_dns_caddy_build.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_extra_entries_and_unselected_corrupt_generations_fail_closed",
+          "file": "tests/deploy/root/test_dns_caddy_build.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_initial_install_accepts_only_exact_pinned_user_owned_recipe",
+          "file": "tests/deploy/root/test_dns_caddy_build.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_selected_provider_is_bound_to_each_retained_generation",
+          "file": "tests/deploy/root/test_dns_caddy_build.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_dns_caddy_build.py::DnsCaddyBuildTests.test_symlinked_generation_file_is_rejected",
+          "file": "tests/deploy/root/test_dns_caddy_build.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_changed_caddy_routes_fail_before_health_probe",
+          "file": "tests/deploy/root/test_edge_diagnostics.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_preserving_stopped_edge_checks_config_without_attempting_tls",
+          "file": "tests/deploy/root/test_edge_diagnostics.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_stopped_verification_rejects_wrong_origin_or_modified_provided_material",
+          "file": "tests/deploy/root/test_edge_diagnostics.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_edge_diagnostics.py::EdgeConfigurationTests.test_verify_rejects_invalid_tls_or_legacy_identity_even_if_edge_is_active",
+          "file": "tests/deploy/root/test_edge_diagnostics.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_directory_cannot_replace_metadata",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_group_or_world_writable_metadata_is_rejected",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_hardlinked_metadata_is_rejected",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_root_owned_ordinary_metadata_is_read",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_symlink_cannot_replace_metadata",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsMetadataOwnershipTests.test_user_owned_metadata_is_rejected_without_changing_it",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_account_support_lost_during_restart_restores_external_authentication",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_address_migration_preserves_disabled_on_boot_choice",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_builtin_internal_to_public_acme_changes_only_origin_and_edge_selection",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_candidate_validation_failure_does_not_stop_or_replace_the_old_pair",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_dns_credential_rotation_changes_only_selected_generation_and_preserves_old_one",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_dns_inputs_and_managed_generations_require_root_0600_and_reject_tampering",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_dns_unit_publication_before_metadata_failure_remains_recoverable",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_existing_dns_migration_failure_restores_selected_material_and_state",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_failed_first_edge_activation_restores_absent_units_and_http_origin",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_failed_provider_change_restores_old_provider_credentials_binary_and_services",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_first_builtin_setup_creates_no_authelia_unit_or_identity",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_gateway_only_recovery_does_not_follow_wants_to_stopped_worker",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_gateway_only_repair_preserves_control_maintenance_dropin",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_https_proof_failure_restores_original_address_and_all_persistent_state",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_initial_dns_activation_binds_protected_material_without_disclosing_values",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_internal_to_provided_requires_pair_and_retains_selected_immutable_pair",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_migration_preflight_conflict_and_tampered_old_edge_leave_services_running",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_new_provider_activation_binds_only_its_private_credentials",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_pending_first_dns_validation_retry_failure_restores_http_and_absent_units",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_prior_stopped_edge_services_are_not_started_by_recovery",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_process_interruption_after_snapshot_is_recoverable_by_repair",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_process_interruption_during_address_change_keeps_boot_barriers_until_repair",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provided_pair_rotation_is_validated_and_selected_together",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provided_public_ca_is_imported_and_input_changes_cannot_change_selected_trust",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provided_to_acme_retains_previous_pair_for_recovery_but_clears_selection",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_provider_change_requires_new_credentials_and_retains_previous_generation",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_public_origin_translation_updates_gateway_and_is_retained_on_repair",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_tampered_dns_generation_blocks_migration_before_credentials_or_service_stop",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_terminal_publication_error_retains_verified_https_without_new_barriers",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_transaction_parent_sync_failure_precedes_https_stop_and_selection",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unchanged_explicit_pair_is_reused_and_partial_pair_is_rejected",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unit_write_reload_start_health_and_enable_failures_restore_previous_state",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unknown_dns_migration_stop_preserves_both_generations_until_repair",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unknown_recovery_stop_preserves_selected_material_and_repair_restores_it",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unpublished_terminal_record_leaves_a_verified_candidate_with_explicit_repair",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_unverified_account_cannot_remove_external_authentication",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_https.py::HttpsTransactionTests.test_verify_stopped_dns_edge_checks_selected_unit_and_actual_credential_binary_hashes",
+          "file": "tests/deploy/root/test_https.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_changed_recorded_material_is_not_overwritten",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_complete_files_without_initialized_commit_block_update_and_control_gate",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_dns_build_recipe_parent_is_planned_and_resumed",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_interrupted_shared_container_chmod_blocks_retry_until_operator_repairs_mode",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_known_partial_staging_write_is_replaced_without_new_secret",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_no_record_and_repeated_install_never_claim_existing_paths",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_private_journal_reserves_numeric_ids_before_any_account_is_created",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_directory_chmod_before_chown",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_early_directory_preserves_planned_identity_and_secret",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_file_chmod_before_chown",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_file_link_before_staging_unlink",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_resume_after_partial_units_and_sudo_validation_failure",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_shared_container_parent_failure_blocks_identities_and_retries_existing_names",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_unclaimed_state_and_different_checkout_are_rejected",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_initialization_resume.py::InitializationResumeTests.test_unknown_stop_precedes_creating_any_instance_material",
+          "file": "tests/deploy/root/test_initialization_resume.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_activation_recovers_before_candidate_start_and_preserves_previous",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_control_update_restore_recovers_before_original_services_resume",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_rejected_schema_leaves_services_stopped_and_receipts_unmodified",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_journal_recovery.py::JournalManagementRecoveryTests.test_restart_drops_gateway_uid_recovers_real_schema_then_reopens",
+          "file": "tests/deploy/root/test_journal_recovery.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_builtin_account_candidate_is_allowed_and_does_not_require_mutable_database_reads",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_completed_receipt_remains_queryable_during_pending_recovery",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_https_requires_verified_account_before_edge_preparation",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_known_control_dropins_are_preserved_but_unknown_overrides_are_rejected",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_pending_nonrelease_transaction_does_not_create_legacy_installation_marker",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_pending_transactions_block_all_new_write_entrypoints_without_new_receipts",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_recognized_runtime_group_unit_migrates_only_after_stop_and_reloads_on_retry",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_management_boundaries.py::ManagementBoundaryTests.test_uninstall_and_resume_reject_unowned_service_before_stop_or_delete",
+          "file": "tests/deploy/root/test_management_boundaries.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_extended.py::ExtendedProviderGenerationTests.test_fixed_native_token_verb_returns_only_managed_token_and_root_is_denied",
+          "file": "tests/deploy/root/test_provider_extended.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_extended.py::ExtendedProviderGenerationTests.test_foreign_owned_environment_cannot_feed_token_command",
+          "file": "tests/deploy/root/test_provider_extended.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_extended.py::ExtendedProviderGenerationTests.test_generation_separates_bearer_from_config_and_clears_it_when_leaving_bedrock",
+          "file": "tests/deploy/root/test_provider_extended.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_existing_files_never_overwritten_and_content_drift_changes_manifest",
+          "file": "tests/deploy/root/test_provider_layers.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_interrupted_mount_directory_parent_sync_is_repeated_without_mode_changes",
+          "file": "tests/deploy/root/test_provider_layers.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_interrupted_mount_file_sync_is_repeated_for_the_existing_target",
+          "file": "tests/deploy/root/test_provider_layers.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_missing_mount_targets_create_only_empty_files_and_keep_other_host_content",
+          "file": "tests/deploy/root/test_provider_layers.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_root_private_policy_is_not_copied_into_native_readable_generation",
+          "file": "tests/deploy/root/test_provider_layers.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_symlink_hardlink_and_native_writable_policy_are_rejected",
+          "file": "tests/deploy/root/test_provider_layers.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_provider_layers.py::ProviderHostFilesTests.test_target_appearing_after_preflight_is_not_replaced",
+          "file": "tests/deploy/root/test_provider_layers.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_release_reuse.py::ReleaseReuseTests.test_changed_existing_tree_or_manifest_is_not_overwritten",
+          "file": "tests/deploy/root/test_release_reuse.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_release_reuse.py::ReleaseReuseTests.test_identical_release_is_reused_without_replacing_it",
+          "file": "tests/deploy/root/test_release_reuse.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_release_reuse.py::ReleaseReuseTests.test_rename_before_manifest_interruption_is_recoverable",
+          "file": "tests/deploy/root/test_release_reuse.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_request_spool.py::RootRequestSpoolTests.test_foreign_owner_open_mode_links_and_symlinks_are_not_collectable",
+          "file": "tests/deploy/root/test_request_spool.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_request_spool.py::RootRequestSpoolTests.test_root_private_files_use_real_independent_nonblocking_locks",
+          "file": "tests/deploy/root/test_request_spool.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_failed_restore_health_retains_barriers_and_retry_succeeds",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_independent_activity_sets_preserve_stopped_dependencies_and_skip_live_probe",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_last_marker_failure_keeps_journal_pending_and_retry_restores",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_legacy_marker_and_unrelated_transaction_refuse_restoration",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_partial_uninstall_and_missing_convenience_marker_are_recoverable",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_roundtrip_restores_exact_activity_enablement_and_tls_material",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_second_uninstall_journal_precedes_new_marker_and_can_recover",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_tampered_configuration_and_foreign_units_are_not_overwritten",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_terminal_journal_published_then_error_does_not_stop_verified_services",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_transaction_parent_failure_prevents_uninstall_marker_stop_and_deletion",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_service_lifecycle.py::ServiceLifecycleTests.test_unknown_stop_preserves_definitions_and_blocks_restart_until_retry",
+          "file": "tests/deploy/root/test_service_lifecycle.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_edge_extract_fsync_failure_does_not_publish_manifest",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_edge_manifest_requires_durable_extracted_tree_and_container_parent",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_existing_release_is_verified_and_flushed_before_manifest_recovery",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_extract_persists_modes_links_nested_directories_and_parent",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_file_replaced_by_symlink_before_open_is_not_followed",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_import_flush_errors_do_not_return_success",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_release_flushes_composite_tree_and_both_rename_parents_before_manifest",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_release_fsync_failure_prevents_new_manifest_and_caller_activation",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_snapshot_persists_final_modes_nested_entries_and_destination_parent",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_special_file_and_symlink_root_are_rejected",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_syncs_files_read_only_then_all_directories_without_following_links",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_toolchain_sync_failure_prevents_manifest_and_rename",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_toolchain_syncs_assembly_before_manifest_and_rename_parents_afterwards",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        },
+        {
+          "id": "tests/deploy/root/test_tree_durability.py::TreeDurabilityTests.test_traversal_and_fsync_errors_propagate",
+          "file": "tests/deploy/root/test_tree_durability.py",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "fullGate": {
+    "auditRounds": [
+      "public-https-round24",
+      "public-https-round25"
+    ],
+    "auditRecordSha256": "d6233fb7055bdee44b03160516511f5b1640de8ca498013d1d45a59fcb2f43f3",
+    "authorizationSha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee"
+  }
+}

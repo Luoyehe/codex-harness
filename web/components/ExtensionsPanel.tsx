@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type ComponentProps } from 'react';
 import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
 import { SkillSettings } from './SkillSettings';
@@ -10,7 +10,7 @@ import { ImportPanel } from './ImportPanel';
 import { PluginSharing } from './PluginSharing';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { ProjectTrustSettings } from './ProjectTrustSettings';
-export function ExtensionsPanel({
+function ExtensionsPanelContent({
   api,
   projects,
   initialProjectId,
@@ -19,7 +19,9 @@ export function ExtensionsPanel({
   onChanged,
   threadId = '',
   onOpenNativeTerminal,
+  visible = true,
 }: {
+  visible?: boolean;
   onOpenNativeTerminal?: (projectId: string) => void;
   threadId?: string;
   api: Api;
@@ -31,6 +33,7 @@ export function ExtensionsPanel({
 }) {
   const [projectId, setProjectId] = useState(initialProjectId ?? projects[0]?.id ?? ''),
     [tab, setTab] = useState('skills');
+  const [visited, setVisited] = useState(() => new Set(['skills']));
   const project = projects.find((row) => row.id === projectId),
     tabs = [
       ['skills', '技能与 Hooks'],
@@ -42,7 +45,9 @@ export function ExtensionsPanel({
       ['insights', '记忆与诊断'],
     ];
   return (
-    <section className="extensions-panel stack">
+    <section className="extensions-panel stack" hidden={!visible} inert={!visible}
+      onClickCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}
+      onSubmitCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}>
       <label className="field">
         扩展与配置的项目范围
         <select value={projectId} onChange={(event) => setProjectId(event.target.value)}>
@@ -60,7 +65,7 @@ export function ExtensionsPanel({
             className={`button small ${tab === id ? 'selected' : ''}`}
             key={id}
             aria-pressed={tab === id}
-            onClick={() => setTab(id)}
+            onClick={() => { setVisited((current) => new Set([...current, id!])); setTab(id!); }}
           >
             {name}
           </button>
@@ -71,7 +76,26 @@ export function ExtensionsPanel({
           配置变更需要运行时就绪且没有正在执行的任务、终端或未知操作。当前仍可读取状态。
         </p>
       )}
-      {tab === 'apps' ? (
+      {project && visited.has('skills') && (
+        <section hidden={!visible || tab !== 'skills'} inert={!visible || tab !== 'skills'}>
+          <SkillSettings onOpenNativeTerminal={onOpenNativeTerminal} projects={projects}
+            key={project.id + ':' + project.cwd} api={api} project={project} epoch={epoch}
+            visible={visible && tab === 'skills'} enabled={enabled} onChanged={onChanged} />
+        </section>
+      )}
+      {project && visited.has('plugins') && (
+        <section hidden={!visible || tab !== 'plugins'} inert={!visible || tab !== 'plugins'}>
+          <PluginSettings key={project.id + ':' + project.cwd} api={api} project={project}
+            epoch={epoch} visible={visible && tab === 'plugins'} enabled={enabled} onChanged={onChanged} />
+        </section>
+      )}
+      {visited.has('sharing') && (
+        <section hidden={!visible || tab !== 'sharing'} inert={!visible || tab !== 'sharing'}>
+          <PluginSharing key={projectId + ':' + project?.cwd} api={api} epoch={epoch}
+            visible={visible && tab === 'sharing'} enabled={enabled} onChanged={onChanged} project={project} />
+        </section>
+      )}
+      {!visible ? null : tab === 'apps' ? (
         <AppCatalog api={api} epoch={epoch} />
       ) : tab === 'insights' ? (
         <>
@@ -98,16 +122,7 @@ export function ExtensionsPanel({
             threadId={projectId === initialProjectId ? threadId : ''}
           />
         </>
-      ) : tab === 'sharing' ? (
-        <PluginSharing
-          key={epoch + ':' + projectId}
-          api={api}
-          epoch={epoch}
-          enabled={enabled}
-          onChanged={onChanged}
-          project={project}
-        />
-      ) : !project ? (
+      ) : tab === 'sharing' ? null : !project ? (
         <p className="muted">请选择一个已注册项目。</p>
       ) : tab === 'import' ? (
         <ImportPanel
@@ -118,27 +133,7 @@ export function ExtensionsPanel({
           enabled={enabled}
           onChanged={onChanged}
         />
-      ) : tab === 'skills' ? (
-        <SkillSettings
-          onOpenNativeTerminal={onOpenNativeTerminal}
-          projects={projects}
-          key={project.id}
-          api={api}
-          project={project}
-          epoch={epoch}
-          enabled={enabled}
-          onChanged={onChanged}
-        />
-      ) : tab === 'plugins' ? (
-        <PluginSettings
-          key={project.id}
-          api={api}
-          project={project}
-          epoch={epoch}
-          enabled={enabled}
-          onChanged={onChanged}
-        />
-      ) : (
+      ) : tab === 'skills' || tab === 'plugins' ? null : (
         <>
           <ProjectTrustSettings
             key={project.id + ':' + epoch}
@@ -160,4 +155,14 @@ export function ExtensionsPanel({
       )}
     </section>
   );
+}
+
+export function ExtensionsPanel(props: ComponentProps<typeof ExtensionsPanelContent>) {
+  const owner = useRef({ api: props.api, epoch: props.epoch, threadId: props.threadId,
+    initialProjectId: props.initialProjectId, generation: 0 });
+  if (owner.current.api !== props.api || owner.current.epoch !== props.epoch ||
+    owner.current.threadId !== props.threadId || owner.current.initialProjectId !== props.initialProjectId)
+    owner.current = { api: props.api, epoch: props.epoch, threadId: props.threadId,
+      initialProjectId: props.initialProjectId, generation: owner.current.generation + 1 };
+  return <ExtensionsPanelContent key={owner.current.generation} {...props} />;
 }

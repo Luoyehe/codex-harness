@@ -62,7 +62,10 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
   }
   call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     if (!this.connected) return Promise.reject(new HarnessError('worker_unavailable', '后台尚未连接，请稍后重试。'));
-    return this.request('/rpc', { method, params, context: { clientId: context.clientId, ...(context.operationId ? { operationId: context.operationId } : {}), ...(context.gatewayRequestDigest ? { gatewayRequestDigest: context.gatewayRequestDigest } : {}), ...(context.projectId ? { projectId: context.projectId } : {}) } }, context.beforeWrite);
+    return this.request('/rpc', { method, params, context: { clientId: context.clientId, ...(context.operationId ? { operationId: context.operationId } : {}), ...(context.gatewayRequestDigest ? { gatewayRequestDigest: context.gatewayRequestDigest } : {}), ...(context.projectId ? { projectId: context.projectId } : {}) } }, () => {
+      // Connection establishment can yield after admission, including for reads and live calls.
+      context.requireAuthorization?.(); context.requireConnection?.(); context.beforeWrite?.();
+    });
   }
   async clientDisconnected(clientId: string): Promise<void> {
     const channelId = this.#clientChannels.get(clientId);
@@ -119,8 +122,8 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
               object(response.error); const error = response.error;
               if (typeof error.code !== 'string' || typeof error.message !== 'string') throw new Error('Invalid error');
               const detail = error.data && typeof error.data === 'object' && !Array.isArray(error.data) ? error.data : null;
-              const data = detail?.phase === 'first_turn' && typeof detail.threadId === 'string' && detail.threadId.length <= 256 && typeof detail.causeCode === 'string' && detail.causeCode.length <= 128
-                ? { phase: 'first_turn', threadId: detail.threadId, causeCode: detail.causeCode } : undefined;
+              const data = (detail?.phase === 'first_turn' || detail?.phase === 'review') && typeof detail.threadId === 'string' && detail.threadId.length > 0 && detail.threadId.length <= 256 && typeof detail.causeCode === 'string' && detail.causeCode.length > 0 && detail.causeCode.length <= 128
+                ? { phase: detail.phase, threadId: detail.threadId, causeCode: detail.causeCode } : undefined;
               finish(new HarnessError(error.code.slice(0, 128), error.message.slice(0, 4096), error.delivery === 'not_sent' ? 'not_sent' : 'unknown', data));
             }
           } catch (error) { finish(error instanceof HarnessError && error.delivery === 'unknown' ? error : new HarnessError('worker_protocol', '后台返回不符合协议，结果需要核对。', wrote ? 'unknown' : 'not_sent')); }

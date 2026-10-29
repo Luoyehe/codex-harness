@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round9",
+  "reviewerId": "public-r9-deployment-tools-web-supplement",
+  "scopes": [
+    "web-ux"
+  ],
+  "startedAt": "2026-10-27T05:00:14.331Z",
+  "completedAt": "2026-10-27T05:03:51.644Z",
+  "timestampBasis": "startedAt is the exact preceding-scope seal timestamp immediately before taking this supplemental assignment; it bounds the supplemental review window without inventing a first-read timestamp.",
+  "digest": "68def730337c6269a6dbde9b67f3a8a591f7810467fff73fce59f75365871b82",
+  "sourceDigestAfter": "68def730337c6269a6dbde9b67f3a8a591f7810467fff73fce59f75365871b82",
+  "sourceFiles": 1883,
+  "complete": true,
+  "findings": [],
+  "skipped": [],
+  "inspectedFiles": [
+    "web/components/ConfigSettings.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/WorkspaceWorktrees.tsx"
+  ],
+  "fileHashes": {
+    "web/components/ConfigSettings.tsx": "87b49472bc8ed3ee4eecad3204c25307737772d1e3870b5b5ef0cc2d67a91042",
+    "web/components/DiagnosticsPanel.tsx": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916",
+    "web/components/EnvironmentPicker.tsx": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4",
+    "web/components/ExtensionsPanel.tsx": "d00dccff018a810cdeb0cd9e5919d9599f898acb2fce77727ad302ada70e24f9",
+    "web/components/GuardianReviewPanel.tsx": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6",
+    "web/components/HookEventsPanel.tsx": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f",
+    "web/components/ImportPanel.tsx": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d",
+    "web/components/LoadedThreadsPanel.tsx": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db",
+    "web/components/MemorySettings.tsx": "f04b8722ca2251f45cac83c771165c40178f3d7376214f643a3bb32df9a1af95",
+    "web/components/ModelCatalog.tsx": "090083b6e90b3083007a3a0f691aeccbffea71ef2fc13d27fc55b1ec9dd60d55",
+    "web/components/NativeProjects.tsx": "6b8d82eb966a6b63c2374c7ae82da7d50c7b2eab762f3b9bf7aa1a853ed3383d",
+    "web/components/OrganizationPanel.tsx": "280d5c5a900ecd545a421f314abc7a3efbf50b0cadb162a26067861b54a55e23",
+    "web/components/PluginSettings.tsx": "e083703b272543372866513ea9540fa4946528b4b59023feec6103a4cbf06d5e",
+    "web/components/PluginSharing.tsx": "b10438ffca1311ceed046dd1f4a2f6cf3c19c2ae45fb80bbb2984e318b44f287",
+    "web/components/ProjectTrustSettings.tsx": "1664881a8a5e899c1ac4b863bfa7a4b3a76057d6a3dc7d9db4fc93731e2ef88f",
+    "web/components/ProviderProfiles.tsx": "040c17c1c75531215ac8cf2957f1db3714e5f30afc1a40f0c04df307175d31b3",
+    "web/components/ProviderSettings.tsx": "3d6ab621ea57a5079d47b46b0e133af4ee5df982d5e44ba8bdf27acb9d62e788",
+    "web/components/RemoteSettings.tsx": "0e7bf5015327bdf9214b16ce175db7a0a0b13230a1fa69e7c66ba124f81ef8a3",
+    "web/components/RuntimeInsights.tsx": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a",
+    "web/components/SkillLibraryTools.tsx": "ce1b644be5958ce12a1ae7e2fce32b24b292e6aa6046b98757762f2e966f17e2",
+    "web/components/SkillSettings.tsx": "0b95d282aef2c29b3df7ae70e746a36d321eee4931ded92aefb8ee941342202d",
+    "web/components/TaskPanel.tsx": "e0eaa97dba2b357a04b3792f9c3aa0e44b2dfc8095e9aa2192e86398dc95f762",
+    "web/components/ThreadExecutionSettings.tsx": "42b70054b1fd6f8e09a36fdc3f95899b70671448067ab6c5b41c420b2720cefb",
+    "web/components/ThreadOrganization.tsx": "2af381113e0896274e2fa701e99233305b7aebf763c432190e18832a98f030d3",
+    "web/components/WorkspaceWorktrees.tsx": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb"
+  },
+  "method": "Fresh full-body source review of exactly the 25 reserved TSX components, including all JSX, handlers, local helpers, hooks/effects, async continuation guards, confirmation binding, owner keys/remounts, drafts, resource refresh and receipt recovery. Parsed each complete TSX source with Rolldown and recorded function spans, all useEffect bodies, JSX event handlers/keys and API/action calls. Compared component behavior with the reviewed deployment/helper contracts where applicable; checked parent remount semantics directly in the assigned ExtensionsPanel/OrganizationPanel/TaskPanel and coordinated the external Settings integration with its owner. No tests or live UI were run. Finally compared every component hash to the frozen inventory and recomputed the full snapshot(undefined,true).",
+  "perFileReview": [
+    {
+      "path": "web/components/ConfigSettings.tsx",
+      "sha256": "87b49472bc8ed3ee4eecad3204c25307737772d1e3870b5b5ef0cc2d67a91042",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "User-layer CAS, draft retention bound, field validation, policy options, explicit conflict adoption, asynchronous change clearing and project-keyed owner remount."
+    },
+    {
+      "path": "web/components/DiagnosticsPanel.tsx",
+      "sha256": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Feedback destination/log disclosure and explicit consent, epoch/project/thread identity, receipt recovery, exact metadata/download revision and byte checks, mounted cleanup."
+    },
+    {
+      "path": "web/components/EnvironmentPicker.tsx",
+      "sha256": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Bounded registered environment catalogue, explicit inherited/empty/selected modes, stale selection gate and issue callback."
+    },
+    {
+      "path": "web/components/ExtensionsPanel.tsx",
+      "sha256": "d00dccff018a810cdeb0cd9e5919d9599f898acb2fce77727ad302ada70e24f9",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Visited/hidden panels, inert event guards, project/cwd keys, owner generation remount on API/epoch/thread/initial project change, and insight teardown."
+    },
+    {
+      "path": "web/components/GuardianReviewPanel.tsx",
+      "sha256": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Bounded denied-action validation, exact operation details and identifiers, expiry timers, notification refresh, record membership and explicit one-retry confirmation."
+    },
+    {
+      "path": "web/components/HookEventsPanel.tsx",
+      "sha256": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Notification validation, bounded record/text/byte retention, terminal status preservation, connection lease reset, subscription cleanup and inert text rendering."
+    },
+    {
+      "path": "web/components/ImportPanel.tsx",
+      "sha256": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Scoped preview and execution consent, request generations, no late edit overwrite, accepted-receipt recovery, bounded detection settings, partial import outcomes and history limits."
+    },
+    {
+      "path": "web/components/LoadedThreadsPanel.tsx",
+      "sha256": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Paged identifiers, snapshot identity, explicit idle unsubscribe, read-only open behavior, confirmation clearing, and outcome wording without unload claims."
+    },
+    {
+      "path": "web/components/MemorySettings.tsx",
+      "sha256": "f04b8722ca2251f45cac83c771165c40178f3d7376214f643a3bb32df9a1af95",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Unique version-matched user layer, exact selected memory fields, explicit diff confirmation, concurrent-version comparison and retention of later edits."
+    },
+    {
+      "path": "web/components/ModelCatalog.tsx",
+      "sha256": "090083b6e90b3083007a3a0f691aeccbffea71ef2fc13d27fc55b1ec9dd60d55",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Discovery versus apply intent, action scope owner, original receipt recovery, no overlapping requests, revision/provider binding and explicit capabilities confirmation."
+    },
+    {
+      "path": "web/components/NativeProjects.tsx",
+      "sha256": "6b8d82eb966a6b63c2374c7ae82da7d50c7b2eab762f3b9bf7aa1a853ed3383d",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Registered-root projection, immutable idempotency identity per create draft, metadata-key rejection, explicit replace-roots/metadata and delete confirmation."
+    },
+    {
+      "path": "web/components/OrganizationPanel.tsx",
+      "sha256": "280d5c5a900ecd545a421f314abc7a3efbf50b0cadb162a26067861b54a55e23",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Separate hidden tab ownership, retained editor states, visibility gates and API/epoch/project/thread generation remount."
+    },
+    {
+      "path": "web/components/PluginSettings.tsx",
+      "sha256": "e083703b272543372866513ea9540fa4946528b4b59023feec6103a4cbf06d5e",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Project scope and freshness keys, bounded catalogue/search hooks, preview-bound install, policy gating, safe links and separate marketplace confirmation."
+    },
+    {
+      "path": "web/components/PluginSharing.tsx",
+      "sha256": "b10438ffca1311ceed046dd1f4a2f6cf3c19c2ae45fb80bbb2984e318b44f287",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Remote preview hashes, selected audience and receiver list, explicit update/delete/checkout consent, hidden-state reset, local file preview and publish confirmation binding."
+    },
+    {
+      "path": "web/components/ProjectTrustSettings.tsx",
+      "sha256": "1664881a8a5e899c1ac4b863bfa7a4b3a76057d6a3dc7d9db4fc93731e2ef88f",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Project/version/choice-bound confirmation, exact-path disclosure, user-version CAS, frozen pending operations and no implied hook trust."
+    },
+    {
+      "path": "web/components/ProviderProfiles.tsx",
+      "sha256": "040c17c1c75531215ac8cf2957f1db3714e5f30afc1a40f0c04df307175d31b3",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Immutable profile IDs, endpoint/key disclosure, per-action confirmations, dirty-editor gate, Unicode name bound and revision-checked operations."
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "sha256": "3d6ab621ea57a5079d47b46b0e133af4ee5df982d5e44ba8bdf27acb9d62e788",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "CSRF/API owner remount, non-secret editor retention, secret clearing, gateway target consent, region-bound bearer changes, CAS conflicts and separate catalogue/profile state."
+    },
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "sha256": "0e7bf5015327bdf9214b16ce175db7a0a0b13230a1fa69e7c66ba124f81ef8a3",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Environment credentials cleared on state changes and dispatch, explicit remote access, pair-owner identities including ABA, abort/expiry cleanup and client revocation scope."
+    },
+    {
+      "path": "web/components/RuntimeInsights.tsx",
+      "sha256": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Read-only usage/diagnostics/apps with safe external links, connection versus tool availability distinctions and explicit memory reset."
+    },
+    {
+      "path": "web/components/SkillLibraryTools.tsx",
+      "sha256": "ce1b644be5958ce12a1ae7e2fce32b24b292e6aa6046b98757762f2e966f17e2",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Fresh bounded skill reads, extra-root replacement confirmation, UTF-8 file import generations, durable local drafts, create-only directory/file workflow and retained pending editor."
+    },
+    {
+      "path": "web/components/SkillSettings.tsx",
+      "sha256": "0b95d282aef2c29b3df7ae70e746a36d321eee4931ded92aefb8ee941342202d",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Scoped skill identities, explicit enablement, hidden-panel gates, read-only hook hash/trust display and deliberate native terminal handoff."
+    },
+    {
+      "path": "web/components/TaskPanel.tsx",
+      "sha256": "e0eaa97dba2b357a04b3792f9c3aa0e44b2dfc8095e9aa2192e86398dc95f762",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Per-owner queue drafts and bounds, pending edit exclusion, complete-queue reorder, explicit goal/budget transitions, real Agent identity display and tab visibility gates."
+    },
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "42b70054b1fd6f8e09a36fdc3f95899b70671448067ab6c5b41c420b2720cefb",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Session identity, separate thread/turn target keys, exact selected fields, capability/profile checks, change-bound consent and targetUnavailable semantics."
+    },
+    {
+      "path": "web/components/ThreadOrganization.tsx",
+      "sha256": "2af381113e0896274e2fa701e99233305b7aebf763c432190e18832a98f030d3",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Owner-keyed organization context, project/section ordering, read-state revision, explicit permanent deletion and non-destructive attachment association operations."
+    },
+    {
+      "path": "web/components/WorkspaceWorktrees.tsx",
+      "sha256": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb",
+      "method": "Full body and JSX/effect/event semantic review plus complete TSX AST parse",
+      "focus": "Live read identity/revision, owner/action/phase/ref-bound consent, global-idle action gate, fixed reference syntax and archive/restore preservation wording."
+    }
+  ],
+  "coverage": {
+    "files": 25,
+    "lines": 9038,
+    "functions": 743,
+    "effects": 41,
+    "jsxEventHandlers": 343,
+    "apiAndActionCalls": 104,
+    "jsxKeys": 104,
+    "allAssignedHashesMatch": true,
+    "fullSnapshotMatches": true
+  },
+  "limits": [
+    "No tests, browser execution, live services, network requests, credentials, model inference or external integrations were performed.",
+    "This supplement covers only the 25 named production components. Shared hooks/libraries, remaining components, browser tests and upstream API implementations remain assigned to their other reviewers.",
+    "Source-level inspection establishes no live accessibility, native IME, mobile-device, external provider or deployed end-to-end acceptance.",
+    "Zero findings in this supplemental scope does not imply that the whole round is clean."
+  ],
+  "analysisArtifacts": [
+    {
+      "path": ".work/public-r9-web-supplement-ast.json",
+      "sha256": "716d1c174513bf1c392117291746f15f0a1f9869af97203daaa8497876bc8b62"
+    }
+  ]
+}

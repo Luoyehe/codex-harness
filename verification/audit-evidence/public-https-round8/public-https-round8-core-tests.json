@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round8",
+  "reviewerId": "core-gateway-tests-independent-r8-75723e45-f5a1-4cef-ba64-b518c6c55722",
+  "scopes": [
+    "gateway-core"
+  ],
+  "digest": "3b2ca1ed3f79e4f1fc71254b4085ddbcec2b5e0d3419638d032a144a3c5fded0",
+  "sourceDigestAfter": "3b2ca1ed3f79e4f1fc71254b4085ddbcec2b5e0d3419638d032a144a3c5fded0",
+  "startedAt": "2026-10-27T04:42:38.000Z",
+  "completedAt": "2026-10-27T04:44:42.049Z",
+  "complete": true,
+  "inspectedFiles": [
+    "AGENTS.md",
+    "src/core/automations.ts",
+    "src/core/schedule.ts",
+    "src/gateway/auth-crypto.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/gateway/receipt-maintenance.ts",
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/operation-retention.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-maintenance.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/worktrees.test.ts"
+  ],
+  "inspectedHashes": {
+    "AGENTS.md": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+    "src/core/automations.ts": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a",
+    "src/core/schedule.ts": "be05a50dbf8c9d1e3a2b6f91fc27434324263f95044a9e39afc79c8713364e37",
+    "src/gateway/auth-crypto.ts": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+    "src/gateway/automation-scheduler.ts": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9",
+    "src/gateway/receipt-maintenance.ts": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6",
+    "tests/core/automation-retention.test.ts": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3",
+    "tests/core/ledger-capacity.test.ts": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d",
+    "tests/core/ledger.test.ts": "42896338d81019729da40dd1e3269ff5977d643449940f99f9ea13e67e34f9f2",
+    "tests/core/operation-retention.test.ts": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9",
+    "tests/core/schedule.test.ts": "bb0159127d93bde00efa3ccfd7ba8ba0fbce19ff56023186fd5d30ef085ad778",
+    "tests/gateway/auth.test.ts": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679",
+    "tests/gateway/automation-scheduler.test.ts": "9ff99cc35116eedf6064ee7d31c99f4bde2a63bca1601bb61c0b22108c196a1c",
+    "tests/gateway/dispatch.test.ts": "b507475ec4d50396d08cc3cb826189bb735a12b4bf719d26669810fba8fb4d93",
+    "tests/gateway/http.test.ts": "1bc78dbbf0a85803a56517f65ca33609daea2f6072d7a540fcc06aef33dac985",
+    "tests/gateway/mcp-oauth.test.ts": "83c0d7951907e9676dd4c89dacff63a691cb7770e31767bc66bdb113fa942a34",
+    "tests/gateway/receipt-maintenance.test.ts": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f",
+    "tests/gateway/receipt-result.test.ts": "ad79681d8b7aa03d955d28979fd94baa272cb1dc264523463a54fd39818e602a",
+    "tests/gateway/worker-client.test.ts": "4ad69c1071e83dbdb5606bd65fb548d1508a83b2b4626ccb4f80226d5e1ac1c6",
+    "tests/gateway/workspace-ack.test.ts": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b",
+    "tests/gateway/worktrees.test.ts": "20af6f36cc5a90d277a28922830bba7efadd3118aebd2500b2265f8ec0130cb4"
+  },
+  "method": "Fresh supplemental read-only audit of every tests/core and tests/gateway path. All 15 test files were independently AST parsed, including 151 test/suite call contracts, imports, assertion calls, dynamic table cases and safety/lifecycle calls; no skip/only/todo flags were found. Every one of the 15 test files then received complete body review, including fixture construction and cleanup, async assertion ordering, scheduling and DST expectations, durable automation dispatch, authentication and HTTP/WebSocket boundaries, receipt capacity/minimization/retention/maintenance, workspace recovery, and worker ownership. All listed context sources were read in full. The weekly schedule defect was independently established from the source loop and the current test boundary; no earlier audit evidence was read. No tests, personal credentials, personal CODEX_HOME, external integrations or deployment actions were used. Every listed file was independently rehashed against the frozen inventory, followed by a full source snapshot recomputation.",
+  "counts": {
+    "testFilesAstAndFullBody": 15,
+    "astTestAndSuiteContracts": 151,
+    "contextFiles": 6,
+    "total": 21
+  },
+  "testFullBodyFiles": [
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/operation-retention.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-maintenance.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/worktrees.test.ts"
+  ],
+  "evidence": [
+    ".work/public-https-round8-core-tests-ast.json"
+  ],
+  "findings": [
+    {
+      "id": "R8-CORE-TESTS-001",
+      "duplicateOf": "R8-CORE-001",
+      "independentlyConfirmed": true,
+      "priority": 2,
+      "title": "Weekly DST skip can exceed the eight-day search horizon",
+      "file": "src/core/schedule.ts",
+      "line": 31,
+      "endLine": 40,
+      "body": "The weekly search ends at local day 8. For a Sunday 02:30 America/New_York schedule and after=2026-03-02T12:00:00Z (Monday), the first selected day is March 8, whose 02:30 is nonexistent during the spring DST transition. The next valid selected date is March 15 (day 13), which the loop never reaches, so a valid recurring schedule throws schedule_unavailable. The existing spring test starts on March 7 and places March 15 exactly at day 8, so it misses this case. Creation, preview, update/resume and due collection call nextScheduled; collectDue runs as one transaction, so this exception can also prevent that scheduler sweep from committing.",
+      "proof": {
+        "kind": "independent-static-control-flow",
+        "after": "2026-03-02T12:00:00Z",
+        "schedule": {
+          "kind": "weekly",
+          "days": [
+            0
+          ],
+          "time": "02:30",
+          "timeZone": "America/New_York"
+        },
+        "expected": "2026-03-15T06:30:00Z",
+        "actualControlFlow": "March 8 has no matching wall-clock candidate; no other selected weekday exists through local day 8; throw schedule_unavailable",
+        "testGap": "tests/core/schedule.test.ts:12-14 begins on March 7 instead of earlier in the preceding week",
+        "related": [
+          "src/core/automations.ts:55",
+          "src/core/automations.ts:109",
+          "src/gateway/automation-scheduler.ts:48"
+        ]
+      },
+      "recommendation": "Search through at least the next eligible weekly occurrence after a skipped local date, and add regression cases starting earlier in the week and immediately after the prior weekly occurrence."
+    }
+  ],
+  "skipped": []
+}

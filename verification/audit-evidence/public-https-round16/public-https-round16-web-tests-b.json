@@ -1,0 +1,379 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round16",
+  "reviewerId": "r16-web-tests-b-20261028T195640Z",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54",
+  "sourceDigest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54",
+  "sourceDigestBefore": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54",
+  "sourceDigestAfter": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54",
+  "startedAt": "2026-10-28T19:56:40.573Z",
+  "completedAt": "2026-10-28T20:04:23.442Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/preview-server.test.ts",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx"
+  ],
+  "inspectedFileCount": 23,
+  "method": "{\"type\":\"independent static full-file review with current-source cross-reading\",\"policy\":\"Read AGENTS.md. Read all 23 assigned inventory files from beginning to end in frozen inventory order. Did not consult legacy implementations or historical audit conclusions. No source changes.\",\"checks\":[\"assertion strength and mock fidelity\",\"async ownership and stale completion races\",\"test isolation and cleanup\",\"failure and rejected-input coverage\",\"current product entry points and recovery paths\"],\"runtime\":\"v24.22.1\",\"runtimePath\":\".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe\",\"snapshotBefore\":{\"files\":1902,\"digest\":\"20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54\"},\"snapshotAfter\":{\"files\":1902,\"digest\":\"20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54\"},\"rawShaBeforeMatched\":true,\"rawShaAfterMatched\":true,\"assignedSlice\":\"inventory.groups.web.filter(path => path.startsWith('web/tests/')).slice(23,46)\",\"testsExecuted\":[],\"sourceMutations\":[]}",
+  "fileReviewNotes": [
+    {
+      "path": "web/tests/hook-events.test.tsx",
+      "fullyRead": true,
+      "note": "Read hook event merge, bound, terminal-state and lease-reset assertions; cross-checked HookEventsProvider event capture and presentation."
+    },
+    {
+      "path": "web/tests/import-ui.test.tsx",
+      "fullyRead": true,
+      "note": "Read preview/apply ownership, stale read and executable-review tests; cross-checked import normalization and scoped ImportPanel actions."
+    },
+    {
+      "path": "web/tests/input-context.test.tsx",
+      "fullyRead": true,
+      "note": "Read structured context, project ownership, selection, persistence and output-schema validation tests; cross-checked context builders, picker, Composer, file-reference callback and draft state."
+    },
+    {
+      "path": "web/tests/input-modalities.test.tsx",
+      "fullyRead": true,
+      "note": "Read effective-model, capability-catalog and send/queue/steer modality tests; cross-checked model admission and Composer guards."
+    },
+    {
+      "path": "web/tests/input-preference.test.tsx",
+      "fullyRead": true,
+      "note": "Read persisted preference and unavailable-storage fallback cases; cross-checked input-preference implementation."
+    },
+    {
+      "path": "web/tests/loaded-threads.test.tsx",
+      "fullyRead": true,
+      "note": "Read loaded-thread paging, explicit inspection and unsubscribe assertions; cross-checked current panel and Workspace entry point."
+    },
+    {
+      "path": "web/tests/mcp-media.test.tsx",
+      "fullyRead": true,
+      "note": "Read MCP media MIME/signature, bounded payload, scope ownership, cleanup and StrictMode cases; cross-checked McpContent media provider."
+    },
+    {
+      "path": "web/tests/mcp-oauth.test.tsx",
+      "fullyRead": true,
+      "note": "Read OAuth handoff identity, completion race, expiry and hidden-owner cases; cross-checked McpAuthorization and parent identity key."
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "fullyRead": true,
+      "note": "Read complete MCP UI suite including tool/resource discovery, structured arguments, mutation recovery, leases, visibility, retained results, configuration and secrets; cross-checked relevant current MCP components."
+    },
+    {
+      "path": "web/tests/memory-settings.test.tsx",
+      "fullyRead": true,
+      "note": "Read user-layer version, leaf updates, read failure and conflict handling assertions; cross-checked MemorySettings mutation construction."
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "fullyRead": true,
+      "note": "Read explicit media fetch, fallback revision, empty file, render failure and object URL cleanup assertions; cross-checked MessageMedia and media validators."
+    },
+    {
+      "path": "web/tests/modal-mutations.test.tsx",
+      "fullyRead": true,
+      "note": "Read modal mutation double-submit, lifecycle and draft preservation assertions; cross-checked ProjectDialog, RenameDialog, HistoryTools, workflow ownership and drafts."
+    },
+    {
+      "path": "web/tests/operation-generation.test.ts",
+      "fullyRead": true,
+      "note": "Read generation-ID round-trip and malformed-ID assertions; cross-checked operation ID encoding."
+    },
+    {
+      "path": "web/tests/operations.test.ts",
+      "fullyRead": true,
+      "note": "Read persisted operation creation, recovery, terminal evidence, stale writes and exact draft handling assertions; cross-checked operation persistence and Api mutation path."
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "fullyRead": true,
+      "note": "Read organization, path mapping, explicit clearing, destructive consent and scope-change assertions; cross-checked OrganizationPanel, NativeProjects and relevant ThreadOrganization actions."
+    },
+    {
+      "path": "web/tests/prediction.test.tsx",
+      "fullyRead": true,
+      "note": "Read prediction monotonic state, scoped events, receipt recovery and draft insertion assertions; cross-checked PredictionPanel and Workspace insertion guard."
+    },
+    {
+      "path": "web/tests/preview-server.mjs",
+      "fullyRead": true,
+      "note": "Read complete preview-server helper including listener binding, file serving, proxy handling and shutdown implementation."
+    },
+    {
+      "path": "web/tests/preview-server.test.ts",
+      "fullyRead": true,
+      "note": "Read preview-server tests, setup/teardown, path/request rejection assertions and helper contract."
+    },
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "fullyRead": true,
+      "note": "Read complete process/remote suite including coalescing, snapshots, drafts, selection, reconnect ownership, pairing lifecycle and expiration; cross-checked ProcessPanel and relevant RemoteSettings paths."
+    },
+    {
+      "path": "web/tests/prompt-fields.test.tsx",
+      "fullyRead": true,
+      "note": "Read schema field presence, falsy values, null, enum, array, object and special-key assertions; cross-checked SchemaField and validation helpers."
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "fullyRead": true,
+      "note": "Read request-user-input, approval, elicitation, schema, prototype-key, preview gating and pending-answer assertions; cross-checked Prompts and usePrompts plus actual Workspace wiring."
+    },
+    {
+      "path": "web/tests/provider-advanced.test.tsx",
+      "fullyRead": true,
+      "note": "Read advanced provider credentials, disabled/hidden and destination-related assertions; cross-checked ProviderSettings lifecycle and scoped actions."
+    },
+    {
+      "path": "web/tests/provider-catalog.test.tsx",
+      "fullyRead": true,
+      "note": "Read model discovery preview/apply, expected revision, mismatch/recovery and ownership assertions; cross-checked ProviderSettings and ModelCatalog."
+    }
+  ],
+  "supplementalCrossReads": [
+    {
+      "path": "scripts/snapshot.mjs",
+      "ranges": "full"
+    },
+    {
+      "path": "vitest.config.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/vite.config.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/HookEventsPanel.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/imports.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/input-context.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/input-modalities.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/input-preference.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/LoadedThreadsPanel.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/McpAuthorization.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/MessageMedia.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/media.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/hooks/usePrompts.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/ids.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/RenameDialog.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/ProjectDialog.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/OrganizationPanel.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/organization.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/McpContent.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/mcp-session.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/Prompts.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "ranges": "full"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "ranges": "251-465 plus targeted search of earlier method declarations"
+    },
+    {
+      "path": "web/components/ImportPanel.tsx",
+      "ranges": "1-185"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "ranges": "101-230"
+    },
+    {
+      "path": "web/components/InputContextPicker.tsx",
+      "ranges": "1-101"
+    },
+    {
+      "path": "web/components/MemorySettings.tsx",
+      "ranges": "1-100"
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "ranges": "1-151,267-343"
+    },
+    {
+      "path": "web/components/ModelCatalog.tsx",
+      "ranges": "1-250"
+    },
+    {
+      "path": "web/components/PredictionPanel.tsx",
+      "ranges": "1-263,359-406"
+    },
+    {
+      "path": "web/components/ProcessPanel.tsx",
+      "ranges": "1-260"
+    },
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "ranges": "221-387,603-636"
+    },
+    {
+      "path": "web/components/McpPanel.tsx",
+      "ranges": "1-540"
+    },
+    {
+      "path": "web/components/McpConfiguration.tsx",
+      "ranges": "1-370"
+    },
+    {
+      "path": "web/components/NativeProjects.tsx",
+      "ranges": "1-127"
+    },
+    {
+      "path": "web/components/ThreadOrganization.tsx",
+      "ranges": "169-241,286-390,419-578"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "ranges": "930-985,1020-1102,1145-1225,1250-1345 plus targeted entry point search"
+    },
+    {
+      "path": "web/components/FileEditor.tsx",
+      "ranges": "349-394"
+    }
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "This is a static supplemental audit; no Vitest execution, full suite, browser run, deployment, or production-HTTPS acceptance run was performed by this reviewer.",
+    "No live OAuth/MCP/provider/remote/prediction/process external service was invoked; no personal credentials or paid inference were used.",
+    "Current implementations were cross-read to assess these tests; partial source ranges are recorded separately and are not counted as additional full-file audit coverage.",
+    "No newly confirmed actionable defect was identified in this assigned slice. This statement is bounded to the files and current-source ranges recorded here, and does not certify unexecuted integrations."
+  ],
+  "methodDetails": {
+    "type": "independent static full-file review with current-source cross-reading",
+    "policy": "Read AGENTS.md. Read all 23 assigned inventory files from beginning to end in frozen inventory order. Did not consult legacy implementations or historical audit conclusions. No source changes.",
+    "checks": [
+      "assertion strength and mock fidelity",
+      "async ownership and stale completion races",
+      "test isolation and cleanup",
+      "failure and rejected-input coverage",
+      "current product entry points and recovery paths"
+    ],
+    "runtime": "v24.22.1",
+    "runtimePath": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+    "snapshotBefore": {
+      "files": 1902,
+      "digest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54"
+    },
+    "snapshotAfter": {
+      "files": 1902,
+      "digest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54"
+    },
+    "rawShaBeforeMatched": true,
+    "rawShaAfterMatched": true,
+    "assignedSlice": "inventory.groups.web.filter(path => path.startsWith('web/tests/')).slice(23,46)",
+    "testsExecuted": [],
+    "sourceMutations": []
+  }
+}

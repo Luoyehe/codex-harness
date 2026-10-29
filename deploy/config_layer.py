@@ -232,6 +232,9 @@ def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidat
         manager.config = old_config
         manager.system.reload()
     restore_activity(manager, journal["active"])
+    # No compensation may follow terminal publication: atomic_write can replace
+    # state.json and then fail its parent-directory fsync. Earlier failures keep
+    # the recovering phase available for another explicit recovery.
     journal["phase"] = "committed" if candidate else "recovered"
     write_json(journal_path, journal)
     return {"providerConfigLayer": manager.config.get("providerConfigLayer", "legacy"), "recovered": True,
@@ -293,6 +296,8 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
     except Exception:
         recover_config_layer(manager, transaction / "state.json", journal)
         raise
+    # Keep the terminal write outside the compensation block for the same
+    # publish-before-fsync failure boundary as explicit recovery above.
     journal["phase"] = "committed"
     write_json(transaction / "state.json", journal)
     return {"providerConfigLayer": mode, "changed": True, "providerRevision": generation, "transaction": transaction.name,

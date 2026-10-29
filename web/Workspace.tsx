@@ -173,6 +173,9 @@ export function Workspace({
     [reviewTarget, setReviewTarget] = useState<ReviewTarget>();
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(new Set<string>());
+  const [completedHandoff, setCompletedHandoff] = useState<{
+    id: string; navigation: number; message: string;
+  }>();
   const [branchAction, setBranchAction] = useState<{
     turn: Turn;
     action: 'fork' | 'edit' | 'revert';
@@ -203,11 +206,7 @@ export function Workspace({
     (event: HarnessEvent) => {
       events.publish(event);
       if (event.type === 'receipt' && typeof event.data.operationId === 'string') {
-        try {
-          reconcileOperation(event.data.operationId, event.data);
-        } catch (e) {
-          setError(message(e));
-        }
+        void reconcileOperation(event.data.operationId, event.data).catch((error) => setError(message(error)));
       }
       if (event.type === 'notification') {
         const params = object(event.data.params),
@@ -410,7 +409,7 @@ export function Workspace({
     const recover = async () => {
       let records;
       try {
-        records = listOperations().filter((o) => ['pending', 'unknown'].includes(o.state));
+        records = (await listOperations()).filter((o) => ['pending', 'unknown'].includes(o.state));
       } catch (e) {
         setError(message(e));
         return;
@@ -419,7 +418,7 @@ export function Workspace({
         await Promise.allSettled(
           records.slice(i, i + 4).map(async (op) => {
             const result = await api.call('operation/read', { operationId: op.id });
-            if (!disposed) reconcileOperation(op.id, result);
+            if (!disposed) await reconcileOperation(op.id, result);
           }),
         );
     };
@@ -450,13 +449,20 @@ export function Workspace({
   const changeArchive = async (nextArchived: boolean) => {
     if (archiveBusy) return;
     const target = threadId,
-      nav = navigation.current;
+      nav = navigation.current,
+      canLeave = draftState.canLeave;
     setArchiveBusy(true);
     setError('');
     try {
       await api.mutate(nextArchived ? 'thread/archive' : 'thread/unarchive', { threadId: target });
       threads.refresh();
-      if (navigation.current === nav) navigate('');
+      if (navigation.current === nav) {
+        setArchiveSelection({ threadId: target, archived: nextArchived, epoch: resourceEpoch });
+        if (canLeave()) navigate('');
+        else setCompletedHandoff({
+          id: '', navigation: nav, message: '归档状态已更新，当前输入仍保留在这里。',
+        });
+      }
     } catch (e) {
       setError(message(e));
     } finally {
@@ -466,7 +472,8 @@ export function Workspace({
   const send = async (attachments: Attachment[], intent: SendIntent = 'send'): Promise<boolean> => {
     const key = contextKey,
       text = draft,
-      nav = navigation.current;
+      nav = navigation.current,
+      canLeaveAfterAcceptance = draftState.canLeaveAfterAcceptance;
     if (
       !projectId ||
       pending ||
@@ -500,7 +507,12 @@ export function Workspace({
         if (typeof thread.id !== 'string')
           throw new Error('会话已受理，但响应未包含会话 ID。请查询恢复记录。');
         target = thread.id;
-        if (navigation.current === nav) navigate(target, true);
+        if (navigation.current === nav) {
+          if (canLeaveAfterAcceptance()) navigate(target, true);
+          else setCompletedHandoff({
+            id: target, navigation: nav, message: '新会话已创建，后续输入仍保留在这里。',
+          });
+        }
         threads.refresh();
       } else if (intent === 'queue')
         await api.mutate('thread/queue/add', {
@@ -580,6 +592,27 @@ export function Workspace({
   };
   const workflowOpenThread = (id: string) => {
     if (navigation.current === modalNavigation) openThread(id);
+  };
+  const workflowHandoff = (id: string) => {
+    if (navigation.current !== modalNavigation) return;
+    if (draftState.canLeave()) openThread(id);
+    else setCompletedHandoff({
+      id, navigation: modalNavigation, message: '新会话已创建，当前输入仍保留在这里。',
+    });
+  };
+  const finishBranch = (id: string, text: string | undefined, automatic: boolean) => {
+    if (text !== undefined) {
+      try {
+        writeDraft({ ...emptyDraft(id), text });
+        draftChanged(id);
+      } catch (e) {
+        setError('分支已创建，但草稿保存失败：' + message(e));
+        return false;
+      }
+    }
+    if (automatic) workflowHandoff(id);
+    else workflowOpenThread(id);
+    return true;
   };
   const openWorkspace = (projectId: string, path = '') => {
     setProjectId(projectId);
@@ -913,11 +946,20 @@ export function Workspace({
                 {draftState.error}
               </p>
             )}
+            {completedHandoff?.navigation === navigation.current && (
+              <p className="connection-banner" role="status">
+                {completedHandoff.message}
+                <button className="button small" onClick={() => openThread(completedHandoff.id)}>
+                  {completedHandoff.id ? '打开已创建的会话' : '打开新会话'}
+                </button>
+              </p>
+            )}
             <Recovery
               openWorkspace={openWorkspace}
               api={api}
               operations={operations.operations}
               error={operations.error}
+              warning={operations.warning}
               openThread={(id) => void openThread(id)}
               runtimeReady={
                 network.connection === 'connected' &&
@@ -1483,6 +1525,7 @@ export function Workspace({
                 onClose={() => setModal('')}
                 onChanged={workflowChanged}
                 onOpenThread={workflowOpenThread}
+                onCreatedThread={workflowHandoff}
               />
             )}{' '}
             {branchAction && threadId && (
@@ -1507,19 +1550,8 @@ export function Workspace({
                   while (branchMemory.current.size > 20)
                     branchMemory.current.delete(branchMemory.current.keys().next().value!);
                 }}
-                onFork={(id, text) => {
-                  if (text !== undefined) {
-                    try {
-                      writeDraft({ ...emptyDraft(id), text });
-                      draftChanged(id);
-                    } catch (e) {
-                      setError('分支已创建，但草稿保存失败：' + message(e));
-                      return false;
-                    }
-                  }
-                  workflowOpenThread(id);
-                  return true;
-                }}
+                onFork={(id, text) => finishBranch(id, text, false)}
+                onCreatedFork={(id, text) => finishBranch(id, text, true)}
               />
             )}
           </>

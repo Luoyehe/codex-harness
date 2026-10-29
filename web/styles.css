@@ -13,6 +13,7 @@
   --muted: #7a827b;
   --line: #e6e9e5;
   --accent: #47786b;
+  --on-accent: #fff;
   --accent-soft: #e9f1ed;
   --danger: #ac403c;
   --shadow: 0 14px 55px #17281c12;
@@ -207,9 +208,10 @@ hr {
 .button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .button.primary:hover:not(:disabled) {
+  background: var(--accent);
   filter: brightness(0.94);
 }
 .button.subtle {
@@ -500,6 +502,7 @@ hr {
   min-width: 0;
   flex: 1;
   height: 100%;
+  overflow-y: auto;
 }
 .topbar {
   height: 70px;
@@ -1468,9 +1471,6 @@ hr {
   display: none;
 }
 
-.main-workspace:has(.prompts) {
-  overflow-y: auto;
-}
 .workspace-body:has(.prompts) {
   min-height: 320px;
 }

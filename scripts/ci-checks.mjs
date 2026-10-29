@@ -8,6 +8,7 @@ import { gitChanges, nativePrerequisite, nativeTestFiles, runPythonTests, select
 import { prepareRun, runVitest } from './run-tests.mjs';
 import { releaseAuthorization } from './release-authorization.mjs';
 import { isolateTestProcess } from './test-environment.mjs';
+import { goTestPattern, runGoTests, validateGoResult } from './go-tests.mjs';
 export { isolatedPaths } from './test-environment.mjs';
 
 const authorizationPath = 'verification/audit-evidence/release-closeout/authorization.json';
@@ -65,7 +66,7 @@ export function buildCiPlan(base = root, env = process.env) {
   return { ...plan, baseCommit, ...(pullRequestBase ? { requestedBaseCommit } : {}) };
 }
 
-export function reconcileCi(plan, reports) {
+export function reconcileCi(plan, reports, base = root) {
   if (!Array.isArray(reports) || reports.length !== plan.targets.length || new Set(reports.map(item => item.target)).size !== reports.length) throw Error('Every expected platform report is required exactly once');
   const cases = new Map();
   for (const target of plan.targets) {
@@ -80,6 +81,14 @@ export function reconcileCi(plan, reports) {
       states.push({ target, status: item.status }); cases.set(item.id, states);
     }
     for (const file of expected) if (!report.cases.some(item => item.file === file)) throw Error(`Unexecuted selected file: ${file}`);
+    if (expected.some(name => goTestPattern.test(name))) {
+      const results = report.results?.filter(item => item.group === 'go');
+      if (results?.length !== 1) throw Error('Required Go execution evidence is missing');
+      validateGoResult(results[0], base);
+      if (results[0].runtime.platform !== (target === 'windows' ? 'windows' : 'linux')) throw Error('Go runtime evidence belongs to another platform');
+      const goCases = report.cases.filter(item => goTestPattern.test(item.file));
+      if (JSON.stringify(goCases) !== JSON.stringify(results[0].cases)) throw Error('Go case evidence differs from the platform report');
+    }
   }
   const gaps = [...cases].filter(([, values]) => !values.some(value => value.status === 'passed')).map(([id]) => id);
   if (gaps.length) throw Error(`Uncovered platform skips: ${gaps.join(', ')}`);
@@ -102,7 +111,7 @@ export function runCi(plan, target, base = root) {
   if (JSON.stringify(files) !== JSON.stringify(expected)) throw Error('Platform selection does not match the complete reviewed plan');
   if (!files.length) throw Error('An empty target is not a passing test job');
   const env = isolateTestProcess(base, { rootFixtures: target === 'linux-root' });
-  const js = files.filter(name => /\.test\.tsx?$/.test(name)), python = files.filter(name => name.endsWith('.py'));
+  const js = files.filter(name => /\.test\.tsx?$/.test(name)), python = files.filter(name => name.endsWith('.py')), go = files.filter(name => goTestPattern.test(name));
   if (js.some(name => nativeTestFiles.includes(name))) {
     const native = nativePrerequisite(base);
     if (native.status !== 'ready') throw Error('Independent official CLI prerequisite is not ready');
@@ -110,6 +119,7 @@ export function runCi(plan, target, base = root) {
   const results = [];
   if (js.length) results.push(runVitest(js, base, env));
   if (python.length) results.push(runPythonTests(python, base, env));
+  if (go.length) results.push({ group: 'go', ...runGoTests(go, base, env) });
   const exitCode = results.some(item => item.exitCode === 1) ? 1 : results.some(item => item.exitCode) ? 3 : 0;
   return { schemaVersion: 1, target, head: plan.head, sourceDigest: plan.sourceDigest, sourceDigestAfter: snapshot(base).digest, files, exitCode, cases: results.flatMap(item => item.cases ?? []), results };
 }
@@ -121,7 +131,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       const plan = buildCiPlan(); save(input, plan);
       if (process.env.GITHUB_OUTPUT) {
         const { appendFileSync } = await import('node:fs');
-        appendFileSync(process.env.GITHUB_OUTPUT, `tests=${plan.files.length > 0}\nstandard=${plan.standardFiles.length > 0}\nroot=${plan.rootFiles.length > 0}\n`);
+        appendFileSync(process.env.GITHUB_OUTPUT, `tests=${plan.files.length > 0}\nstandard=${plan.standardFiles.length > 0}\nroot=${plan.rootFiles.length > 0}\ngo=${plan.files.some(name => goTestPattern.test(name))}\n`);
       }
       console.log(JSON.stringify({ mode: plan.mode, base: plan.baseCommit, head: plan.head, files: plan.files.length, targets: plan.targets }));
     } else if (['linux', 'windows', 'linux-root'].includes(mode)) {

@@ -8,6 +8,8 @@ import {
   stopUnknownRecovery,
   updateOperation,
 } from '../lib/operations';
+import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
+import { initializeOperations } from '../lib/operations';
 import { Api } from '../lib/api';
 import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
 beforeEach(() => {
@@ -16,37 +18,41 @@ beforeEach(() => {
   vi.unstubAllGlobals();
 });
 describe('independent operation recovery', () => {
-  it('keeps two independent intents and treats missing receipts as uncertainty', () => {
-    const a = createOperation('turn/start', { threadId: 'a' }),
-      b = createOperation('turn/start', { threadId: 'b' });
-    reconcileOperation(a.id, { state: 'not_received' });
-    expect(listOperations().map((o) => o.id)).toEqual([a.id, b.id]);
-    expect(listOperations()[0]?.state).toBe('unknown');
-    expect(() => createOperation('turn/start', { threadId: 'a' })).toThrow('待确认');
-    expect(() => acknowledgeOperation(a.id)).toThrow('未知');
+  it('keeps two independent intents and treats missing receipts as uncertainty', async () => {
+    const a = (await createOperation('turn/start', { threadId: 'a' })),
+      b = (await createOperation('turn/start', { threadId: 'b' }));
+    (await reconcileOperation(a.id, { state: 'not_received' }));
+    const records = await listOperations();
+    // Millisecond timestamps can tie; both independent identities and their states must survive.
+    expect(new Set(records.map((o) => o.id))).toEqual(new Set([a.id, b.id]));
+    expect(records.find((record) => record.id === a.id)?.state).toBe('unknown');
+    await expect(createOperation('turn/start', { threadId: 'a' })).rejects.toThrow('待确认');
+    await expect(acknowledgeOperation(a.id)).rejects.toThrow('未知');
   });
-  it('does not undo accepted facts with late errors or resurrect acknowledgements', () => {
-    const a = createOperation('conversation/start', { projectId: 'p' });
-    updateOperation(a.id, 'accepted', 'thread-1');
-    reconcileOperation(a.id, { state: 'not_received' });
-    updateOperation(a.id, 'not_sent');
-    expect(listOperations()[0]).toMatchObject({ state: 'accepted', resolvedThreadId: 'thread-1' });
-    acknowledgeOperation(a.id);
-    updateOperation(a.id, 'unknown');
-    expect(listOperations()).toEqual([]);
+  it('does not undo accepted facts with late errors or resurrect acknowledgements', async () => {
+    const a = (await createOperation('conversation/start', { projectId: 'p' }));
+    (await updateOperation(a.id, 'accepted', 'thread-1'));
+    (await reconcileOperation(a.id, { state: 'not_received' }));
+    (await updateOperation(a.id, 'not_sent'));
+    expect((await listOperations())[0]).toMatchObject({ state: 'accepted', resolvedThreadId: 'thread-1' });
+    (await acknowledgeOperation(a.id));
+    (await updateOperation(a.id, 'unknown'));
+    expect((await listOperations())).toEqual([]);
   });
-  it('survives a second tab writing a previously read record after acceptance or acknowledgement', () => {
-    const a = createOperation('turn/start', { threadId: 'a' });
+  it('survives a second tab writing a previously read record after acceptance or acknowledgement', async () => {
+    const a = (await createOperation('turn/start', { threadId: 'a' }));
     const stale = JSON.stringify({ ...a, state: 'unknown' });
-    updateOperation(a.id, 'accepted');
+    (await updateOperation(a.id, 'accepted'));
     localStorage.setItem(`harness.operation.v1.${a.id}`, stale);
-    expect(listOperations()[0]?.state).toBe('accepted');
-    acknowledgeOperation(a.id);
+    expect((await listOperations())[0]?.state).toBe('accepted');
+    (await acknowledgeOperation(a.id));
     localStorage.setItem(`harness.operation.v1.${a.id}`, stale);
-    expect(listOperations()).toEqual([]);
+    expect((await listOperations())).toEqual([]);
   });
   it('fails closed on corrupt storage and never sends the new request', async () => {
     localStorage.setItem('harness.operation.v1.broken', '{');
+    globalThis.indexedDB = new IDBFactory();
+    await expect(initializeOperations(2)).rejects.toThrow();
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     await expect(
@@ -65,8 +71,8 @@ describe('independent operation recovery', () => {
       }),
     ).rejects.toThrow('offline');
     expect(fetch).toHaveBeenCalledOnce();
-    expect(listOperations()[0]?.state).toBe('unknown');
-    expect(JSON.stringify(listOperations())).not.toMatch(/secret prompt|private-file/);
+    expect((await listOperations())[0]?.state).toBe('unknown');
+    expect(JSON.stringify((await listOperations()))).not.toMatch(/secret prompt|private-file/);
   });
   it('allows a fresh intent only after an authoritative not-sent result', async () => {
     vi.stubGlobal(
@@ -83,8 +89,8 @@ describe('independent operation recovery', () => {
     await expect(
       new Api().mutate('turn/start', { threadId: 'a', text: 'keep draft' }),
     ).rejects.toThrow('busy');
-    expect(listOperations()[0]?.state).toBe('not_sent');
-    expect(() => createOperation('turn/start', { threadId: 'a' })).not.toThrow();
+    expect((await listOperations())[0]?.state).toBe('not_sent');
+    await expect(createOperation('turn/start', { threadId: 'a' })).resolves.toBeDefined();
   });
   it.each(['available', 'getter', 'read', 'write'] as const)('gives duplicated documents independent client identities when sessionStorage is %s', (failure) => {
     sessionStorage.setItem('harness.client', 'copied-document-client');
@@ -109,36 +115,25 @@ describe('independent operation recovery', () => {
     expect(a.headers()['X-Harness-Client']).toBe(a.clientId);
     expect(b.headers()['X-Harness-Client']).toBe(b.clientId);
   });
-  it.each(['getter', 'read', 'write', 'discarded-write'] as const)('sends neither a business mutation nor a terminal open when operation storage has a %s failure', async (failure) => {
-    const storage = localStorage,
-      fetch = vi.fn(),
-      api = new Api();
+  it.each(['getter', 'read', 'write', 'abort', 'discarded-write'] as const)('sends neither a business mutation nor a terminal open when operation storage has a %s failure', async (failure) => {
+    const fetch = vi.fn(), api = new Api();
     vi.stubGlobal('fetch', fetch);
-    if (failure === 'getter') {
-      vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
-        throw new DOMException('operation storage unavailable', 'SecurityError');
-      });
-    } else if (failure === 'read') {
-      const original = Storage.prototype.getItem;
-      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key) {
-        if (this === storage) throw new DOMException('operation storage unreadable', 'SecurityError');
-        return original.call(this, key);
-      });
-    } else {
-      const original = Storage.prototype.setItem;
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
-        if (this === storage) {
-          if (failure === 'discarded-write') return;
-          throw new DOMException('operation storage unwritable', 'QuotaExceededError');
-        }
-        return original.call(this, key, value);
+    if (failure === 'getter') vi.stubGlobal('indexedDB', undefined);
+    else if (failure === 'read') vi.spyOn(IDBObjectStore.prototype, 'getAll').mockImplementation(() => {
+      throw new DOMException('database unreadable', 'SecurityError');
+    });
+    else if (failure === 'write') vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(() => {
+      throw new DOMException('database full', 'QuotaExceededError');
+    });
+    else {
+      const original = IDBObjectStore.prototype.add;
+      vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(function (this: IDBObjectStore, value, key) {
+        if (failure === 'discarded-write') return this.get('absent') as IDBRequest<IDBValidKey>;
+        const request = original.call(this, value, key); this.transaction.abort(); return request;
       });
     }
-    await expect(api.mutate('workspace/write', { projectId: 'p', path: 'file.txt' })).rejects.toThrow();
-    expect(() => api.openTerminal({ projectId: 'p', rows: 24, cols: 80 }, 'lease')).toThrow();
-    expect(fetch).not.toHaveBeenCalled();
-    vi.restoreAllMocks();
-    await Promise.resolve();
+    await expect(api.mutate('workspace/write', { projectId: 'p', path: 'file.txt' })).rejects.toMatchObject({ delivery: 'not_sent' });
+    await expect(api.openTerminal({ projectId: 'p', rows: 24, cols: 80 }, 'lease').result).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
   });
   it('submits the first conversation input as one intent and preserves a partial unknown thread', async () => {
@@ -161,11 +156,11 @@ describe('independent operation recovery', () => {
     ).rejects.toThrow('unknown first input');
     expect(fetch).toHaveBeenCalledOnce();
     expect(JSON.parse(fetch.mock.calls[0]![1].body).method).toBe('conversation/start');
-    expect(listOperations()[0]).toMatchObject({
+    expect((await listOperations())[0]).toMatchObject({
       state: 'unknown',
       resolvedThreadId: 'partial-thread',
     });
-    expect(() => createOperation('conversation/start', { projectId: 'p' })).toThrow('待确认');
+    await expect(createOperation('conversation/start', { projectId: 'p' })).rejects.toThrow('待确认');
   });
   it('does not clear retained drafts if a stopped unknown operation later receives an HTTP success', async () => {
     const draft = { ...emptyDraft('a'), text: 'retain for review' };
@@ -181,38 +176,36 @@ describe('independent operation recovery', () => {
       ),
     );
     const pending = new Api().mutate('turn/start', { threadId: 'a', text: draft.text });
-    const op = listOperations()[0]!;
-    reconcileOperation(op.id, { operationId: op.id, state: 'unknown' });
-    stopUnknownRecovery(op.id, { operationId: op.id, state: 'unknown' });
+    const op = (await listOperations())[0]!;
+    (await reconcileOperation(op.id, { operationId: op.id, state: 'unknown' }));
+    (await stopUnknownRecovery(op.id, { operationId: op.id, state: 'unknown' }));
     finish({
       ok: true,
       json: async () => ({ ok: true, result: { turn: { id: 'accepted-late' } } }),
     });
     await pending;
-    expect(listOperations()).toEqual([]);
+    expect((await listOperations())).toEqual([]);
     expect(readDraft('a')).toEqual(draft);
   });
 });
 
-it('retains only typed terminal identity, keeps accepted proof monotonic and rejects conflicting identities', () => {
+it('retains only typed terminal identity, keeps accepted proof monotonic and rejects conflicting identities', async () => {
   const terminalOwner = { clientId: 'document', connectionId: 'lease' };
-  const op = createOperation('terminal/open', { projectId: 'project', terminalOwner });
-  reconcileOperation(op.id, {
+  const op = (await createOperation('terminal/open', { projectId: 'project', terminalOwner }));
+  (await reconcileOperation(op.id, {
     operationId: op.id,
     state: 'accepted',
     result: { terminalId: 'terminal', output: 'do not retain' },
-  });
-  reconcileOperation(op.id, { operationId: op.id, state: 'not_received' });
-  expect(listOperations()[0]).toMatchObject({
+  }));
+  (await reconcileOperation(op.id, { operationId: op.id, state: 'not_received' }));
+  expect((await listOperations())[0]).toMatchObject({
     state: 'accepted',
     terminalOwner,
     terminalResult: { terminalId: 'terminal' },
   });
-  expect(JSON.stringify(listOperations())).not.toContain('do not retain');
-  expect(() =>
-    reconcileOperation(op.id, { state: 'accepted', result: { terminalId: 'different' } }),
-  ).toThrow('不同的终端');
-  expect(listOperations()[0]?.terminalResult).toEqual({ terminalId: 'terminal' });
+  expect(JSON.stringify((await listOperations()))).not.toContain('do not retain');
+  await expect(reconcileOperation(op.id, { state: 'accepted', result: { terminalId: 'different' } })).rejects.toThrow('不同的终端');
+  expect((await listOperations())[0]?.terminalResult).toEqual({ terminalId: 'terminal' });
 });
 it('binds terminal recovery to the creating document and connection before making a read request', async () => {
   const api = new Api(),
@@ -232,10 +225,10 @@ it('binds terminal recovery to the creating document and connection before makin
 });
 it('requires the exact operation identity and a usable accepted terminal result', async () => {
   const api = new Api(),
-    op = createOperation('terminal/open', {
+    op = (await createOperation('terminal/open', {
       projectId: 'p',
       terminalOwner: { clientId: api.clientId, connectionId: 'lease' },
-    });
+    }));
   const operation = {
     operationId: op.id,
     projectId: 'p',
@@ -266,23 +259,19 @@ it('requires the exact operation identity and a usable accepted terminal result'
   vi.stubGlobal('fetch', fetch);
   await expect(api.recoverTerminal(operation, 'lease')).rejects.toThrow('身份不匹配');
   await expect(api.recoverTerminal(operation, 'lease')).rejects.toThrow('有效终端标识');
-  expect(listOperations()[0]?.state).toBe('pending');
+  expect((await listOperations())[0]?.state).toBe('pending');
 });
-it('keeps unresolved opens exclusive within their lease while allowing a replacement lease to create its own terminal', () => {
-  createOperation('terminal/open', {
+it('keeps unresolved opens exclusive within their lease while allowing a replacement lease to create its own terminal', async () => {
+  (await createOperation('terminal/open', {
     projectId: 'p',
     terminalOwner: { clientId: 'doc', connectionId: 'old' },
-  });
-  expect(() =>
-    createOperation('terminal/open', {
+  }));
+  await expect(createOperation('terminal/open', {
       projectId: 'p',
       terminalOwner: { clientId: 'doc', connectionId: 'old' },
-    }),
-  ).toThrow('待确认');
-  expect(() =>
-    createOperation('terminal/open', {
+    })).rejects.toThrow('待确认');
+  await expect(createOperation('terminal/open', {
       projectId: 'p',
       terminalOwner: { clientId: 'doc', connectionId: 'new' },
-    }),
-  ).not.toThrow();
+    })).resolves.toBeDefined();
 });

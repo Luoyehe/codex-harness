@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round17",
+  "reviewerId": "audit17-tooling-independent-20261029",
+  "scope": "deployment-release",
+  "scopes": [
+    "deployment-release"
+  ],
+  "digest": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+  "sourceDigestBefore": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+  "sourceDigestAfter": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+  "startedAt": "2026-10-28T21:17:25.300Z",
+  "completedAt": "2026-10-28T21:23:46.664Z",
+  "complete": true,
+  "inspectedFiles": [
+    ".gitattributes",
+    ".github/workflows/affected.yml",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/security.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "scripts/ci-checks.mjs",
+    "scripts/compatibility-watch.mjs",
+    "scripts/go-tests.mjs",
+    "scripts/prepare-ci-go.py",
+    "scripts/prepare-ci-native.mjs",
+    "scripts/python-tests.py",
+    "scripts/release-audit.mjs",
+    "scripts/release-authorization.mjs",
+    "scripts/reviewed-history.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "scripts/test-environment.mjs",
+    "scripts/windows-controller-preflight.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/go-tests.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/test-environment.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts",
+    "tsconfig.server.json",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/feature-evidence/account-watch-index-boundaries.json",
+    "verification/feature-evidence/attachments-linux.json",
+    "verification/feature-evidence/automation-scheduler.json",
+    "verification/feature-evidence/capability-coverage.json",
+    "verification/feature-evidence/extensions-foundation.json",
+    "verification/feature-evidence/linux-cli-crossuid.json",
+    "verification/feature-evidence/mcp-configuration.json",
+    "verification/feature-evidence/mcp-oauth-handoff.json",
+    "verification/feature-evidence/migration-imports.json",
+    "verification/feature-evidence/native-managed-config-probe.json",
+    "verification/feature-evidence/prediction-cloud-native.json",
+    "verification/feature-evidence/private-account-media.json",
+    "verification/feature-evidence/process-remote-search-ui.json",
+    "verification/feature-evidence/provider-boundary-and-host-check.json",
+    "verification/feature-evidence/runtime-guardian-cli-audio.json",
+    "verification/feature-evidence/sharing-feedback-and-trust.json",
+    "verification/feature-evidence/timeline-wire-contract.json",
+    "verification/feature-evidence/workspace-foundation-linux.json",
+    "verification/feature-evidence/workspace-positive-witness.json",
+    "verification/feature-evidence/worktree-registration.json",
+    "vitest.config.ts"
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "Independent read-only semantic review of all 63 assigned tooling/documentation paths on the frozen round17 source. Read complete handwritten script, CI workflow, tooling-test, README/architecture/acceptance, configuration/license, and individual feature-evidence bodies. Reviewed test selection and full-run authorization, exact case reporting and platform skip reconciliation, isolation, fixed runtime preparation and process cleanup, source scanning, snapshot identity, and user-documentation boundaries. Capability coverage was treated as an untrusted generated mapping under review: read all distinct assessments and all 178 method rows, 50 evidence groups and 15 additional workflows; checked each typed method/parameter type and JSON pointer against current generated ClientRequest contracts and each declared public workflow against current enumerated routes. Traversed every mapping value to validate 715 hash fields and 532 current source references, while retaining historical hashes only as point-in-time provenance and not as current acceptance. pnpm-lock.yaml was read through a strict whole-file indentation/scalar structural parser, consuming all 2440 nonblank rows; validated 337 package integrities and registry-only resolutions, all 337 snapshots and 623 dependency edges, all 22 direct declarations and workspace overrides. The generated-file review is structural and contract/provenance review, not a manual review of third-party dependency implementations. Independently recomputed snapshot.mjs digest and raw SHA256 for all 1910 source files both before and after semantic review. No existing audit report, old implementation, WORKLOG, personal credentials, provider/MCP call or full test suite was read/run; ignored .work analysis helpers and this report are the only writes.",
+  "verification": {
+    "before": {
+      "files": 1910,
+      "digest": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+      "rawSha256Mismatches": []
+    },
+    "after": {
+      "files": 1910,
+      "digest": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+      "rawSha256Mismatches": []
+    },
+    "capabilityMapping": {
+      "typedMethods": 178,
+      "jsonMethods": 175,
+      "groups": 50,
+      "additionalWorkflows": 15,
+      "classes": {
+        "internal-protocol": 11,
+        "web-workflow": 137,
+        "platform-or-service-limit": 7,
+        "controlled-equivalent": 23
+      },
+      "surfaces": {
+        "stable-json": 106,
+        "experimental-json": 69,
+        "legacy-typescript-only": 3
+      },
+      "publicWorkflowMismatches": [],
+      "paramsMismatches": [],
+      "allMappedHashesValidated": 715,
+      "allMappedSourceReferences": 532,
+      "uniqueMappedCurrentSources": 371,
+      "historicalHashMismatches": 240,
+      "missingSourceRefs": []
+    },
+    "dependencyLock": {
+      "format": "9.0",
+      "nonblankRowsParsed": 2440,
+      "packageRecords": 337,
+      "snapshotRecords": 337,
+      "dependencyEdgesChecked": 623,
+      "sha512IntegritiesChecked": 337,
+      "importers": [
+        "."
+      ],
+      "directDependencies": 10,
+      "devDependencies": 12,
+      "packageMetadataFields": [
+        "cpu",
+        "engines",
+        "hasBin",
+        "libc",
+        "os",
+        "peerDependencies",
+        "peerDependenciesMeta",
+        "resolution"
+      ],
+      "snapshotMetadataFields": [
+        "dependencies",
+        "optional",
+        "optionalDependencies",
+        "transitivePeerDependencies"
+      ],
+      "nonRegistrySources": [],
+      "missingReferences": [],
+      "overrides": {
+        "@z_ai/mcp-server@0.1.5>@modelcontextprotocol/sdk": "1.32.2",
+        "zod": "4.6.7"
+      },
+      "lockSha256": "9601e968bb5a808e6c44f345710929132a8451a916d63182b6a49cd2a7c55c47"
+    },
+    "testsExecuted": [],
+    "analysisArtifacts": [
+      ".work/public-https-round17-tooling-start.json",
+      ".work/public-https-round17-tooling-map-check.mjs",
+      ".work/public-https-round17-tooling-map-check.json",
+      ".work/public-https-round17-tooling-lock-check.mjs",
+      ".work/public-https-round17-tooling-lock-check.json"
+    ]
+  },
+  "limitations": [
+    "No full-suite or native/systemd execution was authorized or performed during this audit. Historical targeted results in feature-evidence remain historical claims with their recorded limitations; their underlying old reports were not consulted.",
+    "No registry/advisory network lookup, package archive re-download, commercial service, public HTTPS issuance/renewal, account entitlement or third-party dependency implementation review was performed. These are execution/integration limitations, not skipped assigned source paths.",
+    "The 106 stable / 69 experimental labels were internally enumerated from the mapping; this reviewer independently verified all 175 JSON pointers and 178 TS methods/parameter types but did not regenerate the stable-only protocol."
+  ]
+}

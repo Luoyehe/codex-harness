@@ -45,7 +45,7 @@ it('uses the deployed manager logs contract and displays its text payload', asyn
   const api = {
     call: vi.fn().mockImplementation(async (method, params) => {
       if (method === 'system/logs') {
-        expect(params).toEqual({ lines: 100 });
+        expect(params).toEqual({ service: 'gateway', lines: 100 });
         return { text: 'runtime healthy' };
       }
       return {};
@@ -68,9 +68,27 @@ it('uses the deployed manager logs contract and displays its text payload', asyn
   );
   fireEvent.click(screen.getByRole('button', { name: '服务管理' }));
   await waitFor(() =>
-    expect(api.call).toHaveBeenCalledWith('system/logs', { lines: 100 }, expect.any(AbortSignal)),
+    expect(api.call).toHaveBeenCalledWith('system/logs', { service: 'gateway', lines: 100 }, expect.any(AbortSignal)),
   );
   expect(await screen.findByText('runtime healthy')).toBeTruthy();
+});
+it('shows local TLS evidence without claiming public acceptance and selects certificate logs', async () => {
+  const api = { call: vi.fn().mockImplementation(async (method, params) => method === 'system/status'
+    ? { https: { configured: true, ready: true, certificate: { notAfter: '2027-01-01', daysRemaining: 8 }, renewal: { automatic: true } } }
+    : { text: params.service === 'caddy' ? 'certificate renewal diagnostic' : 'gateway diagnostic' }) } as unknown as Api;
+  render(<AdminSettings api={api} epoch="tls" />);
+  expect(await screen.findByText('服务器上的 HTTPS 和实例身份验证通过。')).toBeTruthy();
+  expect(screen.getByText(/此检查来自服务器本机/)).toBeTruthy();
+  expect(screen.getByText(/证书将在两周内到期/)).toBeTruthy();
+  fireEvent.change(screen.getByRole('combobox', { name: '日志服务' }), { target: { value: 'caddy' } });
+  expect(await screen.findByText('certificate renewal diagnostic')).toBeTruthy();
+  expect(api.call).toHaveBeenCalledWith('system/logs', { service: 'caddy', lines: 100 }, expect.any(AbortSignal));
+});
+it('does not label unrecognized certificate configuration as manually managed', async () => {
+  const api = { call: vi.fn().mockResolvedValue({ https: { configured: true, ready: false } }) } as unknown as Api;
+  render(<AdminSettings api={api} epoch="invalid-tls" />);
+  expect(await screen.findByText('证书管理方式尚未确认，请检查配置。')).toBeTruthy();
+  expect(screen.queryByText('证书由管理员提供，需要自行更新。')).toBeNull();
 });
 it('requires explicit consent to terminate running work and restarts without a force parameter', async () => {
   HTMLDialogElement.prototype.showModal = function () {

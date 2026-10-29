@@ -1,0 +1,1010 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round8",
+  "reviewerId": "public-https-r8-tooling-tests-705227ff26f54b759c92fe85fab87d51",
+  "scopes": [
+    "deployment-release"
+  ],
+  "digest": "3b2ca1ed3f79e4f1fc71254b4085ddbcec2b5e0d3419638d032a144a3c5fded0",
+  "sourceDigestAfter": "3b2ca1ed3f79e4f1fc71254b4085ddbcec2b5e0d3419638d032a144a3c5fded0",
+  "startedAt": "2026-10-27T04:43:03.280Z",
+  "completedAt": "2026-10-27T04:45:51.066Z",
+  "complete": true,
+  "inspectedFiles": [
+    "AGENTS.md",
+    "deploy/install.py",
+    "scripts/release-authorization.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/snapshot.mjs",
+    "tests/fixtures/native-env.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/test-environment.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts"
+  ],
+  "inspectedHashes": {
+    "AGENTS.md": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+    "deploy/install.py": "2a58bf8e11a4874a26ecd20a9c73ca33a6965f5014e0b95815379683f84971b9",
+    "scripts/release-authorization.mjs": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e",
+    "scripts/run-tests.mjs": "d441ecf32bafc2ff40080a141be393100c92da77fab138be7069c52702581b3d",
+    "scripts/snapshot.mjs": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432",
+    "tests/fixtures/native-env.ts": "3f2e70c6a85bf7e780ff3013e1d0844cb9118273f79c31551c03c9ad9cbf3c31",
+    "tests/tooling/ci-checks.test.ts": "2fa398365b287ee7eaf3292682c7c17df86aa8527ca7800a33c9a8061ee2b909",
+    "tests/tooling/compatibility-watch.test.ts": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89",
+    "tests/tooling/prepare-ci-native.test.ts": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371",
+    "tests/tooling/release-audit.test.ts": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+    "tests/tooling/reviewed-history.test.ts": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5",
+    "tests/tooling/run-tests.test.ts": "560f41f999eb7a63864744cd050d893c4160ac20d6514b4f3d0873db40da4c63",
+    "tests/tooling/select-tests.test.ts": "2fd376fbeeee28bced8fcc57db7cf6da7f755d3e439342c4e97deec2d38a0f99",
+    "tests/tooling/test-environment.test.ts": "a7b6f60ef88b5871aee0686790df7fd8cc3b1387b8d8dee91b4fe1578586a034",
+    "tests/tooling/windows-controller-preflight.test.ts": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e"
+  },
+  "method": "Independent read-only supplementary audit of every current tooling test and native environment helper. Parsed TypeScript AST for all case definitions and assertion contracts, then read every complete test/helper body, with substantive review of audit evidence integrity, source-bound authorization, source/history redaction, CI case identity reconciliation, fail/skip semantics, native package integrity, isolated environments and fixture cleanup. Compared high-risk audit and authorization test contracts with complete current run-tests.mjs, snapshot.mjs and release-authorization.mjs bodies; reread install.py as deployment context. All inspected bytes checked against the frozen inventory and final snapshot(undefined,true) digest. No tests, services or mutation workflows executed.",
+  "findings": [],
+  "skipped": [],
+  "coverage": {
+    "toolingTestFiles": 9,
+    "fixtureHelpers": 1,
+    "testDefinitions": 63,
+    "definitionCounting": "Callback-bearing test calls only; parameterized factories are excluded, and each tables and loops were read without claiming runtime-expanded counts.",
+    "fullBodyReadFiles": [
+      "AGENTS.md",
+      "deploy/install.py",
+      "scripts/release-authorization.mjs",
+      "scripts/run-tests.mjs",
+      "scripts/snapshot.mjs",
+      "tests/fixtures/native-env.ts",
+      "tests/tooling/ci-checks.test.ts",
+      "tests/tooling/compatibility-watch.test.ts",
+      "tests/tooling/prepare-ci-native.test.ts",
+      "tests/tooling/release-audit.test.ts",
+      "tests/tooling/reviewed-history.test.ts",
+      "tests/tooling/run-tests.test.ts",
+      "tests/tooling/select-tests.test.ts",
+      "tests/tooling/test-environment.test.ts",
+      "tests/tooling/windows-controller-preflight.test.ts"
+    ],
+    "sourceFiles": 1883,
+    "contracts": [
+      {
+        "path": "scripts/release-authorization.mjs",
+        "nodes": 413,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 0,
+        "cases": []
+      },
+      {
+        "path": "scripts/run-tests.mjs",
+        "nodes": 2400,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 0,
+        "cases": []
+      },
+      {
+        "path": "scripts/snapshot.mjs",
+        "nodes": 463,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 0,
+        "cases": []
+      },
+      {
+        "path": "tests/fixtures/native-env.ts",
+        "nodes": 327,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 0,
+        "cases": []
+      },
+      {
+        "path": "tests/tooling/ci-checks.test.ts",
+        "nodes": 1797,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 9,
+        "cases": [
+          {
+            "title": "'root fixtures have a traversable disposable temp outside their private home'",
+            "invocation": "test.runIf(process.platform !== 'win32')",
+            "start": 37,
+            "end": 42,
+            "assertionContracts": [
+              "expect(paths.temporary.startsWith(paths.home + path.sep)).toBe(false)",
+              "expect(statSync(paths.temporary).mode & 0o777).toBe(0o755)",
+              "expect(statSync(paths.home).mode & 0o777).toBe(0o700)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a root-only change does not launch empty standard jobs'",
+            "invocation": "test",
+            "start": 44,
+            "end": 47,
+            "assertionContracts": [
+              "expect(plan.targets).toEqual(['linux-root'])",
+              "expect(plan.standardFiles).toEqual([])"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'build metadata requires explicit current-source authorization, never an implicit full run'",
+            "invocation": "test",
+            "start": 49,
+            "end": 55,
+            "assertionContracts": [
+              "expect(() => selectCiPlan({ changed: ['package.json'], available, head, sourceDigest: digest })).toThrow(/complete review/)",
+              "expect(() => selectCiPlan({ changed: ['package.json'], available, head, sourceDigest: digest, authorization: { sourceDigest: 'c'.repeat(64) } })).toThrow()",
+              "expect(plan.mode).toBe('authorized-full')",
+              "expect(plan.files).toEqual(available)",
+              "expect(plan.targets).toEqual(['linux', 'windows', 'linux-root'])"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'authorization requires matching bytes, source, version, user instruction and no unresolved blocker'",
+            "invocation": "test",
+            "start": 57,
+            "end": 76,
+            "assertionContracts": [
+              "expect(releaseAuthorization(base, approval.name, approval.sha256).baseCommit).toBe(baseCommit)",
+              "expect(() => releaseAuthorization(base, approval.name, 'a'.repeat(64))).toThrow(/checksum/)",
+              "expect(() => releaseAuthorization(base, approval.name, checksum(bytes))).toThrow()",
+              "expect(() => releaseAuthorization(base, approval.name, approval.sha256)).toThrow(/source/)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'zero-base new refs require an explicit reviewed ancestor, rather than HEAD~1'",
+            "invocation": "test",
+            "start": 78,
+            "end": 87,
+            "assertionContracts": [
+              "expect(() => buildCiPlan(base, env)).toThrow(/nonzero/)",
+              "expect(buildCiPlan(base, env).baseCommit).toBe(baseCommit)",
+              "expect(() => buildCiPlan(base, { ...env, HARNESS_CI_HEAD: 'a'.repeat(40) })).toThrow(/checkout/)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a PR uses the shared ancestor when its target branch advanced independently'",
+            "invocation": "test",
+            "start": 89,
+            "end": 110,
+            "assertionContracts": [
+              "expect(plan.baseCommit).toBe(baseCommit)",
+              "expect(plan.requestedBaseCommit).toBe(targetHead)",
+              "expect(plan.selection.changed).toEqual(['tests/core/example.test.ts'])",
+              "expect(plan.mode).toBe('selected')",
+              "expect(() => buildCiPlan(base, { ...env, HARNESS_CI_BASE: targetHead })).toThrow()",
+              "expect(() => buildCiPlan(base, { ...env, HARNESS_CI_BASE: 'HEAD~1' })).toThrow(/valid nonzero/)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'coverage reconciles exact per-case platform complements and rejects failures, gaps and stale reports'",
+            "invocation": "test",
+            "start": 112,
+            "end": 126,
+            "assertionContracts": [
+              "expect(reconcileCi(plan, reports)).toMatchObject({ status: 'passed', cases: 3, coverageGaps: [] })",
+              "expect(() => reconcileCi(plan, changed)).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'documentation-only CI explicitly reports that no tests ran'",
+            "invocation": "test",
+            "start": 128,
+            "end": 131,
+            "assertionContracts": [
+              "expect(plan.targets).toEqual([])",
+              "expect(reconcileCi(plan, [])).toMatchObject({ status: 'no-behavior-change', cases: 0 })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'hosted root work is scoped and every matrix result is reconciled before the coverage gate passes'",
+            "invocation": "test",
+            "start": 133,
+            "end": 141,
+            "assertionContracts": [
+              "expect(workflow).toContain(\"branches: ['**']\")",
+              "expect(workflow).toContain('workflow_dispatch:')",
+              "expect(workflow).toContain('scripts/ci-checks.mjs plan')",
+              "expect(workflow).toContain('scripts/ci-checks.mjs reconcile')",
+              "expect(workflow).toContain('test \"$RUNNER_ENVIRONMENT\" = github-hosted')",
+              "expect(workflow).toContain('/usr/bin/sudo -n -- /usr/bin/env -i')",
+              "expect(workflow).toContain('if: always() && needs.plan.result')",
+              "expect(workflow).not.toContain('pull_request_target:')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/compatibility-watch.test.ts",
+        "nodes": 105,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 1,
+        "cases": [
+          {
+            "title": "'official stable metadata must agree with the pinned CLI; drift never upgrades automatically'",
+            "invocation": "test",
+            "start": 4,
+            "end": 9,
+            "assertionContracts": [
+              "expect(compatibilityReport('0.164.0', { version: '0.164.0' }, release).status).toBe('current')",
+              "expect(compatibilityReport('0.164.0', { version: '0.165.0' }, release).status).toBe('review-required')",
+              "expect(() => compatibilityReport('0.164.0', { version: '0.164.0' }, bad)).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/prepare-ci-native.test.ts",
+        "nodes": 611,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 4,
+        "cases": [
+          {
+            "title": "'accepts the exact npm scoped-package filename for $platform'",
+            "invocation": "test.each(packages)",
+            "start": 13,
+            "end": 23,
+            "assertionContracts": [
+              "expect(validatePackageMetadata([entry], value.platform, 'x64')).toEqual({ filename, integrity: value.integrity })",
+              "expect(() => validatePackageMetadata([{ ...entry, ...changed }], value.platform, 'x64')).toThrow()",
+              "expect(() => validatePackageMetadata([entry, entry], value.platform, 'x64')).toThrow()",
+              "expect(() => validatePackageMetadata([entry], value.platform, 'arm64')).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'empty, malformed and unsupported platform packs cannot prepare an independent runtime'",
+            "invocation": "test",
+            "start": 25,
+            "end": 28,
+            "assertionContracts": [
+              "expect(() => validatePackageMetadata(pack, 'linux', 'x64')).toThrow()",
+              "expect(() => validatePackageMetadata([], platform, 'x64')).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'extracts a real archive from its native working directory without passing a drive-qualified archive to tar'",
+            "invocation": "test",
+            "start": 30,
+            "end": 42,
+            "assertionContracts": [
+              "expect(readFileSync(path.join(target, 'package', 'fixture.txt'), 'utf8')).toBe('archive extraction fixture')",
+              "expect(() => extractArchive(target, filename)).toThrow('Expected an archive basename')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'archive integrity failure prevents extraction and writing the CI environment'",
+            "invocation": "test.skipIf(!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64')",
+            "start": 44,
+            "end": 55,
+            "assertionContracts": [
+              "expect(() => prepareCiNative(directory, { GITHUB_ENV: environment })).toThrow('Official CLI archive integrity mismatch')",
+              "expect(readFileSync(environment, 'utf8')).toBe('unchanged')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/release-audit.test.ts",
+        "nodes": 2377,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 16,
+        "cases": [
+          {
+            "title": "'scans ordinary source and redacts every secret/private-path diagnostic'",
+            "invocation": "test",
+            "start": 14,
+            "end": 27,
+            "assertionContracts": [
+              "expect(report.status).toBe('blocked')",
+              "expect(report.findings).toEqual(expect.arrayContaining([\n    { path: 'src/config.txt', line: 2, rule: 'api-token' },\n    { path: 'src/config.txt', line: 3, rule: 'private-key' },\n    { path: 'src/config.txt', line: 4, rule: 'windows-private-home' },\n  ]))",
+              "expect.arrayContaining([\n    { path: 'src/config.txt', line: 2, rule: 'api-token' },\n    { path: 'src/config.txt', line: 3, rule: 'private-key' },\n    { path: 'src/config.txt', line: 4, rule: 'windows-private-home' },\n  ])",
+              "expect(output).not.toContain(token)",
+              "expect(output).not.toContain(key)",
+              "expect(output).not.toContain('private-fixture')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'reads a large binary file completely and catches a token crossing a stream chunk'",
+            "invocation": "test",
+            "start": 29,
+            "end": 36,
+            "assertionContracts": [
+              "expect(report.status).toBe('blocked')",
+              "expect(report.scannedBytes).toBe(prefix.length + token.length + 1)",
+              "expect(report.skipped).toEqual([])",
+              "expect(report.findings).toContainEqual({ path: 'large.data', line: 2, rule: 'github-token' })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a secret split across independently delivered chunks preserves its line number'",
+            "invocation": "test",
+            "start": 38,
+            "end": 42,
+            "assertionContracts": [
+              "expect(report.findings).toEqual([{ path: 'split.txt', line: 3, rule: 'api-token' }])",
+              "expect(report.scannedFiles).toBe(1)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'UTF-16 %s credentials are detected across every byte alignment and chunk boundary'",
+            "invocation": "test.each(['le', 'be'])",
+            "start": 44,
+            "end": 59,
+            "assertionContracts": [
+              "expect(report.findings).toContainEqual({ path: 'encoded.txt', line: 2, rule: 'api-token' })",
+              "expect(report.scannedBytes).toBe(bytes.length)",
+              "expect(report.scannedFiles).toBe(1)",
+              "expect(JSON.stringify(report)).not.toContain(token)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'source and Git blobs scan BOM-less UTF-16 text in both byte orders'",
+            "invocation": "test",
+            "start": 61,
+            "end": 72,
+            "assertionContracts": [
+              "expect(report.status).toBe('blocked')",
+              "expect(report.unreadable).toEqual([])",
+              "expect(report.findings.filter((finding: { rule: string }) => finding.rule === 'github-token')).toHaveLength(2)",
+              "expect(JSON.stringify(report)).not.toContain(token)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'harmless UTF-16 and odd binary bytes remain readable without inventing findings'",
+            "invocation": "test",
+            "start": 74,
+            "end": 81,
+            "assertionContracts": [
+              "expect(report.status).toBe('clean')",
+              "expect(report.scannedFiles).toBe(3)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'long %s layout cannot hide a match across chunk boundaries'",
+            "invocation": "test.each([\n  ['literal secret', 'api_key=', ' ', '\"' + 'A'.repeat(32) + '\"', 'secret-layout-overflow'],\n  ['key separator', 'api_key', '\\n', '=\"' + 'A'.repeat(32) + '\"', 'secret-layout-overflow'],\n  ['bearer', 'Bearer', '\\t', 'B'.repeat(32), 'bearer-layout-overflow'],\n  ['private path', 'Q:', '/', 'Users/private-fixture', 'path-layout-overflow'],\n])",
+            "start": 83,
+            "end": 97,
+            "assertionContracts": [
+              "expect(report.findings).toContainEqual({ path: 'layout.txt', line: 2, rule })",
+              "expect(report.scannedBytes).toBe(Buffer.byteLength(input))"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'failed reads and nonregular entries are incomplete, never clean or size-skipped'",
+            "invocation": "test",
+            "start": 99,
+            "end": 104,
+            "assertionContracts": [
+              "expect(report.status).toBe('incomplete')",
+              "expect(report.unreadable).toHaveLength(3)",
+              "expect(report.scannedFiles).toBe(0)",
+              "expect(JSON.stringify(report)).not.toContain('do not expose')",
+              "expect(report.skipped).toEqual([])"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'private files and generated residuals block release even when contents look harmless'",
+            "invocation": "test",
+            "start": 106,
+            "end": 110,
+            "assertionContracts": [
+              "expect(report.status).toBe('blocked')",
+              "expect(report.artifacts.map((finding: { path: string }) => finding.path).sort()).toEqual(names.sort())"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'SQLite %s rollback sidecars block source and historical trees'",
+            "invocation": "test.each(['sqlite-journal', 'sqlite3-journal'])",
+            "start": 112,
+            "end": 119,
+            "assertionContracts": [
+              "expect(source.status).toBe('blocked')",
+              "expect(source.artifacts).toContainEqual({ path: name, line: 1, rule: 'generated-artifact' })",
+              "expect(history.status).toBe('blocked')",
+              "expect(history.artifacts).toHaveLength(1)",
+              "expect(history.unreadable).toEqual([])",
+              "expect(JSON.stringify(history)).not.toContain(name)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'the source inventory includes forced tracked ignored files, excludes ignored runtime, and handles deletion'",
+            "invocation": "test",
+            "start": 121,
+            "end": 128,
+            "assertionContracts": [
+              "expect((await auditSource(root)).status).toBe('clean')",
+              "expect(report.status).toBe('blocked')",
+              "expect(report.artifacts).toContainEqual({ path: '.work/accidental.txt', line: 1, rule: 'generated-artifact' })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'history mode finds a dangling blob outside all refs without printing its bytes'",
+            "invocation": "test",
+            "start": 130,
+            "end": 134,
+            "assertionContracts": [
+              "expect(report.status).toBe('blocked')",
+              "expect(report.findings).toContainEqual({ path: `git-object/${id}`, line: 1, rule: 'api-token' })",
+              "expect(JSON.stringify(report)).not.toContain(token)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'history scans full paths in dangling and shared subtrees without disclosing names'",
+            "invocation": "test",
+            "start": 136,
+            "end": 148,
+            "assertionContracts": [
+              "expect(report.status).toBe('blocked')",
+              "expect(report.skipped).toEqual([])",
+              "expect(report.unreadable).toEqual([])",
+              "expect(report.artifacts).toContainEqual({ path: `git-object/${shared}`, line: 1, rule: 'private-or-generated-tree-entry' })",
+              "expect(JSON.stringify(report)).not.toContain('fixture.txt')",
+              "expect(JSON.stringify(report)).not.toContain('a-safe')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'history handles raw tab/newline tree names without quoted-name policy bypass'",
+            "invocation": "test",
+            "start": 150,
+            "end": 158,
+            "assertionContracts": [
+              "expect(report.status).toBe('blocked')",
+              "expect(report.unreadable).toEqual([])",
+              "expect(report.artifacts).toContainEqual({ path: `git-object/${id}`, line: 1, rule: 'private-or-generated-tree-entry' })",
+              "expect(JSON.stringify(report)).not.toContain('fixture.key')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'harmless nested history remains clean even when one tree has several parents'",
+            "invocation": "test",
+            "start": 160,
+            "end": 168,
+            "assertionContracts": [
+              "expect(report.status).toBe('clean')",
+              "expect(report.scannedFiles).toBe(4)",
+              "expect(report.skipped).toEqual([])"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'history cannot report clean when an ordinary tree member is absent'",
+            "invocation": "test",
+            "start": 170,
+            "end": 175,
+            "assertionContracts": [
+              "expect(report.status).toBe('incomplete')",
+              "expect(report.unreadable).toContainEqual({ path: 'git-objects', line: 1, rule: 'unreadable', code: 'GIT_TREE_TRAVERSAL_FAILED' })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/reviewed-history.test.ts",
+        "nodes": 336,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 2,
+        "cases": [
+          {
+            "title": "'only exact reviewed immutable historical findings are classified, with raw diagnostics retained'",
+            "invocation": "test",
+            "start": 5,
+            "end": 9,
+            "assertionContracts": [
+              "expect(reviewHistory(report, new Set())).toMatchObject({ status: 'passed-with-reviewed-historical-patterns', rawScannerStatus: 'blocked', reviewedFindings: [expect.objectContaining(historical)] })",
+              "expect.objectContaining(historical)",
+              "expect(() => reviewHistory({ ...report, findings: [changed] }, new Set())).toThrow()",
+              "expect(() => reviewHistory(report, new Set([historical.path.slice(11)]))).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'unknown historical artifacts, unreadable objects, skips and partial scans never pass'",
+            "invocation": "test",
+            "start": 10,
+            "end": 18,
+            "assertionContracts": [
+              "expect(() => reviewHistory({ ...report, [key]: [{}] }, new Set())).toThrow()",
+              "expect(() => reviewHistory({ ...report, status: 'incomplete' }, new Set())).toThrow()",
+              "expect(() => reviewHistory({ ...report, scannedFiles: value }, new Set())).toThrow()",
+              "expect(() => reviewHistory({ ...report, [key]: undefined }, new Set())).toThrow()",
+              "expect(() => reviewHistory({ ...report, status: 'clean' }, new Set())).toThrow()",
+              "expect(() => reviewHistory({ ...report, findings: [] }, new Set())).toThrow()",
+              "expect(() => reviewHistory({ ...report, findings: [historical, { ...historical, line: 101 }] }, new Set())).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/run-tests.test.ts",
+        "nodes": 1765,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 12,
+        "cases": [
+          {
+            "title": "'targeted refuses empty, directory, missing, traversal and duplicate-disguised full inventories'",
+            "invocation": "test",
+            "start": 32,
+            "end": 38,
+            "assertionContracts": [
+              "expect(() => prepareRun('--targeted', args, root)).toThrow()",
+              "expect(prepareRun('--targeted', ['tests/core/example.test.ts'], root).files).toEqual(['tests/core/example.test.ts'])",
+              "expect(prepareRun('--targeted', ['tests/deploy/test_example.py'], root).files).toEqual(['tests/deploy/test_example.py'])",
+              "expect(prepareRun('--targeted', ['tests/deploy/root/test_example.py'], root).files).toEqual(['tests/deploy/root/test_example.py'])"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'full gate accepts three independently evidenced clean rounds without running any tests'",
+            "invocation": "test",
+            "start": 40,
+            "end": 43,
+            "assertionContracts": [
+              "expect(plan.auditRounds).toEqual(['round-1', 'round-2', 'round-3'])",
+              "expect(plan.files.sort()).toEqual([...files].sort())"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a source fix resets eligibility and code hidden under verification changes the snapshot'",
+            "invocation": "test",
+            "start": 45,
+            "end": 50,
+            "assertionContracts": [
+              "expect(snapshot(root).digest).toBe(current.digest)",
+              "expect(snapshot(root).digest).not.toBe(current.digest)",
+              "expect(() => prepareRun('--full', [], root)).toThrow()",
+              "expect(() => prepareRun('--full', [], root)).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'unclean, incomplete, skipped, missing-scope, reordered and reused-reviewer rounds are rejected'",
+            "invocation": "test",
+            "start": 52,
+            "end": 66,
+            "assertionContracts": [
+              "expect(() => validateAuditRecord(changed, current, root)).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'changed reviewer bytes, absent artifacts and mismatched snapshot evidence are rejected'",
+            "invocation": "test",
+            "start": 68,
+            "end": 73,
+            "assertionContracts": [
+              "expect(() => validateAuditRecord(record, current, root)).toThrow(/checksum/)",
+              "expect(() => validateAuditRecord(record, current, root)).toThrow(/artifact/)",
+              "expect(() => validateAuditRecord(record, current, root)).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'scope names alone cannot substitute for inspecting the claimed source areas'",
+            "invocation": "test",
+            "start": 75,
+            "end": 78,
+            "assertionContracts": [
+              "expect(() => validateAuditRecord(record, current, root)).toThrow(/scope coverage/)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'one source file per scope cannot authorize a partial review as a complete audit'",
+            "invocation": "test",
+            "start": 79,
+            "end": 85,
+            "assertionContracts": [
+              "expect(() => validateAuditRecord(record, current, root)).toThrow(/entire source inventory/)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'full execution plan requires native and Python before starting and includes both test engines'",
+            "invocation": "test",
+            "start": 87,
+            "end": 93,
+            "assertionContracts": [
+              "expect(skipped.status).toBe('skipped')",
+              "expect(skipped.exitCode).toBe(3)",
+              "expect(vitest).not.toHaveBeenCalled()",
+              "expect(python).not.toHaveBeenCalled()",
+              "expect(result.status).toBe('passed')",
+              "expect(vitest.mock.calls[0][0]).toEqual(expect.arrayContaining(['tests/runtime/native-smoke.test.ts', 'web/tests/example.test.tsx']))",
+              "expect.arrayContaining(['tests/runtime/native-smoke.test.ts', 'web/tests/example.test.tsx'])",
+              "expect(python.mock.calls[0][0]).toEqual(['tests/deploy/root/test_example.py', 'tests/deploy/test_example.py'])"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'an unavailable Python dependency is skipped explicitly, with no tests reported passed'",
+            "invocation": "test",
+            "start": 95,
+            "end": 98,
+            "assertionContracts": [
+              "expect(runPythonTests(['tests/deploy/test_example.py'], root)).toMatchObject({ status: 'skipped', exitCode: 3, reason: 'python-interpreter-unavailable' })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'Python collection refuses an empty selected file even when another selected file has tests'",
+            "invocation": "test",
+            "start": 100,
+            "end": 103,
+            "assertionContracts": [
+              "expect(runPythonTests(['tests/deploy/test_example.py', 'tests/deploy/test_empty.py'], root)).toMatchObject({ status: 'failed', exitCode: 1 })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a Python platform skip remains a nonzero coverage gap'",
+            "invocation": "test",
+            "start": 105,
+            "end": 108,
+            "assertionContracts": [
+              "expect(runPythonTests(['tests/deploy/test_example.py'], root)).toMatchObject({ status: 'skipped', exitCode: 3 })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'Python class setup failures and skips preserve each collected case identity'",
+            "invocation": "test",
+            "start": 110,
+            "end": 115,
+            "assertionContracts": [
+              "expect(runPythonTests(['tests/deploy/test_example.py'], root)).toMatchObject({ status, exitCode, cases: [{ id: 'tests/deploy/test_example.py::Check.test_behavior', status }] })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/select-tests.test.ts",
+        "nodes": 1466,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 12,
+        "cases": [
+          {
+            "title": "'source dependencies, Python deployment, browser and independent native tests stay in explicit groups'",
+            "invocation": "test",
+            "start": 13,
+            "end": 18,
+            "assertionContracts": [
+              "expect(plan.status).toBe('selected')",
+              "expect(plan.groups.deploy).toEqual(['tests/deploy/test_deployment.py'])",
+              "expect(plan.groups.native).toEqual([...nativeTestFiles].sort())",
+              "expect(plan.groups.unit).toEqual(['tests/core/ledger.test.ts', 'tests/gateway/auth.test.ts', 'tests/runtime/native.test.ts', 'web/tests/composer.test.tsx'])"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'real root ownership fixtures have a separate impact group and retain their unprivileged companions'",
+            "invocation": "test",
+            "start": 20,
+            "end": 35,
+            "assertionContracts": [
+              "expect(deployment.status).toBe('selected')",
+              "expect(deployment.groups.deploy).toEqual(['tests/deploy/test_control_update.py', 'tests/deploy/test_deployment.py'])",
+              "expect(deployment.groups['deploy-root']).toEqual([privileged])",
+              "expect(plan.groups.deploy).toEqual([ordinary])",
+              "expect(plan.groups['deploy-root']).toEqual([privileged])",
+              "expect(selectTests([ordinary], inventory.filter(name => name !== privileged)).requiresFullAudit)\n    .toContainEqual({ path: privileged, reason: 'missing-deployment-identity-coverage' })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'the privileged group cannot disappear from execution or convert an unavailable interpreter to a pass'",
+            "invocation": "test",
+            "start": 37,
+            "end": 45,
+            "assertionContracts": [
+              "expect(result.status).toBe('skipped')",
+              "expect(result.exitCode).toBe(3)",
+              "expect(result.results).toContainEqual(expect.objectContaining({ group: 'deploy-root', tests: [privileged], status: 'skipped' }))",
+              "expect.objectContaining({ group: 'deploy-root', tests: [privileged], status: 'skipped' })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'provider layer identity fixtures and workspace recovery companions remain jointly required'",
+            "invocation": "test",
+            "start": 46,
+            "end": 57,
+            "assertionContracts": [
+              "expect(plan.groups.deploy).toEqual(providers.slice(0, 3).sort())",
+              "expect(plan.groups['deploy-root']).toEqual(providers.slice(3).sort())",
+              "expect(selectTests([changed], inventory).groups.deploy).toEqual([...workspace].sort())",
+              "expect(selectTests([workspace[0]!], inventory.filter(name => name !== workspace[1])).requiresFullAudit).toContainEqual({ path: workspace[1], reason: 'missing-deployment-identity-coverage' })"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a deleted source still maps to surviving regressions and a deleted test demands review'",
+            "invocation": "test",
+            "start": 59,
+            "end": 62,
+            "assertionContracts": [
+              "expect(selectTests(['src/runtime/removed-module.ts'], available).groups.native).toHaveLength(nativeTestFiles.length)",
+              "expect(plan.status).toBe('requires-full-audit')",
+              "expect(plan.requiresFullAudit[0].reason).toBe('deleted-test-requires-coverage-review')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'unknown files, absent coverage, dependency metadata and an empty diff cannot silently pass'",
+            "invocation": "test",
+            "start": 64,
+            "end": 69,
+            "assertionContracts": [
+              "expect(selectTests(changed, available).status).toBe('requires-full-audit')",
+              "expect(missing.status).toBe('requires-full-audit')",
+              "expect(missing.requiresFullAudit[0].reason).toBe('missing-test-coverage')",
+              "expect(runSelection(missing).exitCode).toBe(2)",
+              "expect(selectTests(['src/runtime/service.ts'], available.filter(file => !file.endsWith('native-smoke.test.ts'))).status).toBe('requires-full-audit')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'documentation is explicitly no-behavior-change and is never reported as a test pass'",
+            "invocation": "test",
+            "start": 71,
+            "end": 73,
+            "assertionContracts": [
+              "expect(result.status).toBe('no-behavior-change')",
+              "expect(result.results).toEqual([])",
+              "expect(result.note).toContain('not a test pass')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a rename is exposed as an old deletion and new addition without dropping either mapping'",
+            "invocation": "test",
+            "start": 75,
+            "end": 79,
+            "assertionContracts": [
+              "expect(gitChanges(base, head, root).sort()).toEqual(['src/runtime/new.ts', 'src/runtime/old.ts'])",
+              "expect(() => gitChanges('0'.repeat(40), head, root)).toThrow()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'missing independent native dependency is an explicit skip with nonzero exit'",
+            "invocation": "test",
+            "start": 81,
+            "end": 86,
+            "assertionContracts": [
+              "expect(nativePrerequisite(fixture(), '')).toEqual({ status: 'skipped', reason: 'independent-official-cli-path-not-provided', requiredVersion: '0.164.0' })",
+              "expect(nativePrerequisite(fixture(), path.resolve('outside-native-fixture'))).toEqual({ status: 'failed', reason: 'native-binary-must-belong-to-independent-runtime' })",
+              "expect(result.status).toBe('skipped')",
+              "expect(result.exitCode).toBe(3)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'a group with no affected tests reports not-affected instead of a passing test result'",
+            "invocation": "test",
+            "start": 88,
+            "end": 90,
+            "assertionContracts": [
+              "expect(result.status).toBe('not-affected')",
+              "expect(result.results[0].status).toBe('not-affected')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'unioning every affected domain cannot turn targeted orchestration into a full-suite shortcut'",
+            "invocation": "test",
+            "start": 92,
+            "end": 94,
+            "assertionContracts": [
+              "expect(plan.status).toBe('requires-full-audit')",
+              "expect(plan.requiresFullAudit.some((entry: { reason: string }) => entry.reason === 'selection-covers-full-inventory')).toBe(true)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'CI entrypoints select exact changes and reconcile real identities without inventing audit rounds'",
+            "invocation": "test",
+            "start": 96,
+            "end": 121,
+            "assertionContracts": [
+              "expect(workflow).toContain('scripts/ci-checks.mjs')",
+              "expect(workflow).toContain('scripts/reviewed-history.mjs')",
+              "expect(workflow).not.toMatch(/(?:vitest[^\\n]*\\brun|--full|test:full|audits\\.json|passWithNoTests)/)",
+              "expect(workflow).toContain('0.164.0')",
+              "expect(workflow).toContain('scripts/prepare-ci-native.mjs')",
+              "expect(rootJob).toContain('runs-on: ubuntu-24.04')",
+              "expect(rootJob).toContain('test \"$RUNNER_ENVIRONMENT\" = github-hosted')",
+              "expect(rootJob).toContain('test \"$(id -u)\" -ne 0')",
+              "expect(rootJob).toContain('test \"$source_root\" = \"$(realpath \"$GITHUB_WORKSPACE\")\"')",
+              "expect(rootJob).toContain('mktemp -d /tmp/harness-ci-root-source.XXXXXX')",
+              "expect(rootJob).toContain('/usr/bin/chown 0:0 \"$root_checkout\"')",
+              "expect(rootJob).toContain('/usr/bin/chmod 0755 \"$root_checkout\"')",
+              "expect(rootJob).toContain('git -C \"$source_root\" archive --format=tar HEAD')",
+              "expect(rootJob).toContain('for entry in .git node_modules dist; do')",
+              "expect(rootJob).toContain('/usr/bin/cp -a --no-preserve=ownership --')",
+              "expect(rootJob).toContain('cd \"$root_checkout\"')",
+              "expect(rootJob).toContain('/usr/bin/install -m 0644 \"$root_checkout/.work/result-linux-root.json\" \"$source_root/.work/result-linux-root.json\"')",
+              "expect(rootJob).not.toContain('safe.directory')",
+              "expect(rootJob).not.toContain('SUDO_UID=')",
+              "expect(rootJob).toContain('/usr/bin/sudo -n -- /usr/bin/env -i')",
+              "expect(rootJob).toContain('HARNESS_TEST_NODE=')",
+              "expect(rootJob).toContain('scripts/ci-checks.mjs linux-root')",
+              "expect(workflow).toContain('reconcile .work/ci-results/ci-plan.json')",
+              "expect(workflow).toContain('if-no-files-found: error')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/test-environment.test.ts",
+        "nodes": 1796,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 4,
+        "cases": [
+          {
+            "title": "'the shared local and CI allowlist replaces host paths and removes configuration and credential injection'",
+            "invocation": "test",
+            "start": 19,
+            "end": 30,
+            "assertionContracts": [
+              "expect(inherited).toEqual(original)",
+              "expect(env).toMatchObject({ PATH: 'fixture-path', SystemRoot: 'fixture-system', HARNESS_TEST_NODE: 'fixture-node', HARNESS_TEST_PYTHON: 'fixture-python', HARNESS_TEST_CODEX_BIN: 'fixture-native', GIT_CONFIG_NOSYSTEM: '1', PYTHONNOUSERSITE: '1' })",
+              "expect(env[key]).toBeUndefined()",
+              "expect(env[key]).not.toBe(oldHome)",
+              "expect(env.HOME).toBe(env.USERPROFILE)",
+              "expect(env.CODEX_HOME).toBe(path.join(env.HOME, 'codex'))",
+              "expect(env.GIT_CONFIG_GLOBAL).toBe(process.platform === 'win32' ? 'NUL' : '/dev/null')",
+              "expect(env.GIT_CONFIG_SYSTEM).toBe(env.GIT_CONFIG_GLOBAL)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'both engines and prerequisite checks receive the same isolated environment without mutating the caller'",
+            "invocation": "test",
+            "start": 32,
+            "end": 50,
+            "assertionContracts": [
+              "expect(executePlan(plan, base, { runVitest, runPythonTests, nativePrerequisite, pythonPrerequisite }).status).toBe('passed')",
+              "expect(runPythonTests.mock.calls[0]![2]).toBe(env)",
+              "expect(pythonPrerequisite.mock.calls[0]![0]).toBe(env)",
+              "expect(nativePrerequisite.mock.calls[0]![2]).toBe(env)",
+              "expect(env.HOME).not.toBe(oldHome)",
+              "expect(env.OPENAI_API_KEY).toBeUndefined()",
+              "expect(env.HARNESS_TEST_CODEX_BIN).toBe(path.join(base, 'fixture-native'))",
+              "expect(process.env.HOME).toBe(oldHome)",
+              "expect(process.env.OPENAI_API_KEY).toBe('fixture-only')",
+              "expect(result).toMatchObject({ status, exitCode: status === 'failed' ? 1 : 3, results: [] })",
+              "expect(runVitest).not.toHaveBeenCalled()",
+              "expect(runPythonTests).not.toHaveBeenCalled()"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'root temporary ancestors stay outside private homes even with an inherited private TMPDIR'",
+            "invocation": "test",
+            "start": 52,
+            "end": 66,
+            "assertionContracts": [
+              "expect(paths.temporary.startsWith(paths.home + path.sep)).toBe(false)",
+              "expect(statSync(paths.temporary).mode & 0o777).toBe(0o755)",
+              "expect(statSync(paths.home).mode & 0o777).toBe(0o700)",
+              "expect(child.error).toBeUndefined()",
+              "expect(child.status, child.stderr).toBe(0)",
+              "expect(paths.temporary).toBe(path.join(paths.home, 'tmp'))"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'the real targeted CLI isolates JavaScript and Python Git fixtures from artificial host hooks and injected Git overrides'",
+            "invocation": "test",
+            "start": 68,
+            "end": 135,
+            "assertionContracts": [
+              "expect(readFileSync(path.join(control, 'hook-marker'), 'utf8')).toBe('fixture-hook-ran\\n')",
+              "expect(child.error).toBeUndefined()",
+              "expect(child.status, child.stdout + child.stderr).toBe(0)",
+              "expect(JSON.parse(readFileSync(path.join(base, 'js-home.json'), 'utf8'))).toBe(JSON.parse(readFileSync(path.join(base, 'python-home.json'), 'utf8')))",
+              "expect(existsSync(path.join(base, 'js-repo/hook-marker'))).toBe(false)",
+              "expect(existsSync(path.join(base, 'python-repo/hook-marker'))).toBe(false)",
+              "expect(readFileSync(path.join(control, 'hook-marker'), 'utf8')).toBe('fixture-hook-ran\\n')",
+              "expect(unavailable.status).toBe(3)",
+              "expect(JSON.parse(unavailable.stdout)).toMatchObject({ status: 'skipped', results: [] })",
+              "expect(existsSync(path.join(control, 'fsmonitor-marker'))).toBe(true)",
+              "expect(refused.status).toBe(1)",
+              "expect(refused.stderr).toContain('Three recorded audit rounds are required')",
+              "expect(existsSync(path.join(base, 'fsmonitor-marker'))).toBe(false)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      },
+      {
+        "path": "tests/tooling/windows-controller-preflight.test.ts",
+        "nodes": 319,
+        "syntaxDiagnostics": 0,
+        "testDefinitions": 3,
+        "cases": [
+          {
+            "title": "'preflight isolates profile and secrets while retaining only required Windows bootstrap paths'",
+            "invocation": "test",
+            "start": 5,
+            "end": 10,
+            "assertionContracts": [
+              "expect(env.PATH).toBe('fixture-path')",
+              "expect(env.SystemRoot).toBe('fixture-windows')",
+              "expect(env.HOME).toBe('fixture-home')",
+              "expect(env.PSModuleAnalysisCachePath).toBe('NUL')",
+              "expect(JSON.stringify(env)).not.toMatch(/must-not-copy|private-/)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'diagnostic copy keeps real ownership checks and adds exact Win32 and PowerShell stages'",
+            "invocation": "test",
+            "start": 12,
+            "end": 25,
+            "assertionContracts": [
+              "expect(job.command.args).toEqual(before)",
+              "expect(script).toContain('Check(AssignProcessToJobObject(job,child.process))')",
+              "expect(script).toContain('limits.basic.flags=0x2000')",
+              "expect(script).toContain('Marshal.GetLastWin32Error()')",
+              "expect(script).toContain('harness-preflight-before-add-type')",
+              "expect(script).toContain('harness-preflight-after-add-type')",
+              "expect(script).toContain('harness-preflight-powershell-exception')",
+              "expect(diagnostic.checks.some((value: { operation: string }) => value.operation.includes('AssignProcessToJobObject'))).toBe(true)"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          },
+          {
+            "title": "'unknown controller shapes fail explicitly instead of pretending to inspect new code'",
+            "invocation": "test",
+            "start": 27,
+            "end": 30,
+            "assertionContracts": [
+              "expect(() => instrumentController(['-Command', 'unrelated'])).toThrow('argument shape')",
+              "expect(() => instrumentController(['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from('unrelated', 'utf16le').toString('base64')])).toThrow('hooks drifted')"
+            ],
+            "review": "Full body read; setup, action, assertions, and cleanup considered."
+          }
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "Static review only; no tests executed and no test pass claimed.",
+    "Parameterized cases and generated fixture scripts were reviewed as source; no runtime expansion or execution was performed.",
+    "No upstream downloads, external integrations, personal credentials, live host services, or archived implementation/history inspected."
+  ]
+}

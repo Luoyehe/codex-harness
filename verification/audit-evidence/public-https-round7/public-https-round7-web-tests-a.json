@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round7",
+  "reviewerId": "r7-web-tests-a-2fcdef80-d76c-4cac-acfa-291f0f00bc6b",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520",
+  "sourceDigestAfter": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520",
+  "startedAt": "2026-10-27T04:16:36.806Z",
+  "completedAt": "2026-10-27T04:26:46.512Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/extension-mcp-drafts.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx"
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "Fresh structural contract review of 19 test files: test declarations, assertions, branches, setup/cleanup and side-effect calls extracted from the complete TypeScript AST, followed by complete source review of extension-mcp-drafts and mcp-oauth, and full high-risk branch/draft/unknown-receipt and MCP ABA/unmount test bodies. Checked real Api versus mocked transport boundary, explicit action counts, foreign owner rejection, storage secrecy, cleanup and Vitest restoreMocks configuration. This is static test-contract review, not full-suite execution and not a claim to have read every test-body line in all 19 files. No prior audit conclusion reused."
+}

@@ -4,7 +4,7 @@ export type Delivery = 'not_sent' | 'unknown';
 export interface ErrorBody { code: string; message: string; delivery?: Delivery; operationId?: string; data?: JsonValue }
 export type ApiResponse = { ok: true; result: JsonValue } | { ok: false; error: ErrorBody };
 export interface RpcCall { method: string; params: JsonObject; operationId?: string }
-export interface CallContext { clientId: string; operationId?: string; beforeWrite?: () => void; requireConnection?: () => void; gatewayRequestDigest?: string; projectId?: string }
+export interface CallContext { clientId: string; operationId?: string; beforeWrite?: () => void; requireAuthorization?: () => void; requireConnection?: () => void; gatewayRequestDigest?: string; projectId?: string }
 export interface HarnessEvent { type: string; data: JsonValue }
 export interface WorkerPort {
   call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue>;

@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "head": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
+  "files": 210,
+  "cases": 2148,
+  "coverageGaps": [],
+  "note": "All observed cases passed on an appropriate platform; individual skips remain recorded.",
+  "schemaVersion": 1,
+  "fullSuitePassed": true,
+  "completedAt": "2026-10-29T20:18:02.643Z",
+  "authorizationSha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee",
+  "planSha256": "005983d030e89049c198b02740288138720e39c9782c3bc29ff43caaeec5708a",
+  "auditRounds": [
+    "public-https-round24",
+    "public-https-round25"
+  ],
+  "windowsEnvelopeSha256": "57a5e247891f993ff6aff83dea42fd85b7cc8613bdd348db4f53ec0ffa4d23e5",
+  "linuxEnvelopeSha256": "0b86f713b72088a7b0f4cbebfad29095c1e118af583a32c472d7f9a0b61d9427",
+  "platformReports": {
+    "linux": {
+      "sha256": "e0c7768f0c74c422aed23f3c5ca388b16114003d092540a68ccaf9d15f02f693",
+      "cases": 1934,
+      "skipped": 15
+    },
+    "windows": {
+      "sha256": "a4d0076cec21eafd14fa41e48ce22d8a15eee6c969c0ef475b138f1ef2c2a4d9",
+      "cases": 1934,
+      "skipped": 100
+    },
+    "linux-root": {
+      "sha256": "50b3f3be4604222e21f4ca8424b4dc0465226d4ea4a6277c255dada5a143e314",
+      "cases": 214,
+      "skipped": 0
+    }
+  },
+  "orchestrationProof": {
+    "windowsOwnedJob": true,
+    "windowsBuild": true,
+    "linuxIsolation": true,
+    "linuxStopsAndCollection": true,
+    "linuxMainUnchanged": true,
+    "offlineGoPreparation": true
+  },
+  "limits": [
+    "Individual platform skips remain in original reports and are covered on another required platform.",
+    "The Linux Go inputs are verified retained public downloads; no fresh online Go fetch is claimed.",
+    "This result does not certify live DNS/ACME, public deployment, paid inference or external MCP business operations."
+  ]
+}

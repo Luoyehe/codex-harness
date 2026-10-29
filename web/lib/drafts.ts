@@ -18,6 +18,9 @@ export type Draft = {
   outputSchema: string;
   updatedAt: number;
 };
+export type DraftChange =
+  | { type: 'snapshot-cleared'; revision: string }
+  | { type: 'attachment-removed'; attachmentId: string };
 const prefix = 'harness.draft.v1.';
 const storageKey = (key: string) => prefix + encodeURIComponent(key);
 const validEnvironments = (value: unknown) =>
@@ -103,11 +106,11 @@ export function clearDraftSnapshot(
 ) {
   if (readDraft(key, storage).revision === revision) {
     storage.removeItem(storageKey(key));
-    draftChanged(key);
+    draftChanged(key, { type: 'snapshot-cleared', revision });
   }
 }
-export function draftChanged(key: string) {
-  window.dispatchEvent(new CustomEvent('harness-drafts', { detail: { key } }));
+export function draftChanged(key: string, change?: DraftChange) {
+  window.dispatchEvent(new CustomEvent('harness-drafts', { detail: { key, change } }));
 }
 export function listDrafts(storage: Storage = sessionStorage): Draft[] {
   const drafts: Draft[] = [];

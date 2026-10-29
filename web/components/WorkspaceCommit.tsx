@@ -1,30 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
-import { message, object, type Project } from '../lib/types';
+import { message, type Project } from '../lib/types';
 import { commitState, type CommitState } from '../lib/git-state';
 import { Diff } from './Messages';
 import { ExtensionStatus, useExtensionAction } from './ExtensionControls';
-export function WorkspaceCommit({
-  api,
-  project,
-  epoch,
-  enabled,
-  onChanged,
-}: {
+type Props = {
   api: Api;
   project: Project;
   epoch: string;
+  ownerEpoch?: string;
   enabled: boolean;
+  visible?: boolean;
   onChanged: () => void;
-}) {
+};
+function CommitForm({
+  api,
+  project,
+  epoch,
+  ownerEpoch = epoch,
+  enabled,
+  visible = true,
+  onChanged,
+}: Props) {
   const [name, setName] = useState(''),
     [email, setEmail] = useState(''),
     [text, setText] = useState(''),
     [confirmed, setConfirmed] = useState(false),
     [reading, setReading] = useState(false),
     [error, setError] = useState('');
+  const activity = useRef({ visible, enabled, epoch, revision: 0 });
+  if (
+    activity.current.visible !== visible ||
+    activity.current.enabled !== enabled ||
+    activity.current.epoch !== epoch
+  )
+    activity.current = { visible, enabled, epoch, revision: activity.current.revision + 1 };
   const [preview, setPreview] = useState<{ key: string; state: CommitState; diff: string }>(),
-    key = `${project.id}:${epoch}`,
+    key = `${project.id}:${epoch}:${activity.current.revision}`,
+    controller = useRef<AbortController | undefined>(undefined),
     owner = useRef(key);
   owner.current = key;
   const changed = useCallback(() => {
@@ -32,7 +45,15 @@ export function WorkspaceCommit({
       setConfirmed(false);
       onChanged();
     }, [onChanged]),
-    action = useExtensionAction(api, enabled, changed);
+    action = useExtensionAction(api, enabled && visible, changed, `${project.id}:${ownerEpoch}`);
+  useEffect(() => {
+    setPreview(undefined);
+    setConfirmed(false);
+    setReading(false);
+    return () => {
+      controller.current?.abort();
+    };
+  }, [visible, enabled, epoch]);
   useEffect(() => {
     if (action.operation?.state === 'not_sent') {
       setPreview(undefined);
@@ -41,20 +62,30 @@ export function WorkspaceCommit({
   }, [action.operation?.id, action.operation?.state]);
   const current = preview?.key === key ? preview : undefined;
   const inspect = async () => {
-    if (reading) return;
-    const expected = key;
+    if (reading || !visible || action.disabled) return;
+    const expected = key,
+      request = new AbortController();
+    controller.current = request;
+    const current = () => owner.current === expected && !request.signal.aborted;
     setReading(true);
     setError('');
     setPreview(undefined);
     setConfirmed(false);
     try {
-      const state = commitState(await api.call('workspace/git/status', { projectId: project.id }));
+      const state = commitState(
+        await api.call('workspace/git/status', { projectId: project.id }, request.signal),
+      );
+      if (!current()) return;
       const diff = await api.call<{ text: string; staged: boolean; complete: boolean }>(
         'workspace/git/diff',
         { projectId: project.id, staged: true },
+        request.signal,
       );
-      const after = commitState(await api.call('workspace/git/status', { projectId: project.id }));
-      if (owner.current !== expected) return;
+      if (!current()) return;
+      const after = commitState(
+        await api.call('workspace/git/status', { projectId: project.id }, request.signal),
+      );
+      if (!current()) return;
       if (JSON.stringify(state) !== JSON.stringify(after))
         throw new Error('读取期间 HEAD 或暂存区发生变化，请重新核对。');
       if (diff.complete !== true || diff.staged !== true || typeof diff.text !== 'string')
@@ -62,13 +93,13 @@ export function WorkspaceCommit({
       if (!diff.text) throw new Error('暂存区没有可提交的修改。');
       setPreview({ key: expected, state, diff: diff.text });
     } catch (e) {
-      if (owner.current === expected) setError(message(e));
+      if (current()) setError(message(e));
     } finally {
-      setReading(false);
+      if (current()) setReading(false);
     }
   };
   const commit = async () => {
-    if (!current || !confirmed || action.disabled) return;
+    if (!visible || !current || !confirmed || action.disabled) return;
     setError('');
     try {
       if (
@@ -108,7 +139,7 @@ export function WorkspaceCommit({
             {error}
           </p>
         )}
-        <fieldset className="stack" disabled={action.busy}>
+        <fieldset className="stack" disabled={action.busy || !visible}>
           <div className="config-fields">
             <label className="field">
               提交作者
@@ -148,7 +179,7 @@ export function WorkspaceCommit({
           </label>
           <button
             className="button small"
-            disabled={reading || !enabled}
+            disabled={reading || action.disabled}
             onClick={() => void inspect()}
           >
             {reading ? '正在核对…' : '核对 HEAD 与已暂存修改'}
@@ -191,4 +222,26 @@ export function WorkspaceCommit({
       </section>
     </details>
   );
+}
+export function WorkspaceCommit(props: Props) {
+  // Owner changes start a fresh form; a return to an earlier owner is still a new visit.
+  const ownerEpoch = props.ownerEpoch ?? props.epoch;
+  const owner = useRef({
+    api: props.api,
+    projectId: props.project.id,
+    epoch: ownerEpoch,
+    revision: 0,
+  });
+  if (
+    owner.current.api !== props.api ||
+    owner.current.projectId !== props.project.id ||
+    owner.current.epoch !== ownerEpoch
+  )
+    owner.current = {
+      api: props.api,
+      projectId: props.project.id,
+      epoch: ownerEpoch,
+      revision: owner.current.revision + 1,
+    };
+  return <CommitForm key={owner.current.revision} {...props} />;
 }

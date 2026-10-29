@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round10",
+  "reviewerId": "public-https-round10-web-runtime-0e51f859-d7cd-4b3d-9ab3-7116efd65ffd",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "sourceDigestAfter": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "startedAt": "2026-10-27T05:26:24.928Z",
+  "completedAt": "2026-10-27T05:27:34.958Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/workflows.test.tsx",
+    "web/tests/organization.test.tsx"
+  ],
+  "fileHashes": {
+    "web/tests/workflows.test.tsx": "02aedfe64f11e99ba77d073e0172e9cc1c3190c28459a3e938b7c7af3470142a",
+    "web/tests/organization.test.tsx": "1def3eaa606abd828fa3a8f2d861b7081c1c7ec9d92a271254c21be5013bf649"
+  },
+  "method": "{\"scope\":\"Independent current-source full-body supplement for exactly two assigned Web test files, not a claim of complete Web production coverage. No source edits or prior audit outcomes used.\",\"files\":{\"web/tests/workflows.test.tsx\":\"Read all 906 lines, including imports, storage/dialog/scroll fixtures, beforeEach/afterEach hooks, every test body and parameterized branch. Reviewed catalogue modes and model selection, explicit steering/queue intent, partial queues, attachment-preserving edits, operation identities and unknown outcomes, duplicate submission locks, retained draft bounds and stale owner/read responses, tab visibility and abort behavior, goal continuation/budget semantics, native ancestry controls, fork/revert/review confirmation and late results, history search/export boundaries, and fixture cleanup. Checked complete assertions against the actual preceding actions and controlled promise completion/rejection.\",\"web/tests/organization.test.tsx\":\"Read all 401 lines, including all shared native project/section/thread data, mocked fetch response handling, fixture hooks and every test body/parameterized branch. Reviewed registered-root identity use, metadata-preserving rename, explicit project/section/thread deletion, readiness and idle admission, explicit empty selections, stale read-state revision rejection without replay, project-filtered association paging, tab-hidden form suppression, retained drafts, accepted/unknown delayed operation handling, and API/epoch/thread/project A-to-B-to-A owner changes.\"},\"coverage\":\"This supplement supplies complete test-body review in addition to the separate Web reviewer's AST contract review; no previous outcome was treated as evidence for these bodies.\",\"evidence\":[\".work/public-https-round10-web-runtime-start.json\"],\"seal\":\"Captured both SHA-256 hashes and snapshot(undefined, true) before review; rehashed both complete files and reran snapshot(undefined, true) over all 1,886 source paths at sealing. Both file hashes and the full source digest stayed unchanged.\"}",
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "No Vitest run, full test suite, build, browser interaction or live integration was executed for this source-review supplement.",
+    "jsdom fixtures and assertions are reviewed source contracts; this report does not establish current browser behavior, native accessibility/IME operation or execution success.",
+    "Only these two assigned test files received full-body review in this supplement. Other Web files remain with their separately assigned reviewers."
+  ],
+  "methodDetails": {
+    "scope": "Independent current-source full-body supplement for exactly two assigned Web test files, not a claim of complete Web production coverage. No source edits or prior audit outcomes used.",
+    "files": {
+      "web/tests/workflows.test.tsx": "Read all 906 lines, including imports, storage/dialog/scroll fixtures, beforeEach/afterEach hooks, every test body and parameterized branch. Reviewed catalogue modes and model selection, explicit steering/queue intent, partial queues, attachment-preserving edits, operation identities and unknown outcomes, duplicate submission locks, retained draft bounds and stale owner/read responses, tab visibility and abort behavior, goal continuation/budget semantics, native ancestry controls, fork/revert/review confirmation and late results, history search/export boundaries, and fixture cleanup. Checked complete assertions against the actual preceding actions and controlled promise completion/rejection.",
+      "web/tests/organization.test.tsx": "Read all 401 lines, including all shared native project/section/thread data, mocked fetch response handling, fixture hooks and every test body/parameterized branch. Reviewed registered-root identity use, metadata-preserving rename, explicit project/section/thread deletion, readiness and idle admission, explicit empty selections, stale read-state revision rejection without replay, project-filtered association paging, tab-hidden form suppression, retained drafts, accepted/unknown delayed operation handling, and API/epoch/thread/project A-to-B-to-A owner changes."
+    },
+    "coverage": "This supplement supplies complete test-body review in addition to the separate Web reviewer's AST contract review; no previous outcome was treated as evidence for these bodies.",
+    "evidence": [
+      ".work/public-https-round10-web-runtime-start.json"
+    ],
+    "seal": "Captured both SHA-256 hashes and snapshot(undefined, true) before review; rehashed both complete files and reran snapshot(undefined, true) over all 1,886 source paths at sealing. Both file hashes and the full source digest stayed unchanged."
+  }
+}

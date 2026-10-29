@@ -35,15 +35,22 @@ def private_directory(parent: int, name: str, *, create: bool = False) -> int:
     if create:
         try:
             os.mkdir(name, 0o700, dir_fd=parent)
-            os.fsync(parent)
         except FileExistsError:
             pass
     fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
-    info = os.fstat(fd)
-    if info.st_uid != os.geteuid() or info.st_mode & 0o077:
+    try:
+        info = os.fstat(fd)
+        require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.geteuid() and not info.st_mode & 0o077,
+                "Workspace recovery directory has unsafe ownership or mode", "unsafe_path")
+        if create:
+            # The existing entry may be an interrupted mkdir whose parent was
+            # never flushed. Re-establish both barriers before returning it.
+            os.fsync(fd)
+            os.fsync(parent)
+        return fd
+    except BaseException:
         os.close(fd)
-        raise DeployError("unsafe_path", "Workspace recovery directory has unsafe ownership or mode")
-    return fd
+        raise
 
 
 def write_new(parent: int, name: str, data: bytes, mode: int = 0o600) -> os.stat_result:

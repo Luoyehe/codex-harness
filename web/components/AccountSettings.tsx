@@ -258,10 +258,11 @@ function OwnedAccountSettings({
           !isArchivedReceipt(receipt))
       )
         throw new Error('账户操作回执身份不匹配。');
-      reconcileOperation(attempt.id, receipt);
+      await reconcileOperation(attempt.id, receipt);
+      if (!current() || record.attempt?.id !== attempt.id) return;
       if (receipt.state === 'accepted') {
         await accept(attempt, object(receipt.result));
-        acknowledgeOperation(attempt.id);
+        await acknowledgeOperation(attempt.id);
       } else if (receipt.state === 'not_sent') {
         store({ attempt: { ...attempt, state: 'not_sent' } });
         setStatus('已确认原请求未发送；新的登录或取消需要你重新操作。');
@@ -326,7 +327,7 @@ function OwnedAccountSettings({
           event.data.method === record.attempt.method &&
           event.data.state === 'accepted'
         ) {
-          reconcileOperation(record.attempt.id, event.data);
+          void reconcileOperation(record.attempt.id, event.data).catch((error) => { if (current()) setError(message(error)); });
           const result = object(event.data.result);
           if (
             (record.attempt.method === 'account/login' && typeof result.loginId !== 'string') ||

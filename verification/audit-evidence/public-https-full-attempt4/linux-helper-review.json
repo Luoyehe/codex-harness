@@ -1,0 +1,585 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-targeted-ignored-helper-review",
+  "status": "passed-focused-review",
+  "reviewerId": "deploy-tooling-v2-focused-independent-20261030",
+  "scope": "Exact V1-to-V2 preparation capability-proof consumer correction and preservation of inherited capability normalization, isolation, full gate and cleanup. No repository audit or suite credit.",
+  "auditRoundCredit": 0,
+  "fullAuditCredit": false,
+  "startedAt": "2026-10-29T20:03:26.1197142Z",
+  "completedAt": "2026-10-29T20:05:48.318583+00:00",
+  "reviewedCandidate": {
+    "path": ".work/public-full-linux-offline-clean-caps-v2.py",
+    "sha256": "fdd7e4a58b1831b2fbe36c43935166e529e2f2299d85388f408a658dbb1ecc19"
+  },
+  "inputs": [
+    {
+      "path": ".work/public-full-linux-offline.py",
+      "sha256Before": "c5f2cd3fa9a0aa6ae406dd1f7204ade77923affcd7c584ea42465914a603ed4e",
+      "sha256After": "c5f2cd3fa9a0aa6ae406dd1f7204ade77923affcd7c584ea42465914a603ed4e"
+    },
+    {
+      "path": ".work/public-full-linux-offline-clean-caps.py",
+      "sha256Before": "c2361616b80895bb155dac3cdbeda89be984c481f9ad3be115e07475b0625b19",
+      "sha256After": "c2361616b80895bb155dac3cdbeda89be984c481f9ad3be115e07475b0625b19"
+    },
+    {
+      "path": ".work/public-full-linux-offline-clean-caps-v2.py",
+      "sha256Before": "fdd7e4a58b1831b2fbe36c43935166e529e2f2299d85388f408a658dbb1ecc19",
+      "sha256After": "fdd7e4a58b1831b2fbe36c43935166e529e2f2299d85388f408a658dbb1ecc19"
+    },
+    {
+      "path": ".work/public-full-linux-clean-caps-independent-review.json",
+      "sha256Before": "f1c93359640c7635c9a0fe7c0d76ddb668de0bade9bce4270915eb1452dddbeb",
+      "sha256After": "f1c93359640c7635c9a0fe7c0d76ddb668de0bade9bce4270915eb1452dddbeb"
+    },
+    {
+      "path": ".work/public-full-linux-offline-clean-caps-v2-checks.json",
+      "sha256Before": "991a5b455ee1151f7f7bb52148b39fbc5fb8d88e328ae136a3f720048f66ed70",
+      "sha256After": "991a5b455ee1151f7f7bb52148b39fbc5fb8d88e328ae136a3f720048f66ed70"
+    },
+    {
+      "path": ".work/public-full-attempt3-root-diagnosis-v2.json",
+      "sha256Before": "bdc31955aa3e2fb82a3bf43c2e8be4b62a0ae21f4db25a20a736427116143297",
+      "sha256After": "bdc31955aa3e2fb82a3bf43c2e8be4b62a0ae21f4db25a20a736427116143297"
+    }
+  ],
+  "exactDelta": {
+    "file": ".work/public-full-linux-offline-clean-caps-v2.py",
+    "line": 379,
+    "description": "The sole V1-to-V2 text substitution adds CapInh:0 and CapAmb:0 to the exact preparation dictionary comparison. UNIT_ENTRY is byte-identical. Original-to-V1 outer AST differs only in UNIT_ENTRY; original-to-V2 additionally changes this exact consumer expression."
+  },
+  "findings": [],
+  "resolvedFindingIds": [
+    "helper-preparation-capability-proof-shape-mismatch"
+  ],
+  "checks": [
+    {
+      "name": "all-three-helper-source-syntax",
+      "passed": true
+    },
+    {
+      "name": "exact-one-textual-substitution-v1-to-v2",
+      "passed": true
+    },
+    {
+      "name": "unit-entry-byte-identical-v1-v2",
+      "passed": true
+    },
+    {
+      "name": "v1-outer-ast-identical-to-original-except-unit-entry",
+      "passed": true
+    },
+    {
+      "name": "actual-producer-has-exact-five-zero-fields",
+      "passed": true
+    },
+    {
+      "name": "actual-producer-proof-accepted-by-v2-consumer",
+      "passed": true
+    },
+    {
+      "name": "actual-producer-proof-still-reproduces-v1-blocker",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-missing-CapEff",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapEff-0x1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapEff-0x80",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapEff-0xfb",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-missing-CapPrm",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapPrm-0x1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapPrm-0x80",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapPrm-0xfb",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-missing-CapBnd",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapBnd-0x1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapBnd-0x80",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapBnd-0xfb",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-missing-CapInh",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapInh-0x1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapInh-0x80",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapInh-0xfb",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-missing-CapAmb",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapAmb-0x1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapAmb-0x80",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-nonzero-CapAmb-0xfb",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-extra-key",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-old-three-key-proof",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-probeSucceeded-False",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-probeSucceeded-None",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-probeSucceeded-1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-publicDependencyPreparation-False",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-publicDependencyPreparation-None",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-publicDependencyPreparation-1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-networkIsolated-False",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-networkIsolated-None",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-networkIsolated-1",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-uid-0",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-uid-65533",
+      "passed": true
+    },
+    {
+      "name": "consumer-rejects-uid-None",
+      "passed": true
+    },
+    {
+      "name": "entry-exact-root",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-root-CapEff",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-root-CapEff",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-root-CapPrm",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-root-CapPrm",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-root-CapBnd",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-root-CapBnd",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-root-CapInh",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-root-CapInh",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-root-CapAmb",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-root-CapAmb",
+      "passed": true
+    },
+    {
+      "name": "entry-exact-ordinary",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-ordinary-CapEff",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-ordinary-CapEff",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-ordinary-CapPrm",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-ordinary-CapPrm",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-ordinary-CapBnd",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-ordinary-CapBnd",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-ordinary-CapInh",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-ordinary-CapInh",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-ordinary-CapAmb",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-ordinary-CapAmb",
+      "passed": true
+    },
+    {
+      "name": "entry-exact-preparation",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-preparation-CapEff",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-preparation-CapEff",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-preparation-CapPrm",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-preparation-CapPrm",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-preparation-CapBnd",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-preparation-CapBnd",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-preparation-CapInh",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-preparation-CapInh",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-preparation-CapAmb",
+      "passed": true
+    },
+    {
+      "name": "entry-rejects-missing-preparation-CapAmb",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-success",
+      "passed": true
+    },
+    {
+      "name": "mock-prctl-args-success",
+      "passed": true
+    },
+    {
+      "name": "mock-capset-only-clears-inheritable-success",
+      "passed": true
+    },
+    {
+      "name": "normalizer-exact-success",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-capget",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-capget",
+      "passed": true
+    },
+    {
+      "name": "normalizer-no-mutation-capget",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-mismatch",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-mismatch",
+      "passed": true
+    },
+    {
+      "name": "normalizer-no-mutation-mismatch",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-prctl",
+      "passed": true
+    },
+    {
+      "name": "mock-prctl-args-prctl",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-prctl",
+      "passed": true
+    },
+    {
+      "name": "normalizer-capset-not-called-on-prctl-failure",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-capset",
+      "passed": true
+    },
+    {
+      "name": "mock-prctl-args-capset",
+      "passed": true
+    },
+    {
+      "name": "mock-capset-only-clears-inheritable-capset",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-capset",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-post-bnd",
+      "passed": true
+    },
+    {
+      "name": "mock-prctl-args-post-bnd",
+      "passed": true
+    },
+    {
+      "name": "mock-capset-only-clears-inheritable-post-bnd",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-post-bnd",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-post-inh",
+      "passed": true
+    },
+    {
+      "name": "mock-prctl-args-post-inh",
+      "passed": true
+    },
+    {
+      "name": "mock-capset-only-clears-inheritable-post-inh",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-post-inh",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-post-amb",
+      "passed": true
+    },
+    {
+      "name": "mock-prctl-args-post-amb",
+      "passed": true
+    },
+    {
+      "name": "mock-capset-only-clears-inheritable-post-amb",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-post-amb",
+      "passed": true
+    },
+    {
+      "name": "mock-header-abi-post-nnp",
+      "passed": true
+    },
+    {
+      "name": "mock-prctl-args-post-nnp",
+      "passed": true
+    },
+    {
+      "name": "mock-capset-only-clears-inheritable-post-nnp",
+      "passed": true
+    },
+    {
+      "name": "normalizer-fail-closed-post-nnp",
+      "passed": true
+    },
+    {
+      "name": "normalization-precedes-all-entry-child-starts",
+      "passed": true
+    },
+    {
+      "name": "all-reviewed-inputs-preserved",
+      "passed": true
+    },
+    {
+      "name": "product-snapshot-preserved",
+      "passed": true
+    }
+  ],
+  "checksPassed": 111,
+  "checksFailed": 0,
+  "actualProducer": {
+    "uid": 65534,
+    "umask": "0022",
+    "capabilities": {
+      "CapEff": 0,
+      "CapPrm": 0,
+      "CapBnd": 0,
+      "CapInh": 0,
+      "CapAmb": 0
+    },
+    "initialCapabilities": {
+      "CapEff": 0,
+      "CapPrm": 0,
+      "CapBnd": 0,
+      "CapInh": 0,
+      "CapAmb": 0
+    },
+    "capabilityNormalization": "already-clean",
+    "networkIsolated": true,
+    "publicDependencyPreparation": true,
+    "runReadonlyTmpfs": true,
+    "maskedPaths": {},
+    "unprivilegedProbe": {
+      "uid": 65534,
+      "capabilities": {
+        "CapEff": 0,
+        "CapPrm": 0,
+        "CapBnd": 0,
+        "CapInh": 0,
+        "CapAmb": 0
+      }
+    },
+    "probeSucceeded": true
+  },
+  "actualConsumerExpression": "isolation.get('probeSucceeded') is True and isolation.get('publicDependencyPreparation') is True and (isolation.get('networkIsolated') is True) and (isolation.get('uid') == 65534) and (isolation.get('capabilities') == {'CapEff': 0, 'CapPrm': 0, 'CapBnd': 0, 'CapInh': 0, 'CapAmb': 0})",
+  "boundaryAssessment": [
+    {
+      "boundary": "Capability normalization",
+      "result": "preserved",
+      "detail": "Root E/P/Bnd remain exactly 0xfb; only inheritable and ambient are cleared. capget/prctl/capset and postcondition failures terminate before children. Exact extracted code was exercised with ctypes mocks; no kernel calls occurred."
+    },
+    {
+      "boundary": "Preparation proof",
+      "result": "corrected-and-strict",
+      "detail": "Actual five-key all-zero producer passes actual V2 consumer. Missing, extra, nonzero fields, old three-key shape, failed booleans and incorrect UID fail. V1 mismatch was independently reproduced."
+    },
+    {
+      "boundary": "Isolation and full gate",
+      "result": "unchanged",
+      "detail": "V2 differs from V1 only at the fixed dictionary literal. UID/network/NNP/umask checks, production masks, readonly mounts, unit properties, explicit execute gate, authorization/source binding, cleanup/cgroup collection and unchanged main baseline checks remain unchanged."
+    },
+    {
+      "boundary": "Result meaning",
+      "result": "preserved",
+      "detail": "The helper still requires platform reconciliation and always emits fullSuitePassed:false for Linux-only evidence. This review does not change authorization or audit thresholds."
+    }
+  ],
+  "sourceEdited": false,
+  "helperEdited": false,
+  "priorReportsEdited": false,
+  "auditOrAuthorizationEdited": false,
+  "suiteRun": false,
+  "productTestsRun": false,
+  "syntheticChecksRun": true,
+  "helperModuleExecuted": false,
+  "kernelCapabilityCallsByReviewer": false,
+  "sshRun": false,
+  "productionActions": false,
+  "productSourceSnapshotBefore": {
+    "files": 1911,
+    "digest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561"
+  },
+  "productSourceSnapshotAfter": {
+    "files": 1911,
+    "digest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561"
+  },
+  "limitations": [
+    "Synthetic checks execute only AST-extracted pure functions, the exact proof assignment and exact consumer predicate; ctypes syscalls are mocked. The helper module, systemd units, compiler, Go preparation and full gate were not executed.",
+    "Live Linux capability/exec behavior was not rerun; V2 UNIT_ENTRY is independently proven byte-identical to V1. Referenced prior live evidence is not represented as this reviewer execution.",
+    "This narrowly approves the correction under the reviewed input hashes; it is not a new audit round, full-suite pass, public acceptance claim or authority to skip existing execution gates."
+  ]
+}

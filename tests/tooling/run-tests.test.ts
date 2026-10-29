@@ -6,10 +6,11 @@ import path from 'node:path';
 import { executePlan, prepareRun, validateAuditRecord } from '../../scripts/run-tests.mjs';
 import { snapshot } from '../../scripts/snapshot.mjs';
 import { nativeTestFiles, runPythonTests } from '../../scripts/select-tests.mjs';
+import { goTestFile } from '../../scripts/go-tests.mjs';
 
 const fixtures: string[] = [];
 const scopes = ['gateway-core', 'runtime-protocol', 'web-ux', 'deployment-release'];
-const files = ['tests/core/example.test.ts', ...nativeTestFiles, 'web/tests/example.test.tsx', 'tests/deploy/test_example.py', 'tests/deploy/root/test_example.py'];
+const files = ['tests/core/example.test.ts', ...nativeTestFiles, 'web/tests/example.test.tsx', 'tests/deploy/test_example.py', 'tests/deploy/root/test_example.py', goTestFile];
 const inspected = ['src/core/example.ts', 'src/gateway/example.ts', 'src/runtime/example.ts', 'protocol/example.json', 'web/example.tsx', 'deploy/example.py', 'scripts/example.mjs'];
 function put(root: string, name: string, content: string): void { const file = path.join(root, name); mkdirSync(path.dirname(file), { recursive: true }); writeFileSync(file, content); }
 function fixture(): string {
@@ -84,12 +85,13 @@ test('one source file per scope cannot authorize a partial review as a complete 
   expect(() => validateAuditRecord(record, current, root)).toThrow(/entire source inventory/);
 });
 
-test('full execution plan requires native and Python before starting and includes both test engines', () => {
-  const root = fixture(); audited(root); const plan = prepareRun('--full', [], root); const vitest = vi.fn(() => ({ status: 'passed', exitCode: 0 })); const python = vi.fn(() => ({ status: 'passed', exitCode: 0 }));
-  const skipped = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'skipped', reason: 'fixture missing native' }), pythonPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python });
+test('full execution plan requires all three engines before starting and includes Go', () => {
+  const root = fixture(); audited(root); const plan = prepareRun('--full', [], root); const vitest = vi.fn(() => ({ status: 'passed', exitCode: 0 })); const python = vi.fn(() => ({ status: 'passed', exitCode: 0 })); const go = vi.fn(() => ({ status: 'passed', exitCode: 0 }));
+  const skipped = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'skipped', reason: 'fixture missing native' }), pythonPrerequisite: () => ({ status: 'ready' }), goPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python, runGoTests: go });
   expect(skipped.status).toBe('skipped'); expect(skipped.exitCode).toBe(3); expect(vitest).not.toHaveBeenCalled(); expect(python).not.toHaveBeenCalled();
-  const result = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'ready', binary: path.join(root, 'fixture-native') }), pythonPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python });
+  const result = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'ready', binary: path.join(root, 'fixture-native') }), pythonPrerequisite: () => ({ status: 'ready' }), goPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python, runGoTests: go });
   expect(result.status).toBe('passed'); expect(vitest.mock.calls[0][0]).toEqual(expect.arrayContaining(['tests/runtime/native-smoke.test.ts', 'web/tests/example.test.tsx'])); expect(python.mock.calls[0][0]).toEqual(['tests/deploy/root/test_example.py', 'tests/deploy/test_example.py']);
+  expect(go.mock.calls[0][0]).toEqual([goTestFile]);
 });
 
 test('an unavailable Python dependency is skipped explicitly, with no tests reported passed', () => {

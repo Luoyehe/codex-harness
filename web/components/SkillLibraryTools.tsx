@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { RpcError, type Api } from '../lib/api';
 import {
   fileDraftKey,
@@ -19,7 +19,9 @@ export function SkillDocument({
   project,
   epoch,
   skillId,
+  visible = true,
 }: {
+  visible?: boolean;
   api: Api;
   project: Project;
   epoch: string;
@@ -42,7 +44,7 @@ export function SkillDocument({
     )
       throw new Error('技能说明响应无效或身份不匹配。');
     return result;
-  });
+  }, visible);
   return (
     <section className="stack">
       <ReadState {...content} />
@@ -56,21 +58,52 @@ export function SkillDocument({
   );
 }
 
-export function SkillRoots({
-  api,
-  projects,
-  epoch,
-  enabled,
-  onChanged,
-}: {
+type SkillRootsProps = {
+  visible?: boolean;
   api: Api;
   projects: Project[];
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const action = useExtensionAction(api, enabled, onChanged),
+};
+export function SkillRoots(props: SkillRootsProps) {
+  const mapping = JSON.stringify(props.projects.map(({ id, cwd }) => JSON.stringify([id, cwd])).sort()),
+    owner = useRef({ api: props.api, epoch: props.epoch, mapping, generation: 0 });
+  if (owner.current.api !== props.api || owner.current.epoch !== props.epoch || owner.current.mapping !== mapping)
+    owner.current = { api: props.api, epoch: props.epoch, mapping, generation: owner.current.generation + 1 };
+  return <SkillRootsContent key={owner.current.generation} {...props} />;
+}
+// Recovery of not_sent also refreshes the shared action. Keep that read local;
+// only acceptance may notify the parent and replace its configuration epoch.
+const rootsChanged = () => {};
+function SkillRootsContent({
+  api,
+  projects,
+  epoch,
+  enabled,
+  onChanged,
+  visible = true,
+}: SkillRootsProps) {
+  const [open, setOpen] = useState(false),
+    [draft, setDraft] = useState<string[]>(),
+    [baseline, setBaseline] = useState({ selected: [] as string[], unknown: [] as string[] }),
+    mounted = useRef(true),
+    submission = useRef<{ selected: string[]; previousOperationId?: string } | undefined>(undefined);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  // Admission can await durable storage. Recheck this exact project mapping
+  // before dispatch so an unmounted form cannot send IDs to a different owner.
+  const mutationApi = useMemo(() => {
+    const guarded = Object.create(api) as Api;
+    guarded.mutate = <T = Record<string, unknown>>(method: string, params: Record<string, unknown> = {}) =>
+      api.beginMutation<T>(method, params, () => {
+        if (!mounted.current) throw new Error('目录选择所属页面或项目已变化，尚未发送请求。');
+      }).result;
+    return guarded;
+  }, [api]);
+  const action = useExtensionAction(mutationApi, enabled && visible, rootsChanged, epoch),
     resource = useResource(
       `${epoch}:${action.revision}`,
       async (signal) => {
@@ -88,22 +121,40 @@ export function SkillRoots({
           throw new Error('额外技能目录响应格式无效。');
         return result;
       },
-      open,
+      open && visible,
     );
-  const [selected, setSelected] = useState<string[]>([]),
-    [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
-    if (resource.data) {
-      setSelected(
-        projects
-          .filter((project) => resource.data!.roots.includes(project.cwd))
-          .map((project) => project.id),
-      );
-      setConfirmed(false);
-    }
+    if (resource.data) setBaseline({
+      selected: projects.filter((project) => resource.data!.roots.includes(project.cwd)).map((project) => project.id),
+      unknown: resource.data.roots.filter((root) => !projects.some((project) => project.cwd === root)),
+    });
   }, [resource.data]);
-  const unknown =
-    resource.data?.roots.filter((root) => !projects.some((project) => project.cwd === root)) ?? [];
+  const selected = draft ?? baseline.selected,
+    finalizing = Boolean(submission.current && action.operation?.state === 'accepted' &&
+      action.operation.id !== submission.current.previousOperationId),
+    locked = action.disabled || finalizing || !open || !visible || !resource.data || resource.loading,
+    consentScope = useMemo(() => ({}), [open, visible, enabled, resource.data, draft]),
+    consentRef = useRef<object | undefined>(undefined),
+    [consentOwner, setConsentOwner] = useState<object>(),
+    confirmed = consentOwner === consentScope;
+  const consent = (value: boolean) => {
+    consentRef.current = value ? consentScope : undefined;
+    setConsentOwner(consentRef.current);
+  };
+  const accepted = (sent: NonNullable<typeof submission.current>) => {
+    if (!mounted.current || submission.current !== sent) return;
+    submission.current = undefined;
+    setBaseline({ selected: sent.selected, unknown: [] });
+    setDraft(undefined);
+    consent(false);
+    onChanged();
+  };
+  useEffect(() => {
+    const sent = submission.current;
+    if (!sent || !action.operation || action.operation.id === sent.previousOperationId) return;
+    if (action.operation.state === 'accepted') accepted(sent);
+    else if (action.operation.state === 'not_sent') submission.current = undefined;
+  }, [action.operation?.id, action.operation?.state]);
   return (
     <details className="info-card" onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>额外技能目录（当前执行服务）</summary>
@@ -113,23 +164,33 @@ export function SkillRoots({
         </p>
         <ReadState {...resource} />
         <ExtensionStatus api={api} action={action} />
-        {unknown.length > 0 && (
+        <button className="button small" disabled={!visible || !open || resource.loading || action.busy}
+          onClick={() => {
+            if (!visible || !open || resource.loading || action.busy) return;
+            consent(false);
+            resource.refresh();
+          }}>
+          重新读取额外技能目录
+        </button>
+        {resource.data && <p className="small muted">
+          已读取的运行时目录：{resource.data.roots.map(root => projects.find(project => project.cwd === root)?.name ?? root).join('、') || '未设置'}
+        </p>}
+        {draft && <p className="small muted">已保留本次目录选择；重新读取不会覆盖。应用结果待确认时，目录选择暂时锁定。</p>}
+        {baseline.unknown.length > 0 && (
           <p className="workspace-warning">
-            当前还包含未注册目录；提交新选择会移除它们：{unknown.join('、')}
+            当前还包含未注册目录；提交新选择会移除它们：{baseline.unknown.join('、')}
           </p>
         )}
         {projects.map((project) => (
           <label className="check-row" key={project.id}>
             <input
               type="checkbox"
+              disabled={locked}
               checked={selected.includes(project.id)}
               onChange={(e) => {
-                setSelected((value) =>
-                  e.target.checked
-                    ? [...value, project.id]
-                    : value.filter((id) => id !== project.id),
-                );
-                setConfirmed(false);
+                if (locked) return;
+                setDraft(e.target.checked ? [...selected, project.id] : selected.filter((id) => id !== project.id));
+                consent(false);
               }}
             />
             <span>
@@ -144,26 +205,35 @@ export function SkillRoots({
         <label className="check-row">
           <input
             type="checkbox"
+            disabled={locked}
             checked={confirmed}
-            onChange={(e) => setConfirmed(e.target.checked)}
+            onChange={(e) => { if (!locked) consent(e.target.checked); }}
           />
           确认替换当前运行时的额外技能目录
         </label>
         <button
           className="button"
           disabled={
-            action.disabled ||
-            !resource.data ||
-            resource.loading ||
+            locked ||
             selected.length > 16 ||
             !confirmed
           }
-          onClick={() =>
-            void action.run('skills/extraRoots/set', { projectIds: selected, confirm: true })
-          }
+          onClick={async () => {
+            if (locked || selected.length > 16 || consentRef.current !== consentScope) return;
+            const sent = { selected: [...selected], previousOperationId: action.operation?.id };
+            submission.current = sent;
+            consent(false);
+            const result = await action.run('skills/extraRoots/set', { projectIds: sent.selected, confirm: true });
+            if (result !== undefined) accepted(sent);
+          }}
         >
           应用本次目录选择
         </button>
+        {draft && <button className="button small" disabled={locked} onClick={() => {
+          if (locked) return;
+          setDraft(undefined);
+          consent(false);
+        }}>采用当前运行时目录，放弃本次选择</button>}
       </div>
     </details>
   );
@@ -178,7 +248,9 @@ export function SkillCreator({
   epoch,
   enabled,
   onChanged,
+  visible = true,
 }: {
+  visible?: boolean;
   api: Api;
   project: Project;
   epoch: string;
@@ -196,7 +268,7 @@ export function SkillCreator({
     cache = useRef(new Map<string, FileDraft>()),
     textRevision = useRef(0),
     readAttempt = useRef(0);
-  const scope = useMemo(() => ({}), [api, project.id, epoch]),
+  const scope = useMemo(() => ({}), [api, project.id, epoch, visible]),
     owner = useRef<object | undefined>(scope);
   owner.current = scope;
   const consent = consentOwner === scope,
@@ -215,7 +287,7 @@ export function SkillCreator({
   }, [scope]);
   const action = useExtensionAction(
     api,
-    enabled,
+    enabled && visible,
     () => {
       setRevision((value) => value + 1);
       onChanged();
@@ -226,7 +298,7 @@ export function SkillCreator({
   useEffect(() => {
     setReading(false);
     setConsent(false);
-  }, [epoch]);
+  }, [epoch, visible, enabled]);
   useEffect(() => {
     try {
       setDrafts(
@@ -280,7 +352,7 @@ export function SkillCreator({
       }
       return result;
     },
-    Boolean(prepared),
+    visible && Boolean(prepared),
   );
   const discovered = useResource(
     `${project.id}:${epoch}:${path}:${revision}`,
@@ -291,13 +363,14 @@ export function SkillCreator({
           skills: { name: string; path: string; enabled: boolean }[];
         }[];
       }>('skills/list', { projectId: project.id, forceReload: true }, signal),
-    Boolean(path && plan.data?.file),
+    visible && Boolean(path && plan.data?.file),
   );
   const expectedPath = `${project.cwd.replace(/[\\/]$/, '')}/${path}`.replaceAll('\\', '/');
   const found = discovered.data?.data
     .flatMap((row) => row.skills)
     .find((skill) => skill.path.replaceAll('\\', '/') === expectedPath);
   const prepare = () => {
+    if (!visible || action.disabled) return;
     setError('');
     try {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 64)
@@ -322,6 +395,12 @@ export function SkillCreator({
     ? (cache.current.get(fileDraftKey(project.id, path))?.pending ??
       drafts.find((draft) => draft.path === path)?.pending)
     : undefined;
+  const planOwner = JSON.stringify([project.id, project.cwd, epoch, path]);
+  const retainedPlan = useRef<{ api: Api; owner: string; data?: Plan }>({ api, owner: planOwner });
+  if (retainedPlan.current.api !== api || retainedPlan.current.owner !== planOwner)
+    retainedPlan.current = { api, owner: planOwner };
+  if (plan.data) retainedPlan.current.data = plan.data;
+  const displayedPlan = plan.data ?? retainedPlan.current.data;
   return (
     <details className="info-card">
       <summary>在项目中新建或导入 SKILL.md</summary>
@@ -373,7 +452,7 @@ export function SkillCreator({
                     version = textRevision.current,
                     attempt = ++readAttempt.current;
                   e.target.value = '';
-                  if (!file) return;
+                  if (!file || !visible) return;
                   setError('');
                   setReading(true);
                   try {
@@ -455,29 +534,29 @@ export function SkillCreator({
             >
               重新检查目录与文件
             </button>
-            {plan.data && (
+            {displayedPlan && (
               <>
-                {plan.data.file ? (
+                {displayedPlan.file ? (
                   <p className="workspace-warning">
                     目标文件已存在，向导不会覆盖。可在项目文件中按版本校验编辑；保留草稿仍可核对。
                   </p>
-                ) : plan.data.missing.length > 0 ? (
+                ) : displayedPlan.missing.length > 0 ? (
                   <div className="stack">
                     <p>
-                      还需创建 {plan.data.missing.length}{' '}
+                      还需创建 {displayedPlan.missing.length}{' '}
                       层目录。每次仅提交下面这一步，确认回执后重新检查，再由你继续。
                     </p>
                     <button
                       className="button"
-                      disabled={action.disabled}
+                      disabled={action.disabled || !plan.data || plan.loading}
                       onClick={() =>
-                        void action.run('workspace/mkdir', {
+                        plan.data && !plan.loading && void action.run('workspace/mkdir', {
                           projectId: project.id,
                           path: plan.data!.missing[0],
                         })
                       }
                     >
-                      创建目录：{plan.data.missing[0]}
+                      创建目录：{displayedPlan.missing[0]}
                     </button>
                   </div>
                 ) : (
@@ -485,17 +564,17 @@ export function SkillCreator({
                     目录已就绪。下方保存只创建新文件，目标若已存在会拒绝。
                   </p>
                 )}
-                {((!plan.data.file && plan.data.missing.length === 0) || pendingDraft) && (
+                {((!displayedPlan.file && displayedPlan.missing.length === 0) || pendingDraft) && (
                   <FileEditor
                     key={project.id + ':' + path}
                     api={api}
                     projectId={project.id}
                     path={path}
                     creating
-                    remote={plan.data.file}
+                    remote={displayedPlan.file}
                     loading={plan.loading}
                     readError={plan.error}
-                    enabled={!action.disabled && !plan.data.file && plan.data.missing.length === 0}
+                    enabled={!action.disabled && Boolean(plan.data) && !plan.loading && !displayedPlan.file && displayedPlan.missing.length === 0}
                     cache={cache.current}
                     onChanged={() => {
                       setRevision((value) => value + 1);

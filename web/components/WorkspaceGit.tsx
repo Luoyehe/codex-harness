@@ -1,46 +1,52 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { useResource } from '../hooks/useResource';
 import { array, type Project } from '../lib/types';
-import { gitStatusLabel, type GitEntry, type GitRef } from '../lib/workspace';
+import type { GitEntry, GitRef } from '../lib/workspace';
 import { Diff } from './Messages';
 import { WorkspaceIndex } from './WorkspaceIndex';
 import { WorkspaceIndexRecovery } from './WorkspaceIndexRecovery';
 import { WorkspaceCommit } from './WorkspaceCommit';
-export function WorkspaceGit({
+type Props = {
+  enabled?: boolean;
+  visible?: boolean;
+  api: Api;
+  project: Project;
+  epoch: string;
+  ownerEpoch?: string;
+  connected: boolean;
+  onFile: (path: string) => void;
+  onReviewBase: (ref: string) => void;
+};
+function GitView({
   api,
   project,
   epoch,
+  ownerEpoch = epoch,
   connected,
   onFile,
   onReviewBase,
   enabled = false,
-}: {
-  enabled?: boolean;
-  api: Api;
-  project: Project;
-  epoch: string;
-  connected: boolean;
-  onFile: (path: string) => void;
-  onReviewBase: (ref: string) => void;
-}) {
+  visible = true,
+}: Props) {
   const [staged, setStaged] = useState(false),
     [selectedRef, setSelectedRef] = useState('');
-  const key = `${project.id}:${epoch}`;
+  const key = `${project.id}:${epoch}`,
+    active = connected && visible;
   const status = useResource(
     key,
     (signal) => api.call('workspace/git/status', { projectId: project.id }, signal),
-    connected,
+    active,
   );
   const diff = useResource(
     `${key}:${staged}`,
     (signal) => api.call('workspace/git/diff', { projectId: project.id, staged }, signal),
-    connected,
+    active,
   );
   const refs = useResource(
     key,
     (signal) => api.call('workspace/git/refs', { projectId: project.id }, signal),
-    connected,
+    active,
   );
   const references = array<GitRef>(refs.data?.refs),
     entries = array<GitEntry>(status.data?.entries);
@@ -51,7 +57,7 @@ export function WorkspaceGit({
         <h3>Git 工作区</h3>
         <button
           className="button small"
-          disabled={!connected || status.loading || diff.loading || refs.loading}
+          disabled={!active || status.loading || diff.loading || refs.loading}
           onClick={() => {
             status.refresh();
             diff.refresh();
@@ -80,7 +86,7 @@ export function WorkspaceGit({
             project={project}
             epoch={epoch}
             entries={entries}
-            enabled={enabled}
+            enabled={enabled && active}
             onFile={onFile}
             onChanged={() => {
               status.refresh();
@@ -150,7 +156,7 @@ export function WorkspaceGit({
           {selected.symbolicTarget && <p className="small muted">指向 {selected.symbolicTarget}</p>}
           <button
             className="button"
-            disabled={!connected}
+            disabled={!active}
             onClick={() => onReviewBase(selected.name)}
           >
             以此为基准发起审查
@@ -164,8 +170,8 @@ export function WorkspaceGit({
         api={api}
         project={project}
         epoch={epoch}
-        connected={connected}
-        enabled={enabled}
+        connected={active}
+        enabled={enabled && active}
         onChanged={() => {
           status.refresh();
           diff.refresh();
@@ -176,7 +182,9 @@ export function WorkspaceGit({
         api={api}
         project={project}
         epoch={epoch}
-        enabled={enabled}
+        ownerEpoch={ownerEpoch}
+        enabled={enabled && active}
+        visible={visible}
         onChanged={() => {
           status.refresh();
           diff.refresh();
@@ -188,4 +196,25 @@ export function WorkspaceGit({
       </p>
     </section>
   );
+}
+export function WorkspaceGit(props: Props) {
+  const ownerEpoch = props.ownerEpoch ?? props.epoch;
+  const owner = useRef({
+    api: props.api,
+    projectId: props.project.id,
+    epoch: ownerEpoch,
+    revision: 0,
+  });
+  if (
+    owner.current.api !== props.api ||
+    owner.current.projectId !== props.project.id ||
+    owner.current.epoch !== ownerEpoch
+  )
+    owner.current = {
+      api: props.api,
+      projectId: props.project.id,
+      epoch: ownerEpoch,
+      revision: owner.current.revision + 1,
+    };
+  return <GitView key={owner.current.revision} {...props} />;
 }

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { enabledButton } from './enabled-button';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
@@ -197,15 +198,15 @@ it('requires a successful target version read for overwrite and never converts a
   );
 });
 it('does not infer accepted global receipts from local completed material and restricts discard to completed sources', async () => {
-  const op = createOperation('workspace/write', {
+  const op = (await createOperation('workspace/write', {
     projectId: project.id,
     resourceId: 'original.txt',
-  });
-  updateOperation(op.id, 'unknown');
+  }));
+  (await updateOperation(op.id, 'unknown'));
   const { api, calls } = setup();
   const view = render(<WorkspaceRecovery {...recoveryProps(api)} />);
   await source();
-  expect(listOperations().find((operation) => operation.id === op.id)?.state).toBe('unknown');
+  expect((await listOperations()).find((operation) => operation.id === op.id)?.state).toBe('unknown');
   expect(calls.some((call) => call.method === 'operation/read')).toBe(false);
   fireEvent.click(screen.getByRole('checkbox', { name: /确认永久清理/ }));
   expect((screen.getByRole('button', { name: '清理备份内容' }) as HTMLButtonElement).disabled).toBe(
@@ -268,7 +269,7 @@ it('uses live worktree phase and revision rather than the old registration proof
       confirm: true,
     }),
   );
-  expect(props.onChanged).toHaveBeenCalled();
+  await waitFor(() => expect(props.onChanged).toHaveBeenCalled());
 });
 it('requires global idle for worktree mutation and sends only registered origin and selected full ref', async () => {
   const { api, calls } = setup(),
@@ -312,7 +313,7 @@ it('queries the original lost worktree creation receipt without spawning another
   fireEvent.click(screen.getByRole('button', { name: '从 Git 引用创建新工作树' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /确认从所选 Git/ }));
   fireEvent.click(screen.getByRole('button', { name: '创建工作树' }));
-  fireEvent.click(await screen.findByRole('button', { name: '查询原工作树操作回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原工作树操作回执' }));
   await waitFor(() => expect(props.onChanged).toHaveBeenCalled());
   expect(calls.filter((call) => call.method === 'workspace/worktree/create')).toHaveLength(1);
   expect(calls.find((call) => call.method === 'operation/read')?.params).toEqual({
@@ -407,7 +408,7 @@ it('keeps worktree creation and archive confirmations exclusive and requires fre
   await selectTree();
   fireEvent.click(screen.getByRole('button', { name: '从 Git 引用创建新工作树' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /确认从所选 Git/ }));
-  fireEvent.click(screen.getByRole('button', { name: '归档工作树…' }));
+  fireEvent.click(await enabledButton({ name: '归档工作树…' }));
   expect(screen.queryByRole('checkbox', { name: /确认从所选 Git/ })).toBeNull();
   expect(
     (screen.getByRole('checkbox', { name: /确认对上述工作树/ }) as HTMLInputElement).checked,
@@ -434,13 +435,13 @@ it('does not reuse worktree confirmation for another worktree with the same revi
   );
   render(<WorkspaceWorktrees {...treeProps(api)} />);
   await selectTree();
-  fireEvent.click(screen.getByRole('button', { name: '归档工作树…' }));
+  fireEvent.click(await enabledButton({ name: '归档工作树…' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /确认对上述工作树/ }));
   fireEvent.change(screen.getByRole('combobox', { name: '选择受管工作树' }), {
     target: { value: otherId },
   });
   await screen.findByText(/实时状态：/);
-  fireEvent.click(screen.getByRole('button', { name: '归档工作树…' }));
+  fireEvent.click(await enabledButton({ name: '归档工作树…' }));
   expect(
     (screen.getByRole('button', { name: '确认归档工作树' }) as HTMLButtonElement).disabled,
   ).toBe(true);
@@ -516,11 +517,12 @@ it('does not dismiss a later worktree intent when an earlier operation recovery 
   fireEvent.click(screen.getByRole('button', { name: '从 Git 引用创建新工作树' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /确认从所选 Git/ }));
   fireEvent.click(screen.getByRole('button', { name: '创建工作树' }));
-  fireEvent.click(await screen.findByRole('button', { name: '查询原工作树操作回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原工作树操作回执' }));
   await waitFor(() => expect(finish).toBeTypeOf('function'));
-  await act(async () => updateOperation(first, 'accepted'));
+  await act(async () => (await updateOperation(first, 'accepted')));
+  await waitFor(() => expect(initial.onChanged).toHaveBeenCalled());
   await selectTree();
-  fireEvent.click(screen.getByRole('button', { name: '归档工作树…' }));
+  fireEvent.click(await enabledButton({ name: '归档工作树…' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /确认对上述工作树/ }));
   fireEvent.click(screen.getByRole('button', { name: '确认归档工作树' }));
   await screen.findByText('second response lost');
@@ -533,7 +535,7 @@ it('does not dismiss a later worktree intent when an earlier operation recovery 
       result: { worktreeId: treeId },
     }),
   );
-  expect(listOperations().find((operation) => operation.id === second)?.state).toBe('unknown');
+  expect((await listOperations()).find((operation) => operation.id === second)?.state).toBe('unknown');
   expect(screen.getByRole('button', { name: '确认归档工作树' })).toBeTruthy();
   expect(initial.onChanged).toHaveBeenCalledTimes(changed);
 });

@@ -157,8 +157,11 @@ export function FileEditor({
         'workspace/write',
         { projectId, path, text: original.text, expectedRevision: original.baseRevision },
         (id) => {
+          const latest = current.current;
+          if (!mounted.current || !latest || latest.projectId !== projectId || latest.path !== path)
+            throw new Error('编辑页面已变化，文件尚未发送。原草稿仍保留。');
           const next = {
-            ...original,
+            ...latest,
             pending: {
               operationId: id,
               submittedRevision: original.revision,
@@ -212,7 +215,7 @@ export function FileEditor({
           !isArchivedReceipt(receipt))
       )
         throw new Error('保存回执身份不匹配。');
-      reconcileOperation(operationId, receipt);
+      await reconcileOperation(operationId, receipt);
       if (!mounted.current) return;
       if (receipt.state === 'accepted') await verifyApplied(operationId);
       else if (receipt.state === 'not_sent') {

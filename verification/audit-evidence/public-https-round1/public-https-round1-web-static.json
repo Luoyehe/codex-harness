@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round1",
+  "reviewerId": "public-r1-web-static-root",
+  "digest": "f4a5fa858defdd6fcf20cde6642b06bba6033e7323e5a6ead53f371e7e9a7e1b",
+  "sourceDigestAfter": "f4a5fa858defdd6fcf20cde6642b06bba6033e7323e5a6ead53f371e7e9a7e1b",
+  "startedAt": "2026-10-27T01:02:29.6183388Z",
+  "completedAt": "2026-10-27T01:20:59.641Z",
+  "complete": true,
+  "scopes": [
+    "web-ux"
+  ],
+  "findings": [],
+  "skipped": [],
+  "inspectedFiles": [
+    "web/VERIFICATION.md",
+    "web/index.html",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "method": "Root reviewer read all seven stylesheets, HTML/React entrypoints, TS/Vite configuration and verification documentation during the same review window as gateway-core. Reviewed responsive overflow, modal sizing/focus visibility, theme cascade, reduced-motion handling, CSS import inclusion, dev proxy origin preservation, build output ownership and historical evidence boundaries. Parsed all CSS with PostCSS and JSON/TS configuration; verified every byte hash against the frozen snapshot. Static source review only; no new visual/browser acceptance claim.",
+  "structure": {
+    "files": 12,
+    "cssRules": 573
+  }
+}

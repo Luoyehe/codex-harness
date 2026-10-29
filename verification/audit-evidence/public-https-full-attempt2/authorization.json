@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+  "sourceFiles": 1910,
+  "sourceHead": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
+  "baseCommit": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
+  "version": "2.1.1",
+  "approvedAt": "2026-10-28T23:12:17.806Z",
+  "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。",
+  "auditWaiverInstruction": "用户明确要求连续两轮完整审计无问题后全量测试，此要求覆盖 AGENTS.md 默认三轮；仅不要求额外第三轮，两轮要求已按真实完整证据满足。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 2,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "public-https-round20",
+      "sequence": 48,
+      "sourceDigest": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+      "completedAt": "2026-10-28T22:54:13.231Z",
+      "files": 1910,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/public-https-round20/public-https-round20-deploy-tooling.json",
+          "sha256": "8ab250d1f2c124ce1f8289c6e4f8e61fd582a927d22ea751bb959f7e35acb7b0"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round20/public-https-round20-runtime-gateway.json",
+          "sha256": "ae25691e9557f267d9619312b788d13dbcd570a99542d67d3167f177a750d5d1"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round20/public-https-round20-web.json",
+          "sha256": "24efd92b93035065a808b33f1f392cb86715ef6e1ecf7bd1858bba95a79544f5"
+        }
+      ]
+    },
+    {
+      "roundId": "public-https-round21",
+      "sequence": 49,
+      "sourceDigest": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+      "completedAt": "2026-10-28T23:11:51.584Z",
+      "files": 1910,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/public-https-round21/public-https-round21-deploy-tooling.json",
+          "sha256": "8d8738f1377bfd8d7d65d687328d720890f35568da1cbf6ae87de871bdf3f2a6"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round21/public-https-round21-runtime-gateway.json",
+          "sha256": "9a71e578d9f3d0fb45dc1f72e8a0e71ecd4f3d05c11c1b199959e6b4d81971e8"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round21/public-https-round21-web.json",
+          "sha256": "58528d96187982877a7fb12dba6ce07351d7592d5e25f864710aa42dc225c11b"
+        }
+      ]
+    }
+  ],
+  "note": "No audit is invented or skipped. Only the tooling default third round is waived after the user-required two actual complete independent clean public-https rounds on this exact source. Historical release-closeout evidence is preserved."
+}

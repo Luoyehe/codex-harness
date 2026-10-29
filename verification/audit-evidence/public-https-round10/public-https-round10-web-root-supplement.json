@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round10",
+  "reviewerId": "public-https-r10-root-web-tests-20261027",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "sourceDigestAfter": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "startedAt": "2026-10-27T05:25:28.744Z",
+  "completedAt": "2026-10-27T05:26:40.416Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/automations.test.tsx"
+  ],
+  "fileHashes": {
+    "web/tests/git-index-ui.test.tsx": "7bd7cc4d316b10c1e72152e69e7108f7b020c8cf6b5f3a196bdfd412a0a1f480",
+    "web/tests/workspace-git-drafts.test.tsx": "488073d489b6d2de844c27686235c53719160b47eb5b01225e79759d7ca60bc6",
+    "web/tests/workspace-management.test.tsx": "c510d02feedbbbc4bf8f95aad71e55412afd45788e08de213211aa990b32720c",
+    "web/tests/workspace-search.test.tsx": "92b88084b95e733b599e8d7d9dd48474aab384e0073369ef05749be20ffc8fad",
+    "web/tests/workspace-ui.test.tsx": "aa586345b2fc282159cffdc3587a7d6a260f6dbe7e0c9f3c0153636d9effc5ed",
+    "web/tests/workspace-watch.test.tsx": "e1b86716a526f288fab63c2911ecaab2040d97ebd8a8f5e8c5c1e8588417a891",
+    "web/tests/modal-mutations.test.tsx": "9f4a20c97b45cc7ac622bdabf67e91af563c364b9d588e1235302d19903011f7",
+    "web/tests/automations.test.tsx": "f69ec16f661915f47249741ad5d8a959fb78b0cff8969f86d2697fc01b143689"
+  },
+  "method": "Fresh full-body read of the eight exact delegated test files, supplementing the web reviewer's independently generated complete AST assertion/hook/helper inventory. Checked mock transport failure/success distinction, deferred-response ownership ABA, native revision-bound Git/file writes, no replay of unknown operations, retained drafts, explicit confirmation and reset, observer timer cancellation, scoped queries, global fixture cleanup and isolation. Truncated command outputs were reread in bounded segments before completing coverage. Workflow and organization tests were explicitly transferred to the runtime reviewer before root reading and are excluded from this supplement.",
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "Static source review only; no browser, native or test runner execution in this supplement."
+  ]
+}

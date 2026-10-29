@@ -12,8 +12,8 @@ import { AutomationScheduler } from '../../src/gateway/automation-scheduler.js';
 
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const close of cleanups.splice(0)) await close(); });
-function setup(file = ':memory:') {
-  let time = Date.parse('2026-01-01T00:00:00Z'); const ledger = new Ledger(file, () => time); ledger.recover();
+function setup(file = ':memory:', initialTime = Date.parse('2026-01-01T00:00:00Z')) {
+  let time = initialTime; const ledger = new Ledger(file, () => time); ledger.recover();
   const leases = new Set<string>(); const calls: { method: string; params: JsonObject; clientId: string }[] = []; let turnState = 'inProgress';
   let behavior: ((method: string, params: JsonObject, context: CallContext) => Promise<JsonValue>) | undefined;
   const worker = {
@@ -66,6 +66,43 @@ describe('durable bounded automation execution', () => {
     expect(f.ledger.automations.getRun(current.id).state).toBe('completed'); expect(f.leases.size).toBe(0);
     expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(1);
     expect(f.ledger.automations.get(String(job.id)).nextAt).toBe(Date.parse('2026-01-01T01:01:00Z'));
+  });
+  it('dispatches the due weekly run and an unrelated job once while advancing past a nonexistent DST occurrence', async () => {
+    const firstDue = Date.parse('2026-03-01T07:30:00Z'), nextDue = Date.parse('2026-03-15T06:30:00Z');
+    const f = setup(':memory:', firstDue - 60_000);
+    f.spec.schedule = { kind: 'weekly', days: [0], time: '02:30', timeZone: 'America/New_York' }; f.spec.text = 'Weekly run';
+    const weekly = await f.create();
+    const unrelated = await f.command('automation/create', { spec: { ...f.spec, text: 'Unrelated run', schedule: { kind: 'once', at: firstDue, timeZone: 'UTC' } } as unknown as JsonValue }) as JsonObject;
+    f.behavior(async (method, params, context) => {
+      context.beforeWrite?.();
+      if (method === 'workspace/witness/pending') return { data: [], nextCursor: null };
+      if (method === 'conversation/start') {
+        expect(f.leases.has(context.clientId)).toBe(true);
+        const id = params.text === 'Weekly run' ? 'weekly' : 'unrelated';
+        return { thread: { id, cwd: '/project' }, turn: { id: id + '-turn', status: 'completed' } };
+      }
+      throw new Error('Unexpected scheduler call: ' + method);
+    });
+    const starts = () => f.calls.filter(call => call.method === 'conversation/start');
+    f.advance(60_000); await f.scheduler.tick();
+    expect(starts().map(call => call.params.text).sort()).toEqual(['Unrelated run', 'Weekly run']);
+    expect(f.ledger.automations.get(String(weekly.id)).nextAt).toBe(nextDue);
+    expect(f.ledger.automations.get(String(unrelated.id))).toMatchObject({ state: 'paused', nextAt: null });
+    const runs = [weekly, unrelated].map(job => (f.ledger.automations.read('automation/runs', { id: job.id! }) as JsonObject).data as JsonObject[]);
+    for (const entries of runs) {
+      expect(entries).toHaveLength(1); expect(entries[0]).toMatchObject({ state: 'completed', scheduledAt: firstDue });
+      expect(f.ledger.read(String(entries[0]!.operationId))?.state).toBe('accepted');
+    }
+    await f.scheduler.tick(); expect(starts()).toHaveLength(2);
+    expect([weekly, unrelated].map(job => (f.ledger.automations.read('automation/runs', { id: job.id! }) as JsonObject).data)).toEqual(runs);
+    const skippedWeek = Date.parse('2026-03-08T07:30:00Z');
+    f.advance(skippedWeek - firstDue); await f.scheduler.tick(); expect(starts()).toHaveLength(2);
+    f.advance(nextDue - skippedWeek); await f.scheduler.tick(); await f.scheduler.tick();
+    expect(starts()).toHaveLength(3); expect(starts()[2]!.params.text).toBe('Weekly run');
+    const subsequent = (f.ledger.automations.read('automation/runs', { id: weekly.id! }) as JsonObject).data as JsonObject[];
+    expect(subsequent).toHaveLength(2); expect(subsequent[0]).toMatchObject({ state: 'completed', scheduledAt: nextDue });
+    expect(subsequent[0]!.operationId).not.toBe(runs[0]![0]!.operationId);
+    expect(f.ledger.automations.get(String(weekly.id)).nextAt).toBe(Date.parse('2026-03-22T06:30:00Z'));
   });
   it('records missed schedules without backfill and freezes queued specifications across edits', async () => {
     const f = setup(), job = await f.create(); f.advance(600_000); await f.scheduler.tick();

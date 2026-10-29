@@ -203,7 +203,7 @@ it('recovers unknown settings by original receipt only, without promising curren
   choose('推理摘要', 'none');
   await submit(true);
   fireEvent.click(await screen.findByRole('button', { name: '查询原设置操作回执' }));
-  await waitFor(() => expect(listOperations().find((op) => op.id === id)?.state).toBe('accepted'));
+  await waitFor(async () => expect((await listOperations()).find((op) => op.id === id)?.state).toBe('accepted'));
   expect(s.calls.filter((c) => c.method === 'turn/settings/update')).toHaveLength(1);
   expect(screen.queryByText('当前回合设置已应用；不改变后续回合的会话设置。')).toBeNull();
 });

@@ -110,6 +110,7 @@ describe('provider configuration intent', () => {
         revision: 'r',
         kind: 'responses',
         baseUrl: 'http://192.168.1.5/v1',
+        model: 'model-x',
         hasApiKey: true,
       });
     render(
@@ -123,7 +124,14 @@ describe('provider configuration intent', () => {
     await waitFor(() =>
       expect(mutate).toHaveBeenCalledWith(
         'system/provider/write',
-        expect.objectContaining({ apiKey: '', allowInsecureHttp: false }),
+        {
+          expectedRevision: 'r',
+          kind: 'responses',
+          baseUrl: 'http://192.168.1.5/v1',
+          model: 'model-x',
+          apiKey: '',
+          allowInsecureHttp: false,
+        },
       ),
     );
   });

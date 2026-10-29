@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round14",
+  "reviewerId": "r14-web-tests-b-fresh-20261028T183444Z",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "sourceDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "startedAt": "2026-10-28T18:34:44.491Z",
+  "completedAt": "2026-10-28T18:37:27.916Z",
+  "complete": true,
+  "method": "Fresh independent read-only audit supplement of the exact 23 assigned current web test files. Read every fixture/helper, test body, parameterized branch, assertion, setup and cleanup statement, including resolving output truncation by rereading the omitted ranges. Evaluated asynchronous ownership, deferred completion and error paths, receipt recovery without mutation replay, resource bounds, secret/draft persistence, cleanup and test isolation. Cross-referenced current production parent mounting, keys, enabled/visible/connected gates and callbacks in Workspace, Settings, ExtensionsPanel, SkillSettings and WorkspaceGit, and fully read the three resource/resume/watch hooks; standalone prop transitions were not treated as product defects without a reachable parent path. Verified current Vitest restoreMocks/clearMocks configuration rather than treating the per-file Storage spy as a leak. Read AGENTS.md, honored the explicit user two-clean-complete-round gate and no-full-tests instruction supplied with this assignment. No old checkout, history, prior audit reports or prior findings were consulted. Before review completion and after review, checked SHA-256 of every one of the 1,901 raw inventory files and invoked canonical exported snapshot() from scripts/snapshot.mjs using the pinned Node v24.22.1 executable. Both canonical checks returned the frozen digest and 1,901 files. Hash verification is a consistency check only; coverage is based on reading actual source bodies, not AST or hash enumeration. No source changes were made.",
+  "inspectedFiles": [
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings-drafts.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx"
+  ],
+  "crossReferences": [
+    {
+      "file": "vitest.config.ts",
+      "scope": "Full file: clearMocks and restoreMocks isolation"
+    },
+    {
+      "file": "scripts/snapshot.mjs",
+      "scope": "Full file: canonical snapshot export and evidence exclusions"
+    },
+    {
+      "file": "scripts/run-tests.mjs",
+      "scope": "Full file: targeted/full gating and isolated runner behavior; not executed"
+    },
+    {
+      "file": "web/vite.config.ts",
+      "scope": "Full file: development and build configuration"
+    },
+    {
+      "file": "package.json",
+      "scope": "Full file: pinned dependencies and test entrypoints"
+    },
+    {
+      "file": "web/hooks/useResource.ts",
+      "scope": "Full file: asynchronous generation ownership"
+    },
+    {
+      "file": "web/hooks/useResume.ts",
+      "scope": "Full file: session metadata reads and abort handling"
+    },
+    {
+      "file": "web/hooks/useWorkspaceWatch.ts",
+      "scope": "Full file: bounded nonoverlapping reads and cleanup"
+    },
+    {
+      "file": "web/components/ExtensionsPanel.tsx",
+      "scope": "Full file: actual project/epoch owner remount and visibility path"
+    },
+    {
+      "file": "web/components/WorkspaceGit.tsx",
+      "scope": "Full file: retained commit owner and hidden read gates"
+    },
+    {
+      "file": "web/components/Settings.tsx",
+      "scope": "Full file: actual retained settings tab parents and gates"
+    },
+    {
+      "file": "web/components/SkillSettings.tsx",
+      "scope": "Full file: skill creator/documents/roots parent integration"
+    },
+    {
+      "file": "web/Workspace.tsx",
+      "scope": "Selected integration ranges 75-235, 975-1135, 1425-1475: actual runtime, connection, project and thread ownership paths"
+    }
+  ],
+  "consistency": {
+    "rawFilesBefore": 1901,
+    "rawMismatchesBefore": [],
+    "canonicalBefore": {
+      "files": 1901,
+      "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+    },
+    "rawFilesAfter": 1901,
+    "rawMismatchesAfter": [],
+    "canonicalAfter": {
+      "files": 1901,
+      "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+    }
+  },
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "Static source audit only: no targeted or full test suite executed; no claim that these tests currently pass.",
+    "No real browser, microphone/WebRTC, native PTY/CLI, external provider/MCP/OAuth, systemd/deployment, public HTTPS or live gateway integration was exercised.",
+    "No personal home, CODEX_HOME or credentials accessed. No network or remote operations were performed.",
+    "This supplement establishes full reading of the 23 assigned files only; cross-references are explicitly listed and selected production ranges do not claim whole-file or whole-repository coverage."
+  ]
+}

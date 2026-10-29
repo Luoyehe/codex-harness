@@ -15,7 +15,7 @@ import stat
 import tomllib
 from pathlib import Path
 
-from .common import DeployError, Layout, fsync_directory, read_json, require
+from .common import DeployError, Layout, durable_directory, fsync_directory, read_json, require
 
 HOST_NAMES = ("config.toml", "requirements.toml", "managed_config.toml")
 HOST_LIMIT = 1024 * 1024
@@ -64,7 +64,7 @@ def prepare_host_targets(value: dict, layout: Layout, worker_gid: int) -> None:
     documents, manifest = read_host_layers(layout, worker_gid)
     defaults, required = provider_documents(value, layout)
     compose_layers(defaults, required, documents)  # No host writes before all policy conflicts are checked.
-    ensure_mount_targets(layout, manifest)
+    ensure_mount_targets(layout, manifest, worker_gid=worker_gid)
     generation_layers(value, layout, worker_gid)  # Re-read policy after creating only empty missing targets.
 
 
@@ -192,7 +192,7 @@ def _ancestors(layout: Layout, directory: Path) -> None:
         current = current.parent
 
 
-def read_host_layers(layout: Layout, worker_gid: int) -> tuple[dict[str, dict], dict]:
+def read_host_layers(layout: Layout, worker_gid: int, *, synchronize: bool = False) -> tuple[dict[str, dict], dict]:
     folder = layout.root / "etc/codex"
     _ancestors(layout, folder)
     parent = folder
@@ -229,6 +229,11 @@ def read_host_layers(layout: Layout, worker_gid: int) -> tuple[dict[str, dict], 
                 if not block:
                     break
                 data.extend(block)
+            if synchronize and os.name == "posix":
+                # A prior empty-target creation may have stopped before its
+                # file fsync. Flush the same verified descriptor we read, with
+                # no writes/chmod/chown to an administrator's existing policy.
+                os.fsync(fd)
             after = os.fstat(fd)
         finally:
             os.close(fd)
@@ -243,18 +248,11 @@ def read_host_layers(layout: Layout, worker_gid: int) -> tuple[dict[str, dict], 
     return documents, {"format": 1, "files": records}
 
 
-def ensure_mount_targets(layout: Layout, expected: dict) -> None:
+def ensure_mount_targets(layout: Layout, expected: dict, *, worker_gid: int = 0) -> None:
     """Create only missing empty targets. Never rewrite or remove host files."""
     folder = layout.root / "etc/codex"
     _ancestors(layout, folder)
-    for directory in (layout.root / "etc", folder):
-        try:
-            directory.mkdir(mode=0o755)
-        except FileExistsError:
-            pass
-        else:
-            os.chmod(directory, 0o755)
-            fsync_directory(directory.parent)
+    durable_directory(folder, create=True)
     _ancestors(layout, folder)
     for name in ("config.toml", "requirements.toml"):
         if expected["files"][name]["exists"]:
@@ -270,3 +268,12 @@ def ensure_mount_targets(layout: Layout, expected: dict) -> None:
         finally:
             os.close(fd)
         fsync_directory(folder)
+    # Existing empty targets can be leftovers from an interrupted creation.
+    # Re-read and sync all verified files before publishing a generation that
+    # relies on their existence, then persist their directory entries as well.
+    _, current = read_host_layers(layout, worker_gid, synchronize=True)
+    for name in HOST_NAMES:
+        if expected["files"][name]["exists"]:
+            require(current["files"][name] == expected["files"][name],
+                    "Host configuration changed during preparation", "configuration_conflict")
+    durable_directory(folder)

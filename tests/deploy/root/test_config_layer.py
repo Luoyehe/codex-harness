@@ -6,10 +6,11 @@ import sys
 import tempfile
 import unittest
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
-from deploy.common import DeployError, Layout, atomic_write, mkdir, read_json, write_json
+from deploy.common import DeployError, Layout, atomic_write, fsync_directory, mkdir, read_json, write_json
 from deploy.config_layer import apply_candidate, barriers, change_config_layer, paths, recover_config_layer, snapshot, user_layer
 from deploy.manager import Manager
 from deploy.provider import validate_provider
@@ -57,6 +58,19 @@ class FixtureSystem:
 
 @unittest.skipUnless(sys.platform == "linux" and os.geteuid() == 0, "Real Linux root configuration-layer fixture")
 class ConfigurationLayerTests(unittest.TestCase):
+    def test_transaction_parent_failure_prevents_configuration_stop_and_selection(self):
+        original = (self.layout.config / "instance.json").read_bytes()
+        revision = self.manager.providers.read()["revision"]
+        def fail(path, **kwargs):
+            if path == self.layout.state / "transactions":
+                raise OSError("Injected configuration journal publication failure")
+            return fsync_directory(path, **kwargs)
+        with patch("deploy.common.fsync_directory", side_effect=fail), self.assertRaises(OSError):
+            change_config_layer(self.manager)
+        self.assertEqual(self.system.events, [])
+        self.assertEqual((self.layout.config / "instance.json").read_bytes(), original)
+        self.assertEqual(self.manager.providers.read()["revision"], revision)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="config-layer-fixture-")
         self.addCleanup(self.temp.cleanup)
@@ -89,6 +103,82 @@ class ConfigurationLayerTests(unittest.TestCase):
 
     def transaction(self):
         return next((self.layout.state / "transactions").glob("*/state.json"))
+
+    @contextmanager
+    def terminal_failure(self, phase, *, published):
+        from deploy.common import fsync_directory
+        replace = os.replace
+        records, observed = self.layout.state / "transactions", {}
+
+        def fail():
+            observed.update(active=set(self.system.active), events=list(self.system.events),
+                            config=snapshot(self.layout), provider=self.manager.providers.read()["revision"])
+            raise OSError("Injected terminal publication failure")
+
+        def replacing(source, target):
+            target = Path(target)
+            if not published and target.name == "state.json" and target.parent.parent == records and read_json(Path(source)).get("phase") == phase:
+                fail()
+            return replace(source, target)
+
+        def syncing(directory, **kwargs):
+            directory = Path(directory)
+            journal = directory / "state.json"
+            if published and directory.parent == records and journal.exists() and read_json(journal).get("phase") == phase:
+                # The real journal replacement has happened; its parent fsync
+                # is the failing syscall, rather than a mocked JSON writer.
+                fail()
+            return fsync_directory(directory, **kwargs)
+
+        with patch("deploy.common.os.replace", side_effect=replacing), patch("deploy.common.fsync_directory", side_effect=syncing):
+            yield observed
+
+    def check_terminal_failure(self, *, published, recovery=None):
+        if recovery is not None:
+            def crash(path, value, **kwargs):
+                write_json(path, value, **kwargs)
+                if path.name == "state.json" and value.get("kind") == "config-layer" and value.get("phase") == "selected":
+                    raise PowerLoss()
+            with patch("deploy.config_layer.write_json", side_effect=crash), self.assertRaises(PowerLoss):
+                change_config_layer(self.manager)
+        phase = "recovered" if recovery == "old" else "committed"
+        with self.terminal_failure(phase, published=published) as observed, self.assertRaises(OSError):
+            if recovery is None:
+                change_config_layer(self.manager)
+            else:
+                recover_config_layer(self.manager, self.transaction(), read_json(self.transaction()), candidate=recovery == "candidate")
+        self.assertTrue(observed, "The requested publication checkpoint was not reached")
+        self.assertEqual(self.system.active, observed["active"])
+        self.assertEqual(self.system.events, observed["events"])
+        self.assertEqual(snapshot(self.layout), observed["config"])
+        self.assertEqual(self.manager.providers.read()["revision"], observed["provider"])
+        self.assertEqual(list((self.layout.config / "config-layer-maintenance").iterdir()), [])
+        self.assertEqual(read_json(self.transaction())["phase"] == phase, published)
+        if not published:
+            with self.assertRaises(DeployError): self.manager.require_recovered_transactions(None)
+            recover_config_layer(self.manager, self.transaction(), read_json(self.transaction()), candidate=recovery != "old")
+        self.manager.require_recovered_transactions(None)
+        self.assertEqual(read_json(self.transaction())["phase"], phase)
+        self.assertEqual(self.user.read_bytes(), self.user_bytes)
+        self.assertEqual(self.system.active, {"worker", "gateway"})
+
+    def test_change_terminal_replace_failure_keeps_candidate_retryable(self):
+        self.check_terminal_failure(published=False)
+
+    def test_change_terminal_directory_fsync_failure_preserves_verified_services(self):
+        self.check_terminal_failure(published=True)
+
+    def test_candidate_terminal_replace_failure_keeps_recovery_retryable(self):
+        self.check_terminal_failure(published=False, recovery="candidate")
+
+    def test_candidate_terminal_directory_fsync_failure_preserves_verified_services(self):
+        self.check_terminal_failure(published=True, recovery="candidate")
+
+    def test_old_terminal_replace_failure_keeps_recovery_retryable(self):
+        self.check_terminal_failure(published=False, recovery="old")
+
+    def test_old_terminal_directory_fsync_failure_preserves_verified_services(self):
+        self.check_terminal_failure(published=True, recovery="old")
 
     def advanced_provider(self, kind):
         change_config_layer(self.manager)

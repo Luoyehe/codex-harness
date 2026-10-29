@@ -168,15 +168,22 @@ def render_config_check(layout: Layout) -> str:
             "TimeoutStopSec=5\nKillMode=control-group\nUMask=0077\n")
 
 
-def render_edge_units(layout: Layout, *, builtin: bool = False) -> dict[str, str]:
+def render_edge_units(layout: Layout, *, builtin: bool = False, dns_metadata: dict | None = None) -> dict[str, str]:
     data = layout.state / "identity"
     common = "Restart=on-failure\nRestartSec=3\nUMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nProtectHome=yes\nProtectKernelTunables=yes\nProtectKernelModules=yes\nProtectControlGroups=yes\nTimeoutStopSec=25\nKillMode=control-group\nMemoryMax=512M\nTasksMax=64\n\n[Install]\nWantedBy=multi-user.target\n"
     auth = (f"[Unit]\nDescription=Codex Harness {layout.instance} identity\nAfter=network-online.target\n\n[Service]\n"
             f"User={layout.prefix}-auth\nGroup={layout.prefix}-auth\nExecStart={layout.control}/edge/authelia/authelia --config {layout.config}/identity/configuration.json\n"
             f"ReadWritePaths={data}\nCapabilityBoundingSet=\n" + common)
     after = layout.unit('gateway' if builtin else 'authelia')
+    executable = layout.control / "edge/caddy/caddy"
+    environment = ""
+    if dns_metadata is not None:
+        require(builtin, "DNS TLS requires built-in authentication")
+        from .dns_tls import dns_unit_settings
+        executable, credentials = dns_unit_settings(layout, dns_metadata)
+        environment = f"EnvironmentFile={credentials}\n"
     caddy = (f"[Unit]\nDescription=Codex Harness {layout.instance} HTTPS\nAfter={after}\n\n[Service]\n"
              f"User={layout.prefix}-edge\nGroup={layout.prefix}-edge\nEnvironment=HOME={layout.state}/caddy\n"
-             f"ExecStart={layout.control}/edge/caddy/caddy run --config {layout.config}/Caddyfile --adapter caddyfile\n"
+             f"{environment}ExecStart={executable} run --config {layout.config}/Caddyfile --adapter caddyfile\n"
              f"ReadWritePaths={layout.state}/caddy\nAmbientCapabilities=CAP_NET_BIND_SERVICE\nCapabilityBoundingSet=CAP_NET_BIND_SERVICE\n" + common)
     return {layout.unit("caddy"): caddy} if builtin else {layout.unit("authelia"): auth, layout.unit("caddy"): caddy}

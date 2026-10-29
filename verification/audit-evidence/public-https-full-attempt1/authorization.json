@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "sourceFiles": 1901,
+  "sourceHead": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
+  "baseCommit": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
+  "version": "2.1.1",
+  "approvedAt": "2026-10-28T19:08:18.693Z",
+  "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。",
+  "auditWaiverInstruction": "用户明确要求连续两轮完整审计无问题后全量测试，此要求覆盖 AGENTS.md 默认三轮；仅不要求额外第三轮，两轮要求已按真实完整证据满足。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 2,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "public-https-round14",
+      "sequence": 42,
+      "sourceDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+      "completedAt": "2026-10-28T18:40:11.985Z",
+      "files": 1901,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-runtime-gateway.json",
+          "sha256": "4afd69fa80036cc7ce6e8f0d5159b4fecc255b20aad2da0a1c28dc06e8015fa1"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-runtime-tests.json",
+          "sha256": "6599072daa42fb46d2cff767e289e6cf2e2393f85cc9e105822154d3ac9c9493"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-deploy-tooling.json",
+          "sha256": "c773092592993c0e281f0a848916026e3313c2037f827eb7def94ab5e367d73b"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-web-primary.json",
+          "sha256": "4b244a8bbdf719ab0da28bb8b1117ac6f16b8fcf0db2f1b46af69982ff7c4e8b"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-web-tests-a.json",
+          "sha256": "1ef97abd76c6cb56d7ac229d3aea2fdb67616e091bdb5a1920108ce8ca3cc7cb"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-web-tests-b.json",
+          "sha256": "bfac92f137928a1acd64a759e2ffdbb0fac8a3f159f63973976523b3af75afdd"
+        }
+      ]
+    },
+    {
+      "roundId": "public-https-round15",
+      "sequence": 43,
+      "sourceDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+      "completedAt": "2026-10-28T19:07:29.381Z",
+      "files": 1901,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-runtime-gateway.json",
+          "sha256": "1ebad98b4ce78537798c4b03640fda60ddf86762fa4dab154ca5d38d3761a22e"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-runtime-tests.json",
+          "sha256": "3eb7e879131543bbb30f49f64a7e94dc598f7297643744b1555f1d8e650328f1"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-deploy-tooling.json",
+          "sha256": "6a434ec76eb6ba61ae1860c0e091374a4ebbfb54080eb922a1ae530d76e786b4"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-web-primary.json",
+          "sha256": "b854d8267eda669e73e3032203ac50aacf31bd36beb4c8747843423c57e5627e"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-web-tests-a.json",
+          "sha256": "6460b27dd115cd383aabc9bf33a50d3f42018dca23ecaefd0357d158a06f9134"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-web-tests-b.json",
+          "sha256": "f50bdf34494db69a4e5806e450f0af31a8851550e4a3be46bef20d64ed704834"
+        }
+      ]
+    }
+  ],
+  "note": "No audit is invented or skipped. Only the tooling default third round is waived after the user-required two actual complete independent clean public-https rounds on this exact source. Historical release-closeout evidence is preserved."
+}

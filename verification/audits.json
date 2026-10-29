@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "phase": "v210-independent-audit",
-  "consecutiveClean": 2,
+  "phase": "public-https-full-and-deployment-passed-hosted-publication-pending",
+  "consecutiveClean": 0,
   "rounds": [
     {
       "id": "round1",
@@ -3394,10 +3394,2693 @@
           "sha256": "99de4248af0dfc85fd7f4839c17ef826cf3b0070614e277084c9148e3c96cfb3"
         }
       ]
+    },
+    {
+      "id": "public-https-round1",
+      "sequence": 30,
+      "digest": "f4a5fa858defdd6fcf20cde6642b06bba6033e7323e5a6ead53f371e7e9a7e1b",
+      "complete": true,
+      "startedAt": "2026-10-27T01:02:05.000Z",
+      "completedAt": "2026-10-27T01:23:58.622Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "PUBLIC-R1-DEPLOY-RELEASE-DURABILITY",
+          "priority": "P1",
+          "title": "Release publication can commit before nested entries and final executable modes are durable",
+          "file": "deploy/safe_fs.py",
+          "lineStart": 180,
+          "lineEnd": 183,
+          "relatedLocations": [
+            {
+              "file": "deploy/safe_fs.py",
+              "lineStart": 208,
+              "lineEnd": 212
+            },
+            {
+              "file": "deploy/build.py",
+              "lineStart": 197,
+              "lineEnd": 199
+            }
+          ],
+          "trigger": "A host power loss occurs after a newly exported nested release has been renamed, its manifest published and activation committed, but before the filesystem independently flushes unsynced nested directories or metadata changes.",
+          "impact": "snapshot fsyncs file data before chmod and only syncs the top export directory. Nested directory entries and the final executable modes have no guaranteed persistence. publish_release then syncs only the releases parent before publishing the durable manifest. A reboot can therefore leave a committed manifest/current pointer naming an incomplete or incorrectly permissioned release; integrity or process start fails and candidate recovery cannot rely on the previously verified tree.",
+          "recommendation": "Before publishing the release name or manifest, durably flush every copied regular file after its final metadata changes and every nested directory bottom-up, including parents containing symlinks. Use a shared no-follow durability helper consistent with control_update durable_tree. Preserve the rename/parent-sync/manifest ordering, and add a narrow ordering regression covering nested files and executable modes.",
+          "evidence": "Source inspection of the complete snapshot and publish_release paths; control_update already has an explicit bottom-up durable_tree operation for the analogous boundary. Parent reviewer independently confirmed the finding. No claim of physical power-failure reproduction.",
+          "auditEvidence": "verification/audit-evidence/public-https-round1/public-https-round1-deployment.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "public-r1-gateway-root",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round1/public-https-round1-gateway.json",
+          "sha256": "a13cd74191753b07ed86b65ffe8c046228c0db97ac6cdb34964d90a40fc00926"
+        },
+        {
+          "id": "public-r1-runtime-independent",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round1/public-https-round1-runtime.json",
+          "sha256": "f94958098706a866a00c34773de288508263f082e7d1b1364824b81765dea2c9"
+        },
+        {
+          "id": "public-r1-deployment-independent",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round1/public-https-round1-deployment.json",
+          "sha256": "3e1d201434446e7d7224207304b0c9c037f464a660f63c00773f88b5625edf55"
+        },
+        {
+          "id": "public-r1-web-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round1/public-https-round1-web.json",
+          "sha256": "904612d2b929e7c76ab6f146868d620abb194cd80496930ce9309b433a5cffe9"
+        },
+        {
+          "id": "public-r1-web-static-root",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round1/public-https-round1-web-static.json",
+          "sha256": "f9c08528e6df750bf1c21ddbcb743dc419f1149b676926203950acb797e2b568"
+        },
+        {
+          "id": "public-r1-web-tests-a-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round1/public-https-round1-web-tests-a.json",
+          "sha256": "3cf771de36a44bc2f8f06f293f220a3fd8bd1ea1723fd7a93d562bc2a96240c9"
+        },
+        {
+          "id": "public-r1-deployment-web-tests-b-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round1/public-https-round1-web-tests-b.json",
+          "sha256": "20b788a6adf17423073654dd09ac27b042b9758cfe0395c42db553827cc2a3b4"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round2",
+      "sequence": 31,
+      "digest": "99f0ceea026168ac9763f9e9ad16df4c89ce14f5f2c05a3507cdb35466d09428",
+      "complete": true,
+      "startedAt": "2026-10-27T01:32:48.917Z",
+      "completedAt": "2026-10-27T01:51:43.881Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "public-r2-deploy-001",
+          "priority": 1,
+          "severity": "high",
+          "title": "Persist each transaction directory name before starting lifecycle side effects",
+          "location": {
+            "file": "deploy/https.py",
+            "startLine": 541,
+            "endLine": 545
+          },
+          "trigger": "On a Linux filesystem, power loss after a new lifecycle journal is written and services/pointers/definitions have changed, but before the transaction directory entry happens to reach durable storage.",
+          "evidence": "common.mkdir only creates/chmods/chowns a directory (common.py:75-80). write_json uses atomic_write, whose sole directory barrier is the immediate file parent (common.py:53-72). The release, provider, HTTPS, configuration-layer and uninstall paths create state/transactions/<id> and flush state.json inside it, but never fsync state/transactions before side effects or their terminal record. Consequently the retained journal can disappear while durable pointer/config/unit changes survive. The strongest complete chain is uninstall_services: mkdir journal.parent (209), write journal (212), publish config/uninstalled.json referring to its ID (213-214), stop/remove units and sudo entry (220-228), terminal journal and durable uninstalled marker (234-236). restore_services then requires that missing journal and its before image. Ordinary pending transaction discovery can also miss a lost release/provider/config/HTTPS transaction.",
+          "affectedLocations": [
+            {
+              "file": "deploy/manager.py",
+              "startLine": 368,
+              "endLine": 373,
+              "behavior": "release prepared journal precedes stop; no transactions-parent barrier through committed write at408"
+            },
+            {
+              "file": "deploy/manager.py",
+              "startLine": 430,
+              "endLine": 437,
+              "behavior": "provider prepared journal precedes stop/select; no transactions-parent barrier through committed write at458"
+            },
+            {
+              "file": "deploy/config_layer.py",
+              "startLine": 281,
+              "endLine": 287,
+              "behavior": "configuration-layer journal precedes barriers and stop; no transactions-parent barrier through committed write at302"
+            },
+            {
+              "file": "deploy/service_lifecycle.py",
+              "startLine": 208,
+              "endLine": 215,
+              "behavior": "uninstall marker refers to an unflushed transaction-directory name before definitions are durably removed"
+            },
+            {
+              "file": "deploy/build.py",
+              "startLine": 281,
+              "endLine": 284,
+              "behavior": "same collection publication defect for input/cache/prepared build evidence through prepared.json at345; release tree and manifest themselves have separate correct barriers"
+            }
+          ],
+          "impact": "Recovery material and transaction discovery are not crash-durable. A successful uninstall can retain an uninstalled marker while losing the only saved definitions required by restore-services; interrupted mutations can become undiscoverable.",
+          "recommendation": "Use a shared durable directory publication operation that verifies trusted ancestry and flushes the directory plus its parent chain, including existing directories on interrupted retry. Require it before the first dependent side effect. Add fault-injection assertions that a failed parent barrier prevents stop, pointer/config selection and uninstall deletion.",
+          "verification": "Fresh full source reads and caller/terminal-write tracing. No power-cut simulation or live service execution was performed.",
+          "auditEvidence": "verification/audit-evidence/public-https-round2/public-https-round2-deployment.json"
+        },
+        {
+          "id": "public-r2-deploy-002",
+          "priority": 1,
+          "severity": "high",
+          "title": "Make the root management receipt directory durable before dispatching a mutation",
+          "location": {
+            "file": "deploy/manager.py",
+            "startLine": 625,
+            "endLine": 626
+          },
+          "trigger": "The first root management mutation creates state/receipts, reaches the requested side effect, and the machine loses power before the new receipts directory entry is durably published in state.",
+          "evidence": "dispatch creates receipts at625 and atomically writes running at626, then dispatches restart/provider changes and writes completed at666. Both write_json calls only fsync receipts, not state. Installation build_plan does not precreate receipts (install_recovery.py:304-313). There is no later fsync(state) in this dispatch chain. preflight_mutation regards an absent receipt as new at manager.py:583-609; operation/read reports not_received for an absent file at655.",
+          "impact": "A management action may finish but its durable idempotency record can disappear. Later root reconciliation returns not_received and a repeated original request can execute again, violating the manager receipt contract.",
+          "recommendation": "Durably publish the receipts directory and relevant ancestors before the initial running receipt and before entering any action. Preserve replay behavior when the directory already exists after an interrupted attempt; test parent fsync failure prevents invocation.",
+          "verification": "Fresh semantic read of initialization, mutation preflight, dispatch, receipt lookup and atomic write implementation. This concerns the root manager receipt layer, not a claim that gateway SQLite receipts lack their own persistence.",
+          "auditEvidence": "verification/audit-evidence/public-https-round2/public-https-round2-deployment.json"
+        },
+        {
+          "id": "public-r2-deploy-003",
+          "priority": 2,
+          "severity": "medium",
+          "title": "Flush publication-directory ancestry before acknowledging retained generations and initial installation",
+          "location": {
+            "file": "deploy/https.py",
+            "startLine": 333,
+            "endLine": 343
+          },
+          "trigger": "Power loss after selecting a newly staged certificate/CA, saving the first provider profile, or completing an installation whose managed top-level containers were newly created.",
+          "evidence": "stage_tls creates config/tls/<revision> and atomic-writes the files (333-341); stage_tls_ca does the same under tls-ca (376-383). Those writes flush only the revision directory. setup_https later durably writes Caddyfile, instance.json and https.json and commits (565-605), but never flushes tls or tls-ca, so the selected revision name can be lost. Profiles.save creates config/provider-profiles then writes the profile (provider_lifecycle.py:79-83); the save-only provider action returns immediately (manager.py:419-426) and never flushes config, so the first saved collection can disappear. initialize_recorded precreates app.parent/state.parent/control.parent (install_recovery.py:391-393) without flushing their parents, while root_lock creates config.parent (37) without flushing its parent before the initialization record is relied upon. CreationPlan publishes children and flushes their immediate parents (294), which does not persist the precreated container names in /opt, /var/lib or /usr/lib. Existing-plan entries return after verify (250-253), so retry also cannot be used as a guaranteed missing publication barrier.",
+          "affectedLocations": [
+            {
+              "file": "deploy/https.py",
+              "startLine": 376,
+              "endLine": 384,
+              "behavior": "custom CA revision publication"
+            },
+            {
+              "file": "deploy/provider_lifecycle.py",
+              "startLine": 79,
+              "endLine": 83,
+              "behavior": "first saved profile collection"
+            },
+            {
+              "file": "deploy/install_recovery.py",
+              "startLine": 33,
+              "endLine": 38,
+              "behavior": "initial configuration-container ancestry and initial recovery record"
+            },
+            {
+              "file": "deploy/install_recovery.py",
+              "startLine": 391,
+              "endLine": 405,
+              "behavior": "new installation containers acknowledged after only descendant publication"
+            },
+            {
+              "file": "deploy/install_recovery.py",
+              "startLine": 250,
+              "endLine": 253,
+              "behavior": "existing verified entries skip a publication barrier during retry"
+            }
+          ],
+          "impact": "A successfully selected TLS revision can be absent at reboot and prevent Caddy/HTTPS health startup; an acknowledged saved profile or a newly created installation container can disappear despite its files having been flushed.",
+          "recommendation": "Centralize trusted durable directory creation/publication, flush every newly created ancestor and re-establish missing barriers on retry before references or successful results are exposed. Keep initial lock creation ownership/symlink validation intact. Exercise TLS/CA and first-profile ordering plus initial container/retry paths with injected fsync failures.",
+          "verification": "Fresh full semantic reads, traced all generation publishers. ProviderStore.select explicitly flushes providers at provider.py:286, control update explicitly flushes record/barrier parents and transaction collection, request staging flushes its collection, workspace helpers use descriptor-relative parent barriers, and publish_release flushes releases and app. Those paths were not mislabeled as equivalent committed-generation failures. No physical crash test was performed.",
+          "auditEvidence": "verification/audit-evidence/public-https-round2/public-https-round2-deployment.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "public-r2-gateway-root",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-gateway.json",
+          "sha256": "9e43679989ba379b9a97701891053d2c8f8c249dc0da48ef0552d38c12e70d31"
+        },
+        {
+          "id": "public-r2-runtime-independent",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-runtime.json",
+          "sha256": "a38374fcb1bcf2f9f0511bc3a600481ce57cd3a75b20028f0a99d9eb6352958c"
+        },
+        {
+          "id": "public-r2-runtime-tests-root",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-runtime-tests-root.json",
+          "sha256": "227bb520cc426544865802c9393f75ed37ff7ae7b74bca014fb24e80838c0883"
+        },
+        {
+          "id": "public-r2-runtime-tests-b-independent",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-runtime-tests-b.json",
+          "sha256": "d783acf4b546f6e536ecc23d50fba41985cc3e3ef21fd7724a4df20b2fb901f3"
+        },
+        {
+          "id": "public-r2-deploy-independent",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-deployment.json",
+          "sha256": "e69a852d697ac34145145cbd94ba4d58e5a5c496d94d3cf0022aced280f557ee"
+        },
+        {
+          "id": "public-r2-web-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-web.json",
+          "sha256": "89d106052cfadc7a1b1eaa570ed67679031723e8d29f63011e917fe159e2f28b"
+        },
+        {
+          "id": "public-r2-web-static-root",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-web-static.json",
+          "sha256": "5ba5f6da887a88dba5008a9981d806fca03b2240a402d4c0b48577d9fb897da7"
+        },
+        {
+          "id": "public-r2-web-tests-a-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-web-tests-a.json",
+          "sha256": "56eac53f2f10caa5fdbb42e0abb9cb049a44c4ffef9ba5bdedcefeb08aed2570"
+        },
+        {
+          "id": "public-r2-web-tests-b-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round2/public-https-round2-web-tests-b.json",
+          "sha256": "ea0f75431fce932d017326e9e4262ca4fa6ab6ea5bcdb76938d946115295074a"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round3",
+      "sequence": 32,
+      "digest": "6b97df9efa8681d652d9898d500d8e82e6c322aa7f72400abd18fe238460a3e0",
+      "complete": true,
+      "startedAt": "2026-10-27T02:21:00.764Z",
+      "completedAt": "2026-10-27T02:50:21.190Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R3-DEPLOY-TEST-001",
+          "priority": "P2",
+          "file": "tests/deploy/root/test_config_layer.py",
+          "line": 67,
+          "title": "Missing fsync_directory import makes the publication-order test fail before its intended fault",
+          "description": "The module imports DeployError, Layout, atomic_write, mkdir, read_json, write_json only. test_transaction_parent_failure_prevents_configuration_stop_and_selection.fail calls fsync_directory for an earlier directory path and raises NameError, which assertRaises(OSError) cannot catch. The later import inside terminal_failure is function-local and cannot bind this callback. Parent separately confirmed this in the Linux targeted run. No source change made.",
+          "status": "confirmed",
+          "category": "test-code",
+          "duplicateOfParentFinding": true,
+          "validation": "Static lexical-scope verification after reading the full file; independently executed Linux failure reported by parent, not rerun here.",
+          "auditEvidence": "verification/audit-evidence/public-https-round3/public-https-round3-deployment-rest-complete.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "public-r3-root-runtime-semantic",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round3/public-https-round3-runtime.json",
+          "sha256": "3120ac4f6f3ac9838e7725230d37b06216f821739cad463f80430576f91d9571"
+        },
+        {
+          "id": "public-r3-root-runtime-test-contracts",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round3/public-https-round3-runtime-tests.json",
+          "sha256": "5d6c66389d86c317b097d39f9249b6163753c2bb395d0913f50857247fa745ad"
+        },
+        {
+          "id": "public-round3-gateway-web-primary",
+          "scopes": [
+            "gateway-core",
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round3/public-https-round3-gateway-web-completed-subscope.json",
+          "sha256": "20d644d3045ca0387ed063711ffe795d78269ba2ddc845c87d529a5002677a39"
+        },
+        {
+          "id": "independent-round3-deployment-production-tooling-20261027",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round3/public-https-round3-deployment.json",
+          "sha256": "cca4cbe9e5a31999603b721cf4dfd0cdf097eaa0f479b569dae86cba8254ac39"
+        },
+        {
+          "id": "independent-round3-deployment-rest-complete-20261027",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round3/public-https-round3-deployment-rest-complete.json",
+          "sha256": "88c949cfd60a35e7da31e510139af54bcefcef5824f66f855a3945f970836e0e"
+        },
+        {
+          "id": "public-round3-web-rest-semantic",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round3/public-https-round3-web-rest.json",
+          "sha256": "1068ee5218b577be2fd5ebd4f154eab60166c0e3dbcfc3af737b91b99dd2ce5f"
+        },
+        {
+          "id": "public-r3-web-tests-tail-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round3/public-https-round3-web-tests-tail.json",
+          "sha256": "bd5ce8e78e3974e57f254f57486fd45851bd7e7078c405f120cfa3263bc191f0"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round4",
+      "sequence": 33,
+      "digest": "4c9f519ea78c5ac06bb3e12ec890fa1a0c4bdcc76073d10da51b420da3c5770a",
+      "complete": true,
+      "startedAt": "2026-10-27T02:51:40.000Z",
+      "completedAt": "2026-10-27T03:11:13.669Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "public-r4-web-task-tab-draft-loss",
+          "priority": "P2",
+          "title": "Switching task tabs silently discards unsaved queue and goal drafts",
+          "file": "web/components/TaskPanel.tsx",
+          "lineStart": 691,
+          "lineEnd": 700,
+          "relatedLocations": [
+            {
+              "file": "web/components/TaskPanel.tsx",
+              "lineStart": 178,
+              "lineEnd": 182,
+              "reason": "Queue edits exist only in the QueuePanel-owned ref map."
+            },
+            {
+              "file": "web/components/TaskPanel.tsx",
+              "lineStart": 358,
+              "lineEnd": 361,
+              "reason": "Goal editing flag, objective, budget selection and value exist only in GoalPanel state."
+            },
+            {
+              "file": "web/components/TaskPanel.tsx",
+              "lineStart": 668,
+              "lineEnd": 688,
+              "reason": "Tab controls switch unconditionally without preserving dirty state or warning."
+            }
+          ],
+          "trigger": [
+            "Open Task Workflow, edit an existing queued message and type unsaved text; click Goal/Budget or Agents, then return to Queue.",
+            "Open Goal/Budget, begin creating or editing a goal, change objective and/or token budget without saving; visit another task tab, then return."
+          ],
+          "consequence": "The conditional branch unmounts the draft owner. Returning creates a fresh map/state and shows server values, losing unsaved instructions and/or budget without an explicit discard action or warning. Switching tabs while a submitted edit awaits a result also destroys the draft-owning component.",
+          "evidence": "React component state/ref lifetime plus full source trace; no test executed. Existing workflows tests cover pending edit locks/failure retention (line 231), sibling/failed/missing refresh preservation (lines 331 and 364), and owner change isolation (line 408). No test clicks away from an unsaved task editor and back to assert preservation within the same thread and epoch.",
+          "recommendation": "Lazily mount task panels on first visit and retain them under hidden containers for the same owner, or lift queue and goal draft state above the conditional tab boundary. Preserve owner isolation, pending-operation locks, size bounds and explicit discard behavior; tab changes must not submit mutations. Add interaction regressions for queue text and goal objective/budget surviving tab round trips, pending/rejected edit round trips and owner changes.",
+          "ownerBoundary": "Workspace.tsx:1440-1443 already keys TaskPanel by threadId plus resourceEpoch. Therefore this report does not claim cross-thread goal-state leakage at the current application entrypoint merely because GoalPanel lacks its own key.",
+          "auditEvidence": "verification/audit-evidence/public-https-round4/public-https-round4-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "gateway-independent-r4-cec15826-cca8-4f56-826a-3d9e5a4c04bd",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round4/public-https-round4-gateway.json",
+          "sha256": "7a95030ec0b2da0a994605179c1eb155a15f5ee2c16b8d1cc67e21c6ab3ac64a"
+        },
+        {
+          "id": "public-r4-runtime-6a28322e-d489-471b-beb9-9b04739d62f5",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round4/public-https-round4-runtime.json",
+          "sha256": "5fa3dbcc0470567aa7d73f004443f75137ad2a4bc7d9e29d1a853e7a054f83fd"
+        },
+        {
+          "id": "deployment-independent-20261027-d6b25f5c46204f2b983bb92bd3174ac3",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round4/public-https-round4-deployment.json",
+          "sha256": "8ff64b20142147cc17bccdb72eda7ff9d0eeb752a8289ca70ac6445abb41bac8"
+        },
+        {
+          "id": "tooling-independent-20261027-a5e0272766274b84bacb21d682279fef",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round4/public-https-round4-tooling.json",
+          "sha256": "f8fffc861281c8e00e0157c0ddcfd475dc8c1a0ef76aace68c9ca9016d7d30a5"
+        },
+        {
+          "id": "public-r4-web-20261027T025213Z-independent",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round4/public-https-round4-web.json",
+          "sha256": "f0276d160ab180205dc8863ee4bff37d7d552e92679fa46646da270bca96e834"
+        },
+        {
+          "id": "public-r4-web-tests-8961cf2a-c657-4571-abd7-c3327a718b44",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round4/public-https-round4-web-tests.json",
+          "sha256": "488adc3d26732e1e40c351550be277d6448cac08a6426c53af8bbff9156fa4c8"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round5",
+      "sequence": 34,
+      "digest": "3043a75341be043dc89c680f8342cb7a4110627a5281578bd5f3a1a2e8fbaf54",
+      "complete": true,
+      "startedAt": "2026-10-27T03:17:11.991Z",
+      "completedAt": "2026-10-27T03:35:37.000Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "public-r5-web-primary-contrast",
+          "priority": 2,
+          "severity": "P2",
+          "title": "Preserve readable primary-button contrast across theme and hover states",
+          "file": "web/styles.css",
+          "line": 204,
+          "endLine": 213,
+          "description": "Enabled primary actions retain hard-coded white foreground while dark mode changes their accent background to #81ab97, giving 2.5593:1 contrast for ordinary 12-14px labels. Independently, .button:hover:not(:disabled) has greater specificity than .button.primary and replaces its background with surface-2; primary:hover only applies brightness, so a light-theme hover gives approximately 1.1237:1 white-on-pale contrast. These affect the shared primary action style, including save configuration and publish-sharing confirmation, rather than only decorative text or disabled controls.",
+          "evidence": [
+            "web/styles.css:204-213: generic enabled hover replaces background; primary sets accent background and white foreground; primary hover sets only brightness(0.94).",
+            "web/styles-responsive.css:10 and :49: both system-dark and explicit-dark accent is #81ab97.",
+            "web/components/ProviderSettings.tsx:337-346: enabled save-configuration button uses button primary.",
+            "web/components/PluginSharing.tsx:439-471: enabled publish-sharing confirmation uses button primary.",
+            "Fresh source-wide inspection found no later primary foreground/background override. Other solid accent backgrounds are project/loading dots without text. Send-button has separate #5d7560 background and white icon, measured 5.0253:1."
+          ],
+          "reproduction": [
+            "Select explicit dark theme, or system theme while the system prefers dark, and enable any primary action such as Save configuration. Its source-derived foreground/background are #ffffff/#81ab97.",
+            "In light theme, hover any enabled button.primary. The generic hover selector (0,3,0) outranks .button.primary (0,2,0), so the background becomes #f0f2f0 while text remains white; both are then filtered by brightness(0.94)."
+          ],
+          "recommendation": "Add a semantic on-accent foreground token used by the shared .button.primary rule, preserving white in light mode and a dark foreground such as #1c201f in both explicit/system dark mode (6.4318:1 against #81ab97). Also set background: var(--accent) explicitly in .button.primary:hover:not(:disabled) so the higher-specificity generic hover cannot substitute surface-2. Check the shared selector states, not individual call sites.",
+          "verification": "Source and CSS-cascade inspection plus an independent relative-luminance calculation; no browser run, screenshot, automated test, or production interaction was performed. Hover was initially reported by the parent reviewer and independently confirmed against current source and recalculated here.",
+          "auditEvidence": "verification/audit-evidence/public-https-round5/public-https-round5-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "gateway-independent-r5-e9a9c158-f809-408d-8971-92ddbe0d6cc2",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round5/public-https-round5-gateway.json",
+          "sha256": "709430c55c0cf57915682c1881e62705862e3b225883b4fa8e29301554eb41ef"
+        },
+        {
+          "id": "runtime-r5-fresh-20261027-8e385982-99d6-4679-8cb3-22a09836b19c",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round5/public-https-round5-runtime.json",
+          "sha256": "a003c50977e2df560868f73881bb9a599fa4085ebb7be4a43531366aa831a4dd"
+        },
+        {
+          "id": "public-r5-deployment-fresh-9e7e1c9f",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round5/public-https-round5-deployment.json",
+          "sha256": "37cfe32e5cf5f0d5e26b2d4807274140e0b46e4fb217600712a482dc7e0f8485"
+        },
+        {
+          "id": "tooling-independent-r5-bb762d1a-be10-4c39-b199-646d2f1c09ab",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round5/public-https-round5-tooling.json",
+          "sha256": "5c0fc7cb0f8b4d479ac91568a20c27467108b7786584cd8775e71757e3af08b8"
+        },
+        {
+          "id": "public-r5-tooling-data-fresh-e8f1735a",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round5/public-https-round5-tooling-data.json",
+          "sha256": "6b8860ce76b588a01b3302766b044127c60d1fa1fbb1a180fbcbeafdaaf6d8e3"
+        },
+        {
+          "id": "public-r5-web-fresh-20261027-0316",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round5/public-https-round5-web.json",
+          "sha256": "e740bba0b9815d06f47a7ff3df11af980fbc1bfc066dcf4b7fb55b2ea40ca51c"
+        },
+        {
+          "id": "web-tests-r5-fresh-42c69e15-9ebf-4ab9-a392-8139a5b14130",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round5/public-https-round5-web-tests.json",
+          "sha256": "2fa90b41412915019dd825f07b75e3214a71bb9870ac3bc5ca8bad775de9a5ff"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round6",
+      "sequence": 35,
+      "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+      "complete": true,
+      "startedAt": "2026-10-27T03:41:01.000Z",
+      "completedAt": "2026-10-27T04:00:28.770Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "WEB-R6-001",
+          "priority": "P2",
+          "title": "会话组织类别切换无提示丢弃未提交编辑",
+          "file": "web/components/OrganizationPanel.tsx",
+          "startLine": 59,
+          "endLine": 72,
+          "body": "项目、分区、当前会话使用互斥组件分支。切换类别卸载编辑器，项目草稿和分区编辑仅保存在子组件 useState；再次返回重新初始化，已输入内容无提示丢失。",
+          "reproduction": [
+            "打开会话组织 → 会话项目 → 创建或编辑项目，输入名称/元数据但不保存。",
+            "切换分区或当前会话，再返回会话项目；编辑表单及输入消失。",
+            "在分区新增或编辑名称/图标/颜色时执行相同切换，也会丢失。"
+          ],
+          "evidence": [
+            "OrganizationPanel.tsx:50 changes the category unconditionally; lines 59-86 render mutually exclusive children.",
+            "NativeProjects.tsx:39-43 stores selected/draft locally; draft fields at 250-395.",
+            "ThreadOrganization.tsx:34 stores SectionSettings edit locally; edit form at 86-135."
+          ],
+          "exclusions": [
+            "不把主动关闭对话框或明确更换操作目标计作此缺陷。",
+            "子组件仅作定向证据核验，全文覆盖归根代理单独报告。"
+          ],
+          "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit.",
+          "auditEvidence": "verification/audit-evidence/public-https-round6/public-https-round6-web.json"
+        },
+        {
+          "id": "WEB-R6-002",
+          "priority": "P2",
+          "title": "设置类别切换会丢失供应商和连接编辑",
+          "file": "web/components/Settings.tsx",
+          "startLine": 151,
+          "endLine": 159,
+          "body": "除模型账户外，设置页按类别条件卸载其面板。用户在供应商页面填写非敏感配置后切换类别核对账户或其他配置，再返回时这些输入被服务端已保存值覆盖；MCP 配置和远端环境登记也有相同卸载路径。刷新时的 dirty 检查不能保护跨卸载编辑。",
+          "reproduction": [
+            "设置 → 模型供应商，修改端点、模型、推理强度或 OAuth 公共配置但不保存。",
+            "切到通用/模型账户，再切回模型供应商；输入恢复为读取到的已保存配置。",
+            "MCP 中编辑配置，或远端环境登记中输入名称/地址后切换设置类别再返回，未保存编辑同样消失。"
+          ],
+          "evidence": [
+            "Settings.tsx:89 unconditionally changes category; lines 151-159, 182-220 conditionally mount affected panels.",
+            "ProviderSettings.tsx:43-56 stores form and dirty marker inside component; lines 65-86 initialize from read data after mount.",
+            "McpConfiguration.tsx:136-140 stores edit locally; RemoteSettings.tsx:54-58 stores registration name/url locally."
+          ],
+          "exclusions": [
+            "Settings accountMounted branch retains AccountSettings/AccountToolsPanel and is excluded.",
+            "授权勾选、密码、token 可在切换时按策略清空；本问题要求保护非敏感输入或给出明确弃改提示，不要求保留秘密或自动确认。",
+            "ConfigSettings has a module drafts Map and does retain its configuration edits."
+          ],
+          "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit.",
+          "auditEvidence": "verification/audit-evidence/public-https-round6/public-https-round6-web.json"
+        },
+        {
+          "id": "WEB-R6-003",
+          "priority": "P2",
+          "title": "扩展分类切换丢弃技能正文与共享编辑",
+          "file": "web/components/ExtensionsPanel.tsx",
+          "startLine": 112,
+          "endLine": 133,
+          "body": "扩展类别使用互斥子组件。即使项目范围未变，切换到其他类别核对信息也会卸载 SkillSettings/PluginSettings/PluginSharing，使尚未提交的技能正文、市场来源或接收者编辑全部丢失，界面没有脏编辑保护。",
+          "reproduction": [
+            "设置 → 扩展与配置 → 技能与 Hooks，展开新建/导入技能，填写目录名和多行 SKILL.md 正文，尚未点保存本地草稿。",
+            "切换 Apps/配置与功能，再返回技能与 Hooks；目录名和正文为空。",
+            "插件与市场中输入市场 URL/ref，或插件共享中编辑接收者后执行类别往返，同样清空。"
+          ],
+          "evidence": [
+            "ExtensionsPanel.tsx:63 switches category with no dirty check; lines 74-153 unmount alternate category components.",
+            "SkillSettings.tsx:58-64 nests SkillCreator; SkillLibraryTools.tsx:187-194 holds unprepared slug/text only in useState.",
+            "PluginSettings.tsx:31-36 stores market source/ref locally; PluginSharing.tsx:143-153 and 300-309 stores audience locally."
+          ],
+          "exclusions": [
+            "已经点击保存本地草稿的 SkillCreator 内容通过 file-drafts 持久保留，排除该阶段。",
+            "ConfigSettings edits use a module drafts Map and are excluded.",
+            "仅在同一项目内切换类别复现，不把明确改变项目/插件目标作为本条触发。"
+          ],
+          "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit.",
+          "auditEvidence": "verification/audit-evidence/public-https-round6/public-https-round6-web.json"
+        },
+        {
+          "id": "WEB-R6-004",
+          "priority": "P2",
+          "title": "切换 MCP 工具和资源类别清空工具参数",
+          "file": "web/components/McpPanel.tsx",
+          "startLine": 470,
+          "endLine": 501,
+          "body": "工具类别中的 McpArguments 在切换资源或事件订阅时被卸载。选中的服务和工具保留在父层，因此返回时仍显示同一个工具，却重新创建空参数编辑器；先填写参数再查看资源的正常流程丢失输入。",
+          "reproduction": [
+            "在已发现工具的 MCP 服务中选一个工具，填写普通 Schema 字段或 JSON 参数但不调用。",
+            "切换资源或事件订阅，然后返回工具；仍选中原工具，但所有参数变为空值或 {}。"
+          ],
+          "evidence": [
+            "McpPanel.tsx:91-106 holds selected/tool/template/URI/stream input in parent state.",
+            "McpPanel.tsx:464 changes tab; lines 470-501 conditionally mount McpArguments.",
+            "McpArguments.tsx:34-38 holds values/raw/advanced only in local state."
+          ],
+          "exclusions": [
+            "MCP resource URI and event-stream text are parent-owned and survive internal category switches.",
+            "明确切换到不同工具或不同服务可重新初始化；本复现保持同一工具与服务。",
+            "调用授权应重新核对；本条不要求保留授权确认。"
+          ],
+          "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit.",
+          "auditEvidence": "verification/audit-evidence/public-https-round6/public-https-round6-web.json"
+        },
+        {
+          "id": "WEB-R6-005",
+          "priority": "P2",
+          "title": "切换项目文件与 Git 页面丢弃提交说明",
+          "file": "web/components/WorkspacePanel.tsx",
+          "startLine": 441,
+          "endLine": 451,
+          "body": "Git 面板只在当前类别为 git 时挂载，WorkspaceCommit 的作者、邮箱和提交说明没有上提或缓存。用户编写提交说明后进入文件视图核对改动，再回到 Git 时所有字段被清空，长提交说明无法恢复。",
+          "reproduction": [
+            "同一项目打开 Git，展开提交已暂存的修改，输入作者、邮箱及多行提交说明，但不提交。",
+            "切到文件查看改动，再回 Git；提交表单重新挂载，作者、邮箱和说明均为空。"
+          ],
+          "evidence": [
+            "WorkspacePanel.tsx:359/366 changes files/git tab; lines 416-451 render mutually exclusive panels.",
+            "WorkspaceGit.tsx:175-186 mounts WorkspaceCommit.",
+            "WorkspaceCommit.tsx:20-26 stores name/email/text/confirmation only in local state."
+          ],
+          "exclusions": [
+            "FileEditor uses its explicit file-draft cache and is excluded.",
+            "Workspace top-level files/terminal/process navigation uses hidden retained slots and is not the cause.",
+            "暂存区快照与提交确认应重新校验；需要保留的是文本草稿。"
+          ],
+          "verification": "Deterministic React ownership/unmount path traced from current source; no browser or component test executed in this audit.",
+          "auditEvidence": "verification/audit-evidence/public-https-round6/public-https-round6-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "gateway-r6-root-db168130-2b22-4a63-9451-cfba494d8415",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-gateway.json",
+          "sha256": "9374aa763921b40bf8849da988c01b1307d478e202325537d9420f1ccc18ffc0"
+        },
+        {
+          "id": "public_r6_runtime_independent_20261027",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-runtime.json",
+          "sha256": "75fb7fe6bdd273c289afc9f8418eb0f9671f83354228f56cb125c8c2884c652a"
+        },
+        {
+          "id": "public_r6_deployment_independent",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-deployment.json",
+          "sha256": "f5d2e3258673b73e07f1dd03e43f261bf075007efb03ba65339a2461ca7ea8a4"
+        },
+        {
+          "id": "tooling-r6-root-ec980043-7ef0-4574-a142-f3d3e77b675d",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-tooling.json",
+          "sha256": "697157f831ca9895b887cb57c1f6e7a30eb68f8107e8cc00fc49be5450e36dba"
+        },
+        {
+          "id": "public_r6_tooling_data_independent",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-tooling-data.json",
+          "sha256": "1161561e906842ed7223a0c02170b493bd0b6f66563c0c0ce7c3dd3321ee22b1"
+        },
+        {
+          "id": "public_r6_web_semantic",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-web.json",
+          "sha256": "ace7b7cede3a2f3592c9971d6d332855c5b1aec2818501aeac4e5af492701647"
+        },
+        {
+          "id": "web-components-r6-root-9cb82eb2-6b82-492f-95d0-1fe8f13b460d",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-web-components-root.json",
+          "sha256": "75a059abe06f4df6f2888e69d8f84a17669a6dd8ef57c611050c540395b67935"
+        },
+        {
+          "id": "web-tests-a-r6-root-caf9234d-b5b4-4bb1-9225-8aee014281db",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-web-tests-a.json",
+          "sha256": "8e7152f0e4542ceb55f1f9998a9a91550e42624b6d395536203ccf2431804bb0"
+        },
+        {
+          "id": "public_r6_web_tests_b_20261027",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round6/public-https-round6-web-tests-b.json",
+          "sha256": "f9b4cb9ffccc0719fa20c3beacb6e0b92df477a1536f744a4605641df1899678"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round7",
+      "sequence": 36,
+      "digest": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520",
+      "complete": true,
+      "startedAt": "2026-10-27T04:16:36.806Z",
+      "completedAt": "2026-10-27T04:30:18.209Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R7-WEB-001",
+          "priority": "P2",
+          "title": "Expanded composer panels push the message input and send button below the clipped mobile shell",
+          "file": "web/styles.css",
+          "lineStart": 1370,
+          "lineEnd": 1372,
+          "relatedLocations": [
+            {
+              "file": "web/styles.css",
+              "lineStart": 283,
+              "lineEnd": 287
+            },
+            {
+              "file": "web/styles.css",
+              "lineStart": 499,
+              "lineEnd": 505
+            },
+            {
+              "file": "web/styles.css",
+              "lineStart": 1473,
+              "lineEnd": 1475
+            }
+          ],
+          "trigger": "At 390x680 on a new chat with no visible in-chat prompt, expand only 执行环境 · 本机项目 and 引用与输出格式. Empty environment and skill catalogs suffice; no advanced panel or long content is needed.",
+          "impact": "The message input and send control disappear below the app-shell clip. Ordinary page scrolling cannot reveal them, so a user must collapse a panel before composing or sending. Both sections are valid simultaneous open states.",
+          "proof": "Before scrolling, app-shell is y=0..680 with scrollHeight 842; composer-slot is y=104.796875..841.875 and height 737.078125; message input is y=680.59375..768.875; send button is y=772.875..802.875. composer-slot cannot shrink, its ancestors provide no vertical scroll container, and app-shell clips overflow. At maximum page scrollY=108, app-shell clip edge is y=572 while send remains y=664.875..694.875. The :has(.prompts) overflow rule does not apply to this ordinary no-prompt state.",
+          "evidence": [
+            ".work/r7-web-composer-clipped-390x680.png",
+            ".work/r7-web-composer-layout-proof.json"
+          ],
+          "recommendation": "Provide a bounded scroll container for the expanded composer or its workspace parent so all active composer controls remain reachable within the viewport; verify the no-prompt state with both panels expanded.",
+          "auditEvidence": "verification/audit-evidence/public-https-round7/public-https-round7-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r7-web-73fd7520-de1a-4c98-bb0f-21da54e1b961",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-web.json",
+          "sha256": "274c06524f12276414271d10c013618a3f9cd8668c3b55d6df2f0e887f00c5dd"
+        },
+        {
+          "id": "r7-runtime-1e6beac3-c3fc-4d4f-b3ce-f7cbd4ab777b",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-runtime.json",
+          "sha256": "160bc4fde6d0eba7a9e2bd35923598ae11d58cff7b667b2330e53ade08937414"
+        },
+        {
+          "id": "r7-gateway-tooling-5d51627a-5967-4d4f-87eb-96a44564e457",
+          "scopes": [
+            "gateway-core",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-gateway-tooling.json",
+          "sha256": "046c99c25e3bd53e507aa4b551d92e65835cf3d36dd1b9e0c4f43a47116d1efe"
+        },
+        {
+          "id": "r7-deploy-tests-3b565efd-b966-4ebd-acd1-6167d1667a1d",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-deploy-tests.json",
+          "sha256": "3c3c723c9c5765c2ce00858eae94b111b7c27ce9781d788193bdaa1c01a09ad2"
+        },
+        {
+          "id": "r7-deploy-root-c29defdc-e2a2-466e-a723-489ceb82ca6b",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-deploy-production.json",
+          "sha256": "3d25eb702acd31b582365bc96910271bf4495ef70b63daf45c06da5245518343"
+        },
+        {
+          "id": "r7-web-tests-a-2fcdef80-d76c-4cac-acfa-291f0f00bc6b",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-web-tests-a.json",
+          "sha256": "7dcfe229e56aec013c6cb179f1689e27765ccc6457a1e71c2b676d8584e9d8b8"
+        },
+        {
+          "id": "r7-web-tests-b-a7c135ea-4da7-4593-b251-0e63f8b3046b",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-web-tests-b.json",
+          "sha256": "1c2b5727e7a9fe5a5de9712893c7d5b8ea40bdca3c6e636d8f643f70926402ee"
+        },
+        {
+          "id": "r7-web-tests-c-72eba83e-1d9f-4f6d-b705-b329a190d397",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round7/public-https-round7-web-tests-c.json",
+          "sha256": "d37227b964b8fd58e39e36a030e572037ac4ad55ddc035ab2f9888f627122448"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round8",
+      "sequence": 37,
+      "digest": "3b2ca1ed3f79e4f1fc71254b4085ddbcec2b5e0d3419638d032a144a3c5fded0",
+      "complete": false,
+      "coverageComplete": true,
+      "independenceLimits": [
+        {
+          "report": "public-https-round8-web",
+          "reason": "Reviewer reports complete source coverage but explicitly disqualifies its independence. Original complete:false and limitations are retained; this round cannot count as a clean audit."
+        }
+      ],
+      "startedAt": "2026-10-27T04:35:08.832Z",
+      "completedAt": "2026-10-27T04:45:51.066Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R8-CORE-001",
+          "priority": "P2",
+          "file": "src/core/schedule.ts",
+          "line": 29,
+          "title": "Weekly DST gap can roll back an otherwise due automation run",
+          "description": "The 8-day search ends before the following valid weekly occurrence if next week falls into a nonexistent DST wall time. For Sunday 02:30 America/New_York, after March 1 or March 2 2026, March 8 is nonexistent and March 15 is outside the horizon. nextScheduled throws schedule_unavailable; schedulePreview fails and collectDue throws inside the scheduler Ledger transaction, rolling back the valid March 1 run and preventing that tick from progressing.",
+          "evidence": ".work/public-r8-schedule-probe.json",
+          "expected": "Skip the nonexistent occurrence, find March 15 06:30Z, and retain dispatch of the due March 1 run and unrelated jobs.",
+          "regressionGap": "Existing weekly DST test starts March 7, when March 15 is exactly day 8, and misses the previous-week boundary.",
+          "auditEvidence": "verification/audit-evidence/public-https-round8/public-https-round8-root.json"
+        },
+        {
+          "id": "R8-CORE-TESTS-001",
+          "duplicateOf": "R8-CORE-001",
+          "independentlyConfirmed": true,
+          "priority": 2,
+          "title": "Weekly DST skip can exceed the eight-day search horizon",
+          "file": "src/core/schedule.ts",
+          "line": 31,
+          "endLine": 40,
+          "body": "The weekly search ends at local day 8. For a Sunday 02:30 America/New_York schedule and after=2026-03-02T12:00:00Z (Monday), the first selected day is March 8, whose 02:30 is nonexistent during the spring DST transition. The next valid selected date is March 15 (day 13), which the loop never reaches, so a valid recurring schedule throws schedule_unavailable. The existing spring test starts on March 7 and places March 15 exactly at day 8, so it misses this case. Creation, preview, update/resume and due collection call nextScheduled; collectDue runs as one transaction, so this exception can also prevent that scheduler sweep from committing.",
+          "proof": {
+            "kind": "independent-static-control-flow",
+            "after": "2026-03-02T12:00:00Z",
+            "schedule": {
+              "kind": "weekly",
+              "days": [
+                0
+              ],
+              "time": "02:30",
+              "timeZone": "America/New_York"
+            },
+            "expected": "2026-03-15T06:30:00Z",
+            "actualControlFlow": "March 8 has no matching wall-clock candidate; no other selected weekday exists through local day 8; throw schedule_unavailable",
+            "testGap": "tests/core/schedule.test.ts:12-14 begins on March 7 instead of earlier in the preceding week",
+            "related": [
+              "src/core/automations.ts:55",
+              "src/core/automations.ts:109",
+              "src/gateway/automation-scheduler.ts:48"
+            ]
+          },
+          "recommendation": "Search through at least the next eligible weekly occurrence after a skipped local date, and add regression cases starting earlier in the week and immediately after the prior weekly occurrence.",
+          "auditEvidence": "verification/audit-evidence/public-https-round8/public-https-round8-core-tests.json"
+        }
+      ],
+      "skipped": [
+        "No browser actions: the parent owned the local fixture session; this report claims source/CSS review only.",
+        "No full suite or targeted test execution, build, live endpoint, credentials, external integration, old sibling source/history or retired deployment access.",
+        "Historical result sections of web/VERIFICATION.md were otherwise excluded from substantive review under the no-prior-findings instruction.",
+        "Full verbatim bodies of tests other than the explicitly listed high-risk selections were not read; their AST contracts were inspected."
+      ],
+      "reviewers": [
+        {
+          "id": "runtime-protocol-independent-r8-d635f783-6538-412a-8bb0-65dd5dc72170",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round8/public-https-round8-runtime.json",
+          "sha256": "ded38fdf9c7e55d731ccb534679767110ec8fe8e9e91164d278310fd6afe9419"
+        },
+        {
+          "id": "public-https-r8-deploy-7c5c20ec9ad04a35989334916c1d39a4",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round8/public-https-round8-deploy.json",
+          "sha256": "86d1707cf891283b7e6171ba14a5d65c81c4d63d196a67195442a72fd565b13d"
+        },
+        {
+          "id": "r8-web-independent-20261027-043513",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round8/public-https-round8-web.json",
+          "sha256": "43a1b32a4186debca39c9177d7678f09c62ff4d42cd2a31a0282c5e81d8ca626"
+        },
+        {
+          "id": "public-https-r8-root-core-tooling-20261027",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round8/public-https-round8-root.json",
+          "sha256": "ced9c4a9b75d6d700132476dc5698affc7922db526673ddb58c36868b8b59013"
+        },
+        {
+          "id": "core-gateway-tests-independent-r8-75723e45-f5a1-4cef-ba64-b518c6c55722",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round8/public-https-round8-core-tests.json",
+          "sha256": "cabe0a18b13745aa9c07bd3412831c3cec758f0c83bc2c4bc7b83126bb8a4883"
+        },
+        {
+          "id": "public-https-r8-tooling-tests-705227ff26f54b759c92fe85fab87d51",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round8/public-https-round8-tooling-tests.json",
+          "sha256": "3324b1afa87d5151aeabc2a4fe8a3131e0d3e6987628010968c92ae6197f1424"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round9",
+      "sequence": 38,
+      "digest": "68def730337c6269a6dbde9b67f3a8a591f7810467fff73fce59f75365871b82",
+      "complete": true,
+      "startedAt": "2026-10-27T04:51:34.010Z",
+      "completedAt": "2026-10-27T05:04:56.649Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R9-RUNTIME-001",
+          "priority": "P2",
+          "title": "Make native integration fixture teardown survive startup and cleanup failures",
+          "file": "tests/runtime/guardian-native.test.ts",
+          "startLine": 28,
+          "endLine": 35,
+          "category": "test-fixture-resource-cleanup",
+          "description": "The guardian fixture starts a referenced loopback HTTP server before catalog/config writes and RuntimeService.create, but it only exposes close() after those operations succeed. If a write or native startup rejects, the caller has not yet entered its try/finally and the listener has no remaining cleanup path. The returned close() also awaits service.close() before closing the server, so an intentionally propagated native cleanup failure skips server cleanup. The PTY test similarly writes diagnostic output before calling f.close() in finally; a failed diagnostic write skips all teardown. These are concrete failure paths that leave test listeners or owned process trees active and can prevent clean test-worker exit; they are not a claimed production runtime defect.",
+          "proof": [
+            {
+              "file": "tests/runtime/guardian-native.test.ts",
+              "lines": [
+                28,
+                29,
+                30,
+                31,
+                33,
+                35,
+                38
+              ],
+              "fact": "Listener acquisition precedes fallible setup; fixture() is awaited before caller try; no acquisition catch/finally exists; close() sequentially awaits native close before server closure."
+            },
+            {
+              "file": "tests/runtime/guardian-native.test.ts",
+              "lines": [
+                115,
+                116,
+                117
+              ],
+              "fact": "A fallible writeFileSync precedes await f.close() inside the PTY finally block."
+            },
+            {
+              "file": "tests/runtime/remote-native.test.ts",
+              "lines": [
+                43
+              ],
+              "fact": "The same sequencing skips independent exec-server job.signal/job.exited/job.dispose when service.close rejects."
+            },
+            {
+              "file": "tests/runtime/workflows-native.test.ts",
+              "lines": [
+                91,
+                92
+              ],
+              "fact": "A runtime.close rejection skips held-stream destruction and provider closure."
+            },
+            {
+              "file": "tests/runtime/extensions-native.test.ts",
+              "lines": [
+                99,
+                100
+              ],
+              "fact": "A runtime.close rejection skips the independent deny server closure."
+            },
+            {
+              "file": "tests/runtime/automation-native.test.ts",
+              "lines": [
+                38,
+                39
+              ],
+              "fact": "An early cleanup rejection skips later independent worker/runtime/ledger/provider cleanup."
+            },
+            {
+              "file": "tests/runtime/input-native.test.ts",
+              "lines": [
+                46
+              ],
+              "fact": "The audio fixture closes the provider only after runtime.close resolves; the first fixture in this file already demonstrates nested finally for independent provider cleanup."
+            },
+            {
+              "file": "tests/runtime/gateway-oauth-native.test.ts",
+              "lines": [
+                32
+              ],
+              "fact": "A runtime.close rejection skips deny server cleanup."
+            }
+          ],
+          "evidenceType": "Static full-body control-flow proof; no failure injection or integration test was executed during this audit.",
+          "recommendation": "Establish cleanup ownership immediately after each acquisition. On setup failure close already-acquired servers, and use nested finally or an attempt-all cleanup routine so one rejection or diagnostic write cannot skip independent resources. Preserve the original failure and aggregate cleanup failures rather than silently suppressing them.",
+          "auditEvidence": "verification/audit-evidence/public-https-round9/public-https-round9-runtime.json"
+        },
+        {
+          "id": "R9-WEB-001",
+          "priority": 2,
+          "severity": "P2",
+          "title": "Update the manual visual fixture to the current session-read contract",
+          "file": "web/tests/preview-server.mjs",
+          "line": 18,
+          "endLine": 19,
+          "scope": "Manual visual/interaction QA fixture only; no production runtime defect claimed.",
+          "body": "Selecting the visual-thread now causes useResume to call thread/session. The fixture has no mapping for that read and returns fixture_readonly, leaving resumedThread empty and the selected conversation composer permanently disabled. Its thread/resume response is an obsolete substitute: the application intentionally will not auto-resume a stored thread. The fixture also omits collaborationMode/list, which is read on active initial load and produces a persistent catalog-error notice. Thus this fixture cannot exercise the current selected-thread composer workflow as intended.",
+          "proof": [
+            {
+              "file": "web/tests/preview-server.mjs",
+              "line": 18,
+              "detail": "RPC lookup contains thread/resume, thread/read and thread/history but no thread/session or collaborationMode/list."
+            },
+            {
+              "file": "web/tests/preview-server.mjs",
+              "line": 19,
+              "detail": "Unmapped reads return ok:false/code:fixture_readonly rather than a fixture read result."
+            },
+            {
+              "file": "web/hooks/useResume.ts",
+              "line": 17,
+              "detail": "Calls thread/session and only publishes defaults after requiresResume:false and a matching thread.id; rejection yields an error and no resumedThread."
+            },
+            {
+              "file": "web/Workspace.tsx",
+              "line": 1222,
+              "detail": "Selected thread composer disabled while resumedThread !== threadId; defaultsLoading at line1238 also stays true."
+            },
+            {
+              "file": "web/Workspace.tsx",
+              "line": 287,
+              "detail": "Active initial collaborationMode/list read lacks fixture mapping; line1258 exposes its error notice."
+            }
+          ],
+          "suggestedFix": "Provide explicit read-only thread/session data with requiresResume:false, matching thread identity and inherited model settings, plus current initial collaboration-mode catalog data. Review the fixture read-only panels it intends to support (for example environment/list on explicit picker expansion); retain explicit rejection for all mutation methods. Do not auto-resume real work to make the fixture ready.",
+          "verification": "Static call-chain proof against frozen current bytes. No browser or test execution; historical screenshots/results were not used.",
+          "auditEvidence": "verification/audit-evidence/public-https-round9/public-https-round9-web.json"
+        },
+        {
+          "id": "R9-WEB-002",
+          "priority": 3,
+          "severity": "P3",
+          "title": "Contain malformed or interrupted RPC requests in the QA fixture",
+          "file": "web/tests/preview-server.mjs",
+          "line": 15,
+          "endLine": 17,
+          "scope": "Loopback-only manual QA helper robustness; not an exposed production gateway issue.",
+          "body": "The async http.createServer request callback performs body iteration and JSON.parse before the only try/catch, which wraps static-file serving later. An empty/malformed body throws in JSON.parse, JSON null throws at destructuring, and an interrupted body can reject the iterator. The HTTP event emitter does not consume the rejected callback promise, so the normal Node unhandled-rejection behavior can terminate the whole manual QA server instead of returning a bounded error for that request.",
+          "proof": [
+            {
+              "file": "web/tests/preview-server.mjs",
+              "line": 13,
+              "detail": "Async request listener has no enclosing rejection handler."
+            },
+            {
+              "file": "web/tests/preview-server.mjs",
+              "line": 16,
+              "detail": "The request-body async iterator is outside error containment."
+            },
+            {
+              "file": "web/tests/preview-server.mjs",
+              "line": 17,
+              "detail": "JSON.parse and object destructuring are unguarded; empty input, malformed JSON or null deterministically throws."
+            },
+            {
+              "file": "web/tests/preview-server.mjs",
+              "line": 21,
+              "detail": "Existing try/catch only protects the later static-file branch."
+            }
+          ],
+          "suggestedFix": "Guard the complete asynchronous request handler, validate a non-null RPC object and method string, and return a small JSON 400 for invalid input where the response is writable. Handle aborted/destroyed requests without attempting a second response. Keep the fixture free of actual worker/model mutations.",
+          "verification": "Source-level error-path proof only; did not launch the fixture or issue requests.",
+          "auditEvidence": "verification/audit-evidence/public-https-round9/public-https-round9-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "public-https-r9-runtime-protocol-20261027-4ca8f42d",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round9/public-https-round9-runtime.json",
+          "sha256": "5a9b40b37b04bae2f458599849918ed1e072a477c8400163c04463e8cf2dc8fb"
+        },
+        {
+          "id": "public-r9-deployment-tools-independent",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round9/public-https-round9-deploy-tools.json",
+          "sha256": "036546de450058f1071ac9a5caebcecf2c83a20341406fe93c1bb45c89b2c2bf"
+        },
+        {
+          "id": "public-r9-web-independent-71953-20261027",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round9/public-https-round9-web.json",
+          "sha256": "c24dda9a449a9db090c78fbb63885664a4abbc7c114391e7e8ec8f56f2998308"
+        },
+        {
+          "id": "public-https-r9-root-gateway-20261027",
+          "scopes": [
+            "gateway-core"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round9/public-https-round9-root.json",
+          "sha256": "31c96155985ff80611d13c3a56f98a2a88694d78d520cb534422585516ad990d"
+        },
+        {
+          "id": "public-https-r9-root-runtime-tests-20261027",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round9/public-https-round9-runtime-supplement.json",
+          "sha256": "ae7f25157adb497607b4f575f99047ddad6b1c81268423eb9e22fc00f10f1f54"
+        },
+        {
+          "id": "public-r9-deployment-tools-web-supplement",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round9/public-https-round9-web-supplement.json",
+          "sha256": "5ad3f3ac0bc76102287fcdb5336d2a12180b1b8d59133d31118e4e735193fa89"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round10",
+      "sequence": 39,
+      "digest": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+      "complete": true,
+      "startedAt": "2026-10-27T05:14:53.068Z",
+      "completedAt": "2026-10-27T05:31:08.963Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R10-GD-001",
+          "priority": "P2",
+          "confidence": "high",
+          "title": "Recheck live owner before project registration after asynchronous resolution",
+          "file": "src/gateway/dispatch.ts",
+          "startLine": 141,
+          "endLine": 144,
+          "description": "project/add checks requireConnection at admission, then awaits project/resolve and commits ledger.addProject without checking that the same authenticated browser owner is still live. If logout/session revocation or socket replacement occurs while resolution is pending, the resolved response can still create a new project and accepted receipt after authorization is gone.",
+          "controlFlow": [
+            "GatewayServer captures the exact browser connection and supplies a callback that rechecks session/CSRF, WebSocket identity and OPEN/connecting/disconnecting state (server.ts266-271).",
+            "Dispatcher invokes that callback before the asynchronous resolver (dispatch.ts119), but its local beforeWrite only marks the receipt dispatching (132); the post-resolver addProject at144 has no callback.",
+            "Gateway revocation closes the browser socket; eventual close cleanup sends worker /disconnect. Runtime beforeWrite fences the current worker-channel/client lease, but it cannot undo or authorize a subsequent gateway-local commit after the read-only resolver result returns.",
+            "Automation commands and rotation already recheck after their await boundaries (dispatch.ts190 and64). Synchronous project/remove and operation/retire have no analogous await gap. Worktree/receipt reconciliation after a successful backend execution records existing positive evidence and should not be rolled back on disconnect."
+          ],
+          "reproduction": {
+            "artifact": ".work/public-https-round10-gd-revoke-probe.json",
+            "method": "Deferred controlled project/resolve; revoke the supplied live-owner callback before resolving; then inspect the real in-memory Ledger.",
+            "observed": {
+              "requireConnectionChecks": 1,
+              "receiptState": "accepted",
+              "projectCount": 1
+            },
+            "limits": "In-memory Dispatcher and controlled worker only; no native worker, network, paid model, test runner, or real project filesystem."
+          },
+          "recommendation": "Invoke context.requireConnection immediately before project/add beforeWrite/addProject, after resolver output validation. A failure at that point must leave no project and let the existing catch settle the reserved operation as not_sent. Add a focused regression with deferred resolution and a revoked callback/exact browser connection. Do not reject or roll back receipt persistence for backend work already executed.",
+          "scopeBoundary": "This finding is the demonstrated gateway-local project/add post-await mutation gap. The broader queued worker-transport revocation hypothesis is not asserted as an additional defect.",
+          "auditEvidence": "verification/audit-evidence/public-https-round10/public-https-round10-gateway-deploy.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "public-r10-gateway-deploy-8aa5f72e-d7aa-40cc-b821-9098ac213961",
+          "scopes": [
+            "gateway-core",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-gateway-deploy.json",
+          "sha256": "9c4e1a27b2d2ff18bdadfff3a36658f630be7fd01722239fb79fcd2ec9659984"
+        },
+        {
+          "id": "public-https-round10-runtime-1526418d-d175-4a32-9203-0745f6c087c1",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-runtime.json",
+          "sha256": "c1663ff7d9635480f0caec8b7500ad34b1a4b5fb2cfb66576609987e828e6e5e"
+        },
+        {
+          "id": "public-https-round10-web-independent-20261027",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-web.json",
+          "sha256": "7d9207c8a1f58ac1f847566699bd295ef2ce3e8532bfcf7d31a97817e51890a3"
+        },
+        {
+          "id": "public-https-r10-root-tooling-docs-20261027",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-root.json",
+          "sha256": "b75aba55ad2d561d6ccf6ad196fd04ee3d4211bcc254a01e6d6e73d5218906d5"
+        },
+        {
+          "id": "public-https-r10-root-web-tests-20261027",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-web-root-supplement.json",
+          "sha256": "778b5657b45eaf0122fc827a5e70f83c43acb175be01b0cbb92d3fe8439bd513"
+        },
+        {
+          "id": "public-https-round10-web-runtime-0e51f859-d7cd-4b3d-9ab3-7116efd65ffd",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-web-runtime-supplement.json",
+          "sha256": "9c57e3bdf2eedceab3bd9c801003c06576538ab8e68632213449090bcd5fa434"
+        },
+        {
+          "id": "public-https-r10-root-terminal-tests-20261027",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-web-terminal-supplement.json",
+          "sha256": "f28c8a8dc65a0b395725f110218f84e5203c4e8fed386e6b4ca23f754e9fe8c9"
+        },
+        {
+          "id": "public-https-round10-web-process-ff3d4bec-fe1b-444a-a51d-3d349045f5fd",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round10/public-https-round10-web-process-supplement.json",
+          "sha256": "4c60f9284b79dc3499b51181d96a27daaa3a90374832062945d7779e53de4938"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round12",
+      "sequence": 40,
+      "digest": "b4ba82eee9abbc3d1d1b824dcb1090f904ca35620f6b962209c781b572003676",
+      "complete": false,
+      "coverageComplete": true,
+      "startedAt": "2026-10-28T17:12:47.402Z",
+      "completedAt": "2026-10-28T17:29:24.000Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "priority": "P1",
+          "title": "Revalidate browser authorization before a queued mutation is written",
+          "file": "src/gateway/dispatch.ts",
+          "line": 131,
+          "reason": "A new worker mutation checks context.requireConnection during admission, but its later beforeWrite closure only transitions the receipt to dispatching. WorkerClient.call passes only that closure to the delayed HTTP socket send, so a logout, session revocation, expiry, or ownership change between admission and the transport write is not checked at the last gateway boundary. GatewayServer's captured requireConnection does check auth.require immediately and would reject the revoked account; however it is not called at this boundary. Revocation closes the browser WebSocket, while worker /disconnect cleanup follows the asynchronous socket close event, leaving a window for a queued mutation to dispatch and receive a durable accepted receipt after revocation. This finding concerns work not yet sent at revocation; replaying a previously accepted receipt remains intentionally permitted after ordinary browser lease loss.",
+          "repro": "Existing targeted .work/r12-revocation.test.ts contains two passing local tests, recorded in .work/r12-revocation-results.json: (1) Dispatcher with a fake worker paused before context.beforeWrite; revoke the owner, release the pause, and observe dispatch plus accepted receipt; (2) actual Authentication + GatewayServer HTTP + WebSocket session with a fake backend paused before beforeWrite; logout, assert auth.session(cookie) is null and the captured requireConnection throws, release the pause, then observe HTTP {ok:true,result:{}} and accepted thread/name/set receipt. The tests establish the gateway authorization gap; they do not run a real native worker side effect. Existing source and probe hashes are preserved in .work/r12-revocation-sourcebinding.json. No probes were rerun after the stop instruction.",
+          "auditEvidence": "verification/audit-evidence/public-https-round12/public-https-round12-runtime-gateway.json"
+        },
+        {
+          "priority": "P2",
+          "title": "New DNS Go tests and compilation are absent from CI and full test inventory",
+          "file": "scripts/select-tests.mjs",
+          "line": 38,
+          "reason": "Inventory visits only tests/ and web/tests and recognizes TS/Python. A Go recipe change maps to Python deployment tests whose builder is mocked; CI execution also recognizes only JS/Python, so it can report complete coverage while never compiling the new Go component or executing its four behavioral tests. The real 120 provisioning pass is valid targeted evidence but not durable CI coverage. This violates the requested complete testing and affected native-script coverage requirement.",
+          "reproduction": {
+            "changed": [
+              "deploy/caddy_dns_source/main.go",
+              "deploy/caddy_dns_source/main_test.go"
+            ],
+            "status": "selected",
+            "groups": {
+              "unit": 0,
+              "deploy": 33,
+              "deploy-root": 16,
+              "native": 0
+            },
+            "selectedGoTests": [],
+            "crossReferences": [
+              "scripts/ci-checks.mjs:105",
+              "deploy/caddy_dns_source/main_test.go",
+              "tests/deploy/test_dns_caddy_build.py",
+              "PROBLEM-ACCEPTANCE.md:299"
+            ]
+          },
+          "auditEvidence": "verification/audit-evidence/public-https-round12/public-https-round12-tooling-docs.json"
+        }
+      ],
+      "skipped": [
+        {
+          "scope": "runtime-protocol",
+          "reason": "The reviewer was interrupted before semantic classification of five TS-only generated union differences; original incomplete report retained."
+        }
+      ],
+      "reviewers": [
+        {
+          "id": "r12-deployment-root-r12_deployment",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round12/public-https-round12-deployment.json",
+          "sha256": "da7e18b8c565e12a698a3fb72c5c86e179b96165e54110382996d7b1dc1c27d2"
+        },
+        {
+          "id": "r12-runtime-gateway-20261028T171337977Z",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round12/public-https-round12-runtime-gateway.json",
+          "sha256": "14b3700396e0e77db6154ad3e1ebf5c3f39f5ce3027975a1c5413691d1939a11"
+        },
+        {
+          "id": "r12-runtime-tests-8e5170cd",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round12/public-https-round12-runtime-tests.json",
+          "sha256": "97b7d09958b507e5b0956d5e396ba0c7598ff8b996182b9865a3b4eada5aee2a"
+        },
+        {
+          "id": "r12-web-73ddfe87-00d4-48e7-9fc6-ed17ffe1a65b",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round12/public-https-round12-web.json",
+          "sha256": "4e837547433de8903165b3e0f4fd37753f8c10acd048147ffd9b0240e241cdd4"
+        },
+        {
+          "id": "r12-root-tooling-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round12/public-https-round12-tooling-docs.json",
+          "sha256": "108b23dfee9623a48e2ad8c823491cb8661e8e329ebe10feece3702fe44a8057"
+        }
+      ],
+      "incompleteReasons": [
+        "Runtime reviewer stopped after an automated content safety block and saved completed work only.",
+        "Root tooling reviewer retains implementation context and is disqualified as an independent clean-round vote."
+      ],
+      "note": "All 1896 paths received declared inspection coverage, but coverage is not completed independent clean audit acceptance. No clean credit."
+    },
+    {
+      "id": "public-https-round13",
+      "sequence": 41,
+      "digest": "1d87387c55efaf41954036310325e9713608514eeaba1857decd1fb72579a924",
+      "complete": true,
+      "startedAt": "2026-10-28T17:47:10.000Z",
+      "completedAt": "2026-10-28T18:11:29.865Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "priority": "P2",
+          "title": "Wait for all workspace-watch reads before scheduling the next poll",
+          "file": "web/hooks/useWorkspaceWatch.ts",
+          "line": 69,
+          "evidence": "read() awaits Promise.all at lines 32-54, which rejects as soon as one path fails. Its finally block at lines 69-70 schedules another read after 5000 ms without waiting for or canceling the other path. The isolated final reproduction makes directory metadata fail while file.txt metadata remains pending: starts at 1793210897176 and 1793210902176 show a second file.txt read exactly 5000 ms later, with two unresolved file reads and signalsAbortedBeforeUnmount=[false,false]. The complete existing web/tests/workspace-watch.test.tsx covers all-pending reads and successful/deleted snapshots, but not a failed sibling with another read pending. Api.call in web/lib/api.ts gives workspace/metadata a 30000 ms timeout, so timeout bounds each actual request lifetime but does not prevent this demonstrated overlap.",
+          "impact": "When either monitored path repeatedly fails quickly and the other is slow, the browser starts duplicate metadata work every five seconds while earlier work is still pending, increasing load precisely during an error condition and violating the watcher's non-overlapping poll contract. Wait for all started path reads to settle, or cancel and settle the surviving reads, before scheduling the next poll; add the failed-sibling/pending-read regression case. This finding does not claim unbounded request lifetime or observed production data loss.",
+          "auditEvidence": "verification/audit-evidence/public-https-round13/public-https-round13-web-tests.json"
+        }
+      ],
+      "skipped": [
+        "No full-suite run; explicitly prohibited until the user's audit gate is met.",
+        "No live browser, remote service, credentials, native MCP or model integration was exercised; isolated local reproduction used mocked API and fake timers.",
+        "Coverage completeness is for the exact revised 25-file assignment plus explicitly listed additional reads, not all 69 web/tests files or all production web files."
+      ],
+      "reviewers": [
+        {
+          "id": "r13-runtime-gateway-independent-7fbed267-8df6-4934-aedf-e86d3a374935",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round13/public-https-round13-runtime-gateway.json",
+          "sha256": "82da13ca9d9b0452ee75b859716c2f16489b40a34363ca9255281f8570f967da"
+        },
+        {
+          "id": "round13-deployment-tooling-79e4ae7a-aa71-46e4-9533-316943b15407",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round13/public-https-round13-deploy-tooling.json",
+          "sha256": "73b43d3fd1b29ba90e4927d1cb690b55217675d9f43636bbc80c5fc4c8a3bca2"
+        },
+        {
+          "id": "r13-web-production-d88ea4bc-ed7b-4b8b-be66-7d6d2c252853",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round13/public-https-round13-web-runtime-tests.json",
+          "sha256": "0a59c9aaf68b99a3ce76db790f70aca935102bd2c315b240aba77e29c5533b54"
+        },
+        {
+          "id": "r13-web-test-supplement-20261028T180257-9d734a6b",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round13/public-https-round13-web-tests.json",
+          "sha256": "ceb1bb7951a6aa85880be0f7d4d91336284cfe42d4219561fe90c52387dc0233"
+        },
+        {
+          "id": "r13-web-tests-b-d659cd7f-8a84-435d-955e-741093c8a072",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round13/public-https-round13-web-tests-b.json",
+          "sha256": "81e6b4507b7d9952d6aa8c953cfd20aff8200aa2047960af686bcfc0eee26f54"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round14",
+      "sequence": 42,
+      "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+      "complete": true,
+      "startedAt": "2026-10-28T18:17:28.262Z",
+      "completedAt": "2026-10-28T18:40:11.985Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r14-runtime-gateway-3eb64886-a478-41dd-8b49-e69b66f915e2",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-runtime-gateway.json",
+          "sha256": "4afd69fa80036cc7ce6e8f0d5159b4fecc255b20aad2da0a1c28dc06e8015fa1"
+        },
+        {
+          "id": "r14-runtime-tests-independent-20261029",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-runtime-tests.json",
+          "sha256": "6599072daa42fb46d2cff767e289e6cf2e2393f85cc9e105822154d3ac9c9493"
+        },
+        {
+          "id": "r14-deployment-release-ebc53db8-e842-49a1-94f8-005d044c831a",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-deploy-tooling.json",
+          "sha256": "c773092592993c0e281f0a848916026e3313c2037f827eb7def94ab5e367d73b"
+        },
+        {
+          "id": "r14-web-primary-d6eea45d-74e1-4886-a369-7343d413de88",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-web-primary.json",
+          "sha256": "4b244a8bbdf719ab0da28bb8b1117ac6f16b8fcf0db2f1b46af69982ff7c4e8b"
+        },
+        {
+          "id": "r14-web-tests-a-5fb0c1b4-1bc7-43fd-87a2-55483429619e",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-web-tests-a.json",
+          "sha256": "1ef97abd76c6cb56d7ac229d3aea2fdb67616e091bdb5a1920108ce8ca3cc7cb"
+        },
+        {
+          "id": "r14-web-tests-b-fresh-20261028T183444Z",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round14/public-https-round14-web-tests-b.json",
+          "sha256": "bfac92f137928a1acd64a759e2ffdbb0fac8a3f159f63973976523b3af75afdd"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round15",
+      "sequence": 43,
+      "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+      "complete": true,
+      "startedAt": "2026-10-28T18:41:43.282Z",
+      "completedAt": "2026-10-28T19:07:29.381Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r15-runtime-gateway-a34e6ad1-b898-4685-80f0-d29981d5bce1",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-runtime-gateway.json",
+          "sha256": "1ebad98b4ce78537798c4b03640fda60ddf86762fa4dab154ca5d38d3761a22e"
+        },
+        {
+          "id": "runtime-tests-independent-454128a5-952a-48f6-89f2-6fb4550010bf",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-runtime-tests.json",
+          "sha256": "3eb7e879131543bbb30f49f64a7e94dc598f7297643744b1555f1d8e650328f1"
+        },
+        {
+          "id": "r15-deployment-tooling-86508531-544c-469f-8a58-65d1be00f23d",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-deploy-tooling.json",
+          "sha256": "6a434ec76eb6ba61ae1860c0e091374a4ebbfb54080eb922a1ae530d76e786b4"
+        },
+        {
+          "id": "r15-web-primary-77ae5dcd-a15e-4b9b-bfc0-7b69e322a39b",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-web-primary.json",
+          "sha256": "b854d8267eda669e73e3032203ac50aacf31bd36beb4c8747843423c57e5627e"
+        },
+        {
+          "id": "r15-web-tests-a-3e469867-1ae6-4de9-9116-383ef9553eaf",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-web-tests-a.json",
+          "sha256": "6460b27dd115cd383aabc9bf33a50d3f42018dca23ecaefd0357d158a06f9134"
+        },
+        {
+          "id": "web-tests-b-2d858af7-9854-4ee7-afdd-950ba947fab1",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round15/public-https-round15-web-tests-b.json",
+          "sha256": "f50bdf34494db69a4e5806e450f0af31a8851550e4a3be46bef20d64ed704834"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round16",
+      "sequence": 44,
+      "digest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54",
+      "complete": true,
+      "startedAt": "2026-10-28T19:37:35.862Z",
+      "completedAt": "2026-10-28T20:06:16.604Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R16-WEB-001",
+          "severity": "P2",
+          "priority": 2,
+          "confidence": "high",
+          "title": "Recycle acknowledged browser receipt markers without reviving stale operations",
+          "location": {
+            "file": "web/lib/operations.ts",
+            "startLine": 200,
+            "endLine": 206
+          },
+          "relatedLocations": [
+            {
+              "file": "web/lib/operations.ts",
+              "startLine": 68,
+              "endLine": 73
+            },
+            {
+              "file": "web/lib/operations.ts",
+              "startLine": 105,
+              "endLine": 106
+            },
+            {
+              "file": "web/lib/api.ts",
+              "startLine": 457,
+              "endLine": 460
+            },
+            {
+              "file": "web/components/Recovery.tsx",
+              "startLine": 222,
+              "endLine": 227
+            },
+            {
+              "file": "web/components/ReceiptMaintenance.tsx",
+              "startLine": 189,
+              "endLine": 207
+            }
+          ],
+          "trigger": "Ordinary completed mutations accumulate one permanent harness.acknowledged.v1.<UUID>=1 localStorage key apiece (most non-input writes acknowledge automatically). The 200-record guard excludes these keys. Continued use of the same origin eventually fills its localStorage quota, even when previous operations were all handled; any existing origin data reduces headroom.",
+          "observed": "Actual current-source reproduction with a 65536-byte synthetic quota completed 531 accepted/acknowledged operations, retaining 531 markers (64782 bytes). Operation 532 became accepted but acknowledgement failed with QuotaExceededError. Re-query/reconcile of that original accepted receipt succeeded; acknowledgement and creation of an unrelated operation still failed with QuotaExceededError. The UI catches and displays the storage exception; no silent dispatch or automatic replay was observed.",
+          "scale": "Each generated UUID marker uses 122 UTF-16 bytes in the fixture accounting. A hypothetical 5 MiB allowance corresponds to roughly 42974 markers before overhead or other entries; this is an order-of-magnitude estimate, not a measured browser quota or a claim of near-term failure.",
+          "impact": "Persistent loss of new mutation capability for a long-lived browser origin, with no product-supported local marker compaction/recovery. Handling the remaining accepted record cannot release capacity because acknowledgement must first add another key. Server receipt generation maintenance does not remove browser markers. Clearing origin data manually can discard unrelated pending/unknown recovery identities and is not an adequate safe recovery flow.",
+          "requirements": "OP-05 requires visible fail-closed storage errors and includes reaching capacity, handling a record and retrying. The current path satisfies visible fail-closed behavior but has no capacity recovery for handled markers. OP-04 also requires late observations never undo an acknowledged fact; existing markers fulfill that invariant and must not simply be deleted.",
+          "recommendation": "Provide a bounded local retention/maintenance design with a persistent generation floor or equivalent cross-tab coordination that safely retires handled markers. Preserve pending/unknown identities and suppress late writes from old tabs across compaction/reload. Offer observable local capacity status and a safe maintenance path; do not use naked TTL/removal of acknowledged keys.",
+          "evidence": [
+            ".work/public-https-round16-web-validation.json",
+            ".work/public-https-round16-web-validation.mjs",
+            ".work/public-https-round16-web-tombstone-repro.json"
+          ],
+          "counterEvidence": "A deliberate stale unknown write after acceptance+ack leaves a primary key present but invisible; visibleOperations and visibleAfterLateRecovery remain zero. Thus marker growth is intentional protection, and the finding concerns missing sustainable capacity recovery rather than unsafe current retry behavior.",
+          "auditEvidence": "verification/audit-evidence/public-https-round16/public-https-round16-web.json"
+        },
+        {
+          "id": "r16-web-tests-c-provider-noauth-fixture",
+          "scope": "web-ux",
+          "severity": "P3",
+          "priority": 3,
+          "classification": "test-contract-false-positive",
+          "path": "web/tests/provider.test.tsx",
+          "line": 108,
+          "endLine": 114,
+          "title": "No-auth Responses success fixture omits a backend-required model",
+          "trigger": "Run the test named can explicitly configure a Responses service without authentication. The read fixture omits model; the only interaction clears the API key and submits the form.",
+          "evidence": [
+            {
+              "path": "web/tests/provider.test.tsx",
+              "line": 108,
+              "detail": "mutate is unconditionally resolved; the provider fixture at 109-114 has no model."
+            },
+            {
+              "path": "web/tests/provider.test.tsx",
+              "line": 121,
+              "detail": "The test only toggles no API key and clicks save; its assertion at 126 checks only apiKey and allowInsecureHttp."
+            },
+            {
+              "path": "web/components/ProviderSettings.tsx",
+              "line": 103,
+              "detail": "Missing model becomes the empty form value."
+            },
+            {
+              "path": "web/components/ProviderSettings.tsx",
+              "line": 142,
+              "detail": "Empty model is omitted from the system/provider/write parameters. The constructed parameters are expectedRevision r, kind responses, baseUrl http://192.168.1.5/v1, allowInsecureHttp false, apiKey empty."
+            },
+            {
+              "path": "src/gateway/dispatch.ts",
+              "line": 155,
+              "detail": "Root management forwards the same parameters to provider/write."
+            },
+            {
+              "path": "deploy/manager.py",
+              "line": 599,
+              "detail": "provider/write preflight calls ProviderStore.validate_change."
+            },
+            {
+              "path": "deploy/provider.py",
+              "line": 219,
+              "detail": "Ordinary provider writes call validate_provider."
+            },
+            {
+              "path": "deploy/provider.py",
+              "line": 75,
+              "detail": "Responses requires small_text(params.get(\"model\"), \"model\"); small_text at 41-43 rejects missing/empty values with Invalid model."
+            }
+          ],
+          "impact": "The test passes on a payload the deployed validator rejects, so this named success case cannot detect loss of the required model field. This is a test-validity gap, not evidence that a correctly populated no-auth Responses configuration is unusable.",
+          "recommendation": "Supply a valid model in the read fixture or enter it through the form, and assert the valid complete write parameters including model. Keep a missing-model rejection test separate if desired.",
+          "verification": "Confirmed by current test-to-form-to-manager static control flow; no production service or live provider invocation.",
+          "auditEvidence": "verification/audit-evidence/public-https-round16/public-https-round16-web-tests-c.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "r16-runtime-gateway-ee80e20b-ba12-4bf7-970d-417b7b7c268c",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round16/public-https-round16-runtime-gateway.json",
+          "sha256": "085ab1a52101e6f3176e41ec16ca1bd230564dd444819407ee9f45f7744229d4"
+        },
+        {
+          "id": "public-https-round16-deployment-tooling-f5027df5-b55a-4763-aa38-a9fa6428e7d7",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round16/public-https-round16-deploy-tooling.json",
+          "sha256": "be59b881290f1772ad79e8812441d116a7bed931925b90818d7544a6ef1c7a7a"
+        },
+        {
+          "id": "r16-web-ux-20261028T193929873Z",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round16/public-https-round16-web.json",
+          "sha256": "31d49d91840eab917ec9324b95b4560988012aa9481fe69157feaa8dcad4a46f"
+        },
+        {
+          "id": "r16-runtime-tests-5a8405ab-1fcf-4986-b83f-6f75d0807bc4",
+          "scopes": [
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round16/public-https-round16-runtime-tests.json",
+          "sha256": "55abe3dd4a84d1a5db7c637c6904f39915adffc7272d9af94a88e03c2f77e6a1"
+        },
+        {
+          "id": "r16-web-tests-a-20261028T195641Z",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round16/public-https-round16-web-tests-a.json",
+          "sha256": "e38c9eed1920b69371c8333a244379994986081567f28c0351c5efef678212f3"
+        },
+        {
+          "id": "r16-web-tests-b-20261028T195640Z",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round16/public-https-round16-web-tests-b.json",
+          "sha256": "88ee36756f18399ee8fae6e40432d0f56332f758086c92bd973d9748ffc0f073"
+        },
+        {
+          "id": "r16-independent-web-tests-c-23files",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round16/public-https-round16-web-tests-c.json",
+          "sha256": "31c98baac500d857a31c6729d656f693b39a6ed6d486df0c472a81953d5647a9"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round17",
+      "sequence": 45,
+      "digest": "641736cce2698ef74e6d0e0c013e35425cbe0d2ec79afb24c5a54fcda8fdc8dd",
+      "complete": false,
+      "coverageComplete": true,
+      "independenceLimits": [
+        {
+          "report": "public-https-round17-deploy-tooling",
+          "reason": "Reviewer reports complete source coverage but explicitly disqualifies its independence. Original complete:false and limitations are retained; this round cannot count as a clean audit."
+        }
+      ],
+      "startedAt": "2026-10-28T20:57:46.000Z",
+      "completedAt": "2026-10-28T21:23:46.664Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "priority": 1,
+          "id": "WEB17-FILE-DRAFT-ADMISSION-RACE",
+          "file": "web/components/FileEditor.tsx",
+          "line": 161,
+          "endLine": 177,
+          "title": "Deferred save preparation overwrites text typed after Save",
+          "description": "save captures original before Api.beginMutation awaits createOperation. The editable textarea permits a newer edit while the IndexedDB operation transaction is pending, but prepare constructs next from original and replaces cache, current.current, React state and persisted file draft with the older text. Successful readback then sees the old submitted revision as unchanged and clears the retained draft, permanently losing the newer input.",
+          "relatedLocations": [
+            {
+              "endLine": 433,
+              "line": 424,
+              "file": "web/lib/api.ts"
+            },
+            {
+              "endLine": 130,
+              "line": 122,
+              "file": "web/components/FileEditor.tsx"
+            },
+            {
+              "endLine": 343,
+              "line": 329,
+              "file": "web/components/FileEditor.tsx"
+            }
+          ],
+          "repro": [
+            "Render actual FileEditor with actual Api and a valid base snapshot; type sent-v1 and click Save.",
+            "Before createOperation commits and before fetch is called, type newer-v2 into the still-enabled textarea; both UI and readFileDraft initially contain newer-v2.",
+            "Allow the normal IndexedDB admission to finish. prepare changes UI and stored text back to sent-v1.",
+            "Resolve the intercepted workspace/write and workspace/read with submitted sent-v1. The editor reports save verified, cache size becomes zero and persisted file draft is absent."
+          ],
+          "expected": "Keep the latest current draft text/revision while adding a pending record whose submittedText and submittedRevision refer to the save-click snapshot.",
+          "actualEvidence": {
+            "output": ".work/round17-web-tests-repro-output.txt",
+            "reproduction": ".work/round17-web-tests-race.test.tsx",
+            "result": "One focused test failed as expected: after durable commit textarea/stored were sent-v1; after readback textarea sent-v1 and cacheSize 0, with stored draft absent.",
+            "executedBy": "audit17_web_tests"
+          },
+          "recommendation": "Merge pending metadata into the latest draft owned by this editor, retaining the original submitted text/revision, or disallow editing throughout pre-dispatch admission. Preserve owner/unmount safety and add a regression covering this pre-fetch window.",
+          "auditEvidence": "verification/audit-evidence/public-https-round17/public-https-round17-web.json"
+        },
+        {
+          "priority": "P1",
+          "path": "web/components/FileEditor.tsx",
+          "line": 159,
+          "endLine": 177,
+          "title": "Preserve edits made while durable save intent is being created",
+          "body": "save captures original before Api.beginMutation. Api awaits createOperation at web/lib/api.ts:424 before invoking prepare at :433. The editor remains editable during that wait, but prepare constructs next from original and replaces persistent draft, cache, current ref, and rendered draft. Text typed after clicking Save and before the IDB transaction completes is overwritten. The later readback sees the reverted revision as the submitted revision and clears the only stored draft, so the newer text is lost. The existing workspace-ui pending-save test waits until the fetch handler is installed before editing, leaving this reachable pre-dispatch interval untested.",
+          "repro": "Run fixedNode .work/round17-web-tests-repro.mjs. The isolated test uses current FileEditor, actual Api, repository operation-setup and fake-indexeddb; click Save with sent-v1, assert fetch has not started and textarea is enabled, type newer-v2, then await dispatch and successful readback. Immediately after the durable commit both textarea and stored draft revert to sent-v1; after readback cacheSize is 0 and the stored draft is absent. Expected newer-v2 assertion fails. No artificial IDB delay is introduced.",
+          "evidence": [
+            ".work/round17-web-tests-race.test.tsx",
+            ".work/round17-web-tests-vitest.config.ts",
+            ".work/round17-web-tests-repro.mjs",
+            ".work/round17-web-tests-repro-output.txt"
+          ],
+          "suggestedChange": "Attach pending metadata to the latest draft while retaining the submitted revision/text from original, or prevent edits for the entire admission interval. Add a real-Api regression that edits before dispatch, including readback completion.",
+          "auditEvidence": "verification/audit-evidence/public-https-round17/public-https-round17-web-tests.json"
+        },
+        {
+          "priority": "P2",
+          "path": "web/tests/drafts.test.tsx",
+          "line": 177,
+          "endLine": 179,
+          "title": "Wait for durable mutation dispatch before using test response callbacks",
+          "body": "The draft pending-send test calls finish immediately after Api.mutate, although Api now awaits IndexedDB admission before invoking fetch. finish is therefore unset and the test fails with TypeError, leaving a pending mutation past teardown. process-remote.test.tsx has the same outdated scheduling assumption: pairingFixture.create at :565-566 uses an empty async act as a completion barrier, then inspects code-0 before pairing/start has dispatched; several process tests also assert post-mutation state before durable completion. These tests fail before exercising their intended race/ownership behavior.",
+          "repro": "Run fixedNode scripts/run-tests.mjs --targeted web/tests/drafts.test.tsx: 10 passed, 1 failed at finish line178. Run fixedNode scripts/run-tests.mjs --targeted web/tests/preview-server.test.ts web/tests/process-remote.test.tsx: process-remote has 15 passed, 29 failed; pairing tests repeatedly fail in fixture.create at line566. Both runs use isolatedTestEnvironment through the repository runner. The draft teardown also produces a late relative /api/rpc URL parse error after the fetch stub is removed; no external request is made.",
+          "evidence": [
+            ".work/test-results/run-7t51ux/vitest.json",
+            ".work/test-results/run-PzlrEa/vitest.json",
+            ".work/round17-web-tests-preview-process-output.txt"
+          ],
+          "relatedLocations": [
+            {
+              "path": "web/tests/process-remote.test.tsx",
+              "line": 565,
+              "endLine": 566
+            },
+            {
+              "path": "web/lib/api.ts",
+              "line": 424,
+              "endLine": 433
+            }
+          ],
+          "suggestedChange": "Wait for an observable dispatch or completed state rather than assuming synchronous admission or using an empty act. Under fake timers allow the IndexedDB event loop to progress, and settle pending operations before restoring global stubs.",
+          "auditEvidence": "verification/audit-evidence/public-https-round17/public-https-round17-web-tests.json"
+        },
+        {
+          "priority": "P2",
+          "path": "web/tests/preview-server.mjs",
+          "line": 43,
+          "endLine": 44,
+          "title": "Advertise the current operation recovery protocol in the preview session fixture",
+          "body": "The visual fixture session returns authenticated and csrf but omits operationRecoveryProtocol:2. Its ready helper explicitly requires that field, so 13 of the 15 preview-server tests fail before reaching their actual HTTP/WebSocket/error-path assertions. Api.session also consumes this protocol to initialize the operation journal, so the fixture no longer represents the current browser session contract.",
+          "repro": "The isolated two-file targeted run recorded in run-PzlrEa fails 13 preview-server tests at web/tests/preview-server.test.ts:29, with operationRecoveryProtocol:2 missing from the actual response. The server is local 127.0.0.1 only.",
+          "evidence": [
+            ".work/test-results/run-PzlrEa/vitest.json",
+            ".work/round17-web-tests-preview-process-output.txt"
+          ],
+          "relatedLocations": [
+            {
+              "path": "web/tests/preview-server.test.ts",
+              "line": 29
+            }
+          ],
+          "suggestedChange": "Return operationRecoveryProtocol:2 from the fixture session endpoint so the existing contract assertion and downstream route tests execute.",
+          "auditEvidence": "verification/audit-evidence/public-https-round17/public-https-round17-web-tests.json"
+        },
+        {
+          "id": "RG17-001",
+          "priority": "P2",
+          "file": "src/gateway/worker-client.ts",
+          "lines": {
+            "start": 124,
+            "end": 127
+          },
+          "title": "Preserve the created review thread identity when the review phase fails",
+          "description": "review/startNew first creates a thread. If the subsequent review/start fails, Workflows.newReview correctly throws review_start_incomplete with delivery unknown and data containing phase review and the created threadId. WorkerClient only allows phase first_turn, so it discards this known identity. Dispatcher consequently persists an unknown receipt without data, and the browser recovery path (web/lib/api.ts:443-448) cannot associate the operation with the partial thread. The response instructs the user to inspect the created thread but no longer identifies it; querying or replaying the receipt cannot recover that identity.",
+          "trigger": "Create a separate review and lose the owning connection or encounter a native error after thread/start succeeds but before review/start succeeds.",
+          "expected": "Keep a bounded allowlisted phase review/threadId/causeCode payload, analogous to first_turn, while retaining unknown delivery and never treating the review as accepted.",
+          "actual": "Runtime error contains data.threadId=partial-review-thread, but both gatewayError and persisted receipt.error lack data.",
+          "relatedLocations": [
+            {
+              "file": "src/runtime/workflows.ts",
+              "line": 189
+            },
+            {
+              "file": "src/gateway/dispatch.ts",
+              "line": 169
+            },
+            {
+              "file": "web/lib/api.ts",
+              "line": 446
+            }
+          ],
+          "repro": {
+            "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe .work/public-https-round17-rg-protocol/repro-review-error.mjs",
+            "script": ".work/public-https-round17-rg-protocol/repro-review-error.mjs",
+            "evidence": ".work/public-https-round17-rg-protocol/repro-review-error.json",
+            "exitCode": 0,
+            "steps": [
+              "Instantiate actual Workflows with thread/start returning a newly created thread and review mutation throwing client_disconnected/not_sent.",
+              "Deliver its real review_start_incomplete error through loopback worker transport with a valid event-channel handshake.",
+              "Dispatch review/startNew through actual WorkerClient and Dispatcher backed by an in-memory Ledger.",
+              "Compare runtime error data with gateway error and saved unknown receipt."
+            ]
+          },
+          "auditEvidence": "verification/audit-evidence/public-https-round17/public-https-round17-runtime-gateway-public.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit17-web-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round17/public-https-round17-web.json",
+          "sha256": "5a253afc3963ca87252b670bcccf47b341782c11819ce6f5896e02455cbbb01e"
+        },
+        {
+          "id": "audit17-web-tests-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round17/public-https-round17-web-tests.json",
+          "sha256": "2167ed24ebf14571ccf0088e51383f3fbf6269eb0b7540430849ab67fe7168e1"
+        },
+        {
+          "id": "audit17-runtime-gateway-independent-20261029",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round17/public-https-round17-runtime-gateway-public.json",
+          "sha256": "837a70766a8bb73d7d2c335d77377390f895fd38e2686268cbade746bd505daf"
+        },
+        {
+          "id": "audit17-deploy-tooling-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round17/public-https-round17-deploy-tooling.json",
+          "sha256": "6562d6e2c3c2303a754403c9d475b8871f2aaa4d7c6aca0fe4b136266b6ab51c"
+        },
+        {
+          "id": "audit17-tooling-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round17/public-https-round17-tooling.json",
+          "sha256": "f9b763fbded6d67cb068617748f2a88ff588dba0977d3b5d9273dbd92023378e"
+        }
+      ],
+      "publicationRedactions": [
+        {
+          "priorEvidence": "verification/audit-evidence/public-https-round17/public-https-round17-runtime-gateway.json",
+          "publishedEvidence": "verification/audit-evidence/public-https-round17/public-https-round17-runtime-gateway-public.json",
+          "originalSha256": "4000c6a646a90e3ad7e844c7475673d21b253fb5b533cd805d48c8c506d56cd7",
+          "publishedSha256": "837a70766a8bb73d7d2c335d77377390f895fd38e2686268cbade746bd505daf"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round18",
+      "sequence": 46,
+      "digest": "fb2156c746a3033571691aff632a385ec923bdd6739b3fb798769741184a65a4",
+      "complete": true,
+      "startedAt": "2026-10-28T21:38:12.019Z",
+      "completedAt": "2026-10-28T21:57:14.570Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "WEB18-001",
+          "priority": "P2",
+          "title": "长会话分页栏误用历史预览窗样式，强制占用 55vh 高度",
+          "file": "web/components/Messages.tsx",
+          "line": 155,
+          "relatedLocations": [
+            {
+              "end": 121,
+              "file": "web/styles-workflows.css",
+              "start": 114
+            },
+            {
+              "end": 234,
+              "file": "web/styles-workflows.css",
+              "start": 232
+            },
+            {
+              "end": 614,
+              "file": "web/components/HistoryTools.tsx",
+              "start": 614
+            }
+          ],
+          "description": "Messages 在超过 150 条渲染行时，将只含条数说明和两个分页按钮的工具栏赋予 history-window 类。该类同时用于 HistoryTools 的真实历史预览容器，并在 styles-workflows.css 设置 height:min(55dvh,540px)、column 布局；移动端还强制 height:55dvh。因此长会话中短小分页栏变成半屏高的空白框，挤占历史内容并破坏原 inline wrap 行布局。",
+          "impact": "影响所有超过 150 条渲染行的会话；分页操作所在区域无故占用约半屏，缩小可见内容并增加长会话导航的滚动负担。",
+          "reproduction": "使用当前 Messages 渲染 151 个 agentMessage，加载当前全部 7 个样式文件，在独立 Chrome headless 1280x900 窗口中读取该栏的 getBoundingClientRect 和 computed style。innerHeight=805，栏高=442.75px，flexDirection=column；两个按钮高度均为30.796875px。442.75 等于实际视口高度的55%。",
+          "evidence": {
+            "config": ".work/public-https-round18-layout.config.mjs",
+            "measurement": {
+              "windowHeight": 900,
+              "buttonHeights": [
+                30.796875,
+                30.796875
+              ],
+              "flexDirection": "column",
+              "toolbarHeight": 442.75,
+              "viewportHeight": 805,
+              "windowWidth": 1280
+            },
+            "fixture": ".work/public-https-round18-layout.test.tsx",
+            "renderedFixture": ".work/public-https-round18-layout.html"
+          },
+          "recommendation": "为 Messages 分页栏使用独立类或收窄预览窗选择器，保留 HistoryTools 预览容器既有高度。修复后用真实浏览器检查桌面与移动端长会话分页，并确认 HistoryTools 预览尺寸未退化。",
+          "status": "confirmed-unfixed",
+          "auditEvidence": "verification/audit-evidence/public-https-round18/public-https-round18-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit18-deployment-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round18/public-https-round18-deployment.json",
+          "sha256": "93a46167554eff78e0caf2a5d2118fd62df98fa7605a7d88089a6661bd8f63e6"
+        },
+        {
+          "id": "audit18-runtime-gateway-independent-20261029",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round18/public-https-round18-runtime-gateway.json",
+          "sha256": "39bc5c94b90c9424b5a83518d05ae33479e2eaae9d8f9eb386d5b0ea876583df"
+        },
+        {
+          "id": "audit18-web-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round18/public-https-round18-web.json",
+          "sha256": "bf962af92b1c9ff259b46fc2a9f3e0210e9ffa3d21cca9eed95fe09dffcd42e8"
+        },
+        {
+          "id": "audit18-tooling-docs-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round18/public-https-round18-tooling-docs.json",
+          "sha256": "8a4a1a8caab391078c3386bac6fbf799d3523d34615d031b5483990ed8b8e9e7"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round19",
+      "sequence": 47,
+      "digest": "a89d55d3c0a5f12a4f689dd3bbb0b98dced8342ca5d161d52205d8379a3a8d1c",
+      "complete": true,
+      "startedAt": "2026-10-28T22:04:07.147Z",
+      "completedAt": "2026-10-28T22:20:45.000Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "PUBLIC-HTTPS-R19-DEPLOY-DOC-GO-COUNTS",
+          "priority": "P3",
+          "path": "deploy/README.md",
+          "lineStart": 438,
+          "lineEnd": 438,
+          "title": "DNS Caddy test-count guidance is stale",
+          "trigger": "An operator or reviewer follows the affected/full Go verification instructions at deploy/README.md:438 and compares the documented expected coverage with the current Go test inventory.",
+          "impact": "The guide claims four top-level behavior tests and seven outcomes including subtests, while the current source defines six top-level tests and fourteen subtests (twenty outcomes including parents). This gives reviewers an incorrect expected test inventory and obscures the added build-pin and provider-parser coverage.",
+          "reason": "deploy/caddy_dns_source/main_test.go defines six Test functions at lines 25, 60, 99, 127, 146 and 171. Its three t.Run loops enumerate five build-pin cases, six provider configurations and three destination cases. The obsolete 4/7 statement is therefore inconsistent with current implementation and the tooling Go inventory.",
+          "recommendation": "Update the statement to the current six top-level tests and twenty outcomes, or describe the covered behaviors without a hard-coded count.",
+          "auditEvidence": "verification/audit-evidence/public-https-round19/public-https-round19-deploy-tooling.json"
+        },
+        {
+          "id": "R19-WEB-001",
+          "priority": 2,
+          "severity": "P2",
+          "title": "Extra skill root refresh overwrites an unsubmitted selection",
+          "path": "web/components/SkillLibraryTools.tsx",
+          "line": 100,
+          "endLine": 109,
+          "location": {
+            "path": "web/components/SkillLibraryTools.tsx",
+            "startLine": 100,
+            "endLine": 109
+          },
+          "trigger": "Open Extensions → 技能与 Hooks → 额外技能目录（当前执行服务）. After the roots read completes, tick a registered project without applying. Switch to 插件与市场 and return to 技能与 Hooks under the same API, project and epoch. Visibility reactivation performs a new skills/extraRoots/read; the data effect replaces selected with the saved roots.",
+          "impact": "The unsubmitted checkbox draft is silently discarded even though its component and input remain mounted. The same unconditional effect can overwrite edits made before a read settles. The user must reconstruct the intended selection after navigating between extension categories.",
+          "evidence": "SkillRoots enables useResource on open && visible (lines 78–96), then unconditionally sets selected from resource.data (lines 100–109). Isolated ExtensionsPanel fixture observed two roots reads, the exact same connected checkbox changing from checked to unchecked after category round-trip, and zero mutate calls. Existing skill-library and extension-mcp-drafts tests cover applying roots and other retained extension drafts but do not cover this root-selection lifecycle.",
+          "reproduction": {
+            "fixture": ".work/public-https-round19-web-fixture.test.tsx",
+            "config": ".work/public-https-round19-web-vitest.config.ts",
+            "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe node_modules/vitest/vitest.mjs run --config .work/public-https-round19-web-vitest.config.ts",
+            "result": "Passed: 1 test file, 1 test; assertions confirm that the saved unchecked baseline replaces the unsaved checked draft.",
+            "environment": "Isolated jsdom fixture with synthetic project and mocked Api.call/Api.mutate; no real HTTP or service mutation.",
+            "durationSeconds": 1.16
+          },
+          "recommendation": "Preserve unsaved selection by a versioned draft/ownership model and initialize from roots only when appropriate. Ensure a late initial read or submitted result cannot overwrite later edits; invalidate consent when scope, selected projects or project mapping changes.",
+          "auditEvidence": "verification/audit-evidence/public-https-round19/public-https-round19-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit19-deploy-tooling-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round19/public-https-round19-deploy-tooling.json",
+          "sha256": "f6140c59f5e82d3c101992dc17f5293bf68e30731948e1b6b7f568f4ca2330a8"
+        },
+        {
+          "id": "audit19-runtime-gateway-independent-20261029",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round19/public-https-round19-runtime-gateway.json",
+          "sha256": "59f556eae6e8ce7bc5a37cf4277d74743d276683914ad0dd969109148e417f2b"
+        },
+        {
+          "id": "audit19-web-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round19/public-https-round19-web.json",
+          "sha256": "ace94d5067184c3204959b2781060f5b0b9e93ffe1b09aad733ae67cecabe92c"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round20",
+      "sequence": 48,
+      "digest": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+      "complete": true,
+      "startedAt": "2026-10-28T22:37:15.172Z",
+      "completedAt": "2026-10-28T22:54:13.231Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit20-deploy-tooling-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round20/public-https-round20-deploy-tooling.json",
+          "sha256": "8ab250d1f2c124ce1f8289c6e4f8e61fd582a927d22ea751bb959f7e35acb7b0"
+        },
+        {
+          "id": "audit20-runtime-gateway-independent-20261029",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round20/public-https-round20-runtime-gateway.json",
+          "sha256": "ae25691e9557f267d9619312b788d13dbcd570a99542d67d3167f177a750d5d1"
+        },
+        {
+          "id": "audit20-web-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round20/public-https-round20-web.json",
+          "sha256": "24efd92b93035065a808b33f1f392cb86715ef6e1ecf7bd1858bba95a79544f5"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round21",
+      "sequence": 49,
+      "digest": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+      "complete": true,
+      "startedAt": "2026-10-28T22:55:08.000Z",
+      "completedAt": "2026-10-28T23:11:51.584Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit21-deploy-tooling-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round21/public-https-round21-deploy-tooling.json",
+          "sha256": "8d8738f1377bfd8d7d65d687328d720890f35568da1cbf6ae87de871bdf3f2a6"
+        },
+        {
+          "id": "audit21-runtime-gateway-independent-20261029",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round21/public-https-round21-runtime-gateway.json",
+          "sha256": "9a71e578d9f3d0fb45dc1f72e8a0e71ecd4f3d05c11c1b199959e6b4d81971e8"
+        },
+        {
+          "id": "audit21-web-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round21/public-https-round21-web.json",
+          "sha256": "58528d96187982877a7fb12dba6ce07351d7592d5e25f864710aa42dc225c11b"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round22",
+      "sequence": 50,
+      "digest": "b0ff300296c5d9c9865c7de465383a7e66604532b1e55ffbfcacb818a9fcb858",
+      "complete": true,
+      "startedAt": "2026-10-28T23:26:29.865Z",
+      "completedAt": "2026-10-28T23:39:45.782Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit22-deploy-tooling-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round22/public-https-round22-deploy-tooling.json",
+          "sha256": "f010d7b703d913ad48efb7032296db671aef4de4df22f7f4554ae94f03c320d6"
+        },
+        {
+          "id": "audit22-runtime-gateway-independent-20261029",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round22/public-https-round22-runtime-gateway.json",
+          "sha256": "3ce37fc55ffb1c52e20193a3f8ffd11da3cdceaede07dc47d677e970868f2a94"
+        },
+        {
+          "id": "audit22-web-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round22/public-https-round22-web.json",
+          "sha256": "5f61898304dfc171a4cd1ec8e239821fba7ea415eefcf5e28360dc09893641be"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round23",
+      "sequence": 51,
+      "digest": "b0ff300296c5d9c9865c7de465383a7e66604532b1e55ffbfcacb818a9fcb858",
+      "complete": true,
+      "startedAt": "2026-10-28T23:40:47.000Z",
+      "completedAt": "2026-10-28T23:54:37.941Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R23-WEB-001",
+          "severity": "P2",
+          "title": "Accepted receipt clears newer memory-only draft after persistence failure",
+          "location": {
+            "path": "web/hooks/useDraft.ts",
+            "startLine": 31,
+            "endLine": 38
+          },
+          "relatedLocations": [
+            "web/hooks/useDraft.ts:43-44",
+            "web/hooks/useDraft.ts:49-59",
+            "web/lib/drafts.ts:99-110",
+            "web/lib/operations.ts:211-214",
+            "web/lib/api.ts:394-418",
+            "web/lib/api.ts:457-465",
+            "web/components/Composer.tsx:323-349"
+          ],
+          "description": "While submitted draft A awaits its HTTP response, the editable composer accepts newer input B. If persisting B fails, useDraft keeps B in memory and explicitly tells the user the input remains in the page. The accepted A receipt clears the stored revision A and emits a key-only harness-drafts event. The matching hook unconditionally reloads storage, replacing B with an empty draft and clearing the save-failure warning. B was never sent and has no persistent copy, so this is actual user-input loss.",
+          "trigger": "Persist A; dispatch turn/start through real Api.beginMutation and hold its synthetic HTTP response; type B while persistence fails; release an accepted response for A. Also reproduced with no storage mock using ten 95,000-character drafts and a new 60,000-character B, triggering the application own 1,000,000-character storage bound.",
+          "observed": "Normal-persistence control retains B. Both injected QuotaExceededError and the unmocked application capacity rejection show B visible before acknowledgement and A still in storage; after acceptance, visible text is empty, the draft storage key is absent, the warning is empty, and the durable operation is accepted. Each scenario dispatches exactly one synthetic request containing A only.",
+          "evidence": [
+            ".work/public-https-round23-draft-quota-repro.mjs",
+            ".work/public-https-round23-draft-quota-evidence.json"
+          ],
+          "validation": {
+            "runtime": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+            "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe .work/public-https-round23-draft-quota-repro.mjs",
+            "exitCode": 0,
+            "executedAt": "2026-10-28T23:53:02.825Z",
+            "network": "Synthetic fetch only; no real HTTP/service calls",
+            "testSuiteExecuted": false
+          },
+          "minimalFixBoundary": "Give draft notifications sufficient mutation/revision identity and apply acceptance cleanup only to the acknowledged in-memory revision. Preserve newer memory-only fields and their persistence warning. A same-key recovery read failure must retain an already mounted current draft, while initial/key-switch loads must still isolate ownership. Do not ignore all notifications: delayed attachment removal from an old unmounted instance must merge its specific removal into the current draft without replacing newer text or retaining the deleted attachment.",
+          "focusedRegressionSuggestions": [
+            "A accepted after B persistence failure: retain exact B revision/content and warning, including the natural aggregate capacity limit.",
+            "Repeat with option/context/schema edits and A-to-B-to-A edits; acceptance must not clear a newer revision merely because content matches.",
+            "Exercise accepted HTTP, operation reconciliation and explicit acknowledgement paths that share clearDraftSnapshot.",
+            "Same-key read failure must not erase valid current memory; first-load corrupt storage and navigation must remain isolated.",
+            "Delayed old-instance attachment removal must remove its attachment from a reopened memory-only draft while preserving all other current fields; persistence failure must remain visible."
+          ],
+          "boundaryAnalysis": "Current-instance removeAttachment merges current memory and does not emit a notification if writeDraft throws, so its standalone save failure was not counted as another finding. The readDraft catch clearing current memory and old-unmounted attachment merge are same-root repair/regression boundaries, not separately claimed reproduced findings.",
+          "auditEvidence": "verification/audit-evidence/public-https-round23/public-https-round23-web.json"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit23-deploy-tooling-independent-20261029",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round23/public-https-round23-deploy-tooling.json",
+          "sha256": "4d76c0764c9581daed216c66f4dd98330ff5499fb53d0e6cae84d33fe0fad66f"
+        },
+        {
+          "id": "audit23-runtime-gateway-independent-20261029",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round23/public-https-round23-runtime-gateway.json",
+          "sha256": "3665f8b5237367c9dec6a40759400faf4523d3bafc2730555661e58ae60abea8"
+        },
+        {
+          "id": "audit23-web-independent-20261029",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round23/public-https-round23-web.json",
+          "sha256": "143b6ce958ec3b373250651cbd04dd5d20069ad216c782deadee06f632171935"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round24",
+      "sequence": 52,
+      "digest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+      "complete": true,
+      "startedAt": "2026-10-29T18:41:07.743Z",
+      "completedAt": "2026-10-29T18:57:04.961Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit24-deploy-tooling-independent-20261030",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-deploy-tooling.json",
+          "sha256": "e9140e74b08668174fa9244ed8040ff380345bde646ceaa4ac9128c8d14a6fdf"
+        },
+        {
+          "id": "audit24-runtime-gateway-independent-20261030",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-runtime-gateway.json",
+          "sha256": "29b2fb8d7fd3fbbf0bda1cd17ce2152e1b94e365d34b95fedbdf11d459a01ecb"
+        },
+        {
+          "id": "audit24-web-independent-20261030",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-web.json",
+          "sha256": "6893ac879844eacafd5e0acd8ac34bbf116eadb7300ca1490674882571c65e4e"
+        }
+      ]
+    },
+    {
+      "id": "public-https-round25",
+      "sequence": 53,
+      "digest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+      "complete": true,
+      "startedAt": "2026-10-29T18:59:41.950Z",
+      "completedAt": "2026-10-29T19:21:44.064Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "audit25-deploy-tooling-independent-20261030",
+          "scopes": [
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-deploy-tooling.json",
+          "sha256": "f38def50efa14534eb22d7323c1c20dc6b8a7675653ac32c8620ed269ec16bef"
+        },
+        {
+          "id": "audit25-runtime-gateway-independent-20261030",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-runtime-gateway-normalized.json",
+          "sha256": "7d084d38ecfb2dd6e515c7cf276601351c1712135b4b155a80006c91281a38f5"
+        },
+        {
+          "id": "audit25-web-independent-20261030",
+          "scopes": [
+            "web-ux"
+          ],
+          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-web.json",
+          "sha256": "8f4cb8642c2b51e1704f662e58d0ba2063829ae5b25517dff5f14a03d99166ab"
+        }
+      ]
     }
   ],
-  "fullTests": null,
+  "fullTests": {
+    "status": "passed",
+    "fullSuitePassed": true,
+    "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+    "sourceFiles": 1911,
+    "sourceHead": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
+    "testFiles": 210,
+    "distinctCases": 2148,
+    "coverageGaps": [],
+    "completedAt": "2026-10-29T20:18:02.643Z",
+    "evidence": {
+      "path": "verification/audit-evidence/public-https-full-attempt4/reconciled-result.json",
+      "sha256": "b65fb9ac54cb387918c60f797bbcc82bb7f74141aad6bb98365cb9d29b0f908f"
+    },
+    "auditRecordAtExecution": {
+      "path": "verification/audit-evidence/public-https-full-attempt4/audit-record-at-execution.json",
+      "sha256": "d6233fb7055bdee44b03160516511f5b1640de8ca498013d1d45a59fcb2f43f3"
+    },
+    "auditBasis": {
+      "kind": "baseline-full-audits-plus-exact-test-only-review",
+      "baselineDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+      "originalCleanRounds": [
+        "public-https-round24",
+        "public-https-round25"
+      ],
+      "exactCurrentDigestCleanAuditRounds": 0,
+      "newFullAuditsClaimed": 0,
+      "carryForward": {
+        "path": "verification/audit-evidence/public-https-test-delta/carry-forward.json",
+        "sha256": "843905140e1d82e62a32fb0303e8e320c4714237627cfd6faeb3496084057427",
+        "baselineDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+        "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561"
+      }
+    },
+    "authorization": {
+      "path": "verification/audit-evidence/public-https-closeout/authorization.json",
+      "sha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee"
+    },
+    "platformReports": {
+      "windows": {
+        "sha256": "a4d0076cec21eafd14fa41e48ce22d8a15eee6c969c0ef475b138f1ef2c2a4d9",
+        "cases": 1934,
+        "skipped": 100,
+        "evidence": "verification/audit-evidence/public-https-full-attempt4/windows-platform.json"
+      },
+      "linux": {
+        "sha256": "e0c7768f0c74c422aed23f3c5ca388b16114003d092540a68ccaf9d15f02f693",
+        "cases": 1934,
+        "skipped": 15,
+        "evidence": "verification/audit-evidence/public-https-full-attempt4/linux-platform.json"
+      },
+      "linux-root": {
+        "sha256": "50b3f3be4604222e21f4ca8424b4dc0465226d4ea4a6277c255dada5a143e314",
+        "cases": 214,
+        "skipped": 0,
+        "evidence": "verification/audit-evidence/public-https-full-attempt4/linux-root-platform.json"
+      }
+    },
+    "limits": [
+      "Individual platform skips remain in original reports and are covered on another required platform.",
+      "The Linux Go inputs are verified retained public downloads; no fresh online Go fetch is claimed.",
+      "This result does not certify live DNS/ACME, public deployment, paid inference or external MCP business operations."
+    ],
+    "publicDeploymentAcceptance": "passed; verification/audit-evidence/v211-release/public-acceptance.json",
+    "acmeAcceptance": "fresh AliDNS DNS-01 issuance passed; future timed renewal not tested",
+    "githubPublicationAndHostedCi": "pending"
+  },
   "scopeExtension": "Complete modern-agent and pinned Codex CLI user-facing capabilities as requested 2026-10-25; resume complete audit gate after feature implementation.",
   "featureAcceptance": "FEATURES.md",
-  "requiredConsecutiveClean": 2
+  "requiredConsecutiveClean": 2,
+  "releaseDeployment": {
+    "version": "2.1.1",
+    "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+    "httpsPort": 10000,
+    "evidence": "verification/audit-evidence/v211-release/deployment.json",
+    "publicAcceptance": "verification/audit-evidence/v211-release/public-acceptance.json",
+    "restart": "verification/audit-evidence/v211-release/restart.json",
+    "browser": "verification/audit-evidence/v211-release/browser.json",
+    "hostedCi": "pending",
+    "publication": "pending"
+  }
 }
