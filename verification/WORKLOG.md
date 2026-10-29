@@ -2,6 +2,12 @@
 
 > Public copy. Private deployment details have been omitted.
 
+## 2026-10-30 — v2.1.1 发布收尾验证
+
+本地全量基线 210 个文件、2148 个独立用例通过。随后修复自动化测试就绪等待、补充 Go CI 失败日志、改用兼容 OpenSSL 的过期证书夹具；最终对全部五个变更源文件映射的 61 个文件进行跨平台 CI 验证，708 个独立用例通过且无覆盖缺口。安全扫描通过，新增告警及位置变化均独立核实并保留结论。未重新进行全仓审计，也不把定向结果记作新全量结果。
+
+
+
 
 
 发布验收（2026-10-27，v2.1.0）：内置单管理员账号、密码与两步验证、设备撤销及 Authelia 迁移均完成。最终源码 `69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589` 连续通过第 7、8 两轮完整独立审计：每轮覆盖 1,862 文件，首尾哈希一致，无新问题或跳过项，满足用户要求的两轮门禁。提交 `historical-commit-082` 随后通过 GitHub Windows、Linux 普通身份和 Linux root 全量作业：**182 个测试文件、1,677 个独立用例、零覆盖缺口**；平台跳过均由适用平台同一用例补足。安全作业成功，8 条当前源码 CodeQL 告警经逐项复核，无需源码修正，不声称零告警。详见[审计记录](audits.json)、[全量 CI](audit-evidence/v210-release/hosted-ci.json)和 [CodeQL 复核](audit-evidence/v210-release/codeql-review.json)。
