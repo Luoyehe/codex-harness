@@ -9,7 +9,7 @@ import unittest
 import zipfile
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location("prepare_ci_go", Path(__file__).resolve().parents[2] / "scripts/prepare-ci-go.py")
 helper = importlib.util.module_from_spec(spec)
@@ -184,9 +184,55 @@ class PrepareCiGoTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "version mismatch"):
                 helper.prepare(self.base, archive=archive, system="Windows", machine="AMD64")
         self.assertFalse((self.base / ".work/ci-go/prepared.json").exists())
-        child = SimpleNamespace(poll=lambda: 1, returncode=1, wait=lambda: 1)
-        with patch.object(helper.subprocess, "Popen", return_value=child), self.assertRaisesRegex(ValueError, "command failed"):
-            helper.run_go(Path("unused"), ["mod", "download"], self.base, {}, self.base / ".work/failure.log", 5)
+
+    def test_failed_subcommand_identifies_phase_and_retains_output_without_printing_it(self):
+        work = self.base / ".work/ci-go"
+        work.mkdir()
+        for arguments, phase in ((["version"], "version"), (["mod", "download"], "download"), (["mod", "verify"], "verify")):
+            with self.subTest(phase=phase):
+                child = Mock(returncode=7)
+                child.poll.return_value = 7
+                diagnostic_output = b"fixture module failure details\n"
+
+                def launch(*args, **kwargs):
+                    kwargs["stdout"].write(diagnostic_output)
+                    self.assertEqual(kwargs["stderr"], helper.subprocess.STDOUT)
+                    return child
+
+                log = work / (phase + ".log")
+                with patch.object(helper.subprocess, "Popen", side_effect=launch), self.assertRaises(ValueError) as raised:
+                    helper.run_go(Path("unused"), arguments, self.base, {}, log, 5)
+                message = str(raised.exception)
+                self.assertIn("command failed: go " + " ".join(arguments) + ";", message)
+                self.assertIn("returncode=7", message)
+                self.assertIn("log: .work/ci-go/" + phase + ".log", message)
+                self.assertNotIn(diagnostic_output.decode().strip(), message)
+                self.assertNotIn(str(self.base), message)
+                self.assertEqual(log.read_bytes(), diagnostic_output)
+                child.kill.assert_not_called()
+                child.wait.assert_called_once_with()
+
+    def test_budget_failure_remains_distinct_and_stops_the_child(self):
+        work = self.base / ".work/ci-go"
+        work.mkdir()
+        for budget in ("time", "output"):
+            with self.subTest(budget=budget):
+                child = Mock()
+                child.poll.return_value = None
+
+                def launch(*args, **kwargs):
+                    if budget == "output":
+                        kwargs["stdout"].seek(8 * 1024**2 + 1)
+                    return child
+
+                with patch.object(helper.subprocess, "Popen", side_effect=launch), \
+                     patch.object(helper.time, "monotonic", side_effect=[0, 6 if budget == "time" else 0]), \
+                     self.assertRaises(ValueError) as raised:
+                    helper.run_go(Path("unused"), ["mod", "download"], self.base, {}, work / "download.log", 5)
+                self.assertIn("Go preparation " + budget + " budget exceeded: go mod download;", str(raised.exception))
+                self.assertNotIn("command failed", str(raised.exception))
+                child.kill.assert_called_once_with()
+                child.wait.assert_called_once_with()
 
 
 if __name__ == "__main__":

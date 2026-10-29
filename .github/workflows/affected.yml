@@ -116,8 +116,21 @@ jobs:
           node scripts/prepare-ci-native.mjs
           python -c 'import os,sys; open(os.environ["GITHUB_ENV"],"a",encoding="utf-8").write("HARNESS_TEST_PYTHON="+sys.executable+"\n")'
       - name: Prepare pinned Go and authenticated public modules
+        id: prepare_go
         if: needs.plan.outputs.go == 'true'
         run: python -B scripts/prepare-ci-go.py
+      - name: Retain failed Go preparation logs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && needs.plan.outputs.go == 'true' && steps.prepare_go.outcome == 'failure'
+        with:
+          name: go-preparation-${{ matrix.target }}
+          path: |
+            .work/ci-go/version.log
+            .work/ci-go/download.log
+            .work/ci-go/verify.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
       - name: Verify isolated Windows process controllers before native tests
         if: runner.os == 'Windows'
         run: node scripts/windows-controller-preflight.mjs .work/windows-controller-preflight.json

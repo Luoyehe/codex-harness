@@ -208,6 +208,7 @@ def environment(work: Path, runtime: Path, selected: dict, *, network: bool, dow
 
 
 def run_go(binary: Path, arguments: list[str], source: Path, env: dict, log: Path, timeout: int) -> str:
+    diagnostic = "go " + " ".join(arguments) + "; log: .work/ci-go/" + log.name
     with log.open("w+b") as output:
         child = subprocess.Popen([str(binary), *arguments], cwd=source, env=env, stdin=subprocess.DEVNULL,
                                  stdout=output, stderr=subprocess.STDOUT,
@@ -215,9 +216,12 @@ def run_go(binary: Path, arguments: list[str], source: Path, env: dict, log: Pat
         deadline = time.monotonic() + timeout
         try:
             while child.poll() is None:
-                require(time.monotonic() < deadline and output.tell() <= 8 * 1024**2, "Go preparation process budget exceeded")
+                require(time.monotonic() < deadline, "Go preparation time budget exceeded: " + diagnostic)
+                require(output.tell() <= 8 * 1024**2, "Go preparation output budget exceeded: " + diagnostic)
                 time.sleep(0.05)
-            require(child.returncode == 0 and output.tell() <= 8 * 1024**2, "Go preparation command failed: " + arguments[0])
+            require(output.tell() <= 8 * 1024**2, "Go preparation output budget exceeded: " + diagnostic)
+            require(child.returncode == 0,
+                    f"Go preparation command failed: {diagnostic}; returncode={child.returncode}")
         finally:
             if child.poll() is None:
                 child.kill()
