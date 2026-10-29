@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round2",
+  "reviewerId": "public-r2-web-static-root",
+  "digest": "99f0ceea026168ac9763f9e9ad16df4c89ce14f5f2c05a3507cdb35466d09428",
+  "sourceDigestAfter": "99f0ceea026168ac9763f9e9ad16df4c89ce14f5f2c05a3507cdb35466d09428",
+  "startedAt": "2026-10-27T01:32:48.917Z",
+  "completedAt": "2026-10-27T01:39:04.557Z",
+  "complete": true,
+  "scopes": [
+    "web-ux"
+  ],
+  "findings": [],
+  "skipped": [],
+  "inspectedFiles": [
+    "web/VERIFICATION.md",
+    "web/index.html",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "method": "Fresh full-content reads of seven CSS files, HTML/React entrypoints, TS/Vite configuration and historical verification document; truncated central CSS output was separately reread at lines921-1260. Reviewed responsive overflow/scroll and modal reachability, focus and reduced-motion rules, theme cascade, entry imports, Vite proxy origin preservation, production output and historical-evidence limits. All CSS parsed with PostCSS and every file hash checked against frozen source. No browser visual acceptance inferred from source.",
+  "details": {
+    "files": 12,
+    "cssRules": 573
+  },
+  "limitations": [
+    "Source audit only; no new full-suite, real-browser, public ingress, or paid-provider acceptance claim."
+  ]
+}

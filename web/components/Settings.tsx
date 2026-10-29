@@ -62,6 +62,7 @@ export function Settings({
   onOpenDraft: (key: string) => void;
 }) {
   const [accountMounted, setAccountMounted] = useState(false);
+  const [visited, setVisited] = useState<string[]>([]);
   const [tab, setTab] = useState<string>(initialTab),
     [error, setError] = useState(''),
     [busy, setBusy] = useState('');
@@ -86,6 +87,7 @@ export function Settings({
               aria-current={tab === id ? 'page' : undefined}
               onClick={() => {
                 if (id === 'account') setAccountMounted(true);
+                setVisited((previous) => (previous.includes(id) ? previous : [...previous, id]));
                 setTab(id);
               }}
             >
@@ -149,16 +151,19 @@ export function Settings({
             </section>
           )}
           {tab === 'security' && <SecuritySettings key={api.csrf} api={api} authenticated={Boolean(api.csrf)} />}
-          {tab === 'provider' && (
-            <ProviderSettings
-              enabled={configurationReady && connected}
-              api={api}
-              epoch={epoch}
-              onChanged={onChanged}
-            />
+          {visited.includes('provider') && (
+            <div hidden={tab !== 'provider'} inert={tab !== 'provider'}>
+              <ProviderSettings
+                visible={tab === 'provider'}
+                enabled={configurationReady && connected}
+                api={api}
+                epoch={epoch}
+                onChanged={onChanged}
+              />
+            </div>
           )}{' '}
           {accountMounted && (
-            <div className="stack" hidden={tab !== 'account'}>
+            <div className="stack" hidden={tab !== 'account'} inert={tab !== 'account'}>
               <AccountSettings
                 api={api}
                 epoch={runtimeEpoch}
@@ -179,43 +184,52 @@ export function Settings({
               />
             </div>
           )}{' '}
-          {tab === 'extensions' && (
-            <ExtensionsPanel
-              onOpenNativeTerminal={onOpenNativeTerminal}
-              threadId={threadId}
-              api={api}
-              projects={projects}
-              initialProjectId={projectId}
-              epoch={epoch}
-              enabled={configurationReady}
-              onChanged={onChanged}
-            />
+          {visited.includes('extensions') && (
+            <div hidden={tab !== 'extensions'} inert={tab !== 'extensions'}>
+              <ExtensionsPanel
+                visible={tab === 'extensions'}
+                onOpenNativeTerminal={onOpenNativeTerminal}
+                threadId={threadId}
+                api={api}
+                projects={projects}
+                initialProjectId={projectId}
+                epoch={epoch}
+                enabled={configurationReady}
+                onChanged={onChanged}
+              />
+            </div>
           )}{' '}
-          {tab === 'mcp' && (
-            <McpPanel
-              runtimeEpoch={runtimeEpoch}
-              projectId={projectId ?? ''}
-              api={api}
-              events={events}
-              epoch={epoch}
-              lease={lease}
-              connected={connected}
-              threadId={threadId}
-              threadReady={threadReady}
-              threadIdle={threadIdle}
-              configurationReady={configurationReady}
-            />
+          {visited.includes('mcp') && (
+            <div hidden={tab !== 'mcp'} inert={tab !== 'mcp'}>
+              <McpPanel
+                visible={tab === 'mcp'}
+                runtimeEpoch={runtimeEpoch}
+                projectId={projectId ?? ''}
+                api={api}
+                events={events}
+                epoch={epoch}
+                lease={lease}
+                connected={connected}
+                threadId={threadId}
+                threadReady={threadReady}
+                threadIdle={threadIdle}
+                configurationReady={configurationReady}
+              />
+            </div>
           )}{' '}
-          {tab === 'remote' && (
-            <RemoteSettings
-              api={api}
-              events={events}
-              epoch={runtimeEpoch}
-              connectionId={connectionId}
-              connected={connected}
-              enabled={configurationReady}
-              onChanged={onChanged}
-            />
+          {visited.includes('remote') && (
+            <div hidden={tab !== 'remote'} inert={tab !== 'remote'}>
+              <RemoteSettings
+                visible={tab === 'remote'}
+                api={api}
+                events={events}
+                epoch={runtimeEpoch}
+                connectionId={connectionId}
+                connected={connected}
+                enabled={configurationReady}
+                onChanged={onChanged}
+              />
+            </div>
           )}{' '}
           {tab === 'admin' && (
             <div className="stack">

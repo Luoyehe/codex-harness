@@ -1,0 +1,11 @@
+{
+  "checked": 1911,
+  "changes": [
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "before": "2e6b2bd2e6b78c482ef0d63ce08ed7a1df2d0f16d7107d80f6efa752b41d13ba",
+      "after": "1418583f1355f466416ce7db86dd1b03a3986fb6a865cda7fad89e7c5925c2c6"
+    }
+  ],
+  "verifiedAt": "2026-10-29T19:49:48.2944463Z"
+}

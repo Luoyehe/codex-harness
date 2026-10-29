@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round1",
+  "reviewerId": "public-r1-web-tests-a-independent",
+  "digest": "f4a5fa858defdd6fcf20cde6642b06bba6033e7323e5a6ead53f371e7e9a7e1b",
+  "sourceDigestAfter": "f4a5fa858defdd6fcf20cde6642b06bba6033e7323e5a6ead53f371e7e9a7e1b",
+  "startedAt": "2026-10-27T01:15:42.636Z",
+  "completedAt": "2026-10-27T01:21:39.014Z",
+  "complete": true,
+  "scopes": [
+    "web-ux"
+  ],
+  "findings": [],
+  "skipped": [],
+  "inspectedFiles": [
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx"
+  ],
+  "fileEvidence": [
+    {
+      "path": "web/tests/account-app.test.tsx",
+      "bytes": 1933,
+      "lines": 36,
+      "sha256": "cd97e289e3604e32ad136163e0d31e63e6d7a95910a9a2b661d9518270d85431",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/account-tools.test.tsx",
+      "bytes": 7147,
+      "lines": 167,
+      "sha256": "a8e464ef1478b39c645821a9732de0bc07794a423c986c6a32e61fd9524cb264",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "bytes": 34034,
+      "lines": 799,
+      "sha256": "cdcd484d9054e90489e2f6baaf1b271753008bfe32b436abffb967289d91f980",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/attachments.test.tsx",
+      "bytes": 10438,
+      "lines": 241,
+      "sha256": "34050ba1ce7f600bf5378cfe7368236851cf0a706a696e468fca44a167fab295",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "bytes": 30277,
+      "lines": 700,
+      "sha256": "f69ec16f661915f47249741ad5d8a959fb78b0cff8969f86d2697fc01b143689",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/builtin-auth.test.tsx",
+      "bytes": 18232,
+      "lines": 279,
+      "sha256": "512d66cb936941ade4093440443ceae04e31357eaf964bcc433d6cb44a60c02f",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/cli-diagnostics.test.tsx",
+      "bytes": 5080,
+      "lines": 115,
+      "sha256": "c2d30b4f82f0cda6de54f9e496425a6466bd2cd5c01fdc915d64c49e29c43ae1",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/compact-threshold.test.tsx",
+      "bytes": 1379,
+      "lines": 37,
+      "sha256": "bbe9991a5f68ff7274d686cb858563da32969c3e826aac178e202314f615367a",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/composer.test.tsx",
+      "bytes": 9346,
+      "lines": 259,
+      "sha256": "d27b03937f7ea09d6484c5bfb6bd09e6124d32fec569cb5e3a323139a117e3d2",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "bytes": 15910,
+      "lines": 444,
+      "sha256": "91240cd9c0b720bd3dec121e4f2ddfc0d8dd25d4f8a883dcbec1f8586cd57c9d",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/credit-nudge.test.tsx",
+      "bytes": 3491,
+      "lines": 85,
+      "sha256": "b978ea00088656954c14a81dcecca0b383ee28ef43e57f6b5075739355c05bec",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "bytes": 7366,
+      "lines": 214,
+      "sha256": "c795fbd20d9e304f6060e61e27da246b14cc6d931bc7577dbc33b01d3c403d79",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "bytes": 9182,
+      "lines": 234,
+      "sha256": "518c5ea948b4725d7275ecd683761f2560de232b76cc0fa4dfe27b115187abac",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/dialog.test.tsx",
+      "bytes": 6992,
+      "lines": 180,
+      "sha256": "2986e9fcc2c45b2291bc258bcbada720ef509cd33178151bc25cd6ba158d6ec0",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/drafts.test.tsx",
+      "bytes": 9409,
+      "lines": 199,
+      "sha256": "c95368ec5f20cf358de439761514ccb5bf9a223a793aa46a55b66be42c385749",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/environment-picker.test.tsx",
+      "bytes": 3130,
+      "lines": 94,
+      "sha256": "444108809ba1043de25660876b775a66279ab05182a7f78d00a2e71cc9c9f1aa",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/events.test.tsx",
+      "bytes": 7066,
+      "lines": 234,
+      "sha256": "953a556718219bcdd4233e79f9853531247654243f1e6ae0502ee48c82839513",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "bytes": 12019,
+      "lines": 294,
+      "sha256": "6b6d1c02edf4e94ec780b0ab729f3bd1bd5a1af72f24276bbf3e4f3c3a2d4c6a",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "bytes": 16821,
+      "lines": 407,
+      "sha256": "1bdd5aa6e8fae67181891ebef32d3a7ec93690e2991fe7a45ce1d4eef7b81b4a",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/git-index-ui.test.tsx",
+      "bytes": 11864,
+      "lines": 275,
+      "sha256": "7bd7cc4d316b10c1e72152e69e7108f7b020c8cf6b5f3a196bdfd412a0a1f480",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/guardian-review.test.tsx",
+      "bytes": 9530,
+      "lines": 257,
+      "sha256": "5ac37089972b353647e391026857e602c8542ae760cebb889f0513f48f03cded",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/history.test.ts",
+      "bytes": 7368,
+      "lines": 240,
+      "sha256": "1df869a2bf229ce06d9f30b51746c9e102a1ed18f0c598caf25e48217cdc061c",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/hook-events.test.tsx",
+      "bytes": 5097,
+      "lines": 139,
+      "sha256": "b046d2c1771373ad60d0ca3643ee5161794ddc927c342c0f50daac84bb68d356",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/import-ui.test.tsx",
+      "bytes": 11392,
+      "lines": 282,
+      "sha256": "fc80754961209c37be33de57547299fbc4aa47b364ec3d46e2aae095a9195085",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/input-context.test.tsx",
+      "bytes": 14087,
+      "lines": 420,
+      "sha256": "eb0d5d8958cc8c923a7538b824bb0214dee1a4832aa13b4b9c555524e2779861",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/input-modalities.test.tsx",
+      "bytes": 5927,
+      "lines": 148,
+      "sha256": "846a43abb01c830fb2e0438b54229131e37ab5668717af9260eaa5c6ebfb3b87",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/input-preference.test.tsx",
+      "bytes": 2851,
+      "lines": 74,
+      "sha256": "a5290b8270d0cfb60cbf27d3b20352c3e1cc93cb549922ff1faa80bc44382c7b",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/loaded-threads.test.tsx",
+      "bytes": 5306,
+      "lines": 128,
+      "sha256": "dbbb73bf95eb9661d477e22b0025dd0cac5b0d0999502ea14c35f7521da4c298",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/mcp-media.test.tsx",
+      "bytes": 14300,
+      "lines": 325,
+      "sha256": "35b08c362e819cf91639e716778580b83e6a817bd574a537703c2cb050b7f51c",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/mcp-oauth.test.tsx",
+      "bytes": 9674,
+      "lines": 115,
+      "sha256": "8be5624e9343ddc7823ae905eed2d9fe979a05f55e51657a2a297cf7c35af99b",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "bytes": 38969,
+      "lines": 1007,
+      "sha256": "f01c5032bfb32c99fdebd32c9df280a73ad59448a7f7e682d1a2fad59abe3717",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/memory-settings.test.tsx",
+      "bytes": 5777,
+      "lines": 139,
+      "sha256": "862150a7e01acf58cafed4b0ef82fb9efc927807d595c9de5e4ffde49f26e249",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "bytes": 7296,
+      "lines": 190,
+      "sha256": "806bff39c18db5ef1e5d8c9af035f4fc615a7e21a02330897558fa8b0b1679d9",
+      "review": "Full source, fixtures and assertions manually read; not executed."
+    }
+  ],
+  "method": "Read-only review of exactly the lexically sorted first 33 web/tests paths from the frozen inventory.groups.web. Manually read the complete source, every fixture, test body and assertion in all 33 files; the longest files were read in complete bounded consecutive segments, and some reads suppressed blank lines only. This is semantic test review, not filename enumeration or only mapping/structural parsing. Traced the mocked transport boundaries, synthetic credential handling, explicit action consent, durable intent admission, original-operation receipt recovery without resubmission, incomplete/foreign receipt rejection, account/MCP OAuth private handoff ownership and invalidation, connection/runtime/thread scope changes and A-to-B-to-A races, draft ownership, configuration version rebasing, loaded-history and event reconciliation, attachment/project-path limits, media opt-in and object URL cleanup, resource capacities and malformed-input assertions. Cross-checked assertions against the runtime contracts and implementation reviewed in the same frozen runtime/protocol partition and read the complete current vitest.config.ts to establish mock restoration settings; the broader web implementation is independently reviewed by the web partition reviewer. No concrete test defect or implementation-contract contradiction was confirmed in this assigned scope. Read every assigned file again as bytes to check SHA256 against inventory.hashes; per-file hash, byte and line evidence is included. An optional esbuild resolver check returned MODULE_NOT_FOUND; no successful TSX parser or typecheck is claimed. No tests were executed for this partition and no source files were changed. Real browser layout, accessibility behavior and actual image/audio decoding are not established by these mocked/jsdom source assertions. No paid inference, real external MCP, online action, personal home/credential inspection, archived sibling implementation, or old Git implementation was used. Final node scripts/snapshot.mjs returned 1876 files with the unchanged frozen digest. This completes only the assigned 33-test partition and is not a whole-repository clean-round declaration."
+}

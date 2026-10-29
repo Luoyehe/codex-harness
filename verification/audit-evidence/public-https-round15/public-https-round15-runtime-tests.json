@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round15",
+  "reviewerId": "runtime-tests-independent-454128a5-952a-48f6-89f2-6fb4550010bf",
+  "scopes": [
+    "runtime-protocol"
+  ],
+  "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "sourceDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "startedAt": "2026-10-28T18:55:28.512Z",
+  "completedAt": "2026-10-28T19:00:16.171Z",
+  "complete": true,
+  "method": "Fresh read-only independent supplement over the 74 frozen tests/runtime paths. Read AGENTS.md and honored the human override of TWO complete clean rounds; did not execute any full suite. Before substantive review, the pinned Node v24.22.1 executable recomputed raw SHA-256 for every one of the 1901 frozen paths and called the exported scripts/snapshot.mjs snapshot() function; both matched. Read every assigned test, fixture, helper, JSON catalog and README body, including all assertion logic and platform/skip guards. Large service, workflow and realtime files were read in consecutive bounded ranges; truncated tool output was re-read for the omitted defaults-lifecycle and README content. Reviewed fixture setup/teardown ordering, isolated environment allowlists, local Responses/MCP substitutes and their request/output bounds, actual versus substituted native assertions, owner/client/channel/epoch isolation, final-write revocation, positive and negative permissions, prompt and request identity, unknown delivery/no-replay behavior, receipt projection and recovery proofs, history/queue/goal/session races, media capability freshness, file and witness durability limits, process-tree/controller cleanup acknowledgement, and retained-resource expiration. Cross-checked current native-environment helper, launch command, permission schema/comparator, limits, worker server, selected RuntimeService lifecycle boundaries, witness implementation and current test prerequisite runner. The native-version concern was resolved by the current runner prerequisite that checks official package metadata and version before native tests. No historical checkout, Git history, prior audit report/finding, personal CODEX_HOME or credentials were read. No source files were edited. Completeness here means body-and-assertion inspection of all 74 assigned paths, not AST/hash-only coverage or successful execution of these tests. At completion, recomputed all 1901 raw SHA-256 hashes again and invoked the exported canonical snapshot() again, with no mismatch.",
+  "inspectedFiles": [
+    "tests/runtime/README.md",
+    "tests/runtime/account-tools.test.ts",
+    "tests/runtime/approval-native.test.ts",
+    "tests/runtime/attachments.test.ts",
+    "tests/runtime/automation-native.test.ts",
+    "tests/runtime/cli-diagnostics-native.test.ts",
+    "tests/runtime/cli-diagnostics.test.ts",
+    "tests/runtime/cli-terminals.test.ts",
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/dev-resources-special-file-fixture.mjs",
+    "tests/runtime/dev-resources.test.ts",
+    "tests/runtime/device-login.test.ts",
+    "tests/runtime/entrypoint.test.ts",
+    "tests/runtime/extensions-native.test.ts",
+    "tests/runtime/extensions.test.ts",
+    "tests/runtime/fixture-cleanup.test.ts",
+    "tests/runtime/fixture-cleanup.ts",
+    "tests/runtime/fixture-model-catalog.json",
+    "tests/runtime/fixture-values.ts",
+    "tests/runtime/gateway-native.test.ts",
+    "tests/runtime/gateway-oauth-native.test.ts",
+    "tests/runtime/guardian-native.test.ts",
+    "tests/runtime/guardian.test.ts",
+    "tests/runtime/imports.test.ts",
+    "tests/runtime/input-context.test.ts",
+    "tests/runtime/input-modalities.test.ts",
+    "tests/runtime/input-native.test.ts",
+    "tests/runtime/loopback-provider.ts",
+    "tests/runtime/mcp-configuration.test.ts",
+    "tests/runtime/mcp-fixture.mjs",
+    "tests/runtime/mcp-native.test.ts",
+    "tests/runtime/mcp-oauth-fixture.mjs",
+    "tests/runtime/mcp-oauth.test.ts",
+    "tests/runtime/mcp-schema.test.ts",
+    "tests/runtime/mcp.test.ts",
+    "tests/runtime/native-env.test.ts",
+    "tests/runtime/native-fixture.mjs",
+    "tests/runtime/native-smoke.test.ts",
+    "tests/runtime/native.test.ts",
+    "tests/runtime/organization-native.test.ts",
+    "tests/runtime/organization.test.ts",
+    "tests/runtime/permission-validation.test.ts",
+    "tests/runtime/predictions.test.ts",
+    "tests/runtime/process-native.test.ts",
+    "tests/runtime/processes.test.ts",
+    "tests/runtime/project-trust.test.ts",
+    "tests/runtime/pty-transcript.test.ts",
+    "tests/runtime/pty-transcript.ts",
+    "tests/runtime/realtime.test.ts",
+    "tests/runtime/redaction.test.ts",
+    "tests/runtime/remote-native.test.ts",
+    "tests/runtime/remote.test.ts",
+    "tests/runtime/server.test.ts",
+    "tests/runtime/service.test.ts",
+    "tests/runtime/sharing-feedback.test.ts",
+    "tests/runtime/skill-resources.test.ts",
+    "tests/runtime/terminal-cleanup-fixture.mjs",
+    "tests/runtime/terminal-cleanup.test.ts",
+    "tests/runtime/thread-activity.test.ts",
+    "tests/runtime/thread-terminals.test.ts",
+    "tests/runtime/timeline-contract.test.ts",
+    "tests/runtime/windows-job-fixture.mjs",
+    "tests/runtime/windows-job-owner.mjs",
+    "tests/runtime/windows-job.test.ts",
+    "tests/runtime/windows-module-bootstrap.test.ts",
+    "tests/runtime/windows-process.test.ts",
+    "tests/runtime/workflows-native.test.ts",
+    "tests/runtime/workflows.test.ts",
+    "tests/runtime/workspace-index.test.ts",
+    "tests/runtime/workspace-service.test.ts",
+    "tests/runtime/workspace-witness-durability.test.ts",
+    "tests/runtime/workspace-witness.test.ts",
+    "tests/runtime/workspace.test.ts",
+    "tests/runtime/worktree-witness.test.ts"
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "Static audit only: no native CLI, test suite, type/build check, remote service, commercial inference, live account login, external MCP/OAuth or deployment operation was executed in this supplement. Only the pinned Node inventory verification/sealing script and read-only source commands were executed.",
+    "Platform-sensitive Windows Job/PTY and Linux cross-UID, systemd, filesystem fsync and physical crash behavior were reviewed in source and assertions, not re-established by live execution.",
+    "README statements about earlier integration results were treated only as source documentation to assess claim boundaries; referenced previous audit/evidence reports were not opened or used.",
+    "Production files were cross-references for relevant contracts; this supplement does not claim a separate complete production implementation audit."
+  ],
+  "crossReferences": [
+    {
+      "file": "AGENTS.md",
+      "coverage": "full current instructions"
+    },
+    {
+      "file": "scripts/snapshot.mjs",
+      "coverage": "full exported canonical snapshot implementation"
+    },
+    {
+      "file": "tests/fixtures/native-env.ts",
+      "coverage": "full isolated native environment helper"
+    },
+    {
+      "file": "src/runtime/native-launch.ts",
+      "coverage": "full launch and project-helper implementation"
+    },
+    {
+      "file": "src/runtime/types.ts",
+      "coverage": "full value validation, delivery types and limits"
+    },
+    {
+      "file": "src/runtime/validation.ts",
+      "coverage": "full pinned schema/prompt validation implementation"
+    },
+    {
+      "file": "src/runtime/permission-grants.ts",
+      "coverage": "full permission subset comparator"
+    },
+    {
+      "file": "src/runtime/workspace-witness.ts",
+      "coverage": "full persistence, reserve, completion and acknowledgement implementation"
+    },
+    {
+      "file": "src/runtime/main.ts",
+      "coverage": "worker HTTP/WS server, config/identity, main startup and shutdown sections"
+    },
+    {
+      "file": "src/runtime/service.ts",
+      "coverage": "selected construction/startup, client/gateway disconnection and close sections; relevant boundary search results"
+    },
+    {
+      "file": "vitest.config.ts",
+      "coverage": "full test configuration"
+    },
+    {
+      "file": "package.json",
+      "coverage": "full current package manifest"
+    },
+    {
+      "file": "scripts/select-tests.mjs",
+      "coverage": "nativePrerequisite and adjacent prerequisite section only"
+    },
+    {
+      "file": "scripts/run-tests.mjs",
+      "coverage": "runVitest result interpretation and executePlan prerequisite dispatch section only"
+    }
+  ],
+  "sourceVerification": {
+    "node": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+    "before": {
+      "verifiedAt": "2026-10-28T18:55:28.512Z",
+      "rawHashesChecked": 1901,
+      "mismatches": [],
+      "canonicalSnapshot": {
+        "files": 1901,
+        "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+      }
+    },
+    "after": {
+      "verifiedAt": "2026-10-28T19:00:16.171Z",
+      "rawHashesChecked": 1901,
+      "mismatches": [],
+      "canonicalSnapshot": {
+        "files": 1901,
+        "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+      }
+    }
+  }
+}

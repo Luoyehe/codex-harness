@@ -57,6 +57,7 @@ export function WorkspacePanel({
   onReviewBase: (ref: string) => void;
 }) {
   const [watching, setWatching] = useState(false);
+  const [gitProject, setGitProject] = useState<string>();
   const [tab, setTab] = useState<'files' | 'git' | 'recovery' | 'worktrees'>('files'),
     [directory, setDirectory] = useState(''),
     [selected, setSelected] = useState<{ path: string; creating?: boolean }>(),
@@ -108,6 +109,7 @@ export function WorkspacePanel({
     setError('');
     setNotice('');
     setTab('files');
+    setGitProject(undefined);
   }, [project?.id]);
   useEffect(() => {
     mounted.current = true;
@@ -308,7 +310,7 @@ export function WorkspacePanel({
           !isArchivedReceipt(receipt))
       )
         throw new Error('文件操作回执身份不匹配。');
-      reconcileOperation(expected.operationId, receipt);
+      await reconcileOperation(expected.operationId, receipt);
       if (gen !== generation.current) return;
       if (receipt.state === 'accepted' || receipt.state === 'not_sent') {
         setPendingAction(undefined);
@@ -363,7 +365,10 @@ export function WorkspacePanel({
           <button
             className={`button small ${tab === 'git' ? 'selected' : ''}`}
             aria-pressed={tab === 'git'}
-            onClick={() => setTab('git')}
+            onClick={() => {
+              setGitProject(project.id);
+              setTab('git');
+            }}
           >
             Git
           </button>
@@ -413,6 +418,22 @@ export function WorkspacePanel({
           </button>
         </div>
       )}
+      {gitProject === project.id && (
+        <div hidden={!visible || tab !== 'git'} inert={!visible || tab !== 'git'}>
+          <WorkspaceGit
+            enabled={enabled && idle}
+            visible={visible && tab === 'git'}
+            key={project.id}
+            api={api}
+            project={project}
+            ownerEpoch={epoch}
+            epoch={`${epoch}:${revision}`}
+            connected={connected}
+            onFile={(path) => void open(path)}
+            onReviewBase={onReviewBase}
+          />
+        </div>
+      )}
       {tab === 'recovery' ? (
         <WorkspaceRecovery
           key={project.id}
@@ -438,18 +459,7 @@ export function WorkspacePanel({
           }}
           onSelectProject={onSelectProject}
         />
-      ) : tab === 'git' ? (
-        <WorkspaceGit
-          enabled={enabled && idle}
-          key={project.id}
-          api={api}
-          project={project}
-          epoch={`${epoch}:${revision}`}
-          connected={connected}
-          onFile={(path) => void open(path)}
-          onReviewBase={onReviewBase}
-        />
-      ) : (
+      ) : tab === 'files' ? (
         <>
           <label className="check-row small">
             <input
@@ -803,7 +813,7 @@ export function WorkspacePanel({
             </div>
           </div>
         </>
-      )}
+      ) : null}
     </section>
   );
 }

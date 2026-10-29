@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { useExtensionAction } from './ExtensionControls';
 import { isArchivedReceipt, reconcileOperation } from '../lib/operations';
@@ -44,11 +44,15 @@ export function ModelCatalog({
   provider,
   onApplied,
   enabled = true,
+  visible: active = true,
+  scopeKey = '',
 }: {
   api: Api;
   provider: Record<string, unknown>;
   onApplied: () => void;
   enabled?: boolean;
+  visible?: boolean;
+  scopeKey?: string;
 }) {
   const [rows, setRows] = useState<CatalogRow[]>([]),
     [manual, setManual] = useState(''),
@@ -61,12 +65,17 @@ export function ModelCatalog({
   // Discovery is a preview. Refreshing the provider here would unmount this editor.
   const action = useExtensionAction(
     api,
-    enabled,
+    enabled && active,
     unchanged,
-    JSON.stringify([provider.kind, provider.revision]),
+    JSON.stringify([provider.kind, provider.revision, scopeKey, active, enabled]),
   );
   const intent = useRef<CatalogIntent | undefined>(undefined),
     running = useRef<CatalogIntent | undefined>(undefined);
+  useEffect(() => {
+    setConfirmed(false);
+    setBusy(false);
+    running.current = undefined;
+  }, [action.scope]);
   const current = (request: CatalogIntent) =>
     intent.current === request && request.scope === action.scope && action.isCurrent();
   const accept = (request: CatalogIntent, result: Record<string, unknown>) => {
@@ -160,7 +169,7 @@ export function ModelCatalog({
           !isArchivedReceipt(receipt))
       )
         throw new Error('目录操作回执身份不匹配。');
-      reconcileOperation(operation.id, receipt);
+      await reconcileOperation(operation.id, receipt);
       if (!current(request)) return;
       if (receipt.state === 'accepted') accept(request, object(receipt.result));
       else if (receipt.state === 'not_sent') {

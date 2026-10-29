@@ -16,7 +16,7 @@ export function isolatedPaths(base, rootFixtures = false) {
 export function isolatedTestEnvironment(base, inherited = process.env, { rootFixtures = process.getuid?.() === 0 } = {}) {
   const { home, temporary } = isolatedPaths(base, rootFixtures);
   const env = {};
-  for (const key of ['PATH', 'PATHEXT', 'SystemRoot', 'WINDIR', 'COMSPEC', 'SystemDrive', 'HARNESS_TEST_PYTHON', 'HARNESS_TEST_NODE', 'HARNESS_TEST_CODEX_BIN']) {
+  for (const key of ['PATH', 'PATHEXT', 'SystemRoot', 'WINDIR', 'COMSPEC', 'SystemDrive', 'HARNESS_TEST_PYTHON', 'HARNESS_TEST_NODE', 'HARNESS_TEST_CODEX_BIN', 'HARNESS_TEST_GO_MANIFEST']) {
     const found = Object.keys(inherited).find(name => name.toLowerCase() === key.toLowerCase());
     if (found !== undefined && inherited[found] !== undefined) env[key] = inherited[found];
   }

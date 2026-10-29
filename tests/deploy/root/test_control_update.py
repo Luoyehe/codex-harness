@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -131,10 +131,30 @@ class ControlUpdateTests(unittest.TestCase):
         for name in ("manage", "native-launch", "deploy/cli.py", "deploy/native_launcher.py"):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
         write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
-                                                      "authenticationGuard": "account-v1"}, mode=0o644)
+                                                      "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1"}, mode=0o644)
 
     def current(self):
         return (self.layout.control / "manage").read_bytes()
+
+    def test_initial_staging_accepts_user_owned_exact_recipe_and_rejects_tampering(self):
+        from deploy.dns_caddy_build import source_material
+        material = source_material()
+        source = self.layout.root / "reviewed/deploy/caddy_dns_source"
+        mkdir(source)
+        for name, data in material.items():
+            atomic_write(source / name, data, 0o644, 65534, 65534)
+        os.chown(source, 65534, 65534)
+        with patch("deploy.dns_caddy_build.__file__", str(source.parent / "dns_caddy_build.py")):
+            destination = self.layout.root / "new-control"
+            stage_control(self.layout, destination)
+            for name, data in material.items():
+                self.assertEqual((destination / "deploy/caddy_dns_source" / name).read_bytes(), data)
+            atomic_write(source / "main.go", material["main.go"] + b"// changed\n", 0o644, 65534, 65534)
+            rejected = self.layout.root / "rejected-control"
+            with self.assertRaisesRegex(DeployError, "differs from reviewed recipe"):
+                stage_control(self.layout, rejected)
+            self.assertFalse((rejected / "manage").exists())
+            self.assertFalse((rejected / "capabilities.json").exists())
 
     def transaction(self):
         return next(path for path in self.updater.records.iterdir() if (path / "state.json").exists())
@@ -142,6 +162,87 @@ class ControlUpdateTests(unittest.TestCase):
     def assert_secrets_preserved(self):
         for path in self.secret_paths:
             self.assertEqual(path.read_bytes(), b"opaque paired secret fixture")
+
+    @contextmanager
+    def terminal_failure(self, phase, *, published):
+        from deploy.common import fsync_directory
+        replace = os.replace
+        observed = {}
+
+        def fail():
+            observed.update(active=set(self.system.active), enabled=dict(self.system.enabled),
+                            events=list(self.system.events), launcher=self.current())
+            raise OSError("Injected terminal publication failure")
+
+        def replacing(source, target):
+            target = Path(target)
+            if not published and target.name == "state.json" and target.parent.parent == self.updater.records and read_json(Path(source)).get("phase") == phase:
+                fail()
+            return replace(source, target)
+
+        def syncing(directory, **kwargs):
+            directory = Path(directory)
+            journal = directory / "state.json"
+            if published and directory.parent == self.updater.records and journal.exists() and read_json(journal).get("phase") == phase:
+                # atomic_write has performed the real os.replace, but has not
+                # completed its directory fsync. This is an ambiguous write.
+                fail()
+            return fsync_directory(directory, **kwargs)
+
+        with patch("deploy.common.os.replace", side_effect=replacing), patch("deploy.common.fsync_directory", side_effect=syncing):
+            yield observed
+
+    def assert_terminal_failure_preserved_services(self, observed, *, phase, published):
+        self.assertTrue(observed, "The requested publication checkpoint was not reached")
+        self.assertEqual(self.system.active, observed["active"])
+        self.assertEqual(self.system.enabled, observed["enabled"])
+        self.assertEqual(self.system.events, observed["events"])
+        self.assertEqual(self.current(), observed["launcher"])
+        self.assertEqual(list(self.updater.barriers.iterdir()), [])
+        journal = read_json(self.transaction() / "state.json")
+        self.assertEqual(journal["phase"] == phase, published)
+        self.assertEqual(bool(self.updater.pending()), not published)
+        self.assert_secrets_preserved()
+
+    def check_update_terminal_failure(self, *, published):
+        with self.terminal_failure("committed", published=published) as observed, self.assertRaises(OSError):
+            self.updater.update()
+        self.assert_terminal_failure_preserved_services(observed, phase="committed", published=published)
+        if not published:
+            self.updater.recover(target="candidate")
+        require_no_pending_control(self.layout)
+        self.assertEqual(self.current(), b"new manage")
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_update_terminal_replace_failure_keeps_retryable_candidate(self):
+        self.check_update_terminal_failure(published=False)
+
+    def test_update_terminal_directory_fsync_failure_does_not_restore_old_code(self):
+        self.check_update_terminal_failure(published=True)
+
+    def check_recovery_terminal_failure(self, *, candidate, published):
+        self.interrupted_control_upgrade()
+        phase, target = ("committed", "candidate") if candidate else ("recovered", "old")
+        with self.terminal_failure(phase, published=published) as observed, self.assertRaises(OSError):
+            self.updater.recover(target=target)
+        self.assert_terminal_failure_preserved_services(observed, phase=phase, published=published)
+        if not published:
+            self.updater.recover(target=target)
+        require_no_pending_control(self.layout)
+        self.assertEqual(self.current(), b"new manage" if candidate else b"old manage")
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_candidate_terminal_replace_failure_keeps_recovery_retryable(self):
+        self.check_recovery_terminal_failure(candidate=True, published=False)
+
+    def test_candidate_terminal_directory_fsync_failure_does_not_reblock_services(self):
+        self.check_recovery_terminal_failure(candidate=True, published=True)
+
+    def test_old_terminal_replace_failure_keeps_recovery_retryable(self):
+        self.check_recovery_terminal_failure(candidate=False, published=False)
+
+    def test_old_terminal_directory_fsync_failure_does_not_reblock_services(self):
+        self.check_recovery_terminal_failure(candidate=False, published=True)
 
     def test_update_preserves_independent_active_and_enabled_sets_and_old_tree(self):
         enabled = dict(self.system.enabled)
@@ -349,6 +450,39 @@ class ControlUpdateTests(unittest.TestCase):
         self.assertEqual(rollback["rollbackOf"], result["transaction"])
         self.assertEqual(self.system.active, {"worker", "caddy"})
 
+    def add_dns_variant(self, version, data):
+        # Retained root-owned recipes can predate the currently reviewed build.
+        from deploy.dns_caddy_build import recipe
+        source_recipe = {**recipe("amd64"), "caddyVersion": version}
+        relative = Path("edge/caddy/dns") / digest(source_recipe)
+        directory = self.layout.control / relative
+        mkdir(directory)
+        atomic_write(directory / "caddy", data, 0o755)
+        write_json(directory / "manifest.json", {"format": 1, "recipe": source_recipe, "sha256": hashlib.sha256(data).hexdigest()})
+        return relative
+
+    def test_update_and_rollback_preserve_all_verified_dns_variants(self):
+        self.add_edge("caddy", b"standard verified edge")
+        first = self.add_dns_variant("2.11.6", b"earlier DNS binary")
+        result = self.updater.update()
+        second = self.add_dns_variant("2.11.7", b"later DNS binary")
+        self.updater.update(result["transaction"])
+        self.assertEqual((self.layout.control / "edge/caddy/caddy").read_bytes(), b"standard verified edge")
+        self.assertEqual((self.layout.control / first / "caddy").read_bytes(), b"earlier DNS binary")
+        self.assertEqual((self.layout.control / second / "caddy").read_bytes(), b"later DNS binary")
+
+    def test_tampered_unselected_dns_variant_prevents_control_update(self):
+        self.add_edge("caddy", b"standard verified edge")
+        variant = self.add_dns_variant("2.11.6", b"verified DNS binary")
+        (self.layout.control / variant / "caddy").write_bytes(b"tampered DNS binary")
+        self.system.events.clear()
+        with self.assertRaisesRegex(DeployError, "DNS Caddy binary changed"):
+            self.updater.update()
+        self.assertEqual(self.system.events, [])
+        self.assertEqual(self.current(), b"old manage")
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+        self.assertEqual(self.updater.pending(), [])
+
     def add_application(self, *, accounts=True):
         staging = self.layout.app / "releases/staged-fixture"
         mkdir(staging / "app")
@@ -391,6 +525,23 @@ class ControlUpdateTests(unittest.TestCase):
         result = self.updater.update()
         write_json(self.layout.config / "https.json", {"authentication": "builtin"})
         self.assert_account_rollback_rejected(result["transaction"])
+
+    def test_dns_https_blocks_control_downgrade_before_any_mutation(self):
+        capabilities = self.layout.control / "capabilities.json"
+        write_json(capabilities, {**read_json(capabilities), "authenticationGuard": "account-v1"}, mode=0o644)
+        result = self.updater.update()
+        write_json(self.layout.config / "https.json", {"authentication": "builtin", "tls": "acme", "dnsProvider": "alidns",
+                   "dnsBinaryRevision": "a" * 64, "dnsCredentialsRevision": "b" * 32})
+        self.assert_account_rollback_rejected(result["transaction"], "dns_downgrade")
+
+    def test_new_provider_blocks_original_alidns_only_control_before_any_mutation(self):
+        path = self.layout.control / "capabilities.json"
+        write_json(path, {**read_json(path), "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1"}, mode=0o644)
+        result = self.updater.update()
+        write_json(self.layout.config / "https.json", {"authentication": "builtin", "tls": "acme", "dnsProvider": "cloudflare",
+                   "dnsBinaryRevision": "a" * 64, "dnsBinarySha256": "b" * 64,
+                   "dnsCredentialsRevision": "c" * 32, "dnsCredentialsSha256": "d" * 64})
+        self.assert_account_rollback_rejected(result["transaction"], "dns_downgrade")
 
     def test_browser_initialized_application_blocks_control_guard_downgrade_without_database_reads(self):
         result = self.updater.update()
@@ -446,6 +597,32 @@ class ControlUpdateTests(unittest.TestCase):
         with self.assertRaises(DeployError) as caught:
             self.updater.recover()
         self.assertEqual(caught.exception.code, "authentication_downgrade")
+        self.assertEqual(self.system.events, [])
+        self.assertEqual(inspect_tree(self.layout.control, root_owned=True), before)
+        self.assertEqual(inspect_tree(self.updater.records, root_owned=True), records)
+        self.assertEqual(read_json(transaction / "state.json")["phase"], "installed")
+        self.assertEqual(self.system.active, set())
+
+    def test_control_recover_cannot_restore_dns_incompatible_old_code(self):
+        self.assert_dns_recovery_rejected("alidns", {})
+
+    def test_control_recover_cannot_restore_alidns_only_code_for_new_provider(self):
+        self.assert_dns_recovery_rejected("tencentcloud", {"dnsChallenge": "caddy-dns-v1"})
+
+    def assert_dns_recovery_rejected(self, provider, dns_capabilities):
+        capabilities = self.layout.control / "capabilities.json"
+        write_json(capabilities, {**read_json(capabilities), "authenticationGuard": "account-v1", **dns_capabilities}, mode=0o644)
+        transaction = self.interrupted_control_upgrade()
+        write_json(self.layout.config / "https.json", {"authentication": "builtin", "tls": "acme", "dnsProvider": provider,
+                   "dnsBinaryRevision": "a" * 64, "dnsBinarySha256": "b" * 64,
+                   "dnsCredentialsRevision": "c" * 32, "dnsCredentialsSha256": "d" * 64})
+        before = inspect_tree(self.layout.control, root_owned=True)
+        records = inspect_tree(self.updater.records, root_owned=True)
+        self.system.events.clear()
+        with self.assertRaises(DeployError) as caught:
+            self.updater.recover()
+        self.assertEqual(caught.exception.code, "dns_downgrade")
+        self.assertIn("--target candidate", str(caught.exception))
         self.assertEqual(self.system.events, [])
         self.assertEqual(inspect_tree(self.layout.control, root_owned=True), before)
         self.assertEqual(inspect_tree(self.updater.records, root_owned=True), records)

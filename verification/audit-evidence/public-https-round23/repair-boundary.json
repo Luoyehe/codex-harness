@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "beforeDigest": "b0ff300296c5d9c9865c7de465383a7e66604532b1e55ffbfcacb818a9fcb858",
+  "afterDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "sourceFiles": 1911,
+  "changed": [
+    "web/Workspace.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/hooks/useDraft.ts",
+    "web/lib/drafts.ts",
+    "web/tests/drafts.test.tsx",
+    "web/tests/workflows.test.tsx"
+  ],
+  "added": [
+    "web/tests/workspace-handoff.test.tsx"
+  ],
+  "removed": [],
+  "allSourceLF": true,
+  "changedFileSha256": {
+    "web/Workspace.tsx": "8e88ae00113ca9e59c164239af2df60aec29b14aefe320ff2b80f639628a9f31",
+    "web/components/HistoryTools.tsx": "cec0eb634fbf37dc81a9fda22b45363d1b3cc670c642c74e023f57422ca69f6c",
+    "web/hooks/useDraft.ts": "c70446d7bf66ee00ff80adfabba6c565e574574ccaa9871d905630d6033dd3de",
+    "web/lib/drafts.ts": "36ea35387bc923e404e501ed1ae0bde57feba220f6f13ed887611fe8050f736c",
+    "web/tests/drafts.test.tsx": "9c567b8d0925a66a8afd8eaa3a067397ef8fa5e4bd3b28844a85e27c846d752e",
+    "web/tests/workflows.test.tsx": "27911cb929fdf7d59c9244c21a998bba61b3969db00f6b79d1c05aedc1e082c8",
+    "web/tests/workspace-handoff.test.tsx": "6a669e5360f49d5fa3a627cde73e5ba97c599ce37bdad99fb388ddaa3ec58c67"
+  },
+  "checkedAt": "2026-10-29T18:36:26.013Z"
+}

@@ -1,3 +1,4 @@
+import { requireRecoveryProtocol } from './recovery-protocol.js';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -201,7 +202,7 @@ export class GatewayServer {
       if (url.pathname === '/api/session') {
         if (req.method === 'GET') {
           const status = this.auth.status(header(req, 'cookie'));
-          this.json(res, { ...status, ...(status.authenticated ? { operationGeneration: this.dispatcher.ledger.operationGeneration() } : {}) } as JsonValue); return;
+          this.json(res, { ...status, ...(status.authenticated ? { operationGeneration: this.dispatcher.ledger.operationGeneration(), operationRecoveryProtocol: 2 } : {}) } as JsonValue); return;
         }
         this.auth.checkOrigin(header(req, 'origin'));
         if (req.method === 'POST') {
@@ -209,7 +210,7 @@ export class GatewayServer {
           authenticationMutationStarted = true;
           const login = await this.auth.login(value, req.socket.remoteAddress ?? 'unknown', header(req, 'user-agent'));
           authenticationMutationCompleted = true;
-          res.setHeader('set-cookie', login.cookie); this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration() } as JsonValue); return;
+          res.setHeader('set-cookie', login.cookie); this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration(), operationRecoveryProtocol: 2 } as JsonValue); return;
         }
         if (req.method === 'DELETE') {
           const session = this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
@@ -229,7 +230,7 @@ export class GatewayServer {
         const login = await this.auth.setup(value, req.socket.remoteAddress ?? 'unknown', header(req, 'user-agent'));
         authenticationMutationCompleted = true;
         res.setHeader('set-cookie', login.cookie);
-        this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration() } as JsonValue); return;
+        this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration(), operationRecoveryProtocol: 2 } as JsonValue); return;
       }
       if (url.pathname === '/api/account' || url.pathname.startsWith('/api/account/')) {
         const cookie = header(req, 'cookie');
@@ -261,14 +262,16 @@ export class GatewayServer {
         const clientId = this.auth.client(session, header(req, 'x-harness-client'));
         // Keep admission until both backend work and the HTTP response settle.
         const call = rpcCall(await body(req, LIMITS.requestBytes, reservation.add));
-        this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
+        const requireAuthorization = () => { this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? ''); };
+        requireAuthorization();
+        requireRecoveryProtocol(call.method, header(req, 'x-harness-recovery'));
         const connection = this.#browsers.get(clientId);
         const requireConnection = () => {
-          this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
+          requireAuthorization();
           if (!connection || this.#browsers.get(clientId) !== connection || connection.socket.readyState !== WebSocket.OPEN || this.#connecting.has(clientId) || this.#disconnecting.has(clientId))
             throw new HarnessError('connection_required', '此操作需要已就绪的实时连接，请稍后重试。');
         };
-        const result = await this.dispatcher.call(call, { clientId: connection?.workerClientId ?? clientId, requireConnection }); this.json(res, { ok: true, result }); return;
+        const result = await this.dispatcher.call(call, { clientId: connection?.workerClientId ?? clientId, requireAuthorization, requireConnection }); this.json(res, { ok: true, result }); return;
       }
       if (url.pathname.startsWith('/api/')) throw new HarnessError('not_found', '接口不存在。');
       if (req.method !== 'GET' && req.method !== 'HEAD') throw new HarnessError('method_not_allowed', '不支持此请求方法。');

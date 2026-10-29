@@ -35,7 +35,7 @@ it('gets the generation on login and uses it for normal and terminal mutations',
     vi
       .fn()
       .mockResolvedValue(
-        new Response(JSON.stringify({ authenticated: true, csrf: 'c', operationGeneration: 14 }), {
+        new Response(JSON.stringify({ authenticated: true, operationRecoveryProtocol: 2, csrf: 'c', operationGeneration: 14 }), {
           status: 200,
         }),
       ),

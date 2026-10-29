@@ -1,0 +1,37 @@
+{
+  "executedAt": "2026-10-29T00:06:47.882Z",
+  "method": "In-memory TypeScript transformation of current useDraft, Api and operation/draft libraries; exact Workspace.send source expression extracted unmodified, with inert unrelated controls and its navigate setThreadId behavior; synthetic fetch and isolated jsdom/fake IndexedDB only.",
+  "requestLog": [
+    {
+      "url": "/api/rpc",
+      "body": {
+        "method": "conversation/start",
+        "params": {
+          "projectId": "p",
+          "text": "submitted A",
+          "references": [],
+          "extraContext": [],
+          "attachmentIds": [],
+          "options": {}
+        },
+        "operationId": "330242f0-481d-4d82-8e00-0fb2cffd747e"
+      }
+    }
+  ],
+  "beforeAcceptance": {
+    "key": "new:p",
+    "text": "unsent B memory only",
+    "error": "草稿保存失败：quota 当前输入仍留在页面，请保留页面并复制备份。",
+    "stored": "submitted A"
+  },
+  "afterAcceptance": {
+    "key": "created-thread",
+    "text": "",
+    "error": "",
+    "oldStored": "",
+    "newStored": "",
+    "receiptStates": [
+      "accepted"
+    ]
+  }
+}

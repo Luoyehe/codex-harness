@@ -50,6 +50,7 @@ export class Dispatcher extends EventEmitter {
     throw new HarnessError(receipt.state === 'unknown' ? 'operation_unknown' : 'operation_pending', '该操作结果尚未确认，请查询操作记录，不要重复提交。', 'unknown', receipt.error?.data);
   }
   async call(call: RpcCall, context: CallContext): Promise<JsonValue> {
+    context.requireAuthorization?.();
     this.workspaceAcknowledgements.opportunistic(context);
     const { method, params } = call; const feature = featureMethod(method);
     if (method.startsWith('operation/maintenance/')) {
@@ -63,6 +64,7 @@ export class Dispatcher extends EventEmitter {
         if (idle.idle !== true || idle.workspaceWitness.total !== 0) throw new HarnessError('journal_busy', '仍有未确认的工作区记录，不能轮换回执。');
         context.requireConnection?.(); this.requireIdle(true);
         this.receiptMaintenance.validateRotation(params, context);
+        context.requireAuthorization?.();
         const result = this.ledger.rotate(rotation); this.receiptMaintenance.forget(); return result;
       } finally { this.#maintenance = false; this.emit('event', { type: 'state', data: this.status() }); }
     }
@@ -75,7 +77,7 @@ export class Dispatcher extends EventEmitter {
       const operationId = uuid(params.operationId); let saved = this.ledger.read(operationId);
       if (saved?.method.startsWith('system/') && saved.state === 'unknown') {
         try {
-          const proof = await this.manager.call('operation/read', { operationId }); object(proof);
+          const proof = await this.manager.call('operation/read', { operationId }, undefined, context.requireAuthorization); object(proof);
           if (proof.operationId === operationId && proof.method === saved.method.slice(7) && this.ledger.matchesDigest(operationId, proof.gatewayRequestDigest) && proof.state === 'completed' && Object.hasOwn(proof, 'result'))
             saved = this.ledger.confirm(operationId, receiptResult(saved.method, proof.result!));
         } catch { /* Preserve uncertainty until positive root-manager evidence exists. */ }
@@ -100,7 +102,7 @@ export class Dispatcher extends EventEmitter {
     if (automationReads.has(method)) return this.ledger.automations.read(method, params);
     if (automationWrites.has(method)) return this.automation(call, context);
     if (systemReads.has(method)) {
-      const result = await this.manager.call(method.slice(7), params);
+      const result = await this.manager.call(method.slice(7), params, undefined, context.requireAuthorization);
       if (method !== 'system/status') return result;
       object(result); return { ...result, operationGeneration: this.ledger.operationGeneration(), journalUsage: this.ledger.usage() };
     }
@@ -129,7 +131,12 @@ export class Dispatcher extends EventEmitter {
           throw new HarnessError('activity_busy', '请先结束任务和网页终端，再变更服务配置。');
         this.#maintenance = true; locked = true;
       } else if (isWork) { this.#pendingWork.add(scope); locked = true; }
-      const beforeWrite = () => { if (!dispatched) { this.ledger.dispatch(operationId); dispatched = true; } };
+      const recordDispatch = () => { if (!dispatched) { this.ledger.dispatch(operationId); dispatched = true; } };
+      const beforeWrite = () => {
+        context.requireAuthorization?.();
+        if (!rootManagement && method !== 'project/remove') context.requireConnection?.();
+        recordDispatch();
+      };
       let result: JsonValue;
       if (method.startsWith('workspace/worktree/')) {
         const originId = identifier(params.projectId);
@@ -141,14 +148,16 @@ export class Dispatcher extends EventEmitter {
         const resolved = await this.worker.call('project/resolve', { path }, context); object(resolved);
         const name = params.name === undefined ? validText(resolved.name, 128) : validText(params.name, 128, '项目名称').trim();
         if (!name) throw new HarnessError('invalid', '项目名称不能为空。');
+        // Resolution is read-only; the local registration still needs its original live owner.
         beforeWrite(); result = this.ledger.addProject(validText(resolved.path, 4096), name) as unknown as JsonValue;
       } else if (method === 'project/remove') {
         const id = identifier(params.id); beforeWrite(); this.ledger.removeProject(id); result = {};
       } else if (rootManagement) result = await this.manager.call(method.slice(7), params, operationId, beforeWrite);
       else result = await this.worker.call(method, this.projectParams(method, params), { ...context, operationId, beforeWrite,
         ...(method.startsWith('workspace/') ? { gatewayRequestDigest: digest({ method, params }), projectId: identifier(params.projectId, '项目') } : {}) });
-      // A local implementation may complete without transport; persist the boundary before its acknowledgement.
-      if (!dispatched) beforeWrite();
+      // A positive backend acknowledgement is acceptance evidence even if its adapter omitted the boundary callback.
+      // Authorization changes after dispatch cannot retroactively turn that success into an unsent operation.
+      if (!dispatched) recordDispatch();
       const projected = receiptResult(method, result);
       const receipt = this.ledger.transaction(() => {
         if (method.startsWith('workspace/worktree/')) this.ledger.worktrees.apply(method, identifier(params.projectId), operationId, projected);
@@ -187,7 +196,7 @@ export class Dispatcher extends EventEmitter {
       }
       // Definition changes, queued runs and their receipt commit in the same SQLite transaction.
       const receipt = this.ledger.transaction(() => {
-        context.requireConnection?.(); if (projectId) this.ledger.project(projectId);
+        context.requireAuthorization?.(); context.requireConnection?.(); if (projectId) this.ledger.project(projectId);
         if (this.#maintenance) throw new HarnessError('maintenance', '回执或配置维护正在进行，请稍后重试。');
         this.ledger.dispatch(operationId);
         return this.ledger.settle(operationId, { ok: true, value: this.ledger.automations.command(method, params) });

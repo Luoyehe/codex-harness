@@ -30,11 +30,32 @@ async function fixture(now: () => number = Date.now, openBrowser = true, staticD
   const loginResponse = await post('/api/account/setup', { token, username: 'admin', password: 'isolated-test-password' });
   const login = await loginResponse.json() as { csrf: string };
   const cookie = loginResponse.headers.get('set-cookie')!.split(';')[0]!; const clientId = randomUUID();
-  const headers = { cookie, 'x-harness-csrf': login.csrf, 'x-harness-client': clientId };
+  const headers = { cookie, 'x-harness-csrf': login.csrf, 'x-harness-recovery': '2', 'x-harness-client': clientId };
   if (openBrowser) { const ws = new WebSocket(origin.replace('http:', 'ws:') + '/api/events?clientId=' + clientId, { headers: { origin, cookie } }); await once(ws, 'open'); }
   return { token, auth, server, backend, ledger, dispatcher, origin, post, headers, cookie, clientId, owners, get forwarded() { return forwarded; }, get disconnected() { return disconnected; }, close: async () => { await server.close(); ledger.close(); auth.close(); } };
 }
 describe('real HTTP and WebSocket authorization boundary', () => {
+  it('advertises recovery v2 and fences legacy writes before dispatcher side effects while retaining authenticated reads', async () => {
+    const f = await fixture();
+    try {
+      expect(await (await fetch(f.origin + '/api/session', { headers: f.headers })).json()).toMatchObject({ authenticated: true, operationRecoveryProtocol: 2 });
+      const legacyHeaders = { ...f.headers }; delete (legacyHeaders as Record<string, string>)['x-harness-recovery'];
+      const methods = ['turn/start', 'terminal/open', 'terminal/write', 'turn/interrupt', 'system/restart',
+        'system/provider/write', 'account/login', 'automation/create', 'operation/retire', 'operation/maintenance/rotate',
+        'workspace/write', 'thread/realtime/start', 'unrecognized/future-write'];
+      const before = f.forwarded;
+      for (const method of methods) {
+        const operationId = randomUUID();
+        const response = await f.post('/api/rpc', { method, params: {}, operationId }, legacyHeaders);
+        expect(await response.json()).toMatchObject({ ok: false, error: { code: 'client_update_required', delivery: 'not_sent' } });
+        expect(f.ledger.read(operationId)).toBeNull();
+      }
+      expect(f.forwarded).toBe(before);
+      expect(await (await f.post('/api/rpc', { method: 'operation/read', params: { operationId: randomUUID() } }, legacyHeaders)).json()).toMatchObject({ ok: true, result: { state: 'not_received' } });
+      expect(await (await f.post('/api/rpc', { method: 'system/status', params: {} }, legacyHeaders)).json()).toMatchObject({ ok: true });
+      expect((await fetch(f.origin + '/api/account', { headers: legacyHeaders })).status).toBe(200);
+    } finally { await f.close(); }
+  });
   it('protects account settings, keeps wrong-password failures local, and revokes live sockets on password change', async () => {
     const f = await fixture(Date.now, false); let socket: WebSocket | undefined;
     try {

@@ -124,6 +124,9 @@ class ManagementBoundaryTests(unittest.TestCase):
         self.assertFalse(marker.exists())
 
     def test_https_requires_verified_account_before_edge_preparation(self):
+        port_check = patch("deploy.ports.require_edge_ports_available")
+        port_check.start()
+        self.addCleanup(port_check.stop)
         with patch("deploy.https.edge_binary") as binary, \
              patch("deploy.https.verify_account_login", side_effect=DeployError("account_verification", "Invalid account")):
             with self.assertRaises(DeployError) as caught:

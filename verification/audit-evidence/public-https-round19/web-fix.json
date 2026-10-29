@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round19",
+  "findingId": "R19-WEB-001",
+  "status": "fixed",
+  "firstVerificationAt": "2026-10-28T22:27:06.973Z",
+  "completedAt": "2026-10-28T22:35:12.399Z",
+  "editingStopped": true,
+  "changedFiles": [
+    {
+      "path": "web/components/SkillLibraryTools.tsx",
+      "sha256": "df6fd5bacc489ba361594261143637ab80476f1e7659b5b7b803ee0676b64e41",
+      "lfOnly": true
+    },
+    {
+      "path": "web/tests/skill-library.test.tsx",
+      "sha256": "af2661f65f7dc95dc71607e1a94e8e081f047134550382affe69795ce42420d8",
+      "lfOnly": true
+    }
+  ],
+  "changes": [
+    "Separate a retained selection draft from freshly read runtime roots. Ordinary category/visibility changes and read refresh/failure do not overwrite the draft; show actual read roots and provide explicit adoption/discard.",
+    "Bind form ownership to API, epoch and order-independent project ID-to-cwd mapping. Semantic ownership changes remount the form monotonically, including ABA, while renames/reordering retain equivalent mapping drafts.",
+    "Bind consent to the current read, draft and visibility/enabled state. Revoke it synchronously when editing, refreshing or submitting.",
+    "Lock selection and consent while reading, applying or resolving unknown receipts, including the accepted-receipt finalization window. This intentionally prevents new checkbox edits during a pending submission; userEvent regressions verify the lock.",
+    "Keep not_sent recovery refresh local, preserving the draft; only accepted writes clear the submitted draft and notify the parent configuration refresh. Unknown outcomes only query the original operation ID, never resend.",
+    "Use the existing Api.beginMutation durable-admission prepare guard for this scoped action; an unmounted API/epoch/project mapping owner cannot dispatch the old IDs after persistence completes.",
+    "Add 15 meaningful cases to the existing skill-library test file, covering category return, initial/delayed/failed reads, explicit current-state adoption, pending edits, repeated clicks, current state after application, accepted/not_sent unknown recovery, owner ABA and late results, equivalent mapping, changed enabled state, admission cancellation and a newly confirmed intent after not_sent. Observe actual beginMutation promises in fixture cleanup.",
+    "Before new freezing, bind mounted-owner invalidation to useLayoutEffect cleanup so commit-time unmount synchronously blocks a durable-admission prepare callback before passive effects run. Other logic unchanged."
+  ],
+  "verification": [
+    {
+      "phase": "red-before-implementation",
+      "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe node_modules/vitest/vitest.mjs run web/tests/skill-library.test.tsx -t \"retains unsubmitted roots\" --reporter=default --reporter=json --outputFile.json=.work/public-https-round19-web-red.json",
+      "report": ".work/public-https-round19-web-red.json",
+      "exitCode": 1,
+      "failed": 1,
+      "filteredOut": 14,
+      "result": "Expected retained checkbox true, received false at skill-library.test.tsx:127. Reused the audited ExtensionsPanel category-return reproduction as a correct-behavior regression."
+    },
+    {
+      "phase": "intermediate",
+      "report": ".work/test-results/run-PNTcOA/vitest.json",
+      "exitCode": 0,
+      "passed": 43,
+      "failed": 0
+    },
+    {
+      "phase": "intermediate-expanded-regressions",
+      "report": ".work/test-results/run-MEPHSG/vitest.json",
+      "exitCode": 1,
+      "passed": 46,
+      "failed": 1,
+      "result": "Accepted-recovery assertion observed the retained-draft DOM before the React update committed. Added an explicit finalizing lock and waited for the user-visible retained-draft notice to clear."
+    },
+    {
+      "phase": "post-finalizing-fix",
+      "report": ".work/test-results/run-DlCPNu/vitest.json",
+      "exitCode": 0,
+      "passed": 47,
+      "failed": 0
+    },
+    {
+      "phase": "final-targeted",
+      "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted web/tests/skill-library.test.tsx web/tests/extension-mcp-drafts.test.tsx",
+      "report": ".work/test-results/run-skUODG/vitest.json",
+      "exitCode": 0,
+      "files": 2,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 2.07
+    },
+    {
+      "phase": "final-web-typecheck",
+      "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "diagnostics": []
+    },
+    {
+      "phase": "whitespace",
+      "command": "git diff --check -- web/components/SkillLibraryTools.tsx web/tests/skill-library.test.tsx",
+      "exitCode": 0
+    },
+    {
+      "phase": "after-synchronous-unmount-guard",
+      "command": "fixed Node scripts/run-tests.mjs --targeted web/tests/skill-library.test.tsx web/tests/extension-mcp-drafts.test.tsx",
+      "report": ".work/test-results/run-0UaPHo/vitest.json",
+      "exitCode": 0,
+      "files": 2,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 2.19,
+      "includes": "Existing epoch and project mapping durable-admission cancellation cases"
+    },
+    {
+      "phase": "after-synchronous-unmount-web-typecheck",
+      "command": "fixed Node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "diagnostics": []
+    },
+    {
+      "phase": "after-synchronous-unmount-whitespace",
+      "command": "git diff --check -- web/components/SkillLibraryTools.tsx web/tests/skill-library.test.tsx",
+      "exitCode": 0
+    }
+  ],
+  "boundaries": [
+    "No full suite or all-Web run. Only the two explicit affected Web test files and Web TypeScript checking.",
+    "All tested API calls used isolated local jsdom/fake IndexedDB and mocked transport. No live service/model/MCP or credential access.",
+    "Native service behavior and visual browser rendering were not exercised in this repair.",
+    "Drafts are intentionally isolated on API/epoch/project-mapping changes; equivalent project naming/order changes preserve them.",
+    "Edits during a pending or unknown application are prevented by disabled controls; they are not accepted and later overwritten.",
+    "Frozen-source diff verification at completion found only the two files owned by this repair plus deploy/README.md, concurrently edited by the root agent.",
+    "This repair invalidates the prior frozen snapshot. Subsequent clean audit counting must start from the new source freeze."
+  ],
+  "previousCompletionAt": "2026-10-28T22:32:55.189Z"
+}

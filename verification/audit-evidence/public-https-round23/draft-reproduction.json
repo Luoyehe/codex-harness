@@ -1,0 +1,126 @@
+{
+  "executedAt": "2026-10-28T23:53:02.825Z",
+  "sourceDigest": "b0ff300296c5d9c9865c7de465383a7e66604532b1e55ffbfcacb818a9fcb858",
+  "harness": "Actual useDraft + Api.beginMutation + operation-store, jsdom, fresh fake IndexedDB, synthetic deferred fetch; no network or test suite.",
+  "control": {
+    "failPersistence": false,
+    "submitted": {
+      "key": "control-thread",
+      "revision": "622a3a63-7d0e-4947-b7e6-0b6269f4bd2a",
+      "text": "A: submitted instruction",
+      "options": {},
+      "attachments": [],
+      "references": [],
+      "extraContext": [],
+      "outputSchema": "",
+      "updatedAt": 1793231582833
+    },
+    "before": {
+      "visibleText": "B: unsent follow-up, must remain in page",
+      "visibleRevision": "c939a645-8b5f-4240-8c36-5157698c5fa7",
+      "persistedText": "B: unsent follow-up, must remain in page",
+      "persistedRevision": "c939a645-8b5f-4240-8c36-5157698c5fa7",
+      "error": ""
+    },
+    "after": {
+      "visibleText": "B: unsent follow-up, must remain in page",
+      "visibleRevision": "c939a645-8b5f-4240-8c36-5157698c5fa7",
+      "persistedText": "B: unsent follow-up, must remain in page",
+      "persistedRecord": "{\"key\":\"control-thread\",\"revision\":\"c939a645-8b5f-4240-8c36-5157698c5fa7\",\"text\":\"B: unsent follow-up, must remain in page\",\"options\":{},\"attachments\":[],\"references\":[],\"extraContext\":[],\"outputSchema\":\"\",\"updatedAt\":1793231582909}",
+      "error": "",
+      "receiptState": "accepted"
+    },
+    "requests": [
+      {
+        "method": "turn/start",
+        "params": {
+          "threadId": "control-thread",
+          "text": "A: submitted instruction"
+        },
+        "operationId": "b1845929-c926-46cb-beb1-903b1c469aaf"
+      }
+    ],
+    "unsentInputLost": false
+  },
+  "quotaFailure": {
+    "failPersistence": true,
+    "submitted": {
+      "key": "quota-thread",
+      "revision": "ada90d24-f7b3-4cc3-82d8-063c4a3ffe19",
+      "text": "A: submitted instruction",
+      "options": {},
+      "attachments": [],
+      "references": [],
+      "extraContext": [],
+      "outputSchema": "",
+      "updatedAt": 1793231582912
+    },
+    "before": {
+      "visibleText": "B: unsent follow-up, must remain in page",
+      "visibleRevision": "02ea6495-356e-4fe8-9167-047f10504c62",
+      "persistedText": "A: submitted instruction",
+      "persistedRevision": "ada90d24-f7b3-4cc3-82d8-063c4a3ffe19",
+      "error": "草稿保存失败：Synthetic quota exceeded 当前输入仍留在页面，请保留页面并复制备份。"
+    },
+    "after": {
+      "visibleText": "",
+      "visibleRevision": "abf5f63b-3699-480b-9edf-aa76870d3db3",
+      "persistedText": "",
+      "persistedRecord": null,
+      "error": "",
+      "receiptState": "accepted"
+    },
+    "requests": [
+      {
+        "method": "turn/start",
+        "params": {
+          "threadId": "quota-thread",
+          "text": "A: submitted instruction"
+        },
+        "operationId": "f02ac387-77e6-48ae-84c8-ef33bda20fc9"
+      }
+    ],
+    "unsentInputLost": true
+  },
+  "builtInCapacityFailure": {
+    "failPersistence": "capacity",
+    "submitted": {
+      "key": "capacity-thread",
+      "revision": "859bed60-cc19-4557-a202-7cad0c814e7d",
+      "text": "A: submitted instruction",
+      "options": {},
+      "attachments": [],
+      "references": [],
+      "extraContext": [],
+      "outputSchema": "",
+      "updatedAt": 1793231582990
+    },
+    "before": {
+      "visibleText": "B: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [truncated only in evidence; exact text asserted in repro]",
+      "visibleRevision": "4af2c39e-df0e-42d5-a27b-8f5917d3496e",
+      "persistedText": "A: submitted instruction",
+      "persistedRevision": "859bed60-cc19-4557-a202-7cad0c814e7d",
+      "error": "草稿保存失败：本地草稿达到 50 份或 1,000,000 字符的容量上限。请先处理已有草稿。 当前输入仍留在页面，请保留页面并复制备份。",
+      "visibleTextLength": 60000
+    },
+    "after": {
+      "visibleText": "",
+      "visibleRevision": "1231cbb7-00e7-4442-ad5c-6b53dbe639ca",
+      "persistedText": "",
+      "persistedRecord": null,
+      "error": "",
+      "receiptState": "accepted"
+    },
+    "requests": [
+      {
+        "method": "turn/start",
+        "params": {
+          "threadId": "capacity-thread",
+          "text": "A: submitted instruction"
+        },
+        "operationId": "bed72424-fb1c-45da-962c-55076baec847"
+      }
+    ],
+    "unsentInputLost": true
+  }
+}

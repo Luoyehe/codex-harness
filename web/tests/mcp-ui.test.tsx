@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { enabledButton } from './enabled-button';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
@@ -143,7 +144,7 @@ it('recovers an accepted lost-response tool call by original operation identity 
   });
   render(<McpPanel {...panelProps(api, events)} />);
   await invoke();
-  fireEvent.click(await screen.findByRole('button', { name: '查询原 MCP 调用回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原 MCP 调用回执' }));
   await screen.findByText('Recovered output');
   expect(calls.filter((call) => call.method === 'mcp/tool/call')).toHaveLength(1);
   expect(calls.find((call) => call.method === 'operation/read')?.params).toEqual({
@@ -378,11 +379,11 @@ it('retains accepted result identity, sibling text and raw download when media p
     fireEvent.click(screen.getByRole('button', { name: '预览 MCP 图片 1' }));
     expect(screen.getByRole('alert').textContent).toMatch(/图片格式或尺寸/);
     expect(URL.createObjectURL).not.toHaveBeenCalled();
-    expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
+    await waitFor(() => expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
       state: 'accepted',
       resultId: 'result-media',
       body: { content },
-    });
+    }));
     vi.useFakeTimers();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '下载原结果 JSON' }));
@@ -648,10 +649,10 @@ it('keeps a new service draft and its consent unchanged when the old service sub
     (screen.getByRole('checkbox', { name: /确认启动此服务的事件订阅/ }) as HTMLInputElement)
       .checked,
   ).toBe(true);
-  expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
+  await waitFor(() => expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
     server: 'local',
     state: 'accepted',
-  });
+  }));
 });
 
 it.each([
@@ -777,11 +778,11 @@ it.each(['accepted', 'unknown'] as const)(
     expect((screen.getByRole('button', { name: '读取此资源' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
-    expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
+    await waitFor(() => expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
       state: outcome,
       server: 'local',
       ...(outcome === 'accepted' ? { resultId: 'old-result' } : { error: 'OLD_MUTATION_UNKNOWN' }),
-    });
+    }));
     expect(calls.filter((call) => call.method === 'mcp/tool/call')).toHaveLength(1);
     expect(calls.filter((call) => call.method === 'mcp/result/read')).toHaveLength(0);
     if (outcome === 'unknown') expect(screen.getAllByText('OLD_MUTATION_UNKNOWN')).toHaveLength(1); // Original record only, not the new request's alert.
@@ -851,10 +852,10 @@ it.each(['start', 'recover'] as const)(
       finishBody({ ...identity, result: { content: [{ type: 'text', text: 'RETAINED_BODY' }] } }),
     );
     await screen.findByText('RETAINED_BODY');
-    expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
+    await waitFor(() => expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
       state: 'accepted',
       body: { content: [{ type: 'text', text: 'RETAINED_BODY' }] },
-    });
+    }));
     expect((screen.getByRole('button', { name: '读取此资源' }) as HTMLButtonElement).disabled).toBe(
       true,
     );

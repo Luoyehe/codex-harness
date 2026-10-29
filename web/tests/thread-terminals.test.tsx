@@ -136,6 +136,7 @@ it('submits an explicitly unsandboxed shell once and preserves newer edits while
   fireEvent.change(screen.getByRole('textbox', { name: '会话 shell 命令' }), {
     target: { value: 'echo later' },
   });
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
   await act(async () => finish({ threadId: 'thread', submitted: true }));
   await screen.findByText(/命令已受理，尚不代表执行完成/);
   expect(s.calls.find((c) => c.method === 'thread/shellCommand')?.params).toEqual({
@@ -173,7 +174,7 @@ it('recovers an unknown shell via its original operation and never resends it', 
   fireEvent.click(screen.getByRole('checkbox', { name: /确认以原生完整权限/ }));
   fireEvent.click(screen.getByRole('button', { name: '执行此会话 shell 命令' }));
   fireEvent.click(await screen.findByRole('button', { name: '查询原会话终端操作回执' }));
-  await waitFor(() => expect(listOperations().find((op) => op.id === id)?.state).toBe('accepted'));
+  await waitFor(async () => expect((await listOperations()).find((op) => op.id === id)?.state).toBe('accepted'));
   expect(s.calls.filter((c) => c.method === 'thread/shellCommand')).toHaveLength(1);
 });
 it('blocks malformed directory controls and new shell submission while active or history is not ready', async () => {
@@ -216,12 +217,13 @@ it('refreshes after native command completion and discards prior termination con
   ).toBe(false);
 });
 
-function shellDraft() {
+async function shellDraft() {
   fireEvent.click(screen.getByText('在当前会话运行一次 shell 命令', { selector: 'summary' }));
   const input = screen.getByRole('textbox', { name: '会话 shell 命令' }) as HTMLTextAreaElement;
   fireEvent.change(input, { target: { value: 'echo repeat' } });
   fireEvent.click(screen.getByRole('checkbox', { name: /确认以原生完整权限/ }));
   fireEvent.click(screen.getByRole('button', { name: '执行此会话 shell 命令' }));
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.some((call) => JSON.parse(String(call[1]?.body)).method === 'thread/shellCommand')).toBe(true));
   return input;
 }
 it.each(['accepted', 'failure'] as const)(
@@ -238,7 +240,7 @@ it.each(['accepted', 'failure'] as const)(
     );
     render(<ThreadTerminals {...props(s)} />);
     await ready();
-    const input = shellDraft();
+    const input = await shellDraft();
     fireEvent.change(input, { target: { value: 'echo changed' } });
     fireEvent.change(input, { target: { value: 'echo repeat' } });
     await act(async () =>
@@ -250,7 +252,7 @@ it.each(['accepted', 'failure'] as const)(
       (screen.getByRole('checkbox', { name: /确认以原生完整权限/ }) as HTMLInputElement).checked,
     ).toBe(false);
     if (outcome === 'failure')
-      expect(screen.getByRole('button', { name: '查询原会话终端操作回执' })).toBeTruthy();
+      expect(await screen.findByRole('button', { name: '查询原会话终端操作回执' })).toBeTruthy();
   },
 );
 it.each(['thread', 'epoch', 'connection'] as const)(
@@ -267,7 +269,7 @@ it.each(['thread', 'epoch', 'connection'] as const)(
       initial = props(s);
     const view = render(<ThreadTerminals {...initial} />);
     await ready();
-    shellDraft();
+    await shellDraft();
     view.rerender(
       <ThreadTerminals
         {...initial}
@@ -281,13 +283,14 @@ it.each(['thread', 'epoch', 'connection'] as const)(
     view.rerender(<ThreadTerminals {...initial} />);
     const input = screen.getByRole('textbox', { name: '会话 shell 命令' }) as HTMLTextAreaElement;
     fireEvent.change(input, { target: { value: 'new scope draft' } });
-    await act(async () => finish({ submitted: true }));
+    await waitFor(() => expect(finish).toBeTypeOf('function'));
+  await act(async () => finish({ submitted: true }));
     expect(input.value).toBe('new scope draft');
     expect(initial.onChanged).not.toHaveBeenCalled();
     expect(screen.queryByText(/命令已受理，尚不代表执行完成/)).toBeNull();
     expect(s.calls.filter((call) => call.method === 'thread/shellCommand')).toHaveLength(1);
     // Non-input success is acknowledged by Api, even when its old UI owner has gone.
-    expect(listOperations()).toHaveLength(0);
+    await waitFor(async () => expect(await listOperations()).toHaveLength(0));
   },
 );
 it('invalidates whole-thread cleanup consent immediately on refresh and keeps confirmation disabled during the read', async () => {
@@ -371,7 +374,7 @@ it.each(['accepted', 'failed'] as const)(
       initial = props(s);
     const view = render(<ThreadTerminals {...initial} />);
     await ready();
-    shellDraft();
+    await shellDraft();
     fireEvent.click(await screen.findByRole('button', { name: '查询原会话终端操作回执' }));
     await waitFor(() => expect(finish).toBeTypeOf('function'));
     view.rerender(<ThreadTerminals {...initial} epoch="replacement" />);
@@ -388,7 +391,7 @@ it.each(['accepted', 'failed'] as const)(
           })
         : fail(new Error('old recovery failure')),
     );
-    expect(listOperations().find((operation) => operation.id === operationId)?.state).toBe(
+    expect((await listOperations()).find((operation) => operation.id === operationId)?.state).toBe(
       outcome === 'accepted' ? 'accepted' : 'unknown',
     );
     expect(initial.onChanged).not.toHaveBeenCalled();
@@ -410,10 +413,11 @@ it('preserves the command when its next invocation timeout is edited before ackn
   );
   render(<ThreadTerminals {...props(s)} />);
   await ready();
-  const input = shellDraft();
+  const input = await shellDraft();
   fireEvent.change(screen.getByRole('spinbutton', { name: '最长运行时间（分钟，1–120）' }), {
     target: { value: '1' },
   });
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
   await act(async () => finish({ submitted: true }));
   expect(input.value).toBe('echo repeat');
   expect(

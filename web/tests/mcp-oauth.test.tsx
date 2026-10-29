@@ -55,7 +55,7 @@ it('a lost mutation response is recovered by the original accepted receipt witho
   await waitFor(() => expect((recover as HTMLButtonElement).disabled).toBe(false));
   expect((screen.getByRole('button', { name: '请求此服务授权' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(recover); await screen.findByRole('link', { name: '打开 MCP 授权页面 ↗' });
-  expect(s.calls.filter(call => call.method === 'mcp/oauth')).toHaveLength(1); expect(listOperations()).toEqual([]);
+  expect(s.calls.filter(call => call.method === 'mcp/oauth')).toHaveLength(1); expect((await listOperations())).toEqual([]);
 });
 it('completion while a handoff read is delayed invalidates that reply', async () => {
   let finish!: (v: unknown) => void;

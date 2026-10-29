@@ -6,35 +6,43 @@ import {
   listOperations,
   reconcileOperation,
   stopUnknownRecovery,
+  operationStorageWarning,
+  subscribeOperations,
+  initializeOperations,
   type Operation,
 } from '../lib/operations';
 import { message } from '../lib/types';
 export function useOperations() {
   const [operations, setOperations] = useState<Operation[]>([]),
-    [error, setError] = useState('');
+    [error, setError] = useState(''), [warning, setWarning] = useState('');
   useEffect(() => {
-    const read = () => {
+    let revision = 0, disposed = false;
+    const read = async () => {
+      const current = ++revision;
       try {
-        setOperations(listOperations());
+        const records = await listOperations();
+        if (disposed || current !== revision) return;
+        setOperations(records);
         setError('');
+        setWarning(operationStorageWarning());
       } catch (e) {
-        setError(message(e));
+        if (!disposed && current === revision) setError(message(e));
       }
     };
-    read();
-    window.addEventListener('storage', read);
-    window.addEventListener('harness-operations', read);
+    void read();
+    const unsubscribe = subscribeOperations(() => void read());
     return () => {
-      window.removeEventListener('storage', read);
-      window.removeEventListener('harness-operations', read);
+      disposed = true;
+      unsubscribe();
     };
   }, []);
-  return { operations, error };
+  return { operations, error, warning };
 }
 export function Recovery({
   api,
   operations,
   error: storeError,
+  warning = '',
   openThread,
   runtimeReady,
   recoveryEpoch,
@@ -43,6 +51,7 @@ export function Recovery({
   api: Api;
   operations: Operation[];
   error: string;
+  warning?: string;
   openThread: (id: string) => void;
   runtimeReady: boolean;
   recoveryEpoch: string;
@@ -82,7 +91,7 @@ export function Recovery({
         operationId: id,
       });
       if (receipt.operationId !== id) throw new Error('操作回执身份不匹配。');
-      reconcileOperation(id, receipt);
+      await reconcileOperation(id, receipt);
       if (lifecycle.current.generation === epoch)
         setObservations((o) => ({ ...o, [id]: { epoch, receipt, readOnly: !retire } }));
     } catch (e) {
@@ -92,7 +101,7 @@ export function Recovery({
     }
   };
   const pending = operations.filter((o) => ['pending', 'unknown'].includes(o.state));
-  if (!operations.length && !storeError) return null;
+  if (!operations.length && !storeError && !warning) return null;
   return (
     <details className="recovery" open={Boolean(storeError) || pending.length > 0}>
       <summary>
@@ -108,6 +117,11 @@ export function Recovery({
           {storeError || error}
         </p>
       )}
+      {warning && <p role="status" className="workspace-warning">{warning} 已保存的操作仍可查询；请重新检查恢复存储。</p>}
+      {(storeError || warning) && <button className="button small" onClick={async () => {
+        try { const session = await api.session(); await initializeOperations(session.operationRecoveryProtocol); setError(''); }
+        catch (e) { setError(message(e)); }
+      }}>重新检查恢复存储</button>}
       <div className="recovery-list">
         {operations.map((o) => {
           const observation = observations[o.id],
@@ -121,6 +135,7 @@ export function Recovery({
             <div className="recovery-row" key={o.id}>
               <div>
                 <strong>{o.method}</strong>
+                {o.legacy && o.draftKey && <p className="small muted">旧版恢复记录已迁入；为保留旧页面尚未确认的草稿，本记录不会自动清除草稿，请核对后在草稿页处理。</p>}
                 {o.method.startsWith('workspace/') && o.resourceId && (
                   <small className="path">{o.resourceId}</small>
                 )}
@@ -168,10 +183,10 @@ export function Recovery({
                     <button
                       className="button danger small"
                       disabled={Boolean(busy) || !confirmed[o.id]}
-                      onClick={() => {
+                      onClick={async () => {
                         try {
                           if (lifecycle.current.generation !== generation || !runtimeReady) return;
-                          stopUnknownRecovery(o.id, receipt);
+                          await stopUnknownRecovery(o.id, receipt);
                           setConfirmed((c) => ({ ...c, [o.id]: false }));
                         } catch (e) {
                           setError(message(e));
@@ -220,9 +235,9 @@ export function Recovery({
                 ) : (
                   <button
                     className="button small"
-                    onClick={() => {
+                    onClick={async () => {
                       try {
-                        acknowledgeOperation(o.id);
+                        await acknowledgeOperation(o.id);
                       } catch (e) {
                         setError(message(e));
                       }

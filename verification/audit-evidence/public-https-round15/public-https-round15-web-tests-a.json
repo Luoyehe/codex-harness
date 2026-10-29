@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round15",
+  "reviewerId": "r15-web-tests-a-3e469867-1ae6-4de9-9116-383ef9553eaf",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "sourceDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "startedAt": "2026-10-28T18:58:14.831Z",
+  "completedAt": "2026-10-28T19:01:51.559Z",
+  "complete": true,
+  "method": "Fresh independent read-only source audit of the exact 23 assigned web test/fixture files. Read AGENTS.md and the current assignment/frozen inventory; honored the user two-complete-clean-round gate override and ran no full suite. Read every assigned file in full, including complete test bodies, data fixtures, fetch/WebSocket mocks, every assertion, before/after cleanup, parameterized cases, deferred promise resolution/rejection and fake-timer paths; the first batched output truncated input-context.test.tsx, so that file was reread completely in an individual call before claiming coverage. Examined API receipt identity and monotonic-state assumptions, no-replay assertions, draft revision ownership, A-to-B-to-A transitions, parent remount/visibility behavior, cancellation, bounded media and logs, prototype-key inputs, explicit mutation consent and local fixture shutdown/listen errors. Cross-referenced current production implementations and actual App-to-Workspace-to-Settings/Extensions reachability where needed, rather than treating isolated component rerenders as parent integration evidence. Inspected vitest.config.ts to confirm clearMocks/restoreMocks and test isolation assumptions. The preview fixture was reviewed as a real local HTTP/WebSocket server, including raw-body byte bounds, read allowlist, path containment, import side effects, owned connection cleanup and timeout ownership. Independently SHA-256-verified all 1901 raw inventory files before and after the semantic review, and invoked the canonical exported snapshot() from scripts/snapshot.mjs both times using the pinned Node v24.22.1 binary. No source edits, previous checkout/history, prior audit reports/findings, credentials, native/remote services, external MCP or paid inference were used. No actionable candidate required a local reproduction; this report records static semantic audit completion, not test execution success.",
+  "inspectedFiles": [
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/preview-server.test.ts",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx"
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "No tests, browser rendering, native worker, remote deployment or real external integration were executed during this audit. The user full-suite gate remained closed.",
+    "jsdom mocks and synthetic media headers establish the assertions being made, not actual browser decoding, browser security enforcement, or remote OAuth/provider behavior; those integrations were not runtime-verified.",
+    "Production cross-references were targeted to contracts, ownership and parent reachability relevant to the assigned tests; they do not claim a complete independent audit of every production module."
+  ],
+  "verification": {
+    "pinnedNode": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+    "frozenAt": "2026-10-28T18:41:11.039Z",
+    "rawHashCountBefore": 1901,
+    "rawHashCountAfter": 1901,
+    "mismatchesBefore": [],
+    "mismatchesAfter": [],
+    "canonicalBefore": {
+      "files": 1901,
+      "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+    },
+    "canonicalAfter": {
+      "files": 1901,
+      "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+    },
+    "assignedCount": 23,
+    "reviewedCount": 23,
+    "findingsCount": 0,
+    "skippedCount": 0
+  },
+  "crossReferences": [
+    {
+      "file": "AGENTS.md",
+      "coverage": "complete local audit and isolation instructions"
+    },
+    {
+      "file": "scripts/snapshot.mjs",
+      "coverage": "complete canonical snapshot implementation and exported snapshot invocation"
+    },
+    {
+      "file": "package.json",
+      "coverage": "complete pinned runtime/dependency and test-script configuration"
+    },
+    {
+      "file": "vitest.config.ts",
+      "coverage": "complete runner configuration; clearMocks and restoreMocks enabled"
+    },
+    {
+      "file": "web/vite.config.ts",
+      "coverage": "complete web root, build output and loopback development proxy configuration"
+    },
+    {
+      "file": "web/App.tsx",
+      "coverage": "complete authentication/session and retained Workspace mount path"
+    },
+    {
+      "file": "web/Workspace.tsx",
+      "coverage": "targeted parent callsites and readiness/epoch/lease props for hooks, MCP, prediction, process, composer, prompts, loaded threads, organization and settings"
+    },
+    {
+      "file": "web/components/Settings.tsx",
+      "coverage": "complete visited tab mounts, visible/connected/readiness propagation"
+    },
+    {
+      "file": "web/components/ExtensionsPanel.tsx",
+      "coverage": "complete project ownership and import/memory/diagnostics reachability"
+    },
+    {
+      "file": "web/components/LoadedThreadsPanel.tsx",
+      "coverage": "complete loaded-list/detail/unsubscribe contract and consent flow"
+    },
+    {
+      "file": "web/components/HookEventsPanel.tsx",
+      "coverage": "captureHook bounds, notification merge and provider effect lifecycle"
+    },
+    {
+      "file": "web/lib/input-modalities.ts",
+      "coverage": "complete effective model and explicit capability admission"
+    },
+    {
+      "file": "web/hooks/usePrompts.ts",
+      "coverage": "complete list/event/answer lifecycle"
+    },
+    {
+      "file": "web/lib/api.ts",
+      "coverage": "call timeout selection, terminal ownership recovery, mutation/draft-snapshot admission sections"
+    },
+    {
+      "file": "web/components/ProviderSettings.tsx",
+      "coverage": "provider form owner/resource scope, secret clearing and save handler"
+    },
+    {
+      "file": "web/components/McpPanel.tsx",
+      "coverage": "session/read scope, readiness, request ownership and final owner-remount wrapper"
+    }
+  ]
+}

@@ -11,7 +11,7 @@ beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 const failure = (code: string, status = 400) => ({ ok: false, status, json: async () => ({ ok: false, error: { code, message: code } }) });
-const session = { authenticated: true, csrf: 'synthetic-csrf', initialized: true, authenticationMode: 'account' };
+const session = { authenticated: true, operationRecoveryProtocol: 2, csrf: 'synthetic-csrf', initialized: true, authenticationMode: 'account' };
 const password = 'synthetic password only';
 function deferred() {
   let resolve!: (result: unknown) => void;
@@ -80,7 +80,7 @@ it('submits account creation once and keeps password whitespace intact', async (
   expect(fetch.mock.calls[0][0]).toBe('/api/account/setup');
   expect(JSON.parse(String(fetch.mock.calls[0][1].body))).toEqual({ token: 'synthetic-bootstrap-token', username: 'admin', password: value });
   await act(async () => response.resolve(ok(session)));
-  expect(onLogin).toHaveBeenCalledOnce();
+  await waitFor(() => expect(onLogin).toHaveBeenCalledOnce());
   expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain('synthetic-bootstrap');
 });
 
@@ -230,7 +230,7 @@ it('keeps invalid password errors local to security settings without logging out
 });
 
 it('revokes only the selected session and binds it to the observed account revision', async () => {
-  const f = await security(() => ok({ authenticated: true }));
+  const f = await security(() => ok({ authenticated: true, operationRecoveryProtocol: 2 }));
   fireEvent.click(screen.getByRole('button', { name: '撤销此设备登录' }));
   await screen.findByText('已撤销该设备的登录。');
   const [, init] = f.fetch.mock.calls.find(([url]) => url === '/api/account/sessions/revoke')!;

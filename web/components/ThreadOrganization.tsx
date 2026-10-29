@@ -17,22 +17,28 @@ export function SectionSettings({
   api,
   epoch,
   enabled,
+  visible = true,
   onChanged,
 }: {
   api: Api;
   epoch: string;
   enabled: boolean;
+  visible?: boolean;
   onChanged: () => void;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     sections = usePaged<ThreadSection>(
       api,
       'threadSection/list',
       {},
       `${epoch}:${action.revision}`,
+      visible,
     ),
     [edit, setEdit] = useState<{ id?: string; name: string; icon: string; color: string }>(),
     [remove, setRemove] = useState<ThreadSection>();
+  useEffect(() => {
+    if (!visible) setRemove(undefined);
+  }, [visible]);
   return (
     <section className="stack">
       <div className="section-heading">
@@ -168,6 +174,7 @@ export function ThreadOrganization({
   enabled,
   ready,
   idle,
+  visible = true,
   onChanged,
   onDeleted,
   onOpenThread,
@@ -179,30 +186,38 @@ export function ThreadOrganization({
   enabled: boolean;
   ready: boolean;
   idle: boolean;
+  visible?: boolean;
   onChanged: () => void;
   onDeleted: () => void;
   onOpenThread: (id: string) => void;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     key = `${epoch}:${threadId}:${action.revision}`;
   const thread = useResource(
     key,
     (signal) => api.call<ThreadReadResponse>('thread/read', { threadId }, signal),
-    Boolean(threadId),
+    visible && Boolean(threadId),
   );
-  const projects = usePaged<NativeProject>(api, 'nativeProject/list', {}, key, Boolean(threadId)),
-    sections = usePaged<ThreadSection>(api, 'threadSection/list', {}, key, Boolean(threadId));
+  const projects = usePaged<NativeProject>(
+    api, 'nativeProject/list', {}, key, visible && Boolean(threadId),
+  ),
+    sections = usePaged<ThreadSection>(
+      api, 'threadSection/list', {}, key, visible && Boolean(threadId),
+    );
   const related = usePaged<Thread>(
     api,
     'thread/list',
     { projectId: project?.id, archived: false, sortKey: 'section_position', sortDirection: 'asc' },
     key,
-    Boolean(project && threadId),
+    visible && Boolean(project && threadId),
   );
   const [projectEdit, setProjectEdit] = useState<string>(),
     [sectionEdit, setSectionEdit] = useState<{ sectionId: string; beforeThreadId: string }>(),
     [deleteConsent, setDeleteConsent] = useState(false),
     [memoryNotice, setMemoryNotice] = useState('');
+  useEffect(() => {
+    if (!visible) setDeleteConsent(false);
+  }, [visible]);
   const nativeProjectId = projectEdit ?? thread.data?.thread.projectId ?? '',
     sectionId = sectionEdit?.sectionId ?? thread.data?.thread.section?.id ?? '',
     beforeThreadId = sectionEdit?.beforeThreadId ?? '';
@@ -466,18 +481,21 @@ export function ThreadOrganization({
                   </button>
                 </div>
               </details>
-              <ThreadLinks
-                key={threadId}
-                api={api}
-                epoch={key}
-                threadId={threadId}
-                project={project}
-                enabled={enabled}
-                onChanged={onChanged}
-                onOpenThread={onOpenThread}
-              />
             </>
           )}
+          <div hidden={!thread.data} inert={!thread.data}>
+            <ThreadLinks
+              key={threadId}
+              api={api}
+              epoch={key}
+              threadId={threadId}
+              project={project}
+              enabled={enabled}
+              visible={visible && Boolean(thread.data)}
+              onChanged={onChanged}
+              onOpenThread={onOpenThread}
+            />
+          </div>
         </>
       )}
     </section>
@@ -489,6 +507,7 @@ function ThreadLinks({
   threadId,
   project,
   enabled,
+  visible,
   onChanged,
   onOpenThread,
 }: {
@@ -497,10 +516,11 @@ function ThreadLinks({
   threadId: string;
   project?: Project;
   enabled: boolean;
+  visible: boolean;
   onChanged: () => void;
   onOpenThread: (id: string) => void;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     [kind, setKind] = useState('link'),
     [value, setValue] = useState(''),
     [label, setLabel] = useState(''),
@@ -508,7 +528,9 @@ function ThreadLinks({
     [remove, setRemove] = useState<ThreadAttachment>(),
     [owner, setOwner] = useState<ThreadAttachment>();
   const key = `${epoch}:${action.revision}`,
-    attachments = usePaged<ThreadAttachment>(api, 'thread/attachment/list', { threadId }, key);
+    attachments = usePaged<ThreadAttachment>(
+      api, 'thread/attachment/list', { threadId }, key, visible,
+    );
   const owners = usePaged<{ threadId: string; archived: boolean }>(
     api,
     'thread/attachmentOwner/list',
@@ -518,8 +540,11 @@ function ThreadLinks({
       identityKey: owner?.identityKey,
     },
     `${key}:${owner?.id}`,
-    Boolean(owner && project),
+    visible && Boolean(owner && project),
   );
+  useEffect(() => {
+    if (!visible) setRemove(undefined);
+  }, [visible]);
   const add = async () => {
     setError('');
     try {

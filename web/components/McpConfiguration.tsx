@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { useResource } from '../hooks/useResource';
 import { useExtensionAction, ExtensionStatus, ReadState } from './ExtensionControls';
@@ -29,6 +29,8 @@ type Edit = {
   enabled: boolean;
   env?: Pair[];
   headers?: Pair[];
+  envNames?: string[];
+  headerNames?: string[];
   envHeaders?: Pair[];
   bearer: string;
   clearSecrets: boolean;
@@ -51,12 +53,15 @@ function PairFields({
   value,
   onChange,
   secret = true,
+  clearedNames,
 }: {
   label: string;
   value?: Pair[];
   onChange: (value?: Pair[]) => void;
   secret?: boolean;
+  clearedNames?: string[];
 }) {
+  const rows = value ?? clearedNames?.map((name) => ({ name, value: '' }));
   return (
     <fieldset className="stack">
       <legend>{label}</legend>
@@ -64,19 +69,23 @@ function PairFields({
         <input
           type="checkbox"
           checked={value !== undefined}
-          onChange={(event) => onChange(event.target.checked ? [] : undefined)}
+          onChange={(event) => onChange(event.target.checked ? rows ?? [] : undefined)}
         />
         替换此组值（不勾选保留原值，勾选且无行表示清空此组）
       </label>
-      {value?.map((row, index) => (
+      {value === undefined && Boolean(clearedNames?.length) && (
+        <p className="small muted">字段名称已保留，值已清除。重新勾选替换后填写本次要提交的值。</p>
+      )}
+      {rows?.map((row, index) => (
         <div className="mcp-pair" key={index}>
           <input
             aria-label={`${label}名称 ${index + 1}`}
             value={row.name}
+            disabled={value === undefined}
             maxLength={128}
             onChange={(event) =>
               onChange(
-                value.map((old, i) => (i === index ? { ...old, name: event.target.value } : old)),
+                rows.map((old, i) => (i === index ? { ...old, name: event.target.value } : old)),
               )
             }
           />
@@ -85,17 +94,19 @@ function PairFields({
             type={secret ? 'password' : 'text'}
             autoComplete="off"
             value={row.value}
+            disabled={value === undefined}
             maxLength={16384}
             onChange={(event) =>
               onChange(
-                value.map((old, i) => (i === index ? { ...old, value: event.target.value } : old)),
+                rows.map((old, i) => (i === index ? { ...old, value: event.target.value } : old)),
               )
             }
           />
           <button
             type="button"
             className="button small"
-            onClick={() => onChange(value.filter((_, i) => i !== index))}
+            disabled={value === undefined}
+            onClick={() => onChange(rows.filter((_, i) => i !== index))}
           >
             删除行
           </button>
@@ -114,32 +125,63 @@ function PairFields({
     </fieldset>
   );
 }
-export function McpConfiguration({
-  api,
-  projectId,
-  epoch,
-  enabled,
-  onChanged,
-}: {
+type McpConfigurationProps = {
   api: Api;
   projectId: string;
   epoch: string;
   enabled: boolean;
+  visible?: boolean;
   onChanged: () => void;
-}) {
-  const action = useExtensionAction(api, enabled, onChanged),
+};
+export function McpConfiguration(props: McpConfigurationProps) {
+  const owner = useRef({
+    api: props.api, csrf: props.api.csrf, projectId: props.projectId, generation: 0,
+  });
+  if (
+    owner.current.api !== props.api || owner.current.csrf !== props.api.csrf ||
+    owner.current.projectId !== props.projectId
+  )
+    owner.current = {
+      api: props.api, csrf: props.api.csrf, projectId: props.projectId,
+      generation: owner.current.generation + 1,
+    };
+  return <McpConfigurationForm key={owner.current.generation} {...props} />;
+}
+function McpConfigurationForm({
+  api,
+  projectId,
+  epoch,
+  enabled,
+  visible = true,
+  onChanged,
+}: McpConfigurationProps) {
+  const action = useExtensionAction(
+    api, enabled && visible, onChanged, JSON.stringify([epoch, visible, enabled]),
+  ),
     catalog = useResource(
       `${projectId}:${epoch}:${action.revision}`,
       (signal) => api.call<Catalog>('mcp/config/read', { projectId }, signal),
-      Boolean(projectId),
+      visible && Boolean(projectId),
     );
   const [edit, setEdit] = useState<Edit>(),
     [remove, setRemove] = useState<{ name: string; version: string }>(),
     [confirm, setConfirm] = useState(false),
     [compared, setCompared] = useState(false),
     [error, setError] = useState('');
-  const conflict = Boolean(edit && catalog.data?.userVersion !== edit.baseVersion),
-    removalConflict = Boolean(remove && catalog.data?.userVersion !== remove.version);
+  useEffect(() => {
+    setConfirm(false);
+    setCompared(false);
+    setEdit((current) => current
+      ? {
+          ...current,
+          envNames: current.env?.map((row) => row.name) ?? current.envNames,
+          headerNames: current.headers?.map((row) => row.name) ?? current.headerNames,
+          env: undefined, headers: undefined, clearSecrets: false,
+        }
+      : current);
+  }, [epoch, visible, enabled]);
+  const conflict = Boolean(edit && catalog.data && catalog.data.userVersion !== edit.baseVersion),
+    removalConflict = Boolean(remove && catalog.data && catalog.data.userVersion !== remove.version);
   const patch = (change: Partial<Edit>) => {
     setEdit((current) => (current ? { ...current, ...change } : current));
     setConfirm(false);
@@ -165,7 +207,10 @@ export function McpConfiguration({
     });
   };
   const save = async () => {
-    if (!edit || !confirm || conflict) return;
+    if (
+      !edit || !confirm || conflict || action.disabled || catalog.loading ||
+      !catalog.data || catalog.error
+    ) return;
     setError('');
     try {
       if (!edit.baseName && catalog.data?.servers.some((server) => server.name === edit.name))
@@ -188,6 +233,16 @@ export function McpConfiguration({
               ...(edit.bearer ? { bearerTokenEnvVar: edit.bearer } : {}),
             }),
       };
+      // An uncertain receipt must not leave newly supplied secrets available for replay.
+      setEdit((current) => current
+        ? {
+            ...current,
+            envNames: current.env?.map((row) => row.name) ?? current.envNames,
+            headerNames: current.headers?.map((row) => row.name) ?? current.headerNames,
+            env: undefined, headers: undefined, clearSecrets: false,
+          }
+        : current);
+      setConfirm(false);
       if (
         await action.run(
           'mcp/config/write',
@@ -221,7 +276,7 @@ export function McpConfiguration({
       {catalog.data && (
         <>
           <p className="small muted">
-            仅修改选中的用户层服务。未填写的敏感字段保持原值，其他服务保持原样。新输入的敏感值只在此表单内保留，关闭设置会清除。
+            仅修改选中的用户层服务。未填写的敏感字段保持原值，其他服务保持原样。切换设置类别会清除新填敏感值及其替换选择，并清除授权勾选；其他未保存编辑仍保留。
           </p>
           {catalog.data.inheritedServers.length > 0 && (
             <p className="workspace-warning">
@@ -297,7 +352,7 @@ export function McpConfiguration({
             void save();
           }}
         >
-          <fieldset disabled={action.busy} className="stack">
+          <fieldset disabled={action.busy || !visible} className="stack">
             <h4>{edit.baseName ? `编辑 ${edit.baseName}` : '新增服务'}</h4>
             {conflict && (
               <div className="workspace-conflict stack">
@@ -342,6 +397,8 @@ export function McpConfiguration({
                     transport: event.target.value as 'stdio' | 'http',
                     env: undefined,
                     headers: undefined,
+                    envNames: undefined,
+                    headerNames: undefined,
                     envHeaders: undefined,
                     bearer: '',
                   })
@@ -409,7 +466,10 @@ export function McpConfiguration({
                     添加参数
                   </button>
                 </fieldset>
-                <PairFields label="环境变量" value={edit.env} onChange={(env) => patch({ env })} />
+                <PairFields
+                  label="环境变量" value={edit.env} clearedNames={edit.envNames}
+                  onChange={(env) => patch({ env, envNames: undefined })}
+                />
               </>
             ) : (
               <>
@@ -425,7 +485,8 @@ export function McpConfiguration({
                 <PairFields
                   label="HTTP 请求头"
                   value={edit.headers}
-                  onChange={(headers) => patch({ headers })}
+                  clearedNames={edit.headerNames}
+                  onChange={(headers) => patch({ headers, headerNames: undefined })}
                 />
                 <PairFields
                   label="请求头环境变量引用"
@@ -500,7 +561,10 @@ export function McpConfiguration({
           <div className="inline">
             <button
               className="button danger"
-              disabled={action.disabled || !confirm || removalConflict}
+              disabled={
+                action.disabled || !confirm || removalConflict || catalog.loading ||
+                !catalog.data || Boolean(catalog.error)
+              }
               onClick={async () => {
                 if (
                   await action.run('mcp/config/write', {

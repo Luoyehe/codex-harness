@@ -28,30 +28,30 @@ export function useWorkspaceWatch(
     const observed = new Map<string, string>();
     if (!scope.enabled || !scope.connected) return;
     const read = async () => {
+      let pending: Promise<readonly [string, string]>[] = [];
       try {
-        const latest = await Promise.all(
-          paths.map(async (path) => {
-            workspacePath(path, true);
-            try {
-              const value = await api.call(
-                'workspace/metadata',
-                { projectId: scope.projectId, path },
-                controller.signal,
-              );
-              if (
-                value.path !== path ||
-                typeof value.kind !== 'string' ||
-                typeof value.revision !== 'string'
-              )
-                throw new Error('文件监测响应缺少可核对的版本。');
-              return [path, `${value.kind}:${value.revision}`] as const;
-            } catch (e) {
-              if (e instanceof RpcError && e.code === 'not_found')
-                return [path, 'missing'] as const;
-              throw e;
-            }
-          }),
-        );
+        pending = paths.map(async (path) => {
+          workspacePath(path, true);
+          try {
+            const value = await api.call(
+              'workspace/metadata',
+              { projectId: scope.projectId, path },
+              controller.signal,
+            );
+            if (
+              value.path !== path ||
+              typeof value.kind !== 'string' ||
+              typeof value.revision !== 'string'
+            )
+              throw new Error('文件监测响应缺少可核对的版本。');
+            return [path, `${value.kind}:${value.revision}`] as const;
+          } catch (e) {
+            if (e instanceof RpcError && e.code === 'not_found')
+              return [path, 'missing'] as const;
+            throw e;
+          }
+        });
+        const latest = await Promise.all(pending);
         if (controller.signal.aborted) return;
         const changed = latest
           .filter(([path, revision]) => observed.has(path) && observed.get(path) !== revision)
@@ -67,6 +67,9 @@ export function useWorkspaceWatch(
             error: message(e),
           }));
       } finally {
+        // Report failures promptly, but keep this poll's remaining reads owned
+        // until they settle so the next poll cannot overlap them.
+        await Promise.allSettled(pending);
         if (!controller.signal.aborted) timer = setTimeout(() => void read(), 5000);
       }
     };

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round10",
+  "reviewerId": "public-https-round10-web-process-ff3d4bec-fe1b-444a-a51d-3d349045f5fd",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "sourceDigestAfter": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "startedAt": "2026-10-27T05:28:03.720Z",
+  "completedAt": "2026-10-27T05:28:48.106Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/process-remote.test.tsx"
+  ],
+  "fileHashes": {
+    "web/tests/process-remote.test.tsx": "37e3de47bef359ebcb05148c634a1c30e667ad26b1518d271ec38d42bc4f4e18"
+  },
+  "method": "{\"scope\":\"Independent current-source full-body supplement for exactly web/tests/process-remote.test.tsx. Previously sealed reports are unchanged. No source edits or prior audit conclusions used.\",\"fullBody\":\"Read all 704 lines, including imports, routed fetch/error fixture, beforeEach/afterEach cleanup, interactive process fixtures, deferred promise utilities, every test body, all parameterized case definitions and fake-timer pairing helpers.\",\"processReview\":\"Traced control payloads and one-write assertions; Ctrl+C/EOF draft retention; unchanged versus revised stdin drafts; selection and owner A-to-B-to-A races; not_sent/unknown receipt recovery without command replay; epoch, connection, disconnect and unmount transitions; delayed spawn/removal preserving current selection and text; explicit execution-account authorization; argv preservation without shell reinterpretation; authoritative snapshot output without duplicate event bytes; disconnect cleanup.\",\"remoteReview\":\"Traced explicit environment registration and independent remote-access confirmation, ephemeral default, credential clearing and lack of implicit session selection, owner-only pairing reads and secret removal, client revocation identity, every late success/failure versus expiry/new-pair/current-check ordering, disconnect/environment/connection/epoch/unmount changes including repeated identities, abort signaling despite intentionally abort-ignoring transport, current-check release and duplicate-click exclusion. Checked each assertion against the actual actions and controlled promise resolution/rejection; verified fake timers, globals and mocks are restored by cleanup hooks.\",\"evidence\":[\".work/public-https-round10-web-process-start.json\"],\"seal\":\"Captured the file SHA-256 and snapshot(undefined, true) before review; rehashed the complete file and reran snapshot(undefined, true) over all 1,886 source paths at sealing. Both the file hash and full source digest stayed unchanged.\"}",
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "No Vitest run, full test suite, build, browser interaction, real process execution or remote integration was executed for this source-review supplement.",
+    "jsdom tests and controlled fetch/timer fixtures are reviewed source contracts; this does not establish current browser, OS process or real account pairing behavior.",
+    "This supplement covers only the assigned process-remote Web test file. Terminal tests and the remainder of Web coverage belong to separately assigned reviewers."
+  ],
+  "methodDetails": {
+    "scope": "Independent current-source full-body supplement for exactly web/tests/process-remote.test.tsx. Previously sealed reports are unchanged. No source edits or prior audit conclusions used.",
+    "fullBody": "Read all 704 lines, including imports, routed fetch/error fixture, beforeEach/afterEach cleanup, interactive process fixtures, deferred promise utilities, every test body, all parameterized case definitions and fake-timer pairing helpers.",
+    "processReview": "Traced control payloads and one-write assertions; Ctrl+C/EOF draft retention; unchanged versus revised stdin drafts; selection and owner A-to-B-to-A races; not_sent/unknown receipt recovery without command replay; epoch, connection, disconnect and unmount transitions; delayed spawn/removal preserving current selection and text; explicit execution-account authorization; argv preservation without shell reinterpretation; authoritative snapshot output without duplicate event bytes; disconnect cleanup.",
+    "remoteReview": "Traced explicit environment registration and independent remote-access confirmation, ephemeral default, credential clearing and lack of implicit session selection, owner-only pairing reads and secret removal, client revocation identity, every late success/failure versus expiry/new-pair/current-check ordering, disconnect/environment/connection/epoch/unmount changes including repeated identities, abort signaling despite intentionally abort-ignoring transport, current-check release and duplicate-click exclusion. Checked each assertion against the actual actions and controlled promise resolution/rejection; verified fake timers, globals and mocks are restored by cleanup hooks.",
+    "evidence": [
+      ".work/public-https-round10-web-process-start.json"
+    ],
+    "seal": "Captured the file SHA-256 and snapshot(undefined, true) before review; rehashed the complete file and reran snapshot(undefined, true) over all 1,886 source paths at sealing. Both the file hash and full source digest stayed unchanged."
+  }
+}

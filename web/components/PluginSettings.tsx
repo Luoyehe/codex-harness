@@ -13,14 +13,16 @@ export function PluginSettings({
   epoch,
   enabled,
   onChanged,
+  visible = true,
 }: {
+  visible?: boolean;
   api: Api;
   project: Project;
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged, `${project.id}:${epoch}`),
     key = `${project.id}:${epoch}:${action.revision}`;
   const [view, setView] = useState('catalog'),
     [term, setTerm] = useState(''),
@@ -43,14 +45,14 @@ export function PluginSettings({
         { projectId: project.id },
         signal,
       ),
-    view !== 'search',
+    visible && view !== 'search',
   );
   const search = usePaged<PluginSearchResult>(
     api,
     'plugin/search',
     { projectId: project.id, searchTerm: query, scope },
     `${key}:${query}:${scope}`,
-    view === 'search' && Boolean(query),
+    visible && view === 'search' && Boolean(query),
   );
   const detail = useResource(
     `${key}:${selected}`,
@@ -60,7 +62,7 @@ export function PluginSettings({
         { projectId: project.id, pluginId: selected },
         signal,
       ),
-    Boolean(selected),
+    visible && Boolean(selected),
   );
   const contents = useResource(
     `${key}:${selected}:${skill}`,
@@ -70,12 +72,14 @@ export function PluginSettings({
         { projectId: project.id, pluginId: selected, skillName: skill },
         signal,
       ),
-    Boolean(selected && skill),
+    visible && Boolean(selected && skill),
   );
   useEffect(() => {
     setConsent(false);
     setSkill('');
   }, [selected, detail.data?.previewHash]);
+  useEffect(() => { setConsent(false); setMarketConsent(false); setMarketAction(undefined); },
+    [visible, enabled, epoch]);
   const rows =
     view === 'search'
       ? search.items
@@ -99,7 +103,9 @@ export function PluginSettings({
       </a>
     ) : null;
   return (
-    <section className="stack">
+    <section className="stack" hidden={!visible} inert={!visible}
+      onClickCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}
+      onSubmitCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}>
       <div className="section-heading">
         <h3>插件与市场</h3>
         <button className="button small" onClick={action.refresh}>
@@ -375,7 +381,7 @@ export function PluginSettings({
           className="info-card stack"
           onSubmit={(event) => {
             event.preventDefault();
-            if (marketConsent)
+            if (visible && marketConsent)
               void action.run('marketplace/add', {
                 projectId: project.id,
                 source:

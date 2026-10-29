@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round9",
+  "reviewerId": "public-https-r9-root-runtime-tests-20261027",
+  "scopes": [
+    "runtime-protocol"
+  ],
+  "digest": "68def730337c6269a6dbde9b67f3a8a591f7810467fff73fce59f75365871b82",
+  "sourceDigestAfter": "68def730337c6269a6dbde9b67f3a8a591f7810467fff73fce59f75365871b82",
+  "startedAt": "2026-10-27T04:57:56.838Z",
+  "completedAt": "2026-10-27T04:58:29.051Z",
+  "complete": true,
+  "inspectedFiles": [
+    "tests/runtime/realtime.test.ts",
+    "tests/runtime/workflows.test.ts"
+  ],
+  "fileHashes": {
+    "tests/runtime/realtime.test.ts": "facf511de1e796e1c4b608104ca0050347a6d6be239f55a945f0381925226adf",
+    "tests/runtime/workflows.test.ts": "da0ecb321a7c74b7601920a7f8709d3d8b40b2f7b683c5e9dcd353860af51220"
+  },
+  "method": "Supplemental fresh full-body review of both test files, including native substitutes, setup and teardown, history and model proof boundaries, before/after-write notification races, goal continuation serialization, queue attachment persistence, partial results, realtime ownership, start/stop ordering, sequence admission, epoch teardown and bounded deadlines. Supplements the runtime reviewer assertion-contract and production review; no test execution is claimed.",
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "Static test review only; protocol substitutes do not establish external voice/provider success."
+  ]
+}

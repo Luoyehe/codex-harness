@@ -4,8 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
 import { ProviderSettings } from '../components/ProviderSettings';
+import { listOperations } from '../lib/operations';
+import { enabledButton } from './enabled-button';
 
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
+const settleFixtures: (() => Promise<unknown>)[] = [];
 const provider = (revision = 'r1') => ({
   revision, kind: 'responses', baseUrl: 'https://example.invalid/v1', hasApiKey: false, models: [],
 });
@@ -16,13 +19,19 @@ const discovered = () => ({
 const applied = () => ({ ...provider('r2'), applied: true, requiresConfirmation: false });
 function setup(handler: (call: Call) => unknown) {
   const calls: Call[] = [], api = new Api(), onChanged = vi.fn();
+  // Keep the real Api/IndexedDB path and observe when its receipt writes finish.
+  const mutations = vi.spyOn(api, 'mutate');
+  const settle = () => Promise.allSettled(
+    mutations.mock.results.filter((result) => result.type === 'return').map((result) => result.value),
+  );
+  settleFixtures.push(settle);
   vi.stubGlobal('fetch', vi.fn(async (_url: unknown, init: RequestInit) => {
     const call = JSON.parse(String(init.body)) as Call;
     calls.push(call);
     return { ok: true, status: 200, json: async () => ({ ok: true, result: await handler(call) }) };
   }));
   const view = render(<ProviderSettings api={api} epoch="one" onChanged={onChanged} />);
-  return { calls, api, onChanged, view };
+  return { calls, api, onChanged, view, settle };
 }
 async function discover() {
   fireEvent.click(await screen.findByRole('button', { name: '发现模型' }));
@@ -43,7 +52,12 @@ function confirm() {
   return button;
 }
 beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(async () => {
+  await act(async () => {
+    for (const settle of settleFixtures.splice(0)) await settle();
+  });
+  cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals();
+});
 
 async function prepareManualCatalog() {
   const manual = await screen.findByLabelText('手动添加模型 ID');
@@ -106,7 +120,7 @@ it('retains discovered rows in ProviderSettings until explicit capability applic
   fireEvent.click(apply);
   fireEvent.click(apply);
   await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
-  expect(calls.filter(call => call.method === 'system/provider/read')).toHaveLength(2);
+  await waitFor(() => expect(calls.filter(call => call.method === 'system/provider/read')).toHaveLength(2));
   const changes = calls.filter(call => call.method === 'system/models/refresh');
   expect(changes).toHaveLength(2);
   expect(changes[1]!.params).toMatchObject({
@@ -131,7 +145,7 @@ it('queries an unknown discovery by original identity, retaining recovered rows 
     };
   });
   await discover();
-  const recover = await screen.findByRole('button', { name: '查询原目录操作回执' });
+  const recover = await enabledButton({ name: '查询原目录操作回执' });
   expect((screen.getByRole('button', { name: '发现模型' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(recover);
   await screen.findByText('原目录请求仍待确认，不能重复发现或应用。');
@@ -144,6 +158,7 @@ it('queries an unknown discovery by original identity, retaining recovered rows 
   ]);
   expect(calls.filter(call => call.method === 'system/provider/read')).toHaveLength(1);
   expect(onChanged).not.toHaveBeenCalled();
+  await waitFor(() => expect((screen.getByRole('checkbox', { name: 'model-x' }) as HTMLInputElement).disabled).toBe(false));
   fireEvent.click(confirm());
   await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
   expect(calls.filter(call => call.method === 'system/models/refresh')).toHaveLength(2);
@@ -162,7 +177,7 @@ it('refreshes once after an unknown application has an explicit applied receipt,
   await discover();
   await screen.findByRole('checkbox', { name: 'model-x' });
   fireEvent.click(confirm());
-  const recover = await screen.findByRole('button', { name: '查询原目录操作回执' });
+  const recover = await enabledButton({ name: '查询原目录操作回执' });
   expect(onChanged).not.toHaveBeenCalled();
   fireEvent.click(recover);
   fireEvent.click(recover);
@@ -185,7 +200,7 @@ it.each(['discover', 'apply'] as const)('does not publish a late %s receipt into
     await screen.findByRole('checkbox', { name: 'model-x' });
     fireEvent.click(confirm());
   }
-  fireEvent.click(await screen.findByRole('button', { name: '查询原目录操作回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原目录操作回执' }));
   await waitFor(() => expect(finish).toBeTypeOf('function'));
   revision = 'r3';
   view.rerender(<ProviderSettings api={api} epoch="two" onChanged={onChanged} />);
@@ -194,6 +209,9 @@ it.each(['discover', 'apply'] as const)('does not publish a late %s receipt into
     operationId, method: 'system/models/refresh', state: 'accepted',
     result: kind === 'discover' ? discovered() : applied(),
   }));
+  await waitFor(async () =>
+    expect((await listOperations()).find((operation) => operation.id === operationId)?.state).toBe('accepted'),
+  );
   expect(screen.queryByRole('checkbox', { name: 'model-x' })).toBeNull();
   expect(onChanged).not.toHaveBeenCalled();
   expect(calls.filter(call => call.method === 'system/provider/read')).toHaveLength(2);
@@ -201,7 +219,7 @@ it.each(['discover', 'apply'] as const)('does not publish a late %s receipt into
 
 it('does not refresh from a late direct application acknowledgement after provider replacement', async () => {
   let revision = 'r1', finish!: (value: unknown) => void;
-  const { api, view, onChanged } = setup(call => {
+  const { api, view, onChanged, settle } = setup(call => {
     if (call.method === 'system/provider/read') return provider(revision);
     if (!call.params.confirmCapabilities) return discovered();
     return new Promise(resolve => { finish = resolve; });
@@ -213,7 +231,10 @@ it('does not refresh from a late direct application acknowledgement after provid
   revision = 'r3';
   view.rerender(<ProviderSettings api={api} epoch="two" onChanged={onChanged} />);
   await screen.findByRole('button', { name: '发现模型' });
-  await act(async () => finish(applied()));
+  await act(async () => {
+    finish(applied());
+    await settle();
+  });
   expect(onChanged).not.toHaveBeenCalled();
   expect(screen.queryByRole('checkbox', { name: 'model-x' })).toBeNull();
 });
@@ -230,7 +251,7 @@ it('keeps discovery gated when an accepted receipt carries a different configura
     throw new Error('lost discovery response');
   });
   await discover();
-  fireEvent.click(await screen.findByRole('button', { name: '查询原目录操作回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原目录操作回执' }));
   await screen.findByText('发现结果与当前配置版本不匹配，请重新读取供应商配置。');
   expect(screen.queryByRole('checkbox', { name: 'model-x' })).toBeNull();
   expect((screen.getByRole('button', { name: '发现模型' }) as HTMLButtonElement).disabled).toBe(true);
@@ -251,7 +272,7 @@ it.each(['identity', 'method'])('rejects a recovered catalog receipt with the wr
     throw new Error('lost discovery response');
   });
   await discover();
-  fireEvent.click(await screen.findByRole('button', { name: '查询原目录操作回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原目录操作回执' }));
   await screen.findByText('目录操作回执身份不匹配。');
   expect(screen.queryByRole('checkbox', { name: 'model-x' })).toBeNull();
   expect((screen.getByRole('button', { name: '发现模型' }) as HTMLButtonElement).disabled).toBe(true);
@@ -274,7 +295,7 @@ it('does not treat a successful RPC without applied proof as an applied catalog'
 
 it.each(['discover', 'apply'] as const)('locks directory edits while a deferred %s can replace them', async kind => {
   let finish!: (value: unknown) => void;
-  const { calls, onChanged } = setup(call => {
+  const { calls, onChanged, settle } = setup(call => {
     if (call.method === 'system/provider/read') return provider();
     return new Promise(resolve => { finish = resolve; });
   });
@@ -283,10 +304,13 @@ it.each(['discover', 'apply'] as const)('locks directory edits while a deferred 
   else fireEvent.click(apply);
   await waitFor(() => expect(finish).toBeTypeOf('function'));
   await expectCatalogLocked();
-  await act(async () => finish(kind === 'discover' ? discovered() : applied()));
+  await act(async () => {
+    finish(kind === 'discover' ? discovered() : applied());
+    await settle();
+  });
   expect(calls.filter(call => call.method === 'system/models/refresh')).toHaveLength(1);
   if (kind === 'discover') {
-    expect((screen.getByRole('checkbox', { name: 'model-x' }) as HTMLInputElement).disabled).toBe(false);
+    await waitFor(() => expect((screen.getByRole('checkbox', { name: 'model-x' }) as HTMLInputElement).disabled).toBe(false));
     expect(onChanged).not.toHaveBeenCalled();
   } else {
     expect(onChanged).toHaveBeenCalledTimes(1);
@@ -305,13 +329,15 @@ it.each(['discover', 'apply'] as const)('keeps unknown %s edits frozen and resto
   const apply = await prepareManualCatalog();
   if (kind === 'discover') await discover();
   else fireEvent.click(apply);
-  const recover = await screen.findByRole('button', { name: '查询原目录操作回执' });
+  const recover = await enabledButton({ name: '查询原目录操作回执' });
   await expectCatalogLocked();
   fireEvent.click(recover);
   await waitFor(() => expect(finish).toBeTypeOf('function'));
   expect((screen.getByLabelText('手动添加模型 ID') as HTMLInputElement).disabled).toBe(true);
   expect((screen.getByRole('checkbox', { name: 'model-x' }) as HTMLInputElement).disabled).toBe(true);
   await act(async () => finish({ operationId, method: 'system/models/refresh', state: 'not_sent' }));
+  await screen.findByText('已确认原目录请求未发送；再次操作需要你明确选择。');
+  await waitFor(() => expect((screen.getByRole('checkbox', { name: 'model-x' }) as HTMLInputElement).disabled).toBe(false));
   expect((screen.getByLabelText('手动添加模型 ID') as HTMLInputElement).value).toBe('next-model-draft');
   expect((screen.getByLabelText('model-x：允许覆盖的推理强度') as HTMLInputElement).value).toBe('medium, high');
   expect((screen.getByRole('checkbox', {

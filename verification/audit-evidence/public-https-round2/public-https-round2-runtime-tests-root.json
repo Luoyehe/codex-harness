@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round2",
+  "reviewerId": "public-r2-runtime-tests-root",
+  "digest": "99f0ceea026168ac9763f9e9ad16df4c89ce14f5f2c05a3507cdb35466d09428",
+  "sourceDigestAfter": "99f0ceea026168ac9763f9e9ad16df4c89ce14f5f2c05a3507cdb35466d09428",
+  "startedAt": "2026-10-27T01:32:48.917Z",
+  "completedAt": "2026-10-27T01:47:40.113Z",
+  "complete": true,
+  "scopes": [
+    "runtime-protocol"
+  ],
+  "findings": [],
+  "skipped": [],
+  "inspectedFiles": [
+    "tests/runtime/README.md",
+    "tests/runtime/account-tools.test.ts",
+    "tests/runtime/approval-native.test.ts",
+    "tests/runtime/attachments.test.ts",
+    "tests/runtime/automation-native.test.ts",
+    "tests/runtime/cli-diagnostics-native.test.ts",
+    "tests/runtime/cli-diagnostics.test.ts",
+    "tests/runtime/cli-terminals.test.ts",
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/dev-resources-special-file-fixture.mjs",
+    "tests/runtime/dev-resources.test.ts",
+    "tests/runtime/device-login.test.ts",
+    "tests/runtime/entrypoint.test.ts",
+    "tests/runtime/extensions-native.test.ts",
+    "tests/runtime/extensions.test.ts",
+    "tests/runtime/fixture-model-catalog.json",
+    "tests/runtime/fixture-values.ts",
+    "tests/runtime/gateway-native.test.ts",
+    "tests/runtime/gateway-oauth-native.test.ts",
+    "tests/runtime/guardian-native.test.ts",
+    "tests/runtime/imports.test.ts",
+    "tests/runtime/input-context.test.ts",
+    "tests/runtime/input-modalities.test.ts",
+    "tests/runtime/input-native.test.ts",
+    "tests/runtime/loopback-provider.ts",
+    "tests/runtime/mcp-configuration.test.ts",
+    "tests/runtime/mcp-fixture.mjs",
+    "tests/runtime/mcp-native.test.ts",
+    "tests/runtime/mcp-oauth-fixture.mjs",
+    "tests/runtime/mcp-oauth.test.ts",
+    "tests/runtime/mcp-schema.test.ts",
+    "tests/runtime/mcp.test.ts",
+    "tests/runtime/native-env.test.ts",
+    "tests/runtime/native-fixture.mjs",
+    "tests/runtime/native-smoke.test.ts"
+  ],
+  "method": "Independent test-contract audit. Every assigned code file parsed with Rolldown/Oxc AST and every extracted test title, complete assertion expression, import, and selected side-effect call manually reviewed in bounded outputs. Reviewed authentication ownership, dispatch uncertainty, resource caps, native fixtures, cleanup and regression assertions. Full semantic reads additionally cover README, approval-native, guardian-native, defaults-lifecycle, entrypoint, loopback-provider, model catalog, fixture-values, mcp-fixture, mcp-oauth-fixture, native-fixture and dev-resources-special-file-fixture. Other files receive structural and contract review, not a claim of full manual body review. Each byte hash and complete source digest checked against the frozen inventory.",
+  "details": {
+    "files": 35,
+    "testDeclarations": 117,
+    "assertionExpressions": 616
+  },
+  "limitations": [
+    "Source audit only; no new test execution or external integration acceptance."
+  ]
+}

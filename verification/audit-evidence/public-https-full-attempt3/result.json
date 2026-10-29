@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "status": "failed",
+  "fullSuitePassed": false,
+  "sourceDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "completedAt": "2026-10-29T19:50:11.234Z",
+  "auditRounds": [
+    "public-https-round24",
+    "public-https-round25"
+  ],
+  "authorizationSha256": "2e5d30368d58c7e39f0068974dc03752b7ab191fe5f6c10dcf9719b450af62cc",
+  "windows": [
+    {
+      "execution": {
+        "path": ".work/public-full-windows-dKKRFt/execution.json",
+        "sha256": "669cf147337f8c110cb20df526ca1d8154e739202effa0ce951d794053f71352"
+      },
+      "report": {
+        "path": ".work/public-full-windows-dKKRFt/result-windows.json",
+        "sha256": "ccbaaba802f8e67cb8597a4967825e4c595ebc8774b1bc89822d97555c8edab2"
+      },
+      "vitest": {
+        "path": ".work/test-results/run-GZ36Wo/vitest.json",
+        "sha256": "0ce057655ff8aadf7277fd4b79ce64146dea31feeb8de98226d726e5eb1495f7"
+      },
+      "exitCode": 1,
+      "build": "passed",
+      "javascript": {
+        "total": 1531,
+        "counts": {
+          "passed": 1526,
+          "skipped": 5
+        },
+        "failed": []
+      },
+      "python": {
+        "exitCode": 3,
+        "total": 383,
+        "counts": {
+          "passed": 288,
+          "skipped": 95
+        }
+      },
+      "go": {
+        "exitCode": 1,
+        "total": 0,
+        "counts": {},
+        "checks": [
+          {
+            "name": "module-verification",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "test-discovery",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "failed",
+            "exitCode": 1
+          }
+        ]
+      }
+    },
+    {
+      "execution": {
+        "path": ".work/public-full-windows-h4P7N8/execution.json",
+        "sha256": "b6057301e101a335592a52ec956f1b990c886aec1665d9fc303b6ea71bb8e123"
+      },
+      "report": {
+        "path": ".work/public-full-windows-h4P7N8/result-windows.json",
+        "sha256": "a615202d8fa9991a991e08b1cac4819e4aca3fd6093333778f77228738a58dce"
+      },
+      "vitest": {
+        "path": ".work/test-results/run-VRluYQ/vitest.json",
+        "sha256": "db1199fbbf214b9cf97c5b6c8fb75995d6394e44d5a43c6cea2d67ea26a1cfb8"
+      },
+      "exitCode": 1,
+      "build": "passed",
+      "javascript": {
+        "total": 1531,
+        "counts": {
+          "passed": 1525,
+          "skipped": 5,
+          "failed": 1
+        },
+        "failed": [
+          {
+            "file": "web/tests/terminal.test.tsx",
+            "name": "terminal ownership and bounded input closes a startup whose bounded buffer overflowed instead of silently losing its output",
+            "status": "failed"
+          }
+        ]
+      },
+      "python": {
+        "exitCode": 3,
+        "total": 383,
+        "counts": {
+          "passed": 288,
+          "skipped": 95
+        }
+      },
+      "go": {
+        "exitCode": 0,
+        "total": 20,
+        "counts": {
+          "passed": 20
+        },
+        "checks": [
+          {
+            "name": "module-verification",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "test-discovery",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "go-test",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "executable-build",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "version-plugin-probe",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          }
+        ]
+      }
+    }
+  ],
+  "linux": {
+    "final": {
+      "path": ".work/public-full-attempt3/evidence/linux-final.json",
+      "sha256": "ac08ab7c736145108da6a890635cf71ff4b8fa73dfd8f73f058bb2f5b104f260"
+    },
+    "cleanup": {
+      "path": ".work/public-full-attempt3/evidence/dispatch/owned-cleanup.json",
+      "sha256": "c75836e5915bfd57958462e53e006d8e3cc289a2231a6bd02685a45fa55726ce"
+    },
+    "platforms": {
+      "linux": {
+        "report": {
+          "path": ".work/public-full-attempt3/evidence/result-linux.json",
+          "sha256": "7320f69caa9349455f8897c25da58fc65f838f57eda7b7194ced98998e73382c"
+        },
+        "exitCode": 3,
+        "total": 1934,
+        "counts": {
+          "passed": 1919,
+          "skipped": 15
+        },
+        "failed": []
+      },
+      "linux-root": {
+        "report": {
+          "path": ".work/public-full-attempt3/evidence/result-linux-root.json",
+          "sha256": "9d3a0d96f9e84f0e672af704f49095dfc8e53adfdbb76d66ad75105203a91159"
+        },
+        "exitCode": 1,
+        "total": 214,
+        "counts": {
+          "passed": 213,
+          "failed": 1
+        },
+        "failed": [
+          {
+            "id": "tests/deploy/root/test_provider_extended.py::ExtendedProviderGenerationTests.test_fixed_native_token_verb_returns_only_managed_token_and_root_is_denied",
+            "file": "tests/deploy/root/test_provider_extended.py",
+            "status": "failed"
+          }
+        ]
+      }
+    }
+  },
+  "ownedProcessesStopped": true,
+  "linuxMainServicesUnchanged": true,
+  "authorizationRetired": true,
+  "causes": [
+    "First Windows Go compilation ran out of local disk space; original report retained. Four completed-run build caches were preserved on another volume, not deleted.",
+    "Linux root inherited an extra CAP_SETUID bit from the isolated test coordinator; the current native launcher correctly rejected it. Operational-helper repair is independently reviewed separately.",
+    "Windows retry exposed a terminal fixture that asserted completion before its real IndexedDB acknowledgement finished; a deterministic gated reproduction confirmed the wait gap."
+  ],
+  "note": "No passing reconciliation, deployment, certificate order or release occurred. Preserve both Windows runs and all Linux/diagnostic evidence. The terminal test correction changes source bytes and requires a new two-round complete clean audit gate before another full run."
+}

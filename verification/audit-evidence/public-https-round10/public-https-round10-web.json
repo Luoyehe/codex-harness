@@ -1,0 +1,1818 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round10",
+  "reviewerId": "public-https-round10-web-independent-20261027",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "sourceDigestAfter": "81e2da6e8a58c49746483cd2fd59e81cc8a0d6143980364eea8f8b0c3cd7cc89",
+  "startedAt": "2026-10-27T05:15:41.499Z",
+  "completedAt": "2026-10-27T05:31:08.963Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpAuthorization.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extension-mcp-drafts.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/preview-server.test.ts",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx",
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings-drafts.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "fileHashes": {
+    "web/App.tsx": "91a89559632136bd3bfa72cdae87278b43c563bcce97d7edba68b4265a685e9f",
+    "web/VERIFICATION.md": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571",
+    "web/Workspace.tsx": "83a2e3919b18e2650f44e1dc0ea483bed80f8535ccd8d0dd71496d1bd0b3dbcb",
+    "web/components/AccountSettings.tsx": "b4491e413371b3337bc9d9c52dfaa3ea8cd5d12bec9491504bdccf7f369d65aa",
+    "web/components/AccountToolsPanel.tsx": "3f21a43499727e83813b27e5d3f29d0018095b00f41e96c9e78c68a3e2891c55",
+    "web/components/AdminSettings.tsx": "7de67def03f22a9721f1cb5383f20bea1d3393063077bb6d319599b45e3304b4",
+    "web/components/ArchiveActions.tsx": "f4c8e6dd710ec398484683b8dfd9bb8aa1625c643fc2b51e8301d3a96c171a25",
+    "web/components/AttachmentButton.tsx": "54e3f7a50f0ef98025a7151587ffc9b964f5310d703dba782e82b169460e7f66",
+    "web/components/AutomationForm.tsx": "3a1c887626f7d85bde34e8b12c78bed384bc453fc7f8ee6dbb48f28ffc71e3be",
+    "web/components/AutomationsPanel.tsx": "1b8c11f808c6101eb2a01dc3765c1ad5efe4abe09e7e108f39825b505ae7e970",
+    "web/components/CliDiagnosticsPanel.tsx": "0df99646ee6aa93898cefa54d35b47c3ddfcca33d33c6b59b11550f245d60f99",
+    "web/components/CompactThreshold.tsx": "525c896550f17df6449a09e4d07d7e71bf8c5df183618043160c76d1c1005206",
+    "web/components/Composer.tsx": "841dff16c6bffffa2e594d8e610b118db577d862928cfed78cfb8c6f7ffc0a94",
+    "web/components/ComposerOptions.tsx": "bc95f520889047ebeeac725a04f3ebda3e94ab9f0782f3aec8e73f33c1fb6f96",
+    "web/components/ConfigSettings.tsx": "87b49472bc8ed3ee4eecad3204c25307737772d1e3870b5b5ef0cc2d67a91042",
+    "web/components/CreditNudge.tsx": "0582f6d8f01a13d245a1885ce795b697ed3e33c86145c9ca264b5efcae7dc11e",
+    "web/components/DiagnosticsPanel.tsx": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916",
+    "web/components/Dialog.tsx": "27f42ab0524dbb1faf42ef191587461205e0edec339cf275967e75de98800228",
+    "web/components/DraftsSettings.tsx": "5808f941af259d3b152762358e80802ecdbca1495d9b715a753f4d4fa2cddc18",
+    "web/components/EnvironmentPicker.tsx": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4",
+    "web/components/ExtensionControls.tsx": "044ddf20fd959c373b0dc2fe5c32a473da90e2b463e6a733a1eb1f981f1c53f1",
+    "web/components/ExtensionsPanel.tsx": "d00dccff018a810cdeb0cd9e5919d9599f898acb2fce77727ad302ada70e24f9",
+    "web/components/FileEditor.tsx": "19c6e8f1fa143349462075e4a88921d75da64e5d5dd4e7c68506a8ef24c7d594",
+    "web/components/GuardianReviewPanel.tsx": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6",
+    "web/components/HistoryTools.tsx": "d2ebb85323b008d4403902691e2d6a6cdaf3f903914c8aa7038f5c5a0d206e55",
+    "web/components/HookEventsPanel.tsx": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f",
+    "web/components/Icon.tsx": "ec958b738c8d362b203b189df4b13842c5dbf6aecbc50c268890c53572136c35",
+    "web/components/ImportPanel.tsx": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d",
+    "web/components/InputContextPicker.tsx": "1a0398c76f8aaff0b53f4b8bce70e9a68f92e25f1bf4ba957aaec689d4e1c2c3",
+    "web/components/InputPreferences.tsx": "2532173fc09717411399d4dc1a0387b575e6b467eefc35dcea8672f4292f9e3f",
+    "web/components/LoadedThreadsPanel.tsx": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db",
+    "web/components/Login.tsx": "40d5ac7e3d5cca4a0d90986ff865d371846d6ac4849546672545360ec1cca089",
+    "web/components/McpArguments.tsx": "e65527a013a7c2a53dc6b612858fcdd86cb9b435b9e370f7535c69d5e15fc25b",
+    "web/components/McpAuthorization.tsx": "91f4ce799ad44d1c305f75a222971178a7a50dd00c2390ba15e89c050e49026d",
+    "web/components/McpConfiguration.tsx": "217ed6799d1d47a4e8930a374b34dde541cb1a45c1b9cbe9dde6abd4b155384a",
+    "web/components/McpContent.tsx": "6f167a68daf53902af5887ecba8d847b38833fc07a91c69df5acf6aef91945e7",
+    "web/components/McpPanel.tsx": "688ad8d054583402d0bec82e4f841e77886f016746652ff9f4998b4b8085b045",
+    "web/components/MemorySettings.tsx": "f04b8722ca2251f45cac83c771165c40178f3d7376214f643a3bb32df9a1af95",
+    "web/components/MessageItem.tsx": "bb4595e66acb8920a01ffa57c6b8c706fde04371b1d7f91202844825548a93c1",
+    "web/components/MessageMedia.tsx": "4e14e590d9b38e645d9eeee3f59b543f999a83f62bfcc00fe60e767328aab40e",
+    "web/components/Messages.tsx": "e5b73b1315101ddd60f5e90ee57c8039e57415aaa05463fb23489d5223f52888",
+    "web/components/ModelCatalog.tsx": "090083b6e90b3083007a3a0f691aeccbffea71ef2fc13d27fc55b1ec9dd60d55",
+    "web/components/NativeProjects.tsx": "6b8d82eb966a6b63c2374c7ae82da7d50c7b2eab762f3b9bf7aa1a853ed3383d",
+    "web/components/OrganizationPanel.tsx": "280d5c5a900ecd545a421f314abc7a3efbf50b0cadb162a26067861b54a55e23",
+    "web/components/PluginSettings.tsx": "e083703b272543372866513ea9540fa4946528b4b59023feec6103a4cbf06d5e",
+    "web/components/PluginSharing.tsx": "b10438ffca1311ceed046dd1f4a2f6cf3c19c2ae45fb80bbb2984e318b44f287",
+    "web/components/PredictionPanel.tsx": "00dd87a7297a4fee66e1aff896125c9f06c547346aa0942bf9b2d34cef7c917f",
+    "web/components/ProcessPanel.tsx": "f5f86f43f8104fb8fb039ffa550981f6cff9603bc6e9f3c29bf46c5232b461c0",
+    "web/components/ProjectDialog.tsx": "c6b522602700eef9bc8979beca1c1f49b725b6c3b51f66492567998b109135b0",
+    "web/components/ProjectTrustSettings.tsx": "1664881a8a5e899c1ac4b863bfa7a4b3a76057d6a3dc7d9db4fc93731e2ef88f",
+    "web/components/PromptFields.tsx": "710468a00100aac797b287d05636630d6a2c859bfe65a32dc3e145cee1454fd9",
+    "web/components/Prompts.tsx": "4eb8808bb298b92c4e487b115dd22bed83ae331f23fd00932ee3c45d805a6827",
+    "web/components/ProviderProfiles.tsx": "040c17c1c75531215ac8cf2957f1db3714e5f30afc1a40f0c04df307175d31b3",
+    "web/components/ProviderSettings.tsx": "3d6ab621ea57a5079d47b46b0e133af4ee5df982d5e44ba8bdf27acb9d62e788",
+    "web/components/RealtimePanel.tsx": "5cc9ba57a8f63585eaa45242a0d57d35329771917a105e9dca4e61aed581e1e8",
+    "web/components/ReceiptMaintenance.tsx": "c78781236964ce8d63a6ff94dd2b91a5c03f3d12ab3cc0b1e1210d34cfae72d5",
+    "web/components/Recovery.tsx": "e47bc9d3cdfaa7cae2c16d8982afb1f925a3d6e2cabd640513c068a83a86c61f",
+    "web/components/RemoteSettings.tsx": "0e7bf5015327bdf9214b16ce175db7a0a0b13230a1fa69e7c66ba124f81ef8a3",
+    "web/components/RenameDialog.tsx": "e52d346a6a900fb171c3d387eb48156dc62145204ea66ae6f9f0fea47e6a2893",
+    "web/components/RuntimeInsights.tsx": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a",
+    "web/components/SafeMarkdown.tsx": "20a64b0068bb207f5596b545228551311474eb05541e47559c3c38619b3563e2",
+    "web/components/SecuritySettings.tsx": "36d3b90e1d2fb7087d57897a48835a67dca072f505fa2bfd4e59f1a6330bcb2c",
+    "web/components/Settings.tsx": "f87ba5b6be7d93b7b27a861f70b613a3cb56db44c2e6430e3cc70a3604472134",
+    "web/components/Sidebar.tsx": "18983bf677a7ae99d313d21142fa929c944c47248cbe05ab815e271197f5dcae",
+    "web/components/SkillLibraryTools.tsx": "ce1b644be5958ce12a1ae7e2fce32b24b292e6aa6046b98757762f2e966f17e2",
+    "web/components/SkillSettings.tsx": "0b95d282aef2c29b3df7ae70e746a36d321eee4931ded92aefb8ee941342202d",
+    "web/components/TaskPanel.tsx": "e0eaa97dba2b357a04b3792f9c3aa0e44b2dfc8095e9aa2192e86398dc95f762",
+    "web/components/TerminalPanel.tsx": "428ff45d7d79334de715fa784b465962523a2bcbda18022be111571e35d75fff",
+    "web/components/ThreadExecutionSettings.tsx": "42b70054b1fd6f8e09a36fdc3f95899b70671448067ab6c5b41c420b2720cefb",
+    "web/components/ThreadOrganization.tsx": "2af381113e0896274e2fa701e99233305b7aebf763c432190e18832a98f030d3",
+    "web/components/ThreadTerminals.tsx": "984cf27cde2a740e7eeb32bd1b829166a05b87dc0b234f09875abf85e3f2e0e7",
+    "web/components/Welcome.tsx": "790850a8ae4d371998ee6924e149cd6d07725803c7bd8e594d1514a8a5128ae8",
+    "web/components/WorkspaceCommit.tsx": "4c2afe63e614182c403d0b212b2f8bf124204188f408de0c52215957c23d19b5",
+    "web/components/WorkspaceDownload.tsx": "ecde699159eb97d5d02ff3bfcd1bc0093a097b753c38697d23ec1bd90a4b1135",
+    "web/components/WorkspaceGit.tsx": "4fd0c631327fe29f9a3270e992c227089e6e539e00fdb8d0dcbe8aec9a863600",
+    "web/components/WorkspaceIndex.tsx": "a2d1a6aac59dc431e0f38ae3c445605686a0f5b0b08d7e0af6aa7704deb9d0ce",
+    "web/components/WorkspaceIndexRecovery.tsx": "f05e5fb6fe652a2eed017d347e7c715b4b5cc1972619a3363c81a110fce9b96f",
+    "web/components/WorkspacePanel.tsx": "ac8ae55223130e9160554705c3416c5966225faac2b3b06df64b42be9d4332f0",
+    "web/components/WorkspaceRecovery.tsx": "2913c69e0ac69b76b9d3ea119268dc69c887ccf1a3ca27db5b2c30c21dc68a75",
+    "web/components/WorkspaceSearch.tsx": "128fa4b17135e355fe6e948aac90945e246e71e27f17878a8d78fbee00ce06c3",
+    "web/components/WorkspaceWorktrees.tsx": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb",
+    "web/hooks/useAutomationRuns.ts": "2282f3aff02c49ccf012959964526db1cff674c898748738269329ca4141fc79",
+    "web/hooks/useConversation.ts": "8b251b4d4513d6511d9db6780c9dba47ad07bcbe08cfd371723f3f2fbd4d7ff2",
+    "web/hooks/useDraft.ts": "208e9778e9d5191963807a66aa7d25510b20873499d5e40a8308a1bbbfb887a3",
+    "web/hooks/useEvents.ts": "d63a5091a9ebfb984f132e5390e2730722b7ed6a703f8e8fadeb88649f810e5f",
+    "web/hooks/usePaged.ts": "faf28e89a288735eb27bf6449256e805a3ae37ea7c8c9eed68ae18ce8c3038c3",
+    "web/hooks/usePrompts.ts": "b13628ce86618553bcd09f3c475c9ce408fbe564cc45d66ed5605400bac39ada",
+    "web/hooks/useResource.ts": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882",
+    "web/hooks/useResume.ts": "6a56e7afe50f82279617831b9d92ae2ad5ed7b542c29b2ec5e02c0111fa40031",
+    "web/hooks/useWorkflow.ts": "de1847284c0bbba6f5a796bf5becf78df5643b45591079174c7c6c6ed23b64b2",
+    "web/hooks/useWorkspaceWatch.ts": "3124afd820bec9be3cae5055def2fd1eeabcfba3e1e56d2a546a5adcddb017ba",
+    "web/index.html": "e87a9b75a52a29b482759e8f03be846b573901d5aeeefa9977ab6cc735aa3d3d",
+    "web/lib/api.ts": "c9bd078ebd5c2573eb763a4c89c268ea8ee9225b6861265e925ec5468ad87cb3",
+    "web/lib/automations.ts": "cc60224d88c03596e463e138f0b665adc3da956483cf4fc4b356ce15f9032484",
+    "web/lib/download.ts": "2263f60c277ca4ef7ca0de93cdeb03c988ff666d1044483f4f8abbf78c95b6a1",
+    "web/lib/drafts.ts": "bfce48cb58d12aa3777c183235ac5c91f6d250e967c47c3a64e96de7824a7716",
+    "web/lib/events.ts": "387fc1c1e000376d0cd58ebe9c996118b3a596d1b3e77dbf36e31cd1160e4429",
+    "web/lib/file-drafts.ts": "2b4a86b951fa0700b12954773736784e4603c26743fc1fcce03bd78656a3696b",
+    "web/lib/form-values.ts": "9c3ca836c163fd13dbb67717e881d5dc38768c0b80c38e9c51e9c264a0befded",
+    "web/lib/git-state.ts": "5ed7132f44dd1edada75866cfb54228cb89c33809ea6b019ee8fb68b69c94e5b",
+    "web/lib/history.ts": "0a48a2aacc2dce9e239f6dfa0fad4cd3ab8fafe42c7fbda1a1dd6163e5f80d0f",
+    "web/lib/ids.ts": "1879581127de9597673785e32fb4f3efc3cce012f94cf881332abc859406baa4",
+    "web/lib/imports.ts": "4ca6c964e1e1f1d7f066a4bc953232365493d380911854de71766d2b8f0e408f",
+    "web/lib/input-context.ts": "f7e5181d7ef801414eac64940720833483aaf73ce41f4d8ff27faf89e3a3d27c",
+    "web/lib/input-modalities.ts": "aac74b51e676a56c71ea66a4066ad5613bfb3e69b61e60e6807e5eff0e057cbf",
+    "web/lib/input-preference.ts": "2bbd70f35803c0377a67f7bfc8780ac97461c5d317972661476e4335a09b6d90",
+    "web/lib/mcp-session.ts": "2203ce64e5844d5cd53c97563a0a95b2783b11e5da87a88aef66cd7e3ff6aad6",
+    "web/lib/media.ts": "08a6206948c9120eaa4a37478cb6fb6a3f1c6426b366ab20147bfca991718c6a",
+    "web/lib/operations.ts": "004c7e4216da14d869abce24f47c8bafcfbe76fc0f2d45747b236be00539f767",
+    "web/lib/organization.ts": "126eae596f9b5141ed9553f471e3d1bd717733178138229677988606913abd3b",
+    "web/lib/prompt-validation.ts": "eed59f8770a3efde470b67cd7179bbc260dbe2f47f19ceb241af6fa429c266d4",
+    "web/lib/realtime-media.ts": "0989bc01d884061ecbe32a4ce93dc82bf5f2825550ac5ecb80be2f44aa3ac0cd",
+    "web/lib/receipt-archive.ts": "1203a9f6627e9fe8252907e2faae903741ca2ae44a03a4528a363cac47fed472",
+    "web/lib/stream-items.ts": "a5e1b533f8dff0c8eac43932d2c932f79c38583e4643e379bd4d50ce27525b5a",
+    "web/lib/timeline.ts": "40372ce0338f6a464bb2b44fd39dc081e414688063a4892eefbe8358118bd218",
+    "web/lib/types.ts": "612e29d5541f7312ef3ef06ab9a40e8c5470ed532d7a9c295c4c8bbb7909a6c2",
+    "web/lib/workflows.ts": "00860097b0af141a87f639551d4ad0158c04faf3424f07b51467e6523cd85b6b",
+    "web/lib/workspace.ts": "7d1e147904b5a94feec6ac35c726174253b093cdef896a3df81f1bf6f5e6e5d5",
+    "web/main.tsx": "01250f924757d9567c7a8471ac1930d8ba01109f9a72f38a869ecd9300678807",
+    "web/styles-automations.css": "824c6f8b0faa40f70d6d360dd1aaca502c5b1556d5df28ed51c2cba96dbc5da9",
+    "web/styles-extensions.css": "c4190a8ed5de06d796cada2a3f5e510cc3caad97c4d38eab6009848f8f7b5a3c",
+    "web/styles-input-context.css": "1796957fc6fa10b44a9a1cfdd98ea69a5ac2c7d09852a14d50f03ff6403b52e0",
+    "web/styles-responsive.css": "cebba932e38e7f346584d1c035092977d80ab4f33c146e90cd11d8021f5c6223",
+    "web/styles-workflows.css": "63542d4b26c70b47016e38945ab87285685056c2ca72a75408f3f45bb0539904",
+    "web/styles-workspace.css": "943da6d607a9f77a949180792f79b1c4decc40ef44acf17d6ad1c95670228046",
+    "web/styles.css": "c01bd43c58be1ed34adcaf7a0e5afbb9d5889c6982e2f238560d2450f3c1624f",
+    "web/tests/account-app.test.tsx": "cd97e289e3604e32ad136163e0d31e63e6d7a95910a9a2b661d9518270d85431",
+    "web/tests/account-tools.test.tsx": "a8e464ef1478b39c645821a9732de0bc07794a423c986c6a32e61fd9524cb264",
+    "web/tests/app-lifecycle.test.tsx": "cdcd484d9054e90489e2f6baaf1b271753008bfe32b436abffb967289d91f980",
+    "web/tests/attachments.test.tsx": "34050ba1ce7f600bf5378cfe7368236851cf0a706a696e468fca44a167fab295",
+    "web/tests/automations.test.tsx": "f69ec16f661915f47249741ad5d8a959fb78b0cff8969f86d2697fc01b143689",
+    "web/tests/builtin-auth.test.tsx": "512d66cb936941ade4093440443ceae04e31357eaf964bcc433d6cb44a60c02f",
+    "web/tests/cli-diagnostics.test.tsx": "c2d30b4f82f0cda6de54f9e496425a6466bd2cd5c01fdc915d64c49e29c43ae1",
+    "web/tests/compact-threshold.test.tsx": "bbe9991a5f68ff7274d686cb858563da32969c3e826aac178e202314f615367a",
+    "web/tests/composer.test.tsx": "d27b03937f7ea09d6484c5bfb6bd09e6124d32fec569cb5e3a323139a117e3d2",
+    "web/tests/conversation.test.tsx": "91240cd9c0b720bd3dec121e4f2ddfc0d8dd25d4f8a883dcbec1f8586cd57c9d",
+    "web/tests/credit-nudge.test.tsx": "b978ea00088656954c14a81dcecca0b383ee28ef43e57f6b5075739355c05bec",
+    "web/tests/defaults.test.tsx": "c795fbd20d9e304f6060e61e27da246b14cc6d931bc7577dbc33b01d3c403d79",
+    "web/tests/device-login.test.tsx": "518c5ea948b4725d7275ecd683761f2560de232b76cc0fa4dfe27b115187abac",
+    "web/tests/dialog.test.tsx": "2986e9fcc2c45b2291bc258bcbada720ef509cd33178151bc25cd6ba158d6ec0",
+    "web/tests/drafts.test.tsx": "c95368ec5f20cf358de439761514ccb5bf9a223a793aa46a55b66be42c385749",
+    "web/tests/environment-picker.test.tsx": "444108809ba1043de25660876b775a66279ab05182a7f78d00a2e71cc9c9f1aa",
+    "web/tests/events.test.tsx": "953a556718219bcdd4233e79f9853531247654243f1e6ae0502ee48c82839513",
+    "web/tests/execution-settings.test.tsx": "6b6d1c02edf4e94ec780b0ab729f3bd1bd5a1af72f24276bbf3e4f3c3a2d4c6a",
+    "web/tests/extension-mcp-drafts.test.tsx": "d73649ad0e1d1c05a8d905da8648635b20742ba5f0496000adf82384849e6aff",
+    "web/tests/extensions.test.tsx": "1bdd5aa6e8fae67181891ebef32d3a7ec93690e2991fe7a45ce1d4eef7b81b4a",
+    "web/tests/git-index-ui.test.tsx": "7bd7cc4d316b10c1e72152e69e7108f7b020c8cf6b5f3a196bdfd412a0a1f480",
+    "web/tests/guardian-review.test.tsx": "5ac37089972b353647e391026857e602c8542ae760cebb889f0513f48f03cded",
+    "web/tests/history.test.ts": "1df869a2bf229ce06d9f30b51746c9e102a1ed18f0c598caf25e48217cdc061c",
+    "web/tests/hook-events.test.tsx": "b046d2c1771373ad60d0ca3643ee5161794ddc927c342c0f50daac84bb68d356",
+    "web/tests/import-ui.test.tsx": "fc80754961209c37be33de57547299fbc4aa47b364ec3d46e2aae095a9195085",
+    "web/tests/input-context.test.tsx": "eb0d5d8958cc8c923a7538b824bb0214dee1a4832aa13b4b9c555524e2779861",
+    "web/tests/input-modalities.test.tsx": "846a43abb01c830fb2e0438b54229131e37ab5668717af9260eaa5c6ebfb3b87",
+    "web/tests/input-preference.test.tsx": "a5290b8270d0cfb60cbf27d3b20352c3e1cc93cb549922ff1faa80bc44382c7b",
+    "web/tests/loaded-threads.test.tsx": "dbbb73bf95eb9661d477e22b0025dd0cac5b0d0999502ea14c35f7521da4c298",
+    "web/tests/mcp-media.test.tsx": "35b08c362e819cf91639e716778580b83e6a817bd574a537703c2cb050b7f51c",
+    "web/tests/mcp-oauth.test.tsx": "8be5624e9343ddc7823ae905eed2d9fe979a05f55e51657a2a297cf7c35af99b",
+    "web/tests/mcp-ui.test.tsx": "f01c5032bfb32c99fdebd32c9df280a73ad59448a7f7e682d1a2fad59abe3717",
+    "web/tests/memory-settings.test.tsx": "862150a7e01acf58cafed4b0ef82fb9efc927807d595c9de5e4ffde49f26e249",
+    "web/tests/message-media.test.tsx": "806bff39c18db5ef1e5d8c9af035f4fc615a7e21a02330897558fa8b0b1679d9",
+    "web/tests/modal-mutations.test.tsx": "9f4a20c97b45cc7ac622bdabf67e91af563c364b9d588e1235302d19903011f7",
+    "web/tests/operation-generation.test.ts": "36b788dce8966acf9e926bdfe6d7b0d7b897a487ecb35ea2a36810a1dfa347fa",
+    "web/tests/operations.test.ts": "8f378bd4e539343f184aa8cb6ca512b218889472ff770a5c8867a99688b7cb37",
+    "web/tests/organization.test.tsx": "1def3eaa606abd828fa3a8f2d861b7081c1c7ec9d92a271254c21be5013bf649",
+    "web/tests/prediction.test.tsx": "a9444a9e1412296e7955486d242ed97c4e56730ea9a9465b10e49bae7b3cee51",
+    "web/tests/preview-server.mjs": "f2038e06837416379984b5317fc81bc375f4a2108f6a4edc03626edc5a22b712",
+    "web/tests/preview-server.test.ts": "60811cf9f14d245d7c47d48b87e914a4e24c846dcb390f01acecf8bcb7d6deec",
+    "web/tests/process-remote.test.tsx": "37e3de47bef359ebcb05148c634a1c30e667ad26b1518d271ec38d42bc4f4e18",
+    "web/tests/prompt-fields.test.tsx": "d53ad05ad2567b7537fb6373be58a91e3b40b76c857e3605521506d2e8cbd349",
+    "web/tests/prompts.test.tsx": "0db1f10def4ee011495ab87abfd24284297ea875b570aeb0659e3a614942f000",
+    "web/tests/provider-advanced.test.tsx": "3b07d322c4d8c479298eb2b20f35cbacc26b5b6cb6e594b8a4ff3864420a20e2",
+    "web/tests/provider-catalog.test.tsx": "deec35ce8e03ec4d94e41f8a6ce8944840ba1abbaf0e2c2d98eb6bc36dac5e6b",
+    "web/tests/provider-profiles.test.tsx": "44749831acad541a19d7627cf7cfca79423a13c11f792e34da8d8c2450bd5f8c",
+    "web/tests/provider.test.tsx": "df991aa485bce7df582b4d420aa338ec20381330fdbb05650d5e5c8aa35dca9b",
+    "web/tests/realtime.test.tsx": "a4db30472332c0e86e34703fbddc7e187b6e3f86609fa8a253ac8bd7f6a617ee",
+    "web/tests/receipt-maintenance.test.tsx": "13bd364fa7b400d35059e368372d653d684dfcdeb444f2d16e807856ffd86247",
+    "web/tests/recovery.test.tsx": "3db7d4a7efd86a85b6d97b3edb48edb46dbe1996bd2e63c2eb5b59b6e707b9ce",
+    "web/tests/render-budget.test.tsx": "a0826c7edd93384f19caee4c66396a262ae6c83bb4854c7b2bd19a08aa480741",
+    "web/tests/resources.test.tsx": "a0714c97943b58c6fd83d4b61dc17cf2f9680e0872c9d49de9f26dd1f8697b4b",
+    "web/tests/resume.test.tsx": "50f46330c76463d12df96c177ff2b90c4127c736c224b46667dcff0edfa54ddc",
+    "web/tests/session.test.ts": "e5ccacc0f7331165aaed39fa758d9848684cf1e1a8eff9827db131da3bddcec0",
+    "web/tests/settings-drafts.test.tsx": "d6fab3b585e1175475cace4564fe5694eda42fc5879faff270e2d900528a33a5",
+    "web/tests/settings.test.tsx": "fe26544fbc5f2a19726eb663b5211e71fc0061772e39fece11ad519b135d5ca8",
+    "web/tests/sharing-diagnostics.test.tsx": "d5849a3805af5cf29fc1b3b4f9c807dfd0b96985e672f41d6ee612dbd00bb125",
+    "web/tests/skill-library.test.tsx": "9ae345caaf0a0247c116c7b9d829e2184644b695c9ebf625181b13fde7bdb8d6",
+    "web/tests/stream-items.test.ts": "09b4ace364935079cf3dec5e804f2a11da233cc81196052236aafd41a977babd",
+    "web/tests/terminal.test.tsx": "39643c1034fbf966d21a3eee1dd04522ebe9e1ea6cd219d6e88e92645c6b8d57",
+    "web/tests/thread-terminals.test.tsx": "b15494e940f1918409023bb70873c87780783698358bd07993d71cbb68674262",
+    "web/tests/timeline-history.test.tsx": "b325e6f8867508ad6f87c65649ed45088c852c1aa9e2c517ae4e13e1821617ea",
+    "web/tests/workflows.test.tsx": "02aedfe64f11e99ba77d073e0172e9cc1c3190c28459a3e938b7c7af3470142a",
+    "web/tests/workspace-git-drafts.test.tsx": "488073d489b6d2de844c27686235c53719160b47eb5b01225e79759d7ca60bc6",
+    "web/tests/workspace-management.test.tsx": "c510d02feedbbbc4bf8f95aad71e55412afd45788e08de213211aa990b32720c",
+    "web/tests/workspace-search.test.tsx": "92b88084b95e733b599e8d7d9dd48474aab384e0073369ef05749be20ffc8fad",
+    "web/tests/workspace-ui.test.tsx": "aa586345b2fc282159cffdc3587a7d6a260f6dbe7e0c9f3c0153636d9effc5ed",
+    "web/tests/workspace-watch.test.tsx": "e1b86716a526f288fab63c2911ecaab2040d97ebd8a8f5e8c5c1e8588417a891",
+    "web/tsconfig.json": "efd877301f02127f32d2a954ae07d485795fa317d1917f384a4782f8fe72ee09",
+    "web/vite.config.ts": "ee2c8cacb1a7f4cc94ac3dcc7a16f3e40e062ce07a78cf867c58451b0b11e12e"
+  },
+  "method": "{\"independence\":\"Fresh review of the frozen current source. No historical audit reports, outcomes, historical source, or sibling review findings were used. Current contract documents were used as requirements, with their historical claims treated only as dated provenance. Supplemental reviewers are separately attributed below and are not claimed as this reviewer's full-body work.\",\"timing\":\"startedAt is the timestamp captured by this reviewer's initial fresh hash/AST scan. Review and seal timestamps are independently generated during this round.\",\"production\":\"Read all production TS/TSX bodies, JSX and hooks semantically, including effects, cleanup, dependency/identity ownership, A-to-B-to-A transitions, authentication expiry, explicit action/consent gates, draft retention and revision acknowledgements, receipt recovery and no automatic mutation replay. Followed related API, reducer, schema, storage, media, OAuth, workflow, terminal, file and Git call chains.\",\"otherSources\":\"Read every assigned style, configuration, HTML and current web verification document, plus the complete preview server helper. Reviewed responsive/hidden/inert/focus behavior, static configuration, fixture allowlists, request limits, path containment, listener ownership and teardown. Historical verification statements were not reused as current evidence.\",\"ast\":{\"parser\":\"node_modules/.pnpm/rolldown@1.2.15/node_modules/rolldown/dist/parse-ast-index.mjs\",\"api\":\"parseAst(source,{lang:tsx|ts|js})\",\"executableFilesParsed\":187,\"initialScan\":\".work/public-https-round10-web-scan.json\",\"freshSealReparse\":true},\"tests\":{\"totalFiles\":68,\"contractAndHelperFiles\":[\"web/tests/account-app.test.tsx\",\"web/tests/account-tools.test.tsx\",\"web/tests/app-lifecycle.test.tsx\",\"web/tests/attachments.test.tsx\",\"web/tests/automations.test.tsx\",\"web/tests/builtin-auth.test.tsx\",\"web/tests/cli-diagnostics.test.tsx\",\"web/tests/compact-threshold.test.tsx\",\"web/tests/composer.test.tsx\",\"web/tests/conversation.test.tsx\",\"web/tests/credit-nudge.test.tsx\",\"web/tests/defaults.test.tsx\",\"web/tests/device-login.test.tsx\",\"web/tests/dialog.test.tsx\",\"web/tests/drafts.test.tsx\",\"web/tests/environment-picker.test.tsx\",\"web/tests/events.test.tsx\",\"web/tests/execution-settings.test.tsx\",\"web/tests/extension-mcp-drafts.test.tsx\",\"web/tests/extensions.test.tsx\",\"web/tests/git-index-ui.test.tsx\",\"web/tests/guardian-review.test.tsx\",\"web/tests/history.test.ts\",\"web/tests/hook-events.test.tsx\",\"web/tests/import-ui.test.tsx\",\"web/tests/input-context.test.tsx\",\"web/tests/input-modalities.test.tsx\",\"web/tests/input-preference.test.tsx\",\"web/tests/loaded-threads.test.tsx\",\"web/tests/mcp-media.test.tsx\",\"web/tests/mcp-oauth.test.tsx\",\"web/tests/mcp-ui.test.tsx\",\"web/tests/memory-settings.test.tsx\",\"web/tests/message-media.test.tsx\",\"web/tests/modal-mutations.test.tsx\",\"web/tests/operation-generation.test.ts\",\"web/tests/operations.test.ts\",\"web/tests/organization.test.tsx\",\"web/tests/prediction.test.tsx\",\"web/tests/preview-server.test.ts\",\"web/tests/process-remote.test.tsx\",\"web/tests/prompt-fields.test.tsx\",\"web/tests/prompts.test.tsx\",\"web/tests/provider-advanced.test.tsx\",\"web/tests/provider-catalog.test.tsx\",\"web/tests/provider-profiles.test.tsx\",\"web/tests/provider.test.tsx\",\"web/tests/realtime.test.tsx\",\"web/tests/receipt-maintenance.test.tsx\",\"web/tests/recovery.test.tsx\",\"web/tests/render-budget.test.tsx\",\"web/tests/resources.test.tsx\",\"web/tests/resume.test.tsx\",\"web/tests/session.test.ts\",\"web/tests/settings-drafts.test.tsx\",\"web/tests/settings.test.tsx\",\"web/tests/sharing-diagnostics.test.tsx\",\"web/tests/skill-library.test.tsx\",\"web/tests/stream-items.test.ts\",\"web/tests/terminal.test.tsx\",\"web/tests/thread-terminals.test.tsx\",\"web/tests/timeline-history.test.tsx\",\"web/tests/workflows.test.tsx\",\"web/tests/workspace-git-drafts.test.tsx\",\"web/tests/workspace-management.test.tsx\",\"web/tests/workspace-search.test.tsx\",\"web/tests/workspace-ui.test.tsx\",\"web/tests/workspace-watch.test.tsx\"],\"contractMethod\":\"Fresh AST extraction of every describe/it/test contract, all assertion call chains rooted in expect/assert, and complete before/after hooks; all extracted entries were semantically read. Separately extracted and read every non-import, non-test, non-hook fixture/helper/mock declaration, including declarations nested in describe callbacks. This was not a title/count-only inspection.\",\"contractEntries\":3197,\"contractEvidence\":\".work/public-https-round10-web-test-contracts.json\",\"helperEvidence\":\".work/public-https-round10-web-test-helpers.json\",\"fullBodyMethod\":\"Additionally read the complete AST-selected test callback source in the 30 files below, covering security boundaries, media decoding, approval forms, ownership/async races, draft acknowledgements, auth recovery and operation recovery. Compared setup, event order, deferred resolutions and assertions against production paths. Full-body ranges record test declarations, not the number of parameterized cases. Other tests received the complete contract/hook/helper review described above; their unlisted test-body scaffolding is not claimed as a full-body review.\",\"fullBodyCoverage\":[{\"path\":\"web/tests/account-tools.test.tsx\",\"testCallbackDeclarations\":4,\"ranges\":[{\"startLine\":71,\"endLine\":93},{\"startLine\":94,\"endLine\":118},{\"startLine\":119,\"endLine\":147},{\"startLine\":149,\"endLine\":166}]},{\"path\":\"web/tests/app-lifecycle.test.tsx\",\"testCallbackDeclarations\":18,\"ranges\":[{\"startLine\":278,\"endLine\":313},{\"startLine\":314,\"endLine\":344},{\"startLine\":345,\"endLine\":370},{\"startLine\":371,\"endLine\":422},{\"startLine\":423,\"endLine\":474},{\"startLine\":475,\"endLine\":503},{\"startLine\":504,\"endLine\":531},{\"startLine\":532,\"endLine\":559},{\"startLine\":560,\"endLine\":624},{\"startLine\":625,\"endLine\":651},{\"startLine\":652,\"endLine\":677},{\"startLine\":678,\"endLine\":707},{\"startLine\":708,\"endLine\":721},{\"startLine\":722,\"endLine\":741},{\"startLine\":742,\"endLine\":755},{\"startLine\":756,\"endLine\":767},{\"startLine\":768,\"endLine\":782},{\"startLine\":783,\"endLine\":798}]},{\"path\":\"web/tests/attachments.test.tsx\",\"testCallbackDeclarations\":9,\"ranges\":[{\"startLine\":36,\"endLine\":52},{\"startLine\":53,\"endLine\":67},{\"startLine\":68,\"endLine\":84},{\"startLine\":85,\"endLine\":113},{\"startLine\":114,\"endLine\":138},{\"startLine\":139,\"endLine\":163},{\"startLine\":164,\"endLine\":192},{\"startLine\":193,\"endLine\":228},{\"startLine\":229,\"endLine\":239}]},{\"path\":\"web/tests/builtin-auth.test.tsx\",\"testCallbackDeclarations\":20,\"ranges\":[{\"startLine\":51,\"endLine\":68},{\"startLine\":70,\"endLine\":85},{\"startLine\":87,\"endLine\":101},{\"startLine\":103,\"endLine\":111},{\"startLine\":113,\"endLine\":119},{\"startLine\":121,\"endLine\":127},{\"startLine\":129,\"endLine\":140},{\"startLine\":142,\"endLine\":153},{\"startLine\":155,\"endLine\":160},{\"startLine\":162,\"endLine\":168},{\"startLine\":170,\"endLine\":180},{\"startLine\":182,\"endLine\":187},{\"startLine\":189,\"endLine\":204},{\"startLine\":206,\"endLine\":213},{\"startLine\":215,\"endLine\":222},{\"startLine\":224,\"endLine\":230},{\"startLine\":232,\"endLine\":238},{\"startLine\":240,\"endLine\":247},{\"startLine\":249,\"endLine\":264},{\"startLine\":266,\"endLine\":278}]},{\"path\":\"web/tests/composer.test.tsx\",\"testCallbackDeclarations\":5,\"ranges\":[{\"startLine\":10,\"endLine\":97},{\"startLine\":98,\"endLine\":164},{\"startLine\":165,\"endLine\":196},{\"startLine\":197,\"endLine\":221},{\"startLine\":222,\"endLine\":257}]},{\"path\":\"web/tests/conversation.test.tsx\",\"testCallbackDeclarations\":9,\"ranges\":[{\"startLine\":11,\"endLine\":39},{\"startLine\":40,\"endLine\":166},{\"startLine\":167,\"endLine\":233},{\"startLine\":234,\"endLine\":277},{\"startLine\":300,\"endLine\":325},{\"startLine\":326,\"endLine\":363},{\"startLine\":364,\"endLine\":396},{\"startLine\":397,\"endLine\":416},{\"startLine\":417,\"endLine\":442}]},{\"path\":\"web/tests/device-login.test.tsx\",\"testCallbackDeclarations\":8,\"ranges\":[{\"startLine\":74,\"endLine\":92},{\"startLine\":93,\"endLine\":118},{\"startLine\":119,\"endLine\":141},{\"startLine\":142,\"endLine\":160},{\"startLine\":161,\"endLine\":190},{\"startLine\":191,\"endLine\":207},{\"startLine\":208,\"endLine\":220},{\"startLine\":221,\"endLine\":233}]},{\"path\":\"web/tests/drafts.test.tsx\",\"testCallbackDeclarations\":11,\"ranges\":[{\"startLine\":16,\"endLine\":50},{\"startLine\":51,\"endLine\":60},{\"startLine\":61,\"endLine\":84},{\"startLine\":85,\"endLine\":97},{\"startLine\":98,\"endLine\":114},{\"startLine\":115,\"endLine\":134},{\"startLine\":135,\"endLine\":147},{\"startLine\":148,\"endLine\":157},{\"startLine\":158,\"endLine\":183},{\"startLine\":184,\"endLine\":192},{\"startLine\":193,\"endLine\":197}]},{\"path\":\"web/tests/events.test.tsx\",\"testCallbackDeclarations\":5,\"ranges\":[{\"startLine\":11,\"endLine\":32},{\"startLine\":33,\"endLine\":79},{\"startLine\":80,\"endLine\":126},{\"startLine\":127,\"endLine\":150},{\"startLine\":151,\"endLine\":232}]},{\"path\":\"web/tests/extension-mcp-drafts.test.tsx\",\"testCallbackDeclarations\":11,\"ranges\":[{\"startLine\":43,\"endLine\":67},{\"startLine\":68,\"endLine\":88},{\"startLine\":89,\"endLine\":106},{\"startLine\":108,\"endLine\":124},{\"startLine\":126,\"endLine\":134},{\"startLine\":136,\"endLine\":160},{\"startLine\":162,\"endLine\":175},{\"startLine\":177,\"endLine\":193},{\"startLine\":195,\"endLine\":211},{\"startLine\":213,\"endLine\":228},{\"startLine\":230,\"endLine\":255}]},{\"path\":\"web/tests/history.test.ts\",\"testCallbackDeclarations\":7,\"ranges\":[{\"startLine\":5,\"endLine\":25},{\"startLine\":26,\"endLine\":73},{\"startLine\":74,\"endLine\":105},{\"startLine\":106,\"endLine\":129},{\"startLine\":130,\"endLine\":149},{\"startLine\":150,\"endLine\":196},{\"startLine\":197,\"endLine\":238}]},{\"path\":\"web/tests/mcp-media.test.tsx\",\"testCallbackDeclarations\":12,\"ranges\":[{\"startLine\":38,\"endLine\":49},{\"startLine\":50,\"endLine\":62},{\"startLine\":64,\"endLine\":103},{\"startLine\":105,\"endLine\":144},{\"startLine\":146,\"endLine\":168},{\"startLine\":170,\"endLine\":203},{\"startLine\":205,\"endLine\":216},{\"startLine\":218,\"endLine\":233},{\"startLine\":235,\"endLine\":245},{\"startLine\":247,\"endLine\":258},{\"startLine\":260,\"endLine\":276},{\"startLine\":278,\"endLine\":324}]},{\"path\":\"web/tests/mcp-oauth.test.tsx\",\"testCallbackDeclarations\":8,\"ranges\":[{\"startLine\":35,\"endLine\":46},{\"startLine\":47,\"endLine\":59},{\"startLine\":60,\"endLine\":66},{\"startLine\":67,\"endLine\":74},{\"startLine\":75,\"endLine\":83},{\"startLine\":84,\"endLine\":92},{\"startLine\":93,\"endLine\":105},{\"startLine\":106,\"endLine\":114}]},{\"path\":\"web/tests/mcp-ui.test.tsx\",\"testCallbackDeclarations\":22,\"ranges\":[{\"startLine\":92,\"endLine\":123},{\"startLine\":124,\"endLine\":152},{\"startLine\":153,\"endLine\":189},{\"startLine\":190,\"endLine\":201},{\"startLine\":202,\"endLine\":224},{\"startLine\":225,\"endLine\":259},{\"startLine\":260,\"endLine\":286},{\"startLine\":287,\"endLine\":330},{\"startLine\":331,\"endLine\":346},{\"startLine\":347,\"endLine\":406},{\"startLine\":407,\"endLine\":446},{\"startLine\":447,\"endLine\":477},{\"startLine\":478,\"endLine\":507},{\"startLine\":523,\"endLine\":547},{\"startLine\":548,\"endLine\":581},{\"startLine\":582,\"endLine\":618},{\"startLine\":619,\"endLine\":655},{\"startLine\":657,\"endLine\":735},{\"startLine\":737,\"endLine\":793},{\"startLine\":795,\"endLine\":866},{\"startLine\":868,\"endLine\":940},{\"startLine\":942,\"endLine\":1006}]},{\"path\":\"web/tests/message-media.test.tsx\",\"testCallbackDeclarations\":7,\"ranges\":[{\"startLine\":30,\"endLine\":45},{\"startLine\":46,\"endLine\":84},{\"startLine\":85,\"endLine\":105},{\"startLine\":106,\"endLine\":121},{\"startLine\":123,\"endLine\":142},{\"startLine\":143,\"endLine\":163},{\"startLine\":164,\"endLine\":189}]},{\"path\":\"web/tests/operation-generation.test.ts\",\"testCallbackDeclarations\":3,\"ranges\":[{\"startLine\":12,\"endLine\":24},{\"startLine\":25,\"endLine\":31},{\"startLine\":32,\"endLine\":55}]},{\"path\":\"web/tests/operations.test.ts\",\"testCallbackDeclarations\":14,\"ranges\":[{\"startLine\":19,\"endLine\":27},{\"startLine\":28,\"endLine\":37},{\"startLine\":38,\"endLine\":47},{\"startLine\":48,\"endLine\":56},{\"startLine\":57,\"endLine\":70},{\"startLine\":71,\"endLine\":88},{\"startLine\":89,\"endLine\":111},{\"startLine\":112,\"endLine\":143},{\"startLine\":144,\"endLine\":169},{\"startLine\":170,\"endLine\":194},{\"startLine\":197,\"endLine\":216},{\"startLine\":217,\"endLine\":232},{\"startLine\":233,\"endLine\":270},{\"startLine\":271,\"endLine\":288}]},{\"path\":\"web/tests/preview-server.test.ts\",\"testCallbackDeclarations\":8,\"ranges\":[{\"startLine\":39,\"endLine\":58},{\"startLine\":60,\"endLine\":67},{\"startLine\":69,\"endLine\":77},{\"startLine\":79,\"endLine\":85},{\"startLine\":87,\"endLine\":98},{\"startLine\":100,\"endLine\":112},{\"startLine\":114,\"endLine\":119},{\"startLine\":121,\"endLine\":125}]},{\"path\":\"web/tests/prompt-fields.test.tsx\",\"testCallbackDeclarations\":8,\"ranges\":[{\"startLine\":28,\"endLine\":46},{\"startLine\":47,\"endLine\":71},{\"startLine\":72,\"endLine\":95},{\"startLine\":96,\"endLine\":116},{\"startLine\":118,\"endLine\":169},{\"startLine\":171,\"endLine\":212},{\"startLine\":214,\"endLine\":254},{\"startLine\":256,\"endLine\":274}]},{\"path\":\"web/tests/prompts.test.tsx\",\"testCallbackDeclarations\":15,\"ranges\":[{\"startLine\":14,\"endLine\":49},{\"startLine\":50,\"endLine\":102},{\"startLine\":103,\"endLine\":157},{\"startLine\":160,\"endLine\":182},{\"startLine\":183,\"endLine\":220},{\"startLine\":221,\"endLine\":238},{\"startLine\":239,\"endLine\":269},{\"startLine\":270,\"endLine\":337},{\"startLine\":338,\"endLine\":384},{\"startLine\":386,\"endLine\":409},{\"startLine\":412,\"endLine\":440},{\"startLine\":441,\"endLine\":471},{\"startLine\":472,\"endLine\":508},{\"startLine\":509,\"endLine\":534},{\"startLine\":535,\"endLine\":589}]},{\"path\":\"web/tests/provider-advanced.test.tsx\",\"testCallbackDeclarations\":4,\"ranges\":[{\"startLine\":34,\"endLine\":71},{\"startLine\":72,\"endLine\":116},{\"startLine\":117,\"endLine\":130},{\"startLine\":132,\"endLine\":154}]},{\"path\":\"web/tests/provider-catalog.test.tsx\",\"testCallbackDeclarations\":10,\"ranges\":[{\"startLine\":93,\"endLine\":117},{\"startLine\":119,\"endLine\":150},{\"startLine\":152,\"endLine\":172},{\"startLine\":174,\"endLine\":200},{\"startLine\":202,\"endLine\":219},{\"startLine\":221,\"endLine\":239},{\"startLine\":241,\"endLine\":260},{\"startLine\":262,\"endLine\":273},{\"startLine\":275,\"endLine\":295},{\"startLine\":297,\"endLine\":324}]},{\"path\":\"web/tests/realtime.test.tsx\",\"testCallbackDeclarations\":13,\"ranges\":[{\"startLine\":115,\"endLine\":149},{\"startLine\":150,\"endLine\":174},{\"startLine\":175,\"endLine\":211},{\"startLine\":212,\"endLine\":229},{\"startLine\":230,\"endLine\":254},{\"startLine\":255,\"endLine\":275},{\"startLine\":276,\"endLine\":291},{\"startLine\":292,\"endLine\":340},{\"startLine\":341,\"endLine\":380},{\"startLine\":381,\"endLine\":421},{\"startLine\":423,\"endLine\":521},{\"startLine\":522,\"endLine\":550},{\"startLine\":551,\"endLine\":568}]},{\"path\":\"web/tests/receipt-maintenance.test.tsx\",\"testCallbackDeclarations\":6,\"ranges\":[{\"startLine\":46,\"endLine\":77},{\"startLine\":78,\"endLine\":95},{\"startLine\":96,\"endLine\":137},{\"startLine\":138,\"endLine\":147},{\"startLine\":148,\"endLine\":167},{\"startLine\":168,\"endLine\":186}]},{\"path\":\"web/tests/recovery.test.tsx\",\"testCallbackDeclarations\":5,\"ranges\":[{\"startLine\":34,\"endLine\":56},{\"startLine\":57,\"endLine\":87},{\"startLine\":88,\"endLine\":110},{\"startLine\":111,\"endLine\":133},{\"startLine\":134,\"endLine\":150}]},{\"path\":\"web/tests/resources.test.tsx\",\"testCallbackDeclarations\":3,\"ranges\":[{\"startLine\":7,\"endLine\":21},{\"startLine\":22,\"endLine\":29},{\"startLine\":30,\"endLine\":55}]},{\"path\":\"web/tests/resume.test.tsx\",\"testCallbackDeclarations\":2,\"ranges\":[{\"startLine\":7,\"endLine\":37},{\"startLine\":38,\"endLine\":50}]},{\"path\":\"web/tests/session.test.ts\",\"testCallbackDeclarations\":6,\"ranges\":[{\"startLine\":10,\"endLine\":34},{\"startLine\":35,\"endLine\":72},{\"startLine\":73,\"endLine\":91},{\"startLine\":92,\"endLine\":109},{\"startLine\":110,\"endLine\":125},{\"startLine\":126,\"endLine\":163}]},{\"path\":\"web/tests/settings-drafts.test.tsx\",\"testCallbackDeclarations\":8,\"ranges\":[{\"startLine\":48,\"endLine\":83},{\"startLine\":85,\"endLine\":105},{\"startLine\":107,\"endLine\":129},{\"startLine\":131,\"endLine\":147},{\"startLine\":149,\"endLine\":175},{\"startLine\":177,\"endLine\":191},{\"startLine\":193,\"endLine\":216},{\"startLine\":218,\"endLine\":233}]},{\"path\":\"web/tests/timeline-history.test.tsx\",\"testCallbackDeclarations\":11,\"ranges\":[{\"startLine\":56,\"endLine\":62},{\"startLine\":63,\"endLine\":92},{\"startLine\":93,\"endLine\":114},{\"startLine\":115,\"endLine\":160},{\"startLine\":161,\"endLine\":176},{\"startLine\":177,\"endLine\":212},{\"startLine\":213,\"endLine\":224},{\"startLine\":225,\"endLine\":241},{\"startLine\":242,\"endLine\":256},{\"startLine\":257,\"endLine\":276},{\"startLine\":278,\"endLine\":292}]}],\"supplementalFullBodyAssignments\":[{\"report\":\".work/public-https-round10-web-root-supplement.json\",\"files\":[\"web/tests/git-index-ui.test.tsx\",\"web/tests/workspace-git-drafts.test.tsx\",\"web/tests/workspace-management.test.tsx\",\"web/tests/workspace-search.test.tsx\",\"web/tests/workspace-ui.test.tsx\",\"web/tests/workspace-watch.test.tsx\",\"web/tests/modal-mutations.test.tsx\",\"web/tests/automations.test.tsx\"]},{\"report\":\".work/public-https-round10-web-runtime-supplement.json\",\"files\":[\"web/tests/workflows.test.tsx\",\"web/tests/organization.test.tsx\"]},{\"report\":\".work/public-https-round10-web-terminal-supplement.json\",\"files\":[\"web/tests/terminal.test.tsx\",\"web/tests/thread-terminals.test.tsx\"]},{\"report\":\".work/public-https-round10-web-process-supplement.json\",\"files\":[\"web/tests/process-remote.test.tsx\"]}],\"supplementAttribution\":\"Assignments and report paths are coordination metadata only. This reviewer did not use supplemental findings as independent evidence. The round coordinator must check each separate artifact before claiming its added full-body coverage.\"},\"seal\":\"Recomputed SHA-256 from raw bytes for every one of the 197 assigned files and compared each with the frozen inventory; reparsed all 187 executable files; ran snapshot(undefined,true) and required the frozen digest and all 1886 source paths/count to match. No source or test changes were made.\"}",
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "Static semantic audit only. No unit, component, integration, full-suite, build, or browser test execution is claimed.",
+    "No paid model calls, external MCP, credential-bearing browser session, production endpoint, live OAuth flow, public HTTPS deployment, real model turn, remote execution, PTY interaction, microphone/WebRTC or external service action was performed.",
+    "UI rendering, accessibility and responsive behavior were checked in source rather than a running browser. Native runtime, transport and deployment integrations require their separately authorized later verification.",
+    "Test bodies outside the explicitly listed full-body files were reviewed through all contracts/assertions/hooks and helper/fixture code, with separately assigned supplemental full-body coverage attributed to its own reviewers."
+  ],
+  "methodDetails": {
+    "independence": "Fresh review of the frozen current source. No historical audit reports, outcomes, historical source, or sibling review findings were used. Current contract documents were used as requirements, with their historical claims treated only as dated provenance. Supplemental reviewers are separately attributed below and are not claimed as this reviewer's full-body work.",
+    "timing": "startedAt is the timestamp captured by this reviewer's initial fresh hash/AST scan. Review and seal timestamps are independently generated during this round.",
+    "production": "Read all production TS/TSX bodies, JSX and hooks semantically, including effects, cleanup, dependency/identity ownership, A-to-B-to-A transitions, authentication expiry, explicit action/consent gates, draft retention and revision acknowledgements, receipt recovery and no automatic mutation replay. Followed related API, reducer, schema, storage, media, OAuth, workflow, terminal, file and Git call chains.",
+    "otherSources": "Read every assigned style, configuration, HTML and current web verification document, plus the complete preview server helper. Reviewed responsive/hidden/inert/focus behavior, static configuration, fixture allowlists, request limits, path containment, listener ownership and teardown. Historical verification statements were not reused as current evidence.",
+    "ast": {
+      "parser": "node_modules/.pnpm/rolldown@1.2.15/node_modules/rolldown/dist/parse-ast-index.mjs",
+      "api": "parseAst(source,{lang:tsx|ts|js})",
+      "executableFilesParsed": 187,
+      "initialScan": ".work/public-https-round10-web-scan.json",
+      "freshSealReparse": true
+    },
+    "tests": {
+      "totalFiles": 68,
+      "contractAndHelperFiles": [
+        "web/tests/account-app.test.tsx",
+        "web/tests/account-tools.test.tsx",
+        "web/tests/app-lifecycle.test.tsx",
+        "web/tests/attachments.test.tsx",
+        "web/tests/automations.test.tsx",
+        "web/tests/builtin-auth.test.tsx",
+        "web/tests/cli-diagnostics.test.tsx",
+        "web/tests/compact-threshold.test.tsx",
+        "web/tests/composer.test.tsx",
+        "web/tests/conversation.test.tsx",
+        "web/tests/credit-nudge.test.tsx",
+        "web/tests/defaults.test.tsx",
+        "web/tests/device-login.test.tsx",
+        "web/tests/dialog.test.tsx",
+        "web/tests/drafts.test.tsx",
+        "web/tests/environment-picker.test.tsx",
+        "web/tests/events.test.tsx",
+        "web/tests/execution-settings.test.tsx",
+        "web/tests/extension-mcp-drafts.test.tsx",
+        "web/tests/extensions.test.tsx",
+        "web/tests/git-index-ui.test.tsx",
+        "web/tests/guardian-review.test.tsx",
+        "web/tests/history.test.ts",
+        "web/tests/hook-events.test.tsx",
+        "web/tests/import-ui.test.tsx",
+        "web/tests/input-context.test.tsx",
+        "web/tests/input-modalities.test.tsx",
+        "web/tests/input-preference.test.tsx",
+        "web/tests/loaded-threads.test.tsx",
+        "web/tests/mcp-media.test.tsx",
+        "web/tests/mcp-oauth.test.tsx",
+        "web/tests/mcp-ui.test.tsx",
+        "web/tests/memory-settings.test.tsx",
+        "web/tests/message-media.test.tsx",
+        "web/tests/modal-mutations.test.tsx",
+        "web/tests/operation-generation.test.ts",
+        "web/tests/operations.test.ts",
+        "web/tests/organization.test.tsx",
+        "web/tests/prediction.test.tsx",
+        "web/tests/preview-server.test.ts",
+        "web/tests/process-remote.test.tsx",
+        "web/tests/prompt-fields.test.tsx",
+        "web/tests/prompts.test.tsx",
+        "web/tests/provider-advanced.test.tsx",
+        "web/tests/provider-catalog.test.tsx",
+        "web/tests/provider-profiles.test.tsx",
+        "web/tests/provider.test.tsx",
+        "web/tests/realtime.test.tsx",
+        "web/tests/receipt-maintenance.test.tsx",
+        "web/tests/recovery.test.tsx",
+        "web/tests/render-budget.test.tsx",
+        "web/tests/resources.test.tsx",
+        "web/tests/resume.test.tsx",
+        "web/tests/session.test.ts",
+        "web/tests/settings-drafts.test.tsx",
+        "web/tests/settings.test.tsx",
+        "web/tests/sharing-diagnostics.test.tsx",
+        "web/tests/skill-library.test.tsx",
+        "web/tests/stream-items.test.ts",
+        "web/tests/terminal.test.tsx",
+        "web/tests/thread-terminals.test.tsx",
+        "web/tests/timeline-history.test.tsx",
+        "web/tests/workflows.test.tsx",
+        "web/tests/workspace-git-drafts.test.tsx",
+        "web/tests/workspace-management.test.tsx",
+        "web/tests/workspace-search.test.tsx",
+        "web/tests/workspace-ui.test.tsx",
+        "web/tests/workspace-watch.test.tsx"
+      ],
+      "contractMethod": "Fresh AST extraction of every describe/it/test contract, all assertion call chains rooted in expect/assert, and complete before/after hooks; all extracted entries were semantically read. Separately extracted and read every non-import, non-test, non-hook fixture/helper/mock declaration, including declarations nested in describe callbacks. This was not a title/count-only inspection.",
+      "contractEntries": 3197,
+      "contractEvidence": ".work/public-https-round10-web-test-contracts.json",
+      "helperEvidence": ".work/public-https-round10-web-test-helpers.json",
+      "fullBodyMethod": "Additionally read the complete AST-selected test callback source in the 30 files below, covering security boundaries, media decoding, approval forms, ownership/async races, draft acknowledgements, auth recovery and operation recovery. Compared setup, event order, deferred resolutions and assertions against production paths. Full-body ranges record test declarations, not the number of parameterized cases. Other tests received the complete contract/hook/helper review described above; their unlisted test-body scaffolding is not claimed as a full-body review.",
+      "fullBodyCoverage": [
+        {
+          "path": "web/tests/account-tools.test.tsx",
+          "testCallbackDeclarations": 4,
+          "ranges": [
+            {
+              "startLine": 71,
+              "endLine": 93
+            },
+            {
+              "startLine": 94,
+              "endLine": 118
+            },
+            {
+              "startLine": 119,
+              "endLine": 147
+            },
+            {
+              "startLine": 149,
+              "endLine": 166
+            }
+          ]
+        },
+        {
+          "path": "web/tests/app-lifecycle.test.tsx",
+          "testCallbackDeclarations": 18,
+          "ranges": [
+            {
+              "startLine": 278,
+              "endLine": 313
+            },
+            {
+              "startLine": 314,
+              "endLine": 344
+            },
+            {
+              "startLine": 345,
+              "endLine": 370
+            },
+            {
+              "startLine": 371,
+              "endLine": 422
+            },
+            {
+              "startLine": 423,
+              "endLine": 474
+            },
+            {
+              "startLine": 475,
+              "endLine": 503
+            },
+            {
+              "startLine": 504,
+              "endLine": 531
+            },
+            {
+              "startLine": 532,
+              "endLine": 559
+            },
+            {
+              "startLine": 560,
+              "endLine": 624
+            },
+            {
+              "startLine": 625,
+              "endLine": 651
+            },
+            {
+              "startLine": 652,
+              "endLine": 677
+            },
+            {
+              "startLine": 678,
+              "endLine": 707
+            },
+            {
+              "startLine": 708,
+              "endLine": 721
+            },
+            {
+              "startLine": 722,
+              "endLine": 741
+            },
+            {
+              "startLine": 742,
+              "endLine": 755
+            },
+            {
+              "startLine": 756,
+              "endLine": 767
+            },
+            {
+              "startLine": 768,
+              "endLine": 782
+            },
+            {
+              "startLine": 783,
+              "endLine": 798
+            }
+          ]
+        },
+        {
+          "path": "web/tests/attachments.test.tsx",
+          "testCallbackDeclarations": 9,
+          "ranges": [
+            {
+              "startLine": 36,
+              "endLine": 52
+            },
+            {
+              "startLine": 53,
+              "endLine": 67
+            },
+            {
+              "startLine": 68,
+              "endLine": 84
+            },
+            {
+              "startLine": 85,
+              "endLine": 113
+            },
+            {
+              "startLine": 114,
+              "endLine": 138
+            },
+            {
+              "startLine": 139,
+              "endLine": 163
+            },
+            {
+              "startLine": 164,
+              "endLine": 192
+            },
+            {
+              "startLine": 193,
+              "endLine": 228
+            },
+            {
+              "startLine": 229,
+              "endLine": 239
+            }
+          ]
+        },
+        {
+          "path": "web/tests/builtin-auth.test.tsx",
+          "testCallbackDeclarations": 20,
+          "ranges": [
+            {
+              "startLine": 51,
+              "endLine": 68
+            },
+            {
+              "startLine": 70,
+              "endLine": 85
+            },
+            {
+              "startLine": 87,
+              "endLine": 101
+            },
+            {
+              "startLine": 103,
+              "endLine": 111
+            },
+            {
+              "startLine": 113,
+              "endLine": 119
+            },
+            {
+              "startLine": 121,
+              "endLine": 127
+            },
+            {
+              "startLine": 129,
+              "endLine": 140
+            },
+            {
+              "startLine": 142,
+              "endLine": 153
+            },
+            {
+              "startLine": 155,
+              "endLine": 160
+            },
+            {
+              "startLine": 162,
+              "endLine": 168
+            },
+            {
+              "startLine": 170,
+              "endLine": 180
+            },
+            {
+              "startLine": 182,
+              "endLine": 187
+            },
+            {
+              "startLine": 189,
+              "endLine": 204
+            },
+            {
+              "startLine": 206,
+              "endLine": 213
+            },
+            {
+              "startLine": 215,
+              "endLine": 222
+            },
+            {
+              "startLine": 224,
+              "endLine": 230
+            },
+            {
+              "startLine": 232,
+              "endLine": 238
+            },
+            {
+              "startLine": 240,
+              "endLine": 247
+            },
+            {
+              "startLine": 249,
+              "endLine": 264
+            },
+            {
+              "startLine": 266,
+              "endLine": 278
+            }
+          ]
+        },
+        {
+          "path": "web/tests/composer.test.tsx",
+          "testCallbackDeclarations": 5,
+          "ranges": [
+            {
+              "startLine": 10,
+              "endLine": 97
+            },
+            {
+              "startLine": 98,
+              "endLine": 164
+            },
+            {
+              "startLine": 165,
+              "endLine": 196
+            },
+            {
+              "startLine": 197,
+              "endLine": 221
+            },
+            {
+              "startLine": 222,
+              "endLine": 257
+            }
+          ]
+        },
+        {
+          "path": "web/tests/conversation.test.tsx",
+          "testCallbackDeclarations": 9,
+          "ranges": [
+            {
+              "startLine": 11,
+              "endLine": 39
+            },
+            {
+              "startLine": 40,
+              "endLine": 166
+            },
+            {
+              "startLine": 167,
+              "endLine": 233
+            },
+            {
+              "startLine": 234,
+              "endLine": 277
+            },
+            {
+              "startLine": 300,
+              "endLine": 325
+            },
+            {
+              "startLine": 326,
+              "endLine": 363
+            },
+            {
+              "startLine": 364,
+              "endLine": 396
+            },
+            {
+              "startLine": 397,
+              "endLine": 416
+            },
+            {
+              "startLine": 417,
+              "endLine": 442
+            }
+          ]
+        },
+        {
+          "path": "web/tests/device-login.test.tsx",
+          "testCallbackDeclarations": 8,
+          "ranges": [
+            {
+              "startLine": 74,
+              "endLine": 92
+            },
+            {
+              "startLine": 93,
+              "endLine": 118
+            },
+            {
+              "startLine": 119,
+              "endLine": 141
+            },
+            {
+              "startLine": 142,
+              "endLine": 160
+            },
+            {
+              "startLine": 161,
+              "endLine": 190
+            },
+            {
+              "startLine": 191,
+              "endLine": 207
+            },
+            {
+              "startLine": 208,
+              "endLine": 220
+            },
+            {
+              "startLine": 221,
+              "endLine": 233
+            }
+          ]
+        },
+        {
+          "path": "web/tests/drafts.test.tsx",
+          "testCallbackDeclarations": 11,
+          "ranges": [
+            {
+              "startLine": 16,
+              "endLine": 50
+            },
+            {
+              "startLine": 51,
+              "endLine": 60
+            },
+            {
+              "startLine": 61,
+              "endLine": 84
+            },
+            {
+              "startLine": 85,
+              "endLine": 97
+            },
+            {
+              "startLine": 98,
+              "endLine": 114
+            },
+            {
+              "startLine": 115,
+              "endLine": 134
+            },
+            {
+              "startLine": 135,
+              "endLine": 147
+            },
+            {
+              "startLine": 148,
+              "endLine": 157
+            },
+            {
+              "startLine": 158,
+              "endLine": 183
+            },
+            {
+              "startLine": 184,
+              "endLine": 192
+            },
+            {
+              "startLine": 193,
+              "endLine": 197
+            }
+          ]
+        },
+        {
+          "path": "web/tests/events.test.tsx",
+          "testCallbackDeclarations": 5,
+          "ranges": [
+            {
+              "startLine": 11,
+              "endLine": 32
+            },
+            {
+              "startLine": 33,
+              "endLine": 79
+            },
+            {
+              "startLine": 80,
+              "endLine": 126
+            },
+            {
+              "startLine": 127,
+              "endLine": 150
+            },
+            {
+              "startLine": 151,
+              "endLine": 232
+            }
+          ]
+        },
+        {
+          "path": "web/tests/extension-mcp-drafts.test.tsx",
+          "testCallbackDeclarations": 11,
+          "ranges": [
+            {
+              "startLine": 43,
+              "endLine": 67
+            },
+            {
+              "startLine": 68,
+              "endLine": 88
+            },
+            {
+              "startLine": 89,
+              "endLine": 106
+            },
+            {
+              "startLine": 108,
+              "endLine": 124
+            },
+            {
+              "startLine": 126,
+              "endLine": 134
+            },
+            {
+              "startLine": 136,
+              "endLine": 160
+            },
+            {
+              "startLine": 162,
+              "endLine": 175
+            },
+            {
+              "startLine": 177,
+              "endLine": 193
+            },
+            {
+              "startLine": 195,
+              "endLine": 211
+            },
+            {
+              "startLine": 213,
+              "endLine": 228
+            },
+            {
+              "startLine": 230,
+              "endLine": 255
+            }
+          ]
+        },
+        {
+          "path": "web/tests/history.test.ts",
+          "testCallbackDeclarations": 7,
+          "ranges": [
+            {
+              "startLine": 5,
+              "endLine": 25
+            },
+            {
+              "startLine": 26,
+              "endLine": 73
+            },
+            {
+              "startLine": 74,
+              "endLine": 105
+            },
+            {
+              "startLine": 106,
+              "endLine": 129
+            },
+            {
+              "startLine": 130,
+              "endLine": 149
+            },
+            {
+              "startLine": 150,
+              "endLine": 196
+            },
+            {
+              "startLine": 197,
+              "endLine": 238
+            }
+          ]
+        },
+        {
+          "path": "web/tests/mcp-media.test.tsx",
+          "testCallbackDeclarations": 12,
+          "ranges": [
+            {
+              "startLine": 38,
+              "endLine": 49
+            },
+            {
+              "startLine": 50,
+              "endLine": 62
+            },
+            {
+              "startLine": 64,
+              "endLine": 103
+            },
+            {
+              "startLine": 105,
+              "endLine": 144
+            },
+            {
+              "startLine": 146,
+              "endLine": 168
+            },
+            {
+              "startLine": 170,
+              "endLine": 203
+            },
+            {
+              "startLine": 205,
+              "endLine": 216
+            },
+            {
+              "startLine": 218,
+              "endLine": 233
+            },
+            {
+              "startLine": 235,
+              "endLine": 245
+            },
+            {
+              "startLine": 247,
+              "endLine": 258
+            },
+            {
+              "startLine": 260,
+              "endLine": 276
+            },
+            {
+              "startLine": 278,
+              "endLine": 324
+            }
+          ]
+        },
+        {
+          "path": "web/tests/mcp-oauth.test.tsx",
+          "testCallbackDeclarations": 8,
+          "ranges": [
+            {
+              "startLine": 35,
+              "endLine": 46
+            },
+            {
+              "startLine": 47,
+              "endLine": 59
+            },
+            {
+              "startLine": 60,
+              "endLine": 66
+            },
+            {
+              "startLine": 67,
+              "endLine": 74
+            },
+            {
+              "startLine": 75,
+              "endLine": 83
+            },
+            {
+              "startLine": 84,
+              "endLine": 92
+            },
+            {
+              "startLine": 93,
+              "endLine": 105
+            },
+            {
+              "startLine": 106,
+              "endLine": 114
+            }
+          ]
+        },
+        {
+          "path": "web/tests/mcp-ui.test.tsx",
+          "testCallbackDeclarations": 22,
+          "ranges": [
+            {
+              "startLine": 92,
+              "endLine": 123
+            },
+            {
+              "startLine": 124,
+              "endLine": 152
+            },
+            {
+              "startLine": 153,
+              "endLine": 189
+            },
+            {
+              "startLine": 190,
+              "endLine": 201
+            },
+            {
+              "startLine": 202,
+              "endLine": 224
+            },
+            {
+              "startLine": 225,
+              "endLine": 259
+            },
+            {
+              "startLine": 260,
+              "endLine": 286
+            },
+            {
+              "startLine": 287,
+              "endLine": 330
+            },
+            {
+              "startLine": 331,
+              "endLine": 346
+            },
+            {
+              "startLine": 347,
+              "endLine": 406
+            },
+            {
+              "startLine": 407,
+              "endLine": 446
+            },
+            {
+              "startLine": 447,
+              "endLine": 477
+            },
+            {
+              "startLine": 478,
+              "endLine": 507
+            },
+            {
+              "startLine": 523,
+              "endLine": 547
+            },
+            {
+              "startLine": 548,
+              "endLine": 581
+            },
+            {
+              "startLine": 582,
+              "endLine": 618
+            },
+            {
+              "startLine": 619,
+              "endLine": 655
+            },
+            {
+              "startLine": 657,
+              "endLine": 735
+            },
+            {
+              "startLine": 737,
+              "endLine": 793
+            },
+            {
+              "startLine": 795,
+              "endLine": 866
+            },
+            {
+              "startLine": 868,
+              "endLine": 940
+            },
+            {
+              "startLine": 942,
+              "endLine": 1006
+            }
+          ]
+        },
+        {
+          "path": "web/tests/message-media.test.tsx",
+          "testCallbackDeclarations": 7,
+          "ranges": [
+            {
+              "startLine": 30,
+              "endLine": 45
+            },
+            {
+              "startLine": 46,
+              "endLine": 84
+            },
+            {
+              "startLine": 85,
+              "endLine": 105
+            },
+            {
+              "startLine": 106,
+              "endLine": 121
+            },
+            {
+              "startLine": 123,
+              "endLine": 142
+            },
+            {
+              "startLine": 143,
+              "endLine": 163
+            },
+            {
+              "startLine": 164,
+              "endLine": 189
+            }
+          ]
+        },
+        {
+          "path": "web/tests/operation-generation.test.ts",
+          "testCallbackDeclarations": 3,
+          "ranges": [
+            {
+              "startLine": 12,
+              "endLine": 24
+            },
+            {
+              "startLine": 25,
+              "endLine": 31
+            },
+            {
+              "startLine": 32,
+              "endLine": 55
+            }
+          ]
+        },
+        {
+          "path": "web/tests/operations.test.ts",
+          "testCallbackDeclarations": 14,
+          "ranges": [
+            {
+              "startLine": 19,
+              "endLine": 27
+            },
+            {
+              "startLine": 28,
+              "endLine": 37
+            },
+            {
+              "startLine": 38,
+              "endLine": 47
+            },
+            {
+              "startLine": 48,
+              "endLine": 56
+            },
+            {
+              "startLine": 57,
+              "endLine": 70
+            },
+            {
+              "startLine": 71,
+              "endLine": 88
+            },
+            {
+              "startLine": 89,
+              "endLine": 111
+            },
+            {
+              "startLine": 112,
+              "endLine": 143
+            },
+            {
+              "startLine": 144,
+              "endLine": 169
+            },
+            {
+              "startLine": 170,
+              "endLine": 194
+            },
+            {
+              "startLine": 197,
+              "endLine": 216
+            },
+            {
+              "startLine": 217,
+              "endLine": 232
+            },
+            {
+              "startLine": 233,
+              "endLine": 270
+            },
+            {
+              "startLine": 271,
+              "endLine": 288
+            }
+          ]
+        },
+        {
+          "path": "web/tests/preview-server.test.ts",
+          "testCallbackDeclarations": 8,
+          "ranges": [
+            {
+              "startLine": 39,
+              "endLine": 58
+            },
+            {
+              "startLine": 60,
+              "endLine": 67
+            },
+            {
+              "startLine": 69,
+              "endLine": 77
+            },
+            {
+              "startLine": 79,
+              "endLine": 85
+            },
+            {
+              "startLine": 87,
+              "endLine": 98
+            },
+            {
+              "startLine": 100,
+              "endLine": 112
+            },
+            {
+              "startLine": 114,
+              "endLine": 119
+            },
+            {
+              "startLine": 121,
+              "endLine": 125
+            }
+          ]
+        },
+        {
+          "path": "web/tests/prompt-fields.test.tsx",
+          "testCallbackDeclarations": 8,
+          "ranges": [
+            {
+              "startLine": 28,
+              "endLine": 46
+            },
+            {
+              "startLine": 47,
+              "endLine": 71
+            },
+            {
+              "startLine": 72,
+              "endLine": 95
+            },
+            {
+              "startLine": 96,
+              "endLine": 116
+            },
+            {
+              "startLine": 118,
+              "endLine": 169
+            },
+            {
+              "startLine": 171,
+              "endLine": 212
+            },
+            {
+              "startLine": 214,
+              "endLine": 254
+            },
+            {
+              "startLine": 256,
+              "endLine": 274
+            }
+          ]
+        },
+        {
+          "path": "web/tests/prompts.test.tsx",
+          "testCallbackDeclarations": 15,
+          "ranges": [
+            {
+              "startLine": 14,
+              "endLine": 49
+            },
+            {
+              "startLine": 50,
+              "endLine": 102
+            },
+            {
+              "startLine": 103,
+              "endLine": 157
+            },
+            {
+              "startLine": 160,
+              "endLine": 182
+            },
+            {
+              "startLine": 183,
+              "endLine": 220
+            },
+            {
+              "startLine": 221,
+              "endLine": 238
+            },
+            {
+              "startLine": 239,
+              "endLine": 269
+            },
+            {
+              "startLine": 270,
+              "endLine": 337
+            },
+            {
+              "startLine": 338,
+              "endLine": 384
+            },
+            {
+              "startLine": 386,
+              "endLine": 409
+            },
+            {
+              "startLine": 412,
+              "endLine": 440
+            },
+            {
+              "startLine": 441,
+              "endLine": 471
+            },
+            {
+              "startLine": 472,
+              "endLine": 508
+            },
+            {
+              "startLine": 509,
+              "endLine": 534
+            },
+            {
+              "startLine": 535,
+              "endLine": 589
+            }
+          ]
+        },
+        {
+          "path": "web/tests/provider-advanced.test.tsx",
+          "testCallbackDeclarations": 4,
+          "ranges": [
+            {
+              "startLine": 34,
+              "endLine": 71
+            },
+            {
+              "startLine": 72,
+              "endLine": 116
+            },
+            {
+              "startLine": 117,
+              "endLine": 130
+            },
+            {
+              "startLine": 132,
+              "endLine": 154
+            }
+          ]
+        },
+        {
+          "path": "web/tests/provider-catalog.test.tsx",
+          "testCallbackDeclarations": 10,
+          "ranges": [
+            {
+              "startLine": 93,
+              "endLine": 117
+            },
+            {
+              "startLine": 119,
+              "endLine": 150
+            },
+            {
+              "startLine": 152,
+              "endLine": 172
+            },
+            {
+              "startLine": 174,
+              "endLine": 200
+            },
+            {
+              "startLine": 202,
+              "endLine": 219
+            },
+            {
+              "startLine": 221,
+              "endLine": 239
+            },
+            {
+              "startLine": 241,
+              "endLine": 260
+            },
+            {
+              "startLine": 262,
+              "endLine": 273
+            },
+            {
+              "startLine": 275,
+              "endLine": 295
+            },
+            {
+              "startLine": 297,
+              "endLine": 324
+            }
+          ]
+        },
+        {
+          "path": "web/tests/realtime.test.tsx",
+          "testCallbackDeclarations": 13,
+          "ranges": [
+            {
+              "startLine": 115,
+              "endLine": 149
+            },
+            {
+              "startLine": 150,
+              "endLine": 174
+            },
+            {
+              "startLine": 175,
+              "endLine": 211
+            },
+            {
+              "startLine": 212,
+              "endLine": 229
+            },
+            {
+              "startLine": 230,
+              "endLine": 254
+            },
+            {
+              "startLine": 255,
+              "endLine": 275
+            },
+            {
+              "startLine": 276,
+              "endLine": 291
+            },
+            {
+              "startLine": 292,
+              "endLine": 340
+            },
+            {
+              "startLine": 341,
+              "endLine": 380
+            },
+            {
+              "startLine": 381,
+              "endLine": 421
+            },
+            {
+              "startLine": 423,
+              "endLine": 521
+            },
+            {
+              "startLine": 522,
+              "endLine": 550
+            },
+            {
+              "startLine": 551,
+              "endLine": 568
+            }
+          ]
+        },
+        {
+          "path": "web/tests/receipt-maintenance.test.tsx",
+          "testCallbackDeclarations": 6,
+          "ranges": [
+            {
+              "startLine": 46,
+              "endLine": 77
+            },
+            {
+              "startLine": 78,
+              "endLine": 95
+            },
+            {
+              "startLine": 96,
+              "endLine": 137
+            },
+            {
+              "startLine": 138,
+              "endLine": 147
+            },
+            {
+              "startLine": 148,
+              "endLine": 167
+            },
+            {
+              "startLine": 168,
+              "endLine": 186
+            }
+          ]
+        },
+        {
+          "path": "web/tests/recovery.test.tsx",
+          "testCallbackDeclarations": 5,
+          "ranges": [
+            {
+              "startLine": 34,
+              "endLine": 56
+            },
+            {
+              "startLine": 57,
+              "endLine": 87
+            },
+            {
+              "startLine": 88,
+              "endLine": 110
+            },
+            {
+              "startLine": 111,
+              "endLine": 133
+            },
+            {
+              "startLine": 134,
+              "endLine": 150
+            }
+          ]
+        },
+        {
+          "path": "web/tests/resources.test.tsx",
+          "testCallbackDeclarations": 3,
+          "ranges": [
+            {
+              "startLine": 7,
+              "endLine": 21
+            },
+            {
+              "startLine": 22,
+              "endLine": 29
+            },
+            {
+              "startLine": 30,
+              "endLine": 55
+            }
+          ]
+        },
+        {
+          "path": "web/tests/resume.test.tsx",
+          "testCallbackDeclarations": 2,
+          "ranges": [
+            {
+              "startLine": 7,
+              "endLine": 37
+            },
+            {
+              "startLine": 38,
+              "endLine": 50
+            }
+          ]
+        },
+        {
+          "path": "web/tests/session.test.ts",
+          "testCallbackDeclarations": 6,
+          "ranges": [
+            {
+              "startLine": 10,
+              "endLine": 34
+            },
+            {
+              "startLine": 35,
+              "endLine": 72
+            },
+            {
+              "startLine": 73,
+              "endLine": 91
+            },
+            {
+              "startLine": 92,
+              "endLine": 109
+            },
+            {
+              "startLine": 110,
+              "endLine": 125
+            },
+            {
+              "startLine": 126,
+              "endLine": 163
+            }
+          ]
+        },
+        {
+          "path": "web/tests/settings-drafts.test.tsx",
+          "testCallbackDeclarations": 8,
+          "ranges": [
+            {
+              "startLine": 48,
+              "endLine": 83
+            },
+            {
+              "startLine": 85,
+              "endLine": 105
+            },
+            {
+              "startLine": 107,
+              "endLine": 129
+            },
+            {
+              "startLine": 131,
+              "endLine": 147
+            },
+            {
+              "startLine": 149,
+              "endLine": 175
+            },
+            {
+              "startLine": 177,
+              "endLine": 191
+            },
+            {
+              "startLine": 193,
+              "endLine": 216
+            },
+            {
+              "startLine": 218,
+              "endLine": 233
+            }
+          ]
+        },
+        {
+          "path": "web/tests/timeline-history.test.tsx",
+          "testCallbackDeclarations": 11,
+          "ranges": [
+            {
+              "startLine": 56,
+              "endLine": 62
+            },
+            {
+              "startLine": 63,
+              "endLine": 92
+            },
+            {
+              "startLine": 93,
+              "endLine": 114
+            },
+            {
+              "startLine": 115,
+              "endLine": 160
+            },
+            {
+              "startLine": 161,
+              "endLine": 176
+            },
+            {
+              "startLine": 177,
+              "endLine": 212
+            },
+            {
+              "startLine": 213,
+              "endLine": 224
+            },
+            {
+              "startLine": 225,
+              "endLine": 241
+            },
+            {
+              "startLine": 242,
+              "endLine": 256
+            },
+            {
+              "startLine": 257,
+              "endLine": 276
+            },
+            {
+              "startLine": 278,
+              "endLine": 292
+            }
+          ]
+        }
+      ],
+      "supplementalFullBodyAssignments": [
+        {
+          "report": ".work/public-https-round10-web-root-supplement.json",
+          "files": [
+            "web/tests/git-index-ui.test.tsx",
+            "web/tests/workspace-git-drafts.test.tsx",
+            "web/tests/workspace-management.test.tsx",
+            "web/tests/workspace-search.test.tsx",
+            "web/tests/workspace-ui.test.tsx",
+            "web/tests/workspace-watch.test.tsx",
+            "web/tests/modal-mutations.test.tsx",
+            "web/tests/automations.test.tsx"
+          ]
+        },
+        {
+          "report": ".work/public-https-round10-web-runtime-supplement.json",
+          "files": [
+            "web/tests/workflows.test.tsx",
+            "web/tests/organization.test.tsx"
+          ]
+        },
+        {
+          "report": ".work/public-https-round10-web-terminal-supplement.json",
+          "files": [
+            "web/tests/terminal.test.tsx",
+            "web/tests/thread-terminals.test.tsx"
+          ]
+        },
+        {
+          "report": ".work/public-https-round10-web-process-supplement.json",
+          "files": [
+            "web/tests/process-remote.test.tsx"
+          ]
+        }
+      ],
+      "supplementAttribution": "Assignments and report paths are coordination metadata only. This reviewer did not use supplemental findings as independent evidence. The round coordinator must check each separate artifact before claiming its added full-body coverage."
+    },
+    "seal": "Recomputed SHA-256 from raw bytes for every one of the 197 assigned files and compared each with the frozen inventory; reparsed all 187 executable files; ran snapshot(undefined,true) and required the frozen digest and all 1886 source paths/count to match. No source or test changes were made."
+  }
+}

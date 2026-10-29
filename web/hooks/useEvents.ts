@@ -16,6 +16,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
   const [revision, setRevision] = useState(0);
   const [connectionId, setConnectionId] = useState('');
   useEffect(() => {
+    api.connectionChanged?.();
     if (!enabled) {
       setConnection('offline');
       setRuntimeConnected(false);
@@ -65,9 +66,11 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
               connected &&
               (!upstreamConnected || (typeof nextEpoch === 'string' && nextEpoch !== observedEpoch))
             ) {
+              api.connectionChanged?.();
               setRevision((v) => v + 1);
               setConnectionId(uuid());
             }
+            if (upstreamConnected && !connected) api.connectionChanged?.();
             upstreamConnected = connected;
             if (typeof nextEpoch === 'string') {
               observedEpoch = nextEpoch;
@@ -100,6 +103,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
       };
       socket.onclose = () => {
         if (disposed) return;
+        api.connectionChanged?.();
         upstreamConnected = false;
         setConnection('offline');
         setRuntimeConnected(false);
@@ -119,6 +123,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
     };
     connect();
     return () => {
+      api.connectionChanged?.();
       disposed = true;
       clearTimeout(timer);
       socket?.close();

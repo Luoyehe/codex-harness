@@ -16,7 +16,9 @@ export function SkillSettings({
   onChanged,
   projects = [project],
   onOpenNativeTerminal,
+  visible = true,
 }: {
+  visible?: boolean;
   onOpenNativeTerminal?: (projectId: string) => void;
   projects?: Project[];
   api: Api;
@@ -26,20 +28,21 @@ export function SkillSettings({
   onChanged: () => void;
 }) {
   const [selected, setSelected] = useState('');
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged, `${project.id}:${epoch}`),
     key = `${project.id}:${epoch}:${action.revision}`;
   const skills = useResource(key, (signal) =>
     api.call<{
       data: (Omit<SkillsListEntry, 'skills'> & {
         skills: (SkillMetadata & { skillId: string })[];
       })[];
-    }>('skills/list', { projectId: project.id }, signal),
+    }>('skills/list', { projectId: project.id }, signal), visible,
   );
   const hooks = useResource(key, (signal) =>
-    api.call<{ data: HooksListEntry[] }>('hooks/list', { projectId: project.id }, signal),
+    api.call<{ data: HooksListEntry[] }>('hooks/list', { projectId: project.id }, signal), visible,
   );
   return (
-    <section className="stack">
+    <section className="stack" hidden={!visible} inert={!visible}
+      onClickCapture={(event) => { if (!visible) { event.preventDefault(); event.stopPropagation(); } }}>
       <div className="section-heading">
         <h3>技能与 Hooks</h3>
         <button className="button small" onClick={action.refresh}>
@@ -50,6 +53,7 @@ export function SkillSettings({
         显示当前项目可用的技能、依赖和 Hook 信任状态。启停技能修改运行时用户配置。
       </p>
       <SkillRoots
+        visible={visible}
         api={api}
         projects={projects}
         epoch={epoch}
@@ -57,6 +61,7 @@ export function SkillSettings({
         onChanged={onChanged}
       />
       <SkillCreator
+        visible={visible}
         api={api}
         project={project}
         epoch={epoch}
@@ -105,7 +110,7 @@ export function SkillSettings({
                 查看 SKILL.md
               </button>
               {selected === skill.skillId && (
-                <SkillDocument api={api} project={project} epoch={epoch} skillId={skill.skillId} />
+                <SkillDocument api={api} project={project} epoch={epoch} skillId={skill.skillId} visible={visible} />
               )}
               <button
                 className="button small"
@@ -134,7 +139,7 @@ export function SkillSettings({
       {onOpenNativeTerminal && (
         <button
           className="button"
-          disabled={!enabled || action.disabled}
+          disabled={!enabled || !visible || action.disabled}
           onClick={() => onOpenNativeTerminal(project.id)}
         >
           打开原生 Hooks 管理终端

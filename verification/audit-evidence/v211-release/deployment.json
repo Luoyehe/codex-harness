@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-live-deployment-validation",
+  "version": "2.1.1",
+  "status": "deployment-and-independent-public-restart-acceptance-passed-hosted-ci-pending",
+  "recordedAt": "2026-10-29T21:06:19.435Z",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceFiles": 1911,
+  "fullValidation": {
+    "status": "passed",
+    "testFiles": 210,
+    "distinctCases": 2148,
+    "coverageGaps": 0,
+    "platforms": [
+      "windows",
+      "linux",
+      "linux-root"
+    ],
+    "individualPlatformSkipsRetained": true,
+    "reconciledEvidenceSha256": "b65fb9ac54cb387918c60f797bbcc82bb7f74141aad6bb98365cb9d29b0f908f"
+  },
+  "configuration": {
+    "supportedDnsProviders": [
+      "alidns",
+      "tencentcloud",
+      "cloudflare",
+      "huaweicloud",
+      "route53",
+      "digitalocean"
+    ],
+    "defaultHttpsPort": 18443,
+    "defaultHttpPort": 18081,
+    "httpsPortConfigurable": true,
+    "validatedInstanceHttpsPort": 10000,
+    "validatedPortIsGlobalDefault": false,
+    "liveDnsProvider": "alidns"
+  },
+  "completedValidation": {
+    "reviewedControlUpdate": true,
+    "managedApplicationUpdate": true,
+    "recordedMaintenanceAndRestoration": true,
+    "pinnedDnsGenerationImport": true,
+    "releaseIntegrityAndPermissions": true,
+    "managedUnitOwnership": true,
+    "strictSystemCaTls": true,
+    "instanceIdentity": true,
+    "noPendingTransactions": true,
+    "mainServicesActiveRunningEnabled": true,
+    "selectedHttpsListenerVerified": true,
+    "priorHttpsListenerRetired": true
+  },
+  "productionAcme": {
+    "freshIssuanceObserved": true,
+    "challenge": "dns-01",
+    "provider": "alidns",
+    "authority": "Let's Encrypt production",
+    "evidence": "Bounded structured Caddy journal; only allowlisted non-secret event fields retained. Hostname and deployment identity omitted.",
+    "events": [
+      {
+        "timestamp": "2026-10-29T20:26:14.784970+00:00",
+        "logger": "tls.obtain",
+        "msg": "obtaining certificate"
+      },
+      {
+        "timestamp": "2026-10-29T20:26:17.058049+00:00",
+        "logger": "http.acme_client",
+        "msg": "trying to solve challenge",
+        "challenge_type": "dns-01",
+        "ca": "https://acme-v02.api.letsencrypt.org/directory"
+      },
+      {
+        "timestamp": "2026-10-29T20:26:25.602330+00:00",
+        "logger": "http.acme_client",
+        "msg": "authorization finalized"
+      },
+      {
+        "timestamp": "2026-10-29T20:26:28.073592+00:00",
+        "logger": "tls.obtain",
+        "msg": "certificate obtained successfully"
+      }
+    ],
+    "renewal": {
+      "manager": "caddy",
+      "automaticConfigured": true,
+      "futureRenewalTimeTested": false
+    }
+  },
+  "pendingAcceptance": {
+    "independentPublicNetworkPath": "passed",
+    "controlledRestartAtSelectedPort": "passed",
+    "hostedCi": "pending",
+    "releasePublication": "pending"
+  },
+  "privacy": {
+    "hostnameAndAddressesOmitted": true,
+    "instanceAndProjectIdentityOmitted": true,
+    "usernamesCredentialsAndSessionIdsOmitted": true,
+    "operatorAndPersonalPathsOmitted": true,
+    "rawOperatorReceiptsRetainedPrivately": true,
+    "operatorEvidenceSha256": "02e6c9588c8a5d779b581f7ba64ab8d8508a0fcde79bb47be7357985e0f081ad"
+  },
+  "limits": [
+    "Live production DNS-01 issuance is established for AliDNS; no live-provider claim is made for the other five providers.",
+    "Successful issuance and configured renewal do not establish future timed renewal success.",
+    "Browser acceptance used a gateway/hairpin route; separate strict-TLS API and real WebSocket acceptance used an independently observed external relay peer.",
+    "No paid model inference or real external MCP business operation is claimed.",
+    "This sanitized record adds no code-audit round and does not replace retained original operator receipts."
+  ],
+  "publicAcceptance": "public-acceptance.json",
+  "restartAcceptance": "restart.json"
+}

@@ -4,8 +4,9 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from deploy.common import DeployError, Layout
+from deploy.common import DeployError, Layout, fsync_directory
 from deploy.provider_layers import ensure_mount_targets, read_host_layers
 
 
@@ -51,6 +52,39 @@ class ProviderHostFilesTests(unittest.TestCase):
         with self.assertRaises(DeployError):
             ensure_mount_targets(self.layout, manifest)
         self.assertEqual(path.read_text(), 'model = "concurrent administrator"\n')
+
+    def test_interrupted_mount_file_sync_is_repeated_for_the_existing_target(self):
+        target = self.folder / "config.toml"
+        original = os.fsync
+        calls = []
+        def fail(fd):
+            info = os.fstat(fd)
+            if target.exists() and (info.st_dev, info.st_ino) == (target.stat().st_dev, target.stat().st_ino):
+                calls.append("file")
+                raise OSError("Injected host mount file sync failure")
+            return original(fd)
+        for attempt in range(2):
+            _, manifest = read_host_layers(self.layout, 1)
+            with self.subTest(attempt=attempt), patch("deploy.provider_layers.os.fsync", side_effect=fail), self.assertRaises(OSError):
+                ensure_mount_targets(self.layout, manifest, worker_gid=1)
+        self.assertEqual(calls, ["file", "file"])
+        before = target.stat()
+        _, manifest = read_host_layers(self.layout, 1)
+        ensure_mount_targets(self.layout, manifest, worker_gid=1)
+        after = target.stat()
+        self.assertEqual((after.st_mode, after.st_uid, after.st_gid), (before.st_mode, before.st_uid, before.st_gid))
+        self.assertEqual(target.read_bytes(), b"")
+
+    def test_interrupted_mount_directory_parent_sync_is_repeated_without_mode_changes(self):
+        def fail(path, **kwargs):
+            if path == self.folder.parent:
+                raise OSError("Injected host mount directory sync failure")
+            return fsync_directory(path, **kwargs)
+        for attempt in range(2):
+            _, manifest = read_host_layers(self.layout, 1)
+            with self.subTest(attempt=attempt), patch("deploy.common.fsync_directory", side_effect=fail), self.assertRaises(OSError):
+                ensure_mount_targets(self.layout, manifest)
+            self.assertFalse((self.folder / "config.toml").exists())
 
     def test_root_private_policy_is_not_copied_into_native_readable_generation(self):
         self.folder.mkdir(parents=True)

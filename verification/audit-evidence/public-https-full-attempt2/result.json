@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "status": "failed",
+  "fullSuitePassed": false,
+  "sourceDigest": "ca4f32a743f110954580fea9997cf1b654d30c8d16f882dee4fac051e6909c9f",
+  "completedAt": "2026-10-28T23:21:03.593Z",
+  "auditRounds": [
+    "public-https-round20",
+    "public-https-round21"
+  ],
+  "authorizationSha256": "d6e5f63c160aacb6dec0c827f658b5b16cf85f8cfc33434259bb6d13daab817c",
+  "platforms": {
+    "windows": {
+      "exitCode": 1,
+      "reportSha256": "1b98b65b34c357aa097cdd6c5935767c2959103143ff62a9fec6648019a5e57d",
+      "vitestSha256": "90f883fb6c1e1d1a621c4e13019bf9daafe15de011951bcaa4579ec9f09cd8c9",
+      "javascript": {
+        "total": 1491,
+        "passed": 1485,
+        "skipped": 5,
+        "failed": [
+          {
+            "file": "web/tests/provider-advanced.test.tsx",
+            "name": "changing the Bedrock region clears an unsent key and submits the selected native provider without an arbitrary endpoint",
+            "status": "failed"
+          }
+        ]
+      },
+      "pythonAndGo": {
+        "total": 403,
+        "passed": 308,
+        "skipped": 95
+      },
+      "build": "passed"
+    },
+    "linux": {
+      "exitCode": 1,
+      "reportSha256": "81e8aac63f5341b143b0409aada4160fd6286213ebef840cd83a61357259a67b",
+      "vitestSha256": "75720041faeb8ce8671b9289b7a2b7ead6f09d80813a486e47df0ebcb53c9b76",
+      "javascript": {
+        "total": 1491,
+        "passed": 1475,
+        "skipped": 15,
+        "failed": [
+          {
+            "file": "web/tests/realtime.test.tsx",
+            "name": "does not apply an unmounted realtime owner acknowledgement to its replacement draft",
+            "status": "failed"
+          }
+        ]
+      },
+      "pythonAndGo": {
+        "total": 403,
+        "passed": 403,
+        "skipped": 0
+      },
+      "build": "completed-before-tests"
+    }
+  },
+  "linuxRootExecuted": false,
+  "ownedProcessesStopped": true,
+  "linuxMainServicesUnchanged": true,
+  "note": "Two distinct UI test failures retained; no passing reconciliation, deployment or release. Linux root phase did not start after standard phase failure. Full authorization retired. Repairs and a fresh two-round clean audit gate are required."
+}

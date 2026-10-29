@@ -42,22 +42,32 @@ function Executor({
   api,
   epoch,
   enabled,
+  visible,
   onChanged,
 }: {
   api: Api;
   epoch: string;
   enabled: boolean;
+  visible: boolean;
   onChanged: () => void;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
-    environments = useResource(`${epoch}:${action.revision}`, (signal) =>
-      api.call<{ data: Environment[] }>('environment/list', {}, signal),
+  const action = useExtensionAction(
+    api, enabled && visible, onChanged, JSON.stringify([epoch, visible, enabled]),
+  ),
+    environments = useResource(
+      `${epoch}:${action.revision}`,
+      (signal) => api.call<{ data: Environment[] }>('environment/list', {}, signal),
+      visible,
     );
   const [name, setName] = useState(''),
     [url, setUrl] = useState(''),
     [token, setToken] = useState(''),
     [confirmed, setConfirmed] = useState(false),
     [selected, setSelected] = useState('');
+  useEffect(() => {
+    setToken('');
+    setConfirmed(false);
+  }, [epoch, visible, enabled]);
   const row = environments.data?.data.find((item) => item.environmentId === selected);
   const status = useResource(
     `${epoch}:${selected}:${action.revision}`,
@@ -67,7 +77,7 @@ function Executor({
         { environmentId: selected },
         signal,
       ),
-    Boolean(row),
+    visible && Boolean(row),
   );
   const change = (set: () => void) => {
     set();
@@ -157,6 +167,7 @@ function Executor({
           <p className="small muted">
             远端需要 WSS；只有服务器自身 loopback 地址允许
             WS。不要在地址中加入凭证、查询参数或片段。
+            切换设置类别会清除 token 与授权勾选，名称和地址仍保留。
           </p>
           <label className="field">
             Bearer token（按需填写，仅保留在本次运行内存）
@@ -180,6 +191,7 @@ function Executor({
             className="button primary"
             disabled={action.disabled || !name.trim() || !url.trim() || !confirmed}
             onClick={async () => {
+              if (action.disabled || !confirmed) return;
               // Clear the form's secret even when the outcome is unknown; recovery reads
               // the original receipt and must not re-register using a retained token.
               const bearer = token;
@@ -596,6 +608,7 @@ export function RemoteSettings({
   enabled,
   connected,
   onChanged,
+  visible = true,
 }: {
   api: Api;
   events: Events;
@@ -604,11 +617,20 @@ export function RemoteSettings({
   enabled: boolean;
   connected: boolean;
   onChanged: () => void;
+  visible?: boolean;
 }) {
+  const owner = useRef({ api, csrf: api.csrf, epoch, connectionId, generation: 0 });
+  if (
+    owner.current.api !== api || owner.current.csrf !== api.csrf ||
+    owner.current.epoch !== epoch || owner.current.connectionId !== connectionId
+  )
+    owner.current = {
+      api, csrf: api.csrf, epoch, connectionId, generation: owner.current.generation + 1,
+    };
   return (
-    <div className="stack" key={`${epoch}:${connectionId}`}>
-      <Executor {...{ api, epoch, enabled: enabled && connected, onChanged }} />
-      <RemoteControl {...{ api, events, epoch, enabled, connected, onChanged }} />
+    <div className="stack" key={owner.current.generation}>
+      <Executor {...{ api, epoch, enabled: enabled && connected, visible, onChanged }} />
+      {visible && <RemoteControl {...{ api, events, epoch, enabled, connected, onChanged }} />}
     </div>
   );
 }

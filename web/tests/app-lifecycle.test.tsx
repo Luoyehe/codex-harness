@@ -1,6 +1,10 @@
+import { IDBObjectStore } from 'fake-indexeddb';
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { enabledButton } from './enabled-button';
+import { Api } from '../lib/api';
+import * as operationStorage from '../lib/operations';
 import { App } from '../App';
 import { createOperation, listOperations, updateOperation } from '../lib/operations';
 import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
@@ -40,7 +44,13 @@ type Socket = {
   onmessage: (event: { data: string }) => void;
   close: () => void;
 };
+let settleMutations = async () => {};
 beforeEach(() => {
+  const mutations = vi.spyOn(Api.prototype, 'beginMutation');
+  settleMutations = async () => {
+    await Promise.allSettled(mutations.mock.results.flatMap(result =>
+      result.type === 'return' ? [result.value.result] : []));
+  };
   localStorage.clear();
   sessionStorage.clear();
   history.replaceState({}, '', '/?thread=t');
@@ -62,8 +72,10 @@ beforeEach(() => {
     },
   );
 });
-afterEach(() => {
+afterEach(async () => {
+  await act(settleMutations);
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 async function fixture(
@@ -112,7 +124,7 @@ async function fixture(
           valid = true;
           sequence++;
         }
-        return ok({ authenticated: valid, ...(valid ? { csrf: `session-${sequence}` } : {}) });
+        return ok({ authenticated: valid, operationRecoveryProtocol: 2, ...(valid ? { csrf: `session-${sequence}` } : {}) });
       }
       if (!valid)
         return {
@@ -258,6 +270,7 @@ async function fixture(
   else
     await waitFor(() =>
       expect(screen.getByRole('option', { name: '沿用会话设置（fixture-model）' })).toBeTruthy(),
+      { timeout: 5000 },
     );
   return {
     sockets,
@@ -312,15 +325,9 @@ it.each([
   expect(vi.mocked(fetch).mock.calls.filter(([url, init]) => url === '/api/session' && init?.method === 'POST')).toHaveLength(1);
 });
 it('keeps the real App readable but sends no mutation when operation intent persistence fails', async () => {
-  const f = await fixture(false, false, undefined, false),
-    original = Storage.prototype.setItem,
-    failedIntent = vi.fn();
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
-    if (this === localStorage && key.startsWith('harness.operation.')) {
-      failedIntent();
-      throw new DOMException('operation intent unavailable', 'QuotaExceededError');
-    }
-    return original.call(this, key, value);
+  const f = await fixture(false, false, undefined, false), failedIntent = vi.fn();
+  vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(() => {
+    failedIntent(); throw new DOMException('operation intent unavailable', 'QuotaExceededError');
   });
   fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), {
     target: { value: 'retain this unsent draft' },
@@ -502,8 +509,8 @@ it('recovers outer access authentication explicitly without losing a memory-only
   expect(f.count('conversation/start')).toBe(0);
 });
 it('unmounts modal ownership on access expiry and does not reopen it after renewal', async () => {
-  const op = createOperation('turn/start', { threadId: 'other' });
-  updateOperation(op.id, 'unknown');
+  const op = (await createOperation('turn/start', { threadId: 'other' }));
+  (await updateOperation(op.id, 'unknown'));
   const f = await fixture();
   fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), {
     target: { value: 'draft under settings' },
@@ -525,13 +532,13 @@ it('unmounts modal ownership on access expiry and does not reopen it after renew
   expect(
     (screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value,
   ).toBe('draft under settings');
-  expect(listOperations().find((saved) => saved.id === op.id)?.state).toBe('unknown');
+  expect((await listOperations()).find((saved) => saved.id === op.id)?.state).toBe('unknown');
   expect(f.count('turn/start')).toBe(0);
   expect(f.count('conversation/start')).toBe(0);
 });
 it('renews authentication without losing a draft or replaying an unresolved write', async () => {
-  const op = createOperation('turn/start', { threadId: 'other' });
-  updateOperation(op.id, 'unknown');
+  const op = (await createOperation('turn/start', { threadId: 'other' }));
+  (await updateOperation(op.id, 'unknown'));
   const f = await fixture();
   fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), {
     target: { value: 'draft survives login' },
@@ -553,7 +560,7 @@ it('renews authentication without losing a draft or replaying an unresolved writ
   expect(
     (screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value,
   ).toBe('draft survives login');
-  expect(listOperations().find((saved) => saved.id === op.id)?.state).toBe('unknown');
+  expect((await listOperations()).find((saved) => saved.id === op.id)?.state).toBe('unknown');
   expect(f.count('turn/start')).toBe(0);
   expect(f.count('conversation/start')).toBe(0);
 });
@@ -567,8 +574,8 @@ it.each(['open', 'pending'])(
       text: 'draft beneath preview',
       attachments: [{ attachmentId: 'a', name: 'fixture.txt', size: 5, mimeType: 'text/plain' }],
     });
-    const op = createOperation('turn/start', { threadId: 'other' });
-    updateOperation(op.id, 'unknown');
+    const op = (await createOperation('turn/start', { threadId: 'other' }));
+    (await updateOperation(op.id, 'unknown'));
     let resolve!: (result: unknown) => void;
     const response = {
       attachmentId: 'a',
@@ -613,7 +620,7 @@ it.each(['open', 'pending'])(
       (screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value,
     ).toBe('draft beneath preview');
     expect(readDraft('t').attachments).toHaveLength(1);
-    expect(listOperations().find((saved) => saved.id === op.id)?.state).toBe('unknown');
+    expect((await listOperations()).find((saved) => saved.id === op.id)?.state).toBe('unknown');
     expect(f.count('turn/start')).toBe(0);
     expect(f.count('conversation/start')).toBe(0);
     expect(f.count('attachment/read')).toBe(1);
@@ -785,9 +792,10 @@ it('retains an accepted owner pairing through ordinary configuration revision ch
   fireEvent.click(screen.getByRole('button', { name: /我的工作台/ }));
   fireEvent.click(screen.getByRole('button', { name: '远端环境与连接' }));
   await screen.findByText('状态：connected · fixture');
+  await waitFor(() => expect(f.count('remoteControl/client/list')).toBe(1));
   fireEvent.click(screen.getByText('配对新的客户端', { selector: 'summary' }));
   fireEvent.click(screen.getByRole('checkbox', { name: '确认创建用于授权新客户端的配对码' }));
-  fireEvent.click(screen.getByRole('button', { name: '创建一次配对' }));
+  fireEvent.click(await enabledButton({ name: '创建一次配对' }));
   const code = await screen.findByRole('textbox', { name: '配对码' });
   expect((code as HTMLTextAreaElement).value).toBe('owner-only-fixture-code');
   await waitFor(() => expect(f.count('remoteControl/status/read')).toBeGreaterThan(1));
@@ -795,4 +803,21 @@ it('retains an accepted owner pairing through ordinary configuration revision ch
     'owner-only-fixture-code',
   );
   expect(f.count('remoteControl/pairing/start')).toBe(1);
+});
+
+it('keeps the workspace closed after authentication is lost while the initial session waits for recovery storage', async () => {
+  let release!: () => void;
+  const initialize = vi.spyOn(operationStorage, 'initializeOperations').mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+  const session = vi.spyOn(Api.prototype, 'session');
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string) => url === '/api/session'
+    ? { ok: true, status: 200, json: async () => ({ authenticated: true, operationRecoveryProtocol: 2, csrf: 'old' }) }
+    : { ok: false, status: 401, json: async () => ({ ok: false, error: { code: 'unauthorized' } }) }));
+  render(<App />);
+  await waitFor(() => expect(initialize).toHaveBeenCalledOnce());
+  const api = session.mock.contexts[0] as Api;
+  await act(async () => { await expect(api.call('project/list')).rejects.toMatchObject({ code: 'unauthorized' }); release(); });
+  expect(await screen.findByRole('button', { name: '进入工作台 →' })).toBeTruthy();
+  expect(screen.queryByRole('textbox', { name: '消息' })).toBeNull();
+  expect(api.csrf).toBe('');
+  expect(screen.getByRole('alert').textContent).toContain('登录状态已变化');
 });

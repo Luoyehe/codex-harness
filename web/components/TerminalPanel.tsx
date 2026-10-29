@@ -74,10 +74,10 @@ export function TerminalPanel({
   scope.current = { projectId, connected, epoch, program };
   const mounted = useRef(true),
     activeOperation = useRef<TerminalOperation | undefined>(undefined);
-  const acknowledge = (operation: TerminalOperation) => {
+  const acknowledge = async (operation: TerminalOperation) => {
     try {
-      if (listOperations().some((o) => o.id === operation.operationId))
-        acknowledgeOperation(operation.operationId);
+      if ((await listOperations()).some((o) => o.id === operation.operationId))
+        await acknowledgeOperation(operation.operationId);
     } catch (e) {
       if (mounted.current) setError(`终端状态已确认，但本地回执尚未关闭：${message(e)}`);
     }
@@ -96,7 +96,7 @@ export function TerminalPanel({
       } catch (e) {
         if (!(e instanceof RpcError && e.code === 'not_found')) throw e;
       }
-      acknowledge(owner);
+      await acknowledge(owner);
       if (
         mounted.current &&
         owner.program !== undefined &&
@@ -312,7 +312,7 @@ export function TerminalPanel({
     setError('');
     for (const event of attempt.events)
       if (event.data.terminalId === result.terminalId) applyEvent(event);
-    acknowledge(attempt.operation);
+    await acknowledge(attempt.operation);
     if (terminalId.current) term.current?.focus();
   };
   const open = async () => {
@@ -337,6 +337,8 @@ export function TerminalPanel({
       const request = api.openTerminal(
         { projectId, ...size, ...(program !== 'shell' ? { program } : {}) },
         epoch,
+        () => mounted.current && scope.current.connected && scope.current.epoch === epoch &&
+          scope.current.projectId === projectId && scope.current.program === program,
       );
       attempt = {
         operation: request.operation,
@@ -355,10 +357,11 @@ export function TerminalPanel({
         // A WebSocket receipt may already prove success even when only the HTTP response was lost.
         let saved;
         try {
-          saved = listOperations().find((o) => o.id === attempt!.operation.operationId);
+          saved = (await listOperations()).find((o) => o.id === attempt!.operation.operationId);
         } catch {
           /* Explicit read-only recovery remains available. */
         }
+        if (!mounted.current || opening.current !== attempt) return;
         if (saved?.state === 'accepted' && saved.terminalResult) {
           await accept(attempt, saved.terminalResult);
           return;
@@ -387,7 +390,7 @@ export function TerminalPanel({
         opening.current = undefined;
         setPending(false);
         setError('已确认原终端请求未发送，可以重新打开终端。');
-        acknowledge(attempt.operation);
+        await acknowledge(attempt.operation);
       } else setError('原终端操作仍待确认。查询不会重发创建请求，请稍后再次查询。');
     } catch (e) {
       if (mounted.current && opening.current === attempt) setError(message(e));

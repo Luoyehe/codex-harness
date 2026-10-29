@@ -266,12 +266,55 @@ class Manager:
         recover_as_owner(self.layout.state / "gateway/journal.sqlite", self.config["gatewayUid"], self.config["gatewayGid"])
 
     def status(self) -> dict:
+        roles = ["gateway", "worker"]
+        if (self.layout.config / "https.json").exists() or (self.layout.config / "https.json").is_symlink():
+            roles.append("caddy")
+        from .https_health import https_health
         return {"instance": self.layout.instance, "release": self.selected(), "previous": self.selected("previous"),
                 "providerConfigLayer": self.config.get("providerConfigLayer", "legacy"),
                 "origin": self.config["origin"], "nodeVersion": NODE_VERSION, "pnpmVersion": PNPM_VERSION, "codexVersion": CODEX_VERSION,
-                "services": {role: self.system.state(self.layout.unit(role)) for role in ("gateway", "worker")}}
+                "services": {role: self.system.state(self.layout.unit(role)) for role in roles},
+                "https": https_health(self, connect_address="127.0.0.1", timeout=3)}
 
-    def verify(self) -> dict:
+    def verify_https(self, *, probe: bool = True) -> dict:
+        from .https_health import https_health
+        from .https import browser_origin, caddy_configuration, read_https_metadata, read_pem, tls_ca_path, tls_paths
+        from .ownership import regular
+        path = self.layout.config / "https.json"
+        if path.exists() or path.is_symlink():
+            metadata = read_https_metadata(self.layout)
+            require(metadata.get("authentication") in (None, "builtin") and self.config["origin"] ==
+                    browser_origin(metadata["host"], metadata["httpsPort"], metadata.get("publicOrigin")),
+                    "HTTPS origin or authentication differs from the retained configuration", "integrity")
+            self.require_service_ownership()
+            regular(self.layout.config / "Caddyfile", {caddy_configuration(self.layout, self.config, metadata).encode()})
+            from .units import render_edge_units
+            unit = self.layout.unit("caddy")
+            regular(self.layout.units / unit, {render_edge_units(self.layout, builtin=metadata.get("authentication") == "builtin",
+                    dns_metadata=metadata if metadata.get("dnsProvider") is not None else None)[unit].encode()})
+            from .dns_tls import validate_dns_selection
+            validate_dns_selection(self.layout, metadata)
+            if metadata.get("tls") == "provided":
+                certificate, private_key = tls_paths(self.layout, metadata)
+                for pem, field in ((certificate, "certificateSha256"), (private_key, "privateKeySha256")):
+                    info = pem.lstat()
+                    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and
+                            (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022 and
+                             (field != "privateKeySha256" or not info.st_mode & 0o007)),
+                            "Unsafe retained TLS material", "integrity")
+                    require(hashlib.sha256(read_pem(pem, private=field == "privateKeySha256")).hexdigest() == metadata.get(field),
+                            "Retained TLS material changed", "integrity")
+                tls_ca_path(self.layout, metadata)
+            require(metadata.get("phase") == "active", "HTTPS configuration is not committed; run repair", "recovery_required")
+            if not probe:
+                return {"configured": True, "ready": False, "tlsVerified": False, "instanceVerified": False,
+                        "failure": "not_probed", "reason": "Preserving stopped edge service"}
+        result = https_health(self, connect_address="127.0.0.1", timeout=5)
+        require(result["failure"] == "not_configured" or result["ready"],
+                "HTTPS verification failed (" + str(result["failure"]) + "); inspect status and logs --service caddy", "https_health")
+        return result
+
+    def verify(self, *, https_probe: bool = True) -> dict:
         release = self.selected()
         require(release is not None, "No active release", "not_installed")
         result = self.verify_release(release)
@@ -304,8 +347,11 @@ class Manager:
         if self.config.get("providerConfigLayer") == "system-v1":
             from .provider_layers import verify_system_layers
             verify_system_layers(self.layout)
+        https = self.verify_https(probe=https_probe)
+        roles = ("gateway", "worker", "caddy") if https["configured"] else ("gateway", "worker")
         return {**result, "permissions": True, "managedUnits": True, "accountBootstrap": account_bootstrap,
-                "providerRevision": settings["revision"], "services": self.status()["services"]}
+                "providerRevision": settings["revision"], "https": https,
+                "services": {role: self.system.state(self.layout.unit(role)) for role in roles}}
 
     def activate(self, candidate: str, transaction_id: str | None = None) -> dict:
         installation = self.require_update_ready()
@@ -342,8 +388,6 @@ class Manager:
             self.healthy()
             if old:
                 self.select(old, "previous")
-            journal["phase"] = "committed"
-            write_json(tx / "state.json", journal)
         except Exception:
             # If stop cannot be established, leave every byte and pointer in place.
             self.system.stop(self.service_units)
@@ -361,6 +405,10 @@ class Manager:
                 journal["phase"] = "failed_first_start"
             write_json(tx / "state.json", journal)
             raise
+        # Publication may succeed before directory fsync reports an error.
+        # Never compensate after publishing a terminal transaction record.
+        journal["phase"] = "committed"
+        write_json(tx / "state.json", journal)
         # Enable failure must not roll back a healthy release or erase its
         # commit. The installation marker remains retryable until enable wins.
         self.complete_initial_installation(candidate)
@@ -400,8 +448,6 @@ class Manager:
             # Worker restart can stop Requires-bound gateway; start it explicitly.
             self.system.start([self.layout.unit("gateway")])
             self.healthy()
-            journal["phase"] = "committed"
-            write_json(tx / "state.json", journal)
         except Exception:
             self.system.stop(unit)
             self.providers.select(old["revision"])
@@ -411,6 +457,8 @@ class Manager:
             journal["phase"] = "recovered"
             write_json(tx / "state.json", journal)
             raise
+        journal["phase"] = "committed"
+        write_json(tx / "state.json", journal)
         return self.providers.public(new)
 
     def refresh_models(self, params: dict) -> dict:
@@ -471,11 +519,11 @@ class Manager:
             self.healthy()
             if old:
                 self.select(old, "previous")
-            state["phase"] = "committed"
-            write_json(path, state)
         except Exception:
             self.system.stop(self.service_units)
             raise
+        state["phase"] = "committed"
+        write_json(path, state)
         self.complete_initial_installation(candidate)
         return {"repaired": True, "recoveredTransactions": 1, "target": "candidate", "release": candidate}
 
@@ -487,6 +535,8 @@ class Manager:
             if state.get("phase") not in ("committed", "recovered", "failed_first_start"):
                 pending.append((path, state))
         require(len(pending) <= 1, "Multiple unfinished transactions require operator inspection", "recovery_required")
+        require(not pending or pending[0][1].get("kind") != "service-lifecycle",
+                "Service removal or restoration is incomplete; run restore-services", "recovery_required")
         if target == "candidate":
             require(len(pending) == 1, "Candidate recovery requires one unfinished application transaction", "recovery_required")
             return self.repair_candidate(*pending[0])
@@ -582,7 +632,7 @@ class Manager:
                 require(not params, "status takes no parameters")
                 value = self.status()
             elif method == "logs":
-                require(not set(params) - {"service", "lines"} and params.get("service", "gateway") in ("gateway", "worker"), "Invalid logs parameters")
+                require(not set(params) - {"service", "lines"} and params.get("service", "gateway") in ("gateway", "worker", "caddy"), "Invalid logs parameters")
                 text = self.system.logs(self.layout.unit(params.get("service", "gateway")), params.get("lines", 100))
                 # Service diagnostics may accidentally include credentials. Remove exact known secrets.
                 known_secrets = [(self.layout.config / "gateway-token").read_text().strip()]

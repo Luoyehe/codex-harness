@@ -1,0 +1,141 @@
+{
+  "format": 1,
+  "status": "root-cause-confirmed-helper-v2-prepared-awaiting-independent-review",
+  "originalDiagnosis": {
+    "path": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-attempt3-root-diagnosis.json",
+    "sha256": "a38c95faf46daebc9319901207418b64882e1a116604666f12e84cff04fa1ec5",
+    "preserved": true
+  },
+  "originalFullFailureSuperseded": false,
+  "sourceAndTestsModifiedByThisTask": false,
+  "independentReview": {
+    "path": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-linux-clean-caps-independent-review.json",
+    "sha256": "f1c93359640c7635c9a0fe7c0d76ddb668de0bade9bce4270915eb1452dddbeb",
+    "v1Status": "changes-required",
+    "finding": "prepare_go consumed the old three-key capability object; V2 now strictly requires all five capability fields to be zero."
+  },
+  "preparedFix": {
+    "status": "prepared-awaiting-independent-review",
+    "helper": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-linux-offline-clean-caps-v2.py",
+    "helperSha256": "fdd7e4a58b1831b2fbe36c43935166e529e2f2299d85388f408a658dbb1ecc19",
+    "originalHelperSha256": "c5f2cd3fa9a0aa6ae406dd1f7204ade77923affcd7c584ea42465914a603ed4e",
+    "v1HelperSha256": "c2361616b80895bb155dac3cdbeda89be984c481f9ad3be115e07475b0625b19",
+    "reviewPath": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-linux-clean-caps-independent-review.json",
+    "reviewSha256": "f1c93359640c7635c9a0fe7c0d76ddb668de0bade9bce4270915eb1452dddbeb",
+    "syntaxPassed": true,
+    "unitEntryIdenticalToLiveTestedV1": true,
+    "onlyDeltaFromV1": "prepare_go exact capability dictionary includes CapInh=0 and CapAmb=0",
+    "outerAstChangesFromOriginal": [
+      "UNIT_ENTRY",
+      "prepare_go strict capability-proof equality expected dictionary"
+    ],
+    "checks": [
+      {
+        "name": "actual-entry-producer-is-accepted",
+        "expectedAcceptance": true,
+        "status": "passed"
+      },
+      {
+        "name": "reject-missing-CapEff",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-nonzero-CapEff",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-missing-CapPrm",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-nonzero-CapPrm",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-missing-CapBnd",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-nonzero-CapBnd",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-missing-CapInh",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-nonzero-CapInh",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-missing-CapAmb",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-nonzero-CapAmb",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-extra-capability-key",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-old-three-key-proof",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-probeSucceeded",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-publicDependencyPreparation",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-networkIsolated",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-uid",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-ordinary-capabilities-in-preparation-proof",
+        "expectedAcceptance": false,
+        "status": "passed"
+      },
+      {
+        "name": "reject-root-capabilities-in-preparation-proof",
+        "expectedAcceptance": false,
+        "status": "passed"
+      }
+    ],
+    "checksPassed": 19,
+    "failures": 0,
+    "fullSuiteExecuted": false,
+    "scope": "Actual UNIT_ENTRY proof assignment and actual prepare_go consumer expression; no Go preparation, product test, service, network, or full gate execution."
+  },
+  "previousRootLiveEvidenceStillApplicable": {
+    "path": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-full-attempt3-root-diagnosis-evidence\\exact-helper-chain-report.json",
+    "sha256": "8f0e09762ae85d03cb60c63dfaaf1dd8f22eb513d04b71c5d252091222b74e92",
+    "reason": "V2 UNIT_ENTRY is byte-identical to V1 and only its outer preparation-proof consumer changed. The normalization functions, all isolation checks, child capability probe, and original-case Python/Node/Python chain are unchanged. No redundant live rerun was performed."
+  },
+  "originalReportsHelpersAndAllFailuresPreserved": true,
+  "nextValidation": "Independent V2 review before any authorized full run; this targeted correction is not full-suite evidence."
+}

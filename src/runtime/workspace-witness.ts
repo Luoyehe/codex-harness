@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, chmodSync } from 'node:fs';
+import { closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync, openSync, chmodSync, type Stats } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { canonical, DeliveryError, jsonBytes, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
@@ -10,14 +10,34 @@ const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const SHA = /^[a-f0-9]{64}$/;
 const MAX_ROWS = 2000;
 const MAX_RESULT = 16 * 1024;
+function sameDirectory(info: Stats, expected: Stats): boolean {
+  return info.isDirectory() && !info.isSymbolicLink() && info.dev === expected.dev && info.ino === expected.ino && info.uid === expected.uid && info.mode === expected.mode;
+}
+function syncDirectory(directory: string, expected: Stats): void {
+  const fd = openSync(directory, constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  try {
+    if (!sameDirectory(fstatSync(fd), expected)) throw new DeliveryError('witness_storage', 'Workspace witness directory was replaced');
+    fsyncSync(fd);
+    if (!sameDirectory(lstatSync(directory), expected)) throw new DeliveryError('witness_storage', 'Workspace witness directory was replaced');
+  } finally { closeSync(fd); }
+}
 /** Only the supervisor writes this database. Native-owned recovery journals are never acceptance proofs. */
 export class WorkspaceWitness {
   private db: DatabaseSync;
   private worktrees: WorktreeBindings;
   constructor(home: string, nativeHome?: string) {
+    const parent = lstatSync(home);
+    if (!parent.isDirectory() || parent.isSymbolicLink() || (process.getuid && (parent.uid !== process.getuid() || (parent.mode & 0o022) !== 0))) throw new DeliveryError('witness_storage', 'Unsafe workspace witness parent');
     const directory = path.join(home, 'workspace-witness'); mkdirSync(directory, { recursive: true, mode: 0o700 });
     const info = lstatSync(directory);
     if (!info.isDirectory() || info.isSymbolicLink() || (process.getuid && (info.uid !== process.getuid() || (info.mode & 0o077) !== 0))) throw new DeliveryError('witness_storage', 'Unsafe workspace witness directory');
+    // SQLite FULL synchronizes its own directory, not this directory's entry in
+    // the installer-owned home. Repeat both barriers after an interrupted mkdir.
+    // Windows is development-only and does not support this directory fsync.
+    if (process.platform !== 'win32') try {
+      syncDirectory(directory, info); syncDirectory(home, parent);
+      if (!sameDirectory(lstatSync(directory), info)) throw new DeliveryError('witness_storage', 'Workspace witness directory was replaced');
+    } catch { throw new DeliveryError('witness_storage', 'Workspace witness directory could not be made durable'); }
     const file = path.join(directory, 'witness.sqlite');
     const fd = openSync(file, constants.O_CREAT | constants.O_RDWR | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0), 0o600);
     try { const stat = fstatSync(fd); if (!stat.isFile() || stat.nlink !== 1 || (process.getuid && (stat.uid !== process.getuid() || (stat.mode & 0o077) !== 0))) throw new DeliveryError('witness_storage', 'Unsafe workspace witness database'); }

@@ -152,7 +152,7 @@ export function Messages({
           </button>
         )}
         {rows.length > WINDOW_ROWS && (
-          <div className="inline wrap history-window">
+          <div className="inline wrap">
             <span className="small muted">
               已读取 {rows.length} 条，显示第 {start + 1}–{end} 条；其余内容仍保留。
             </span>

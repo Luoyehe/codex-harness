@@ -2,6 +2,16 @@
 
 > Public copy. Private deployment details have been omitted.
 
+Current working source targets **v2.1.1**. On 2026-10-30 (Asia/Shanghai), full attempt 4 passed Windows/Linux/Linux-root reconciliation on source `99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561`: **210 test files, 2,148 distinct cases, zero failures and zero coverage gaps**. Public deployment, fresh AliDNS DNS-01 production issuance, independent strict-TLS API/real WebSocket acceptance and actual service restart recovery have now passed. Publication and hosted GitHub CI remain pending at this pre-publication snapshot. The v2.1.0 acceptance below is historical.
+
+Rounds 24 and 25 remain complete reviews of baseline `0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281`. The sole subsequent change adds a positive final-state await to the terminal test before its unchanged assertions. Its exact byte delta, controlled probe and three targeted runs support [the separate carry-forward judgment](audit-evidence/public-https-test-delta/carry-forward.json); no two new full audits on the repaired digest are claimed, and `consecutiveClean` remains 0. The earlier worklog instruction to repeat all audits for that test-only change was superseded by this explicit scope decision.
+
+[The reconciled result](audit-evidence/public-https-full-attempt4/reconciled-result.json) preserves individual platform outcomes: Linux has 1,934 cases with 15 skips, Windows 1,934 with 100 skips, and Linux-root 214 with none. Appropriate-platform passes cover every skip; overlapping platform executions are not summed into the distinct total. Windows server/Web builds passed, its owned Job stopped with flushed logs, and all owned Linux units were stopped/collected with main-service identities unchanged at the test boundary. [Evidence hashes](audit-evidence/public-https-full-attempt4/evidence-manifest.json) include the original execution audit record, platform reports, cleanup and focused Linux helper review. Original failed attempts remain preserved.
+
+CI's canonical [release authorization](audit-evidence/release-closeout/authorization.json) is now an exact byte copy of the source-bound [public HTTPS authorization](audit-evidence/public-https-closeout/authorization.json); its previous bytes are [archived](audit-evidence/public-https-full-attempt4/previous-canonical-authorization.json). This alignment alone does not establish hosted CI or public deployment; subsequent actual deployment evidence is recorded below.
+
+
+
 Release acceptance (2026-10-27, v2.1.0): complete independent rounds 7 and 8 passed on unchanged source `69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589`, covering all 1,862 files with matching boundary hashes, no findings and no skips. This satisfies the user's explicit two-round gate. Commit `historical-commit-082` then passed the complete hosted Windows/Linux/Linux-root suite: **182 test files, 1,677 distinct cases and zero coverage gaps**. Platform skips retain their reported status and are complemented by passing cases on the appropriate platform. All security jobs passed; eight current-source CodeQL alerts received individual source review, not a zero-alert claim. See [audit evidence](audits.json), [hosted CI](audit-evidence/v210-release/hosted-ci.json) and [CodeQL review](audit-evidence/v210-release/codeql-review.json).
 
 

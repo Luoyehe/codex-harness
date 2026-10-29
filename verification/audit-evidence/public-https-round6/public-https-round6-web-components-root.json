@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round6",
+  "reviewerId": "web-components-r6-root-9cb82eb2-6b82-492f-95d0-1fe8f13b460d",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "sourceDigestAfter": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "startedAt": "2026-10-27T03:49:10.3878185Z",
+  "completedAt": "2026-10-27T03:53:58.834Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/components/TaskPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/NativeProjects.tsx"
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "Read all four delegated production components completely, tracing bounded queue edits, hidden task tabs, ownership resets, current-turn versus future-thread execution settings, explicit native project roots and metadata, organization revisions and attachment identities. Also read useResource and OrganizationPanel as dependency context. Discovered category switching unmounts organization editing state; independently confirmed by the main web reviewer and recorded ONCE in that reviewer report against OrganizationPanel.tsx, which is outside this assigned file partition. Thus this partition having no additional findings does not make the overall round clean. No source edits or tests during this review; all source hashes rechecked unchanged.",
+  "relatedFinding": "OrganizationPanel category-switch draft loss, recorded in the independent web production report."
+}

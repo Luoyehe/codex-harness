@@ -28,18 +28,35 @@ const gatewayFields: [keyof Gateway, string][] = [
   ['redirectPort', '服务器回调端口（可选）'],
 ];
 
-export function ProviderSettings({
-  api,
-  epoch,
-  onChanged,
-  enabled = true,
-}: {
+type ProviderSettingsProps = {
   api: Api;
   epoch: string;
   onChanged: () => void;
   enabled?: boolean;
-}) {
-  const resource = useResource(epoch, (signal) => api.call('system/provider/read', {}, signal));
+  visible?: boolean;
+};
+export function ProviderSettings(props: ProviderSettingsProps) {
+  const owner = useRef({ api: props.api, csrf: props.api.csrf, generation: 0 });
+  if (owner.current.api !== props.api || owner.current.csrf !== props.api.csrf)
+    owner.current = {
+      api: props.api, csrf: props.api.csrf, generation: owner.current.generation + 1,
+    };
+  return <ProviderSettingsForm key={owner.current.generation} {...props} />;
+}
+function ProviderSettingsForm({
+  api,
+  epoch,
+  onChanged,
+  enabled = true,
+  visible = true,
+}: ProviderSettingsProps) {
+  const resource = useResource(
+    epoch, (signal) => api.call('system/provider/read', {}, signal), visible,
+  );
+  // A refresh temporarily has no data. Keep non-secret editors mounted while it runs.
+  const lastProvider = useRef(resource.data);
+  if (resource.data) lastProvider.current = resource.data;
+  const provider = resource.data ?? lastProvider.current;
   const [kind, setKind] = useState('chatgpt'),
     [baseUrl, setBaseUrl] = useState(''),
     [model, setModel] = useState(''),
@@ -53,15 +70,27 @@ export function ProviderSettings({
   const [region, setRegion] = useState('');
   const dirty = useRef(false),
     baseRevision = useRef<unknown>(undefined),
+    [initialized, setInitialized] = useState(false),
     [conflict, setConflict] = useState(false);
-  const action = useExtensionAction(api, enabled, () => {
-    resource.refresh();
-    onChanged();
-  });
+  const action = useExtensionAction(
+    api,
+    enabled && visible && !resource.loading && !resource.error,
+    () => {
+      resource.refresh();
+      onChanged();
+    },
+    JSON.stringify([epoch, visible, enabled]),
+  );
   const gatewayScope = JSON.stringify({ baseUrl, gateway }),
     isGateway = kind === 'chatgpt-gateway';
   const isBedrock = kind === 'bedrock-runtime' || kind === 'bedrock-mantle',
     usesKey = ['responses', 'zhipu-coding', 'bedrock-runtime', 'bedrock-mantle'].includes(kind);
+  useEffect(() => {
+    setApiKey('');
+    setClearKey(false);
+    setAllowInsecureHttp(false);
+    setGatewayConsent('');
+  }, [epoch, visible, enabled]);
   useEffect(() => {
     if (resource.data && dirty.current) {
       setConflict(resource.data.revision !== baseRevision.current);
@@ -83,9 +112,12 @@ export function ProviderSettings({
     setGateway(
       Object.fromEntries(gatewayFields.map(([key]) => [key, String(oauth[key] ?? '')])) as Gateway,
     );
+    // Expose editors only after their displayed values and revision share one baseline.
+    setInitialized(true);
   }, [resource.data]);
   const save = async () => {
     if (
+      !initialized ||
       !resource.data ||
       conflict ||
       action.disabled ||
@@ -140,21 +172,26 @@ export function ProviderSettings({
           void save();
         }}
       >
-        <fieldset className="provider-fields stack" disabled={action.busy}>
+        {resource.loading && <p role="status">读取配置中…</p>}
+        {resource.error && (
+          <p role="alert" className="error">
+            {resource.error}
+            <button
+              type="button"
+              className="button small"
+              disabled={action.busy || !visible}
+              onClick={resource.refresh}
+            >
+              重新读取
+            </button>
+          </p>
+        )}
+        <fieldset className="provider-fields stack" disabled={action.busy || !visible || !initialized}>
           <h3>模型供应商</h3>
           <p className="muted">
             配置只影响此 Harness 的独立运行环境。自定义服务需要支持 Responses
             API、流式输出及工具调用。保存会重启原生服务。
           </p>
-          {resource.loading && <p role="status">读取配置中…</p>}
-          {resource.error && (
-            <p role="alert" className="error">
-              {resource.error}
-              <button type="button" className="button small" onClick={resource.refresh}>
-                重新读取
-              </button>
-            </p>
-          )}
           <label className="field">
             供应商
             <select
@@ -238,6 +275,7 @@ export function ProviderSettings({
               </label>
               <p className="small muted">
                 更改供应商或服务地址不会沿用旧密钥。密钥不写入浏览器持久存储。
+                切换设置类别会清除新填密钥与授权勾选，保留其他未保存编辑。
               </p>
               {kind === 'responses' && baseUrl.startsWith('http://') && (
                 <label className="check-row">
@@ -338,6 +376,7 @@ export function ProviderSettings({
             type="submit"
             disabled={
               action.disabled ||
+              !initialized ||
               !resource.data ||
               conflict ||
               (isGateway && gatewayConsent !== gatewayScope)
@@ -347,11 +386,11 @@ export function ProviderSettings({
           </button>
         </fieldset>
       </form>
-      {resource.data && (
+      {provider && initialized && (
         <>
           <hr />
           <ProviderProfiles
-            provider={resource.data}
+            provider={provider}
             action={action}
             hasDraft={dirty.current}
             onUpdated={() => {
@@ -361,10 +400,12 @@ export function ProviderSettings({
           />
           <hr />
           <ModelCatalog
-            key={String(resource.data.revision)}
+            key={String(provider.revision)}
             api={api}
-            provider={resource.data}
-            enabled={enabled}
+            provider={provider}
+            visible={visible}
+            scopeKey={epoch}
+            enabled={enabled && !resource.loading && !resource.error}
             onApplied={() => {
               resource.refresh();
               onChanged();

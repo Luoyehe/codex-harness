@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "type": "targeted-failure-diagnosis",
+  "id": "public-full-attempt3-terminal-diagnosis",
+  "reviewer": "audit25-web-independent-20261030",
+  "createdAt": "2026-10-29T19:48:26.2780452Z",
+  "isFullAudit": false,
+  "sourceDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "sourceFiles": 1911,
+  "classification": "test-await-race",
+  "confidence": "confirmed by source tracing and controlled offline reproduction",
+  "failingTest": "terminal ownership and bounded input closes a startup whose bounded buffer overflowed instead of silently losing its output",
+  "observedRuns": [
+    {
+      "report": ".work/test-results/run-GZ36Wo/vitest.json",
+      "testStatus": "passed",
+      "durationMs": 5.533100000000104
+    },
+    {
+      "report": ".work/test-results/run-VRluYQ/vitest.json",
+      "testStatus": "failed",
+      "durationMs": 9.139699999999948,
+      "location": "web/tests/terminal.test.tsx:235",
+      "failure": "expected <button class=\"button\"></button> to be null"
+    }
+  ],
+  "rootCause": "The test waits for an overflow alert that is emitted before open acceptance, and asserts that terminal/close was invoked. Neither condition means closeTerminal has finished awaiting the real IndexedDB-backed listOperations/acknowledgeOperation chain. The final synchronous absence assertion can run while the component correctly shows its close-only state. The async act callback returns the deferred resolver result (void); it does not await the detached open/accept/closeTerminal promise or arbitrary later IndexedDB completion.",
+  "causalChain": [
+    {
+      "file": "web/lib/events.ts",
+      "lines": "3-8",
+      "fact": "Events.publish invokes each subscribed callback synchronously."
+    },
+    {
+      "file": "web/components/TerminalPanel.tsx",
+      "lines": "263-270",
+      "fact": "The 129th buffered event sets overflow and immediately schedules the warning, before terminal/open resolves."
+    },
+    {
+      "file": "web/tests/terminal.test.tsx",
+      "lines": "212-220",
+      "fact": "The fixture open promise and terminal/close RPC are mocked, but imported operation storage remains real and is initialized with fake-indexeddb by setup."
+    },
+    {
+      "file": "web/components/TerminalPanel.tsx",
+      "lines": "295-309",
+      "fact": "Acceptance publishes the terminal ID, sets closeOnly/blocked for overflow, then awaits closeTerminal."
+    },
+    {
+      "file": "web/components/TerminalPanel.tsx",
+      "lines": "77-112",
+      "fact": "closeTerminal awaits the RPC, then acknowledge awaits listOperations and possibly acknowledgeOperation, before clearing the ID and setting ended."
+    },
+    {
+      "file": "web/lib/operations.ts",
+      "lines": "157-170,216-224",
+      "fact": "listOperations and acknowledgement use the asynchronous transaction wrapper."
+    },
+    {
+      "file": "web/lib/operation-store.ts",
+      "lines": "42-52",
+      "fact": "The wrapper resolves only when transaction.oncomplete fires."
+    },
+    {
+      "file": "web/tests/terminal.test.tsx",
+      "lines": "232-235",
+      "fact": "The warning wait and RPC-invocation assertion precede an immediate DOM assertion that can observe the legitimate intermediate close button."
+    }
+  ],
+  "probe": {
+    "kind": "minimal isolated offline controlled-scheduling reproduction",
+    "environment": {
+      "node": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-node-v24.22.1-win-x64\\runtime\\node-v24.22.1-win-x64\\node.exe",
+      "version": "v24.22.1",
+      "cwd": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025",
+      "command": [
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        ".work/public-attempt3-terminal-probe.config.mjs",
+        "--passWithNoTests=false",
+        "--allowOnly=false",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=.work/public-attempt3-terminal-probe-results.json"
+      ],
+      "HOME": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\test-homes\\run-sHGAH6",
+      "USERPROFILE": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\test-homes\\run-sHGAH6",
+      "CODEX_HOME": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\test-homes\\run-sHGAH6\\codex",
+      "startedAt": "2026-10-29T19:46:52.968Z"
+    },
+    "testFile": ".work/public-attempt3-terminal-probe.test.tsx",
+    "results": ".work/public-attempt3-terminal-probe-results.json",
+    "tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "modes": [
+      "original-fixture-api",
+      "real-api-with-offline-transport"
+    ],
+    "design": "Run the unchanged TerminalPanel and real initialized fake-indexeddb operation storage. A one-use spy awaits the actual listOperations result and then holds its delivery behind an explicitly released promise. This fixes the race ordering without sleeps, fake timer delays or modified production code. In real-Api mode the open admission, accepted receipt and acknowledgement are real; fetch is an offline protocol substitute.",
+    "observations": [
+      "Before resolving terminal/open, the warning containing 128 already exists and no close call has occurred.",
+      "While the storage result is held, the close RPC has been called exactly once, the close-only status is visible, and the exact original null assertion deterministically throws.",
+      "Input issued during this intermediate state generates no terminal/write.",
+      "After explicit gate release, the positive observable button opens a new terminal, the close button disappears, open and close each have exactly one call, and the local operation store is empty."
+    ],
+    "limitation": "This deliberately controls a valid asynchronous boundary; it is not a claim to reproduce identical Windows scheduler timing or to prove that clearing disk caches caused the failure."
+  },
+  "recommendedChange": {
+    "requiresParentAuthorization": true,
+    "productSourceChangesNeeded": false,
+    "exactFile": "web/tests/terminal.test.tsx",
+    "exactRange": "233-235",
+    "fix": "After awaiting the overflow warning, await screen.findByRole(\"button\", { name: \"打开新终端\" }) before the existing terminal/close invocation and close-button absence assertions.",
+    "rationale": "A positive final UI state is reached after receipt lookup/acknowledgement and the close state update. It cannot succeed vacuously before startup. Retain the original output-warning, close identity, and close-button absence assertions.",
+    "prohibitedWorkarounds": [
+      "No sleep or larger timeout",
+      "No weakened or removed final assertion",
+      "No bypass of IndexedDB acknowledgement",
+      "No product change merely to make a fixture synchronous"
+    ],
+    "optionalRegression": "Port the controlled storage gate from the isolated probe into the same test or a narrowly scoped companion test to establish both blocked-input intermediate state and completed closure. This has not been applied."
+  },
+  "boundaries": {
+    "sourceEdits": [],
+    "existingAuditEdits": [],
+    "authorizationOrPlanEdits": [],
+    "originalRunReportsOverwritten": false,
+    "fullSuiteRun": false,
+    "productionAccess": false,
+    "personalCredentialsAccess": false,
+    "externalPaidCalls": false,
+    "originalRound25Report": ".work/public-https-round25-web.json",
+    "originalRound25ReportSha256": "11d2ff9290243b53b8c487999c1da518c30861a5a0e5fbfe6890b7d63e7b5291"
+  },
+  "sourceVerification": {
+    "rawSha256Checked": 1911,
+    "mismatches": [],
+    "verifiedAt": "2026-10-29T19:47:27.2946152Z",
+    "fixedNodeSnapshotFiles": 1911,
+    "fixedNodeSnapshotDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281"
+  },
+  "evidence": [
+    {
+      "path": ".work/test-results/run-GZ36Wo/vitest.json",
+      "sha256": "0ce057655ff8aadf7277fd4b79ce64146dea31feeb8de98226d726e5eb1495f7"
+    },
+    {
+      "path": ".work/test-results/run-VRluYQ/vitest.json",
+      "sha256": "db1199fbbf214b9cf97c5b6c8fb75995d6394e44d5a43c6cea2d67ea26a1cfb8"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-probe-results.json",
+      "sha256": "673db92fb9769a05d8f9766eb82b2d00e746ad9886297e6097895669b285ff56"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-probe-environment.json",
+      "sha256": "e683ef08d856c78f7256275143b4bcc9350bbaac0e3d29e29ceb55664b93b19f"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-probe-output.txt",
+      "sha256": "093040bc1ded1356424e5f0f5d2fefc4b80f15ac7ea52444d7d36c8db95bc1c8"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-probe.test.tsx",
+      "sha256": "9c329da73c1e8e4561e9b4bbd58fb555bde4dfe33a8b9a4955c1f00bd21c105f"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-probe.config.mjs",
+      "sha256": "4089bb25238de93542bae164e5adbf5cd7ca3c180aa03461d3e7af00fc82e5ce"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-probe.mjs",
+      "sha256": "502eb729c61e5364177658d4a03667b362a3fe05815a79ebc71d52db8329e609"
+    }
+  ],
+  "conclusion": "The specific failed assertion is an unsynchronized fixture assertion, not evidence of a failed terminal cleanup. The unchanged product reaches its intended final state after the actual asynchronous receipt boundary, with input blocked during closure. Apply the narrow test fix only after the parent confirms the full run has exited, then rerun affected checks and follow repository audit-gate requirements."
+}

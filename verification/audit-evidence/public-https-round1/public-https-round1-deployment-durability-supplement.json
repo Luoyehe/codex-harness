@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round1",
+  "reviewerId": "public-r1-deployment-independent",
+  "digest": "f4a5fa858defdd6fcf20cde6642b06bba6033e7323e5a6ead53f371e7e9a7e1b",
+  "sourceDigestAfter": "f4a5fa858defdd6fcf20cde6642b06bba6033e7323e5a6ead53f371e7e9a7e1b",
+  "startedAt": "2026-10-27T01:24:23Z",
+  "completedAt": "2026-10-27T01:24:50Z",
+  "complete": true,
+  "scopes": ["deployment-release"],
+  "supplements": ".work/public-https-round1-deployment.json",
+  "findings": [{
+    "id": "PUBLIC-R1-DEPLOY-RELEASE-DURABILITY",
+    "priority": "P1",
+    "isAdditionalOccurrenceOfExistingFinding": true,
+    "title": "Extracted toolchain and Caddy binary can publish durable manifests before durable contents",
+    "locations": [
+      {"file": "deploy/safe_fs.py", "line": 127, "endLine": 138},
+      {"file": "deploy/build.py", "line": 239, "endLine": 245},
+      {"file": "deploy/https.py", "line": 143, "endLine": 145}
+    ],
+    "trigger": "Power loss after manifest publication or successful later activation, before filesystem writeback of archive extraction contents, metadata or rename directories. This is a durability ordering defect, not a claim that ordinary process termination necessarily loses data.",
+    "evidence": [
+      "extract_tar writes and closes each file, then chmods it; finally creates symlinks and checks links. There is no fsync of extracted files, final metadata, directories, or destination.parent.",
+      "Builder.toolchain extracts node/pnpm/codex into incoming/assembled, computes inspect_tree, writes toolchain-manifest.json at line244, then renames assembled to work/toolchain at245. common.atomic_write fsyncs the manifest and its config directory (common.py53-65), but neither the assembled tree nor the rename's source and destination parents are synced here.",
+      "https.edge_binary extracts into control/edge/caddy at143, reads/hashes the target and durably writes caddy-binary.json at145. Reading/hashing or successful execution is not a durability barrier.",
+      "The existing toolchain path revalidates the manifest at build.py223-225 and may refuse a partial restored tree. The existing edge binary path hashes the binary at https.py120-124; a missing or mismatching target or partial root blocks future setup/recovery, and the systemd executable can be absent or damaged after reboot.",
+      "test_deployment.py427-441 checks manifest coverage and467-478 checks umask permissions on the live filesystem; neither asserts durable ordering. root/test_https.py119 substitutes edge_binary, so its HTTPS transaction cases do not exercise binary provisioning durability."
+    ],
+    "impact": "A manifest or later activation proof can survive while the toolchain or HTTPS executable does not. Builds or HTTPS restart can fail after host power loss despite prior successful verification. This is the same publication-before-durability class as the original release finding, not a separate issue count.",
+    "recommendation": "Provide a shared descriptor-safe durable_tree that syncs regular-file contents after final metadata and every directory bottom-up, skips internal symlink inode opens while syncing their parent, and rejects special files. After extract_tar check_links, sync the tree and destination.parent. Preserve the intended toolchain manifest-before-rename recovery ordering, but make assembled durable before the manifest and fsync both incoming and work after rename. Also sync any composite release tree and verified reuse tree before its publication proof.",
+    "verification": "Read-only current-source call-chain and ordering inspection. No tests, downloads, online operations, source changes, or simulated physical power loss. node scripts/snapshot.mjs returned the unchanged frozen digest and1876 files."
+  }],
+  "skipped": [],
+  "inspectedFiles": ["deploy/safe_fs.py", "deploy/build.py", "deploy/https.py", "deploy/common.py", "deploy/control_update.py", "tests/deploy/test_deployment.py", "tests/deploy/root/test_https.py"],
+  "method": "Targeted supplemental reinspection of extract_tar69-150, toolchain221-258, edge_binary114-146 and enable_https485-522, common44-72, control_update36-55 and relevant existing test ranges427-478/105-125. These files were part of the separately completed155-file audit; this supplement records the additional same-P1 occurrence only and does not replace that report. Snapshot recomputed after the final source reads."
+}

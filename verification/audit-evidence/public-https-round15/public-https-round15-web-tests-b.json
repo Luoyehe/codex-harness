@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round15",
+  "reviewerId": "web-tests-b-2d858af7-9854-4ee7-afdd-950ba947fab1",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "sourceDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "startedAt": "2026-10-28T19:01:20.734Z",
+  "completedAt": "2026-10-28T19:07:29.381Z",
+  "complete": true,
+  "method": "Independent read-only source audit of the exact 23 assigned test files. Read every actual test/fixture body and assertion in bounded text batches (including all parameterized cases), rather than using AST, file names or hashes as a source-coverage surrogate. Reviewed asynchronous promise resolution/rejection, effect and listener ownership, cleanup, storage/global-mock/fake-timer isolation, duplicate submission and unknown-receipt behavior, explicit consent, identity checks, resource limits, and behavioral adequacy. Traced applicable assertions into current production component/helper bodies and their actual App -> Workspace -> Settings/ExtensionsPanel or WorkspacePanel parent paths, including parent keys, retained hidden panels and read-versus-owner epochs. Checked current Vitest configuration and package configuration for execution isolation context. No previous checkout, history, prior audit report or findings were consulted. The formal frozen pass started at the recorded before-integrity timestamp; early reconnaissance tests were read again within that bracket. Used the pinned Node v24.22.1 executable to recompute all 1,901 raw SHA-256 hashes and call the exported canonical snapshot(process.cwd(), true) from scripts/snapshot.mjs before and after the source pass; compared inventory names, count and digest in both directions. All 23 assigned files completed; no actionable issue was identified. This is source-review evidence, not a claim of executed test success or full production coverage.",
+  "inspectedFiles": [
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings-drafts.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx"
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "No test suite, targeted test, build, typecheck or browser execution was run in this supplemental source-only review. The user gate remains two complete clean rounds; this report does not itself authorize full tests.",
+    "No native Codex process, external MCP/provider/network integration, microphone/WebRTC browser device, deployment, or remote operation was exercised; these behaviors were assessed from the assigned local fixture tests and current reachable production source.",
+    "Production files were cross-referenced for the assigned test contracts and actual parent reachability; independent full production-file review remains the separate production audit scope."
+  ],
+  "coverage": [
+    {
+      "file": "web/tests/provider-profiles.test.tsx",
+      "lines": 114,
+      "review": "Full fixtures and assertions: Unicode profile bounds, no overwrite, draft interlock, immutable restore/delete identity, duplicate submission while pending."
+    },
+    {
+      "file": "web/tests/provider.test.tsx",
+      "lines": 130,
+      "review": "Full fixtures and assertions: native catalog preview preserving edits, revision conflict/reload, capability confirmation, explicit empty API key."
+    },
+    {
+      "file": "web/tests/realtime.test.tsx",
+      "lines": 568,
+      "review": "Full fixtures and assertions: private WebRTC negotiation, authenticated event routing, capture/ICE cancellation, unknown operation recovery, late startup/stop cleanup, draft revision and owner ABA, StrictMode."
+    },
+    {
+      "file": "web/tests/receipt-maintenance.test.tsx",
+      "lines": 186,
+      "review": "Full fixtures and assertions: byte-complete archive/digest verification, discontinuity/tamper rejection, unknown rotation remount recovery, active blockers, local-intent storage failure, unmounted export."
+    },
+    {
+      "file": "web/tests/recovery.test.tsx",
+      "lines": 150,
+      "review": "Full fixtures and assertions: archived unknown receipts, explicit stop proof and tombstones, draft retention, runtime-generation invalidation, registered-versus-missing retirement fences."
+    },
+    {
+      "file": "web/tests/render-budget.test.tsx",
+      "lines": 160,
+      "review": "Full fixtures and assertions: commit-time search focus, Unicode text pagination, character/line/parser/tree/DOM budgets, sibling render boundary recovery, remote image suppression, readable command failure."
+    },
+    {
+      "file": "web/tests/resources.test.tsx",
+      "lines": 56,
+      "review": "Full fixtures and assertions: resource generations, slow independent reads, no stale value exposure during refresh/new-key render, aborted ownership on cleanup."
+    },
+    {
+      "file": "web/tests/resume.test.tsx",
+      "lines": 50,
+      "review": "Full fixtures and assertions: runtime/session metadata replacement, old delayed defaults ignored, unloaded thread remains read-only without automatic resume."
+    },
+    {
+      "file": "web/tests/session.test.ts",
+      "lines": 163,
+      "review": "Full fixtures and assertions: authoritative and outer authentication errors, stale rejections, JSON negotiation, credential errors, same-CSRF renewed access, durable not-sent outcomes."
+    },
+    {
+      "file": "web/tests/settings-drafts.test.tsx",
+      "lines": 233,
+      "review": "Full fixtures and assertions: real Settings tab retain/hide lifecycle, public draft retention, secret/consent clearing, hidden handler/read suppression, API/CSRF/runtime and visibility ABA."
+    },
+    {
+      "file": "web/tests/settings.test.tsx",
+      "lines": 189,
+      "review": "Full fixtures and assertions: shared serialized manager reads, log parameters/text, local TLS evidence boundaries, explicit restart consent, project-scoped Hooks-terminal callback."
+    },
+    {
+      "file": "web/tests/sharing-diagnostics.test.tsx",
+      "lines": 346,
+      "review": "Full fixtures and assertions: exact plugin publication audience and preview hash, audience/deletion consent, local diagnostics vs feedback, original unknown-upload receipt, maintenance trigger truthfulness, trust freezing under actual parent-key refresh model."
+    },
+    {
+      "file": "web/tests/skill-library.test.tsx",
+      "lines": 379,
+      "review": "Full fixtures and assertions: skill identity and escaped content, registered root replacement, explicit directory chain and no-replace creation, metadata error semantics, existing-file safety, durable draft/unknown recovery, asynchronous local import edits and ABA."
+    },
+    {
+      "file": "web/tests/stream-items.test.ts",
+      "lines": 92,
+      "review": "Full fixtures and assertions: repeated reasoning parts, bounded indices, ambiguous stream/history merge, final-item authority, and ignoring late plan or text deltas."
+    },
+    {
+      "file": "web/tests/terminal.test.tsx",
+      "lines": 588,
+      "review": "Full fixtures and assertions: rendered/native grid bounds, disconnected startup, 64 KiB input and 128-event startup bounds, early output/exit, old-attempt isolation, original-receipt recovery, close failures, original program/lease restrictions, explicit CLI resynchronization."
+    },
+    {
+      "file": "web/tests/thread-terminals.test.tsx",
+      "lines": 426,
+      "review": "Full fixtures and assertions: discovered native process identity, complete-list cleanup proof, explicit unsandboxed command, command/timeout draft revision, original receipt recovery, scope replacement, row/whole-list consent refresh."
+    },
+    {
+      "file": "web/tests/timeline-history.test.tsx",
+      "lines": 292,
+      "review": "Full fixtures and assertions: strict combined history contract, independent voice pagination/versioning, stable chronology/deduplication, canonical escape/focus, invalidation and voice locks, stale thread/page rejection, component lifecycle callbacks."
+    },
+    {
+      "file": "web/tests/workflows.test.tsx",
+      "lines": 906,
+      "review": "Full fixtures and assertions: execution modes, explicit steer/queue/stop, complete reorder and attachment preservation, pending edits/cleanup, count and text budgets, retained task tabs and owner isolation, goal origin/budget, native agent capability, fork/revert/review and complete export boundaries."
+    },
+    {
+      "file": "web/tests/workspace-git-drafts.test.tsx",
+      "lines": 241,
+      "review": "Full fixtures and assertions: real workspace Git tab retention, hidden inert handlers and reads, abort/late preview ownership, unknown commit without replay, epoch/API/project ABA, read-vs-owner epoch distinction."
+    },
+    {
+      "file": "web/tests/workspace-management.test.tsx",
+      "lines": 539,
+      "review": "Full fixtures and assertions: recovery source and target revisions, no absence inference on generic failure, independent manifest discard intent, live worktree proof and idle gate, lost creation recovery, reviewed HEAD/index commit, scoped download, exclusive/ABA confirmations and late operation isolation."
+    },
+    {
+      "file": "web/tests/workspace-search.test.tsx",
+      "lines": 89,
+      "review": "Full fixtures and assertions: explicit bounded literal scoped search, incomplete results, fresh-file callback, and rejection of old query results."
+    },
+    {
+      "file": "web/tests/workspace-ui.test.tsx",
+      "lines": 489,
+      "review": "Full fixtures and assertions: safe relative paths/identities, text limits, file revision conflict and verified readback, newer draft preservation, unknown save/no replay, intent persistence failure, no-replace creation cleanup, bounded listings/previews, copy/remove exact parameters, current project ownership, safe Git review target."
+    },
+    {
+      "file": "web/tests/workspace-watch.test.tsx",
+      "lines": 177,
+      "review": "Full fixtures and assertions: fake-timer polling schedule, non-overlap, baseline updates only after complete successful reads, prompt partial failure, late sibling settling, disabled/disconnected/unmounted cleanup and replacement owner scheduling."
+    }
+  ],
+  "integrity": {
+    "before": {
+      "checkedAt": "2026-10-28T19:01:20.734Z",
+      "expectedDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+      "rawHashesChecked": 1901,
+      "mismatches": [],
+      "unexpected": [],
+      "missing": [],
+      "canonicalFiles": 1901,
+      "canonicalDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+    },
+    "after": {
+      "checkedAt": "2026-10-28T19:07:29.298Z",
+      "expectedDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+      "rawHashesChecked": 1901,
+      "mismatches": [],
+      "unexpected": [],
+      "missing": [],
+      "canonicalFiles": 1901,
+      "canonicalDigest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e"
+    },
+    "pinnedNode": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+    "sourceFiles": 1901
+  },
+  "crossReferences": [
+    "AGENTS.md",
+    "scripts/snapshot.mjs",
+    "package.json",
+    "vitest.config.ts",
+    "web/vite.config.ts",
+    "web/App.tsx",
+    "web/Workspace.tsx",
+    "web/components/Settings.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/lib/receipt-archive.ts",
+    "web/components/Recovery.tsx",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/lib/api.ts",
+    "web/components/RealtimePanel.tsx",
+    "web/lib/realtime-media.ts",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/Messages.tsx",
+    "web/hooks/useConversation.ts",
+    "web/lib/history.ts",
+    "web/lib/timeline.ts",
+    "web/lib/stream-items.ts",
+    "web/components/TaskPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceWorktrees.tsx"
+  ]
+}

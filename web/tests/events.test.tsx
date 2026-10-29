@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { listOperations } from '../lib/operations';
 import { Api } from '../lib/api';
 import { useEvents } from '../hooks/useEvents';
 afterEach(() => {
@@ -230,4 +231,25 @@ describe('transport and runtime state separation', () => {
     expect(result.current.runtimeConnected).toBe(false);
     expect(result.current.activityReady).toBe(false);
   });
+});
+
+it('cancels an intent waiting for durable creation when the runtime disconnects without closing the socket', async () => {
+  let socket!: { onmessage: (event: { data: string }) => void };
+  vi.stubGlobal('WebSocket', class {
+    onmessage = (_: { data: string }) => {};
+    close() {}
+    constructor() { socket = this; }
+  });
+  const api = new Api(), prepare = vi.fn(), fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  renderHook(() => useEvents(api, vi.fn()));
+  const state = (connected: boolean) => act(() => socket.onmessage({
+    data: JSON.stringify({ type: 'state', data: { connected, epoch: 'same', activity: { unknown: !connected } } }),
+  }));
+  state(true);
+  const intent = api.beginMutation('project/add', {}, prepare);
+  state(false);
+  await expect(intent.result).rejects.toMatchObject({ delivery: 'not_sent' });
+  expect(prepare).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
+  expect(await listOperations()).toEqual([expect.objectContaining({ id: intent.operationId, state: 'not_sent' })]);
 });

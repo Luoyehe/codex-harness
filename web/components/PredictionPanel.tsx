@@ -176,10 +176,11 @@ export function PredictionPanel(props: Props) {
           !isArchivedReceipt(receipt))
       )
         throw new Error('原建议操作回执身份不匹配。');
-      reconcileOperation(record.operationId, receipt);
+      await reconcileOperation(record.operationId, receipt);
+      if (!valid() || records.current.get(record.threadId) !== record) return;
       if (receipt.state === 'accepted') {
         await accepted(record, receipt.result);
-        acknowledgeOperation(record.operationId);
+        await acknowledgeOperation(record.operationId);
       } else if (receipt.state === 'not_sent')
         update(record, {
           operationState: 'not_sent',

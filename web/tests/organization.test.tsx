@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
+import { OrganizationPanel } from '../components/OrganizationPanel';
 import { NativeProjects } from '../components/NativeProjects';
 import { SectionSettings, ThreadOrganization } from '../components/ThreadOrganization';
 import { sameRoot } from '../lib/organization';
+import { enabledButton } from './enabled-button';
 type Call = { method: string; params: Record<string, unknown> };
 const project = { id: 'registered-root', name: 'Work directory', cwd: '/work/project' },
   native = {
@@ -84,11 +86,20 @@ const threadProps = (api: Api) => ({
   onDeleted: vi.fn(),
   onOpenThread: vi.fn(),
 });
+let settleMutations = async () => {};
 beforeEach(() => {
+  const mutations = vi.spyOn(Api.prototype, 'beginMutation');
+  settleMutations = async () => {
+    await Promise.allSettled(mutations.mock.results.flatMap(result =>
+      result.type === 'return' ? [result.value.result] : []));
+  };
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
   localStorage.clear();
   sessionStorage.clear();
 });
-afterEach(() => {
+afterEach(async () => {
+  await act(settleMutations);
   cleanup();
   vi.unstubAllGlobals();
 });
@@ -254,6 +265,7 @@ it('preserves read-only browsing and requires readiness plus explicit permanent 
   await waitFor(() =>
     expect(calls.some((call) => call.method === 'thread/unsubscribe')).toBe(true),
   );
+  await waitFor(() => expect(props.onChanged).toHaveBeenCalledOnce());
   expect(calls.some((call) => call.method === 'thread/resume')).toBe(false);
   await screen.findByText('永久删除此会话历史');
   fireEvent.click(screen.getByText('永久删除此会话历史'));
@@ -262,7 +274,7 @@ it('preserves read-only browsing and requires readiness plus explicit permanent 
     (screen.getByRole('button', { name: '永久删除会话历史' }) as HTMLButtonElement).disabled,
   ).toBe(true);
   view.rerender(<ThreadOrganization {...props} ready />);
-  fireEvent.click(screen.getByRole('button', { name: '永久删除会话历史' }));
+  fireEvent.click(await enabledButton({ name: '永久删除会话历史' }));
   await waitFor(() => expect(props.onDeleted).toHaveBeenCalledOnce());
   expect(calls.find((call) => call.method === 'thread/delete')?.params).toEqual({
     threadId: 'thread-one',
@@ -310,4 +322,90 @@ it('saves explicit association metadata and keeps empty filtered owner pages nav
       .filter((call) => call.method === 'thread/attachmentOwner/list')
       .every((call) => call.params.projectId === 'registered-root'),
   ).toBe(true);
+});
+
+const organizationProps = (api: Api) => ({
+  api, epoch: 'one', projects: [project], projectId: project.id, threadId: 'thread-one',
+  enabled: true, threadReady: true, threadIdle: true, globalIdle: true,
+  onChanged: vi.fn(), onDeleted: vi.fn(), onOpenThread: vi.fn(), onClose: vi.fn(),
+});
+const organizationTab = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
+async function newOrganizationDraft() {
+  organizationTab('会话项目');
+  fireEvent.click(screen.getByRole('button', { name: '新建会话项目' }));
+  const input = screen.getByRole('textbox', { name: '项目名称' }) as HTMLInputElement;
+  fireEvent.change(input, { target: { value: 'Unsent project name' } });
+  fireEvent.click(screen.getByRole('checkbox', { name: /Work directory/ }));
+  return input;
+}
+
+it('retains project, section and thread association drafts across category switches without submitting them', async () => {
+  const { api, calls } = setup();
+  render(<OrganizationPanel {...organizationProps(api)} />);
+  fireEvent.change(await screen.findByRole('textbox', { name: 'HTTP(S) 地址' }), { target: { value: 'https://example.invalid/unsent' } });
+  fireEvent.change(screen.getByRole('textbox', { name: '关联说明（可选）' }), { target: { value: 'Unsent association' } });
+  const projectInput = await newOrganizationDraft();
+  const form = projectInput.closest('form')!;
+  organizationTab('分区');
+  expect(projectInput.isConnected).toBe(true);
+  expect(projectInput.closest('[hidden][inert]')).toBeTruthy();
+  fireEvent.submit(form);
+  expect(calls.some(call => call.method === 'nativeProject/create')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: '新增分区' }));
+  const sectionInput = screen.getByRole('textbox', { name: '分区名称' }) as HTMLInputElement;
+  fireEvent.change(sectionInput, { target: { value: 'Unsent section name' } });
+  organizationTab('当前会话');
+  expect((await screen.findByRole('textbox', { name: 'HTTP(S) 地址' }) as HTMLInputElement).value).toBe('https://example.invalid/unsent');
+  expect((screen.getByRole('textbox', { name: '关联说明（可选）' }) as HTMLInputElement).value).toBe('Unsent association');
+  organizationTab('会话项目');
+  expect(screen.getByRole('textbox', { name: '项目名称' })).toBe(projectInput);
+  expect(projectInput.value).toBe('Unsent project name');
+  organizationTab('分区');
+  expect(screen.getByRole('textbox', { name: '分区名称' })).toBe(sectionInput);
+  expect(sectionInput.value).toBe('Unsent section name');
+  expect(calls.some(call => /create|update|attachment\/add/.test(call.method))).toBe(false);
+});
+
+it.each(['accepted', 'unknown'] as const)('keeps the original project operation %s while another category is edited', async outcome => {
+  let finish!: (result: unknown) => void, reject!: (error: Error) => void;
+  const pending = new Promise((resolve, fail) => { finish = resolve; reject = fail; });
+  const { api, calls } = setup(call => call.method === 'nativeProject/create' ? pending : defaults(call));
+  const props = organizationProps(api);
+  render(<OrganizationPanel {...props} />);
+  organizationTab('分区');
+  fireEvent.click(screen.getByRole('button', { name: '新增分区' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '分区名称' }), { target: { value: 'Independent section draft' } });
+  await newOrganizationDraft();
+  fireEvent.click(screen.getByRole('button', { name: '创建会话项目' }));
+  await waitFor(() => expect(calls.filter(call => call.method === 'nativeProject/create')).toHaveLength(1));
+  organizationTab('分区');
+  expect((screen.getByRole('textbox', { name: '分区名称' }) as HTMLInputElement).value).toBe('Independent section draft');
+  await act(async () => { if (outcome === 'accepted') finish({ project: native }); else reject(new Error('response lost')); });
+  if (outcome === 'accepted') {
+    await waitFor(() => expect(props.onChanged).toHaveBeenCalledOnce());
+    fireEvent.change(screen.getByRole('textbox', { name: '分区名称' }), { target: { value: 'New section after accepted project' } });
+    organizationTab('会话项目');
+    expect(screen.queryByRole('textbox', { name: '项目名称' })).toBeNull();
+    organizationTab('分区');
+    expect((screen.getByRole('textbox', { name: '分区名称' }) as HTMLInputElement).value).toBe('New section after accepted project');
+    expect(props.onChanged).toHaveBeenCalled();
+  } else {
+    organizationTab('会话项目');
+    expect(await screen.findByRole('button', { name: '查询原项目操作回执' })).toBeTruthy();
+    expect((screen.getByRole('textbox', { name: '项目名称' }) as HTMLInputElement).value).toBe('Unsent project name');
+    expect(screen.getByRole('button', { name: '创建会话项目' }).matches(':disabled')).toBe(true);
+  }
+  expect(calls.filter(call => call.method === 'nativeProject/create')).toHaveLength(1);
+});
+
+it.each(['api', 'epoch', 'thread', 'project'] as const)('does not revive organization drafts across %s owner A-to-B-to-A', async kind => {
+  const { api } = setup(), props = organizationProps(api);
+  const view = render(<OrganizationPanel {...props} />);
+  const input = await newOrganizationDraft();
+  const other = { ...props, ...(kind === 'api' ? { api: new Api() } : kind === 'epoch' ? { epoch: 'two' } : kind === 'thread' ? { threadId: 'thread-two' } : { projectId: 'other-project' }) };
+  view.rerender(<OrganizationPanel {...other} />);
+  view.rerender(<OrganizationPanel {...props} />);
+  expect(input.isConnected).toBe(false);
+  organizationTab('会话项目');
+  expect(screen.queryByRole('textbox', { name: '项目名称' })).toBeNull();
 });

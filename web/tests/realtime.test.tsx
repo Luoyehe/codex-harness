@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { enabledButton } from './enabled-button';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { RealtimePanel, type RealtimePanelProps } from '../components/RealtimePanel';
@@ -165,7 +166,7 @@ it('unknown startup only reads its original receipt and never repeats microphone
   });
   render(<RealtimePanel {...props} />);
   fireEvent.click(screen.getByRole('button', { name: '启动一次语音' }));
-  fireEvent.click(await screen.findByRole('button', { name: '查询原语音操作回执' }));
+  fireEvent.click(await enabledButton({ name: '查询原语音操作回执' }));
   await screen.findByText('closed');
   expect(calls.filter((call) => call.method === 'thread/realtime/start')).toHaveLength(1);
   expect(microphone).toHaveBeenCalledTimes(1);
@@ -379,14 +380,18 @@ it.each(['failed', 'invalid'] as const)(
   },
 );
 it('does not apply an unmounted realtime owner acknowledgement to its replacement draft', async () => {
-  let resolve!: (value: unknown) => void;
-  const { props, calls } = setup((call) =>
-    call.method === 'thread/realtime/appendText'
-      ? new Promise((done) => {
-          resolve = done;
-        })
-      : undefined,
-  );
+  let resolve!: (value: unknown) => void, resolveStop!: (value: unknown) => void;
+  const { props, calls } = setup((call) => {
+    if (call.method === 'thread/realtime/appendText')
+      return new Promise((done) => {
+        resolve = done;
+      });
+    if (call.method === 'thread/realtime/stop' && !resolveStop)
+      return new Promise((done) => {
+        resolveStop = done;
+      });
+  });
+  const mutations = vi.spyOn(props.api, 'beginMutation');
   const view = render(<RealtimePanel {...props} />);
   const start = async () => {
     fireEvent.change(screen.getByRole('combobox', { name: '实时会话方式' }), {
@@ -405,12 +410,29 @@ it('does not apply an unmounted realtime owner acknowledgement to its replacemen
   fireEvent.click(screen.getByRole('button', { name: '发送一次实时文字' }));
   await waitFor(() => expect(resolve).toBeTypeOf('function'));
   view.rerender(<RealtimePanel {...props} lease="replacement" />);
+  await waitFor(() => expect(resolveStop).toBeTypeOf('function'));
+  await waitFor(() =>
+    expect(
+      (screen.getByRole('button', { name: '启动一次语音' }) as HTMLButtonElement).disabled,
+    ).toBe(true),
+  );
+  // Native acceptance precedes the durable receipt cleanup that permits another start.
+  const stopIndex = mutations.mock.calls.findIndex(([method]) => method === 'thread/realtime/stop');
+  expect(stopIndex).toBeGreaterThanOrEqual(0);
+  const stop = mutations.mock.results[stopIndex]!;
+  expect(stop.type).toBe('return');
+  await act(async () => {
+    resolveStop({ ...active, state: 'closed', stopped: true });
+    await stop.value.result;
+  });
   await waitFor(() =>
     expect(
       (screen.getByRole('button', { name: '启动一次语音' }) as HTMLButtonElement).disabled,
     ).toBe(false),
   );
   await start();
+  expect(calls.filter((call) => call.method === 'thread/realtime/stop')).toHaveLength(1);
+  expect(calls.filter((call) => call.method === 'thread/realtime/start')).toHaveLength(2);
   const input = screen.getByRole('textbox') as HTMLTextAreaElement;
   fireEvent.change(input, { target: { value: 'replacement draft' } });
   await act(async () =>
@@ -488,8 +510,8 @@ it.each(['thread', 'epoch', 'lease', 'api', 'thread ABA', 'api ABA'] as const)(
     if (change.endsWith('ABA')) view.rerender(<Harness {...props} />);
     await waitFor(() => expect(observed.ready).toBe(true));
     await act(async () => resolveStart(active));
-    await waitFor(() =>
-      expect(listOperations()).toEqual([
+    await waitFor(async () =>
+      expect((await listOperations())).toEqual([
         expect.objectContaining({ method: 'thread/realtime/stop', state: 'unknown' }),
       ]),
     );
@@ -504,8 +526,9 @@ it.each(['thread', 'epoch', 'lease', 'api', 'thread ABA', 'api ABA'] as const)(
     expect(stop.operationId).toBeTruthy();
     expect(stop.operationId).not.toBe(start.operationId);
     expect(stop.params).toEqual({ sessionHandle: active.sessionHandle });
-    expect(listOperations()[0]!.id).toBe(stop.operationId);
-    expect(localStorage.getItem(`harness.acknowledged.v1.${start.operationId}`)).toBe('1');
+    expect((await listOperations())[0]!.id).toBe(stop.operationId);
+    expect((await listOperations()).some((record) => record.id === start.operationId)).toBe(false);
+    expect(localStorage.getItem(`harness.acknowledged.v1.${start.operationId}`)).toBeNull();
     expect(originalMutation.mock.calls.map(([method]) => method)).toEqual([
       'thread/realtime/start',
       'thread/realtime/stop',
@@ -515,7 +538,7 @@ it.each(['thread', 'epoch', 'lease', 'api', 'thread ABA', 'api ABA'] as const)(
     view.rerender(<Harness {...(change.endsWith('ABA') ? props : next)} />);
     view.unmount();
     expect(calls.filter((call) => call.method === 'thread/realtime/stop')).toHaveLength(1);
-    expect(listOperations()[0]).toMatchObject({ id: stop.operationId, state: 'unknown' });
+    expect((await listOperations())[0]).toMatchObject({ id: stop.operationId, state: 'unknown' });
     expect(microphone).not.toHaveBeenCalled();
   },
 );

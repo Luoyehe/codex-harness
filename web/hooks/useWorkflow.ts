@@ -72,7 +72,8 @@ export function useWorkflow(
       if (e instanceof RpcError && e.operationId) {
         update({ submittedId: e.operationId });
         try {
-          const proof = listOperations().find((op) => op.id === e.operationId);
+          const proof = (await listOperations()).find((op) => op.id === e.operationId);
+          if (!current()) return undefined;
           if (proof?.state === 'accepted') {
             update({ notice: '原操作回执已确认受理，正在重新读取状态。' });
             onChanged();

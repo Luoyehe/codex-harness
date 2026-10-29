@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round16",
+  "reviewerId": "r16-independent-web-tests-c-23files",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54",
+  "sourceDigestAfter": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54",
+  "startedAt": "2026-10-28T19:57:55.292Z",
+  "completedAt": "2026-10-28T20:04:07.608Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings-drafts.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx"
+  ],
+  "inspectedFileCount": 23,
+  "method": "Read AGENTS.md and all 23 assigned test files in full, in frozen inventory order. Manually examined fixture contracts, assertions, negative outcomes, asynchronous completion ordering, owner/draft isolation, cleanup and production component assembly. Cross-read relevant portions of current implementations only. Re-read the initially truncated realtime test output in complete bounded chunks. Used pinned Node v24.22.1 for independent source snapshot and per-test raw SHA-256 before and after; no test suites or external services were run and no source was modified.",
+  "reviewNotes": [
+    {
+      "path": "web/tests/provider-profiles.test.tsx",
+      "fullTextRead": true,
+      "review": "Unicode profile-name limits, immutable profile identity, confirmation reset, dirty-draft lock, duplicate submissions."
+    },
+    {
+      "path": "web/tests/provider.test.tsx",
+      "fullTextRead": true,
+      "review": "Dirty provider drafts and catalog capability consent; found invalid no-auth success fixture missing the required Responses model."
+    },
+    {
+      "path": "web/tests/realtime.test.tsx",
+      "fullTextRead": true,
+      "review": "Browser media substitutes, early SDP, sequence acknowledgements, unknown receipts, late owner cleanup, ABA and StrictMode ownership."
+    },
+    {
+      "path": "web/tests/receipt-maintenance.test.tsx",
+      "fullTextRead": true,
+      "review": "Full archive bytes and SHA-256, discontinuous/tampered chunks, durable rotation intent, blockers, storage failure and late exports."
+    },
+    {
+      "path": "web/tests/recovery.test.tsx",
+      "fullTextRead": true,
+      "review": "Archived and unknown receipt review, retirement fence, runtime generation invalidation and retained drafts."
+    },
+    {
+      "path": "web/tests/render-budget.test.tsx",
+      "fullTextRead": true,
+      "review": "Unicode text paging, parser/DOM budgets, sibling error boundaries, diff pagination, focus and escaped remote images."
+    },
+    {
+      "path": "web/tests/resources.test.tsx",
+      "fullTextRead": true,
+      "review": "Independent resources, key/generation isolation and immediate stale-data removal."
+    },
+    {
+      "path": "web/tests/resume.test.tsx",
+      "fullTextRead": true,
+      "review": "Session-only reads, runtime replacement and no implicit resume of queued work."
+    },
+    {
+      "path": "web/tests/session.test.ts",
+      "fullTextRead": true,
+      "review": "401 distinctions, CSRF/session generation, JSON content negotiation and stale authentication results."
+    },
+    {
+      "path": "web/tests/settings-drafts.test.tsx",
+      "fullTextRead": true,
+      "review": "Settings navigation retains non-secret drafts, clears sensitive intent, aborts hidden reads and isolates API/CSRF/epoch owners."
+    },
+    {
+      "path": "web/tests/settings.test.tsx",
+      "fullTextRead": true,
+      "review": "Serialized manager reads, logs contract, local TLS evidence boundaries, explicit restart consent and Hooks navigation."
+    },
+    {
+      "path": "web/tests/sharing-diagnostics.test.tsx",
+      "fullTextRead": true,
+      "review": "Exact sharing audience/preview identity, local diagnostics, feedback recovery, storage-trigger wording and trust freeze/remount behavior."
+    },
+    {
+      "path": "web/tests/skill-library.test.tsx",
+      "fullTextRead": true,
+      "review": "Skill identity/escaping, registered roots, explicit mkdir chain, no-replace creation, local imports and delayed-read draft preservation."
+    },
+    {
+      "path": "web/tests/stream-items.test.ts",
+      "fullTextRead": true,
+      "review": "Reasoning/plan deltas, repeated starts, invalid indices, snapshot overlap and authoritative final items."
+    },
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "fullTextRead": true,
+      "review": "Terminal grid bounds, early-event buffer, input budget, connection ownership, original open receipts and fixed CLI programs."
+    },
+    {
+      "path": "web/tests/thread-terminals.test.tsx",
+      "fullTextRead": true,
+      "review": "Native process IDs, full-list cleanup proof, explicit shell consent, draft revision acknowledgements and stale recovery owners."
+    },
+    {
+      "path": "web/tests/timeline-history.test.tsx",
+      "fullTextRead": true,
+      "review": "Combined turn/voice pagination, version consistency, chronology, active voice readiness and invalidation callbacks."
+    },
+    {
+      "path": "web/tests/workflows.test.tsx",
+      "fullTextRead": true,
+      "review": "Queue/goal draft locks and bounds, lazy tabs, owner replacement, native agent capabilities, branches, review targets and full exports."
+    },
+    {
+      "path": "web/tests/workspace-git-drafts.test.tsx",
+      "fullTextRead": true,
+      "review": "Retained Git drafts, visibility cancellation, preview/consent invalidation, owner ABA and unknown commit receipts."
+    },
+    {
+      "path": "web/tests/workspace-management.test.tsx",
+      "fullTextRead": true,
+      "review": "Recovery source/target revisions, backup discard manifest, live worktree state, commit HEAD/index proof and download identity."
+    },
+    {
+      "path": "web/tests/workspace-search.test.tsx",
+      "fullTextRead": true,
+      "review": "Literal scoped search, incomplete-result wording and changed-query response isolation."
+    },
+    {
+      "path": "web/tests/workspace-ui.test.tsx",
+      "fullTextRead": true,
+      "review": "Path/preview validation, file conflict/rebase, save readback, unknown outcomes, durable local intent, no-replace creation and project scope."
+    },
+    {
+      "path": "web/tests/workspace-watch.test.tsx",
+      "fullTextRead": true,
+      "review": "Non-overlapping poll rounds, partial failure and slow sibling settlement, deletion, disable/disconnect/unmount and replacement schedules."
+    }
+  ],
+  "supportingImplementationReads": [
+    "vitest.config.ts",
+    "web/Workspace.tsx",
+    "web/lib/api.ts",
+    "web/lib/history.ts",
+    "web/lib/timeline.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/workflows.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useConversation.ts",
+    "web/components/ProviderSettings.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/Settings.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/Messages.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "deploy/provider.py",
+    "deploy/manager.py",
+    "src/gateway/dispatch.ts"
+  ],
+  "findings": [
+    {
+      "id": "r16-web-tests-c-provider-noauth-fixture",
+      "scope": "web-ux",
+      "severity": "P3",
+      "priority": 3,
+      "classification": "test-contract-false-positive",
+      "path": "web/tests/provider.test.tsx",
+      "line": 108,
+      "endLine": 114,
+      "title": "No-auth Responses success fixture omits a backend-required model",
+      "trigger": "Run the test named can explicitly configure a Responses service without authentication. The read fixture omits model; the only interaction clears the API key and submits the form.",
+      "evidence": [
+        {
+          "path": "web/tests/provider.test.tsx",
+          "line": 108,
+          "detail": "mutate is unconditionally resolved; the provider fixture at 109-114 has no model."
+        },
+        {
+          "path": "web/tests/provider.test.tsx",
+          "line": 121,
+          "detail": "The test only toggles no API key and clicks save; its assertion at 126 checks only apiKey and allowInsecureHttp."
+        },
+        {
+          "path": "web/components/ProviderSettings.tsx",
+          "line": 103,
+          "detail": "Missing model becomes the empty form value."
+        },
+        {
+          "path": "web/components/ProviderSettings.tsx",
+          "line": 142,
+          "detail": "Empty model is omitted from the system/provider/write parameters. The constructed parameters are expectedRevision r, kind responses, baseUrl http://192.168.1.5/v1, allowInsecureHttp false, apiKey empty."
+        },
+        {
+          "path": "src/gateway/dispatch.ts",
+          "line": 155,
+          "detail": "Root management forwards the same parameters to provider/write."
+        },
+        {
+          "path": "deploy/manager.py",
+          "line": 599,
+          "detail": "provider/write preflight calls ProviderStore.validate_change."
+        },
+        {
+          "path": "deploy/provider.py",
+          "line": 219,
+          "detail": "Ordinary provider writes call validate_provider."
+        },
+        {
+          "path": "deploy/provider.py",
+          "line": 75,
+          "detail": "Responses requires small_text(params.get(\"model\"), \"model\"); small_text at 41-43 rejects missing/empty values with Invalid model."
+        }
+      ],
+      "impact": "The test passes on a payload the deployed validator rejects, so this named success case cannot detect loss of the required model field. This is a test-validity gap, not evidence that a correctly populated no-auth Responses configuration is unusable.",
+      "recommendation": "Supply a valid model in the read fixture or enter it through the form, and assert the valid complete write parameters including model. Keep a missing-model rejection test separate if desired.",
+      "verification": "Confirmed by current test-to-form-to-manager static control flow; no production service or live provider invocation."
+    }
+  ],
+  "skipped": [],
+  "limitations": [
+    "Static audit only: neither focused Vitest execution nor the full suite was run during this supplemental review.",
+    "No real browser WebRTC/microphone, native PTY, external MCP, provider inference, remote sharing/upload, production deployment or personal credentials were used.",
+    "Jsdom component tests and local substitutes do not establish real-browser media/terminal behavior, deployed service integration, or public HTTPS reachability.",
+    "Supporting implementation files were cross-read at relevant control-flow sections; only the 23 assigned test files are counted as complete full-file review coverage."
+  ],
+  "verification": {
+    "node": "v24.22.1",
+    "nodePath": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+    "snapshotBefore": {
+      "files": 1902,
+      "digest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54"
+    },
+    "snapshotAfter": {
+      "files": 1902,
+      "digest": "20af3abfbf4b41d03ac4fe885b51f4ec21f8aefb0e856a880a83958cdb8cef54"
+    },
+    "rawSha256Before": {
+      "web/tests/provider-profiles.test.tsx": "44749831acad541a19d7627cf7cfca79423a13c11f792e34da8d8c2450bd5f8c",
+      "web/tests/provider.test.tsx": "df991aa485bce7df582b4d420aa338ec20381330fdbb05650d5e5c8aa35dca9b",
+      "web/tests/realtime.test.tsx": "a4db30472332c0e86e34703fbddc7e187b6e3f86609fa8a253ac8bd7f6a617ee",
+      "web/tests/receipt-maintenance.test.tsx": "13bd364fa7b400d35059e368372d653d684dfcdeb444f2d16e807856ffd86247",
+      "web/tests/recovery.test.tsx": "3db7d4a7efd86a85b6d97b3edb48edb46dbe1996bd2e63c2eb5b59b6e707b9ce",
+      "web/tests/render-budget.test.tsx": "a0826c7edd93384f19caee4c66396a262ae6c83bb4854c7b2bd19a08aa480741",
+      "web/tests/resources.test.tsx": "a0714c97943b58c6fd83d4b61dc17cf2f9680e0872c9d49de9f26dd1f8697b4b",
+      "web/tests/resume.test.tsx": "50f46330c76463d12df96c177ff2b90c4127c736c224b46667dcff0edfa54ddc",
+      "web/tests/session.test.ts": "e5ccacc0f7331165aaed39fa758d9848684cf1e1a8eff9827db131da3bddcec0",
+      "web/tests/settings-drafts.test.tsx": "d6fab3b585e1175475cace4564fe5694eda42fc5879faff270e2d900528a33a5",
+      "web/tests/settings.test.tsx": "fe26544fbc5f2a19726eb663b5211e71fc0061772e39fece11ad519b135d5ca8",
+      "web/tests/sharing-diagnostics.test.tsx": "d5849a3805af5cf29fc1b3b4f9c807dfd0b96985e672f41d6ee612dbd00bb125",
+      "web/tests/skill-library.test.tsx": "9ae345caaf0a0247c116c7b9d829e2184644b695c9ebf625181b13fde7bdb8d6",
+      "web/tests/stream-items.test.ts": "09b4ace364935079cf3dec5e804f2a11da233cc81196052236aafd41a977babd",
+      "web/tests/terminal.test.tsx": "39643c1034fbf966d21a3eee1dd04522ebe9e1ea6cd219d6e88e92645c6b8d57",
+      "web/tests/thread-terminals.test.tsx": "b15494e940f1918409023bb70873c87780783698358bd07993d71cbb68674262",
+      "web/tests/timeline-history.test.tsx": "b325e6f8867508ad6f87c65649ed45088c852c1aa9e2c517ae4e13e1821617ea",
+      "web/tests/workflows.test.tsx": "02aedfe64f11e99ba77d073e0172e9cc1c3190c28459a3e938b7c7af3470142a",
+      "web/tests/workspace-git-drafts.test.tsx": "488073d489b6d2de844c27686235c53719160b47eb5b01225e79759d7ca60bc6",
+      "web/tests/workspace-management.test.tsx": "c510d02feedbbbc4bf8f95aad71e55412afd45788e08de213211aa990b32720c",
+      "web/tests/workspace-search.test.tsx": "92b88084b95e733b599e8d7d9dd48474aab384e0073369ef05749be20ffc8fad",
+      "web/tests/workspace-ui.test.tsx": "aa586345b2fc282159cffdc3587a7d6a260f6dbe7e0c9f3c0153636d9effc5ed",
+      "web/tests/workspace-watch.test.tsx": "fadbaea7dd162d59f2c7bdc97c30b9721608ded7c4618479e51461b04e7f805d"
+    },
+    "rawSha256After": {
+      "web/tests/provider-profiles.test.tsx": "44749831acad541a19d7627cf7cfca79423a13c11f792e34da8d8c2450bd5f8c",
+      "web/tests/provider.test.tsx": "df991aa485bce7df582b4d420aa338ec20381330fdbb05650d5e5c8aa35dca9b",
+      "web/tests/realtime.test.tsx": "a4db30472332c0e86e34703fbddc7e187b6e3f86609fa8a253ac8bd7f6a617ee",
+      "web/tests/receipt-maintenance.test.tsx": "13bd364fa7b400d35059e368372d653d684dfcdeb444f2d16e807856ffd86247",
+      "web/tests/recovery.test.tsx": "3db7d4a7efd86a85b6d97b3edb48edb46dbe1996bd2e63c2eb5b59b6e707b9ce",
+      "web/tests/render-budget.test.tsx": "a0826c7edd93384f19caee4c66396a262ae6c83bb4854c7b2bd19a08aa480741",
+      "web/tests/resources.test.tsx": "a0714c97943b58c6fd83d4b61dc17cf2f9680e0872c9d49de9f26dd1f8697b4b",
+      "web/tests/resume.test.tsx": "50f46330c76463d12df96c177ff2b90c4127c736c224b46667dcff0edfa54ddc",
+      "web/tests/session.test.ts": "e5ccacc0f7331165aaed39fa758d9848684cf1e1a8eff9827db131da3bddcec0",
+      "web/tests/settings-drafts.test.tsx": "d6fab3b585e1175475cace4564fe5694eda42fc5879faff270e2d900528a33a5",
+      "web/tests/settings.test.tsx": "fe26544fbc5f2a19726eb663b5211e71fc0061772e39fece11ad519b135d5ca8",
+      "web/tests/sharing-diagnostics.test.tsx": "d5849a3805af5cf29fc1b3b4f9c807dfd0b96985e672f41d6ee612dbd00bb125",
+      "web/tests/skill-library.test.tsx": "9ae345caaf0a0247c116c7b9d829e2184644b695c9ebf625181b13fde7bdb8d6",
+      "web/tests/stream-items.test.ts": "09b4ace364935079cf3dec5e804f2a11da233cc81196052236aafd41a977babd",
+      "web/tests/terminal.test.tsx": "39643c1034fbf966d21a3eee1dd04522ebe9e1ea6cd219d6e88e92645c6b8d57",
+      "web/tests/thread-terminals.test.tsx": "b15494e940f1918409023bb70873c87780783698358bd07993d71cbb68674262",
+      "web/tests/timeline-history.test.tsx": "b325e6f8867508ad6f87c65649ed45088c852c1aa9e2c517ae4e13e1821617ea",
+      "web/tests/workflows.test.tsx": "02aedfe64f11e99ba77d073e0172e9cc1c3190c28459a3e938b7c7af3470142a",
+      "web/tests/workspace-git-drafts.test.tsx": "488073d489b6d2de844c27686235c53719160b47eb5b01225e79759d7ca60bc6",
+      "web/tests/workspace-management.test.tsx": "c510d02feedbbbc4bf8f95aad71e55412afd45788e08de213211aa990b32720c",
+      "web/tests/workspace-search.test.tsx": "92b88084b95e733b599e8d7d9dd48474aab384e0073369ef05749be20ffc8fad",
+      "web/tests/workspace-ui.test.tsx": "aa586345b2fc282159cffdc3587a7d6a260f6dbe7e0c9f3c0153636d9effc5ed",
+      "web/tests/workspace-watch.test.tsx": "fadbaea7dd162d59f2c7bdc97c30b9721608ded7c4618479e51461b04e7f805d"
+    },
+    "allRawHashesUnchanged": true,
+    "sourceChanged": false,
+    "externalCallsExecuted": false,
+    "testsExecuted": []
+  }
+}

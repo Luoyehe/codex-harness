@@ -11,6 +11,8 @@ from pathlib import Path
 
 from .build import Builder, pack_source
 from .common import DeployError, Layout, exclusive, read_json, require
+from .edge_defaults import DEFAULT_HTTP_PORT, DEFAULT_HTTPS_PORT
+from .dns_providers import PROVIDERS
 from .install import install, uninstall
 from .manager import MUTATIONS, Manager, validate_request
 from .requests import MAX_REQUEST, RequestSpool
@@ -36,6 +38,8 @@ def helper_main(instance: str) -> None:
     try:
         require_linux()
         layout = Layout(instance)
+        from .transactions import require_initialization_complete
+        require_initialization_complete(layout)
         require(sys.argv[1:] in (["rpc"], ["config-check"]) or (len(sys.argv) == 3 and sys.argv[1] == "execute" and
                 bool(re.fullmatch(r"[0-9a-f]{32}", sys.argv[2]))), "Invalid fixed management invocation")
         if sys.argv[1:] == ["config-check"]:
@@ -119,6 +123,9 @@ def parser() -> argparse.ArgumentParser:
     setup.add_argument("--port", type=int, default=3000)
     setup.add_argument("--username", default="admin")
     setup.add_argument("--password-stdin", action="store_true", help="Read one password line from stdin; never pass passwords in argv")
+    resume = subs.add_parser("install-resume", help="Resume the original interrupted initialization without replacing its identity or credentials")
+    resume.add_argument("--source", type=Path, required=True)
+    subs.add_parser("restore-services", help="Restore this instance's retained services after managed removal")
     for command in ("account-setup", "account-reset"):
         account = subs.add_parser(command, help="Operator only: initialize or reset the single administrator account")
         account.add_argument("--username", default="admin")
@@ -129,7 +136,7 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("provider-prune", help="Retain current and pending-recovery generations plus three recent unused generations")
     logs = subs.add_parser("logs")
-    logs.add_argument("--service", choices=("gateway", "worker"), default="gateway")
+    logs.add_argument("--service", choices=("gateway", "worker", "caddy"), default="gateway")
     logs.add_argument("--lines", type=int, default=100)
     update = subs.add_parser("update")
     update.add_argument("--source", type=Path, required=True)
@@ -148,27 +155,61 @@ def parser() -> argparse.ArgumentParser:
     catalog.add_argument("--operation-id", default=None)
     operation = subs.add_parser("operation-read")
     operation.add_argument("operation_id")
-    secure = subs.add_parser("https", help="Configure Caddy HTTPS with built-in accounts; migrate a retained Authelia edge safely")
-    secure.add_argument("--host", required=True)
-    secure.add_argument("--auth-host", help="Legacy migration compatibility only")
-    secure.add_argument("--cookie-domain", help="Legacy migration compatibility only")
-    secure.add_argument("--username", default="admin")
-    secure.add_argument("--email", help="Legacy migration compatibility only")
-    secure.add_argument("--password-stdin", action="store_true")
-    secure.add_argument("--credentials-stdin", action="store_true", help="Read {username,password,otp?} JSON for login verification")
-    secure.add_argument("--two-factor", action="store_true", help="Prompt securely for a TOTP or recovery code")
-    secure.add_argument("--authelia-port", type=int, help="Legacy migration compatibility only")
-    secure.add_argument("--tls", choices=("acme", "internal", "provided"), default="acme")
-    secure.add_argument("--certificate", type=Path)
-    secure.add_argument("--private-key", type=Path)
-    secure.add_argument("--http-port", type=int, default=80)
-    secure.add_argument("--https-port", type=int, default=443)
+    subs.add_parser("https-read", help="Operator only: inspect the current origin and HTTPS migration revision")
+    plan = subs.add_parser("https-plan", help="Read-only certificate requirements; no instance, root, password or network access required",
+                          description="Show proposed browser/listener ports, certificate validation and renewal requirements. "
+                                      "This does not inspect an installed instance or prove network/DNS access.")
+    plan.add_argument("--host", required=True)
+    plan.add_argument("--tls", choices=("acme", "internal", "provided"), default="acme")
+    plan.add_argument("--dns-provider", choices=(*PROVIDERS, "none"), help="Omitted means standard ACME validation for this plan; tencentcloud uses CAM SecretId/SecretKey")
+    plan.add_argument("--http-port", type=int, default=DEFAULT_HTTP_PORT)
+    plan.add_argument("--https-port", type=int, default=DEFAULT_HTTPS_PORT)
+    plan.add_argument("--public-origin", help="HTTPS browser origin on --host; defaults to https://HOST:HTTPS_PORT")
+    for command in ("https", "https-migrate"):
+        secure = subs.add_parser(command, help=("Configure Caddy HTTPS; preserve an existing address" if command == "https" else
+                                               "Operator only: migrate an existing built-in HTTPS address with recovery"),
+                                 description="Caddy automatically issues and renews ACME certificates. Without a DNS provider, "
+                                             "public TCP 80 or 443 must reach the corresponding local listener for validation, "
+                                             "even when browsers use a high port. Use https-plan to inspect requirements first.")
+        secure.add_argument("--host", required=True)
+        secure.add_argument("--auth-host", help="Legacy migration compatibility only")
+        secure.add_argument("--cookie-domain", help="Legacy migration compatibility only")
+        secure.add_argument("--username", default="admin")
+        secure.add_argument("--email", help="Legacy migration compatibility only")
+        secure.add_argument("--password-stdin", action="store_true")
+        secure.add_argument("--credentials-stdin", action="store_true", help="Read {username,password,otp?} JSON for login verification")
+        secure.add_argument("--two-factor", action="store_true", help="Prompt securely for a TOTP or recovery code")
+        secure.add_argument("--authelia-port", type=int, help="Legacy migration compatibility only")
+        secure.add_argument("--tls", choices=("acme", "internal", "provided"), default="acme")
+        secure.add_argument("--dns-provider", choices=(*PROVIDERS, "none"),
+                            help="ACME DNS-01 provider (no public 80/443 needed); omitted preserves existing DNS selection; none explicitly disables it")
+        secure.add_argument("--dns-credentials", type=Path,
+                            help="Root-owned mode 0600 JSON with the selected provider's fields (see https-plan); copied privately for renewal")
+        secure.add_argument("--download-proxy", help="For DNS component preparation only: explicit credential-free loopback HTTP proxy URL")
+        secure.add_argument("--certificate", type=Path)
+        secure.add_argument("--private-key", type=Path)
+        secure.add_argument("--tls-ca-certificate", type=Path, help="For provided TLS: import a public PEM trust anchor into an immutable generation")
+        secure.add_argument("--tls-system-ca", action="store_true", help="For provided TLS: explicitly replace retained custom CA trust with the system trust store")
+        secure.add_argument("--http-port", type=int, default=DEFAULT_HTTP_PORT,
+                            help="Caddy HTTP listener port (default: %(default)s); HTTP-01 still requires public TCP 80 forwarded here")
+        secure.add_argument("--https-port", type=int, default=DEFAULT_HTTPS_PORT,
+                            help="Caddy HTTPS listener port (default: %(default)s); TLS-ALPN-01 still requires public TCP 443 forwarded here")
+        secure.add_argument("--public-origin", help="HTTPS browser origin on --host; defaults to https://HOST:HTTPS_PORT; set when ingress translates the TLS port")
+        if command == "https-migrate":
+            secure.add_argument("--expected-origin", required=True)
+            secure.add_argument("--expected-https-revision", required=True, help="Current httpsRevision returned by https-read")
     return root
 
 
 def main(argv: list[str] | None = None) -> None:
     try:
         args = parser().parse_args(argv)
+        if args.command == "https-plan":
+            from .https_guidance import https_plan
+            print(json.dumps(https_plan(host=args.host, tls=args.tls, dns_provider=args.dns_provider,
+                                       http_port=args.http_port, https_port=args.https_port,
+                                       public_origin=args.public_origin), ensure_ascii=False, indent=2))
+            return
         layout = Layout(args.instance)
         if args.command == "pack-source":
             pack_source(args.source.resolve(), args.output.resolve())
@@ -183,13 +224,21 @@ def main(argv: list[str] | None = None) -> None:
             from .accounts import bootstrap, read_password
             account = bootstrap(args.username, read_password(from_stdin=args.password_stdin))
             result = install(layout, args.source.resolve(), origin=origin, port=args.port, account=account)
+        elif args.command == "install-resume":
+            require_linux()
+            from .install_recovery import install_resume
+            result = install_resume(layout, args.source.resolve())
         elif args.command in ("control-update", "control-recover", "control-rollback"):
             require_linux()
+            from .transactions import require_initialization_complete
+            require_initialization_complete(layout)
             from .control_update import control_command
             with exclusive(layout.config / "management.lock"):
                 result = control_command(layout, args.command, getattr(args, "transaction", None), target=getattr(args, "target", "old"))
         else:
             require_linux()
+            from .transactions import require_initialization_complete
+            require_initialization_complete(layout)
             with exclusive(layout.config / "management.lock"):
                 from .control_update import require_no_pending_control
                 require_no_pending_control(layout)
@@ -229,7 +278,13 @@ def main(argv: list[str] | None = None) -> None:
                     result = manager.repair(target=args.target)
                 elif args.command == "uninstall":
                     result = uninstall(layout)
-                elif args.command == "https":
+                elif args.command == "restore-services":
+                    from .install import restore_services
+                    result = restore_services(layout)
+                elif args.command == "https-read":
+                    from .https import read_https
+                    result = read_https(manager)
+                elif args.command in ("https", "https-migrate"):
                     from .https import setup_https
                     from .accounts import read_password
                     require(not (args.credentials_stdin and (args.password_stdin or args.two_factor)),
@@ -249,7 +304,14 @@ def main(argv: list[str] | None = None) -> None:
                                          username=credentials["username"], password=credentials["password"], otp=credentials.get("otp"),
                                          email=args.email, auth_port=args.authelia_port, tls=args.tls,
                                          certificate=args.certificate, private_key=args.private_key,
-                                         http_port=args.http_port, https_port=args.https_port)
+                                         tls_ca_certificate=args.tls_ca_certificate, tls_system_ca=args.tls_system_ca,
+                                         dns_provider=args.dns_provider, dns_credentials=args.dns_credentials,
+                                         download_proxy=args.download_proxy,
+                                         progress=lambda phase: print("DNS component: " + phase, file=sys.stderr, flush=True),
+                                         public_origin=args.public_origin,
+                                         http_port=args.http_port, https_port=args.https_port,
+                                         expected_origin=getattr(args, "expected_origin", None),
+                                         expected_https_revision=getattr(args, "expected_https_revision", None))
                 else:
                     method, params = {
                         "logs": ("logs", {"service": getattr(args, "service", "gateway"), "lines": getattr(args, "lines", 100)}),

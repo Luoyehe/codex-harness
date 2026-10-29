@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "kind": "exact-test-only-audit-carry-forward",
+  "isFullAudit": false,
+  "baselineDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceFiles": 1911,
+  "unchangedSourceFiles": 1910,
+  "baselineDigestReconstructed": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "changedFiles": [
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "sha256Before": "2e6b2bd2e6b78c482ef0d63ce08ed7a1df2d0f16d7107d80f6efa752b41d13ba",
+      "sha256After": "1418583f1355f466416ce7db86dd1b03a3986fb6a865cda7fad89e7c5925c2c6",
+      "addedLine": 234,
+      "addedText": "await screen.findByRole('button', { name: '打开新终端' });"
+    }
+  ],
+  "baselineRoundPins": [
+    {
+      "id": "public-https-round24",
+      "sha256": "38caa2035cf8766f48a3c9f5d9e1a051f56355cd658eebd881e35793c8741df2"
+    },
+    {
+      "id": "public-https-round25",
+      "sha256": "7833813e82880545025f33a280d75f84fbd9f1ceada7560e2c3d5c5a970747d9"
+    }
+  ],
+  "originalHelperPins": {
+    "public-full-gate.mjs": "c3bfb095b0713e81368b2b881f1b56793bdab7cd39680af2697186ed97a11a81",
+    "public-authorize-full.mjs": "e40d4af1fb2c8d98a0e21172b542cb01d684af8512aec4953d81b0cd0b325a08"
+  },
+  "retainedEvidence": [
+    {
+      "original": ".work/public-https-round25-inventory.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/baseline-inventory.json",
+      "sha256": "2dc01be77c9b42fadebaf77f7e84f702c541363aedca0de5e4631a90d60c0e54"
+    },
+    {
+      "original": ".work/public-full-attempt3-terminal-diagnosis.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/terminal-diagnosis.json",
+      "sha256": "fb5da38629921a4039197906e188cb5eb45da6cc6a115722f598dc1303b85941"
+    },
+    {
+      "original": ".work/public-full-attempt3-terminal-fix.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/terminal-fix.json",
+      "sha256": "1806deeea1415eedd4a4cae13fc36ce01224cb23fbba55e5d4aa8401c1dac262"
+    },
+    {
+      "original": ".work/public-attempt3-terminal-source-change.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/source-change.json",
+      "sha256": "dea52ca7032773fe7d099e028503713027b6f42ba788f9b2773d61d80c76c051"
+    },
+    {
+      "original": ".work/public-attempt3-terminal-targeted-runs.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/targeted-runs.json",
+      "sha256": "62bbb77506b5e75aab0c43a7c83dfeb2cfe32fe450ebb3ce37acfc77457ab1b6"
+    },
+    {
+      "original": ".work/public-attempt3-terminal-probe-results.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/probe-results.json",
+      "sha256": "673db92fb9769a05d8f9766eb82b2d00e746ad9886297e6097895669b285ff56"
+    },
+    {
+      "original": ".work/test-results/run-zgaDJO/vitest.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/targeted-1.json",
+      "sha256": "c9efa098a32bf2ed04cb556678185b988518f40f0306f4b6a2b4faa60bf04589"
+    },
+    {
+      "original": ".work/test-results/run-yQYoPP/vitest.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/targeted-2.json",
+      "sha256": "8a8fc03b42eb27ad9944a582aefc2e7a57b9435d1a9acd678bec43912407cfc0"
+    },
+    {
+      "original": ".work/test-results/run-MyHFjm/vitest.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/targeted-3.json",
+      "sha256": "3ccb3d4b141d30aac0e6f4a39382d12cbd25d5e2bc6bffe489ed2dd3a075a9be"
+    },
+    {
+      "original": ".work/test-results/run-GZ36Wo/vitest.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/original-green-run.json",
+      "sha256": "0ce057655ff8aadf7277fd4b79ce64146dea31feeb8de98226d726e5eb1495f7"
+    },
+    {
+      "original": ".work/test-results/run-VRluYQ/vitest.json",
+      "evidence": "verification/audit-evidence/public-https-test-delta/original-failed-run.json",
+      "sha256": "db1199fbbf214b9cf97c5b6c8fb75995d6394e44d5a43c6cea2d67ea26a1cfb8"
+    }
+  ],
+  "exactCurrentDigestCleanAuditRounds": 0,
+  "newFullAuditsClaimed": 0,
+  "originalRoundsAndFailuresPreserved": true,
+  "assessment": "Carry forward the two existing complete reviews on the baseline after a separately evidenced exact test-only await repair. This is an engineering scope judgment; it does not claim two new full audits on the repaired digest or a user waiver of all review.",
+  "targetedReview": "The overflow alert and close RPC precede IndexedDB receipt acknowledgement. The positive final-state await occurs before both unchanged final assertions; exact byte reconstruction proves no assertion removal, timeout, skip, product, or other source change. Existing controlled probe and three targeted runs support this narrow conclusion.",
+  "limitations": [
+    "Existing two-case controlled probe and three 18-case targeted runs are retained evidence, not newly executed tests or a full-suite pass."
+  ]
+}

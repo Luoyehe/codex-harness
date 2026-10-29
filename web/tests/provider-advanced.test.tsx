@@ -1,13 +1,19 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { Api } from '../lib/api';
 import { ProviderSettings } from '../components/ProviderSettings';
+import { listOperations } from '../lib/operations';
 
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
+const settleFixtures: (() => Promise<unknown>)[] = [];
 function routed(handler: (call: Call) => unknown) {
   const calls: Call[] = [],
     api = new Api();
+  const mutations = vi.spyOn(api, 'mutate');
+  settleFixtures.push(() => Promise.allSettled(
+    mutations.mock.results.filter((result) => result.type === 'return').map((result) => result.value),
+  ));
   vi.stubGlobal(
     'fetch',
     vi.fn().mockImplementation(async (_url, init: RequestInit) => {
@@ -26,7 +32,10 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
 });
-afterEach(() => {
+afterEach(async () => {
+  await act(async () => {
+    for (const settle of settleFixtures.splice(0)) await settle();
+  });
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -100,7 +109,7 @@ test('unknown provider changes clear secrets and recover their original receipt 
   fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
   const recover = await screen.findByRole('button', { name: '查询原供应商配置回执' });
   expect((screen.getByLabelText('API Key') as HTMLInputElement).value).toBe('');
-  expect((screen.getByRole('button', { name: '保存配置' }) as HTMLButtonElement).disabled).toBe(
+  expect(((await screen.findByRole('button', { name: '保存配置' })) as HTMLButtonElement).disabled).toBe(
     true,
   );
   expect(JSON.stringify(localStorage)).not.toContain('private-fixture-value');
@@ -111,6 +120,9 @@ test('unknown provider changes clear secrets and recover their original receipt 
         (call) => call.method === 'operation/read' && call.params.operationId === operationId,
       ),
     ).toBe(true),
+  );
+  await waitFor(async () =>
+    expect((await listOperations()).find((operation) => operation.id === operationId)?.state).toBe('accepted'),
   );
   expect(calls.filter((call) => call.method === 'system/provider/write')).toHaveLength(1);
 });
@@ -151,4 +163,65 @@ test('changing the Bedrock region clears an unsent key and submits the selected 
   });
   expect(sent).not.toHaveProperty('baseUrl');
   expect(sent).not.toHaveProperty('gatewayOAuth');
+});
+
+test('initial provider read keeps editors unavailable until their baseline exists', async () => {
+  let resolve!: (value: unknown) => void;
+  const call = vi.fn(() => new Promise((done) => { resolve = done; }));
+  const mutate = vi.fn();
+  render(<ProviderSettings api={{ call, mutate } as unknown as Api} epoch="one" onChanged={() => {}} />);
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(true);
+  expect(screen.queryByRole('button', { name: '发现模型' })).toBeNull();
+  fireEvent.submit(screen.getByLabelText('供应商').closest('form')!);
+  expect(mutate).not.toHaveBeenCalled();
+  await act(async () => resolve({ revision: 'r', kind: 'chatgpt' }));
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(false);
+});
+
+test('the first exposed provider editor binds immediate input to its initialized revision', async () => {
+  let resolve!: (value: unknown) => void;
+  const call = vi.fn(() => new Promise((done) => { resolve = done; }));
+  const mutate = vi.fn().mockResolvedValue({ revision: 'r2', kind: 'bedrock-runtime' });
+  let edited = false, clearedKey: string | undefined, interactionError: unknown;
+  // Observe the first DOM commit, before passive effects can run. A later wait
+  // for a particular hydrated value would conceal this initialization window.
+  const observer = new MutationObserver(() => {
+    if (edited || !screen.queryByRole('button', { name: '发现模型' })) return;
+    edited = true;
+    try {
+      fireEvent.change(screen.getByLabelText('供应商'), { target: { value: 'bedrock-runtime' } });
+      fireEvent.change(screen.getByLabelText('AWS 区域'), { target: { value: 'us-east-1' } });
+      fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'old-unsent-fixture' } });
+      fireEvent.change(screen.getByLabelText('AWS 区域'), { target: { value: 'us-west-2' } });
+      clearedKey = (screen.getByLabelText('API Key') as HTMLInputElement).value;
+      fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'new-unsent-fixture' } });
+    } catch (error) { interactionError = error; }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  try {
+    render(<ProviderSettings api={{ call, mutate } as unknown as Api} epoch="one" onChanged={() => {}} />);
+    resolve({ revision: 'r', kind: 'chatgpt' });
+    await waitFor(() => expect(edited).toBe(true));
+    expect(interactionError).toBeUndefined();
+    expect(clearedKey).toBe('');
+    expect(call).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/已保存的配置发生变化/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith('system/provider/write', {
+      expectedRevision: 'r', kind: 'bedrock-runtime', region: 'us-west-2', apiKey: 'new-unsent-fixture',
+    }));
+    expect(mutate).toHaveBeenCalledTimes(1);
+  } finally { observer.disconnect(); }
+});
+
+test('an initial provider read failure keeps retry reachable outside the disabled editors', async () => {
+  const call = vi.fn().mockRejectedValueOnce(new Error('fixture initial read failure'))
+    .mockResolvedValue({ revision: 'r', kind: 'responses', model: 'saved-model' });
+  render(<ProviderSettings api={{ call, mutate: vi.fn() } as unknown as Api} epoch="one" onChanged={() => {}} />);
+  const retry = await screen.findByRole('button', { name: '重新读取' });
+  expect(retry.matches(':disabled')).toBe(false);
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(true);
+  fireEvent.click(retry);
+  await waitFor(() => expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('saved-model'));
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(false);
 });

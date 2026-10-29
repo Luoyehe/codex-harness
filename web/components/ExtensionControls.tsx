@@ -82,7 +82,7 @@ export function ExtensionStatus({
                     !isArchivedReceipt(receipt))
                 )
                   throw new Error('操作回执身份不匹配。');
-                reconcileOperation(operation.id, receipt);
+                await reconcileOperation(operation.id, receipt);
                 if (current() && ['accepted', 'not_sent'].includes(String(receipt.state)))
                   action.refresh();
               } catch (e) {

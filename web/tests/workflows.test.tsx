@@ -185,15 +185,15 @@ it('does not reorder a partial queue or start a queue while a turn runs', async 
   expect(mutate).not.toHaveBeenCalled();
 });
 it('blocks queue mutations behind an unresolved operation without silently retrying', async () => {
-  const op = createOperation('thread/queue/start', { threadId: 't' });
-  updateOperation(op.id, 'unknown');
+  const op = (await createOperation('thread/queue/start', { threadId: 't' }));
+  (await updateOperation(op.id, 'unknown'));
   const call = vi.fn().mockResolvedValue({ data: [queued('a', 'First')], nextCursor: null }),
     mutate = vi.fn();
   render(<TaskPanel {...taskProps({ call, mutate } as unknown as Api)} />);
   await screen.findByText('First');
-  expect((screen.getByRole('button', { name: '删除' }) as HTMLButtonElement).disabled).toBe(true);
+  await waitFor(() => expect((screen.getByRole('button', { name: '删除' }) as HTMLButtonElement).disabled).toBe(true));
   expect(mutate).not.toHaveBeenCalled();
-  expect(listOperations()[0]?.state).toBe('unknown');
+  expect((await listOperations())[0]?.state).toBe('unknown');
 });
 it('sets only an explicitly selected goal budget and marks continuation as user intent', async () => {
   const call = vi
@@ -286,7 +286,7 @@ it.each(['queue', 'goal'] as const)(
     expect(input.matches(':disabled')).toBe(false);
     expect(input.value).toBe('submitted draft');
     expect(cancel.matches(':disabled')).toBe(false);
-    expect(listOperations().some((operation) => operation.state === 'unknown')).toBe(true);
+    expect((await listOperations()).some((operation) => operation.state === 'unknown')).toBe(true);
     if (kind === 'goal')
       expect(
         (screen.getByRole('textbox', { name: 'Token 总预算' }) as HTMLInputElement).value,
@@ -465,6 +465,177 @@ it.each([
     expect(screen.getByText(/队列编辑最多保留 32 份/)).toBeTruthy();
   },
 );
+it.each(['queue', 'goal'] as const)(
+  'retains unsaved %s text and budget across task tabs without submitting a mutation',
+  async (kind) => {
+    const call = vi.fn(async (method: string) =>
+        method === 'thread/goal/get'
+          ? { goal }
+          : { data: method === 'thread/queue/list' ? [queued('a', 'First'), queued('b', 'Second')] : [], nextCursor: null },
+      ),
+      mutate = vi.fn();
+    render(<TaskPanel {...taskProps({ call, mutate } as unknown as Api)} />);
+    await screen.findByText('First');
+    if (kind === 'queue') {
+      fireEvent.click(screen.getAllByRole('button', { name: '编辑' })[0]!);
+      fireEvent.click(screen.getByRole('button', { name: '编辑' }));
+      screen.getAllByRole('textbox', { name: '修改队列消息' }).forEach((input, index) =>
+        fireEvent.change(input, { target: { value: 'unsaved instruction ' + index } }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+      await screen.findByText(goal.objective);
+    } else {
+      fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+      fireEvent.click(await screen.findByRole('button', { name: '修改目标与预算' }));
+      fireEvent.change(screen.getByRole('textbox', { name: '目标' }), {
+        target: { value: 'unsaved objective' },
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Token 总预算' }), {
+        target: { value: '31415' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: '消息队列' }));
+      await screen.findByText('First');
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Agents' }));
+    await screen.findByText('没有已记录的子 Agent。');
+    fireEvent.click(screen.getByRole('button', { name: kind === 'queue' ? '消息队列' : '目标与预算' }));
+    if (kind === 'queue') {
+      const inputs = await screen.findAllByRole('textbox', { name: '修改队列消息' });
+      expect(inputs.map((input) => (input as HTMLTextAreaElement).value)).toEqual([
+        'unsaved instruction 0', 'unsaved instruction 1',
+      ]);
+    } else {
+      expect((screen.getByRole('textbox', { name: '目标' }) as HTMLTextAreaElement).value).toBe('unsaved objective');
+      expect((screen.getByRole('textbox', { name: 'Token 总预算' }) as HTMLInputElement).value).toBe('31415');
+      expect((screen.getByRole('checkbox', { name: '设置 token 总预算' }) as HTMLInputElement).checked).toBe(true);
+    }
+    expect(mutate).not.toHaveBeenCalled();
+  },
+);
+it('loads task tabs only when visited and suspends hidden reads until the next visit', async () => {
+  const call = vi.fn(async (method: string, _params: unknown, _signal?: AbortSignal) =>
+      method === 'thread/goal/get'
+        ? { goal }
+        : { data: method === 'thread/queue/list' ? [queued('a', 'First')] : [], nextCursor: null },
+    ),
+    mutate = vi.fn(),
+    props = taskProps({ call, mutate } as unknown as Api);
+  render(<TaskPanel {...props} />);
+  await screen.findByText('First');
+  expect(call.mock.calls.map(([method]) => method)).toEqual(['thread/queue/list']);
+  const firstRead = call.mock.calls[0]![2];
+  fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+  await screen.findByText(goal.objective);
+  expect(firstRead?.aborted).toBe(true);
+  expect(call.mock.calls.map(([method]) => method)).toEqual(['thread/queue/list', 'thread/goal/get']);
+  expect(screen.getByRole('button', { name: '刷新队列', hidden: true }).closest('[hidden]')?.hasAttribute('inert')).toBe(true);
+  act(() => props.events.publish({
+    type: 'notification', data: { method: 'thread/queue/changed', params: { threadId: 't' } },
+  }));
+  await waitFor(() => expect(call.mock.calls.filter(([method]) => method === 'thread/goal/get')).toHaveLength(2));
+  expect(call.mock.calls.filter(([method]) => method === 'thread/queue/list')).toHaveLength(1);
+  expect(call.mock.calls.some(([method]) => method === 'thread/agents/list')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: '消息队列' }));
+  await screen.findByText('First');
+  expect(call.mock.calls.filter(([method]) => method === 'thread/queue/list')).toHaveLength(2);
+  expect(call.mock.calls.filter(([method]) => method === 'thread/goal/get')).toHaveLength(2);
+  expect(screen.getByRole('button', { name: '刷新目标', hidden: true }).closest('[hidden]')?.hasAttribute('inert')).toBe(true);
+  expect(mutate).not.toHaveBeenCalled();
+});
+it.each(['thread', 'epoch', 'api'] as const)(
+  'starts fresh task drafts when the %s owner changes, including while the goal tab is open',
+  async (owner) => {
+    const call = vi.fn(async (method: string) =>
+        method === 'thread/goal/get' ? { goal } : { data: [queued('a', 'First')], nextCursor: null },
+      ),
+      mutate = vi.fn(),
+      props = taskProps({ call, mutate } as unknown as Api),
+      view = render(<TaskPanel {...props} />);
+    fireEvent.click(await screen.findByRole('button', { name: '编辑' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '修改队列消息' }), {
+      target: { value: 'private queue draft' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+    fireEvent.click(await screen.findByRole('button', { name: '修改目标与预算' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '目标' }), {
+      target: { value: 'private goal draft' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Token 总预算' }), {
+      target: { value: '31415' },
+    });
+    view.rerender(<TaskPanel {...props} {...(
+      owner === 'thread' ? { threadId: 'other' }
+        : owner === 'epoch' ? { epoch: 'next' }
+          : { api: { call, mutate } as unknown as Api }
+    )} />);
+    await screen.findByText('First');
+    expect(screen.queryByDisplayValue('private queue draft')).toBeNull();
+    expect(screen.queryByDisplayValue('private goal draft')).toBeNull();
+    expect(screen.queryByDisplayValue('31415')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+    fireEvent.click(await screen.findByRole('button', { name: '修改目标与预算' }));
+    expect((screen.getByRole('textbox', { name: '目标' }) as HTMLTextAreaElement).value).toBe(goal.objective);
+    expect((screen.getByRole('textbox', { name: 'Token 总预算' }) as HTMLInputElement).value).toBe('9000');
+    expect(mutate).not.toHaveBeenCalled();
+  },
+);
+it.each([
+  { kind: 'queue', outcome: 'accepted' }, { kind: 'goal', outcome: 'accepted' },
+  { kind: 'queue', outcome: 'unknown' }, { kind: 'goal', outcome: 'unknown' },
+] as const)('keeps a pending $kind edit owned across tabs when its result is $outcome', async ({ kind, outcome }) => {
+  let finish!: (value: unknown) => void, fail!: (error: Error) => void;
+  let saved = false;
+  const requests: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
+  vi.stubGlobal('fetch', vi.fn(async (_url, init: RequestInit) => {
+    const request = JSON.parse(String(init.body));
+    requests.push(request);
+    let result: unknown;
+    if (request.operationId) {
+      result = await new Promise((resolve, reject) => { finish = resolve; fail = reject; });
+      saved = true;
+    } else if (request.method === 'operation/read') {
+      const write = requests.find((item) => item.operationId)!;
+      result = { operationId: write.operationId, method: write.method, state: 'unknown' };
+    } else if (request.method === 'thread/goal/get') {
+      result = { goal: saved ? { ...goal, objective: 'submitted draft' } : goal };
+    } else {
+      result = { data: request.method === 'thread/queue/list' ? [queued('a', saved ? 'submitted draft' : 'First')] : [], nextCursor: null };
+    }
+    return { status: 200, ok: true, json: async () => ({ ok: true, result }) };
+  }));
+  const api = new Api();
+  render(<TaskPanel {...taskProps(api)} />);
+  if (kind === 'queue') fireEvent.click(await screen.findByRole('button', { name: '编辑' }));
+  else {
+    fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+    fireEvent.click(await screen.findByRole('button', { name: '修改目标与预算' }));
+  }
+  const label = kind === 'queue' ? '修改队列消息' : '目标';
+  const input = screen.getByRole('textbox', { name: label }) as HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value: 'submitted draft' } });
+  fireEvent.submit(input.form!);
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  const originalId = requests.find((request) => request.operationId)!.operationId!;
+  fireEvent.click(screen.getByRole('button', { name: 'Agents' }));
+  await screen.findByText('没有已记录的子 Agent。');
+  await act(async () => {
+    if (outcome === 'accepted') finish({});
+    else fail(new Error('edit response lost'));
+  });
+  fireEvent.click(screen.getByRole('button', { name: kind === 'queue' ? '消息队列' : '目标与预算' }));
+  if (outcome === 'accepted') {
+    await screen.findByText('submitted draft');
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: label })).toBeNull());
+  } else {
+    const retained = await screen.findByRole('textbox', { name: label }) as HTMLTextAreaElement;
+    expect(retained.value).toBe('submitted draft');
+    await screen.findByText('edit response lost');
+    expect((await listOperations()).find((operation) => operation.id === originalId)?.state).toBe('unknown');
+    await api.call('operation/read', { operationId: originalId });
+    expect(requests.filter((request) => request.method === 'operation/read').map((request) => request.params)).toEqual([{ operationId: originalId }]);
+  }
+  expect(requests.filter((request) => request.operationId)).toHaveLength(1);
+});
 it('uses native ancestry and direct-input capability without inventing controls', async () => {
   const agents = [
     {
@@ -513,6 +684,19 @@ it('forks before an edited message, preserves the source draft and never automat
   await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
   expect(mutate).toHaveBeenCalledOnce();
 });
+it('distinguishes automatic branch completion from explicit retry without creating again', async () => {
+  const mutate = vi.fn().mockResolvedValue({ thread: { id: 'child' } }),
+    props = branchProps({ mutate } as unknown as Api),
+    created = vi.fn().mockReturnValue(false);
+  render(<BranchDialog {...props} onCreatedFork={created} />);
+  fireEvent.click(screen.getByRole('button', { name: '创建分支并保存草稿' }));
+  await waitFor(() => expect(created).toHaveBeenCalledWith('child', 'Original instruction'));
+  expect(props.onFork).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '保存草稿并打开已有分支' }));
+  await waitFor(() => expect(props.onFork).toHaveBeenCalledWith('child', 'Original instruction'));
+  expect(created).toHaveBeenCalledOnce();
+  expect(mutate).toHaveBeenCalledOnce();
+});
 it('retains a fork receipt and does not navigate after the dialog ownership ends', async () => {
   let finish!: (value: unknown) => void;
   const mutate = vi.fn(
@@ -535,10 +719,10 @@ it('uses accepted creation proof after a lost HTTP response without creating ano
     props = branchProps(api);
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockImplementation((_url, init: RequestInit) => {
+    vi.fn().mockImplementation(async (_url, init: RequestInit) => {
       const request = JSON.parse(String(init.body));
       requests.push(request);
-      updateOperation(request.operationId, 'accepted', 'proven-child');
+      (await updateOperation(request.operationId, 'accepted', 'proven-child'));
       return Promise.reject(new Error('response lost'));
     }),
   );
@@ -548,7 +732,7 @@ it('uses accepted creation proof after a lost HTTP response without creating ano
     expect(props.onFork).toHaveBeenCalledWith('proven-child', 'Original instruction'),
   );
   expect(requests).toHaveLength(1);
-  expect(listOperations()[0]?.resolvedThreadId).toBe('proven-child');
+  expect((await listOperations())[0]?.resolvedThreadId).toBe('proven-child');
 });
 it('recovers a later accepted branch only through the recorded identity', async () => {
   const api = new Api(),
@@ -556,11 +740,11 @@ it('recovers a later accepted branch only through the recorded identity', async 
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('response lost')));
   render(<BranchDialog {...props} />);
   fireEvent.click(screen.getByRole('button', { name: '创建分支并保存草稿' }));
-  await waitFor(() => expect(listOperations()[0]?.state).toBe('unknown'));
+  await waitFor(async () => expect((await listOperations())[0]?.state).toBe('unknown'));
   expect(
-    (screen.getByRole('button', { name: '创建分支并保存草稿' }) as HTMLButtonElement).disabled,
+    (await screen.findByRole('button', { name: '创建分支并保存草稿' }) as HTMLButtonElement).disabled,
   ).toBe(true);
-  await act(async () => updateOperation(listOperations()[0]!.id, 'accepted', 'later-child'));
+  await act(async () => (await updateOperation((await listOperations())[0]!.id, 'accepted', 'later-child')));
   fireEvent.click(await screen.findByRole('button', { name: '保存草稿并打开已有分支' }));
   expect(props.onFork).toHaveBeenCalledWith('later-child', 'Original instruction');
   expect(fetch).toHaveBeenCalledOnce();
@@ -619,6 +803,28 @@ it('submits an explicit review target and uses an independent review thread only
     }),
   );
   expect(open).toHaveBeenCalledWith('review-child');
+});
+it('routes new review completion separately from explicit opening of a recovered review', async () => {
+  const api = new Api(), created = vi.fn(), open = vi.fn(),
+    fetcher = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, result: { reviewThreadId: 'review-child' } }) });
+  vi.stubGlobal('fetch', fetcher);
+  const props = { api, threadId: 't', projectId: 'project', enabled: true, initialSeparate: true,
+    onClose: vi.fn(), onChanged: vi.fn(), onOpenThread: open, onCreatedThread: created };
+  const view = render(<ReviewDialog {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '开始审查' }));
+  await waitFor(() => expect(created).toHaveBeenCalledWith('review-child'));
+  expect(open).not.toHaveBeenCalled();
+  view.unmount();
+  fetcher.mockRejectedValue(new Error('response lost'));
+  render(<ReviewDialog {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '开始审查' }));
+  await waitFor(async () => expect((await listOperations()).some(op => op.state === 'unknown')).toBe(true));
+  const pending = (await listOperations()).find(op => op.state === 'unknown')!;
+  await act(async () => updateOperation(pending.id, 'accepted', 'recovered-review'));
+  fireEvent.click(await screen.findByRole('button', { name: '打开已受理的审查' }));
+  expect(open).toHaveBeenCalledWith('recovered-review');
+  expect(created).toHaveBeenCalledOnce();
+  expect(fetcher).toHaveBeenCalledTimes(2);
 });
 it('locates a search hit in an isolated partial window without issuing continuation history reads', async () => {
   const hit = {
@@ -726,7 +932,7 @@ it('gives steer and queue additions stable message identities and retains unknow
   expect(typeof (requests[0]?.params as Record<string, unknown>).clientUserMessageId).toBe(
     'string',
   );
-  expect(listOperations()[0]?.state).toBe('unknown');
+  expect((await listOperations())[0]?.state).toBe('unknown');
   expect(readDraft('t').text).toBe('Follow up');
   await expect(
     api.mutate('turn/steer', { threadId: 't', text: 'Follow up', expectedTurnId: 'active' }),

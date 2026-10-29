@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round3",
+  "reviewerId": "public-round3-web-rest-semantic",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "6b97df9efa8681d652d9898d500d8e82e6c322aa7f72400abd18fe238460a3e0",
+  "sourceDigestAfter": "6b97df9efa8681d652d9898d500d8e82e6c322aa7f72400abd18fe238460a3e0",
+  "startedAt": "2026-10-27T02:21:00.764Z",
+  "completedAt": "2026-10-27T02:45:30.842Z",
+  "timingBasis": "actualDispatchTimestampUnavailable; startedAt is the frozen snapshot lower bound, not an assertion of exact reading start",
+  "startedAtIsSnapshotBound": true,
+  "actualStartedAt": null,
+  "firstRecordedProgressUtc": "2026-10-27T02:31:02.0672949Z",
+  "complete": true,
+  "coverage": {
+    "originalScopeFile": ".work/public-https-round3-web-remaining.json",
+    "originalScopeCount": 159,
+    "finalizedAssignedCount": 132,
+    "productionAndDocumentationCount": 104,
+    "testContractFileCount": 28,
+    "scopeAdjustment": "Parent reassigned test indices 28-54 to public_round2_deploy. complete applies only to the 132 explicitly listed inspectedFiles, not the original 159-file scope."
+  },
+  "inspectedFiles": [
+    "web/VERIFICATION.md",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpAuthorization.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "method": "{\"production\":\"Full semantic reading of all 104 assigned non-test source, CSS, entrypoint, config, and verification-document files via bounded Get-Content outputs. Truncated spans were reread. Considered async owner/generation checks, UI confirmation invalidation, operation receipt identity and unknown outcomes, capability readiness, media and secret exposure, project/thread/lease transitions, resources and responsive layout.\",\"tests\":\"Parsed all selected test source into an AST with the locally installed rolldown parser. For the assigned first 28 test files, read all extracted test declarations (including parameter tables), expect expressions, hooks, complete top-level and local variable/function/class fixture declarations, and recursively traversed calls/effects. Supplemental AST extraction covered assignments, updates, throws, control conditions/loops, and standalone screen find/get implicit assertions. Full original test bodies are retained in extraction evidence; selected boundary/fixture code was reread directly. This is contract review, not a claim of manually reading every original test line.\",\"keyDirectTestReads\":[{\"file\":\"web/tests/automations.test.tsx\",\"lines\":\"258-431\",\"focus\":\"unknown create/update receipt recovery, newer edits and remount acknowledgement\"},{\"file\":\"web/tests/mcp-ui.test.tsx\",\"lines\":\"867-end\",\"focus\":\"A-to-B-to-A pure-read cancellation and unmounted-download late success\"},{\"file\":\"web/tests/attachments.test.tsx\",\"lines\":\"193-end\",\"focus\":\"read owner replacement, busy state and URL revocation\"},{\"file\":\"web/tests/builtin-auth.test.tsx\",\"lines\":\"189-249\",\"focus\":\"volatile MFA secrets and stale authenticated response rejection\"}],\"auxiliaryFullRead\":[\"web/tests/preview-server.mjs\"],\"auxiliarySnippetReads\":[\"web/Workspace.tsx: parent component key/owner callsites\"],\"testContractArtifacts\":[\".work/public-r3-web-extract.mjs\",\".work/public-r3-web-contracts.json\",\".work/public-r3-web-contract-00.txt through .work/public-r3-web-contract-27.txt\",\".work/public-r3-web-control-extract.mjs\",\".work/public-r3-web-control-00.txt through .work/public-r3-web-control-27.txt\"],\"verification\":\"Read-only node scripts/snapshot.mjs returned 1880 files and the identical digest. SHA-256 of all 132 assigned paths was compared again with inventory.hashes while writing this report. No tests/builds/typechecks/browser sessions/live services/credentials were run or used. Only ignored .work audit helper, extraction, progress and report files were written.\",\"boundary\":\"No old implementation or Git history was consulted; repository AGENTS.md was read. No confirmed actionable defect was found in this assigned scope.\"}",
+  "findings": [],
+  "skipped": [],
+  "remainingOriginalScope": [
+    {
+      "file": "web/tests/message-media.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/modal-mutations.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/organization.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/prediction.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/preview-server.mjs",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/process-remote.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/prompt-fields.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/prompts.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/provider-advanced.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/provider-catalog.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/provider-profiles.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/provider.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/realtime.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/receipt-maintenance.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/render-budget.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/settings.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/sharing-diagnostics.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/skill-library.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/stream-items.test.ts",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/terminal.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/thread-terminals.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/timeline-history.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/workflows.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/workspace-management.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/workspace-search.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/workspace-ui.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    },
+    {
+      "file": "web/tests/workspace-watch.test.tsx",
+      "reason": "Reassigned by parent to public_round2_deploy; not claimed as inspected by this report. preview-server.mjs was additionally read in full as auxiliary context, but remains in the other reviewer assignment."
+    }
+  ],
+  "testExtractionStats": {
+    "files": 28,
+    "testDeclarationExpressions": 201,
+    "expectRelatedExpressions": 777,
+    "note": "Counts describe AST declaration/expect expressions, not executed or expanded parameterized test cases; expect static helpers can be included."
+  },
+  "methodDetails": {
+    "production": "Full semantic reading of all 104 assigned non-test source, CSS, entrypoint, config, and verification-document files via bounded Get-Content outputs. Truncated spans were reread. Considered async owner/generation checks, UI confirmation invalidation, operation receipt identity and unknown outcomes, capability readiness, media and secret exposure, project/thread/lease transitions, resources and responsive layout.",
+    "tests": "Parsed all selected test source into an AST with the locally installed rolldown parser. For the assigned first 28 test files, read all extracted test declarations (including parameter tables), expect expressions, hooks, complete top-level and local variable/function/class fixture declarations, and recursively traversed calls/effects. Supplemental AST extraction covered assignments, updates, throws, control conditions/loops, and standalone screen find/get implicit assertions. Full original test bodies are retained in extraction evidence; selected boundary/fixture code was reread directly. This is contract review, not a claim of manually reading every original test line.",
+    "keyDirectTestReads": [
+      {
+        "file": "web/tests/automations.test.tsx",
+        "lines": "258-431",
+        "focus": "unknown create/update receipt recovery, newer edits and remount acknowledgement"
+      },
+      {
+        "file": "web/tests/mcp-ui.test.tsx",
+        "lines": "867-end",
+        "focus": "A-to-B-to-A pure-read cancellation and unmounted-download late success"
+      },
+      {
+        "file": "web/tests/attachments.test.tsx",
+        "lines": "193-end",
+        "focus": "read owner replacement, busy state and URL revocation"
+      },
+      {
+        "file": "web/tests/builtin-auth.test.tsx",
+        "lines": "189-249",
+        "focus": "volatile MFA secrets and stale authenticated response rejection"
+      }
+    ],
+    "auxiliaryFullRead": [
+      "web/tests/preview-server.mjs"
+    ],
+    "auxiliarySnippetReads": [
+      "web/Workspace.tsx: parent component key/owner callsites"
+    ],
+    "testContractArtifacts": [
+      ".work/public-r3-web-extract.mjs",
+      ".work/public-r3-web-contracts.json",
+      ".work/public-r3-web-contract-00.txt through .work/public-r3-web-contract-27.txt",
+      ".work/public-r3-web-control-extract.mjs",
+      ".work/public-r3-web-control-00.txt through .work/public-r3-web-control-27.txt"
+    ],
+    "verification": "Read-only node scripts/snapshot.mjs returned 1880 files and the identical digest. SHA-256 of all 132 assigned paths was compared again with inventory.hashes while writing this report. No tests/builds/typechecks/browser sessions/live services/credentials were run or used. Only ignored .work audit helper, extraction, progress and report files were written.",
+    "boundary": "No old implementation or Git history was consulted; repository AGENTS.md was read. No confirmed actionable defect was found in this assigned scope."
+  }
+}

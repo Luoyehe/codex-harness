@@ -1,5 +1,7 @@
 # Runtime verification and declared limits
 
+Workspace witness initialization synchronizes its validated private directory and the installer-owned supervisor home before opening SQLite. Both barriers run again when a failed attempt left the directory behind, and a failure returns `not_sent` before the helper or request write boundary runs. `workspace-witness-durability.test.ts` injects child/parent sync failures, parent replacement and symlink storage, then checks retry and accepted-proof readback. On Linux it uses real directory descriptors and fsync; Windows development tests model those directory syscalls because Windows cannot perform the production directory barrier. These checks establish ordering and failure handling, not physical power-loss behavior of a particular filesystem or storage device.
+
 Select tests for the affected runtime behavior during implementation. The initial connection/lifecycle group is:
 
 ```powershell

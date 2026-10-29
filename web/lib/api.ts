@@ -1,4 +1,4 @@
-import { uuid } from './ids';
+import { operationId, uuid } from './ids';
 import {
   acknowledgeOperation,
   checkedTerminalResult,
@@ -6,6 +6,8 @@ import {
   isArchivedReceipt,
   reconcileOperation,
   updateOperation,
+  initializeOperations,
+  reportOperationStorageError,
   type TerminalOwner,
   type TerminalResult,
 } from './operations';
@@ -34,6 +36,7 @@ export type Session = {
   csrf?: string;
   clientId?: string;
   operationGeneration?: number;
+  operationRecoveryProtocol?: number;
 };
 export type LoginCredentials = {
   username: string;
@@ -74,6 +77,8 @@ export type TerminalRecovery =
 export class Api {
   csrf = '';
   operationGeneration = 0;
+  private connectionRevision = 0;
+  connectionChanged() { this.connectionRevision++; }
   observeOperationGeneration(value: unknown) {
     if (
       Number.isSafeInteger(value) &&
@@ -185,13 +190,17 @@ export class Api {
       session = (await response.json()) as Session;
       if (typeof session?.authenticated !== 'boolean' || (session.authenticated && !session.csrf)) throw new Error();
     } catch { throw new RpcError('登录状态无法确认，请重新检查账号状态。', 'invalid_response', credentials ? 'unknown' : undefined); }
-    if (credentials && generation !== this.sessionGeneration)
-      throw new RpcError('登录请求已过期，请重新检查账号状态。', 'stale_session', 'unknown');
+    if (generation !== this.sessionGeneration)
+      throw new RpcError('登录请求已过期，请重新检查账号状态。', 'stale_session', credentials ? 'unknown' : undefined);
     if (generation === this.sessionGeneration) {
       if (session.authenticated) {
         this.csrf = session.csrf ?? '';
         this.observeOperationGeneration(session.operationGeneration);
         this.externalAuthenticationRequired = false;
+        try { await initializeOperations(session.operationRecoveryProtocol, true); }
+        catch (error) { reportOperationStorageError(error); }
+        if (generation !== this.sessionGeneration)
+          throw new RpcError('登录状态已变化，请重新检查账号状态。', 'stale_session', credentials ? 'unknown' : undefined);
       } else this.loseAuthentication(previousCsrf);
     }
     return session;
@@ -248,6 +257,7 @@ export class Api {
       'X-Requested-With': 'XMLHttpRequest',
       'X-Harness-CSRF': this.csrf,
       'X-Harness-Client': this.clientId,
+      'X-Harness-Recovery': '2',
     };
   }
   async call<T = Record<string, unknown>>(
@@ -298,49 +308,37 @@ export class Api {
       );
     return body.result as T;
   }
-  /** Keep creation identity before dispatch; recovery reads that identity and never repeats open. */
+  /** Expose identity immediately; persist it before dispatching to its original owner. */
   openTerminal(
-    params: {
-      projectId: string;
-      rows: number;
-      cols: number;
-      program?: 'shell' | 'codex' | 'codex-cloud';
-    },
+    params: { projectId: string; rows: number; cols: number; program?: 'shell' | 'codex' | 'codex-cloud' },
     connectionId: string,
+    isCurrent: () => boolean = () => true,
   ): { operation: TerminalOperation; result: Promise<TerminalResult> } {
-    const owner = { clientId: this.clientId, connectionId };
-    const saved = createOperation(
-      'terminal/open',
-      {
-        projectId: params.projectId,
-        terminalOwner: owner,
-      },
-      localStorage,
-      this.operationGeneration,
-    );
-    const operation = {
-      ...owner,
-      projectId: params.projectId,
-      operationId: saved.id,
-      ...(params.program ? { program: params.program } : {}),
-    };
-    const result = this.call('terminal/open', params, undefined, saved.id)
-      .then((value) => {
-        const terminal = checkedTerminalResult(value);
-        updateOperation(saved.id, 'accepted', undefined, localStorage, terminal);
-        return terminal;
-      })
-      .catch((error) => {
-        try {
-          updateOperation(
-            saved.id,
-            error instanceof RpcError && error.delivery === 'not_sent' ? 'not_sent' : 'unknown',
-          );
-        } catch {
-          /* The pre-dispatch identity still permits read-only recovery. */
-        }
+    params = { ...params };
+    const owner = { clientId: this.clientId, connectionId }, id = operationId(this.operationGeneration);
+    const session = this.sessionGeneration, connection = this.connectionRevision;
+    const operation = { ...owner, projectId: params.projectId, operationId: id,
+      ...(params.program ? { program: params.program } : {}) };
+    const result = (async () => {
+      try {
+        await createOperation('terminal/open', { projectId: params.projectId, terminalOwner: owner }, this.operationGeneration, id);
+      } catch (error) { throw new RpcError(message(error), 'recovery_storage_unavailable', 'not_sent', id); }
+      if (session !== this.sessionGeneration || connection !== this.connectionRevision || !isCurrent()) {
+        try { await updateOperation(id, 'not_sent'); } catch (error) { reportOperationStorageError(error); }
+        throw new RpcError('终端所属页面或连接已变化，尚未发送创建请求。', 'stale_owner', 'not_sent', id);
+      }
+      let value: unknown;
+      try { value = await this.call('terminal/open', params, undefined, id); }
+      catch (error) {
+        try { await updateOperation(id, error instanceof RpcError && error.delivery === 'not_sent' ? 'not_sent' : 'unknown'); }
+        catch (storageError) { reportOperationStorageError(storageError); }
         throw error;
-      });
+      }
+      const terminal = checkedTerminalResult(value);
+      try { await updateOperation(id, 'accepted', undefined, terminal); }
+      catch (error) { reportOperationStorageError(error); }
+      return terminal;
+    })();
     return { operation, result };
   }
   async recoverTerminal(
@@ -360,10 +358,10 @@ export class Api {
       throw new Error('终端回执身份不匹配。');
     if (receipt.state === 'accepted') {
       const result = checkedTerminalResult(receipt.result);
-      reconcileOperation(operation.operationId, receipt);
+      await reconcileOperation(operation.operationId, receipt);
       return { state: 'accepted', result };
     }
-    reconcileOperation(operation.operationId, receipt);
+    await reconcileOperation(operation.operationId, receipt);
     return receipt.state === 'not_sent' ? { state: 'not_sent' } : { state: 'unresolved' };
   }
   async mutate<T = Record<string, unknown>>(
@@ -372,12 +370,14 @@ export class Api {
   ): Promise<T> {
     return this.beginMutation<T>(method, params).result;
   }
-  /** Expose the already persisted identity to editors that retain their write intent. */
+  /** Expose an intent ID; result persists it before prepare callbacks or dispatch. */
   beginMutation<T = Record<string, unknown>>(
     method: string,
     params: Record<string, unknown> = {},
     prepare?: (operationId: string) => void,
   ): { operationId: string; result: Promise<T> } {
+    try { params = JSON.parse(JSON.stringify(params)) as Record<string, unknown>; }
+    catch { throw new RpcError('请求参数无法保存为 JSON，尚未发送请求。', 'local_intent_failed', 'not_sent'); }
     const resourceId =
       params.promptId ??
       params.terminalId ??
@@ -417,31 +417,31 @@ export class Api {
       )
         draftScope = { draftKey: key, draftRevision: draft.revision };
     }
-    const op = createOperation(
-      method,
-      {
-        ...(typeof params.threadId === 'string' ? { threadId: params.threadId } : {}),
-        ...(typeof params.projectId === 'string' ? { projectId: params.projectId } : {}),
-        ...(typeof resourceId === 'string' ? { resourceId } : {}),
-        ...draftScope,
-      },
-      localStorage,
-      this.operationGeneration,
-    );
-    try {
-      prepare?.(op.id);
-    } catch (e) {
-      updateOperation(op.id, 'not_sent');
-      throw new RpcError(message(e), 'local_intent_failed', 'not_sent', op.id);
-    }
+    const id = operationId(this.operationGeneration), session = this.sessionGeneration,
+      connection = this.connectionRevision;
     const dispatch = async () => {
+      try {
+        await createOperation(method, {
+          ...(typeof params.threadId === 'string' ? { threadId: params.threadId } : {}),
+          ...(typeof params.projectId === 'string' ? { projectId: params.projectId } : {}),
+          ...(typeof resourceId === 'string' ? { resourceId } : {}), ...draftScope,
+        }, this.operationGeneration, id);
+      } catch (error) { throw new RpcError(message(error), 'recovery_storage_unavailable', 'not_sent', id); }
+      try {
+        if (session !== this.sessionGeneration || connection !== this.connectionRevision)
+          throw new Error('请求所属登录或连接已变化，尚未发送请求。');
+        prepare?.(id);
+      } catch (error) {
+        try { await updateOperation(id, 'not_sent'); } catch (storageError) { reportOperationStorageError(storageError); }
+        throw new RpcError(message(error), 'local_intent_failed', 'not_sent', id);
+      }
       let result: T;
       try {
-        result = await this.call<T>(method, params, undefined, op.id);
+        result = await this.call<T>(method, params, undefined, id);
       } catch (e) {
         try {
-          updateOperation(
-            op.id,
+          await updateOperation(
+            id,
             e instanceof RpcError && e.delivery === 'not_sent' ? 'not_sent' : 'unknown',
             e instanceof RpcError && typeof e.data?.threadId === 'string'
               ? e.data.threadId
@@ -452,14 +452,19 @@ export class Api {
         }
         throw e instanceof RpcError
           ? e
-          : new RpcError(message(e), 'transport_error', 'unknown', op.id);
+          : new RpcError(message(e), 'transport_error', 'unknown', id);
       }
       const thread = object(object(result).thread);
-      updateOperation(op.id, 'accepted', typeof thread.id === 'string' ? thread.id : undefined);
-      if (![...INPUT_METHODS, 'thread/fork', 'review/startNew'].includes(method))
-        acknowledgeOperation(op.id);
+      try {
+        await updateOperation(id, 'accepted', typeof thread.id === 'string' ? thread.id : undefined);
+        if (![...INPUT_METHODS, 'thread/fork', 'review/startNew'].includes(method))
+          await acknowledgeOperation(id);
+      } catch (error) {
+        // HTTP acceptance is a fact even if local proof/cleanup failed. The durable identity remains queryable.
+        reportOperationStorageError(error);
+      }
       return result;
     };
-    return { operationId: op.id, result: dispatch() };
+    return { operationId: id, result: dispatch() };
   }
 }

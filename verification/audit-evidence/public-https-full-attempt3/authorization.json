@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-privacy-export",
+  "authorizesRelease": false,
+  "status": "superseded",
+  "notice": "The authorization applied to the original source only. A new audit and explicit release authorization are required for these exported bytes."
+}

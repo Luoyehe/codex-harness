@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Api, type TerminalRecovery } from '../lib/api';
+import * as operationStorage from '../lib/operations';
+import { Api, RpcError, type TerminalRecovery } from '../lib/api';
 import { listOperations, reconcileOperation } from '../lib/operations';
 import { Events } from '../lib/events';
 const terminalState = vi.hoisted(() => ({
@@ -90,6 +91,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 describe('terminal ownership and bounded input', () => {
@@ -228,7 +230,8 @@ describe('terminal ownership and bounded input', () => {
         });
     });
     await act(async () => finish({ terminalId: 't' }));
-    expect(screen.getByRole('alert').textContent).toContain('128');
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('128'));
+    await screen.findByRole('button', { name: '打开新终端' });
     expect(api.call).toHaveBeenCalledWith('terminal/close', { terminalId: 't' });
     expect(screen.queryByRole('button', { name: '关闭终端' })).toBeNull();
   });
@@ -271,7 +274,7 @@ describe('terminal ownership and bounded input', () => {
   });
 });
 
-function lostResponseFixture(program: 'shell' | 'codex' | 'codex-cloud' = 'shell') {
+async function lostResponseFixture(program: 'shell' | 'codex' | 'codex-cloud' = 'shell') {
   const api = new Api(),
     events = new Events(),
     calls: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
@@ -316,12 +319,16 @@ function lostResponseFixture(program: 'shell' | 'codex' | 'codex-cloud' = 'shell
             : '打开终端',
     }),
   );
+  await waitFor(() => expect(calls.some((call) => call.method === 'terminal/open')).toBe(true));
   return {
     api,
     events,
     calls,
     view,
-    fail: async () => act(async () => rejectOpen(new TypeError('open response lost'))),
+    fail: async () => {
+      await act(async () => rejectOpen(new TypeError('open response lost')));
+      await waitFor(() => expect(screen.queryByText('正在确认终端启动…')).toBeNull());
+    },
     proof: (value: Record<string, unknown>) => {
       receipt = value;
     },
@@ -331,9 +338,9 @@ function lostResponseFixture(program: 'shell' | 'codex' | 'codex-cloud' = 'shell
   };
 }
 it('uses a positive WebSocket receipt after HTTP loss and preserves early output without a second open', async () => {
-  const f = lostResponseFixture();
+  const f = await lostResponseFixture();
   const operationId = f.calls[0]!.operationId!;
-  act(() => {
+  await act(async () => {
     f.events.publish({
       type: 'terminal',
       data: {
@@ -343,14 +350,14 @@ it('uses a positive WebSocket receipt after HTTP loss and preserves early output
         deltaBase64: btoa('early output'),
       },
     });
-    reconcileOperation(operationId, {
+    (await reconcileOperation(operationId, {
       operationId,
       method: 'terminal/open',
       state: 'accepted',
       result: { terminalId: 'accepted', privateUnexpectedField: 'discard' },
-    });
+    }));
   });
-  expect(listOperations()[0]?.terminalResult).toEqual({ terminalId: 'accepted' });
+  expect((await listOperations())[0]?.terminalResult).toEqual({ terminalId: 'accepted' });
   await f.fail();
   expect(screen.getByRole('button', { name: '关闭终端' })).toBeTruthy();
   expect(terminalState.output).toEqual(['early output']);
@@ -361,10 +368,10 @@ it('uses a positive WebSocket receipt after HTTP loss and preserves early output
     ).toBe(true),
   );
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
-  expect(listOperations()).toEqual([]);
+  expect((await listOperations())).toEqual([]);
 });
 it('queries the original operation after a later acceptance and replays no creation request', async () => {
-  const f = lostResponseFixture();
+  const f = await lostResponseFixture();
   await f.fail();
   expect(screen.queryByRole('button', { name: '打开终端' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: '查询并恢复终端' }));
@@ -379,7 +386,7 @@ it('queries the original operation after a later acceptance and replays no creat
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
 });
 it('can explicitly close a recovered terminal and retain close controls if closure fails', async () => {
-  const f = lostResponseFixture();
+  const f = await lostResponseFixture();
   await f.fail();
   f.proof({ state: 'accepted', result: { terminalId: 'close-me' } });
   f.closeFailure(true);
@@ -395,7 +402,7 @@ it('can explicitly close a recovered terminal and retain close controls if closu
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
 });
 it('keeps an unresolved original-project attempt closeable without adopting it into the new project', async () => {
-  const f = lostResponseFixture();
+  const f = await lostResponseFixture();
   await f.fail();
   f.view.rerender(
     <TerminalPanel api={f.api} events={f.events} projectId="other" connected epoch="lease-a" />,
@@ -412,7 +419,7 @@ it('keeps an unresolved original-project attempt closeable without adopting it i
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
 });
 it('rejects a delayed recovery proof after a replacement connection and does not control the old terminal', async () => {
-  const f = lostResponseFixture();
+  const f = await lostResponseFixture();
   await f.fail();
   let finish!: (value: TerminalRecovery) => void;
   vi.spyOn(f.api, 'recoverTerminal').mockImplementationOnce(
@@ -432,12 +439,12 @@ it('rejects a delayed recovery proof after a replacement connection and does not
   ).toEqual([]);
 });
 it('only permits a new open after a definitive not-sent recovery result', async () => {
-  const f = lostResponseFixture();
+  const f = await lostResponseFixture();
   await f.fail();
   f.proof({ state: 'not_sent' });
   fireEvent.click(screen.getByRole('button', { name: '查询并恢复终端' }));
   await screen.findByRole('button', { name: '打开终端' });
-  expect(listOperations()).toEqual([]);
+  expect((await listOperations())).toEqual([]);
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
 });
 it('requires an explicit idle CLI launch and directs confirmed exit to service settings without restarting', async () => {
@@ -525,7 +532,7 @@ it('requires an explicit idle CLI launch and directs confirmed exit to service s
   expect(shell).toHaveBeenCalledOnce();
 });
 it('keeps unknown CLI creation recoverable under its original program and never repeats launch', async () => {
-  const f = lostResponseFixture('codex');
+  const f = await lostResponseFixture('codex');
   expect(f.calls[0]?.params.program).toBe('codex');
   await f.fail();
   f.proof({ state: 'accepted', result: { terminalId: 'cli' } });
@@ -541,7 +548,7 @@ it('keeps unknown CLI creation recoverable under its original program and never 
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
 });
 it('does not adopt an unresolved CLI startup after switching to shell mode', async () => {
-  const f = lostResponseFixture('codex');
+  const f = await lostResponseFixture('codex');
   await f.fail();
   f.view.rerender(
     <TerminalPanel
@@ -565,7 +572,7 @@ it('does not adopt an unresolved CLI startup after switching to shell mode', asy
 });
 
 it('recovers the fixed cloud program once and requires explicit restart after close', async () => {
-  const f = lostResponseFixture('codex-cloud');
+  const f = await lostResponseFixture('codex-cloud');
   expect(f.calls[0]?.params).toEqual({
     projectId: 'p',
     rows: 24,
@@ -585,4 +592,21 @@ it('recovers the fixed cloud program once and requires explicit restart after cl
   expect(
     f.calls.filter((c) => c.method === 'terminal/close').map((c) => c.params.terminalId),
   ).toEqual(['cloud']);
+});
+
+it('keeps a replacement terminal startup intact when an old failure finishes reading local recovery', async () => {
+  let release!: (records: operationStorage.Operation[]) => void;
+  const read = vi.spyOn(operationStorage, 'listOperations').mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+  const mutate = vi.fn().mockRejectedValueOnce(new RpcError('old failure', 'rejected', 'not_sent'))
+    .mockImplementationOnce(() => new Promise(() => {}));
+  const api = terminalApi({ mutate, call: vi.fn().mockResolvedValue({}) }), events = new Events();
+  const view = render(<TerminalPanel api={api} events={events} projectId="p" connected epoch="old" />);
+  fireEvent.click(screen.getByRole('button', { name: '打开终端' }));
+  await waitFor(() => expect(read).toHaveBeenCalledOnce());
+  view.rerender(<TerminalPanel api={api} events={events} projectId="p" connected epoch="new" />);
+  fireEvent.click(screen.getByRole('button', { name: '打开终端' }));
+  expect(mutate).toHaveBeenCalledTimes(2);
+  await act(async () => release([]));
+  expect(screen.getByRole('button', { name: '查询并恢复终端' })).toHaveProperty('disabled', true);
+  expect(screen.queryByText('old failure')).toBeNull();
 });

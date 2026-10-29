@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round7",
+  "reviewerId": "r7-web-tests-c-72eba83e-1d9f-4f6d-b705-b329a190d397",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520",
+  "sourceDigestAfter": "6b0ad3fde30f8b7d634099db2e97f05fca6d3ff7879374bce84676b525ae2520",
+  "startedAt": "2026-10-27T04:17:06.785Z",
+  "completedAt": "2026-10-27T04:29:07.291Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx"
+  ],
+  "method": "{\"scope\":\"Supplemental frozen web test contract inventory indexes 2 through 17 inclusive, all 16 assigned files. Audit start timestamp is the actual start of this reviewer overall R7 inspection; this supplementary scope was added during the audit.\",\"coverage\":\"Read each complete generated contract including every test title, assertion, fixture, branch, lifecycle hook and side-effect entry, cross-checking current production behavior already reviewed. Inspected full high-risk test bodies for stale results/ABA ownership, security unknown outcomes, authentication suspension, original-receipt recovery, editable draft revisions, settings target isolation, attachment deletion ownership, keyboard/IME containment and nested dialogs. This is structural/contract review with targeted full-body reads, not a claim that every source line in every test was manually read.\",\"highRiskBodyReads\":[\"app-lifecycle: storage failures, mutation persistence, explicit resume, tool mounts, authentication/draft/modal/attachment suspension and same-worker recovery\",\"automations: original receipt recovery, edits after unknown creation, edited-restored revisions, remount and API/epoch/record ABA, malformed/foreign receipts and competing draft preservation\",\"builtin-auth: all test bodies, MFA/setup/login/password/security outcomes and secret lifetimes\",\"composer: all test bodies, navigation, asynchronous attachment removal, IME and disabled admission\",\"device-login: all test bodies, owner handoffs, delayed completion and missing identity gates\",\"dialog: all test bodies, keyboard/native-layer ownership, suspension and StrictMode\",\"drafts: complete source, revision/ABA ownership, unsaved memory and capacity\",\"execution-settings: all test bodies, target and original receipt identity, locked submitted fields and target changes\",\"conversation: full callback ownership bodies including thread/epoch/API ABA, replacement API failure and StrictMode\"],\"checks\":\"Independently parsed all 16 TSX source files with TypeScript 5.9.3: no syntax diagnostics. Checked current vitest.config.ts restoreMocks/clearMocks configuration to validate cleanup assumptions. No tests executed and no source changes. Browser geometry is not established by these jsdom contracts; the production clipping defect and CUA evidence are recorded solely in public-https-round7-web.json.\",\"integrity\":\"Recomputed all 16 file SHA-256 values against inventory.hashes and independently verified snapshot(undefined,true).digest matches the frozen complete 1883-file source digest.\"}",
+  "findings": [],
+  "skipped": [],
+  "contractCoverage": [
+    {
+      "index": 2,
+      "file": "web/tests/app-lifecycle.test.tsx",
+      "extractedTestEntries": 20,
+      "assertions": 104
+    },
+    {
+      "index": 3,
+      "file": "web/tests/attachments.test.tsx",
+      "extractedTestEntries": 14,
+      "assertions": 29
+    },
+    {
+      "index": 4,
+      "file": "web/tests/automations.test.tsx",
+      "extractedTestEntries": 19,
+      "assertions": 59
+    },
+    {
+      "index": 5,
+      "file": "web/tests/builtin-auth.test.tsx",
+      "extractedTestEntries": 21,
+      "assertions": 43
+    },
+    {
+      "index": 6,
+      "file": "web/tests/cli-diagnostics.test.tsx",
+      "extractedTestEntries": 5,
+      "assertions": 10
+    },
+    {
+      "index": 7,
+      "file": "web/tests/compact-threshold.test.tsx",
+      "extractedTestEntries": 2,
+      "assertions": 5
+    },
+    {
+      "index": 8,
+      "file": "web/tests/composer.test.tsx",
+      "extractedTestEntries": 5,
+      "assertions": 22
+    },
+    {
+      "index": 9,
+      "file": "web/tests/conversation.test.tsx",
+      "extractedTestEntries": 12,
+      "assertions": 32
+    },
+    {
+      "index": 10,
+      "file": "web/tests/credit-nudge.test.tsx",
+      "extractedTestEntries": 2,
+      "assertions": 4
+    },
+    {
+      "index": 11,
+      "file": "web/tests/defaults.test.tsx",
+      "extractedTestEntries": 2,
+      "assertions": 15
+    },
+    {
+      "index": 12,
+      "file": "web/tests/device-login.test.tsx",
+      "extractedTestEntries": 8,
+      "assertions": 16
+    },
+    {
+      "index": 13,
+      "file": "web/tests/dialog.test.tsx",
+      "extractedTestEntries": 6,
+      "assertions": 21
+    },
+    {
+      "index": 14,
+      "file": "web/tests/drafts.test.tsx",
+      "extractedTestEntries": 11,
+      "assertions": 34
+    },
+    {
+      "index": 15,
+      "file": "web/tests/environment-picker.test.tsx",
+      "extractedTestEntries": 3,
+      "assertions": 11
+    },
+    {
+      "index": 16,
+      "file": "web/tests/events.test.tsx",
+      "extractedTestEntries": 5,
+      "assertions": 19
+    },
+    {
+      "index": 17,
+      "file": "web/tests/execution-settings.test.tsx",
+      "extractedTestEntries": 10,
+      "assertions": 28
+    }
+  ],
+  "hashVerification": {
+    "inspectedCount": 16,
+    "mismatches": [],
+    "parseDiagnostics": [],
+    "sourceFileCount": 1883
+  },
+  "methodDetails": {
+    "scope": "Supplemental frozen web test contract inventory indexes 2 through 17 inclusive, all 16 assigned files. Audit start timestamp is the actual start of this reviewer overall R7 inspection; this supplementary scope was added during the audit.",
+    "coverage": "Read each complete generated contract including every test title, assertion, fixture, branch, lifecycle hook and side-effect entry, cross-checking current production behavior already reviewed. Inspected full high-risk test bodies for stale results/ABA ownership, security unknown outcomes, authentication suspension, original-receipt recovery, editable draft revisions, settings target isolation, attachment deletion ownership, keyboard/IME containment and nested dialogs. This is structural/contract review with targeted full-body reads, not a claim that every source line in every test was manually read.",
+    "highRiskBodyReads": [
+      "app-lifecycle: storage failures, mutation persistence, explicit resume, tool mounts, authentication/draft/modal/attachment suspension and same-worker recovery",
+      "automations: original receipt recovery, edits after unknown creation, edited-restored revisions, remount and API/epoch/record ABA, malformed/foreign receipts and competing draft preservation",
+      "builtin-auth: all test bodies, MFA/setup/login/password/security outcomes and secret lifetimes",
+      "composer: all test bodies, navigation, asynchronous attachment removal, IME and disabled admission",
+      "device-login: all test bodies, owner handoffs, delayed completion and missing identity gates",
+      "dialog: all test bodies, keyboard/native-layer ownership, suspension and StrictMode",
+      "drafts: complete source, revision/ABA ownership, unsaved memory and capacity",
+      "execution-settings: all test bodies, target and original receipt identity, locked submitted fields and target changes",
+      "conversation: full callback ownership bodies including thread/epoch/API ABA, replacement API failure and StrictMode"
+    ],
+    "checks": "Independently parsed all 16 TSX source files with TypeScript 5.9.3: no syntax diagnostics. Checked current vitest.config.ts restoreMocks/clearMocks configuration to validate cleanup assumptions. No tests executed and no source changes. Browser geometry is not established by these jsdom contracts; the production clipping defect and CUA evidence are recorded solely in public-https-round7-web.json.",
+    "integrity": "Recomputed all 16 file SHA-256 values against inventory.hashes and independently verified snapshot(undefined,true).digest matches the frozen complete 1883-file source digest."
+  }
+}

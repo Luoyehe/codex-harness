@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "public-full-attempt-evidence-publication",
+  "attempt": 4,
+  "recordedAt": "2026-10-29T20:22:54.099Z",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceFiles": 1911,
+  "fullSuitePassed": true,
+  "testFiles": 210,
+  "distinctCases": 2148,
+  "coverageGaps": [],
+  "copies": [
+    {
+      "source": ".work/public-full-attempt4-reconciled.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/reconciled-result.json",
+      "sha256": "b65fb9ac54cb387918c60f797bbcc82bb7f74141aad6bb98365cb9d29b0f908f"
+    },
+    {
+      "source": ".work/public-full-ci-plan-attempt4.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/ci-plan.json",
+      "sha256": "005983d030e89049c198b02740288138720e39c9782c3bc29ff43caaeec5708a"
+    },
+    {
+      "source": ".work/public-full-windows-OGWGJK/execution.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/windows-execution.json",
+      "sha256": "57a5e247891f993ff6aff83dea42fd85b7cc8613bdd348db4f53ec0ffa4d23e5"
+    },
+    {
+      "source": ".work/public-full-windows-OGWGJK/build-windows.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/windows-build.json",
+      "sha256": "d6c3b46c322e6ca4380b86433f75ac8e5662ec26122528f00e21f25386689c2f"
+    },
+    {
+      "source": ".work/public-full-windows-OGWGJK/result-windows.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/windows-platform.json",
+      "sha256": "a4d0076cec21eafd14fa41e48ce22d8a15eee6c969c0ef475b138f1ef2c2a4d9"
+    },
+    {
+      "source": ".work/public-full-attempt4/evidence/linux-final.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/linux-final.json",
+      "sha256": "0b86f713b72088a7b0f4cbebfad29095c1e118af583a32c472d7f9a0b61d9427"
+    },
+    {
+      "source": ".work/public-full-attempt4/reports/result-linux.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/linux-platform.json",
+      "sha256": "e0c7768f0c74c422aed23f3c5ca388b16114003d092540a68ccaf9d15f02f693"
+    },
+    {
+      "source": ".work/public-full-attempt4/reports/result-linux-root.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/linux-root-platform.json",
+      "sha256": "50b3f3be4604222e21f4ca8424b4dc0465226d4ea4a6277c255dada5a143e314"
+    },
+    {
+      "source": ".work/public-full-linux-clean-caps-v2-independent-review.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/linux-helper-review.json",
+      "sha256": "6e47abb5e6a592b91fe609594a5db2e751aeb05d31535ac79b174d557c017bb3"
+    },
+    {
+      "source": ".work/public-full-attempt3-root-diagnosis-v2.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/linux-root-diagnosis.json",
+      "sha256": "bdc31955aa3e2fb82a3bf43c2e8be4b62a0ae21f4db25a20a736427116143297"
+    },
+    {
+      "source": ".work/public-full-attempt4/evidence/dispatch/owned-cleanup.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/owned-linux-cleanup.json",
+      "sha256": "bd6c6b29dc6d48f24ec622109a0c3dced7616876d07f05d9e7527c5ec13477aa"
+    },
+    {
+      "source": "verification/audits.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/audit-record-at-execution.json",
+      "sha256": "d6233fb7055bdee44b03160516511f5b1640de8ca498013d1d45a59fcb2f43f3"
+    },
+    {
+      "source": "verification/audit-evidence/release-closeout/authorization.json",
+      "path": "verification/audit-evidence/public-https-full-attempt4/previous-canonical-authorization.json",
+      "sha256": "de926934590da850c8107fc111e2c2893ce1c70d2b625774a9884d13f460d927"
+    }
+  ],
+  "canonicalAuthorization": {
+    "path": "verification/audit-evidence/release-closeout/authorization.json",
+    "sha256": "1636c29c3d221dc0121e8d7619b103f7b35838e43894291352f907c6cd10efee",
+    "copiedExactlyFrom": "verification/audit-evidence/public-https-closeout/authorization.json",
+    "previous": {
+      "path": "verification/audit-evidence/public-https-full-attempt4/previous-canonical-authorization.json",
+      "sha256": "de926934590da850c8107fc111e2c2893ce1c70d2b625774a9884d13f460d927"
+    }
+  },
+  "auditMetadata": {
+    "path": "verification/audits.json",
+    "sha256": "6b0d9a40996cf0febb12cba0836cdffa2ee98c8a12b8ecbc3f4e38e82535d921",
+    "roundsUnchanged": true,
+    "consecutiveClean": 0,
+    "exactCurrentDigestNewFullAudits": 0
+  },
+  "executionAuditRecord": {
+    "path": "verification/audit-evidence/public-https-full-attempt4/audit-record-at-execution.json",
+    "sha256": "d6233fb7055bdee44b03160516511f5b1640de8ca498013d1d45a59fcb2f43f3"
+  },
+  "pending": [
+    "public-deployment-acceptance",
+    "live-dns-acme-acceptance",
+    "github-publication-and-hosted-ci"
+  ],
+  "originalReportsModified": false,
+  "testsExecutedByPublication": false
+}

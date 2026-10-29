@@ -21,6 +21,61 @@ function setup() {
   return { ledger, worker, dispatcher, manager };
 }
 describe('gateway operation admission', () => {
+  it.each(['session revoked', 'owner replaced'] as const)('does not register a project when %s during path resolution', async change => {
+    const { ledger, worker, dispatcher } = setup(); const operationId = randomUUID(), owner = {};
+    let authenticated = true, currentOwner = owner, finish!: (value: JsonValue) => void;
+    const context: CallContext = { clientId: 'owner', requireConnection() {
+      if (!authenticated) throw new HarnessError('unauthorized', 'Session revoked');
+      if (currentOwner !== owner) throw new HarnessError('connection_required', 'Connection replaced');
+    } };
+    worker.run = async (method, params) => {
+      expect(method).toBe('project/resolve'); expect(params).toEqual({ path: '/requested' });
+      return new Promise(resolve => { finish = resolve; });
+    };
+    const call = { method: 'project/add', operationId, params: { path: '/requested', name: 'Project' } };
+    try {
+      const pending = dispatcher.call(call, context);
+      expect(ledger.projects()).toEqual([]); expect(ledger.read(operationId)?.state).toBe('pending');
+      if (change === 'session revoked') authenticated = false; else currentOwner = {};
+      finish({ path: '/resolved', name: 'Resolved' });
+      const code = change === 'session revoked' ? 'unauthorized' : 'connection_required';
+      await expect(pending).rejects.toMatchObject({ code, delivery: 'not_sent' });
+      expect(ledger.projects()).toEqual([]);
+      expect(ledger.read(operationId)).toMatchObject({ state: 'not_sent', error: { code, delivery: 'not_sent' } });
+      authenticated = true; currentOwner = owner;
+      await expect(dispatcher.call(call, context)).rejects.toMatchObject({ code, delivery: 'not_sent' });
+      expect(worker.calls).toBe(1); expect(ledger.projects()).toEqual([]);
+    } finally { ledger.close(); }
+  });
+  it('registers a project for the still-live owner and replays its accepted receipt after disconnect', async () => {
+    const { ledger, worker, dispatcher } = setup(); let live = true, checks = 0, finish!: (value: JsonValue) => void;
+    const context: CallContext = { clientId: 'owner', requireConnection() { checks++; if (!live) throw new HarnessError('connection_required', 'Disconnected'); } };
+    worker.run = async () => new Promise(resolve => { finish = resolve; });
+    const call = { method: 'project/add', operationId: randomUUID(), params: { path: '/requested', name: 'Project' } };
+    try {
+      const pending = dispatcher.call(call, context); finish({ path: '/resolved', name: 'Resolved' });
+      const result = await pending;
+      expect(result).toMatchObject({ path: '/resolved', name: 'Project' });
+      expect(ledger.projects()).toEqual([result]); expect(checks).toBe(2);
+      expect(ledger.read(call.operationId)).toMatchObject({ state: 'accepted', result });
+      live = false;
+      expect(await dispatcher.call(call, context)).toEqual(result);
+      expect(worker.calls).toBe(1); expect(checks).toBe(2); expect(ledger.projects()).toEqual([result]);
+    } finally { ledger.close(); }
+  });
+  it('persists an executed backend mutation acknowledgement after its browser owner disconnects', async () => {
+    const { ledger, worker, dispatcher } = setup(); let live = true, finish!: (value: JsonValue) => void;
+    const context: CallContext = { clientId: 'owner', requireConnection() { if (!live) throw new HarnessError('connection_required', 'Disconnected'); } };
+    worker.run = async (_method, _params, current) => { current.beforeWrite?.(); return new Promise(resolve => { finish = resolve; }); };
+    const call = { method: 'turn/start', operationId: randomUUID(), params: { threadId: 't', text: 'continue' } };
+    try {
+      const pending = dispatcher.call(call, context); expect(ledger.read(call.operationId)?.state).toBe('dispatching');
+      live = false; finish({ turn: { id: 'completed-turn', status: 'completed' } });
+      const result = await pending;
+      expect(ledger.read(call.operationId)).toMatchObject({ state: 'accepted', result });
+      expect(await dispatcher.call(call, context)).toEqual(result); expect(worker.calls).toBe(1);
+    } finally { ledger.close(); }
+  });
   it('live voice frames require a connection and never create a durable payload or operation replay', async () => {
     const { ledger, worker, dispatcher } = setup(); const operationId = randomUUID(); let checked = 0;
     worker.run = async (_method, params) => ({ sequence: params.sequence! });

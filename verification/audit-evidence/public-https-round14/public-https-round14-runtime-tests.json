@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round14",
+  "reviewerId": "r14-runtime-tests-independent-20261029",
+  "scopes": [
+    "runtime-protocol"
+  ],
+  "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "sourceDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "startedAt": "2026-10-28T18:28:40.169Z",
+  "completedAt": "2026-10-28T18:33:38.097Z",
+  "complete": true,
+  "method": "Fresh independent read-only audit supplement of every one of the 74 frozen tests/runtime/ paths. Read AGENTS.md and honored the human override requiring TWO complete clean rounds before any full-suite execution. Did not read old checkouts, Git history, prior audit reports or prior finding lists. Read all 74 test, fixture, catalog and README bodies, including setup, asynchronous waits, assertions, failure paths and cleanup; recovered the two tool-output truncations by rereading README lines 66-118 and the full witness-durability test. Reviewed behavioral rather than test-name/AST coverage: native serialized writer and pre/post-write outcomes; malformed/Unicode frames; permissions subset and refusal semantics; owner/channel/epoch fencing; fresh combined history and continuation proof; source-bound input and model modalities; attachment quota, pin, identity and durability; workspace witness acceptance/acknowledgement, unknown receipts and binding secrecy; MCP fresh schema discovery, resource origin, subscriptions, private results and OAuth correlation; account/device handoffs; process, PTY, diagnostics, realtime and CLI cleanup acknowledgement; Guardian source provenance; prediction private output; local Responses/MCP fixtures, pinned CLI prerequisites and full gateway/worker/native integration assertions. Cross-referenced current production and current isolation/prerequisite helpers as listed below. No tests, native CLI, live services, paid inference, external MCP or credentials were executed/accessed. Before and after review, used the pinned Node v24.22.1 executable to hash all 1901 raw inventory files and invoke the exported canonical snapshot() from scripts/snapshot.mjs; both matched the frozen digest. Only ignored .work evidence files were written; no source changes.",
+  "inspectedFiles": [
+    "tests/runtime/README.md",
+    "tests/runtime/account-tools.test.ts",
+    "tests/runtime/approval-native.test.ts",
+    "tests/runtime/attachments.test.ts",
+    "tests/runtime/automation-native.test.ts",
+    "tests/runtime/cli-diagnostics-native.test.ts",
+    "tests/runtime/cli-diagnostics.test.ts",
+    "tests/runtime/cli-terminals.test.ts",
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/dev-resources-special-file-fixture.mjs",
+    "tests/runtime/dev-resources.test.ts",
+    "tests/runtime/device-login.test.ts",
+    "tests/runtime/entrypoint.test.ts",
+    "tests/runtime/extensions-native.test.ts",
+    "tests/runtime/extensions.test.ts",
+    "tests/runtime/fixture-cleanup.test.ts",
+    "tests/runtime/fixture-cleanup.ts",
+    "tests/runtime/fixture-model-catalog.json",
+    "tests/runtime/fixture-values.ts",
+    "tests/runtime/gateway-native.test.ts",
+    "tests/runtime/gateway-oauth-native.test.ts",
+    "tests/runtime/guardian-native.test.ts",
+    "tests/runtime/guardian.test.ts",
+    "tests/runtime/imports.test.ts",
+    "tests/runtime/input-context.test.ts",
+    "tests/runtime/input-modalities.test.ts",
+    "tests/runtime/input-native.test.ts",
+    "tests/runtime/loopback-provider.ts",
+    "tests/runtime/mcp-configuration.test.ts",
+    "tests/runtime/mcp-fixture.mjs",
+    "tests/runtime/mcp-native.test.ts",
+    "tests/runtime/mcp-oauth-fixture.mjs",
+    "tests/runtime/mcp-oauth.test.ts",
+    "tests/runtime/mcp-schema.test.ts",
+    "tests/runtime/mcp.test.ts",
+    "tests/runtime/native-env.test.ts",
+    "tests/runtime/native-fixture.mjs",
+    "tests/runtime/native-smoke.test.ts",
+    "tests/runtime/native.test.ts",
+    "tests/runtime/organization-native.test.ts",
+    "tests/runtime/organization.test.ts",
+    "tests/runtime/permission-validation.test.ts",
+    "tests/runtime/predictions.test.ts",
+    "tests/runtime/process-native.test.ts",
+    "tests/runtime/processes.test.ts",
+    "tests/runtime/project-trust.test.ts",
+    "tests/runtime/pty-transcript.test.ts",
+    "tests/runtime/pty-transcript.ts",
+    "tests/runtime/realtime.test.ts",
+    "tests/runtime/redaction.test.ts",
+    "tests/runtime/remote-native.test.ts",
+    "tests/runtime/remote.test.ts",
+    "tests/runtime/server.test.ts",
+    "tests/runtime/service.test.ts",
+    "tests/runtime/sharing-feedback.test.ts",
+    "tests/runtime/skill-resources.test.ts",
+    "tests/runtime/terminal-cleanup-fixture.mjs",
+    "tests/runtime/terminal-cleanup.test.ts",
+    "tests/runtime/thread-activity.test.ts",
+    "tests/runtime/thread-terminals.test.ts",
+    "tests/runtime/timeline-contract.test.ts",
+    "tests/runtime/windows-job-fixture.mjs",
+    "tests/runtime/windows-job-owner.mjs",
+    "tests/runtime/windows-job.test.ts",
+    "tests/runtime/windows-module-bootstrap.test.ts",
+    "tests/runtime/windows-process.test.ts",
+    "tests/runtime/workflows-native.test.ts",
+    "tests/runtime/workflows.test.ts",
+    "tests/runtime/workspace-index.test.ts",
+    "tests/runtime/workspace-service.test.ts",
+    "tests/runtime/workspace-witness-durability.test.ts",
+    "tests/runtime/workspace-witness.test.ts",
+    "tests/runtime/workspace.test.ts",
+    "tests/runtime/worktree-witness.test.ts"
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "This is a complete source audit of the assigned 74 runtime test/fixture/document files, not an execution result. No affected tests or full suite was run, and no native CLI or service was started.",
+    "Native/Windows/POSIX behavior, Linux cross-UID/systemd cleanup, physical filesystem power-loss durability, browser interaction, commercial inference, account-enabled realtime/remote control and external MCP/OAuth remain unexecuted integrations in this supplement. Existing documentation claims were reviewed as source and were not accepted as newly reproduced evidence.",
+    "Production files were selectively cross-referenced for the test contracts below; this supplement does not claim a second full production-runtime audit."
+  ],
+  "integrity": {
+    "node": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+    "inventoryFile": ".work/public-https-round14-inventory.json",
+    "inventoryFiles": 1901,
+    "rawHashesVerifiedBefore": 1901,
+    "rawHashesVerifiedAfter": 1901,
+    "rawHashMismatchesBefore": [],
+    "rawHashMismatchesAfter": [],
+    "canonicalSnapshotFilesBefore": 1901,
+    "canonicalSnapshotFilesAfter": 1901,
+    "canonicalSnapshotDigestBefore": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+    "canonicalSnapshotDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+    "scopedFilesExpected": 74,
+    "scopedFilesReviewed": 74
+  },
+  "crossReferences": [
+    {
+      "file": "AGENTS.md",
+      "extent": "full",
+      "purpose": "clean-room, execution gate and isolation rules"
+    },
+    {
+      "file": "scripts/snapshot.mjs",
+      "extent": "full and exported snapshot() invoked twice",
+      "purpose": "canonical source inventory verification"
+    },
+    {
+      "file": "tests/fixtures/native-env.ts",
+      "extent": "full",
+      "purpose": "allowlisted isolated homes, credential stripping and loopback proxy controls"
+    },
+    {
+      "file": "src/runtime/native-launch.ts",
+      "extent": "full",
+      "purpose": "fixed launcher modes and sanitized child environment"
+    },
+    {
+      "file": "src/runtime/native.ts",
+      "extent": "full",
+      "purpose": "native wire writer, budgets, delivery classification and acknowledged process cleanup"
+    },
+    {
+      "file": "src/runtime/validation.ts",
+      "extent": "full",
+      "purpose": "official schema validation, approval form and permission entry point"
+    },
+    {
+      "file": "src/runtime/permission-grants.ts",
+      "extent": "full",
+      "purpose": "conservative permission subset comparison"
+    },
+    {
+      "file": "src/runtime/mcp-schema.ts",
+      "extent": "full",
+      "purpose": "bounded off-thread schema validation and worker termination"
+    },
+    {
+      "file": "src/runtime/workspace-service.ts",
+      "extent": "full",
+      "purpose": "helper ordering, witness boundaries and shutdown draining"
+    },
+    {
+      "file": "src/runtime/workspace-witness.ts",
+      "extent": "full",
+      "purpose": "directory barriers, durable unknown/completed proofs and acknowledgement cleanup"
+    },
+    {
+      "file": "src/runtime/service.ts",
+      "extent": "lines 134-166, 565-608, 630-683 and targeted symbol search",
+      "purpose": "initialization, final write/attachment settlement, defaults lifecycle and shared shutdown"
+    },
+    {
+      "file": "scripts/select-tests.mjs",
+      "extent": "targeted native prerequisite search",
+      "purpose": "all native integration paths selected with exact codex-cli 0.164.0 prerequisite"
+    },
+    {
+      "file": "scripts/run-tests.mjs",
+      "extent": "targeted native prerequisite search",
+      "purpose": "runner requires prerequisite ready before selecting native binary"
+    },
+    {
+      "file": "scripts/test-environment.mjs",
+      "extent": "targeted HARNESS_TEST_CODEX_BIN search",
+      "purpose": "runner test environment selector"
+    },
+    {
+      "file": "scripts/prepare-ci-native.mjs",
+      "extent": "targeted HARNESS_TEST_CODEX_BIN search",
+      "purpose": "CI supplied binary provenance selector"
+    }
+  ]
+}

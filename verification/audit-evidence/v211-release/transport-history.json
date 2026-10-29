@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "version": "2.1.1",
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceFiles": 1911,
+  "origin": "https://example.invalid:10000",
+  "originRedacted": true,
+  "publication": "Whitelisted summary only. Credentials, session/account identifiers, project data, hostnames, addresses and certificate identity fields are omitted.",
+  "kind": "redacted-acceptance-transport-history",
+  "originalFailedReportsPreserved": true,
+  "originalFailuresReclassifiedAsPass": false,
+  "attempts": [
+    {
+      "ordinal": 1,
+      "status": "failed",
+      "startedAt": "2026-10-29T20:29:47.313Z",
+      "completedAt": "2026-10-29T20:29:50.692Z",
+      "reportedPhase": "login",
+      "errorCode": "ACCEPTANCE_CHECK_FAILED",
+      "sessionRevokedInOriginalAttempt": true,
+      "cleanupAttempted": true,
+      "summary": "Initial acceptance failed at the login contract check. The helper was corrected to accept the actual bounded numeric operation-generation contract; no product source changed. Its issued session was revoked in the same failed attempt.",
+      "rawEvidence": {
+        "path": ".work/public-live-acceptance-10000-attempt4.json",
+        "sha256": "7ea9470e2d89d3ae8a864e619fc9cf1919d444a2ac3fd290303f13be787e58d5",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      },
+      "helperCorrection": {
+        "path": ".work/public-live-generation-correction.json",
+        "sha256": "9f1898d3990108916216a32cfd4db00e1d1aa47eedcba82b066628d906233349",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      }
+    },
+    {
+      "ordinal": 2,
+      "status": "failed",
+      "startedAt": "2026-10-29T20:33:06.028Z",
+      "completedAt": "2026-10-29T20:33:37.669Z",
+      "reportedPhase": "websocket",
+      "errorCode": "ACCEPTANCE_CHECK_FAILED",
+      "sessionRevokedInOriginalAttempt": false,
+      "cleanupAttempted": true,
+      "summary": "Acceptance failed before receiving the required WebSocket state. Automatic cleanup remained unconfirmed in this original report; a later dedicated cleanup revoked the target and diagnostic sessions.",
+      "rawEvidence": {
+        "path": ".work/public-live-acceptance-10000-v2-attempt4.json",
+        "sha256": "cd41af87f8f885cddc4a4055a9d5aaaf025ff93dcaedfe94322e118e7b4dccab",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      },
+      "laterCompensatingCleanup": {
+        "path": ".work/public-ws-session-cleanup.json",
+        "sha256": "e68a866e2179e8dd9cbcd609a80f81c40478ab66546b70209d2f0c44a262b78e",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      }
+    },
+    {
+      "ordinal": 3,
+      "status": "failed",
+      "startedAt": "2026-10-29T20:42:36.833Z",
+      "completedAt": "2026-10-29T20:42:51.849Z",
+      "reportedPhase": "anonymous",
+      "errorCode": "ACCEPTANCE_CHECK_FAILED",
+      "sessionRevokedInOriginalAttempt": false,
+      "cleanupAttempted": false,
+      "summary": "The bounded attempt failed in the anonymous phase before login; no cleanup was attempted.",
+      "rawEvidence": {
+        "path": ".work/public-live-acceptance-10000-v2-retry1.json",
+        "sha256": "40e30226bc4facf852330c765f0150e2adbb7f261511583697e1c59336ae825e",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      }
+    },
+    {
+      "ordinal": 4,
+      "status": "failed",
+      "startedAt": "2026-10-29T20:50:31.515Z",
+      "completedAt": "2026-10-29T20:51:02.912Z",
+      "reportedPhase": "websocket",
+      "errorCode": "ACCEPTANCE_CHECK_FAILED",
+      "sessionRevokedInOriginalAttempt": false,
+      "cleanupAttempted": true,
+      "summary": "The required WebSocket state had been observed, but the acceptance did not complete the required read-only RPC stage. Automatic cleanup remained unconfirmed; a later dedicated cleanup revoked the target and diagnostic sessions while preserving unrelated sessions.",
+      "rawEvidence": {
+        "path": ".work/public-live-acceptance-10000-ipv4-attempt4.json",
+        "sha256": "da27d15447188afb34491fd0fd1b3daa3ce990f9dd757b2d06180ddc13db6757",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      },
+      "laterCompensatingCleanup": {
+        "path": ".work/public-ipv4-session-cleanup.json",
+        "sha256": "aca65329bf00db23553102961ea9ca5d4845ac5bf53470084c20bf161341cc23",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      }
+    }
+  ],
+  "compensatingCleanups": [
+    {
+      "status": "completed",
+      "startedAt": "2026-10-29T20:39:29.667420+00:00",
+      "completedAt": "2026-10-29T20:39:29.824995+00:00",
+      "targetSessionRevoked": true,
+      "diagnosticSessionRevoked": true,
+      "rawEvidence": {
+        "path": ".work/public-ws-session-cleanup.json",
+        "sha256": "e68a866e2179e8dd9cbcd609a80f81c40478ab66546b70209d2f0c44a262b78e",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      }
+    },
+    {
+      "status": "completed",
+      "startedAt": "2026-10-29T20:53:14.315820+00:00",
+      "completedAt": "2026-10-29T20:53:14.457715+00:00",
+      "targetSessionRevoked": true,
+      "diagnosticSessionRevoked": true,
+      "unrelatedSessionsPreserved": true,
+      "rawEvidence": {
+        "path": ".work/public-ipv4-session-cleanup.json",
+        "sha256": "aca65329bf00db23553102961ea9ca5d4845ac5bf53470084c20bf161341cc23",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      }
+    }
+  ],
+  "transportDiagnosis": {
+    "rawEvidence": {
+      "path": ".work/public-proxy-path-diagnosis-summary.json",
+      "sha256": "589453cdcd9989fc02f5509e93bcc47b1f38fa45d2e023273875ad0ddc29bf44",
+      "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+    },
+    "scope": "Bounded unauthenticated comparisons",
+    "finding": "A TLS-completion stall was observed along the external proxy route while direct deployment-host TLS succeeded.",
+    "exactExternalCauseEstablished": false,
+    "productAuthenticationOrWebSocketDefectEstablished": false
+  },
+  "ownedProxyRestart": {
+    "attempts": 1,
+    "completed": true,
+    "configurationUnchanged": true,
+    "mainApplicationServiceIdentitiesUnchanged": true,
+    "rawEvidence": {
+      "path": ".work/public-proxy-restart-summary.json",
+      "sha256": "977cd2513119d286475458469d9f40ff875bc47d820f877206d5334c4a10617f",
+      "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+    },
+    "postRestartProbe": {
+      "status": "tls-completion-timeout",
+      "authenticated": false,
+      "intermittentRouteIssueResolved": false,
+      "rawEvidence": {
+        "path": ".work/public-proxy-postrestart-ipv4.json",
+        "sha256": "46739dd68e4fffb3d2fcce8e316181e07e29d3b8a0b14fe54aca3c7c602c392f",
+        "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+      }
+    }
+  },
+  "finalAcceptance": {
+    "status": "passed",
+    "startedAt": "2026-10-29T21:03:20.675Z",
+    "completedAt": "2026-10-29T21:03:50.595Z",
+    "readOnlyTransportRetriesUsed": 0,
+    "sessionRevoked": true,
+    "rawEvidence": {
+      "path": ".work/public-live-acceptance-10000-reuse-attempt4.json",
+      "sha256": "fabb367b660b53e72e591721fc41b92c1d228898cc7960c120403c4368754669",
+      "retention": "Original report retained in ignored operator storage; intentionally not copied to public evidence."
+    },
+    "publicSummary": "public-acceptance.json"
+  },
+  "conclusion": "The final bounded run passed all required checks without using transport retries. Earlier failures, uncertain cleanups and compensating revocations remain preserved; this does not prove that intermittent external proxy/TLS behavior is resolved."
+}

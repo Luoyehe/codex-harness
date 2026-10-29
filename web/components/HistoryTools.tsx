@@ -32,12 +32,14 @@ export function BranchDialog({
   turn,
   action: kind,
   onFork,
+  onCreatedFork = onFork,
   memoryDraft,
   onDraft,
 }: Base & {
   turn: Turn;
   action: 'fork' | 'edit' | 'revert';
   onFork: (threadId: string, draft?: string) => boolean;
+  onCreatedFork?: (threadId: string, draft?: string) => boolean;
   memoryDraft?: string;
   onDraft: (text: string) => void;
 }) {
@@ -90,8 +92,9 @@ export function BranchDialog({
       setDraftError(`分支草稿尚未保存：${message(e)}`);
     }
   }, [text, key, kind, initial.error]);
-  const finish = (id: string, snapshot: { text: string; revision: string } | undefined) => {
-    if (!onFork(id, kind === 'edit' ? (snapshot?.text ?? text) : undefined)) {
+  const finish = (id: string, snapshot: { text: string; revision: string } | undefined, automatic = false) => {
+    const handoff = automatic ? onCreatedFork : onFork;
+    if (!handoff(id, kind === 'edit' ? (snapshot?.text ?? text) : undefined)) {
       setHandoffError('新分支已经创建，但草稿暂无法保存。文字仍保留，可重试保存并打开已有分支。');
       return;
     }
@@ -143,7 +146,7 @@ export function BranchDialog({
       const id = object(result.thread).id;
       if (typeof id === 'string') {
         setCreated(id);
-        finish(id, snapshot);
+        finish(id, snapshot, true);
       }
     } finally {
       running.current = false;
@@ -275,12 +278,14 @@ export function ReviewDialog({
   onClose,
   onChanged,
   onOpenThread,
+  onCreatedThread = onOpenThread,
 }: Base & {
   projectId: string;
   inlineEnabled?: boolean;
   initialTarget?: ReviewTarget;
   initialSeparate?: boolean;
   onOpenThread: (id: string) => void;
+  onCreatedThread?: (id: string) => void;
 }) {
   const [target, setTarget] = useState<ReviewTarget['type']>(
       initialTarget?.type ?? 'uncommittedChanges',
@@ -333,7 +338,7 @@ export function ReviewDialog({
         '审查任务已受理；结果会在会话中逐步显示。',
       );
       if (result) {
-        if (typeof result.reviewThreadId === 'string') onOpenThread(result.reviewThreadId);
+        if (typeof result.reviewThreadId === 'string') onCreatedThread(result.reviewThreadId);
         onClose();
       }
     } finally {

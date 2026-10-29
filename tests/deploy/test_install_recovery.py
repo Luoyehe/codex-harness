@@ -7,10 +7,12 @@ import tempfile
 import unittest
 from contextlib import nullcontext, redirect_stderr
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from deploy import cli
-from deploy.common import DeployError, Layout, mkdir, read_json, write_json
+from deploy.common import DeployError, Layout, fsync_directory, mkdir, read_json, write_json
+from deploy.install_recovery import record_path
 from deploy.manager import Manager
 
 
@@ -67,6 +69,49 @@ class InstallationRecoveryTests(unittest.TestCase):
 
     def pending(self):
         write_json(self.marker, {"format": 1, "phase": "pending", "release": None})
+
+    def test_transaction_parent_sync_failure_prevents_release_stop_and_selection(self):
+        self.pending()
+        records = self.layout.state / "transactions"
+        def fail(path, **kwargs):
+            if path == records:
+                raise OSError("Injected transaction publication failure")
+            return fsync_directory(path, **kwargs)
+        with patch("deploy.common.fsync_directory", side_effect=fail), self.assertRaises(OSError):
+            self.manager.activate("a" * 64)
+        self.assertEqual(self.system.events, [])
+        self.assertIsNone(self.manager.selected())
+        self.assertEqual(list(records.glob("*/state.json")), [])
+
+    def test_receipt_parent_sync_failure_prevents_first_restart_and_existing_retry(self):
+        request = {"method": "restart", "params": {}, "operationId": "11111111-1111-4111-8111-111111111111"}
+        def fail(path, **kwargs):
+            if path == self.layout.state:
+                raise OSError("Injected receipt collection publication failure")
+            return fsync_directory(path, **kwargs)
+        for attempt in range(2):
+            with self.subTest(attempt=attempt), patch.object(self.manager, "preflight_mutation", return_value=None), \
+                 patch.object(self.manager, "restart") as restart, patch("deploy.common.fsync_directory", side_effect=fail), \
+                 self.assertRaises(OSError):
+                self.manager.dispatch(request)
+            restart.assert_not_called()
+        self.assertEqual(list((self.layout.state / "receipts").iterdir()), [])
+
+    def test_provider_journal_parent_failure_prevents_stop_and_provider_selection(self):
+        old = {"revision": "a" * 32, "kind": "chatgpt", "models": []}
+        new = {**old, "revision": "b" * 32}
+        selected = []
+        self.manager.providers = SimpleNamespace(read=lambda: old,
+            validate_change=lambda params, current: ("provider", new), prepare=lambda value: value["revision"],
+            select=selected.append, public=lambda value: value)
+        def fail(path, **kwargs):
+            if path == self.layout.state / "transactions":
+                raise OSError("Injected provider journal publication failure")
+            return fsync_directory(path, **kwargs)
+        with patch("deploy.common.fsync_directory", side_effect=fail), self.assertRaises(OSError):
+            self.manager.provider_change({})
+        self.assertEqual(selected, [])
+        self.assertEqual(self.system.events, [])
 
     def transaction(self, name, candidate, phase, old=None):
         folder = self.layout.state / "transactions" / name
@@ -230,16 +275,69 @@ class InstallationRecoveryTests(unittest.TestCase):
         with patch("deploy.manager.write_json", side_effect=write):
             with self.assertRaises(KeyboardInterrupt if interrupted else OSError):
                 self.manager.activate("c" * 64)
-        if interrupted:
-            self.manager.repair()
+        # A failed terminal publication is ambiguous. The healthy candidate is
+        # retained and explicit repair restores the two prior pointers.
+        self.assertEqual(self.manager.selected(), "c" * 64)
+        self.manager.repair()
         self.assertEqual(self.manager.selected(), "b" * 64)
         self.assertEqual(self.manager.selected("previous"), "a" * 64)
 
-    def test_commit_failure_restores_both_release_pointers(self):
+    def test_unpublished_commit_failure_can_repair_both_release_pointers(self):
         self.failed_commit(interrupted=False)
 
     def test_interrupted_commit_repair_restores_both_release_pointers(self):
         self.failed_commit(interrupted=True)
+
+    def test_published_commit_error_keeps_the_healthy_release_running(self):
+        self.pending()
+        self.manager.activate('a' * 64)
+        self.system.events.clear()
+        def published(path, value, **kwargs):
+            write_json(path, value, **kwargs)
+            if value.get('phase') == 'committed':
+                raise OSError('Directory fsync failed after terminal replace')
+        with patch('deploy.manager.write_json', side_effect=published), self.assertRaises(OSError):
+            self.manager.activate('b' * 64)
+        self.assertEqual(self.manager.selected(), 'b' * 64)
+        self.assertEqual(self.manager.selected('previous'), 'a' * 64)
+        self.assertEqual(self.system.active, set(self.manager.service_units))
+        self.assertEqual(self.system.events.count('stop'), 1)
+        self.manager.restart()
+
+    def test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate(self):
+        self.pending()
+        self.manager.activate('a' * 64)
+        with patch.object(self.manager, 'healthy', side_effect=KeyboardInterrupt), self.assertRaises(KeyboardInterrupt):
+            self.manager.activate('b' * 64)
+        self.system.events.clear()
+        def published(path, value, **kwargs):
+            write_json(path, value, **kwargs)
+            if value.get('phase') == 'committed':
+                raise OSError('Directory fsync failed after terminal replace')
+        with patch('deploy.manager.write_json', side_effect=published), self.assertRaises(OSError):
+            self.manager.repair(target='candidate')
+        self.assertEqual(self.manager.selected(), 'b' * 64)
+        self.assertEqual(self.system.active, set(self.manager.service_units))
+        self.assertEqual(self.system.events.count('stop'), 1)
+        self.manager.restart()
+
+    def test_published_provider_commit_never_rolls_back_or_stops_the_selected_provider(self):
+        old = {'revision': 'a' * 32, 'kind': 'chatgpt', 'models': []}
+        new = {**old, 'revision': 'b' * 32}
+        selected = [old]
+        self.manager.providers = SimpleNamespace(read=lambda: selected[0],
+            validate_change=lambda params, current: ('provider', new), prepare=lambda value: value['revision'],
+            select=lambda revision: selected.__setitem__(0, new if revision == new['revision'] else old), public=lambda value: value)
+        def published(path, value, **kwargs):
+            write_json(path, value, **kwargs)
+            if value.get('phase') == 'committed':
+                raise OSError('Directory fsync failed after terminal replace')
+        with patch('deploy.manager.write_json', side_effect=published), self.assertRaises(OSError):
+            self.manager.provider_change({})
+        self.assertEqual(selected[0], new)
+        self.assertEqual(self.system.active, set(self.manager.service_units))
+        self.assertEqual(self.system.events.count('stop'), 1)
+        self.manager.require_recovered_transactions(None)
 
 
 class OperatorFailureTests(unittest.TestCase):
@@ -249,16 +347,23 @@ class OperatorFailureTests(unittest.TestCase):
                     ("control-update", [], "deploy.control_update.control_command")]
         for command, arguments, target in commands:
             with self.subTest(command=command), tempfile.TemporaryDirectory() as folder:
+                layout = Layout("fixture", Path(folder))
+                self.assertFalse(record_path(layout).exists())
                 changed = Path(folder) / "already-mutated"
                 def fail(*args, **kwargs):
                     changed.write_text("The side effect happened before failure")
                     raise DeployError("fixture", "Failure after mutation")
                 stderr = io.StringIO()
-                with patch("deploy.cli.require_linux"), patch("deploy.cli.exclusive", side_effect=lambda path: nullcontext()), \
+                with patch("deploy.cli.Layout", return_value=layout) as constructor, \
+                     patch("deploy.cli.require_linux"), patch("deploy.cli.exclusive", side_effect=lambda path: nullcontext()), \
                      patch("deploy.control_update.require_no_pending_control"), patch("deploy.accounts.read_password", return_value=secrets.token_urlsafe(24)), \
-                     patch(target, side_effect=fail), redirect_stderr(stderr):
+                     patch(target, side_effect=fail) as mutation, redirect_stderr(stderr):
                     with self.assertRaises(SystemExit) as raised:
                         cli.main(["--instance", "fixture", command, *arguments])
+                constructor.assert_called_once_with("fixture")
+                mutation.assert_called_once()
+                self.assertIs(mutation.call_args.args[0], layout)
+                self.assertFalse(record_path(layout).exists())
                 self.assertEqual(raised.exception.code, 1)
                 self.assertTrue(changed.exists())
                 result = json.loads(stderr.getvalue())

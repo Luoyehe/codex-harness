@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Tool } from '../../protocol/ts/Tool';
 import { array, object } from '../lib/types';
 import { schemaSupported, validateValue } from '../lib/prompt-validation';
@@ -26,7 +26,9 @@ export function McpArguments({
   tool,
   disabled,
   onCall,
+  visible = true,
 }: {
+  visible?: boolean;
   tool: Tool;
   disabled: boolean;
   onCall: (arguments_: Record<string, unknown>) => void;
@@ -36,6 +38,7 @@ export function McpArguments({
     [advanced, setAdvanced] = useState(false),
     [error, setError] = useState(''),
     [confirmed, setConfirmed] = useState(false);
+  useEffect(() => { setConfirmed(false); }, [visible, disabled, tool]);
   const schema = object(tool.inputSchema),
     form = boundedSchema(schema) && schemaSupported(schema) && schema.type === 'object',
     annotations = object(tool.annotations);
@@ -44,6 +47,7 @@ export function McpArguments({
       className="stack"
       onSubmit={(event) => {
         event.preventDefault();
+        if (!visible || disabled) return;
         setError('');
         try {
           const input = advanced || !form ? JSON.parse(raw) : values;
@@ -139,7 +143,7 @@ export function McpArguments({
         />
         确认向此服务调用所选工具与上述参数
       </label>
-      <button className="button primary" disabled={disabled || !confirmed}>
+      <button className="button primary" disabled={!visible || disabled || !confirmed}>
         调用 {tool.title ?? tool.name}
       </button>
     </form>

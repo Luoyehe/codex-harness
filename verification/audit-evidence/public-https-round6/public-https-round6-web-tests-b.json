@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round6",
+  "reviewerId": "public_r6_web_tests_b_20261027",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "sourceDigestAfter": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+  "startedAt": "2026-10-27T03:52:56.823Z",
+  "completedAt": "2026-10-27T03:57:38.681Z",
+  "complete": true,
+  "inspectedFiles": [
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx",
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx"
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "Independent static audit of current frozen web test files at indices 35 through 64 inclusive (30 files) in the freshly generated current-round contract array. The current AST extractor source was fully reviewed, and all 30 per-file summaries were read completely: test declarations, direct assertions, conditional branches, setup/cleanup hooks, identified side effects and top-level fixtures. Truncated batches were reread in bounded sections. A separate current-source AST pass traversed all 61825 AST nodes and supplied the extended expect calls, complete loop bodies, throw/try statements, switch statements, skipped/focused declarations and global mock replacements/restoration omitted by the first summary format; all supplied additions were reviewed. Six high-risk test files and the visual fixture were additionally read in full; the late pairing-query expiration, repeated-identity and owner-replacement branches in process-remote.test.tsx lines 476 through EOF were additionally read in source. Semantic attention covered unknown outcomes and original-operation recovery, owner/epoch/API/lease changes including ABA, late responses, draft revision retention, explicit confirmation before mutations, bounded content and paging, secret handling, cancellation, timers and resource cleanup. The current Vitest configuration was read to verify automatic mock restoration. No tests or visual preview server were executed, no production files were changed, and no old audit conclusions or historical repository implementations were consulted. The recorded baseline is the independent all-source hash/snapshot from this same reviewer immediately preceding this subtask (timestamp in evidence), rather than a falsely claimed hash at the exact start timestamp. A current per-file SHA-256 check of all 30 files during review and a final independent check of all 1880 frozen files plus snapshot(undefined,true) establish the unchanged source digest and exact file set. This static contract review is explicitly distinct from line-by-line manual source reading of every test and from executing tests.",
+  "coverage": {
+    "indexRangeInclusive": [
+      35,
+      64
+    ],
+    "staticFiles": [
+      "web/tests/operations.test.ts",
+      "web/tests/organization.test.tsx",
+      "web/tests/prediction.test.tsx",
+      "web/tests/preview-server.mjs",
+      "web/tests/process-remote.test.tsx",
+      "web/tests/prompt-fields.test.tsx",
+      "web/tests/prompts.test.tsx",
+      "web/tests/provider-advanced.test.tsx",
+      "web/tests/provider-catalog.test.tsx",
+      "web/tests/provider-profiles.test.tsx",
+      "web/tests/provider.test.tsx",
+      "web/tests/realtime.test.tsx",
+      "web/tests/receipt-maintenance.test.tsx",
+      "web/tests/recovery.test.tsx",
+      "web/tests/render-budget.test.tsx",
+      "web/tests/resources.test.tsx",
+      "web/tests/resume.test.tsx",
+      "web/tests/session.test.ts",
+      "web/tests/settings.test.tsx",
+      "web/tests/sharing-diagnostics.test.tsx",
+      "web/tests/skill-library.test.tsx",
+      "web/tests/stream-items.test.ts",
+      "web/tests/terminal.test.tsx",
+      "web/tests/thread-terminals.test.tsx",
+      "web/tests/timeline-history.test.tsx",
+      "web/tests/workflows.test.tsx",
+      "web/tests/workspace-management.test.tsx",
+      "web/tests/workspace-search.test.tsx",
+      "web/tests/workspace-ui.test.tsx",
+      "web/tests/workspace-watch.test.tsx"
+    ],
+    "sourceFilesAdditionallyReadInFull": [
+      "web/tests/operations.test.ts",
+      "web/tests/provider-catalog.test.tsx",
+      "web/tests/realtime.test.tsx",
+      "web/tests/recovery.test.tsx",
+      "web/tests/terminal.test.tsx",
+      "web/tests/workspace-ui.test.tsx",
+      "web/tests/preview-server.mjs"
+    ],
+    "sourceSectionsAdditionallyRead": [
+      {
+        "file": "web/tests/process-remote.test.tsx",
+        "startLine": 476,
+        "end": "EOF"
+      }
+    ],
+    "additionalContext": [
+      "vitest.config.ts",
+      "scripts/snapshot.mjs",
+      ".work/public-r6-web-contracts.mjs"
+    ],
+    "testCallExpressions": 304,
+    "uniqueDirectAssertionExpressions": 852,
+    "astNodes": 61825,
+    "extendedExpectExpressions": 13,
+    "loopStatements": 12,
+    "exceptionStatements": 38
+  },
+  "evidence": {
+    "contractExtractor": ".work/public-r6-web-contracts.mjs",
+    "contracts": ".work/public-r6-web-contracts.json",
+    "contractTextPattern": ".work/public-r6-web-contract-<35..64>.txt",
+    "supplementAnalyzer": ".work/public-r6-web-tests-b-supplement.mjs",
+    "supplement": ".work/public-r6-web-tests-b-supplement.json",
+    "finalIntegrity": ".work/public-r6-web-tests-b-integrity.json",
+    "precedingBaseline": ".work/public-https-round6-runtime-evidence/source-end-integrity.json"
+  },
+  "sourceIntegrity": {
+    "baselineDigest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+    "baselineCheckedAt": "2026-10-27T03:51:43.901Z",
+    "reviewPerFileCheckedAt": "2026-10-27T03:56:24.250Z",
+    "finalCheckedAt": "2026-10-27T03:57:38.679Z",
+    "finalDigest": "b3626c87e9dc13287812632ab712594ef4061ce4d88ef217da1869ecaa9055aa",
+    "assignedFiles": 30,
+    "assignedHashMismatches": 0,
+    "allFrozenFiles": 1880,
+    "allHashMismatches": 0,
+    "sourceFileSetEqual": true
+  },
+  "testsExecuted": [],
+  "limitations": [
+    "Test implementation and contract review does not demonstrate browser/runtime behavior by execution.",
+    "Only the listed seven files received full manual source reading; all thirty received complete AST contract review plus the independent AST supplement."
+  ]
+}

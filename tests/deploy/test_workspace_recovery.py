@@ -61,6 +61,24 @@ class RecoveryFilesystemTests(unittest.TestCase):
         changed = self.call("write", {"path": "a", "text": "new", "expectedRevision": first["revision"]})
         return changed, self.call("recovery/read", {"operationId": changed["recoveryOperationId"]})
 
+    def test_failed_store_parent_publication_is_retried_before_workspace_edit(self):
+        original = os.fsync
+        parent = self.native.stat()
+        calls = []
+        def fail(fd):
+            info = os.fstat(fd)
+            if (info.st_dev, info.st_ino) == (parent.st_dev, parent.st_ino):
+                calls.append("parent")
+                raise OSError("Injected workspace collection publication failure")
+            return original(fd)
+        for attempt in range(2):
+            with self.subTest(attempt=attempt), patch("deploy.workspace_store.os.fsync", side_effect=fail), self.assertRaises(OSError):
+                self.call("write", {"path": "a", "text": "new", "expectedRevision": None})
+            self.assertFalse((self.path / "a").exists())
+        self.assertEqual(calls, ["parent", "parent"])
+        self.call("write", {"path": "a", "text": "new", "expectedRevision": None})
+        self.assertEqual((self.path / "a").read_text(), "new")
+
     def test_restore_preserves_source_backup_captures_current_target_and_replays_once(self):
         current, source = self.edited()
         operation = str(uuid.uuid4())

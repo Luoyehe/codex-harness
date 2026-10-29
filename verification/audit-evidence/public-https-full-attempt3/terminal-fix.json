@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "type": "targeted-test-fixture-fix",
+  "id": "public-full-attempt3-terminal-fix",
+  "startedAt": "2026-10-29T19:48:53.7654621Z",
+  "completedAt": "2026-10-29T19:50:31.5676646Z",
+  "authorization": "Parent confirmed Windows retry fully exited (session 50796 exit 1, empty Job, controller 0, logs flushed), then explicitly authorized editing only web/tests/terminal.test.tsx and targeted validation.",
+  "sourceDigestBefore": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+  "sourceDigestAfter": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceFileCount": 1911,
+  "changedFiles": [
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "sha256Before": "2e6b2bd2e6b78c482ef0d63ce08ed7a1df2d0f16d7107d80f6efa752b41d13ba",
+      "sha256After": "1418583f1355f466416ce7db86dd1b03a3986fb6a865cda7fad89e7c5925c2c6",
+      "currentLine": 234,
+      "change": "Inserted await screen.findByRole('button', { name: '打开新终端' }); after the overflow-warning wait and before both existing final assertions."
+    }
+  ],
+  "reason": "The overflow warning and close RPC invocation are earlier than the awaited real IndexedDB receipt lookup/acknowledgement and final UI update. The added wait observes completed closure positively; all preexisting assertions remain intact.",
+  "productCodeChanged": false,
+  "sleepAdded": false,
+  "timeoutChanged": false,
+  "assertionsRemovedOrRelaxed": false,
+  "deterministicProbe": {
+    "report": ".work/public-attempt3-terminal-probe-results.json",
+    "tests": 2,
+    "passed": 2,
+    "sourceState": "Unmodified original product and test bytes before the fixture fix",
+    "conditions": "Controlled listOperations delivery gate reproduces the original assertion failure, verifies blocked input, then confirms correct final closure after release in original-fixture-Api and real-Api modes. All transport is offline."
+  },
+  "validation": {
+    "kind": "exact affected test file, three sequential targeted runs",
+    "fixedNode": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+    "nodeVersion": "v24.22.1",
+    "command": "node scripts/run-tests.mjs --targeted web/tests/terminal.test.tsx",
+    "runs": [
+      {
+        "iteration": 1,
+        "startedAt": "2026-10-29T19:49:24.4439942Z",
+        "completedAt": "2026-10-29T19:49:27.3656007Z",
+        "exitCode": 0,
+        "command": [
+          "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-node-v24.22.1-win-x64\\runtime\\node-v24.22.1-win-x64\\node.exe",
+          "scripts/run-tests.mjs",
+          "--targeted",
+          "web/tests/terminal.test.tsx"
+        ],
+        "log": ".work/public-attempt3-terminal-targeted-1.log",
+        "reportPath": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-zgaDJO/vitest.json",
+        "numTotalTests": 18,
+        "numPassedTests": 18,
+        "numFailedTests": 0,
+        "success": true
+      },
+      {
+        "iteration": 2,
+        "startedAt": "2026-10-29T19:49:27.368467Z",
+        "completedAt": "2026-10-29T19:49:30.1915918Z",
+        "exitCode": 0,
+        "command": [
+          "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-node-v24.22.1-win-x64\\runtime\\node-v24.22.1-win-x64\\node.exe",
+          "scripts/run-tests.mjs",
+          "--targeted",
+          "web/tests/terminal.test.tsx"
+        ],
+        "log": ".work/public-attempt3-terminal-targeted-2.log",
+        "reportPath": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-yQYoPP/vitest.json",
+        "numTotalTests": 18,
+        "numPassedTests": 18,
+        "numFailedTests": 0,
+        "success": true
+      },
+      {
+        "iteration": 3,
+        "startedAt": "2026-10-29T19:49:30.1916288Z",
+        "completedAt": "2026-10-29T19:49:32.9832523Z",
+        "exitCode": 0,
+        "command": [
+          "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\public-node-v24.22.1-win-x64\\runtime\\node-v24.22.1-win-x64\\node.exe",
+          "scripts/run-tests.mjs",
+          "--targeted",
+          "web/tests/terminal.test.tsx"
+        ],
+        "log": ".work/public-attempt3-terminal-targeted-3.log",
+        "reportPath": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-MyHFjm/vitest.json",
+        "numTotalTests": 18,
+        "numPassedTests": 18,
+        "numFailedTests": 0,
+        "success": true
+      }
+    ],
+    "uniqueTestCases": 18,
+    "executions": 54,
+    "passed": 54,
+    "failed": 0,
+    "isolation": "The repository targeted runner calls isolateTestProcess and runs Vitest under the existing allowlisted isolated HOME/USERPROFILE/CODEX_HOME/TMP environment; no production credentials or live native/MCP calls were used."
+  },
+  "sourceVerification": {
+    "checked": 1911,
+    "changes": [
+      {
+        "path": "web/tests/terminal.test.tsx",
+        "before": "2e6b2bd2e6b78c482ef0d63ce08ed7a1df2d0f16d7107d80f6efa752b41d13ba",
+        "after": "1418583f1355f466416ce7db86dd1b03a3986fb6a865cda7fad89e7c5925c2c6"
+      }
+    ],
+    "verifiedAt": "2026-10-29T19:49:48.2944463Z"
+  },
+  "preservedEvidence": [
+    {
+      "path": ".work/public-full-attempt3-terminal-diagnosis.json",
+      "sha256": "fb5da38629921a4039197906e188cb5eb45da6cc6a115722f598dc1303b85941"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-probe-results.json",
+      "sha256": "673db92fb9769a05d8f9766eb82b2d00e746ad9886297e6097895669b285ff56"
+    },
+    {
+      "path": ".work/test-results/run-GZ36Wo/vitest.json",
+      "sha256": "0ce057655ff8aadf7277fd4b79ce64146dea31feeb8de98226d726e5eb1495f7"
+    },
+    {
+      "path": ".work/test-results/run-VRluYQ/vitest.json",
+      "sha256": "db1199fbbf214b9cf97c5b6c8fb75995d6394e44d5a43c6cea2d67ea26a1cfb8"
+    },
+    {
+      "path": ".work/public-https-round25-web.json",
+      "sha256": "11d2ff9290243b53b8c487999c1da518c30861a5a0e5fbfe6890b7d63e7b5291"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-targeted-1.log",
+      "sha256": "bae6e9c60a239c5dac315085b8009f16926f305faa8b447ca06d7ebcb96a7fdb"
+    },
+    {
+      "path": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-zgaDJO/vitest.json",
+      "sha256": "c9efa098a32bf2ed04cb556678185b988518f40f0306f4b6a2b4faa60bf04589"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-targeted-2.log",
+      "sha256": "3e7a2c42875ac452f5caa578248f685c45780b704bae0d604145c2bd609c09cf"
+    },
+    {
+      "path": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-yQYoPP/vitest.json",
+      "sha256": "8a8fc03b42eb27ad9944a582aefc2e7a57b9435d1a9acd678bec43912407cfc0"
+    },
+    {
+      "path": ".work/public-attempt3-terminal-targeted-3.log",
+      "sha256": "ae3a6504976c79a6f6dc70501e7b0f99d078415886231fe8edbd8a8b33e8f6ed"
+    },
+    {
+      "path": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-MyHFjm/vitest.json",
+      "sha256": "3ccb3d4b141d30aac0e6f4a39382d12cbd25d5e2bc6bffe489ed2dd3a075a9be"
+    }
+  ],
+  "limitations": [
+    "Only the affected terminal test file was rerun; no complete suite or other product test file was run for this fix.",
+    "Three passing targeted executions do not establish universal absence of races. The controlled offline probe establishes the specific ordering error and the real observable completion condition.",
+    "No claim is made that clearing disk caches caused the failure; the original failed Windows report remains valid and unchanged.",
+    "This is a targeted repair record, not an independent full audit or full-suite pass. The changed source digest requires the parent to reset and enforce the applicable audit gate before any further full execution."
+  ],
+  "conclusion": "Only the confirmed fixture wait gap was fixed. The product/API source, original audit report, original green and red full-run reports, authorization and plan were not edited."
+}

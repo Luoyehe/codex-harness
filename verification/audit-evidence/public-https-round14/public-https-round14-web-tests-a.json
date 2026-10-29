@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "roundId": "public-https-round14",
+  "reviewerId": "r14-web-tests-a-5fb0c1b4-1bc7-43fd-87a2-55483429619e",
+  "scopes": [
+    "web-ux"
+  ],
+  "digest": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "sourceDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+  "startedAt": "2026-10-28T18:31:49.334Z",
+  "completedAt": "2026-10-28T18:34:53.054Z",
+  "complete": true,
+  "method": "Fresh independent read-only source audit after the frozen inventory, without previous checkout, Git history, previous audit reports or findings. Read AGENTS.md and the exact assignment, then manually read the full bodies of all 23 assigned test and fixture files, including setup/teardown, mock route implementations, every assertion, parameterized cases, deferred success/failure paths, signals and cleanup. Reviewed explicit mutation confirmation, original-operation recovery without replay, not-sent versus unknown states, accepted-proof monotonicity, draft revision ownership including A-to-B-to-A changes, thread/project/runtime/connection identity changes, stale-response fencing, input and schema serialization including prototype-like property names, private authorization/pairing data lifetime, object URL/audio disposal, media byte/dimension and event-retention limits, and browser-storage failure isolation. Read the full local visual preview server and its tests for import side effects, loopback listen, allowlisted reads, malformed/oversized/interrupted bodies, socket tracking, idempotent shutdown, lifetime and failed-listen cleanup. Crosschecked current production Workspace and Settings parent mounts/props, ExtensionsPanel ownership resets, LoadedThreadsPanel read/idle gating, usePrompts/API/operation journal behavior, media admission and MCP session identity/retention where relevant. Read the current Vitest configuration to confirm clearMocks and restoreMocks, avoiding a false mock-leak finding. Standalone prop transitions were not treated as defects without a reachable current parent path. Before reading assigned bodies and after completion, independently SHA-256 checked every one of the 1901 raw inventory entries, compared the exact sorted names, and invoked the canonical exported snapshot() from scripts/snapshot.mjs with the pinned Node v24.22.1 runtime. Both boundaries matched the frozen digest. Hashes were used only to bind the manual review, not to claim semantic coverage. No full suite, targeted test, native runtime, browser, remote operation or credential access was performed; no source files were edited.",
+  "inspectedFiles": [
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/preview-server.test.ts",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx"
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "This supplement establishes manual source review of the 23 assigned test/fixture files only; production integrations were read as focused crosschecks, not as a complete production-source audit.",
+    "No tests or browser scenarios were executed. Native runtime, external MCP/OAuth providers, remote environments, real media decoding and operating-system integration remain live-execution limitations, not unfinished assigned source review."
+  ],
+  "integrity": {
+    "frozenAt": "2026-10-28T18:16:17.989Z",
+    "beforeVerifiedAt": "2026-10-28T18:31:49.334Z",
+    "afterVerifiedAt": "2026-10-28T18:34:53.054Z",
+    "rawHashCountBefore": 1901,
+    "rawHashCountAfter": 1901,
+    "rawHashMismatchesBefore": [],
+    "rawHashMismatchesAfter": [],
+    "namesMatchBefore": true,
+    "namesMatchAfter": true,
+    "canonicalFilesBefore": 1901,
+    "canonicalFilesAfter": 1901,
+    "canonicalDigestBefore": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+    "canonicalDigestAfter": "3eda0f6f891de7a3f5abfdc254f3476873dd2a21f591a2d9bad7944e88b82f3e",
+    "runtime": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe"
+  }
+}
