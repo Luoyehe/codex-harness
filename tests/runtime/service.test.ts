@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, test } from 'vitest';
 import { EventEmitter } from 'node:events';
+import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { RuntimeService, type RuntimeConfig } from '../../src/runtime/service.js';
 import type { NativeRpc, NativeOptions } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { validatePrompt } from '../../src/runtime/validation.js';
+import { Ledger } from '../../src/core/ledger.js';
+import { Dispatcher } from '../../src/gateway/dispatch.js';
+import { AutomationScheduler } from '../../src/gateway/automation-scheduler.js';
 
 const roots = path.resolve('.work/runtime-tests'); mkdirSync(roots, { recursive: true });
 class FakeNative extends EventEmitter {
@@ -43,6 +47,148 @@ function setup(): { service: RuntimeService; native: FakeNative; events: Runtime
 }
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 const context = { clientId: 'client-a' };
+describe('history reconciles exact live turns without trusting mixed lifecycle snapshots', () => {
+  const row = (id: string, status: string): JsonValue => ({ id, status, items: [], itemsView: 'full' });
+  const page = (...data: JsonValue[]): JsonValue => ({ data, nextCursor: null, backwardsCursor: null });
+  const notify = (native: FakeNative, method: string, id = 'live', status = 'completed', threadId = 't') => native.emit('notification', { method, params: { threadId, turn: { id, status, items: [] } } });
+
+  test.each(['paginated', 'legacy'])('%s history keeps the accepted turn active despite an idle status and a synthetic interrupted row', async mode => {
+    const { service, native } = setup(), original = native.call.bind(native);
+    native.historyMode = mode;
+    const live = row('live', 'interrupted'), older = row('older', 'interrupted');
+    native.page = page(live, older);
+    native.call = async (method, params, options) => {
+      const result = await original(method, params, options);
+      if (method === 'thread/read' && object(params).includeTurns) object(object(result).thread).turns = [older, live];
+      return result;
+    };
+    notify(native, 'turn/started');
+    native.emit('notification', { method: 'thread/status/changed', params: { threadId: 't', status: { type: 'idle' } } });
+    const result = object(await service.call('thread/history', { threadId: 't' }, context));
+    expect(result).toMatchObject({ complete: true, turns: [older, { ...object(live), status: 'inProgress' }] });
+    expect(object(object(service.status()).activity).activeThreads).toContain('t');
+    expect(object(live).status).toBe('interrupted');
+  });
+
+  test.each(['completed', 'failed', 'interrupted'])('cold %s history and status-only activity have no live identity to override old turns', async status => {
+    const { service, native } = setup(); native.page = page(row('old', status));
+    expect(await service.call('thread/history', { threadId: 'cold' }, context)).toMatchObject({ complete: true, turns: [row('old', status)] });
+    native.emit('notification', { method: 'thread/status/changed', params: { threadId: 't', status: { type: 'active', activeFlags: [] } } });
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('old', status)] });
+  });
+
+  test('a streamed item does not stale history or settle its exact live turn', async () => {
+    const { service, native } = setup(); native.page = page(row('live', 'interrupted')); notify(native, 'turn/started');
+    native.beforeNativeWrite = method => { if (method === 'thread/timeline/list') native.emit('notification', { method: 'item/agentMessage/delta', params: { threadId: 't', turnId: 'live', itemId: 'message', delta: 'text' } }); };
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('live', 'inProgress')] });
+  });
+
+  test('completion between the turn and timeline pages discards the traversal and its write permission', async () => {
+    const { service, native } = setup(); native.page = page(row('live', 'interrupted')); notify(native, 'turn/started');
+    native.beforeNativeWrite = method => { if (method === 'thread/timeline/list') notify(native, 'turn/completed'); };
+    await expect(service.call('thread/history', { threadId: 't' }, context)).rejects.toMatchObject({ code: 'history_stale' });
+    await expect(service.call('turn/start', { threadId: 't', text: 'requires a fresh read' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
+    native.beforeNativeWrite = undefined;
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('live', 'completed')] });
+  });
+
+  test('a changed lifecycle between cursor requests rejects the old cursor before another native page', async () => {
+    const { service, native } = setup(); notify(native, 'turn/started');
+    native.page = { data: [row('live', 'interrupted')], nextCursor: 'older', backwardsCursor: null };
+    const first = object(await service.call('thread/history', { threadId: 't' }, context)); expect(first.complete).toBe(false);
+    notify(native, 'turn/completed'); const calls = native.calls.length;
+    await expect(service.call('thread/history', { threadId: 't', cursor: first.nextCursor! }, context)).rejects.toMatchObject({ code: 'history_stale' });
+    expect(native.calls).toHaveLength(calls);
+    await expect(service.call('thread/history', { threadId: 't', cursor: first.nextCursor! }, context)).rejects.toMatchObject({ code: 'invalid_cursor' });
+    await expect(service.call('turn/start', { threadId: 't', text: 'blocked' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
+  });
+
+  test('an accepted turn response without a started notification fences history already loading for another owner', async () => {
+    const { service, native } = setup(), original = native.call.bind(native);
+    await service.call('thread/history', { threadId: 't' }, context);
+    let release!: () => void, entered!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; }), written = new Promise<void>(resolve => { entered = resolve; });
+    let starting: Promise<JsonValue>;
+    native.call = async (method, params, options) => {
+      const result = await original(method, params, options);
+      if (method === 'turn/start') { entered(); await gate; }
+      if (method === 'thread/timeline/list') { release(); await starting; }
+      return result;
+    };
+    starting = service.call('turn/start', { threadId: 't', text: 'start' }, context); await written;
+    await expect(service.call('thread/history', { threadId: 't' }, { clientId: 'reader' })).rejects.toMatchObject({ code: 'history_stale' });
+    expect(await starting).toMatchObject({ turn: { id: 'turn-1', status: 'inProgress' } });
+    native.call = original; native.page = page(row('turn-1', 'interrupted'));
+    expect(await service.call('thread/history', { threadId: 't' }, { clientId: 'reader' })).toMatchObject({ turns: [row('turn-1', 'inProgress')] });
+  });
+
+  test('an unknown live turn stays unknown and does not rewrite interrupted history as known in-progress', async () => {
+    const { service, native } = setup(); notify(native, 'turn/started'); native.emit('fatal', new Error('lost native connection'));
+    native.page = page(row('live', 'interrupted'));
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('live', 'interrupted')] });
+    expect(object(object(service.status()).activity).unknown).toBe(true);
+    notify(native, 'turn/completed');
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ turns: [row('live', 'completed')] });
+    expect(object(object(service.status()).activity).unknown).toBe(true);
+  });
+
+  test.each(['completed', 'failed', 'interrupted'])('the most recent exact %s notification overrides stale history without inventing a missing turn', async status => {
+    const { service, native } = setup(); notify(native, 'turn/completed', 'old', 'completed'); notify(native, 'turn/completed', 'live', status);
+    native.page = page(row('live', 'inProgress'), row('old', 'interrupted'));
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ turns: [row('old', 'interrupted'), row('live', status)] });
+    expect(await service.call('thread/history', { threadId: 'different-thread' }, context)).toMatchObject({ turns: [row('old', 'interrupted'), row('live', 'inProgress')] });
+    native.page = page(row('old', 'interrupted'));
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('old', 'interrupted')] });
+  });
+
+  test.each(['thread/closed', 'thread/deleted', 'thread/reverted'])('%s clears terminal evidence and fences an in-flight historical read', async method => {
+    const { service, native } = setup(); notify(native, 'turn/completed'); native.page = page(row('live', 'interrupted'));
+    native.beforeNativeWrite = call => { if (call === 'thread/timeline/list') native.emit('notification', { method, params: { threadId: 't' } }); };
+    await expect(service.call('thread/history', { threadId: 't' }, context)).rejects.toMatchObject({ code: 'history_stale' });
+    native.beforeNativeWrite = undefined;
+    expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('live', 'interrupted')] });
+  });
+
+  test('completion before automation acceptance wins over stale history and does not replay or retain the worker lease', async () => {
+    const { service, native, cwd } = setup(), original = native.call.bind(native), leases = new Set<string>();
+    let now = Date.parse('2026-01-01T00:00:00Z'), observedEarlyCompletion = false;
+    const ledger = new Ledger(':memory:', () => now);
+    const worker = { connected: true, clientConnected: async (id: string) => { leases.add(id); }, clientDisconnected: async (id: string) => { leases.delete(id); }, call: service.call.bind(service) };
+    const dispatcher = new Dispatcher(ledger, worker, { call: async () => { throw new Error('Unexpected manager call'); } });
+    service.on('event', event => dispatcher.event(event));
+    dispatcher.event({ type: 'state', data: service.status() });
+    const scheduler = new AutomationScheduler(ledger, dispatcher, worker, () => now);
+    try {
+      native.call = async (method, params, options) => {
+        const result = await original(method, params, options);
+        if (method === 'turn/start') {
+          const run = ledger.automations.outstanding()[0]!;
+          expect(run).toMatchObject({ state: 'dispatching', threadId: null, turnId: null }); expect(leases.size).toBe(1);
+          notify(native, 'turn/started', 'turn-1', 'inProgress', 'created-thread');
+          notify(native, 'turn/completed', 'turn-1', 'completed', 'created-thread');
+          observedEarlyCompletion = true;
+        }
+        // Even metadata and the first history page can still describe the old turn.
+        if (method === 'thread/read' && observedEarlyCompletion) object(object(result).thread).turns = [row('turn-1', 'inProgress')];
+        return result;
+      };
+      native.page = page(row('turn-1', 'interrupted'));
+      const project = ledger.addProject(cwd, 'Early completion');
+      const created = object(await dispatcher.call({ method: 'automation/create', operationId: randomUUID(), params: { spec: { name: 'Once', projectId: project.id, text: 'offline test', options: {}, schedule: { kind: 'once', at: now + 60_000, timeZone: 'UTC' }, maxRunMinutes: 1 } } }, { clientId: 'browser', requireConnection: () => {} }));
+      scheduler.start(); await scheduler.tick(); now += 60_000; await scheduler.tick();
+      const runs = object(ledger.automations.read('automation/runs', { id: created.id! })).data as JsonValue[];
+      expect(observedEarlyCompletion).toBe(true); expect(runs).toHaveLength(1);
+      expect(runs[0]).toMatchObject({ state: 'completed', threadId: 'created-thread', turnId: 'turn-1' });
+      expect(ledger.read(String(object(runs[0]).operationId))).toMatchObject({ state: 'accepted', result: { turn: { id: 'turn-1', status: 'inProgress' } } });
+      expect(leases.size).toBe(0); expect(object(object(service.status()).activity).activeThreads).toEqual([]);
+      await service.call('thread/read', { threadId: 'created-thread' }, context);
+      expect(object(object(service.status()).activity).activeThreads).toEqual([]);
+      await scheduler.tick(); expect(native.calls.filter(call => call.method === 'turn/start')).toHaveLength(1);
+      expect(native.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(0);
+    } finally { await scheduler.close(); ledger.close(); }
+  });
+});
+
 describe('RuntimeService admission and recovery', () => {
   test('cold notLoaded history retains pagination and authorizes only its fully hydrated owner to resume', async () => {
     const { service, native } = setup(), original = native.call.bind(native);

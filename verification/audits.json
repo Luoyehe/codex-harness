@@ -6630,6 +6630,67 @@
         "missing": []
       },
       "gatePassed": true
+    },
+    {
+      "digest": "468803191f18e3950286f76348a8538a65ce5a90cb5538a7d0fafa56e3126cbe",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "startedAt": "2026-10-30T12:29:24.618631+00:00",
+      "completedAt": "2026-10-30T12:34:14.844Z",
+      "sourceFiles": 1941,
+      "id": "v220-round5",
+      "sequence": 58,
+      "reviewers": [
+        {
+          "id": "v220-round5-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round5/team.json",
+          "sha256": "40caa55fdd8b869c834e1ddcbe3d32af5a41c16fb890e88462c07d26d09f08c8"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round5/root.json",
+          "sha256": "98a646e96ad8c2f6a588b5f462300dc607e29ef36151597868ce767d037703e7",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round5/runtime.json",
+          "sha256": "7ebd3695db2d84694d151d599fdc28921bf5f8a9693957765dbb836a5be9d53a",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round5/web.json",
+          "sha256": "67ef0efc98d4fe6f1608acbf61598bb1013772a4d17351d6fab2b48417d80bcb",
+          "files": 217
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round5/deploy.json",
+          "sha256": "2d9063abae826b49e7f35d21abfd549fde5993d4c9c457939772a90626ec2832",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1941,
+        "missing": []
+      },
+      "gatePassed": true
     }
   ],
   "fullTests": {
