@@ -16,6 +16,12 @@ const itemNames: Record<string, string> = {
   contextCompaction: '上下文压缩',
   imageView: '查看图片',
 };
+const statusNames: Record<string, string> = {
+  inProgress: '进行中', completed: '已完成', failed: '失败', declined: '已拒绝',
+};
+const phaseNames: Record<string, string> = {
+  commentary: '进度', partial_answer: '部分回答', final_answer: '最终回答',
+};
 
 export const MessageItem = memo(function MessageItem({
   item,
@@ -28,6 +34,26 @@ export const MessageItem = memo(function MessageItem({
   threadId?: string;
   project?: Project;
 }) {
+  // Reasoning has a dedicated public-summary channel. The generic snapshot,
+  // mixed delta buffer, content and raw item must never be a display fallback.
+  if (item.type === 'reasoning') {
+    const summary = array<unknown>(item.summary).filter(value => typeof value === 'string').join('\n\n');
+    const fragments = array<unknown>(item.historySync?.summaryDeltas)
+      .filter(value => typeof value === 'string').join('\n\n');
+    if (!summary.trim() && !fragments.trim()) return null;
+    return (
+      <details className="reasoning-card" open>
+        <summary>思考摘要{item.historySync && <span className="badge">同步中</span>}</summary>
+        <div className="reasoning-body">
+          {summary.trim() && <SafeMarkdown text={summary} />}
+          {item.historySync && fragments.trim() && <div className="reasoning-fragments">
+            <p className="muted small">实时摘要片段{summary.trim() ? '（可能与上方摘要重叠，暂不拼接）' : '（等待完整摘要）'}</p>
+            <SafeMarkdown text={fragments} />
+          </div>}
+        </div>
+      </details>
+    );
+  }
   if (item.historySync)
     return (
       <article className="message assistant-message">
@@ -106,6 +132,8 @@ export const MessageItem = memo(function MessageItem({
           ) : (
             <>
               <span className="mini-brand">⌘</span>Codex
+              {typeof item.phase === 'string' && phaseNames[item.phase] &&
+                <span className="badge">{phaseNames[item.phase]}</span>}
             </>
           )}
         </div>
@@ -117,30 +145,21 @@ export const MessageItem = memo(function MessageItem({
     item.type === 'imageGeneration'
       ? item.failure
       : (item.aggregatedOutput ?? item.result ?? item.error);
-  const summary = item.type === 'reasoning' ? array<string>(item.summary).join('\n\n') : '';
-  const reasoning = item.type === 'reasoning' ? array<string>(item.content).join('\n\n') : '';
   return (
-    <details className={`tool-card ${item.status === 'failed' ? 'tool-error' : ''}`}>
+    <><details className={`tool-card ${item.status === 'failed' ? 'tool-error' : ''}`}>
       <summary>
         <span className="tool-symbol">{item.type === 'commandExecution' ? '›_' : '◇'}</span>
         <strong>{itemNames[item.type] ?? item.type}</strong>
         <span className="tool-caption">
           {String(item.command ?? item.tool ?? item.server ?? '')}
         </span>
-        <span className="badge">{String(item.status ?? '')}</span>
+        <span className="badge">{statusNames[String(item.status)] ?? String(item.status ?? '')}</span>
         {item.type === 'commandExecution' && typeof item.exitCode === 'number' && (
           <span className="badge">退出码 {item.exitCode}</span>
         )}
       </summary>
       <div className="tool-body">
         <MessageMedia item={item} api={api} threadId={threadId} project={project} />
-        {summary && <SafeMarkdown text={summary} />}
-        {reasoning && (
-          <details>
-            <summary>详细思考内容</summary>
-            <SafeMarkdown text={reasoning} />
-          </details>
-        )}
         {item.type === 'fileChange' &&
           array<unknown>(item.changes).map((c, i) => (
             <div key={i}>
@@ -157,5 +176,8 @@ export const MessageItem = memo(function MessageItem({
         </details>
       </div>
     </details>
+    {item.type === 'mcpToolCall' && typeof item.progressMessage === 'string' && item.progressMessage &&
+      <p className="tool-progress small muted" role="status">{item.progressMessage}</p>}
+    </>
   );
 });

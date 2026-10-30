@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { Api } from '../lib/api';
+import { RpcError, type Api } from '../lib/api';
 import { Events, useSubscription } from '../lib/events';
 import {
   applyNotification,
@@ -11,6 +11,20 @@ import {
 } from '../lib/history';
 import { activeRealtime, mergeTimeline, type TimelineEntry } from '../lib/timeline';
 import { message, object, type HarnessEvent, type Thread, type Turn } from '../lib/types';
+
+const HISTORY_RETRY_DELAYS = [100, 250];
+function waitForHistoryRetry(signal: AbortSignal, delay: number): Promise<void> {
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, delay);
+    signal.addEventListener('abort', finish, { once: true });
+    if (signal.aborted) finish();
+  });
+}
 
 export function useConversation(api: Api, events: Events, threadId: string, resourceEpoch: string) {
   const [turns, setTurns] = useState<Turn[]>([]),
@@ -27,6 +41,8 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     [usage, setUsage] = useState<unknown>();
   const generation = useRef(0),
     current = useRef<Turn[]>([]),
+    streamed = useRef<Turn[]>([]),
+    restartFromStream = useRef(false),
     canonical = useRef<TimelineEntry[]>([]),
     touched = useRef(new Set<string>()),
     seen = useRef(new Set<string>()),
@@ -47,6 +63,10 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     };
   }, [visit]);
   const controller = useRef<AbortController | undefined>(undefined),
+    continueHistory = useRef<{
+      generation: number;
+      read(cursor: string | null): Promise<void>;
+    } | undefined>(undefined),
     selectedContext = useRef<typeof visit | undefined>(undefined);
   const publish = (value: Turn[]) => {
     current.current = value;
@@ -95,9 +115,14 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     )
       throw new Error('历史版本已变化，请重新读取完整会话。');
     traversalVersion.current = page.historyVersion;
-    const merged = mergeHistory(current.current, page.turns, touched.current),
+    const merged = mergeHistory(
+      restartFromStream.current ? streamed.current : current.current,
+      page.turns,
+      touched.current,
+    ),
       entries = mergeTimeline(canonical.current, page.timeline);
     boundedCombined(merged, entries);
+    restartFromStream.current = false;
     if (pages.current === 0 || page.timeline.length > 0)
       opening.current = page.activeRealtimeSessionAtPageStart;
     if (page.nextCursor !== null) seen.current.add(page.nextCursor);
@@ -137,6 +162,8 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     traversalVersion.current = undefined;
     opening.current = null;
     canonical.current = [];
+    streamed.current = [];
+    restartFromStream.current = false;
     publish([]);
     setTimeline([]);
     setThread(undefined);
@@ -154,57 +181,96 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
       return;
     }
     setLoading(true);
-    Promise.all([
-      api.call('thread/read', { threadId }, abort.signal),
-      api.call('thread/history', { threadId, limit: 30 }, abort.signal),
-    ])
-      .then(async ([metadata, value]) => {
-        if (generation.current !== gen) return;
-        const t = object(metadata.thread ?? metadata) as Thread;
-        if (t.id !== threadId) throw new Error('会话身份不匹配。');
-        setThread({
-          ...t,
-          ...(streamStatus.current !== undefined ? { status: streamStatus.current } : {}),
-        });
-        let result = value;
-        while (generation.current === gen) {
-          const page = accept(result);
-          if (page.complete) break;
-          result = await api.call(
-            'thread/history',
-            { threadId, cursor: page.nextCursor, limit: 30 },
-            abort.signal,
-          );
+    const isCurrent = () => visit.active && generation.current === gen && !abort.signal.aborted;
+    const restartTraversal = () => {
+      traversalVersion.current = undefined;
+      opening.current = null;
+      canonical.current = [];
+      seen.current = new Set();
+      pages.current = 0;
+      restartFromStream.current = true;
+    };
+    const read = async (firstCursor: string | null) => {
+      let startCursor = firstCursor;
+      for (let attempt = 0; isCurrent(); attempt++) {
+        try {
+          const [metadata, value] = await Promise.all([
+            api.call('thread/read', { threadId }, abort.signal),
+            api.call('thread/history', {
+              threadId, limit: 30, ...(startCursor !== null ? { cursor: startCursor } : {}),
+            }, abort.signal),
+          ]);
+          if (!isCurrent()) return;
+          const t = object(metadata.thread ?? metadata) as Thread;
+          if (t.id !== threadId) throw new Error('会话身份不匹配。');
+          setThread({
+            ...t,
+            ...(streamStatus.current !== undefined ? { status: streamStatus.current } : {}),
+          });
+          let result = value;
+          while (isCurrent()) {
+            const page = accept(result);
+            if (page.complete) return;
+            result = await api.call(
+              'thread/history',
+              { threadId, cursor: page.nextCursor, limit: 30 },
+              abort.signal,
+            );
+          }
+          return;
+        } catch (e) {
+          if (!isCurrent()) return;
+          if (!(e instanceof RpcError) || e.code !== 'history_stale') throw e;
+          // A live lifecycle changed across native pages. Revoke the old cursor
+          // and proof, then rebuild only from a new traversal plus retained live
+          // events; snapshots from the rejected traversal must not become proof.
+          historyComplete.current = false;
+          setReady(false);
+          setComplete(false);
+          setCursor(null);
+          setHistoryStale(true);
+          const delay = HISTORY_RETRY_DELAYS[attempt];
+          if (delay === undefined || voice.current) throw e;
+          await waitForHistoryRetry(abort.signal, delay);
+          if (!isCurrent() || voice.current) return;
+          restartTraversal();
+          startCursor = null;
         }
-      })
-      .catch((e) => {
+      }
+    };
+    let reading = false;
+    const run = async (startCursor: string | null) => {
+      if (!isCurrent() || reading) return;
+      reading = true;
+      setLoading(true);
+      setError('');
+      if (startCursor === null) restartTraversal();
+      try {
+        await read(startCursor);
+      } catch (e) {
         if (generation.current === gen && !abort.signal.aborted) setError(message(e));
-      })
-      .finally(() => {
+      } finally {
+        reading = false;
         if (generation.current === gen) setLoading(false);
-      });
+      }
+    };
+    const continuation = { generation: gen, read: run };
+    continueHistory.current = continuation;
+    void run(null);
     return () => {
       generation.current++;
       abort.abort();
+      if (continueHistory.current === continuation) continueHistory.current = undefined;
     };
   }, [api, threadId, resourceEpoch, revision, visit]);
   const loadMore = async () => {
-    if (loading || cursor === null || complete || voice.current) return;
-    const gen = generation.current;
-    setLoading(true);
-    setError('');
-    try {
-      const page = await api.call(
-        'thread/history',
-        { threadId, cursor, limit: 30 },
-        controller.current?.signal,
-      );
-      if (generation.current === gen) accept(page);
-    } catch (e) {
-      if (generation.current === gen) setError(message(e));
-    } finally {
-      if (generation.current === gen) setLoading(false);
+    if (!visit.active || loading || complete || voice.current) return;
+    const continuation = continueHistory.current;
+    if (continuation?.generation !== generation.current) {
+      recheck();
+      return;
     }
+    await continuation.read(cursor);
   };
   const handle = useCallback(
     (event: HarnessEvent) => {
@@ -239,10 +305,12 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
           streamStatus.current = p.status;
           setThread((t) => (t ? { ...t, status: p.status } : t));
         }
+        const live = applyNotification(streamed.current, method, p);
         const result = applyNotification(current.current, method, p);
         if (result.touched) touched.current.add(result.touched);
         if (result.diff !== undefined) setDiff(result.diff);
         boundedCombined(result.turns, canonical.current);
+        streamed.current = live.turns;
         publish(result.turns);
         setReady(historyComplete.current && !voice.current && !historySyncPending(result.turns));
         if (method === 'turn/completed') refresh();

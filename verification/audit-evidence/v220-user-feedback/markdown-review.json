@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-deploy",
+  "kind": "all-tracked-markdown-publication-review",
+  "complete": true,
+  "completedAt": "2026-10-30T18:37:48.960803+00:00",
+  "inspectedFiles": [
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "FEATURES.md",
+    "NOTICE.md",
+    "PROBLEM-ACCEPTANCE.md",
+    "README.md",
+    "deploy/README.md",
+    "deploy/RECOVERY.md",
+    "reference/PROTOCOL-CONTRACT.md",
+    "tests/runtime/README.md",
+    "verification/RELEASE-CHECKS.md",
+    "verification/WORKLOG.md",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+    "verification/reports/20261030-functional-workflows.md",
+    "web/VERIFICATION.md"
+  ],
+  "fileHashes": {
+    "AGENTS.md": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+    "ARCHITECTURE.md": "9e0c2c917ed6cf5d34006b71bac80beaf19dc3f1f4c9e1b638c424b470953571",
+    "FEATURES.md": "17523b13ae0a30cbd1f8f1681814b00bc9c4f4480e48b7cffeb681076729bff1",
+    "NOTICE.md": "403b29c9250ac716e123f8164a7f187049a278afd9f9d940b3f8e0cb686a5faa",
+    "PROBLEM-ACCEPTANCE.md": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e",
+    "README.md": "79771c37790c93c5ed9e59f792a7715ffabd517d78788dced3ea6ce1c5ba1740",
+    "deploy/README.md": "f77f131ce1c9297bfe3bc17ef54ef61d7d0cfaf04a3b5c64ada8c3a24f303461",
+    "deploy/RECOVERY.md": "74b82b96b8d0b81abc268735e440800eb1628e32a144efcd60dddbffcf215361",
+    "reference/PROTOCOL-CONTRACT.md": "2671d5fd4e22b78efc869d299bc3cc24420c927b863ae0845f850e9dcbd5175d",
+    "tests/runtime/README.md": "a501276286c270c7517fdf998007cf5825d30ff2d210d83ba4de55a04a90d31a",
+    "verification/RELEASE-CHECKS.md": "abeceeaaeab1332c13430b1deb2a073e0781fb017fb19d5fc77e947f945ac7ac",
+    "verification/WORKLOG.md": "9309fba7efe8e29aeb1512459f6b4419867d4aa2eed98db6305fba379c3b6e1e",
+    "verification/feature-evidence/CAPABILITY-COVERAGE.md": "fb9d5942cf42146ffb625b00b66f15706a190959ba49797894d6e297e74fbb3d",
+    "verification/reports/20261030-functional-workflows.md": "17027de4d95c33f38654df43647f1e538c5b20ab70a0aa20a091d65b01b0e290",
+    "web/VERIFICATION.md": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571"
+  },
+  "method": "Independent documentation review of the exact git-tracked 15 Markdown files. Every current file was read for raw SHA-256, size, heading inventory and Markdown-link extraction; local targets and Markdown fragments were checked. Manual review covers current user-facing contracts, commands, new feature statements and historical evidence boundaries, with retained substantive deployment/runtime analysis explicitly distinguished from fresh focused reading. Large append-only historical logs were reviewed through current sections, complete section/link inventory and relevant dated evidence; this is not a claim of fresh line-by-line rereading or reexecution of every archived test. Local current implementation and selected evidence JSON were cross-checked. Only the two explicitly authorized Markdown files were edited; no production-code edits, test execution or online operations.",
+  "perFileReview": [
+    {
+      "path": "AGENTS.md",
+      "review": "Read clean-room and execution constraints; current explicit user authorization governs the one-complete-clean-round exception rather than inventing three historical passes."
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "review": "Read current module/lifecycle contracts, project registration and local rename, provider queue, owner fencing, history proof and read-only stale recovery, public-only reasoning and terminal progress boundaries; checked representative implementation paths."
+    },
+    {
+      "path": "FEATURES.md",
+      "review": "Read workflow and capability coverage declarations, explicit optional-field/external-platform limitations and latest one-clean-round release boundary; compared capability inventory and pinned protocol identity."
+    },
+    {
+      "path": "NOTICE.md",
+      "review": "Read provenance/version/licensing attribution; matched CLI 0.164.0 to local provenance and package pins. This is attribution consistency review, not a legal opinion."
+    },
+    {
+      "path": "PROBLEM-ACCEPTANCE.md",
+      "review": "Reviewed historical external-behavior catalogue, issue categories and acceptance limits. Its 2026-10-25 scope explicitly does not claim current implementation or CI success. Did not open referenced old/sibling sources or historical reproduction programs."
+    },
+    {
+      "path": "README.md",
+      "review": "Read current product/user installation/upgrade/account/HTTPS, hierarchical project/thread actions, optional public reasoning, browser-local drafts and unknown-operation language; checked current interfaces and implementation entry points."
+    },
+    {
+      "path": "deploy/README.md",
+      "review": "Freshly read operator/install/control/config/provider/catalog/TLS/accounts, security and helper contracts; reviewed historical verification declarations and local pin/command references. Fixed current sudo-mode enumeration and exact legacy restoration boundary against units/native_launcher/config_layer/ownership/manager/service_lifecycle. Retained prior unchanged deep deployment semantics; no claim of a new line-by-line audit of every historical paragraph."
+    },
+    {
+      "path": "deploy/RECOVERY.md",
+      "review": "Read complete same-machine backup/restore and candidate archive runbook, embedded commands/scripts, retained identities/WAL/credentials, lock-inode preservation, exact paths, barriers, checkpoint/quarantine and failed recovery boundaries; no execution."
+    },
+    {
+      "path": "reference/PROTOCOL-CONTRACT.md",
+      "review": "Read fixed-version generation and authoritative protocol boundary, no latest-version assertion and no claimed paid inference; matched local generated protocol/provenance and actual current history/resume separation."
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "review": "Read coverage mapping, resource policies, declared integration limits and real local chain descriptions, with historical snapshot boundaries retained. Corrected current native sudo modes and protected legacy recovery distinction; no reinterpretation of loopback/native fixtures as commercial acceptance."
+    },
+    {
+      "path": "verification/RELEASE-CHECKS.md",
+      "review": "Reviewed current pending-followup notice, historical CI9/CI8 and older source-specific status, exact evidence links and orchestration declarations. Independently confirmed root corrected historical pending-deployment wording against hosted-ci9/deployment-ci9 JSON. Historical sections remain historical, not a fresh rerun of their tests."
+    },
+    {
+      "path": "verification/WORKLOG.md",
+      "review": "Reviewed current followup and CI9 checkpoint sections, all section headings/link targets and chronological/source boundaries throughout the retained log. Root corrected the CI9 pending-at-that-time sentence and linked its subsequently completed deployment. Retained archival evidence was not relabelled as current-source success."
+    },
+    {
+      "path": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+      "review": "Read entire capability classification and common-workflow limits, 178 request count partition, external account/network caveats and per-platform historical checks; no completion-percentage or universal optional-field claim."
+    },
+    {
+      "path": "verification/reports/20261030-functional-workflows.md",
+      "review": "Read entire user-workflow repair summary, explicit local substitute/isolated-host evidence and history race limitations; historical Linux CI failure is not claimed reproduced or explained by a single proven cause."
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "review": "Read browser implementation/bounds and historical phase/round evidence; checked local draft/history/operation/owner semantics and explicit exclusions for real IME, commercial models and native PTY. Earlier counts/screenshots remain scoped to their recorded implementations."
+    }
+  ],
+  "linkChecks": {
+    "markdownLinks": 186,
+    "localLinks": 134,
+    "externalLinks": 52,
+    "brokenLocalTargetsOrFragments": [],
+    "scope": "Inline Markdown destinations and Markdown heading fragments. External URLs were classified as upstream/historical references, not freshly fetched or claimed universally available; plain-text/code references are not included in this automatic link count."
+  },
+  "claimsChecked": [
+    {
+      "claim": "Current followup has not yet passed its new full audit/CI/deployment",
+      "evidence": [
+        "verification/RELEASE-CHECKS.md",
+        "verification/WORKLOG.md"
+      ],
+      "result": "Current notice distinguishes new source from completed historical CI9 deployment; no current-source CI/deployment pass is claimed."
+    },
+    {
+      "claim": "Historical CI9 passed 227 files/2389 distinct cases and was deployed",
+      "evidence": [
+        "verification/audit-evidence/v220-release/hosted-ci9.json",
+        "verification/audit-evidence/v220-release/deployment-ci9.json"
+      ],
+      "result": "Both bind exact commit91628b18444129448f7234aa32c4212a440a03d2/source e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed; deployment status explicitly defers formal release for new UX work."
+    },
+    {
+      "claim": "Fixed native sudo commands and legacy restoration",
+      "evidence": [
+        "deploy/units.py",
+        "deploy/native_launcher.py",
+        "deploy/config_layer.py",
+        "deploy/ownership.py",
+        "deploy/manager.py",
+        "deploy/service_lifecycle.py"
+      ],
+      "result": "Current five modes include catalog-server with one validated enabled modelProvider identity; rollback removes workspace only. Exact old no-catalog definitions are recognition/recovery compatibility, not new final-verification success."
+    },
+    {
+      "claim": "Frozen row actions, file-preserving project removal, optional public summaries and safe history retry",
+      "evidence": [
+        "web/components/SidebarManagementDialog.tsx",
+        "web/Workspace.tsx",
+        "web/components/MessageItem.tsx",
+        "web/hooks/useConversation.ts",
+        "src/gateway/manager-client.ts"
+      ],
+      "result": "Current entrypoints support the described target ownership, explicit consent, summary-only display and bounded read-only recovery; no raw reasoning fallback, implicit resume or write replay is advertised."
+    }
+  ],
+  "resolvedFindings": [
+    {
+      "id": "MD-CI9-HISTORICAL-DEPLOYMENT-WORDING",
+      "files": [
+        "verification/RELEASE-CHECKS.md",
+        "verification/WORKLOG.md"
+      ],
+      "resolution": "Root marked CI9 as a historical checkpoint and linked the subsequently completed deployment. Freshly rechecked corrected paragraphs and local evidence."
+    },
+    {
+      "id": "MD-CATALOG-SUDO-ENUMERATION",
+      "files": [
+        "deploy/README.md",
+        "tests/runtime/README.md"
+      ],
+      "resolution": "Under explicit root authorization, corrected the current five modes and four-mode configuration-layer downgrade, validated catalog provider parameter and exact protected old-policy restoration versus ordinary strict verification. Documentation only; diff whitespace check passed."
+    }
+  ],
+  "findings": [],
+  "skipped": [],
+  "unexecutedValidation": [
+    "No tests, live deployment, credential/account operations or external service acceptance during this documentation review.",
+    "Historical reports, screenshots and CI artifacts were not rerun; selected source-bound evidence was inspected, not independently re-produced.",
+    "No fresh availability/content verification of all external URLs and no license/legal analysis."
+  ],
+  "structureEvidence": {
+    "path": ".work/v220-md-structure.json",
+    "sha256": "237a17c0324ba4cac8b654b1e95fd2d4130b18cc0c1e56710f4e1f4038145b44"
+  },
+  "scopeNotes": "Tracked Markdown only: generated dependency README files and ignored staging/helper material are excluded. Old/sibling repositories were not read."
+}

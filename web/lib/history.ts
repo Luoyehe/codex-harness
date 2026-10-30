@@ -115,6 +115,11 @@ export function mergeHistory(current: Turn[], incoming: Turn[], touched: Set<str
     const items = turn.items.map((item) => {
       const previous = live.get(item.id);
       live.delete(item.id);
+      // MCP progress is transient, not a text delta with an unknown watermark.
+      // A terminal snapshot supersedes it; a completed live item stays authoritative.
+      if (item.type === 'mcpToolCall' && previous?.type === 'mcpToolCall' &&
+        !previous.streamComplete && ['completed', 'failed'].includes(String(item.status)))
+        return item;
       if (previous?.historySync)
         return finalStatus(turn.status)
           ? item
@@ -165,6 +170,11 @@ export function applyNotification(
   if (method === 'turn/completed') {
     turn.status = String(provided.status ?? 'completed');
     turn.error = provided.error;
+    turn.items = turn.items.map((value) => {
+      if (value.type !== 'mcpToolCall' || value.progressMessage === undefined) return value;
+      const { progressMessage: _progress, ...item } = value;
+      return item;
+    });
   }
   if (method === 'turn/plan/updated') {
     if (finalStatus(turn.status)) return { turns };
@@ -202,6 +212,15 @@ export function applyNotification(
         ...previous.historySync,
         snapshot: streamSnapshot(updated, previous.historySync.field),
       };
+  } else if (method === 'item/mcpToolCall/progress') {
+    // A progress message has no tool identity or lifecycle proof. Wait for its
+    // item start/history rather than creating a placeholder that masks either.
+    if (!previous) return { turns };
+    if (previous.type !== 'mcpToolCall')
+      throw new Error('工具进度条目类型发生变化，请重新核对历史。');
+    if (['completed', 'failed'].includes(String(previous.status))) return { turns };
+    if (typeof p.message !== 'string') throw new Error('工具进度缺少文字内容。');
+    updated = { ...previous, id: itemId, type: 'mcpToolCall', progressMessage: p.message };
   } else {
     const streamed = appendStream(previous, method, p, itemId);
     if (!streamed) return { turns };

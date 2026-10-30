@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T17:44:46.797Z",
+  "candidate": "91628b18444129448f7234aa32c4212a440a03d2",
+  "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+  "automated": {
+    "observed": true,
+    "id": 124213158125,
+    "head_sha": "91628b18444129448f7234aa32c4212a440a03d2",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/Luoyehe/codex-harness/runs/124213158125",
+    "title": "1 configuration not found",
+    "summary": "**Warning**: Code scanning may not have found all the alerts introduced by this pull request, because 1 configuration present on `refs/heads/main` was not found:\n\n### Actions workflow (`ci.yml`)\n\n* :question:&nbsp;&nbsp;`.github/workflows/ci.yml:codeql`\n\n\n### New alerts in code changed by this pull request\n\nSecurity Alerts:\n * 1 high\n\n\n_Alerts not introduced by this pull request might have been detected because the code changes were too large._\n\nSee annotations below for details.\n\n[View all branch alerts](/Luoyehe/codex-harness/security/code-scanning?query=pr%3A8+tool%3ACodeQL+is%3Aopen).",
+    "annotationsCount": 1,
+    "evidence": ".work/v220-ci9-api-check-runs.json",
+    "sha256": "c0628aecb58bc2c6256ea2fec2f16abcb40a2f940167aa52e1ad979d6451199c",
+    "annotations": [
+      {
+        "path": "deploy/native_launcher.py",
+        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/91628b18444129448f7234aa32c4212a440a03d2/deploy/native_launcher.py",
+        "start_line": 244,
+        "start_column": 30,
+        "end_line": 244,
+        "end_column": 42,
+        "annotation_level": "failure",
+        "title": "Clear-text logging of sensitive information",
+        "message": "This expression logs [sensitive data (secret)](1) as clear text.",
+        "raw_details": null
+      }
+    ],
+    "annotationEvidence": ".work/v220-ci9-api-codeql-annotations.json",
+    "annotationEvidenceSha256": "1bd587f1c9912f06022b7e38053779971c277ac359adfad6f06c3abe040a7196",
+    "manualAssessment": "Reviewed required private credential-return path; retain actual aggregate status and legacy configuration warnings. No dismissal or configuration/gate change."
+  },
+  "sourceReview": {
+    "path": "codeql-source-review-ci9.json",
+    "sha256": "9765c39b970fa09203bffadd9483f80e6516315f9fa0490ce97efd39085e3c90"
+  },
+  "assessment": "The current actual aggregate result is retained. All 16 credential-path source files and nine independent review references are byte-identical to the reviewed CI8 scope; no new actionable private-pipe disclosure found. Security workflow success does not mean a zero-alert or all-green aggregate. No dismissal or weaker scanner gate was introduced."
+}

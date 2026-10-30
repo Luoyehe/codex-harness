@@ -12,6 +12,7 @@ import {
 import { Messages } from '../components/Messages';
 import { MessageItem } from '../components/MessageItem';
 import type { Turn } from '../lib/types';
+import { applyNotification, mergeHistory } from '../lib/history';
 
 afterEach(() => {
   cleanup();
@@ -156,5 +157,97 @@ it('shows readable reasoning and explicit command failure exit codes', () => {
     </>,
   );
   expect(screen.getByText('Inspect branch', { selector: 'strong' })).toBeTruthy();
+  expect(screen.getByText('Inspect branch').closest('details')?.open).toBe(true);
+  expect(screen.queryByText('details')).toBeNull();
+  expect(screen.queryByText('详细思考内容')).toBeNull();
   expect(screen.getByText('退出码 7')).toBeTruthy();
+});
+
+it('shows only public summaries through live updates, overlap recovery and final replacement', () => {
+  let turns = applyNotification([], 'item/reasoning/summaryTextDelta', {
+    turnId: 't', itemId: 'r', summaryIndex: 0, delta: 'public live',
+  }).turns;
+  turns = applyNotification(turns, 'item/reasoning/textDelta', {
+    turnId: 't', itemId: 'r', contentIndex: 0, delta: 'private live',
+  }).turns;
+  const view = render(<MessageItem item={turns[0]!.items[0]!} />);
+  expect(screen.getByText('public live')).toBeTruthy();
+  expect(view.container.textContent).not.toContain('private live');
+  turns = mergeHistory(turns, [{ id: 't', status: 'inProgress', items: [
+    { id: 'r', type: 'reasoning', summary: ['public snapshot'], content: ['private snapshot'], raw_content: 'private raw' },
+  ] }], new Set());
+  view.rerender(<MessageItem item={turns[0]!.items[0]!} />);
+  expect(screen.getByText('public snapshot')).toBeTruthy();
+  expect(screen.getByText('public live')).toBeTruthy();
+  expect(screen.getByText(/可能与上方摘要重叠，暂不拼接/)).toBeTruthy();
+  expect(view.container.textContent).not.toContain('public snapshotpublic live');
+  expect(view.container.textContent).not.toContain('private');
+  expect(screen.queryByText('完整条目')).toBeNull();
+  turns = applyNotification(turns, 'item/completed', { turnId: 't', item: {
+    id: 'r', type: 'reasoning', summary: ['final public summary'], content: ['private final'],
+  } }).turns;
+  view.rerender(<MessageItem item={turns[0]!.items[0]!} />);
+  expect(screen.getAllByText('final public summary')).toHaveLength(1);
+  expect(screen.queryByText('public live')).toBeNull();
+  expect(screen.queryByText('同步中')).toBeNull();
+  expect(view.container.textContent).not.toContain('private');
+});
+
+it('never substitutes raw reasoning or mixed synchronization text when a provider supplies no public summary', () => {
+  const { container } = render(<MessageItem item={{ id: 'r', type: 'reasoning', summary: [],
+    content: ['private content'], text: 'private text', raw_content: 'private raw',
+    historySync: { field: 'reasoning', snapshot: 'private mixed snapshot', deltas: 'private mixed delta' },
+  }} />);
+  expect(container.textContent).toBe('');
+  expect(container.querySelector('details')).toBeNull();
+});
+
+it('preserves user, public summary, tool progress and final answer chronology without duplicate streamed items', () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  let turns: Turn[] = [{ id: 't', status: 'inProgress', items: [
+    { id: 'q', type: 'userMessage', content: [{ type: 'text', text: 'User request' }] },
+    { id: 'r', type: 'reasoning', summary: ['Public plan'], content: ['private content'] },
+    { id: 'cmd', type: 'commandExecution', command: 'check', status: 'inProgress', aggregatedOutput: 'partial output' },
+  ] }];
+  const props = { loading: false, complete: true, onMore: vi.fn() };
+  const view = render(<Messages {...props} turns={turns} />);
+  const rows = () => Array.from(view.container.querySelectorAll('.message-anchor')).map(row => row.textContent);
+  expect(rows()).toHaveLength(3);
+  expect(rows()[0]).toContain('User request');
+  expect(rows()[1]).toContain('Public plan');
+  expect(rows()[2]).toContain('partial output');
+  expect(screen.getByText('正在工作')).toBeTruthy();
+  turns = applyNotification(turns, 'item/completed', { turnId: 't', item: {
+    id: 'cmd', type: 'commandExecution', command: 'check', status: 'completed', exitCode: 0, aggregatedOutput: 'complete output',
+  } }).turns;
+  turns = applyNotification(turns, 'item/completed', { turnId: 't', item: {
+    id: 'a', type: 'agentMessage', phase: 'final_answer', text: 'Final answer',
+  } }).turns;
+  turns = applyNotification(turns, 'turn/completed', { turnId: 't', turn: { id: 't', status: 'completed' } }).turns;
+  view.rerender(<Messages {...props} turns={turns} />);
+  expect(rows()).toHaveLength(4);
+  expect(rows()[2]).toContain('complete output');
+  expect(rows()[3]).toContain('Final answer');
+  expect(screen.getByText('最终回答')).toBeTruthy();
+  expect(screen.queryByText('正在工作')).toBeNull();
+  expect(view.container.textContent).not.toContain('private content');
+});
+
+it('makes latest MCP progress readable outside the collapsed tool card and clears it on completion', () => {
+  let turns = applyNotification([], 'item/started', { turnId: 't', item: {
+    id: 'tool', type: 'mcpToolCall', server: 'local', tool: 'inspect', status: 'inProgress',
+  } }).turns;
+  const view = render(<MessageItem item={turns[0]!.items[0]!} />);
+  expect(screen.getByText('进行中')).toBeTruthy();
+  expect(view.container.querySelector('details')?.open).toBe(false);
+  turns = applyNotification(turns, 'item/mcpToolCall/progress', { turnId: 't', itemId: 'tool', message: 'Inspecting local output' }).turns;
+  view.rerender(<MessageItem item={turns[0]!.items[0]!} />);
+  expect(screen.getByRole('status').textContent).toBe('Inspecting local output');
+  expect(screen.getByRole('status').closest('details')).toBeNull();
+  turns = applyNotification(turns, 'item/completed', { turnId: 't', item: {
+    id: 'tool', type: 'mcpToolCall', server: 'local', tool: 'inspect', status: 'completed', result: { content: [] },
+  } }).turns;
+  view.rerender(<MessageItem item={turns[0]!.items[0]!} />);
+  expect(screen.queryByRole('status')).toBeNull();
+  expect(screen.getByText('已完成')).toBeTruthy();
 });

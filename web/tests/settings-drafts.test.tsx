@@ -30,7 +30,7 @@ function fixture() {
     api, events: new Events(), epoch: 'epoch', runtimeEpoch: 'runtime', connectionId: 'connection',
     projects: [{ id: 'project', name: 'Project', cwd: '/project' }], projectId: 'project',
     theme: 'system', onTheme: vi.fn(), onClose: vi.fn(), onChanged: vi.fn(),
-    onProjectsChanged: vi.fn(), onLogout: vi.fn(), onOpenDraft: vi.fn(),
+    onProjectAction: vi.fn(), onLogout: vi.fn(), onOpenDraft: vi.fn(),
   };
   return { api, call, props };
 }
@@ -174,7 +174,7 @@ it('retains MCP configuration text across settings tabs but requires new sensiti
   expect(f.api.mutate).not.toHaveBeenCalled();
 });
 
-it.each(['visibility', 'epoch'])('does not accept a provider save from a previous %s owner after ABA navigation', async (transition) => {
+it.each(['visibility', 'epoch'])('preserves an authenticated in-flight provider save across %s changes', async (transition) => {
   const f = fixture(), pending = deferred();
   vi.mocked(f.api.mutate).mockImplementation(() => pending.promise);
   const props = { api: f.api, epoch: 'a', visible: true, onChanged: f.props.onChanged };
@@ -184,10 +184,14 @@ it.each(['visibility', 'epoch'])('does not accept a provider save from a previou
   fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
   view.rerender(<ProviderSettings {...props} {...(transition === 'epoch' ? { epoch: 'b' } : { visible: false })} />);
   view.rerender(<ProviderSettings {...props} />);
+  expect(screen.getByLabelText('默认模型 ID').matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: '正在保存…' }).matches(':disabled')).toBe(true);
+  f.call.mockResolvedValue({ ...provider, revision: 'accepted-revision', model: 'draft-model' });
   await act(async () => pending.resolve({}));
-  expect(f.props.onChanged).not.toHaveBeenCalled();
+  await screen.findByText('配置已保存。');
+  expect(f.props.onChanged).toHaveBeenCalledOnce();
   expect(value('默认模型 ID')).toBe('draft-model');
-  expect(screen.queryByText('配置已保存。')).toBeNull();
+  expect(f.api.mutate).toHaveBeenCalledOnce();
 });
 
 it.each(['api', 'csrf'])('isolates provider drafts and delayed reads across %s owners including ABA', async (transition) => {

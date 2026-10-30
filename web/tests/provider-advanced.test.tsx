@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { Api } from '../lib/api';
+import { Api, RpcError } from '../lib/api';
 import { ProviderSettings } from '../components/ProviderSettings';
 import { listOperations } from '../lib/operations';
 
@@ -224,4 +224,68 @@ test('an initial provider read failure keeps retry reachable outside the disable
   fireEvent.click(retry);
   await waitFor(() => expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('saved-model'));
   expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(false);
+});
+
+test('keeps a provider save owned across its own maintenance and runtime restart', async () => {
+  let finish!: (value: unknown) => void, revision = 'r1';
+  const { api, calls } = routed(call => {
+    if (call.method === 'system/provider/write') return new Promise(resolve => { finish = resolve; });
+    return { revision, kind: 'responses', baseUrl: 'https://provider.example/v1', model: revision === 'r1' ? 'old-model' : 'new-model' };
+  });
+  const onChanged = vi.fn();
+  const view = render(<ProviderSettings api={api} epoch="before" enabled onChanged={onChanged} />);
+  await waitFor(() => expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('old-model'));
+  fireEvent.change(screen.getByLabelText('默认模型 ID'), { target: { value: 'new-model' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  view.rerender(<ProviderSettings api={api} epoch="restarting" enabled={false} onChanged={onChanged} />);
+  expect(screen.getByLabelText('默认模型 ID').matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: '正在保存…' }).matches(':disabled')).toBe(true);
+  await act(async () => { revision = 'r2'; finish({ revision, kind: 'responses', model: 'new-model' }); });
+  await screen.findByText('配置已保存。');
+  view.rerender(<ProviderSettings api={api} epoch="after" enabled onChanged={onChanged} />);
+  await waitFor(() => expect(screen.getByRole('button', { name: '保存配置' }).matches(':disabled')).toBe(false));
+  expect(screen.queryByText(/已保存的配置发生变化/)).toBeNull();
+  expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('new-model');
+  expect(calls.filter(call => call.method === 'system/provider/write')).toHaveLength(1);
+  expect(onChanged).toHaveBeenCalledOnce();
+});
+
+test('distinguishes accepted settings from a failed follow-up read and retries only the read', async () => {
+  let saved = false, busyRead = true;
+  const call = vi.fn(async () => {
+    if (saved && busyRead) throw new RpcError('Another management transaction is running', 'busy', 'not_sent');
+    return { revision: saved ? 'r2' : 'r1', kind: 'responses', baseUrl: 'https://provider.example/v1', model: saved ? 'new-model' : 'old-model' };
+  });
+  const mutate = vi.fn(async () => { saved = true; return {}; });
+  render(<ProviderSettings api={{ call, mutate } as unknown as Api} epoch="one" onChanged={() => {}} />);
+  await waitFor(() => expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('old-model'));
+  fireEvent.change(screen.getByLabelText('默认模型 ID'), { target: { value: 'new-model' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+  await screen.findByText(/配置已保存，但暂时无法读取最新状态。无需重复保存/);
+  expect(screen.queryByText('Another management transaction is running')).toBeNull();
+  expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('new-model');
+  busyRead = false;
+  fireEvent.click(screen.getByRole('button', { name: '重新读取' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: '保存配置' }).matches(':disabled')).toBe(false));
+  expect(mutate).toHaveBeenCalledOnce();
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+test('does not apply an old authenticated editor completion to a new login', async () => {
+  let finish!: (value: unknown) => void;
+  const api = { csrf: 'old-session', call: vi.fn().mockResolvedValue({ revision: 'r1', kind: 'chatgpt', model: 'original' }),
+    mutate: vi.fn(() => new Promise(resolve => { finish = resolve; })) } as unknown as Api;
+  const onChanged = vi.fn(), view = render(<ProviderSettings api={api} epoch="before" onChanged={onChanged} />);
+  await screen.findByRole('button', { name: '发现模型' });
+  fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  api.csrf = 'new-session';
+  view.rerender(<ProviderSettings api={api} epoch="new-session" onChanged={onChanged} />);
+  await screen.findByRole('button', { name: '发现模型' });
+  fireEvent.change(screen.getByLabelText('默认模型 ID'), { target: { value: 'new-session-draft' } });
+  await act(async () => finish({}));
+  expect(onChanged).not.toHaveBeenCalled();
+  expect(screen.queryByText('配置已保存。')).toBeNull();
+  expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('new-session-draft');
 });

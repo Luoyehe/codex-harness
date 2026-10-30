@@ -270,7 +270,7 @@ it('keeps gateway account management available while the worker connection is do
   const api = new Api(); api.csrf = 'synthetic-csrf';
   render(<Settings api={api} events={new Events()} epoch="runtime-down" connected={false}
     projects={[]} theme="system" onTheme={vi.fn()} onClose={vi.fn()} onChanged={vi.fn()}
-    onProjectsChanged={vi.fn()} onLogout={vi.fn()} onOpenDraft={vi.fn()} />);
+    onProjectAction={vi.fn()} onLogout={vi.fn()} onOpenDraft={vi.fn()} />);
   fireEvent.click(screen.getByRole('button', { name: '账号与安全' }));
   await screen.findByText('admin');
   expect(screen.getByRole('button', { name: '撤销此设备登录' }).matches(':disabled')).toBe(false);

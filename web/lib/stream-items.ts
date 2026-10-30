@@ -63,7 +63,16 @@ export function appendStream(
         ? { snapshot: previous.historySync.snapshot }
         : {}),
       deltas: (previous?.historySync?.deltas ?? '') + fragment,
+      ...(previous?.historySync?.summaryDeltas
+        ? { summaryDeltas: previous.historySync.summaryDeltas }
+        : {}),
     };
+    if (summary) {
+      const parts = [...(item.historySync.summaryDeltas ?? [])];
+      while (parts.length <= Number(index)) parts.push('');
+      if (!added) parts[Number(index)] += delta;
+      item.historySync.summaryDeltas = parts;
+    }
   } else if (field === 'reasoning') {
     const key = summary ? 'summary' : 'content',
       parts = [...array<string>(item[key])];

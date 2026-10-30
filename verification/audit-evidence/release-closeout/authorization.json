@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
-  "sourceFiles": 1941,
+  "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "sourceFiles": 1947,
   "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
   "version": "2.2.0",
-  "approvedAt": "2026-10-30T17:27:58.147Z",
-  "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。最新指示将审计门槛改为一轮无新增问题，版本选择 v2.2.0。",
-  "auditWaiverInstruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
+  "approvedAt": "2026-10-30T18:41:30.961Z",
+  "userInstruction": "现在对刚刚提到的所有问题进行修复，同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。此前用户已指定 v2.2.0 和全量验证、120 持续运行。",
+  "auditWaiverInstruction": "同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。",
   "repairsReviewed": true,
   "unresolvedBlockers": [],
   "scopes": [
@@ -17,28 +17,28 @@
   "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "v220-round9",
-      "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
-      "completedAt": "2026-10-30T17:27:57.636Z",
-      "files": 1941,
+      "roundId": "v220-round10",
+      "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+      "completedAt": "2026-10-30T18:41:30.485Z",
+      "files": 1947,
       "reviewers": [
         {
-          "id": "v220-round9-team",
+          "id": "v220-round10-team",
           "scopes": [
             "gateway-core",
             "runtime-protocol",
             "web-ux",
             "deployment-release"
           ],
-          "evidence": "verification/audit-evidence/v220-round9/team.json",
-          "sha256": "323d2a719b6976a2a05f72bd5591f917c879cab64e6588217c06b28321c94e3c"
+          "evidence": "verification/audit-evidence/v220-round10/team.json",
+          "sha256": "7950e6e05d129b511830bc72f73cca06fc56dddbcc2c5eee3f81a7f116228cea"
         }
       ]
     }
   ],
-  "note": "Actual complete clean audit9 meets the latest user one-round gate after a bounded user-experience recovery improvement. Prior CI8 and browser acceptance retain their source boundaries. This authorization permits new exact-source complete validation, not fabricated audit rounds.",
+  "note": "Actual complete clean audit10 meets the latest one-round instruction after all user feedback repairs. Earlier full test and deployment results remain source-bound history. This permits new exact-source full validation; it is not a claim that validation or deployment has already completed.",
   "scopedRepairReview": {
-    "path": "verification/audit-evidence/v220-defaults-retry/summary.json",
-    "sha256": "4821cfcff2f4a7545958fd9e9a463994ed94414817044fba0bcf3a88a1071ebb"
+    "path": "verification/audit-evidence/v220-user-feedback/summary.json",
+    "sha256": "f035d763791d119cce40ab8b5e453663b4b0ce2d1345c4df3d657fe96b26e09e"
   }
 }

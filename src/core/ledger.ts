@@ -252,6 +252,14 @@ export class Ledger {
     this.#db.prepare('INSERT INTO projects(id,name,path) VALUES(?,?,?)').run(id, name, path);
     return { id, name, path };
   }
+  renameProject(id: string, name: string): Project {
+    identifier(id); identifier(validText(name, 128, '项目名称'), '项目名称');
+    const label = name.trim(); if (!label) throw new HarnessError('invalid', '项目名称不能为空。');
+    const row = this.#db.prepare('SELECT path FROM projects WHERE id=?').get(id);
+    if (!row) throw new HarnessError('not_found', '项目已移除，请重新读取项目列表。');
+    this.#db.prepare('UPDATE projects SET name=? WHERE id=?').run(label, id);
+    return { id, name: label, path: String(row.path) };
+  }
   removeProject(id: string): void { this.worktrees.protectRemoval(id); this.#db.prepare('DELETE FROM projects WHERE id=?').run(id); }
   close(): void { this.#db.close(); }
 }

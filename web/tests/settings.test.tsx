@@ -61,7 +61,7 @@ it('uses the deployed manager logs contract and displays its text payload', asyn
       onTheme={vi.fn()}
       onClose={vi.fn()}
       onChanged={vi.fn()}
-      onProjectsChanged={vi.fn()}
+      onProjectAction={vi.fn()}
       onLogout={vi.fn()}
       onOpenDraft={vi.fn()}
     />,
@@ -115,7 +115,7 @@ it('requires explicit consent to terminate running work and restarts without a f
       onTheme={vi.fn()}
       onClose={vi.fn()}
       onChanged={vi.fn()}
-      onProjectsChanged={vi.fn()}
+      onProjectAction={vi.fn()}
       onLogout={vi.fn()}
       onOpenDraft={vi.fn()}
     />,
@@ -172,7 +172,7 @@ it('opens Hooks management for the selected registered project without launching
       onTheme={vi.fn()}
       onClose={vi.fn()}
       onChanged={vi.fn()}
-      onProjectsChanged={vi.fn()}
+      onProjectAction={vi.fn()}
       onLogout={vi.fn()}
       onOpenDraft={vi.fn()}
       onOpenNativeTerminal={open}

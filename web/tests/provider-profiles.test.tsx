@@ -112,3 +112,19 @@ it('binds confirmation to an immutable profile identity and never sends displaye
   });
   await act(async () => finish({}));
 });
+
+it('clears unsubmitted profile confirmation after hiding while keeping the authenticated operation owner', async () => {
+  const api = { call: vi.fn().mockResolvedValue({ revision: 'r', kind: 'chatgpt', profiles }), mutate: vi.fn() } as unknown as Api;
+  const props = { api, epoch: 'a', onChanged: vi.fn() };
+  const view = render(<ProviderSettings {...props} />);
+  await screen.findByRole('option', { name: 'Endpoint A' });
+  fireEvent.change(screen.getByLabelText('选择已保存配置'), { target: { value: profiles[0]!.id } });
+  const label = '我已核对目标，恢复此配置并重启原生服务';
+  fireEvent.click(screen.getByRole('checkbox', { name: label }));
+  expect((screen.getByRole('checkbox', { name: label }) as HTMLInputElement).checked).toBe(true);
+  view.rerender(<ProviderSettings {...props} visible={false} />);
+  view.rerender(<ProviderSettings {...props} />);
+  await waitFor(() => expect((screen.getByRole('checkbox', { name: label }) as HTMLInputElement).checked).toBe(false));
+  expect(screen.getByRole('button', { name: '恢复所选配置档' }).hasAttribute('disabled')).toBe(true);
+  expect(api.mutate).not.toHaveBeenCalled();
+});

@@ -8,6 +8,26 @@ import { canonical } from '../../src/core/validation.js';
 import { Budget } from '../../src/core/budget.js';
 
 describe('durable operation invariants', () => {
+  it('renames only an existing registered project label and rolls it back with its enclosing transaction', () => {
+    const ledger = new Ledger(':memory:');
+    try {
+      const project = ledger.addProject('/unchanged/native/path', 'Original');
+      expect(ledger.renameProject(project.id, '  项目 New  ')).toEqual({ ...project, name: '项目 New' });
+      expect(() => ledger.transaction(() => { ledger.renameProject(project.id, 'Rolled back'); throw new Error('abort'); })).toThrow('abort');
+      expect(ledger.project(project.id)).toEqual({ ...project, name: '项目 New' });
+      ledger.removeProject(project.id);
+      expect(() => ledger.renameProject(project.id, 'Missing')).toThrow(expect.objectContaining({ code: 'not_found', delivery: 'not_sent' }));
+      expect(ledger.projects()).toEqual([]);
+    } finally { ledger.close(); }
+  });
+  it.each(['', '   ', 'line\nbreak', 'tab\tname', 'delete\x7f', '\0', '\ud800', 'x'.repeat(129)])('rejects an invalid registered project label %j without altering its row', name => {
+    const ledger = new Ledger(':memory:');
+    try {
+      const project = ledger.addProject('/native/project', 'Original');
+      expect(() => ledger.renameProject(project.id, name)).toThrow(expect.objectContaining({ code: 'invalid', delivery: 'not_sent' }));
+      expect(ledger.projects()).toEqual([project]);
+    } finally { ledger.close(); }
+  });
   it('durably fences a not-yet-registered request without changing any existing operation', () => {
     const directory = mkdtempSync(join(tmpdir(), 'harness-fence-')); const file = join(directory, 'journal.sqlite');
     let ledger = new Ledger(file); const absent = randomUUID(), pending = randomUUID(), unknown = randomUUID();

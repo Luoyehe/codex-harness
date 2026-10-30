@@ -175,8 +175,11 @@
   overflow: auto;
 }
 .sidebar-sort {
+  display: block;
+  min-width: 0;
   padding: 0 18px 9px;
 }
+.project-conversations .sidebar-sort { padding: 0 4px 5px; }
 .sidebar-sort select {
   width: 100%;
   font-size: 10px;

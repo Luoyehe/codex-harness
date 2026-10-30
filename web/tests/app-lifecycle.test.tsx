@@ -1,6 +1,6 @@
 import { IDBObjectStore } from 'fake-indexeddb';
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { enabledButton } from './enabled-button';
 import { Api } from '../lib/api';
@@ -100,6 +100,7 @@ async function fixture(
     name: 'fixture.txt',
   }),
   initialAuthenticated = true,
+  override?: (call: { method: string; params: Record<string, unknown>; operationId?: string }) => unknown,
 ) {
   const sockets: Socket[] = [],
     calls: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
@@ -145,6 +146,8 @@ async function fixture(
         };
       const request = JSON.parse(String(init?.body));
       calls.push(request);
+      const overridden = await override?.(request);
+      if (overridden !== undefined) return ok(overridden);
       const thread = { id: 't', name: 'Current thread', cwd: '/p', status: { type: 'idle' } };
       switch (request.method) {
         case 'project/list':
@@ -530,7 +533,7 @@ it('unmounts modal ownership on access expiry and does not reopen it after renew
   fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), {
     target: { value: 'draft under settings' },
   });
-  fireEvent.click(screen.getByRole('button', { name: /我的工作台/ }));
+  fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   expect(screen.getByRole('dialog', { name: '设置' })).toBeTruthy();
   f.expireAccess();
   fireEvent.click(screen.getByRole('button', { name: '服务管理' }));
@@ -766,7 +769,7 @@ it('opens process and remote settings read-only without starting execution or re
   fireEvent.click(screen.getByRole('button', { name: '打开命令进程' }));
   await screen.findByRole('heading', { name: '直接执行命令' });
   await waitFor(() => expect(f.count('process/list')).toBe(1));
-  fireEvent.click(screen.getByRole('button', { name: /我的工作台/ }));
+  fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   fireEvent.click(screen.getByRole('button', { name: '远端环境与连接' }));
   await screen.findByRole('heading', { name: '远端执行环境' });
   await waitFor(() => expect(f.count('remoteControl/status/read')).toBe(1));
@@ -789,7 +792,7 @@ it('keeps the voice panel mounted when returning to chat and does not implicitly
 });
 it('retains owner-only OAuth handoff after configuration refresh without starting it on open', async () => {
   const f = await fixture();
-  fireEvent.click(screen.getByRole('button', { name: /我的工作台/ }));
+  fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
   fireEvent.click(await screen.findByText('供应商网关 OAuth', { selector: 'summary' }));
   await screen.findByText('当前供应商：Fixture');
@@ -804,7 +807,7 @@ it('retains owner-only OAuth handoff after configuration refresh without startin
 });
 it('retains an accepted owner pairing through ordinary configuration revision changes', async () => {
   const f = await fixture();
-  fireEvent.click(screen.getByRole('button', { name: /我的工作台/ }));
+  fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   fireEvent.click(screen.getByRole('button', { name: '远端环境与连接' }));
   await screen.findByText('状态：connected · fixture');
   await waitFor(() => expect(f.count('remoteControl/client/list')).toBe(1));
@@ -835,4 +838,44 @@ it('keeps the workspace closed after authentication is lost while the initial se
   expect(screen.queryByRole('textbox', { name: '消息' })).toBeNull();
   expect(api.csrf).toBe('');
   expect(screen.getByRole('alert').textContent).toContain('登录状态已变化');
+});
+
+it('manages an unselected sidebar conversation without opening or resuming that conversation', async () => {
+  const other = { id: 'other-row', name: 'Other row', cwd: '/p' };
+  const f = await fixture(false, false, undefined, true, call => {
+    if (call.method === 'thread/list') return { data: [{ id: 't', name: 'Current thread', cwd: '/p' }, other], nextCursor: null };
+    if (call.method === 'thread/name/set') return {};
+    return undefined;
+  });
+  fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { target: { value: 'keep current draft' } });
+  const before = f.calls.length;
+  fireEvent.click(await screen.findByRole('button', { name: '管理会话：Other row' }));
+  fireEvent.click(within(screen.getByRole('group', { name: '管理会话：Other row' })).getByRole('button', { name: '重命名会话' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '会话名称' }), { target: { value: 'Changed other row' } });
+  fireEvent.click(await enabledButton({ name: '保存名称' }));
+  await waitFor(() => expect(f.count('thread/name/set')).toBe(1));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: '重命名会话' })).toBeNull());
+  expect(f.calls.find(call => call.method === 'thread/name/set')?.params).toEqual({ threadId: 'other-row', name: 'Changed other row' });
+  expect(f.calls.slice(before).some(call => call.method === 'thread/resume' || (call.method === 'thread/read' && call.params.threadId === 'other-row'))).toBe(false);
+  expect(new URL(location.href).searchParams.get('thread')).toBe('t');
+  expect((screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value).toBe('keep current draft');
+});
+
+it.each(['sidebar', 'settings'])('refuses removing the current project from %s while its draft cannot be saved', async source => {
+  const f = await fixture();
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('storage full', 'QuotaExceededError'); });
+  fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { target: { value: 'unsaved current draft' } });
+  if (source === 'sidebar') {
+    fireEvent.click(screen.getByRole('button', { name: '管理项目：Project' }));
+    fireEvent.click(screen.getByRole('button', { name: '移除项目（保留目录）' }));
+  } else {
+    fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '项目目录' }));
+    fireEvent.click(screen.getByRole('button', { name: '移除项目' }));
+  }
+  fireEvent.click(await enabledButton({ name: '移除项目' }));
+  await screen.findByText(/当前草稿尚未安全保存。请先关闭此窗口/);
+  expect(f.count('project/remove')).toBe(0);
+  expect(new URL(location.href).searchParams.get('thread')).toBe('t');
+  expect((screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value).toBe('unsaved current draft');
 });

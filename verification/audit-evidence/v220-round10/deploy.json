@@ -1,0 +1,1123 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v220-round10",
+  "reviewerId": "v220-final-deploy",
+  "digest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "complete": true,
+  "startedAt": "2026-10-30T18:38:39.844033+00:00",
+  "completedAt": "2026-10-30T18:40:48.835944+00:00",
+  "scopes": [
+    "deploy/**",
+    "tests/deploy/**",
+    "harness.sh"
+  ],
+  "method": "Complete deployment scope124 review against the final1947-file freeze10. Fresh raw SHA256/mode/size checks for all124 files and Python AST parsing for all115 Python files (without imports/execution) establish123 byte/mode-identical files and115 identical ASTs versus audit9;717testfunctions and60focused call sites inventoried. Unchanged substantive audit8/9 analysis is explicitly retained, not called a fresh line-by-line reread. Fresh manual reading follows operator/install/update/account-reset, shared locks and complete archival flow, protected legacy restoration versus ordinary strict verification, configuration no-op/migration, registry/catalog/native project identity, HTTPS activation/error classification, request-spool/helper timeout boundaries and current documentation. Local shell/Go recipe and dependency pin integrity checked; unchanged Go-test/vision-fixture semantics retained rather than claiming a transitive dependency audit. The only changed scoped source is authorized deploy/README.md clarification; pre-MD draft freeze is preserved by root, and this report binds only final32a6 freeze. No tests or online actions during this audit. StructuredAt marks the final fresh structural pass; same-task focused reading also preceded it.",
+  "inspectedFiles": [
+    "deploy/README.md",
+    "deploy/RECOVERY.md",
+    "deploy/__init__.py",
+    "deploy/accounts.py",
+    "deploy/archive.py",
+    "deploy/build.py",
+    "deploy/caddy_dns_source/go.mod",
+    "deploy/caddy_dns_source/go.sum",
+    "deploy/caddy_dns_source/main.go",
+    "deploy/caddy_dns_source/main_test.go",
+    "deploy/candidate_archive.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/dns_caddy_build.py",
+    "deploy/dns_providers.py",
+    "deploy/dns_tls.py",
+    "deploy/edge_defaults.py",
+    "deploy/https.py",
+    "deploy/https_guidance.py",
+    "deploy/https_health.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/install_recovery.py",
+    "deploy/journal.py",
+    "deploy/journal_schema.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/operator.py",
+    "deploy/ownership.py",
+    "deploy/ports.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_catalogs.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/provider_lifecycle.py",
+    "deploy/provider_registry.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/sandbox.py",
+    "deploy/service_lifecycle.py",
+    "deploy/system.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "harness.sh",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/recovery_runbook_probe.py",
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_candidate_archive.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_control_update.py",
+    "tests/deploy/root/test_directory_durability.py",
+    "tests/deploy/root/test_dns_caddy_build.py",
+    "tests/deploy/root/test_edge_diagnostics.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_initialization_resume.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_project_identity.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/root/test_service_lifecycle.py",
+    "tests/deploy/root/test_tree_durability.py",
+    "tests/deploy/test_accounts.py",
+    "tests/deploy/test_candidate_archive.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_directory_durability.py",
+    "tests/deploy/test_dns_caddy_build.py",
+    "tests/deploy/test_dns_tls.py",
+    "tests/deploy/test_edge_diagnostics.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_https_defaults.py",
+    "tests/deploy/test_https_guidance.py",
+    "tests/deploy/test_https_health.py",
+    "tests/deploy/test_https_ports.py",
+    "tests/deploy/test_initialization_resume.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_operator.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_prepare_ci_go.py",
+    "tests/deploy/test_project_creation.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_provider_lifecycle.py",
+    "tests/deploy/test_provider_registry.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_sandbox.py",
+    "tests/deploy/test_service_lifecycle.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_ack.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs"
+  ],
+  "coverage": [
+    {
+      "area": "One-stop install, upgrade, initialization resume, administrator reset and restoration",
+      "inspection": "Previously followed install and install-resume creation of management.lock via unchanged common.exclusive, the same inode used by fixed RPC/control/ordinary CLI operations, and archive acquisition after initialization. Common077/027/022 umasks produce0600/0640/0644, now accepted only by the dedicated archive management_lock policy. Initialization/identity reservation remain strict0600. Prior account, first-install durability and recovery analysis is retained unchanged.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    },
+    {
+      "area": "HTTPS validation, migration and renewal",
+      "inspection": "Traced standard ACME, six integrated DNS providers, internal CA and provided PEM paths, explicit origin/port migration, retained credentials/material, TLS/SNI/chain and instance identity proof, exact service sets, diagnostics and prior-edge recovery. Renewal metadata correctly distinguishes configuration from unverified future renewal and cached-certificate readiness from DNS key access.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    },
+    {
+      "area": "Parallel providers, catalogs and legacy configuration layers",
+      "inspection": "Traced collection read/write/default/remove/profile lifecycle, scoped secrets/catalogs, responses discovery, ChatGPT/gateway/Bedrock constraints and per-provider native bindings. Confirmed legacy provider reads synthesize a default connection and migration persists it. Empty Zhipu defaults/catalogs are initialized from declared vendor metadata; no entitlement or successful paid request is claimed.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    },
+    {
+      "area": "Managed project creation and workspace helpers",
+      "inspection": "Traced native identity switching, root and ancestor handling, project publication and fsync error classification, protected descriptor-relative paths, bounded file/resource/search operations, recovery receipts, Git temporary views/index/commit CAS and worktree identity bindings. Compared adversarial and positive fixture expectations without executing them.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    },
+    {
+      "area": "Build candidates and retention",
+      "inspection": "Previously followed initialization-lock then management-lock acquisition around full archive admission/removal/move/restoration. The dedicated management lock accepts only0600/0640/0644, root-owned empty regular single-link files, opens with O_NOFOLLOW/O_NONBLOCK, retains the same nonblocking flock descriptor and checks path device/inode after acquisition. No chmod/replacement is performed. Existing eight-candidate limit, successful three-probe/private-record/full-release verification, no image/mount, known-idle and twice-confirmed stopped process/cgroup boundaries are unchanged. Rename and original service restoration remain journaled, and terminal publication stays outside compensation.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    },
+    {
+      "area": "Control and application upgrade transactions",
+      "inspection": "Previously checked ordinary control/CLI shared-lock callers, operator control-update→config-layer-migrate→application update order, current-sudo migration no-op boundary and legacy restore/current verification separation. Default Manager.verify requires current units/sudo; only protected active restoring journals admit exact recognized saved worker/sudo bytes and mode. Other release/account/state/provider/HTTPS checks remain. Prior trusted control provenance, immutable generation/launcher recovery, stop boundaries and terminal fsync analysis remain applicable by exact hashes.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    },
+    {
+      "area": "Archives, ownership, request spool and failure classification",
+      "inspection": "Reviewed archive/manifest and dependency input bounds, stable descriptors, root/private ownership and service identities, source/import durability, request and receipt budgets, no unsafe retry after dispatch, and distinction between operator CLI errors and RPC not_sent/unknown contracts. Prior stopped-journal review confirms pending becomes not_sent and dispatching becomes unknown only after both service cgroups stop; historical and retired-operation evidence is retained.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    },
+    {
+      "area": "Offline backup and restore procedure",
+      "inspection": "Reviewed same-machine recorded-uninstall maintenance, exact path inventory, retained WAL/SHM and identity material, preserved management.lock inode, quarantine and durable checkpoints, stopped verification and explicit restore-services. Reviewed runbook probe namespace guards and simulated service operations; no restore executed.",
+      "reviewBasis": "Substantive prior audit8/9 analysis retained for unchanged implementation. Fresh final-freeze10 checks establish123 unchanged files and115 identical Python ASTs; changed deploy/README.md was freshly reviewed and corrected. Specific fresh semantic reading is recorded separately."
+    }
+  ],
+  "freshSemanticReview": [
+    {
+      "area": "Operator and direct install/upgrade/reset paths",
+      "files": [
+        "harness.sh",
+        "deploy/install.sh",
+        "deploy/operator.py",
+        "deploy/cli.py",
+        "deploy/install.py",
+        "deploy/accounts.py",
+        "deploy/build.py",
+        "deploy/manager.py",
+        "deploy/README.md"
+      ],
+      "inspection": "Freshly followed shell cwd/argument/-B handling, new installation preflight and recorded identities, install-resume distinction, operator control-update then config-layer-migrate then update, direct update preparation/admission and activation. Direct app update preserves current control/config; eight retained candidates still require explicit verified archival before a new build. Account reset is explicit and retains its newly published revision even when login verification fails; no automatic reset or credential rollback."
+    },
+    {
+      "area": "Shared lock, verified candidate archival and independent proxy",
+      "files": [
+        "deploy/common.py",
+        "deploy/install_recovery.py",
+        "deploy/candidate_archive.py",
+        "deploy/control_update.py",
+        "tests/deploy/root/test_candidate_archive.py",
+        "deploy/RECOVERY.md"
+      ],
+      "inspection": "Freshly read archive implementation and same-inode shared lock policy: initialization remains0600; management permits only0600/0640/0644 with root/regular/empty/nlink1/no-follow/nonblocking and post-flock inode proof. Followed full private preparation/three-probe/manifest/mount/image/transient/idle/no-pending checks, fixed target/inode/digest bindings, twice-confirmed stop, rename and both-parent fsync, lifecycle restoration and terminal publication. Read actual common.exclusive0644 contention/real verification and unsafe-lock regressions. Exact instance-role/transient selectors and numeric identities exclude an independent proxy; no nftables/proxy mutation is part of these paths. CI9 selected archive already completed historically; no new candidate is selected or authorized by this review."
+    },
+    {
+      "area": "Legacy definitions, strict verification and configuration migration",
+      "files": [
+        "deploy/units.py",
+        "deploy/ownership.py",
+        "deploy/service_lifecycle.py",
+        "deploy/manager.py",
+        "deploy/config_layer.py",
+        "tests/deploy/root/test_service_lifecycle.py",
+        "tests/deploy/root/test_config_layer.py"
+      ],
+      "inspection": "Freshly checked exact old sudo/worker recognition and protected current restoring-journal context: same record/marker/bindings, unique pending transaction, root metadata, exact supported saved bytes and actual saved mode are required. Default verify stays strict current; restoration labels retained-legacy separately and preserves originally stopped services. Other provider/release/TLS checks remain. Already-layered connections only skip migration if current sudo bytes match, so a recognized old no-catalog policy still publishes current permission transactionally. Read real-verifier stopped-worker/modified-policy/mode/provider/TLS negative regressions. Prior authorship is independently reviewed by root/runtime evidence, not presented as self-independent certification."
+    },
+    {
+      "area": "Provider registry, native catalog identity and managed projects",
+      "files": [
+        "deploy/provider_registry.py",
+        "deploy/provider_catalogs.py",
+        "deploy/native_launcher.py",
+        "deploy/config_layer.py",
+        "deploy/workspace_paths.py"
+      ],
+      "inspection": "Freshly read default legacy registry synthesis,16-connection bound/revision checks/default-enabled and endpoint-bound settings, stable modelProvider aliases, per-provider catalog/environment generation and enabled-provider launcher lookup. Empty Zhipu defaults use explicitly vendor-labelled metadata; discovery failure is visible without fabricating account success. Native project creation validates a directory name, runs under native identity and syncs native home/project/parent at the actual publication boundaries. Descriptor-relative no-follow workspace operations and their unchanged durability/receipt semantics retain prior full-scope analysis."
+    },
+    {
+      "area": "HTTPS and bounded gateway helper integration",
+      "files": [
+        "deploy/https.py",
+        "deploy/https_health.py",
+        "deploy/requests.py",
+        "deploy/cli.py",
+        "deploy/accounts.py",
+        "deploy/units.py"
+      ],
+      "inspection": "Freshly read TLS/SNI/chain/expiry plus instance proof and selected account readiness before HTTPS commit; failures retain/restore exact prior edge material, activity and enablement, and future renewal/external reachability remain unverified. Re-read request-admission lease and executor file lock separation, retained unit-stop confirmation and no resurrection/no receipt reinterpretation. Cross-checked fixed independent root helper unit180s bounds against separately reviewed new gateway FIFO queue: timeout/close is not cancellation or authority to replay unknown writes."
+    },
+    {
+      "area": "Documentation, non-Python recipes and full-scope structure",
+      "files": [
+        "deploy/README.md",
+        "deploy/RECOVERY.md",
+        "harness.sh",
+        "deploy/install.sh",
+        "deploy/caddy_dns_source/main.go",
+        "deploy/caddy_dns_source/main_test.go",
+        "deploy/caddy_dns_source/go.mod",
+        "deploy/caddy_dns_source/go.sum",
+        "tests/deploy/vision_stdio_probe.mjs"
+      ],
+      "inspection": "All124raw file hashes/modes and115Python ASTs freshly compared;717testfunctions and60focused production call sites inventoried. Local Go recipe version/provider checks and six pinned module entries checked; prior unchanged Go test/vision-probe semantics retained, no transitive implementation or build/test claim. Read complete recovery runbook including protected lock-inode backup/restore, private quarantine and interrupted checkpoint boundaries. The only changed scoped file is deployment documentation correcting five current/four downgraded sudo modes and journal-bound legacy distinction; all15tracked MD review is separate."
+    }
+  ],
+  "freshManualReviewFiles": [
+    "deploy/README.md",
+    "deploy/RECOVERY.md",
+    "deploy/accounts.py",
+    "deploy/build.py",
+    "deploy/caddy_dns_source/go.mod",
+    "deploy/caddy_dns_source/go.sum",
+    "deploy/caddy_dns_source/main.go",
+    "deploy/candidate_archive.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/https.py",
+    "deploy/https_health.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/install_recovery.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/operator.py",
+    "deploy/ownership.py",
+    "deploy/provider_catalogs.py",
+    "deploy/provider_registry.py",
+    "deploy/requests.py",
+    "deploy/service_lifecycle.py",
+    "deploy/units.py",
+    "deploy/workspace_paths.py",
+    "harness.sh",
+    "tests/deploy/root/test_candidate_archive.py",
+    "tests/deploy/root/test_config_layer.py",
+    "tests/deploy/root/test_service_lifecycle.py"
+  ],
+  "freshManualReviewNote": "Specific function bodies, full archive/recovery runbook and selected meaningful tests were freshly read. All other scoped files received fresh hash/structure checks with retained unchanged semantic analysis. No claim of all124 files freshly line-by-line or any new test execution.",
+  "checks": [
+    {
+      "kind": "static",
+      "result": {
+        "scopeFiles": 124,
+        "pythonFiles": 115,
+        "testFunctions": 717,
+        "pythonAstIdenticalToAudit9": 115,
+        "wholeFileHashAndModeIdenticalToAudit9": 123,
+        "changedScopeFiles": [
+          "deploy/README.md"
+        ],
+        "goProviderPinsChecked": {
+          "alidns": "v1.0.29",
+          "cloudflare": "v0.2.4",
+          "digitalocean": "v0.0.0-20250606074528-04bde2867106",
+          "huaweicloud": "v1.0.1",
+          "route53": "v1.6.2",
+          "tencentcloud": "v0.4.3"
+        }
+      }
+    },
+    {
+      "kind": "scope-integrity",
+      "result": {
+        "scopeChangedFiles": [
+          "deploy/README.md"
+        ],
+        "wholeRepositoryChangedSinceAudit9": [
+          "ARCHITECTURE.md",
+          "FEATURES.md",
+          "README.md",
+          "deploy/README.md",
+          "src/core/ledger.ts",
+          "src/gateway/dispatch.ts",
+          "src/gateway/manager-client.ts",
+          "src/gateway/receipt-result.ts",
+          "tests/core/ledger.test.ts",
+          "tests/gateway/dispatch.test.ts",
+          "tests/gateway/manager-client.test.ts",
+          "tests/gateway/receipt-result.test.ts",
+          "tests/runtime/README.md",
+          "tests/runtime/reasoning-summary.test.ts",
+          "tests/runtime/service.test.ts",
+          "web/Workspace.tsx",
+          "web/components/Dialog.tsx",
+          "web/components/Icon.tsx",
+          "web/components/MessageItem.tsx",
+          "web/components/ProjectDialog.tsx",
+          "web/components/ProviderProfiles.tsx",
+          "web/components/ProviderSettings.tsx",
+          "web/components/Settings.tsx",
+          "web/components/Sidebar.tsx",
+          "web/components/SidebarManagementDialog.tsx",
+          "web/hooks/useConversation.ts",
+          "web/lib/history.ts",
+          "web/lib/stream-items.ts",
+          "web/lib/types.ts",
+          "web/styles-extensions.css",
+          "web/styles.css",
+          "web/tests/app-lifecycle.test.tsx",
+          "web/tests/builtin-auth.test.tsx",
+          "web/tests/conversation-recovery.test.tsx",
+          "web/tests/device-login.test.tsx",
+          "web/tests/dialog.test.tsx",
+          "web/tests/draft-navigation.test.tsx",
+          "web/tests/project-create.test.tsx",
+          "web/tests/provider-advanced.test.tsx",
+          "web/tests/provider-profiles.test.tsx",
+          "web/tests/render-budget.test.tsx",
+          "web/tests/settings-drafts.test.tsx",
+          "web/tests/settings.test.tsx",
+          "web/tests/sidebar-management.test.tsx",
+          "web/tests/sidebar.test.tsx",
+          "web/tests/stream-items.test.ts"
+        ],
+        "pythonStructureAllUnchanged": true
+      }
+    },
+    {
+      "kind": "lock-lifecycle-regressions",
+      "result": "Fresh source/fixture review confirms ordinary0644 lock compatibility, immutable inode contention, strict initialization0600, exact recorded legacy restoration and ordinary current-policy verification; no tests executed."
+    },
+    {
+      "kind": "user-workflow-contracts",
+      "result": "Install/upgrade/reset/recovery, provider/default/catalog migration, project identity/fsync, HTTPS validation/renewal statements and private recovery preservation reviewed; no actionable source defect found."
+    },
+    {
+      "kind": "documentation",
+      "result": ".work/v220-all-md-review.json complete15, findings[], resolved current sudo/catalog enumeration and historical CI9 wording."
+    },
+    {
+      "kind": "snapshot",
+      "command": "node scripts/snapshot.mjs",
+      "result": {
+        "files": 1947,
+        "digest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+        "unchanged": true
+      }
+    }
+  ],
+  "findings": [],
+  "skipped": [],
+  "unexecutedIntegrations": [
+    {
+      "scope": "Test execution",
+      "reason": "No test suite or targeted tests executed during audit10. New final source requires its subsequent exact full CI; prior execution is separately historical."
+    },
+    {
+      "scope": "Online deployment and service/lock/proxy state",
+      "reason": "No SSH, remote reads, service operations, new staging or live deployment during audit10. Historical CI9 host evidence cannot prove present live state or execution of new application bytes."
+    },
+    {
+      "scope": "External providers/MCP/DNS/ACME renewal",
+      "reason": "No paid inference, external provider/credential checks, certificate issuance/forced renewal or browser acceptance performed."
+    },
+    {
+      "scope": "Go and non-Python execution",
+      "reason": "Local recipe/locks and six pins inspected, unchanged fixture semantics retained; no dependency downloads, go mod verify/build/test or vision probe execution."
+    }
+  ],
+  "reviewContinuity": {
+    "priorRoundId": "v220-round9",
+    "priorDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+    "priorOutcome": "clean",
+    "priorReportPreserved": true,
+    "scopeInventorySame": true,
+    "crossRoundPerFileHashComparisonAvailable": true,
+    "unchangedFileCount": 123,
+    "changedFiles": [
+      "deploy/README.md"
+    ],
+    "allPythonAstUnchanged": true,
+    "authorFixIndependentlyReviewed": [
+      ".work/v220-sudo-compat-review.json",
+      ".work/v220-lifecycle-compat-review.json",
+      ".work/v220-management-lock-review.json"
+    ],
+    "historyNote": "Audit6 NONCLEAN and later clean rounds preserved. Historical CI7 operational blocker, fixed lock/lifecycle reviews, CI8/CI9 deployment and this final followup are distinct source/time boundaries. Pre-MD draft freeze was superseded before publication, not represented as final."
+  },
+  "fileHashes": {
+    "deploy/README.md": "f77f131ce1c9297bfe3bc17ef54ef61d7d0cfaf04a3b5c64ada8c3a24f303461",
+    "deploy/RECOVERY.md": "74b82b96b8d0b81abc268735e440800eb1628e32a144efcd60dddbffcf215361",
+    "deploy/__init__.py": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+    "deploy/accounts.py": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+    "deploy/archive.py": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+    "deploy/build.py": "1f4c0733cbc7973c58594efb3c91e9c5847a1f02c3a943ceb3ebe7595d79b79c",
+    "deploy/caddy_dns_source/go.mod": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+    "deploy/caddy_dns_source/go.sum": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975",
+    "deploy/caddy_dns_source/main.go": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+    "deploy/caddy_dns_source/main_test.go": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+    "deploy/candidate_archive.py": "26f6275e410050020bb65250b49b46ed51bfb846a9a5abe7d424fe0992f299a9",
+    "deploy/candidate_probe.py": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+    "deploy/catalog.py": "f90928d0f5d52c95793f0a8af8fbdfd00e8410ab82fefba83f132d2599a9ec29",
+    "deploy/cli.py": "1bf4a8e14f1a923b9ba95d0cc9dfc9451aa9b4e7d2ad0282cdea4cdbe04dbb40",
+    "deploy/common.py": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+    "deploy/config_layer.py": "d2119f00f1de4ef8d5ff9ca12fdb503140ef0e3e88436e23a0550f6c4d59b5a9",
+    "deploy/control_update.py": "5793a688d763b27a4d90665dc59fea8b82b9e390fa62b044328af01c5f7a2f59",
+    "deploy/dns_caddy_build.py": "88babaac6ea04d2e63df0c3bba128c1e7c987dad22eda8d188b3b6bb71e63c89",
+    "deploy/dns_providers.py": "e85f0d718dd911d1116c604d497bd637e7e7e3927cc4457eb6a8bbbcc76de167",
+    "deploy/dns_tls.py": "4b451e88758577d41507b3ef3c9fdeb69729b211650d6095d3cfadf9211db612",
+    "deploy/edge_defaults.py": "b2ee74b8c5fe22c095f13651cfc4a174449ab367e1d30bce78421fcc4c099ae1",
+    "deploy/https.py": "0c6d05e5f2233cd42ff1ee4fc112d6b736b62a32711edca5259e89dea4edc6d7",
+    "deploy/https_guidance.py": "143157050a8f0ffe69f6a214bc1d7cc7661968bee4c65b9b3f4511ff3db4b218",
+    "deploy/https_health.py": "1862f1c1373a582ea08a3627d2449e17ce998dc517bdd513b147d1e046ba1d90",
+    "deploy/install.py": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+    "deploy/install.sh": "5c255716dcbe6f9fc2e973c078838639a4846383900b6e5b93a54890a2a523de",
+    "deploy/install_recovery.py": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a",
+    "deploy/journal.py": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+    "deploy/journal_schema.py": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+    "deploy/manager.py": "181f776c71d4f679765501ee1ac7ae30da64b6775801848a0dc6b4a679173e60",
+    "deploy/native_launcher.py": "824a742b54de568569305df6023f964f0d7fb07a54f85798f3c714f9452725a8",
+    "deploy/operator.py": "6041efbc9e9d922227d27a9bbce4ca0817da72f7c85a44fba1f60e3d2b8deacc",
+    "deploy/ownership.py": "2e8b509d66846ad947f733b0ebdb0720424013b32f9bd7caeaaf05fc84a57cbe",
+    "deploy/ports.py": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+    "deploy/provider.py": "0add7de50dea5c6fe09aaec33a31e117e722253e9c2b8a79f34392417c1bac2f",
+    "deploy/provider_bedrock.py": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+    "deploy/provider_catalogs.py": "54c26f79ffdfb48777ab4d9f1fdd96d3726760b2d09734e5549573cf986f9e57",
+    "deploy/provider_gateway.py": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+    "deploy/provider_layers.py": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+    "deploy/provider_lifecycle.py": "41ab476b99fe8f3d78047ea228e186fe6b25af299bb5c3973845c411466745be",
+    "deploy/provider_registry.py": "26d9adb18c915a57a2fd38577002b0ed4c97ef7a1834fcb639cf60b4d6223bf6",
+    "deploy/requests.py": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+    "deploy/safe_fs.py": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+    "deploy/sandbox.py": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+    "deploy/service_lifecycle.py": "e0d7a1c405d30f584e8d0a9c1d18fb6faf0b7c60d441e6b86efa6a040e6e78b5",
+    "deploy/system.py": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+    "deploy/transactions.py": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+    "deploy/units.py": "31d6340ddf1ab0f054b669d6c80507fb6cda60e814835f44e52a3dd6c8304b4a",
+    "deploy/workspace.py": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+    "deploy/workspace_commit.py": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+    "deploy/workspace_git.py": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+    "deploy/workspace_git_transaction.py": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+    "deploy/workspace_git_view.py": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+    "deploy/workspace_index.py": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+    "deploy/workspace_index_store.py": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+    "deploy/workspace_paths.py": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+    "deploy/workspace_recovery.py": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+    "deploy/workspace_resources.py": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+    "deploy/workspace_search.py": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+    "deploy/workspace_store.py": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+    "deploy/workspace_worktrees.py": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+    "harness.sh": "016d68a0d4c996f7d96158e17e8a4909cc41693a46552a613d6de262b64ab6a6",
+    "tests/deploy/linux_isolation.py": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+    "tests/deploy/linux_native_boundary.py": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+    "tests/deploy/recovery_runbook_probe.py": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+    "tests/deploy/root/test_account_recovery.py": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+    "tests/deploy/root/test_accounts.py": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+    "tests/deploy/root/test_candidate_archive.py": "ce6f68ea4dab05554eed9d760d670161b7fe52b69fbb8867ce62d7cd1828ddbc",
+    "tests/deploy/root/test_config_layer.py": "32df9e73312ba80d218adccdbb985ded9c6ff8a81d4be4d003aea0535b43c101",
+    "tests/deploy/root/test_control_update.py": "a96f29e5efe8a85f6b9f3fc433a5b2fdbf45fbf6c632ce7770303ee663ccfb04",
+    "tests/deploy/root/test_directory_durability.py": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+    "tests/deploy/root/test_dns_caddy_build.py": "f9566f96a8faadb17e6c34c7202553e66fc888c8d6b30519e4a0778cfe2f1107",
+    "tests/deploy/root/test_edge_diagnostics.py": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+    "tests/deploy/root/test_https.py": "15856c2c06ba33f692d64c406e5ea836ff8a9b282e3de6506913da29a9a451d0",
+    "tests/deploy/root/test_initialization_resume.py": "6899ed54037018616ec35fe0bb40727e01f21a2dbc1a8bdc12310874768907e8",
+    "tests/deploy/root/test_journal_recovery.py": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+    "tests/deploy/root/test_management_boundaries.py": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+    "tests/deploy/root/test_project_identity.py": "4bf1b2de1f82d6d88fefbbf48fe2b947a4305d2a6f94022b2fc76e8645436806",
+    "tests/deploy/root/test_provider_extended.py": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+    "tests/deploy/root/test_provider_layers.py": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+    "tests/deploy/root/test_release_reuse.py": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+    "tests/deploy/root/test_request_spool.py": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+    "tests/deploy/root/test_service_lifecycle.py": "8f900dc49d218bdcb15176706704a20ff465bd194a8dc282f4fa535cc0165042",
+    "tests/deploy/root/test_tree_durability.py": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+    "tests/deploy/test_accounts.py": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+    "tests/deploy/test_candidate_archive.py": "2c226e6222aff645d2ba37564261a8b5d9daad5625332943c9b833731229b9fc",
+    "tests/deploy/test_control_update.py": "414d96b550b8d5b1117d401eaafe908c3b3228cb4b8373955bfad110c112ade9",
+    "tests/deploy/test_dependency_lock.py": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+    "tests/deploy/test_deployment.py": "16e1cbdf1f4f7b8b575ffbb0cee553dc184aed86f1e526d43222f10278e58c7e",
+    "tests/deploy/test_directory_durability.py": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+    "tests/deploy/test_dns_caddy_build.py": "5faf7d10a41d8942d9bf5f52c79d85d2e928b1a59d2357322098e5d3c4293ae9",
+    "tests/deploy/test_dns_tls.py": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+    "tests/deploy/test_edge_diagnostics.py": "b9af43f064fb7740b671ec1fb4c15ba67b7f1490e84a8d499943a9a630d9fb1e",
+    "tests/deploy/test_https.py": "33e7f111cb83dd7e175b10fe9429c0a98634be092f969725f3b2f937ac34290d",
+    "tests/deploy/test_https_defaults.py": "3939b56ba536286c41e25b1386f4b7942e020d8caeefb42f41674e3d4971a6e5",
+    "tests/deploy/test_https_guidance.py": "691002a67f5ae2f25223eee2bf6943a6f1e82f2f74bb7203eecf9bdb8efcb7b2",
+    "tests/deploy/test_https_health.py": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+    "tests/deploy/test_https_ports.py": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+    "tests/deploy/test_initialization_resume.py": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+    "tests/deploy/test_install_recovery.py": "6d0a9a326bf67c77dc1bcd4e3a9058a8de1d4e1b235a447fc64a61da590da2b1",
+    "tests/deploy/test_journal_schema.py": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+    "tests/deploy/test_management_boundaries.py": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+    "tests/deploy/test_native_shutdown.py": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+    "tests/deploy/test_operator.py": "506cc04b9145247f2ebd46d6c22da17c081979d611f71164a1687d1274a6e4c3",
+    "tests/deploy/test_origins.py": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+    "tests/deploy/test_prepare_ci_go.py": "f6809e2784c5d6a4aef0789dd82a495669632107e090ac2d8f0f6eea33a920c6",
+    "tests/deploy/test_project_creation.py": "0679bddce4f15ea040adc2d532c654a2b245aa76f80529a5432e6ddb2ab42e06",
+    "tests/deploy/test_provider_bedrock.py": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+    "tests/deploy/test_provider_gateway.py": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+    "tests/deploy/test_provider_layers.py": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+    "tests/deploy/test_provider_lifecycle.py": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+    "tests/deploy/test_provider_registry.py": "bf215c0993cec33817e53a696a1c13c2478fc74661080aa56106e1023d2f90ea",
+    "tests/deploy/test_request_spool.py": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+    "tests/deploy/test_sandbox.py": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+    "tests/deploy/test_service_lifecycle.py": "4e1fbf7a4938e0c566b66aa0fddeddf693e73ac25913bbda38c065ec30850b85",
+    "tests/deploy/test_workspace.py": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+    "tests/deploy/test_workspace_ack.py": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+    "tests/deploy/test_workspace_commit.py": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+    "tests/deploy/test_workspace_index.py": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+    "tests/deploy/test_workspace_recovery.py": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+    "tests/deploy/test_workspace_resources.py": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+    "tests/deploy/test_workspace_search.py": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+    "tests/deploy/test_workspace_worktrees.py": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+    "tests/deploy/vision_stdio_probe.mjs": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+  },
+  "fileMetadata": {
+    "deploy/README.md": {
+      "bytes": 97406,
+      "executableBits": 0
+    },
+    "deploy/RECOVERY.md": {
+      "bytes": 26008,
+      "executableBits": 0
+    },
+    "deploy/__init__.py": {
+      "bytes": 78,
+      "executableBits": 0
+    },
+    "deploy/accounts.py": {
+      "bytes": 11018,
+      "executableBits": 0
+    },
+    "deploy/archive.py": {
+      "bytes": 7375,
+      "executableBits": 0
+    },
+    "deploy/build.py": {
+      "bytes": 20859,
+      "executableBits": 0
+    },
+    "deploy/caddy_dns_source/go.mod": {
+      "bytes": 10793,
+      "executableBits": 0
+    },
+    "deploy/caddy_dns_source/go.sum": {
+      "bytes": 151582,
+      "executableBits": 0
+    },
+    "deploy/caddy_dns_source/main.go": {
+      "bytes": 3202,
+      "executableBits": 0
+    },
+    "deploy/caddy_dns_source/main_test.go": {
+      "bytes": 6198,
+      "executableBits": 0
+    },
+    "deploy/candidate_archive.py": {
+      "bytes": 14563,
+      "executableBits": 0
+    },
+    "deploy/candidate_probe.py": {
+      "bytes": 5420,
+      "executableBits": 0
+    },
+    "deploy/catalog.py": {
+      "bytes": 6976,
+      "executableBits": 0
+    },
+    "deploy/cli.py": {
+      "bytes": 24304,
+      "executableBits": 0
+    },
+    "deploy/common.py": {
+      "bytes": 8516,
+      "executableBits": 0
+    },
+    "deploy/config_layer.py": {
+      "bytes": 16393,
+      "executableBits": 0
+    },
+    "deploy/control_update.py": {
+      "bytes": 37128,
+      "executableBits": 0
+    },
+    "deploy/dns_caddy_build.py": {
+      "bytes": 18857,
+      "executableBits": 0
+    },
+    "deploy/dns_providers.py": {
+      "bytes": 4325,
+      "executableBits": 0
+    },
+    "deploy/dns_tls.py": {
+      "bytes": 7354,
+      "executableBits": 0
+    },
+    "deploy/edge_defaults.py": {
+      "bytes": 145,
+      "executableBits": 0
+    },
+    "deploy/https.py": {
+      "bytes": 38407,
+      "executableBits": 0
+    },
+    "deploy/https_guidance.py": {
+      "bytes": 7466,
+      "executableBits": 0
+    },
+    "deploy/https_health.py": {
+      "bytes": 13786,
+      "executableBits": 0
+    },
+    "deploy/install.py": {
+      "bytes": 8819,
+      "executableBits": 0
+    },
+    "deploy/install.sh": {
+      "bytes": 100,
+      "executableBits": 0
+    },
+    "deploy/install_recovery.py": {
+      "bytes": 27444,
+      "executableBits": 0
+    },
+    "deploy/journal.py": {
+      "bytes": 4204,
+      "executableBits": 0
+    },
+    "deploy/journal_schema.py": {
+      "bytes": 4158,
+      "executableBits": 0
+    },
+    "deploy/manager.py": {
+      "bytes": 42854,
+      "executableBits": 0
+    },
+    "deploy/native_launcher.py": {
+      "bytes": 15714,
+      "executableBits": 0
+    },
+    "deploy/operator.py": {
+      "bytes": 21934,
+      "executableBits": 0
+    },
+    "deploy/ownership.py": {
+      "bytes": 6073,
+      "executableBits": 0
+    },
+    "deploy/ports.py": {
+      "bytes": 4019,
+      "executableBits": 0
+    },
+    "deploy/provider.py": {
+      "bytes": 22131,
+      "executableBits": 0
+    },
+    "deploy/provider_bedrock.py": {
+      "bytes": 1997,
+      "executableBits": 0
+    },
+    "deploy/provider_catalogs.py": {
+      "bytes": 2313,
+      "executableBits": 0
+    },
+    "deploy/provider_gateway.py": {
+      "bytes": 3428,
+      "executableBits": 0
+    },
+    "deploy/provider_layers.py": {
+      "bytes": 16009,
+      "executableBits": 0
+    },
+    "deploy/provider_lifecycle.py": {
+      "bytes": 9502,
+      "executableBits": 0
+    },
+    "deploy/provider_registry.py": {
+      "bytes": 10746,
+      "executableBits": 0
+    },
+    "deploy/requests.py": {
+      "bytes": 8432,
+      "executableBits": 0
+    },
+    "deploy/safe_fs.py": {
+      "bytes": 15533,
+      "executableBits": 0
+    },
+    "deploy/sandbox.py": {
+      "bytes": 3137,
+      "executableBits": 0
+    },
+    "deploy/service_lifecycle.py": {
+      "bytes": 18814,
+      "executableBits": 0
+    },
+    "deploy/system.py": {
+      "bytes": 8225,
+      "executableBits": 0
+    },
+    "deploy/transactions.py": {
+      "bytes": 2301,
+      "executableBits": 0
+    },
+    "deploy/units.py": {
+      "bytes": 10452,
+      "executableBits": 0
+    },
+    "deploy/workspace.py": {
+      "bytes": 19312,
+      "executableBits": 0
+    },
+    "deploy/workspace_commit.py": {
+      "bytes": 11168,
+      "executableBits": 0
+    },
+    "deploy/workspace_git.py": {
+      "bytes": 9409,
+      "executableBits": 0
+    },
+    "deploy/workspace_git_transaction.py": {
+      "bytes": 4076,
+      "executableBits": 0
+    },
+    "deploy/workspace_git_view.py": {
+      "bytes": 3427,
+      "executableBits": 0
+    },
+    "deploy/workspace_index.py": {
+      "bytes": 14592,
+      "executableBits": 0
+    },
+    "deploy/workspace_index_store.py": {
+      "bytes": 8062,
+      "executableBits": 0
+    },
+    "deploy/workspace_paths.py": {
+      "bytes": 7126,
+      "executableBits": 0
+    },
+    "deploy/workspace_recovery.py": {
+      "bytes": 7673,
+      "executableBits": 0
+    },
+    "deploy/workspace_resources.py": {
+      "bytes": 6876,
+      "executableBits": 0
+    },
+    "deploy/workspace_search.py": {
+      "bytes": 6156,
+      "executableBits": 0
+    },
+    "deploy/workspace_store.py": {
+      "bytes": 15313,
+      "executableBits": 0
+    },
+    "deploy/workspace_worktrees.py": {
+      "bytes": 20252,
+      "executableBits": 0
+    },
+    "harness.sh": {
+      "bytes": 324,
+      "executableBits": 0
+    },
+    "tests/deploy/linux_isolation.py": {
+      "bytes": 4092,
+      "executableBits": 0
+    },
+    "tests/deploy/linux_native_boundary.py": {
+      "bytes": 5330,
+      "executableBits": 0
+    },
+    "tests/deploy/recovery_runbook_probe.py": {
+      "bytes": 15150,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_account_recovery.py": {
+      "bytes": 8559,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_accounts.py": {
+      "bytes": 3669,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_candidate_archive.py": {
+      "bytes": 15104,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_config_layer.py": {
+      "bytes": 34826,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_control_update.py": {
+      "bytes": 46956,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_directory_durability.py": {
+      "bytes": 6899,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_dns_caddy_build.py": {
+      "bytes": 9538,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_edge_diagnostics.py": {
+      "bytes": 5081,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_https.py": {
+      "bytes": 61491,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_initialization_resume.py": {
+      "bytes": 13690,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_journal_recovery.py": {
+      "bytes": 5873,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_management_boundaries.py": {
+      "bytes": 11135,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_project_identity.py": {
+      "bytes": 5552,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_provider_extended.py": {
+      "bytes": 7739,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_provider_layers.py": {
+      "bytes": 6215,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_release_reuse.py": {
+      "bytes": 3386,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_request_spool.py": {
+      "bytes": 3239,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_service_lifecycle.py": {
+      "bytes": 25508,
+      "executableBits": 0
+    },
+    "tests/deploy/root/test_tree_durability.py": {
+      "bytes": 14524,
+      "executableBits": 0
+    },
+    "tests/deploy/test_accounts.py": {
+      "bytes": 10142,
+      "executableBits": 0
+    },
+    "tests/deploy/test_candidate_archive.py": {
+      "bytes": 15135,
+      "executableBits": 0
+    },
+    "tests/deploy/test_control_update.py": {
+      "bytes": 16568,
+      "executableBits": 0
+    },
+    "tests/deploy/test_dependency_lock.py": {
+      "bytes": 7487,
+      "executableBits": 0
+    },
+    "tests/deploy/test_deployment.py": {
+      "bytes": 49524,
+      "executableBits": 0
+    },
+    "tests/deploy/test_directory_durability.py": {
+      "bytes": 6267,
+      "executableBits": 0
+    },
+    "tests/deploy/test_dns_caddy_build.py": {
+      "bytes": 6947,
+      "executableBits": 0
+    },
+    "tests/deploy/test_dns_tls.py": {
+      "bytes": 13714,
+      "executableBits": 0
+    },
+    "tests/deploy/test_edge_diagnostics.py": {
+      "bytes": 5717,
+      "executableBits": 0
+    },
+    "tests/deploy/test_https.py": {
+      "bytes": 9721,
+      "executableBits": 0
+    },
+    "tests/deploy/test_https_defaults.py": {
+      "bytes": 6925,
+      "executableBits": 0
+    },
+    "tests/deploy/test_https_guidance.py": {
+      "bytes": 7297,
+      "executableBits": 0
+    },
+    "tests/deploy/test_https_health.py": {
+      "bytes": 20304,
+      "executableBits": 0
+    },
+    "tests/deploy/test_https_ports.py": {
+      "bytes": 3869,
+      "executableBits": 0
+    },
+    "tests/deploy/test_initialization_resume.py": {
+      "bytes": 5969,
+      "executableBits": 0
+    },
+    "tests/deploy/test_install_recovery.py": {
+      "bytes": 19937,
+      "executableBits": 0
+    },
+    "tests/deploy/test_journal_schema.py": {
+      "bytes": 10895,
+      "executableBits": 0
+    },
+    "tests/deploy/test_management_boundaries.py": {
+      "bytes": 3286,
+      "executableBits": 0
+    },
+    "tests/deploy/test_native_shutdown.py": {
+      "bytes": 7863,
+      "executableBits": 0
+    },
+    "tests/deploy/test_operator.py": {
+      "bytes": 20125,
+      "executableBits": 0
+    },
+    "tests/deploy/test_origins.py": {
+      "bytes": 1411,
+      "executableBits": 0
+    },
+    "tests/deploy/test_prepare_ci_go.py": {
+      "bytes": 13093,
+      "executableBits": 0
+    },
+    "tests/deploy/test_project_creation.py": {
+      "bytes": 6777,
+      "executableBits": 0
+    },
+    "tests/deploy/test_provider_bedrock.py": {
+      "bytes": 5643,
+      "executableBits": 0
+    },
+    "tests/deploy/test_provider_gateway.py": {
+      "bytes": 6530,
+      "executableBits": 0
+    },
+    "tests/deploy/test_provider_layers.py": {
+      "bytes": 9537,
+      "executableBits": 0
+    },
+    "tests/deploy/test_provider_lifecycle.py": {
+      "bytes": 8343,
+      "executableBits": 0
+    },
+    "tests/deploy/test_provider_registry.py": {
+      "bytes": 14343,
+      "executableBits": 0
+    },
+    "tests/deploy/test_request_spool.py": {
+      "bytes": 17047,
+      "executableBits": 0
+    },
+    "tests/deploy/test_sandbox.py": {
+      "bytes": 2709,
+      "executableBits": 0
+    },
+    "tests/deploy/test_service_lifecycle.py": {
+      "bytes": 3281,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace.py": {
+      "bytes": 20576,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace_ack.py": {
+      "bytes": 6764,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace_commit.py": {
+      "bytes": 12458,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace_index.py": {
+      "bytes": 17931,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace_recovery.py": {
+      "bytes": 12346,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace_resources.py": {
+      "bytes": 8985,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace_search.py": {
+      "bytes": 4335,
+      "executableBits": 0
+    },
+    "tests/deploy/test_workspace_worktrees.py": {
+      "bytes": 17010,
+      "executableBits": 0
+    },
+    "tests/deploy/vision_stdio_probe.mjs": {
+      "bytes": 7686,
+      "executableBits": 0
+    }
+  },
+  "crossBoundaryObservation": "Fresh installation has a single ChatGPT generation without runtime.json; provider_layers supplies the same harness_chatgpt identity as provider/read. The runtime reviewer independently confirmed missing-registry selection/account/native-catalog compatibility. No provider save is required merely to establish the initial managed identity.",
+  "historicalValidationEvidence": {
+    "executedDuringThisAudit": false,
+    "priorFullCI": {
+      "candidate": "91628b18444129448f7234aa32c4212a440a03d2",
+      "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+      "files": 227,
+      "cases": 2389,
+      "coverageGaps": [],
+      "record": "verification/audit-evidence/v220-release/hosted-ci9.json"
+    },
+    "priorDeploymentEvidence": "verification/audit-evidence/v220-release/deployment-ci9.json",
+    "limitation": "Historical CI9/current-before-followup host verification does not validate new audit10 application bytes or current remote status."
+  },
+  "auditOutcome": "clean",
+  "structureEvidence": {
+    "path": ".work/v220-audit10-deploy-structure.json",
+    "sha256": "635fecc54170465ee6bb8f0146285b8f48ddb3e34b4c9992feed8d181e44c43e",
+    "pythonFiles": 115,
+    "testFunctions": 717,
+    "focusedCrossModuleLockAndRecoveryCalls": 60
+  },
+  "resolvedPriorFindings": [
+    {
+      "id": "V220-DEPLOY-LEGACY-POLICY-RESTORE",
+      "priorReport": ".work/v220-audit6-deploy.json",
+      "resolution": "Protected active-journal context permits only exact retained supported legacy sudo/worker definitions during restoration; ordinary final verification remains strict. Adjacent supported old worker variants are covered by the same explicit boundary.",
+      "authorEvidence": ".work/v220-lifecycle-compat-fix.json",
+      "independentReview": ".work/v220-lifecycle-compat-review.json",
+      "independentReviewSha256": "992efcee74d786e2ac30b5ca03ae2a816749c15bceed1e319f17ac52fc43f881",
+      "independentFindings": []
+    },
+    {
+      "id": "V220-DEPLOY-MANAGEMENT-LOCK-CONTRACT",
+      "origin": "Post-audit7 actual deployment admission failure; not an original audit7 finding.",
+      "diagnosticEvidence": ".work/v220-ci7-lock-diagnosis.json",
+      "resolution": "Archive now uses dedicated management_lock accepting legitimate ordinary lock modes0600/0640/0644 while initialization remains strict0600. No online chmod/inode replacement or ownership weakening.",
+      "authorEvidence": ".work/v220-management-lock-fix.json",
+      "independentReview": ".work/v220-management-lock-review.json",
+      "independentReviewSha256": "984261ada649f1779fcc7bdce13edbca3928f4d7236a2f616a520a0464bf7960",
+      "independentFindings": []
+    }
+  ],
+  "resolvedDocumentationFindings": [
+    {
+      "id": "MD-CATALOG-SUDO-ENUMERATION",
+      "file": "deploy/README.md",
+      "evidence": ".work/v220-all-md-review.json",
+      "status": "Resolved before final freeze; documentation only."
+    }
+  ],
+  "endSnapshot": {
+    "files": 1947,
+    "digest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+    "unchanged": true,
+    "checkedAt": "2026-10-30T18:40:48.835944+00:00",
+    "command": "node scripts/snapshot.mjs"
+  },
+  "operationalFollowupOutsideSourceReview": {
+    "noOnlineActionsDuringThisAudit": true,
+    "status": "New exact full CI and explicit root deployment authorization are still required; no candidate archival selection or live command is authorized by this audit. Completed CI9 control/config/archive work is historical and must not be replayed merely because this source was reviewed."
+  }
+}

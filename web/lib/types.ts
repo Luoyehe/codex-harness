@@ -28,6 +28,8 @@ export type Item = {
     field: 'text' | 'aggregatedOutput' | 'reasoning';
     snapshot?: string;
     deltas: string;
+    // Public summary channel only; mixed deltas may also contain raw reasoning.
+    summaryDeltas?: string[];
   };
   [key: string]: unknown;
 };

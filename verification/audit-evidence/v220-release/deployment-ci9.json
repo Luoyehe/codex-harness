@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T18:21:56.463Z",
+  "status": "historical-CI9-deployed-and-host-verified; formal-release-deferred-for-new-UX-scope",
+  "applicationVersion": "2.2.0",
+  "candidate": "91628b18444129448f7234aa32c4212a440a03d2",
+  "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+  "auditedSourceFiles": 1941,
+  "applicationArchiveSha256": "7dbaa7c800aa2f2ea5ee433c980a39dec95661ab9b125e7666c38090a04d97fc",
+  "deployedRelease": "a0759efc0c0a8c18a3b42a53ee08bb18395d1531f3c9c5037cd6a820f44e1a6a",
+  "previousReleaseRetained": "641ccf9ef66a684d496986374013362d538624ac0e5d48d8cd3962d10c3cdb12",
+  "deploymentCompletedAt": "2026-10-30T17:49:17.467762+00:00",
+  "evidenceDigests": {
+    "privateDeploymentRecord": "a038b4aeaf756f27bf0333ee93285cf8c0666e4980f06f8117fdeb7a7c759450",
+    "completeCiRecord": "20f3d27e1b4d13cbacd41c20f59afe16b22147f9b4bcc5ac91c7e9b5f9e2c772"
+  },
+  "fullCi": {
+    "status": "passed",
+    "candidate": "91628b18444129448f7234aa32c4212a440a03d2",
+    "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+    "testFiles": 227,
+    "distinctCases": 2389,
+    "coverageGaps": 0,
+    "completedAt": "2026-10-30T17:44:08.316Z",
+    "scope": "Historical exact-head CI9 Windows, Linux and Linux-root reconciliation. Individual platform skips and the separately reviewed CodeQL aggregate disposition remain recorded. This does not validate later source changes."
+  },
+  "completedSteps": [
+    {
+      "step": "candidate-list",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T17:45:38.533524+00:00"
+    },
+    {
+      "step": "candidate-archive",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T17:46:03.154439+00:00"
+    },
+    {
+      "step": "application-update",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T17:47:28.523446+00:00"
+    },
+    {
+      "step": "strict-verify",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T17:47:39.042409+00:00"
+    },
+    {
+      "step": "final-status",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T17:47:52.235120+00:00"
+    },
+    {
+      "step": "final-candidate-list",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T17:48:16.178214+00:00"
+    }
+  ],
+  "upgrade": {
+    "controlUpdated": false,
+    "exactApplicationArchiveVerified": true,
+    "stagedFilesVerified": 2528,
+    "stagedFileCountScope": "The staged checkout includes documentation and verification artifacts, distinct from the audited executable-source count.",
+    "applicationChanged": true,
+    "pendingManagementTransactions": 0
+  },
+  "archival": {
+    "archived": true,
+    "dataPreserved": true,
+    "originalServicesRestored": true,
+    "phase": "complete",
+    "lifecyclePhase": "recovered",
+    "otherCandidatesRetained": true,
+    "currentCandidateCount": 8,
+    "candidateLimit": 8
+  },
+  "strictHostVerification": {
+    "release": "a0759efc0c0a8c18a3b42a53ee08bb18395d1531f3c9c5037cd6a820f44e1a6a",
+    "installedFilesVerified": 20360,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "unitPolicyCurrent": true,
+    "sudoPolicyCurrent": true,
+    "accountBootstrap": true,
+    "workerConnected": true,
+    "workerRestarting": false,
+    "https": {
+      "configured": true,
+      "ready": true,
+      "tlsVerified": true,
+      "instanceVerified": true,
+      "trust": "system-ca",
+      "vantage": "server-side verifier",
+      "browserVerification": false,
+      "forcedCertificateRenewal": false
+    }
+  },
+  "services": {
+    "gateway": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "worker": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "caddy": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "proxy": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    }
+  },
+  "preservation": {
+    "selectedProtectedFileMetadataCompared": 14,
+    "selectedProtectedFileMetadataUnchanged": true,
+    "credentialContentReadByMetadataCheck": false,
+    "credentialValuesCompared": false,
+    "credentialValuesPublished": false,
+    "httpsAndDnsSelectionsUnchanged": true,
+    "providerSelectionUnchanged": true,
+    "proxyServiceAndProcessUnchanged": true,
+    "proxyGuardStillRestrictedToNativeServiceIdentity": true,
+    "managementLockOriginalInodeAndModePreserved": true,
+    "initializationLockOriginalInodeAndModePreserved": true,
+    "noCredentialResetOrCertificateReplacementPerformed": true,
+    "basis": "Supported archival and application-update interfaces retained original data and release directories. Selected protected-file metadata was compared. Active application data was not byte-compared; no backup/restore drill is claimed."
+  },
+  "limitations": [
+    "This is the historical CI9 deployment only. The later project/sidebar, management serialization and history recovery changes are outside this deployment and need their own audit, CI and acceptance.",
+    "Formal release was deferred for additional user UX requests. This record does not establish authenticated public API, WebSocket or browser acceptance.",
+    "Only candidate archival and the application update were performed in this attempt. Control-update and configuration migration were not repeated because their current installed state was already verified.",
+    "Cached TLS passed the host system-CA verifier; no forced certificate renewal or new DNS API validation was performed.",
+    "No paid model inference or real external MCP call was performed for this deployment.",
+    "Prior failed deployment attempts remain retained in deployment.json and their original evidence; this later success does not erase those failures.",
+    "Private paths, host identifiers, service account names, credential values, certificate contents and proxy destinations are excluded."
+  ]
+}
