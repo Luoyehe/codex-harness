@@ -97,3 +97,27 @@ it('does not apply unused model overrides to queue admission', () => {
   fireEvent.click(screen.getByRole('button', { name: '加入队列' }));
   expect(send).toHaveBeenCalledWith([], 'queue');
 });
+
+it('waits for an existing chat identity before showing same-name model capabilities', () => {
+  const change = vi.fn();
+  const view = render(<ModelPicker models={models} options={{ model: 'shared' }} onOptions={change}
+    existingThread defaultsLoading />);
+  open();
+  expect(screen.getByRole('combobox', { name: '模型' }).matches(':disabled')).toBe(true);
+  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
+  expect(screen.queryByRole('option', { name: '最高' })).toBeNull();
+  expect(screen.getByText('读取模型设置…')).toBeTruthy();
+  view.rerender(<ModelPicker models={models} options={{ model: 'shared' }} onOptions={change}
+    existingThread defaultsLoading={false} defaults={{ model: 'shared', modelProvider: 'coding', reasoningEffort: 'max' }} />);
+  expect(screen.getByRole('option', { name: '最高' })).toBeTruthy();
+  expect(screen.queryByRole('option', { name: '同名模型 A' })).toBeNull();
+  expect(change).not.toHaveBeenCalled();
+});
+
+it('does not guess capabilities when a saved model name has no unambiguous provider', () => {
+  render(<ModelPicker models={models} options={{ model: 'shared' }} onOptions={vi.fn()} existingThread={false} />);
+  open();
+  expect(screen.getByRole('combobox', { name: '思考强度' }).matches(':disabled')).toBe(true);
+  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
+  expect(screen.queryByRole('option', { name: '最高' })).toBeNull();
+});

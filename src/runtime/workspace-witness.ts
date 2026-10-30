@@ -75,6 +75,12 @@ export class WorkspaceWitness {
     }
     const usage = this.db.prepare('SELECT count(*) AS count FROM witnesses').get()!;
     if (Number(usage.count) >= MAX_ROWS) throw new DeliveryError('capacity', 'Workspace witness storage is full; no new operation was sent');
+    if (method === 'workspace/worktree/create') {
+      // Native homes change with execution identity; this durable binding
+      // budget is shared. Reserve its slot before writing to either helper.
+      const pending = this.db.prepare("SELECT count(*) AS n FROM witnesses WHERE method='workspace/worktree/create' AND result IS NULL").get()!;
+      this.worktrees.requireCreateCapacity(Number(pending.n));
+    }
     this.db.prepare('INSERT INTO witnesses(id,method,project_id,root,gateway_digest,helper_digest,created_at) VALUES(?,?,?,?,?,?,?)').run(id, method, projectId, root, gatewayDigest, helperDigest, Date.now());
   }
   complete(method: string, request: JsonObject, result: JsonValue, context: CallContext): JsonValue {

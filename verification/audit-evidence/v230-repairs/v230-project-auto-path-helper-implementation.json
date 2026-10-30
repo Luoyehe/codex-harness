@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "task": "v230-project-auto-path-helper-implementation",
+  "completedAt": "2026-10-30T22:22:59.001377+00:00",
+  "complete": true,
+  "kind": "targeted implementation and validation; not a new full repository audit",
+  "files": [
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "eccf05af5bf4dd9b7aff03b889ef7d96a3d3b8080e5482954554c4594b310a41",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "tests/deploy/test_project_creation.py",
+      "sha256": "47f535f84fc50bddbb30acf4ea7d451cbb208de41ea19755f8e217c7ba3079de",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "tests/deploy/root/test_project_identity.py",
+      "sha256": "cafda74c5fe08f9bcda044e925df1b3dc846eb18dcd272342432aed6148c7f2e",
+      "lineEndings": "LF"
+    }
+  ],
+  "contract": [
+    "Both create.directory and resolve.path accept the same POSIX auto syntax under native and root identities. Leading / is absolute; all other input is relative to the trusted execution home/projects.",
+    "Lexical normpath/abspath collapses duplicate separators, trailing separators, dot and dot-dot. Relative parent traversal is intentional. Only / is a Linux separator; backslash and Windows-reserved punctuation are literal POSIX names. No 80-character restriction or whitespace trim.",
+    "Reject empty input, control characters, invalid Unicode, extra payload properties and requests above 4096 bytes. Creating / reports already existing; resolving / is allowed subject to actual permissions.",
+    "Relative creation initializes only the default projects directory and fsyncs its home entry. Arbitrary nested parents must already exist. Absolute creation never initializes default projects. Resolve never mkdir.",
+    "Parent missing/non-directory, existing destination, EACCES/EPERM, EROFS and ENAMETOOLONG/EINVAL are classified before creation. Permission messages distinguish parent traversal from mkdir writability and do not automatically elevate. Read-only errors do not promise root can fix the filesystem.",
+    "Successful mkdir is followed by new-directory and parent fsync, canonical readback and response budget check. All failures after mkdir remain unknown, including any unexpected DeployError; no replayable not_sent reply is produced.",
+    "native_main supplies the trusted cwd for both operations. Its fixed UID/GID, root authorization and capability checks remain active. Payload cannot choose mode, home or UID."
+  ],
+  "validation": {
+    "windows": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "scope": [
+        "tests.deploy.test_project_creation",
+        "tests.deploy.test_deployment.NativeLauncherTests.test_project_resolution_is_bounded_and_checks_directory_as_caller"
+      ],
+      "evidence": ".work/v230-project-path-windows.json",
+      "sha256": "c900f34bc503102b7903ab72a6e37c5eb30362602644cc0ea25c1ec91d783d71"
+    },
+    "linux": {
+      "rootTests": 9,
+      "ordinaryNonrootTests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rootScope": [
+        "tests.deploy.root.test_project_identity"
+      ],
+      "nonrootScope": [
+        "tests.deploy.test_project_creation"
+      ],
+      "fixture": "/opt/harness-project-path-test-6dc764c0651e",
+      "evidence": ".work/v230-project-path-linux-4ea32fe9.json",
+      "sha256": "0428a193a110163fcc2d7dc32ccf2713b52887ff08ee169c0f04540607b1f794",
+      "sourceUnchanged": true
+    },
+    "diffCheck": "git diff --check -- deploy/native_launcher.py tests/deploy/test_project_creation.py tests/deploy/root/test_project_identity.py passed"
+  },
+  "evidenceBoundaries": [
+    "Real Linux root fixture launches helper subprocesses as actual uid/gid 0 and 65534 with independent disposable homes; installed-helper request processing, ownership and permission failures are live.",
+    "Filesystem EACCES/EPERM/EROFS/readback/fsync failures are injected where specified. EROFS is not a real remounted read-only filesystem. Real parent mode 0700 and 0555 exercise traversal and write denial without mocks.",
+    "Root permission is fixture-owned root configuration; no real instance policy, account, service, proxy, provider, nftables or online deployment was changed. No personal credential content was read.",
+    "Only the two affected project test modules and one existing legacy-resolution compatibility test ran; no full suite, live production verification or independent full audit is claimed.",
+    "Earlier root-only absolute syntax was superseded before tests by the final unified auto contract; it is not part of this implementation or its acceptance."
+  ],
+  "fixtureDependencies": {
+    "selectorPair": [
+      "tests/deploy/test_project_creation.py",
+      "tests/deploy/root/test_project_identity.py"
+    ],
+    "rootHelperCopies": [
+      "deploy/common.py",
+      "deploy/native_launcher.py",
+      "deploy/execution_identity.py"
+    ],
+    "otherRootFixtureImports": [],
+    "rootExecutionModeTestChanged": false
+  },
+  "findings": []
+}

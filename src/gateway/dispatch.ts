@@ -10,12 +10,13 @@ import { featureMethod } from '../core/feature-methods.js';
 import { automationReads, automationWrites, automationSpec } from '../core/automations.js';
 import { WorkspaceAcknowledgements } from './workspace-ack.js';
 import { ReceiptMaintenance } from './receipt-maintenance.js';
+import { executionModeState, validateExecutionModeWrite } from '../core/execution-mode.js';
 
 const readMethods = new Set(['thread/list', 'thread/read', 'thread/history', 'model/list', 'defaults/read', 'account/read', 'account/rateLimits', 'mcp/list', 'prompt/list', 'attachment/read', 'runtime/status', 'project/defaults']);
-const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/create', 'project/rename', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh']);
+const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/create', 'project/rename', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh', 'system/execution-mode/write']);
 const volatile = new Set(['turn/interrupt', 'terminal/write', 'terminal/resize', 'terminal/close']);
 const workMethods = new Set(['conversation/start', 'turn/start', 'thread/compact', 'terminal/open']);
-const systemReads = new Set(['system/status', 'system/logs', 'system/provider/read']);
+const systemReads = new Set(['system/status', 'system/logs', 'system/provider/read', 'system/execution-mode/read']);
 const projectMethods = new Set(['thread/list', 'conversation/start', 'defaults/read', 'terminal/open']);
 interface Activity { activeThreads: string[]; pendingStarts: number; terminals: number; subscriptions: number; processes: number; unknown: boolean }
 export class Dispatcher extends EventEmitter {
@@ -53,6 +54,9 @@ export class Dispatcher extends EventEmitter {
     context.requireAuthorization?.();
     this.workspaceAcknowledgements.opportunistic(context);
     const { method, params } = call; const feature = featureMethod(method);
+    if (method === 'system/execution-mode/write') validateExecutionModeWrite(params);
+    if (method === 'system/execution-mode/read' && Object.keys(params).length)
+      throw new HarnessError('invalid', '执行权限查询不接受参数。');
     if (method.startsWith('operation/maintenance/')) {
       if (method !== 'operation/maintenance/rotate') return this.receiptMaintenance.call(method, params, context);
       const rotation = this.receiptMaintenance.validateRotation(params, context);
@@ -103,8 +107,9 @@ export class Dispatcher extends EventEmitter {
     if (automationWrites.has(method)) return this.automation(call, context);
     if (systemReads.has(method)) {
       const result = await this.manager.call(method.slice(7), params, undefined, context.requireAuthorization);
+      if (method === 'system/execution-mode/read') return executionModeState(result);
       if (method !== 'system/status') return result;
-      object(result); return { ...result, operationGeneration: this.ledger.operationGeneration(), journalUsage: this.ledger.usage() };
+      object(result); return { ...result, ...(result.executionMode === undefined ? {} : { executionMode: executionModeState(result.executionMode) }), operationGeneration: this.ledger.operationGeneration(), journalUsage: this.ledger.usage() };
     }
     if (readMethods.has(method) || volatile.has(method) || feature?.access === 'read' || feature?.access === 'live') { context.requireConnection?.(); return this.worker.call(method, this.projectParams(method, params), context); }
     if (!mutations.has(method) && feature?.access !== 'write') throw new HarnessError('method_not_found', '不支持此操作。');
@@ -116,7 +121,7 @@ export class Dispatcher extends EventEmitter {
     const rootManagement = method.startsWith('system/');
     const localProject = method === 'project/remove' || method === 'project/rename';
     const management = rootManagement || feature?.activity === 'configuration';
-    let locked = false; let dispatched = false;
+    let locked = false; let dispatched = false; let backendAcknowledged = false;
     try {
       // Recorded identities replay before connection admission. Only a new worker dispatch needs a live owner.
       if (!rootManagement && !localProject) context.requireConnection?.();
@@ -135,8 +140,18 @@ export class Dispatcher extends EventEmitter {
       const recordDispatch = () => { if (!dispatched) { this.ledger.dispatch(operationId); dispatched = true; } };
       const beforeWrite = () => {
         context.requireAuthorization?.();
+        if (method === 'system/execution-mode/write' && (!this.worker.connected || this.#activity.unknown ||
+            this.ledger.getMeta('activityUncertain') === 'true' || this.#pendingWork.size || this.#activity.pendingStarts ||
+            this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes))
+          throw new HarnessError('activity_busy', '请先结束任务和终端并确认后台状态，再切换执行权限。');
         if (!rootManagement && !localProject) context.requireConnection?.();
         recordDispatch();
+      };
+      const acceptBackend = async (request: Promise<JsonValue>): Promise<JsonValue> => {
+        const value = await request;
+        // A positive response proves dispatch even if an adapter omitted its
+        // callback. Later projection/registration failures cannot undo it.
+        backendAcknowledged = true; recordDispatch(); return value;
       };
       let result: JsonValue;
       if (method.startsWith('workspace/worktree/')) {
@@ -159,14 +174,18 @@ export class Dispatcher extends EventEmitter {
         this.emitReceipt(receipt); return this.replay(receipt);
       }
       if (method === 'project/create') {
-        if (Object.keys(params).some(key => !['name', 'directory'].includes(key))) throw new HarnessError('invalid', '新建项目只接受项目名称和目录名。');
-        const name = validText(params.name, 128, '项目名称').trim(), directory = validText(params.directory, 320, '目录名');
+        if (Object.keys(params).some(key => !['name', 'directory'].includes(key))) throw new HarnessError('invalid', '新建项目只接受项目名称和目录路径。');
+        // The verified worker identity chooses relative versus absolute paths;
+        // a browser request cannot select or elevate that identity.
+        const name = validText(params.name, 128, '项目名称').trim(), directory = validText(params.directory, 4096, '目录路径');
         if (!name) throw new HarnessError('invalid', '项目名称不能为空。');
         if (this.ledger.projects().length >= 128) throw new HarnessError('capacity', '项目数量已达上限，请先移除不再使用的项目。');
-        const created = await this.worker.call('project/create', { directory }, { ...context, operationId, beforeWrite }); object(created);
+        const created = await acceptBackend(this.worker.call('project/create', { directory }, { ...context, operationId, beforeWrite })); object(created);
         // Directory creation is already accepted even if the browser goes away.
         // Persist registration and its receipt without demanding a new lease.
-        result = this.ledger.addProject(validText(created.path, 4096), name) as unknown as JsonValue;
+        const createdPath = validText(created.path, 4096);
+        try { result = this.ledger.addProject(createdPath, name) as unknown as JsonValue; }
+        catch { throw new HarnessError('project_registration_failed', '目录已创建，但项目登记未完成。请检查项目列表和登记空间，再通过“添加已有目录”登记；不要重复新建。目录：' + createdPath, 'unknown', { path: createdPath }); }
       } else if (method === 'project/add') {
         if (Object.keys(params).some(key => !['name', 'path'].includes(key))) throw new HarnessError('invalid', '添加已有项目只接受项目名称和目录。');
         const path = validText(params.path, 4096, '项目路径');
@@ -177,9 +196,9 @@ export class Dispatcher extends EventEmitter {
         beforeWrite(); result = this.ledger.addProject(validText(resolved.path, 4096), name) as unknown as JsonValue;
       } else if (method === 'project/remove') {
         const id = identifier(params.id); beforeWrite(); this.ledger.removeProject(id); result = {};
-      } else if (rootManagement) result = await this.manager.call(method.slice(7), params, operationId, beforeWrite);
-      else result = await this.worker.call(method, this.projectParams(method, params), { ...context, operationId, beforeWrite,
-        ...(method.startsWith('workspace/') ? { gatewayRequestDigest: digest({ method, params }), projectId: identifier(params.projectId, '项目') } : {}) });
+      } else if (rootManagement) result = await acceptBackend(this.manager.call(method.slice(7), params, operationId, beforeWrite));
+      else result = await acceptBackend(this.worker.call(method, this.projectParams(method, params), { ...context, operationId, beforeWrite,
+        ...(method.startsWith('workspace/') ? { gatewayRequestDigest: digest({ method, params }), projectId: identifier(params.projectId, '项目') } : {}) }));
       // A positive backend acknowledgement is acceptance evidence even if its adapter omitted the boundary callback.
       // Authorization changes after dispatch cannot retroactively turn that success into an unsent operation.
       if (!dispatched) recordDispatch();
@@ -197,6 +216,7 @@ export class Dispatcher extends EventEmitter {
       const body = method === 'project/rename' && current?.state === 'pending'
         ? { ...errorBody(error), delivery: 'not_sent' as const }
         : errorBody(error, dispatched ? 'unknown' : 'not_sent');
+      if (backendAcknowledged) body.delivery = 'unknown';
       if (current && ['pending', 'dispatching'].includes(current.state)) {
         const receipt = this.ledger.settle(operationId, { ok: false, error: body }); this.emitReceipt(receipt);
       }

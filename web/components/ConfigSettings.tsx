@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { ExperimentalFeature } from '../../protocol/ts/v2/ExperimentalFeature';
 import type { Api } from '../lib/api';
-import { array, object, type Model, type Project } from '../lib/types';
+import { array, object, type Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
 import { usePaged } from '../hooks/usePaged';
+import { useModelDirectory } from '../hooks/useModelDirectory';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 import { CompactThreshold } from './CompactThreshold';
 import { ModelDirectoryStatus } from './ModelDirectoryStatus';
@@ -97,7 +98,7 @@ export function ConfigSettings({
     ),
     requirements = useResource(key, (signal) => api.call('configRequirements/read', {}, signal));
   const features = usePaged<ExperimentalFeature>(api, 'experimentalFeature/list', {}, key);
-  const models = usePaged<Model>(api, 'model/list', {}, key);
+  const models = useModelDirectory(api, key);
   const [base, setBase] = useState<ConfigDraft['base']>(() => drafts.get(project.id)?.base),
     [changes, setChanges] = useState<Record<string, string>>(
       () => drafts.get(project.id)?.changes ?? {},

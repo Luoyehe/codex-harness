@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v230-round4",
+  "reviewerId": "v230_audit_runtime",
+  "digest": "b58cd1a043c96667e81c4f1f744ac04835097d481e7df56faed4012ce37a5a70",
+  "complete": true,
+  "originalFinding": {
+    "priority": "P2",
+    "path": "web/lib/organization.ts",
+    "line": 5,
+    "title": "POSIX literal backslash roots are conflated with distinct nested directories",
+    "trigger": "Register distinct POSIX directories /srv/alpha\\beta and /srv/alpha/beta, with a native project whose only root is /srv/alpha\\beta. Open its edit form and enable replacement of directory scope.",
+    "impact": "sameRoot reports equality because normalizedRoot unconditionally replaces backslashes. The actual form preselects both registered project IDs, and saving sends both IDs to nativeProject/update, unintentionally broadening category metadata. It also falsely labels the other path registered and offers unrelated project categories in the thread association picker. This is a metadata-selection defect, not evidence of filesystem authorization bypass.",
+    "evidence": [
+      "Direct import of the frozen sameRoot returned true for /srv/alpha\\beta vs /srv/alpha/beta, while the new POSIX auto path contract treats backslash as a literal filename character.",
+      "NativeProjects.tsx:74-77 filters registered projectIds with sameRoot; 285-304 renders those IDs as prechecked boxes; 106-118 submits them unchanged after explicit scope replacement.",
+      ".work/v230-round3-web-repro.test.ts actual component reproduction produced checked=[true,true] and nativeProject/update.params.projectIds=[literal,nested], expected=[literal]. Captured request in .work/v230-round3-web-repro-evidence.json.",
+      "NativeProjects.tsx:177 uses the same comparator for registration text. ThreadOrganization.tsx:236-238 uses it to admit available project categories.",
+      "Current organization.test.tsx:194-195 covers Windows case/slash compatibility and POSIX case sensitivity, but not literal POSIX backslash identity."
+    ],
+    "recommendation": "Keep slash-leading POSIX paths literal. Apply Windows separator and case rules only for explicit Windows drive roots or backslash UNC roots, and cover all comparator callers with regression cases."
+  },
+  "originalReport": {
+    "path": ".work/v230-round3-web.json",
+    "sha256": "29ff687966217aac4e5c2cb49b53ecc76c841f168da727d3f9fa27930b300587"
+  },
+  "files": [
+    {
+      "path": "web/lib/organization.ts",
+      "sha256": "0663f21bb884b57fb249b43280c29ae3828a7f472ca92320bf3dd5c4ae73e4b0"
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "sha256": "cd8b107a6e936c08de3f5a69604fb02c63b7688637ee35d6bd052cc2b3c1967c"
+    }
+  ],
+  "remainingFindings": [],
+  "disposition": "resolved",
+  "reasoning": [
+    "windowsRoot detects only drive-absolute or backslash-UNC roots. Slash-leading POSIX paths retain literal backslashes and case. sameRoot also requires equal syntax classes, preventing normalized UNC strings from aliasing POSIX //server/share.",
+    "Slash-only roots stay nonempty, empty roots never compare equal, and drive roots preserve their trailing separator. Explicit Windows case/separator compatibility remains.",
+    "All three production comparator calls revisited: NativeProjects initial projectIds selection, its registration indicator, and ThreadOrganization available project options.",
+    "The complete changed organization test file was read, including 12 direct comparator pairs and actual NativeProjects/ThreadOrganization POSIX-root, literal-backslash, drive and UNC cases. Author evidence is separate from independent execution."
+  ],
+  "independentValidation": {
+    "testCases": 2,
+    "passed": 2,
+    "failed": 0,
+    "actualComponent": "NativeProjects with actual Api, local mocked fetch and fresh fake IndexedDB",
+    "observed": {
+      "checked": [
+        true,
+        false
+      ],
+      "method": "nativeProject/update",
+      "projectIds": [
+        "literal"
+      ]
+    },
+    "evidence": ".work/v230-round4-web-repro-evidence.json"
+  },
+  "authorValidation": {
+    "evidence": ".work/test-results/run-ClI4D0/vitest.json",
+    "files": 1,
+    "passed": 38,
+    "failed": 0,
+    "success": true,
+    "note": "Author JSON inspected; not rerun by reviewer. Web tsc and diff-check exit 0 attributed to author report."
+  },
+  "preservedEvidence": [
+    {
+      "path": ".work/v230-round3-web.json",
+      "sha256": "29ff687966217aac4e5c2cb49b53ecc76c841f168da727d3f9fa27930b300587"
+    },
+    {
+      "path": ".work/v230-round3-web-repro.test.ts",
+      "sha256": "46ac1db091e20cca7338e1b68bf9329d298c00435810250cd0cebfb0c77217f8"
+    },
+    {
+      "path": ".work/v230-round3-web-repro-evidence.json",
+      "sha256": "9e26d3aaf66b0b3c151d821346756d277e198cbfdbcb08043c94acbe5e70d1f9"
+    },
+    {
+      "path": ".work/v230-round3-web-repro-vitest.json",
+      "sha256": "c12a50a181471f5284b5a6d9ff27a920657b8d72ac55cc137c920e8d9b0b10e3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v230-round4-web-repro.test.ts",
+      "sha256": "26fe2c12f0da3b8494a125156a403b0df5ed16763b571842a193a1fc38fa6c48"
+    },
+    {
+      "path": ".work/v230-round4-web-repro.config.ts",
+      "sha256": "0ac50c38eb6c46b5b373d6cede52964d18d74f9f176c58a02acda3f5788c9283"
+    },
+    {
+      "path": ".work/v230-round4-web-repro-vitest.json",
+      "sha256": "d2022df7d273e42e90fc952cbd7b54c647cb41d19ecc9564deec9d122a5dba06"
+    },
+    {
+      "path": ".work/v230-round4-web-repro-evidence.json",
+      "sha256": "5a34567f3ff0dae3588f154a08b5009329ea6498f65152db260e63a8b630bd6c"
+    },
+    {
+      "path": ".work/v230-round4-web-preserved.json",
+      "sha256": "256246d5c8cef4112534a2161e8db76f77f00f6c1baf2203eea78f6d919137c4"
+    },
+    {
+      "path": ".work/v230-round3-web-organization-repair.json",
+      "sha256": "085060c4e101dfd2cb6a37acc9d276674c8c64f7855b0b7ec74a2db2a4d186ed"
+    },
+    {
+      "path": ".work/test-results/run-ClI4D0/vitest.json",
+      "sha256": "904aa73bd96a15f89cc45d74f64812edb83b641e07101bd16237eefc47c80435"
+    }
+  ],
+  "limits": [
+    "Repair-only closure is not substituted for the separate whole-Web round4 audit.",
+    "No source/test edits, full suite, real browser, live network, actual project metadata write, deployment, credentials or paid calls."
+  ]
+}

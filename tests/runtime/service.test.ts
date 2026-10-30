@@ -6,7 +6,7 @@ import path from 'node:path';
 import { RuntimeService, type RuntimeConfig } from '../../src/runtime/service.js';
 import type { NativeRpc, NativeOptions } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
-import { validatePrompt } from '../../src/runtime/validation.js';
+import { validateOfficial, validatePrompt } from '../../src/runtime/validation.js';
 import { Ledger } from '../../src/core/ledger.js';
 import { Dispatcher } from '../../src/gateway/dispatch.js';
 import { AutomationScheduler } from '../../src/gateway/automation-scheduler.js';
@@ -215,6 +215,61 @@ describe('history reconciles exact live turns without trusting mixed lifecycle s
 });
 
 describe('RuntimeService admission and recovery', () => {
+  async function resumable(instructionCount = 0) {
+    const fixture = setup(), { service, native, cwd } = fixture, original = native.call.bind(native);
+    const thread = { id: 'stored', environments: null, extra: null, sessionId: 'stored', forkedFromId: null, parentThreadId: null, preview: '', ephemeral: false, section: null, sectionEnteredAt: null, projectId: null, historyMode: 'paginated', modelProvider: 'fixture', model: 'fixture', reasoningEffort: null, createdAt: 1, updatedAt: 1, recencyAt: null, status: { type: 'idle' }, path: null, cwd, cliVersion: '0.164.0', originator: null, source: 'appServer', canAcceptDirectInput: true, threadSource: null, agentNickname: null, agentRole: null, gitInfo: null, name: null, daybreakEnabled: null, turns: [] };
+    const response = { thread, model: 'fixture', modelProvider: 'fixture', serviceTier: null, disabledPluginIds: [], cwd, runtimeWorkspaceRoots: [], instructionSources: Array.from({ length: instructionCount }, (_, index) => `/fixture/${index}/${'p'.repeat(80)}.md`), approvalPolicy: 'never', approvalsReviewer: 'user', sandbox: { type: 'dangerFullAccess' }, activePermissionProfile: null, reasoningEffort: null, collaborationMode: null, multiAgentMode: 'explicitRequestOnly', initialTurnsPage: null, turnsBackwardsCursor: null, itemsBackwardsCursor: null };
+    validateOfficial('ThreadResumeResponse', response);
+    native.call = async (method, params, options) => {
+      const result = await original(method, params, options);
+      if (method === 'thread/read') return { thread };
+      if (method === 'thread/resume') return response;
+      if (method === 'thread/goal/get') return { goal: null };
+      if (method === 'thread/queue/list') return { data: [], nextCursor: null };
+      return result;
+    };
+    expect(await service.call('thread/history', { threadId: 'stored' }, context)).toMatchObject({ complete: true });
+    return { ...fixture, response };
+  }
+
+  test('a positive resume exceeding the real snapshot budget remains unknown and cannot resume again', async () => {
+    const { service, native, response } = await resumable(4000);
+    expect(Buffer.byteLength(JSON.stringify(response))).toBeGreaterThan(256 * 1024);
+    expect(Buffer.byteLength(JSON.stringify(response))).toBeLessThan(12 * 1024 * 1024);
+    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).rejects.toMatchObject({ code: 'invalid_native_response', delivery: 'unknown' });
+    expect(object(object(service.status()).activity).unknown).toBe(true);
+    expect(await service.call('thread/session', { threadId: 'stored' }, context)).toEqual({ requiresResume: true });
+    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).rejects.toMatchObject({ code: 'activity_unknown' });
+    expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
+    expect(native.calls.filter(call => call.method === 'thread/goal/get')).toHaveLength(0);
+  });
+
+  test('a valid positive resume stores its settings and confirms continuation before succeeding', async () => {
+    const { service, native } = await resumable(1);
+    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).resolves.toMatchObject({ thread: { id: 'stored' } });
+    expect(await service.call('thread/session', { threadId: 'stored' }, context)).toMatchObject({ requiresResume: false, model: 'fixture' });
+    expect(object(object(service.status()).activity).unknown).toBe(false);
+    expect(native.calls.filter(call => call.method === 'thread/goal/get')).toHaveLength(1);
+    expect(native.calls.filter(call => call.method === 'thread/queue/list')).toHaveLength(1);
+  });
+
+  test('resume rejection before native write stays not_sent without poisoning the session', async () => {
+    const { service, native } = await resumable();
+    native.beforeNativeWrite = method => { if (method === 'thread/resume') throw new DeliveryError('native_rejected', 'Resume was rejected'); };
+    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).rejects.toMatchObject({ code: 'native_rejected', delivery: 'not_sent' });
+    expect(object(object(service.status()).activity).unknown).toBe(false);
+    expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(0);
+    expect(await service.call('thread/session', { threadId: 'stored' }, context)).toEqual({ requiresResume: true });
+  });
+
+  test('continuation failure after resume retains its specific unknown outcome', async () => {
+    const { service, native } = await resumable();
+    native.beforeNativeWrite = method => { if (method === 'thread/goal/get') throw new DeliveryError('native_read_failed', 'Goal read failed'); };
+    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).rejects.toMatchObject({ code: 'activity_unknown', delivery: 'unknown' });
+    expect(object(object(service.status()).activity).unknown).toBe(true);
+    expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
+  });
+
   test('cold notLoaded history retains pagination and authorizes only its fully hydrated owner to resume', async () => {
     const { service, native } = setup(), original = native.call.bind(native);
     native.call = async (method, params, options) => {

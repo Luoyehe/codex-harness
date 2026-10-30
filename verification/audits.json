@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "v2.2.0-functional-workflows-audit",
+  "phase": "v2.3.0-root-paths-mobile-proxy-closeout",
   "consecutiveClean": 1,
   "rounds": [
     {
@@ -7021,6 +7021,437 @@
         "missing": []
       },
       "gatePassed": true
+    },
+    {
+      "id": "v230-round1",
+      "sequence": 64,
+      "digest": "66835dab744b37d67270c8f6fc5a9f2cfc39322289e8fefa904aef71c1cc7d91",
+      "complete": true,
+      "clean": false,
+      "startedAt": "2026-10-30T21:35:15.397Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "report": ".work/v230-round1-deployment.json",
+          "priority": "P2",
+          "path": "deploy/service_proxy.py",
+          "line": 408,
+          "trigger": "A proxy/upstream trickles response headers more frequently than the 12-second socket timeout during configure/core-update/rollback readiness; the same weakness exists in core download headers/body within the 30-second socket timeout.",
+          "impact": "Readiness can remain selected while holding management.lock for an unbounded practical duration, delaying commit/compensation and blocking administration. Core downloads similarly exceed their 300-second total budget because elapsed time is checked only after blocking open/header/read returns.",
+          "evidence": {
+            "locations": [
+              "deploy/service_proxy.py:408-414 no total deadline around HTTPSConnection/request/getresponse",
+              "deploy/proxy_core.py:167-174 open/read occurs before elapsed budget check",
+              "deploy/proxy_transaction.py:255-257 selected persisted before restore(upstream=True)",
+              "deploy/cli.py:283 shared management.lock encloses operation"
+            ],
+            "slowHeaders": {
+              "artifact": ".work/v230-round1-deployment-slow-header-repro.json",
+              "result": "Real local socket/http.client parser accepted progressive headers for 13.547 seconds with timeout=12 and returned ready. HTTPSConnection replaced with HTTPConnection solely to isolate parser timeout semantics; TLS/CONNECT/nft/systemd not tested."
+            },
+            "slowBody": {
+              "artifact": ".work/v230-round1-deployment-slow-download-repro.json",
+              "result": "Real urllib loopback socket delivered 16 bytes over 0.813 actual seconds. At 1000x monotonic time, the 300-second budget was checked only at 813 virtual seconds after read returned. This was accelerated-clock evidence, not an 813-second live test."
+            },
+            "repairBoundary": "Total deadline must enclose complete DNS/open/redirect/CONNECT/TLS/request/header/body lifecycle, preserve cleanup/origin/credentials/no-retry behavior, and permit transaction compensation on expiry."
+          }
+        },
+        {
+          "report": ".work/v230-round1-deployment.json",
+          "priority": "P3",
+          "path": "deploy/install.py",
+          "line": 132,
+          "trigger": "install_control wrapper has no current call/import; initialize uses initialize_recorded and control update uses stage_control directly.",
+          "impact": "Unused alternate installation entrypoint adds misleading maintenance surface beside the resumable installation flow.",
+          "evidence": {
+            "definition": "install_control(layout) only calls stage_control(layout, layout.control)",
+            "references": "Current-source rg finds only definition; install.py:155-156 uses initialize_recorded and control_update.py:598 uses stage_control.",
+            "repairBoundary": "Remove wrapper; no behavior-mirroring test needed."
+          }
+        },
+        {
+          "report": ".work/v230-round1-runtime.json",
+          "priority": "P2",
+          "path": "src/runtime/worktree-bindings.ts",
+          "line": 35,
+          "trigger": "Retain 32 managed worktrees under one execution identity, switch between native and Root while retaining the supervisor home, then create another worktree from a repository owned by the newly selected identity. Its new nativeHome can be below the helper-local limit while the shared supervisor managed_worktrees table is already full.",
+          "impact": "The helper creates the new checkout before the shared capacity check rejects its positive acknowledgement. The witness transaction rolls back to unknown without a binding, so the new retained checkout cannot be read/attached through the managed worktree API and requires manual inspection. This unnecessarily exceeds the intended shared retention budget and enters activity uncertainty instead of a safe not_sent capacity rejection.",
+          "evidence": [
+            "RuntimeWorkspace executes runWorkspace first (src/runtime/workspace-service.ts:61) and only then witness.complete (line 65). Its beforeWrite invokes boundary and witness.reserve; reserve validates only the witness-row budget, not managed-worktree capacity (src/runtime/workspace-witness.ts:66-79).",
+            "The shared managed_worktrees table is initialized from the supervisor witness DB, and its global count >=32 is checked only in WorktreeBindings.complete (src/runtime/worktree-bindings.ts:34-36), inside the post-ack transaction; failures roll that transaction back (src/runtime/workspace-witness.ts:107-119).",
+            "deploy/units.py:59-67,111-115 and deploy/execution_identity.py:31-36 select distinct worker/worker-root native homes but retain one supervisor home and DB. deploy/workspace_worktrees.py:79-89,264-296 checks only the selected native-home holders before physically creating the checkout and returning created:true.",
+            ".work/v230-round1-worktree-capacity-evidence.json: completedBindingsBeforeSwitch=32; reservePassed=true; completion={code:capacity,delivery:unknown}; witnessAfterCompletion.state=unknown; binding.code=worktree_unbound. The reproduction uses the actual WorkspaceWitness implementation, distinct project identities and simulated valid helper acknowledgements."
+          ]
+        },
+        {
+          "report": ".work/v230-round1-gateway-tooling.json",
+          "id": "V230-GT-001",
+          "priority": 2,
+          "severity": "P2",
+          "title": "Preserve unknown delivery when project registration fails after directory creation succeeds",
+          "path": "src/gateway/dispatch.ts",
+          "line": 178,
+          "endLine": 178,
+          "relatedLocations": [
+            {
+              "path": "src/gateway/dispatch.ts",
+              "line": 174,
+              "endLine": 178
+            },
+            {
+              "path": "src/gateway/dispatch.ts",
+              "line": 206,
+              "endLine": 210
+            },
+            {
+              "path": "src/core/ledger.ts",
+              "line": 249,
+              "endLine": 249
+            },
+            {
+              "path": "src/core/errors.ts",
+              "line": 8,
+              "endLine": 8
+            }
+          ],
+          "trigger": "With 127 registered projects, start two different project/create requests before either worker result returns. Both pass the pre-await count check, both cross beforeWrite and create their directory, and both return successful worker acknowledgements. The first addProject consumes slot 128; the second addProject throws HarnessError(capacity) with its default delivery=not_sent.",
+          "impact": "The second operation is permanently recorded and reported as not_sent even though its directory was already created. It is absent from project/list, the user receives false safe-to-retry guidance, and no project/create positive-proof recovery path repairs this receipt. This violates the explicit not_sent versus unknown contract.",
+          "evidence": [
+            "The standalone reproduction imports transformed current frozen source and uses a real in-memory SQLite Ledger, a barrier to order two positive worker acknowledgements, and actual mkdir under .work.",
+            ".work/v230-gateway-project-create-repro/proof.json: first request accepted; second request rejected with code=capacity and delivery=not_sent; second persisted receipt state=not_sent; both directoryExists=true; registeredProjects=128.",
+            "The handler catches this locally raised HarnessError through errorBody(error, unknown), but errorBody preserves the error delivery field and therefore ignores the fallback after the acknowledged side effect."
+          ],
+          "relatedSameCause": "The same post-success classification can be reached through object(created) or validText(created.path). Worktree receipt projection accepts identifier(worktreeId), while later Worktrees.apply calls uuid(worktreeId); malformed positive worker data there can likewise raise a default not_sent during local postprocessing. These are the same delivery-boundary defect, not separately counted findings; the concurrency case above is the dynamically confirmed trigger.",
+          "recommendation": "Track positive backend acknowledgement separately from dispatch and never downgrade a subsequent local postprocessing failure to not_sent. Preserve bounded recovery information and actionable guidance for a created-but-unregistered project. Optionally reserve or serialize project-registration capacity across creation/addition/worktree paths, while retaining the existing local project/rename transaction rollback exception."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round1-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round1/team.json",
+          "sha256": "11e38324e457a63e7a16ae45307857035a143b1f8deb25c28849770d141ecd88"
+        }
+      ],
+      "method": "Complete partitioned source review; semantic records LF canonical; exact originals retained in sidecars when needed. Raw/initial/preserved reports retain depth, findings and limitations. Original member references retain original SHA256 values; reviewer SHA256 binds the public LF record. No clean round or historical completion time is invented.",
+      "timingNote": "Original aggregate omitted completion time; no timestamp is fabricated."
+    },
+    {
+      "id": "v230-round2",
+      "sequence": 65,
+      "digest": "7df4915129c1a10677f2d30a2c4f5e1cb2fa5d919b70237249f310913db0bdef",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-10-30T21:59:35.577Z",
+      "completedAt": "2026-10-30T22:09:25.667Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round2-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round2/team.json",
+          "sha256": "26db9a6e63f72c4606277ac77e0e0a19e69f6f0e829e5a18169d39f64314ff1b"
+        }
+      ],
+      "method": "Complete partitioned source review; semantic records LF canonical; exact originals retained in sidecars when needed. Raw/initial/preserved reports retain depth, findings and limitations. Original member references retain original SHA256 values; reviewer SHA256 binds the public LF record. No clean round or historical completion time is invented.",
+      "supersededForRelease": "User subsequently requested Root absolute project creation, explicit relative/absolute UI guidance, and relative path separator normalization. Those forthcoming changes are outside this frozen snapshot. This report must not authorize their full tests/release without renewed audit."
+    },
+    {
+      "id": "v230-round3",
+      "sequence": 66,
+      "digest": "5b804614b7a63051a6467ef5f46fb84726356aa7e1702395a4742bfc0eb81e2a",
+      "complete": true,
+      "clean": false,
+      "startedAt": "2026-10-30T22:32:54.003Z",
+      "completedAt": "2026-10-30T22:46:37.178Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "partition": ".work/v230-round3-web.json",
+          "priority": "P2",
+          "path": "web/lib/organization.ts",
+          "line": 5,
+          "title": "POSIX literal backslash roots are conflated with distinct nested directories",
+          "trigger": "Register distinct POSIX directories /srv/alpha\\beta and /srv/alpha/beta, with a native project whose only root is /srv/alpha\\beta. Open its edit form and enable replacement of directory scope.",
+          "impact": "sameRoot reports equality because normalizedRoot unconditionally replaces backslashes. The actual form preselects both registered project IDs, and saving sends both IDs to nativeProject/update, unintentionally broadening category metadata. It also falsely labels the other path registered and offers unrelated project categories in the thread association picker. This is a metadata-selection defect, not evidence of filesystem authorization bypass.",
+          "evidence": [
+            "Direct import of the frozen sameRoot returned true for /srv/alpha\\beta vs /srv/alpha/beta, while the new POSIX auto path contract treats backslash as a literal filename character.",
+            "NativeProjects.tsx:74-77 filters registered projectIds with sameRoot; 285-304 renders those IDs as prechecked boxes; 106-118 submits them unchanged after explicit scope replacement.",
+            ".work/v230-round3-web-repro.test.ts actual component reproduction produced checked=[true,true] and nativeProject/update.params.projectIds=[literal,nested], expected=[literal]. Captured request in .work/v230-round3-web-repro-evidence.json.",
+            "NativeProjects.tsx:177 uses the same comparator for registration text. ThreadOrganization.tsx:236-238 uses it to admit available project categories.",
+            "Current organization.test.tsx:194-195 covers Windows case/slash compatibility and POSIX case sensitivity, but not literal POSIX backslash identity."
+          ],
+          "recommendation": "Keep slash-leading POSIX paths literal. Apply Windows separator and case rules only for explicit Windows drive roots or backslash UNC roots, and cover all comparator callers with regression cases."
+        },
+        {
+          "partition": ".work/v230-round3-runtime-gateway.json",
+          "id": "V230-RG-001",
+          "priority": "P2",
+          "path": "src/runtime/workspace-service.ts",
+          "line": 65,
+          "endLine": 69,
+          "title": "Positive workspace helper acknowledgement can be downgraded to not_sent and lose its witness",
+          "trigger": "A mutating runWorkspace call returns a positive result, then WorkspaceWitness.complete or WorktreeBindings.complete raises a default-not_sent DeliveryError during local shape/binding validation (for example ok:true,result:null after mkdir).",
+          "impact": "RuntimeWorkspace treats the local post-ack failure as a definitive helper rejection, deletes the reserved witness, leaves runtime uncertainty false, and transports not_sent to the gateway. The durable receipt says no write occurred although a filesystem side effect exists; subsequent recovery loses the private reservation/evidence and misleadingly allows treating a new operation as safe.",
+          "reasoning": "The catch trusts error.delivery without separately tracking runWorkspace positive return. object/string/onlyKeys validators default to not_sent, whereas a complete positive helper response has already crossed the side-effect boundary. Gateway acceptBackend only sees the worker error and cannot restore the hidden helper acknowledgement.",
+          "relatedLocations": [
+            {
+              "path": "src/runtime/workspace-witness.ts",
+              "line": 87,
+              "note": "object(result) may throw default not_sent before complete proof commit."
+            },
+            {
+              "path": "src/runtime/worktree-bindings.ts",
+              "line": 30,
+              "note": "object/onlyKeys/string binding validation can similarly throw default not_sent after helper success."
+            },
+            {
+              "path": "src/runtime/types.ts",
+              "line": 5,
+              "note": "DeliveryError defaults to not_sent."
+            },
+            {
+              "path": "src/runtime/main.ts",
+              "line": 78,
+              "note": "Worker transports the runtime delivery classification unchanged."
+            }
+          ],
+          "evidence": {
+            "path": ".work/v230-round3-workspace-ack-3bbsxw/proof.json",
+            "directoryExists": true,
+            "helperCalls": 1,
+            "receiptState": "not_sent",
+            "witnessState": "not_received",
+            "runtimeUncertain": false
+          },
+          "recommendation": "Track a helperAcknowledged flag immediately after positive runWorkspace return. Any subsequent local validation/proof/registration failure must be unknown, retain its unresolved witness, and set runtime uncertainty. Only an actual pre-positive helper not_sent rejection may discard the reservation. Cover malformed ordinary and worktree success results plus definite helper rejection."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round3-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round3/team.json",
+          "sha256": "f4ad0ce8bfe6991b192197797028c8450cb9573f65574bb20cceb7d45f0d3d2c"
+        }
+      ],
+      "method": "Complete partitioned source review; semantic records LF canonical; exact originals retained in sidecars when needed. Raw/initial/preserved reports retain depth, findings and limitations. Original member references retain original SHA256 values; reviewer SHA256 binds the public LF record. No clean round or historical completion time is invented."
+    },
+    {
+      "id": "v230-round4",
+      "sequence": 67,
+      "digest": "b58cd1a043c96667e81c4f1f744ac04835097d481e7df56faed4012ce37a5a70",
+      "complete": true,
+      "clean": false,
+      "startedAt": "2026-10-30T22:50:33.775Z",
+      "completedAt": "2026-10-30T23:03:09.253Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "partition": ".work/v230-round4-runtime-gateway.json",
+          "id": "V230-RG-002",
+          "priority": "P2",
+          "path": "src/runtime/service.ts",
+          "line": 543,
+          "endLine": 547,
+          "title": "Configuration post-ack local failures can be persisted as not_sent",
+          "trigger": "remoteControl/pairing/start returns a positive schema-valid result with both pairingCode and manualPairingCode present, then the real DiagnosticRedactor.addSecret exceeds its retained 256-secret budget.",
+          "impact": "RuntimeService propagates the local default-not_sent capacity error without setting runtime uncertainty. Dispatcher durably records not_sent although native pairing succeeded; later new operations are admitted, misleading recovery about an already-started external action. Original operation replay remains deduplicated and does not send again.",
+          "reasoning": "configurationMutation tracks beforeWrite dispatched only and returns native.call without a positive-result acknowledgement flag. Its catch sets unknown only for generic/unknown failures. Local validators/redactor default to not_sent. The gateway cannot see an internal native acknowledgement once the worker returns this erroneous classification.",
+          "relatedLocations": [
+            {
+              "path": "src/runtime/remote-control.ts",
+              "line": 29,
+              "endLine": 30,
+              "note": "Positive native reply precedes local secret retention."
+            },
+            {
+              "path": "src/runtime/redaction.ts",
+              "line": 13,
+              "note": "Actual bounded secret retention raises default-not_sent capacity."
+            },
+            {
+              "path": "src/runtime/cli-diagnostics.ts",
+              "line": 32,
+              "note": "Another shared configuration post-write validator route; statically reviewed, not claimed as separately reproduced."
+            }
+          ],
+          "evidence": {
+            "path": ".work/v230-round4-configuration-ack-2puJDM/proof.json",
+            "case": "redactor-capacity",
+            "nativePositivePairingCalls": 1,
+            "receiptState": "not_sent",
+            "runtimeUnknown": false,
+            "replayNativeCalls": 0
+          },
+          "recommendation": "Track acknowledged immediately after each awaited native write returns inside the shared configuration wrapper. Once acknowledged, any later default-not_sent or generic local error must become unknown and mark runtime uncertainty; preserve original unknown. Preserve true pre-positive backend not_sent and owner-beforeWrite rejection, and finally release configuration admission."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round4-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round4/team.json",
+          "sha256": "cafa51d2acd098f7e1cd41bcbc7360163db5a60eaad4e9cde3bede854299b92b"
+        }
+      ],
+      "method": "Complete partitioned source review; semantic records LF canonical; exact originals retained in sidecars when needed. Raw/initial/preserved reports retain depth, findings and limitations. Original member references retain original SHA256 values; reviewer SHA256 binds the public LF record. No clean round or historical completion time is invented."
+    },
+    {
+      "id": "v230-round5",
+      "sequence": 68,
+      "digest": "2a748e7c8210a9bbf8e1314b20220ed53da3d1803b1da8d95aa2a8fb5d0c742e",
+      "complete": true,
+      "clean": false,
+      "startedAt": "2026-10-30T23:03:38.124Z",
+      "completedAt": "2026-10-30T23:12:58.778Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "partition": ".work/v230-round5-runtime-gateway.json",
+          "id": "V230-RG-004",
+          "priority": "P2",
+          "path": "src/runtime/service.ts",
+          "line": 341,
+          "endLine": 342,
+          "title": "Resume postprocessing outside workflow accepted guard can still downgrade positive resume to not_sent",
+          "trigger": "thread/resume returns a positive official-schema-valid reply, then outer SessionSnapshots.capture rejects retained settings above its 256KiB snapshot budget. The reproduced response contains 4000 short instruction-source paths and is 400109 bytes, below native 12MiB frame limit.",
+          "impact": "Native resume already ran and may restore native continuation, but the durable receipt becomes not_sent and runtime/thread uncertainty remains false. The explicit continuation check is skipped, local session still requires resume, and UI recovery can misleadingly treat another resume as unsent-safe. Original operation ID remains deduplicated and does not reissue the native call.",
+          "reasoning": "workflowMutation sets accepted and guards its own validation/project callback, then returns. The thread/resume switch branch runs sessions.capture and refreshContinuation afterward without a positive flag. Its catch marks uncertainty only when the error already says unknown; the real snapshot jsonBytes capacity error defaults to not_sent.",
+          "relatedLocations": [
+            {
+              "path": "src/runtime/session-snapshots.ts",
+              "line": 9,
+              "note": "Real 256KiB snapshot validation throws default-not_sent capacity."
+            },
+            {
+              "path": "src/runtime/session-snapshots.ts",
+              "line": 18,
+              "note": "capture copies instructionSources then stores the retained snapshot."
+            },
+            {
+              "path": "src/runtime/service.ts",
+              "line": 490,
+              "note": "refreshContinuation would normalize its own failures to unknown, but is never reached if preceding capture fails."
+            },
+            {
+              "path": "src/runtime/types.ts",
+              "line": 5,
+              "note": "DeliveryError defaults not_sent."
+            }
+          ],
+          "evidence": {
+            "path": ".work/v230-round5-resume-ack-X1w37n/proof.json",
+            "historyComplete": true,
+            "positiveResumeCalls": 1,
+            "replyBytes": 400109,
+            "receiptState": "not_sent",
+            "runtimeUnknown": false,
+            "continuationCalls": 0,
+            "session": {
+              "requiresResume": true
+            },
+            "replayNativeAdditionalCalls": 0
+          },
+          "recommendation": "Move capture/continuation into an accepted-protected scope or track resumeAcknowledged immediately when workflowMutation resolves. Any later local default-not_sent/generic failure must become unknown and mark the thread uncertain; preserve actual pre-positive rejection. Retain explicit complete-history admission and bounded snapshot behavior. Add actual service/gateway regression using a schema-valid oversized snapshot plus a small successful resume and real native rejection control."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round5-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round5/team.json",
+          "sha256": "3f0f9ed306a4a9641b74becbd23fa962d1da8969e2fce07e9ffb9b4e865bf826"
+        }
+      ],
+      "method": "Complete partitioned source review; semantic records LF canonical; exact originals retained in sidecars when needed. Raw/initial/preserved reports retain depth, findings and limitations. Original member references retain original SHA256 values; reviewer SHA256 binds the public LF record. No clean round or historical completion time is invented."
+    },
+    {
+      "id": "v230-round6",
+      "sequence": 69,
+      "digest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-10-30T23:19:47.824Z",
+      "completedAt": "2026-10-30T23:25:51.729Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round6-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round6/team.json",
+          "sha256": "c0b4498b575cae08ad63b0923618b646ff0cd0533f37460242a7fe7f1cdce4f4"
+        }
+      ],
+      "method": "Complete partitioned source review; semantic records LF canonical; exact originals retained in sidecars when needed. Raw/initial/preserved reports retain depth, findings and limitations. Original member references retain original SHA256 values; reviewer SHA256 binds the public LF record. No clean round or historical completion time is invented."
     }
   ],
   "fullTests": {
@@ -7112,11 +7543,22 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "currentAuditSourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
   "currentAuditGate": {
+    "status": "passed",
+    "round": "v230-round6",
+    "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+    "sourceFiles": 1975,
     "requiredCleanRounds": 1,
-    "instruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
-    "round": "v220-round10",
-    "passed": true
+    "userOverride": true
+  },
+  "v230FullTests": {
+    "status": "pending",
+    "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37"
+  },
+  "v230ReleaseDeployment": {
+    "status": "pending",
+    "target": "120",
+    "version": "2.3.0"
   }
 }

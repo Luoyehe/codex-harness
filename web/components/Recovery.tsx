@@ -11,7 +11,15 @@ import {
   initializeOperations,
   type Operation,
 } from '../lib/operations';
-import { message } from '../lib/types';
+import { message, object } from '../lib/types';
+const operationNames: Record<string, string> = {
+  'project/add': '添加已有项目', 'project/create': '新建项目', 'project/rename': '重命名项目', 'project/remove': '移除项目',
+  'conversation/start': '开始新会话', 'turn/start': '发送消息', 'turn/steer': '追加指令', 'turn/interrupt': '停止任务',
+  'thread/resume': '加载会话', 'thread/name/set': '重命名会话', 'thread/archive': '归档会话',
+  'thread/unarchive': '取消会话归档', 'thread/delete': '删除会话', 'terminal/open': '打开终端',
+  'system/provider/write': '保存模型供应商', 'system/models/refresh': '刷新模型目录',
+  'system/restart': '重启服务', 'system/execution-mode/write': '切换执行权限',
+};
 export function useOperations() {
   const [operations, setOperations] = useState<Operation[]>([]),
     [error, setError] = useState(''), [warning, setWarning] = useState('');
@@ -113,11 +121,14 @@ export function Recovery({
       <summary>
         {showCompleted ? `本地操作记录 ${operations.length} 条` : pending.length
           ? `${pending.length} 笔操作等待确认`
-          : attention.length ? `${attention.length} 笔操作未完成` : nearCapacity ? '本地操作记录接近上限' : '操作记录需要检查'}
+          : attention.length ? `${attention.length} 笔操作未执行` : nearCapacity ? '本地操作记录接近上限' : '操作记录需要检查'}
       </summary>
-      <p className="muted small">
+      {pending.length > 0 && <p className="muted small">
         查询只读取结果。暂未收到记录不代表原请求不会到达；未知操作不会自动重发。
-      </p>
+      </p>}
+      {attention.some(operation => operation.state === 'not_sent') && <p className="muted small">
+        确定未发送的操作没有执行，不属于结果未知，也不会阻塞新的消息。可查看失败原因；确认后点击“已知悉”移除提醒。
+      </p>}
       {nearCapacity && <p role="status" className="workspace-warning">本地保留 {operations.length}/200 条操作记录。请在设置 → 操作记录中查看尚未处理的结果并清理已完成记录。</p>}
       {(error || storeError) && (
         <p role="alert" className="error">
@@ -141,7 +152,7 @@ export function Recovery({
           return (
             <div className="recovery-row" key={o.id}>
               <div>
-                <strong>{o.method}</strong>
+                <strong title={o.method}>{operationNames[o.method] ?? o.method}</strong>
                 {o.legacy && o.draftKey && <p className="small muted">旧版恢复记录已迁入；为保留旧页面尚未确认的草稿，本记录不会自动清除草稿，请核对后在草稿页处理。</p>}
                 {o.method.startsWith('workspace/') && o.resourceId && (
                   <small className="path">{o.resourceId}</small>
@@ -157,6 +168,11 @@ export function Recovery({
                     }[o.state]
                   }
                 </small>
+                {o.state === 'not_sent' && receipt && <p className="small error" role="status">
+                  {receipt.state === 'not_sent' && typeof object(receipt.error).message === 'string'
+                    ? String(object(receipt.error).message).slice(0, 2000)
+                    : '暂未取得该操作的失败原因，请核对原操作页面的提示；不会自动重试。'}
+                </p>}
                 {['pending', 'unknown'].includes(o.state) && receipt?.state === 'not_received' && (
                   <div className="stack">
                     <p className="small">
@@ -206,6 +222,9 @@ export function Recovery({
                 )}
               </div>
               <div className="inline">
+                {o.state === 'not_sent' && <button className="button small" disabled={Boolean(busy)} onClick={() => void read(o.id)}>
+                  {busy === o.id ? '读取原因…' : '查看失败原因'}
+                </button>}
                 {o.projectId && o.method.startsWith('workspace/') && openWorkspace && (
                   <button
                     className="button small"

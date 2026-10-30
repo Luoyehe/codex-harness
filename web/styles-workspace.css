@@ -315,3 +315,15 @@
 .workspace-worktrees .info-card {
   overflow-wrap: anywhere;
 }
+.root-execution-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  flex-shrink: 0;
+}
+.root-execution-notice > span {
+  flex: 1 1 360px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

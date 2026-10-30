@@ -209,7 +209,7 @@ it.each(['fork', 'revert'] as const)(
 );
 
 type ModalKind = 'rename' | 'project' | 'review';
-function transient(kind: ModalKind, api: Api) {
+async function transient(kind: ModalKind, api: Api) {
   const close = vi.fn(),
     changed = vi.fn();
   if (kind === 'rename')
@@ -222,9 +222,10 @@ function transient(kind: ModalKind, api: Api) {
     fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), {
       target: { value: 'project A' },
     });
-    fireEvent.change(screen.getByRole('textbox', { name: '服务器上的绝对目录' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: '项目路径' }), {
       target: { value: '/workspace/a' },
     });
+    await waitFor(() => expect(screen.getByRole('button', { name: '添加项目' }).matches(':disabled')).toBe(false));
   } else
     render(
       <ReviewDialog
@@ -246,7 +247,7 @@ it.each(['rename', 'project', 'review'] as const)(
   async (kind) => {
     const request = deferred(),
       { api, calls } = server(() => request.promise),
-      ui = transient(kind, api);
+      ui = await transient(kind, api);
     await submitTwice(ui.inputs[0]);
     ui.inputs.forEach((input) => expect(input.matches(':disabled')).toBe(true));
     if (kind === 'review') {
@@ -277,7 +278,7 @@ it.each(['rename', 'project', 'review'] as const)(
   async (kind) => {
     const request = deferred(),
       { api, calls } = server(() => request.promise),
-      ui = transient(kind, api);
+      ui = await transient(kind, api);
     await submitTwice(ui.inputs[0]);
     await act(async () => request.reject(new RpcError('not sent', 'rejected', 'not_sent')));
     await waitFor(() => ui.inputs.forEach((input, index) => {
@@ -294,7 +295,7 @@ it.each(['rename', 'project', 'review'] as const)(
   async (kind) => {
     const request = deferred(),
       { api, calls } = server(() => request.promise),
-      ui = transient(kind, api);
+      ui = await transient(kind, api);
     await submitTwice(ui.inputs[0]);
     await act(async () => request.reject(new Error('response lost')));
     ui.inputs.forEach((input, index) => {

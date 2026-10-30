@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { branchDraftSource, discardDraft, listDrafts, type Draft } from '../lib/drafts';
+import { branchDraftSource, discardDraft, executionDraftContext, listDrafts, type Draft, type DraftMode } from '../lib/drafts';
 import { message, type Project } from '../lib/types';
 export function DraftsSettings({
   projects,
   onOpen,
+  draftMode = 'native',
 }: {
   projects: Project[];
   onOpen: (key: string) => void;
+  draftMode?: DraftMode;
 }) {
   const [drafts, setDrafts] = useState<Draft[]>([]),
     [error, setError] = useState(''),
@@ -36,14 +38,15 @@ export function DraftsSettings({
         </p>
       )}
       {drafts.length === 0 && <p className="muted">没有未处理的本地草稿。</p>}
-      {drafts.map((draft) => (
+      {drafts.map((draft) => { const context = executionDraftContext(draft.key); return (
         <div className="info-card" key={draft.key}>
           <strong>
-            {branchDraftSource(draft.key)
+            {context.mode === 'root' ? 'ROOT · ' : '普通 · '}
+            {branchDraftSource(context.key)
               ? '分支消息草稿'
-              : draft.key.startsWith('new:')
-                ? (projects.find((p) => p.id === draft.key.slice(4))?.name ?? '尚未匹配项目的草稿')
-                : `会话草稿 ${draft.key.slice(0, 8)}`}
+              : context.key.startsWith('new:')
+                ? (projects.find((p) => p.id === context.key.slice(4))?.name ?? '尚未匹配项目的草稿')
+                : `会话草稿 ${context.key.slice(0, 8)}`}
           </strong>
           <p className="muted small">
             {draft.text.length} 字符 · {draft.attachments.length} 个附件 · {draft.references.length}{' '}
@@ -72,9 +75,10 @@ export function DraftsSettings({
             )}
           </details>
           <div className="inline">
-            <button className="button small" onClick={() => onOpen(draft.key)}>
+            <button className="button small" disabled={context.mode !== draftMode} onClick={() => onOpen(draft.key)}>
               打开草稿
             </button>
+            {context.mode !== draftMode && <span className="muted small">切换到{context.mode === 'root' ? ' ROOT ' : '普通'}模式后可打开；仍可查看和复制内容。</span>}
             {confirm === draft.key ? (
               <>
                 <button
@@ -101,7 +105,7 @@ export function DraftsSettings({
             )}
           </div>
         </div>
-      ))}
+      ); })}
     </section>
   );
 }

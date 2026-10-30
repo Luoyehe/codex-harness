@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "kind": "author-repair",
+  "finding": "V230-RG-004",
+  "files": [
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "3fbfe10fbbf8dd518a07ee50ca071fa337cc49dc8b90fff1d89578a8dbae5ffd"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "4e0d9489ca73a20b5cdd40d6240667df45e847fc0cd9e4d038a9f946338da91d"
+    }
+  ],
+  "behavior": [
+    "thread/resume records its positive native acknowledgement before session capture and continuation readback; a later local not_sent or generic failure becomes unknown and marks that thread uncertain.",
+    "Existing unknown errors retain their specific code and details; true native pre-write rejection stays not_sent. Snapshot and protocol budgets remain unchanged.",
+    "The regression uses a complete schema-valid native resume response with 4000 short instruction paths, exceeding the real 256KiB SessionSnapshots budget but below the native frame limit. It checks that no second native resume is dispatched.",
+    "Controls cover successful snapshot/continuation, pre-write rejection, and preserving activity_unknown from failed continuation readback."
+  ],
+  "tests": {
+    "path": ".work/test-results/run-xbdUWD/vitest.json",
+    "sha256": "3cfd33380b5d0bbe8ac64bb1a2c856e3348b0966dc7fe8bc26305d2f12f462a7",
+    "files": 2,
+    "passed": 95,
+    "failed": 0,
+    "skipped": 0
+  },
+  "serverTypecheck": {
+    "exitCode": 0
+  },
+  "diffCheck": {
+    "exitCode": 0
+  },
+  "attempts": [
+    {
+      "command": "targeted service.test.ts + guessed session-snapshots.test.ts",
+      "result": "Runner rejected nonexistent exact test path before executing tests; corrected using repository inventory."
+    }
+  ],
+  "fullTests": false,
+  "onlineMutation": false
+}

@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
-  "sourceFiles": 1947,
-  "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
-  "version": "2.2.0",
-  "approvedAt": "2026-10-30T19:02:31.006Z",
-  "userInstruction": "现在对刚刚提到的所有问题进行修复，同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。此前用户已指定 v2.2.0 和全量验证、120 持续运行。",
-  "auditWaiverInstruction": "同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。",
+  "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+  "sourceFiles": 1975,
+  "baseCommit": "4905bd40d95931b4ec6646c7a06ed37cffbf6ed9",
+  "version": "2.3.0",
+  "approvedAt": "2026-10-30T23:29:33.208Z",
+  "userInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。用户指定发布 v2.3.0，更新 120 并保持服务运行；最终路径规则为 / 开头绝对路径，否则相对路径，普通和 ROOT 模式一致。",
+  "auditWaiverInstruction": "完成后同样一轮审计无问题后进行收尾和部署发布；不要求仓库默认的连续三轮无问题。",
   "repairsReviewed": true,
   "unresolvedBlockers": [],
   "scopes": [
@@ -17,28 +17,24 @@
   "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "v220-round10",
-      "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
-      "completedAt": "2026-10-30T18:41:30.485Z",
-      "files": 1947,
+      "roundId": "v230-round6",
+      "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+      "completedAt": "2026-10-30T23:25:51.729Z",
+      "files": 1975,
       "reviewers": [
         {
-          "id": "v220-round10-team",
+          "id": "v230-round6-team",
           "scopes": [
             "gateway-core",
             "runtime-protocol",
             "web-ux",
             "deployment-release"
           ],
-          "evidence": "verification/audit-evidence/v220-round10/team.json",
-          "sha256": "7950e6e05d129b511830bc72f73cca06fc56dddbcc2c5eee3f81a7f116228cea"
+          "evidence": "verification/audit-evidence/v230-round6/team.json",
+          "sha256": "c0b4498b575cae08ad63b0923618b646ff0cd0533f37460242a7fe7f1cdce4f4"
         }
       ]
     }
   ],
-  "note": "Retain actual clean full round10 for all unchanged product/protocol/deployment/tooling/documentation source. Only three UI test fixtures changed; independent semantic review and complete 1947-file manifest verification retain 1944 unchanged files. No extra full audit round is fabricated. Original CI10 full pass and selected failures remain separate facts. This authorizes a fresh exact-source complete CI run after the scoped test-only repair.",
-  "scopedRepairReview": {
-    "path": "verification/audit-evidence/v220-ci-feedback-tests/summary.json",
-    "sha256": "45a114e2248d64f838a1523d75e8092231fc5e7ed7b9af87d249be5f5f8156b8"
-  }
+  "note": "One complete clean current-source audit (v230-round6) authorizes full tests. Preserved history: v230-round1: nonclean (4 findings); v230-round2: clean; superseded for release; v230-round3: nonclean (2 findings); v230-round4: nonclean (1 findings); v230-round5: nonclean (1 findings); v230-round6: clean. Round5 identified the remaining resume-success snapshot acknowledgement gap (V230-RG-004); its repair and worker serialization defense have separate author and independent-review evidence. Tests, deployment and publication are not claimed complete."
 }

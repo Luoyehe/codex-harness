@@ -5,13 +5,14 @@ import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import type { NativeOptions, NativeRpc } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
-const helper = vi.hoisted(() => ({ hook: undefined as undefined | ((action: string) => void), gate: undefined as Promise<void> | undefined, calls: [] as { action: string; binding: unknown }[], result: undefined as JsonValue | undefined }));
+const helper = vi.hoisted(() => ({ hook: undefined as undefined | ((action: string) => void), gate: undefined as Promise<void> | undefined, calls: [] as { action: string; binding: unknown }[], result: undefined as JsonValue | undefined, failure: undefined as Error | undefined }));
 vi.mock('../../src/runtime/workspace.js', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/runtime/workspace.js')>();
   return { ...actual, runWorkspace: async (_config: unknown, root: import('../../src/runtime/workspace.js').WorkspaceRoot, action: string, params: JsonObject, context: import('../../src/runtime/types.js').CallContext, internal = false) => {
     actual.workspaceRequest(root, action, params, context, internal); helper.hook?.(action);
     if (actual.workspaceMutations.has(action) || action === 'operation/ack') context.beforeWrite?.();
     helper.calls.push({ action, binding: root.worktreeBinding }); await helper.gate;
+    if (helper.failure) throw helper.failure;
     if (helper.result !== undefined) return helper.result;
     if (action === 'operation/ack') return { acknowledged: true, operationId: params.operationId, removed: true };
     if (action === 'mkdir') return { path: params.path, created: true };
@@ -32,7 +33,7 @@ function setup() {
   const service = new RuntimeService({ bin: '/unused', home, workerHome: home, nativeHome: '/native', cwd: '/', env: {}, launcher: { path: '/unused', user: 'ch-fixture-worker' } }, native as unknown as NativeRpc); services.push(service);
   return { service, native, context: { clientId: 'owner', operationId: randomUUID(), projectId: randomUUID(), gatewayRequestDigest: 'c'.repeat(64), beforeWrite: () => {} } };
 }
-beforeEach(() => { helper.calls.length = 0; helper.hook = undefined; helper.gate = undefined; helper.result = undefined; });
+beforeEach(() => { helper.calls.length = 0; helper.hook = undefined; helper.gate = undefined; helper.result = undefined; helper.failure = undefined; });
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 test('worktree creation establishes a private binding and read never exposes nested recovery bindings', async () => {
   const { service, context } = setup();
@@ -92,4 +93,34 @@ test('maintenance waits for native acknowledgement cleanup to finish', async () 
   await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
   release(); await cleanup;
   await expect(service.call('runtime/maintenance/check', {}, context)).resolves.toMatchObject({ idle: true });
+});
+
+test.each([
+  ['mkdir', { path: 'folder' }, null],
+  ['worktree/create', { ref: 'HEAD' }, { binding: null }],
+] as const)('positive %s helper reply with malformed result retains its unknown witness and prevents replay', async (action, params, result) => {
+  const { service, context } = setup(); helper.result = action === 'worktree/create' ? { ...result, worktreeId: context.operationId } : result;
+  await expect(service.call(`workspace/${action}`, { cwd: '/project', ...params }, context)).rejects.toMatchObject({ code: 'workspace_witness', delivery: 'unknown' });
+  expect(helper.calls).toHaveLength(1);
+  expect(await service.call('workspace/witness/read', { operationId: context.operationId }, context)).toMatchObject({ state: 'unknown', method: `workspace/${action}` });
+  expect(object(object(service.status()).activity).unknown).toBe(true);
+  await expect(service.call(`workspace/${action}`, { cwd: '/project', ...params }, context)).rejects.toBeInstanceOf(DeliveryError);
+  expect(helper.calls).toHaveLength(1);
+});
+
+test('positive helper reply with mismatched identity preserves the original unknown outcome', async () => {
+  const { service, context } = setup(); helper.result = { path: 'another-folder', created: true };
+  await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context)).rejects.toMatchObject({ code: 'invalid_native_response', delivery: 'unknown' });
+  expect(await service.call('workspace/witness/read', { operationId: context.operationId }, context)).toMatchObject({ state: 'unknown' });
+  expect(object(object(service.status()).activity).unknown).toBe(true);
+});
+
+test('definite helper rejection before a positive reply releases its witness without marking runtime uncertain', async () => {
+  const { service, context } = setup(); helper.failure = new DeliveryError('permission_denied', 'Directory is not writable');
+  await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context)).rejects.toMatchObject({ code: 'permission_denied', delivery: 'not_sent' });
+  expect(helper.calls).toHaveLength(1);
+  expect(await service.call('workspace/witness/read', { operationId: context.operationId }, context)).toMatchObject({ state: 'not_received' });
+  expect(object(object(service.status()).activity).unknown).toBe(false);
+  helper.failure = undefined;
+  await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context)).resolves.toMatchObject({ created: true });
 });

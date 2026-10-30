@@ -16,6 +16,7 @@ from deploy.control_update import BLOCKER, ControlSystem, ControlUpdater, ROLES,
 from deploy.install import stage_control, write_control_launchers
 from deploy.safe_fs import inspect_tree
 from deploy.units import render_units, render_edge_units, sudo_rule
+from deploy.service_proxy import PROXY_ROLES
 from tests.deploy.test_control_update import previous_sudo_policy
 
 
@@ -41,14 +42,15 @@ class FixtureSystem:
             raise DeployError("injected", "One-time " + event + " failure")
 
     def state(self, unit):
-        role = next((role for role in ROLES if self.layout.unit(role) == unit), None)
+        role = next((role for role in (*ROLES, *PROXY_ROLES) if self.layout.unit(role) == unit), None)
         active = role in self.active
         return {"LoadState": "loaded", "ActiveState": "active" if active else "inactive",
-                "SubState": "running" if active else "dead", "MainPID": "123" if active else "0",
+                "SubState": ("exited" if role == "proxy-routes" else "running") if active else "dead",
+                "MainPID": "123" if active and role != "proxy-routes" else "0",
                 "ControlPID": "0", "stopped": not active}
 
     def enabled_state(self, unit):
-        return self.enabled[next(role for role in ROLES if self.layout.unit(role) == unit)]
+        return self.enabled[next(role for role in (*ROLES, *PROXY_ROLES) if self.layout.unit(role) == unit)]
 
     def instance_units(self, layout):
         self.events.append("enumerate")
@@ -58,7 +60,7 @@ class FixtureSystem:
         self.events.append(("stop", units))
         if self.unknown:
             raise DeployError("stop_unknown", "Injected uncertain cgroup stop")
-        self.active.difference_update(role for role in ROLES if self.layout.unit(role) in units)
+        self.active.difference_update(role for role in (*ROLES, *PROXY_ROLES) if self.layout.unit(role) in units)
 
     def no_instance_processes(self, layout, config):
         self.events.append("process-confirmation")
@@ -67,7 +69,7 @@ class FixtureSystem:
 
     def start(self, units):
         self.events.append(("start", units))
-        for role in ROLES:
+        for role in (*ROLES, *PROXY_ROLES):
             if self.layout.unit(role) in units:
                 if not (self.layout.config / "control-maintenance" / role).exists():
                     self.active.add(role)
@@ -132,7 +134,79 @@ class ControlUpdateTests(unittest.TestCase):
         for name in ("manage", "native-launch", "deploy/cli.py", "deploy/native_launcher.py"):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
         write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
-                                                      "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1"}, mode=0o644)
+                                                      "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1", "serviceProxy": 1}, mode=0o644)
+
+    def configure_proxy(self):
+        self.updater.config["serviceProxy"] = {"enabled": True, "port": 18793,
+                                                "core": "a" * 64, "configuration": "b" * 64}
+        write_json(self.layout.config / "instance.json", self.updater.config)
+        for name, content in render_units(self.layout, self.updater.config, self.updater.config["codexRelative"]).items():
+            atomic_write(self.layout.units / name, content.encode(), 0o644)
+        capabilities = read_json(self.layout.control / "capabilities.json")
+        write_json(self.layout.control / "capabilities.json", {**capabilities, "serviceProxy": 1}, mode=0o644)
+        self.system.active.update(PROXY_ROLES)
+        self.system.enabled.update({role: "static" for role in PROXY_ROLES})
+        # This fixture checks lifecycle/real file snapshots. Proxy-specific root
+        # tests independently exercise executable and configuration ownership.
+        self.stack.enter_context(patch("deploy.service_proxy.verify_selection"))
+
+    def test_proxy_services_and_oneshot_routes_restore_exactly_across_update_and_rollback(self):
+        self.configure_proxy()
+        original_active, original_enabled = set(self.system.active), dict(self.system.enabled)
+        config_bytes = (self.layout.config / "instance.json").read_bytes()
+        result = self.updater.update()
+        saved = read_json(self.updater.records / result["transaction"] / "state.json")
+        self.assertEqual(set(saved["services"]), set(ROLES) | set(PROXY_ROLES))
+        self.assertEqual(saved["services"]["proxy-routes"], {"active": True, "enabled": "static"})
+        self.assertEqual(self.system.active, original_active)
+        self.assertEqual(self.system.enabled, original_enabled)
+        self.updater.update(result["transaction"])
+        self.assertEqual(self.system.active, original_active)
+        self.assertEqual(self.system.enabled, original_enabled)
+        self.assertEqual((self.layout.config / "instance.json").read_bytes(), config_bytes)
+        self.assertFalse(any(self.updater.barriers.iterdir()))
+
+    def test_crashed_proxy_control_update_restores_pair_and_retains_stopped_gateway(self):
+        self.configure_proxy()
+        original = set(self.system.active)
+        save = self.updater.save
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "installed": raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss):
+            self.updater.update()
+        self.assertFalse(self.system.active)
+        self.assertTrue(all((self.updater.barriers / role).exists() for role in (*ROLES, *PROXY_ROLES)))
+        self.updater.recover()
+        self.assertEqual(self.system.active, original)
+        self.assertNotIn("gateway", self.system.active)
+        self.assertFalse(any(self.updater.barriers.iterdir()))
+
+    def test_proxy_selection_rejects_historical_control_without_capability_before_stop(self):
+        before_proxy = self.updater.update()
+        self.configure_proxy()
+        events, active = list(self.system.events), set(self.system.active)
+        with self.assertRaises(DeployError) as failure:
+            self.updater.update(before_proxy["transaction"])
+        self.assertEqual(failure.exception.code, "proxy_unsupported")
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(self.system.active, active)
+        self.assertFalse(self.updater.pending())
+
+    def test_proxy_corruption_rejects_both_recovery_directions_before_guard_or_stop(self):
+        self.configure_proxy()
+        save = self.updater.save
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "installed": raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss):
+            self.updater.update()
+        for target in ("old", "candidate"):
+            events = list(self.system.events)
+            with patch("deploy.service_proxy.verify_selection", side_effect=DeployError("integrity", "corrupt proxy bytes")):
+                with self.subTest(target=target), self.assertRaisesRegex(DeployError, "corrupt proxy bytes"):
+                    self.updater.recover(target=target)
+            self.assertEqual(self.system.events, events)
 
     def current(self):
         return (self.layout.control / "manage").read_bytes()

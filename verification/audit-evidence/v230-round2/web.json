@@ -1,0 +1,1332 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v230-round2",
+  "reviewerId": "v230_audit_web",
+  "digest": "7df4915129c1a10677f2d30a2c4f5e1cb2fa5d919b70237249f310913db0bdef",
+  "complete": true,
+  "scopes": [
+    "web/** (exact 229 entries of groups.web in .work/v230-round2-snapshot.json)"
+  ],
+  "inspectedFiles": 229,
+  "files": [
+    {
+      "path": "web/App.tsx",
+      "sha256": "91a89559632136bd3bfa72cdae87278b43c563bcce97d7edba68b4265a685e9f"
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "sha256": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "08c2c7a6e7ecf85f0c16a8b4258493cc7d2b494ad420685060da9e23238e9b89"
+    },
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "sha256": "ac01ab8aaaf60aabde17701ff179e09f5932078a57c3342f680e8f7955ad45c3"
+    },
+    {
+      "path": "web/components/AccountToolsPanel.tsx",
+      "sha256": "3f21a43499727e83813b27e5d3f29d0018095b00f41e96c9e78c68a3e2891c55"
+    },
+    {
+      "path": "web/components/AdminSettings.tsx",
+      "sha256": "e74bdc31b07045403f93d02e3bd870e6b44651e2f92359e13aa8a44482b7f823"
+    },
+    {
+      "path": "web/components/ArchiveActions.tsx",
+      "sha256": "f4c8e6dd710ec398484683b8dfd9bb8aa1625c643fc2b51e8301d3a96c171a25"
+    },
+    {
+      "path": "web/components/AttachmentButton.tsx",
+      "sha256": "54e3f7a50f0ef98025a7151587ffc9b964f5310d703dba782e82b169460e7f66"
+    },
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "sha256": "ac289a45dc8c7cb5e35c336ba1d997ebdaffea415c61badf04d99a307f444698"
+    },
+    {
+      "path": "web/components/AutomationsPanel.tsx",
+      "sha256": "e1b47ef46bc15176c6d824ced262dbfc979ade2772081c1a1792b2c5707a8718"
+    },
+    {
+      "path": "web/components/CliDiagnosticsPanel.tsx",
+      "sha256": "0df99646ee6aa93898cefa54d35b47c3ddfcca33d33c6b59b11550f245d60f99"
+    },
+    {
+      "path": "web/components/CompactThreshold.tsx",
+      "sha256": "525c896550f17df6449a09e4d07d7e71bf8c5df183618043160c76d1c1005206"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "e520ceb1ccf5e4c69d7f20686fe6830077a93cb48997df127dd2a7fff77d7a75"
+    },
+    {
+      "path": "web/components/ComposerOptions.tsx",
+      "sha256": "32ea5edfb600418e79977bfae22a81fb78993c1699dc978bd62e0cae3662d097"
+    },
+    {
+      "path": "web/components/ConfigSettings.tsx",
+      "sha256": "0c797872c69089d432f94463bf32a3a02ee132a2eac067e2f8fb9ea2342406f4"
+    },
+    {
+      "path": "web/components/CreditNudge.tsx",
+      "sha256": "0582f6d8f01a13d245a1885ce795b697ed3e33c86145c9ca264b5efcae7dc11e"
+    },
+    {
+      "path": "web/components/DiagnosticsPanel.tsx",
+      "sha256": "92f3aa2b667322314076e3787c69a308abc7348d87f77d8690604235ebfa3916"
+    },
+    {
+      "path": "web/components/Dialog.tsx",
+      "sha256": "0877f0f4bc27cbbee1e733bb53f8c7d73895cefaa600b9623a1ddf1f5b808af5"
+    },
+    {
+      "path": "web/components/DraftsSettings.tsx",
+      "sha256": "6a4d083c857d00356dbc786a1420693a34e3f7d1352eff8dcc7079710cff8463"
+    },
+    {
+      "path": "web/components/EnvironmentPicker.tsx",
+      "sha256": "aadc95b0f724ef89cf6c4d4b7b339dd67a0bc565bb7f886b9d44ee3857546eb4"
+    },
+    {
+      "path": "web/components/ExecutionModeSettings.tsx",
+      "sha256": "5f47b63ec90ca98e8cc2fbe21ff16f4549e94141b78b31d6b0980302a1d73488"
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "sha256": "9bffd195afa540308d09af1c86875697aae765f62ee274739baa619b201f6c9a"
+    },
+    {
+      "path": "web/components/ExtensionsPanel.tsx",
+      "sha256": "d00dccff018a810cdeb0cd9e5919d9599f898acb2fce77727ad302ada70e24f9"
+    },
+    {
+      "path": "web/components/FileEditor.tsx",
+      "sha256": "8e2deaeb40fe0a19c7f1a0c510b8eaf2f47c88a3789ebb51727b86a5613b62d5"
+    },
+    {
+      "path": "web/components/GuardianReviewPanel.tsx",
+      "sha256": "78f11e4bb2e9574d36ed984e1958031c365b583bd028cc8e7fccd5a1a33bcda6"
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "sha256": "1c954316fdddb65a96892f6b4d46e960dc97c8a181c49cca8fc6f10e18a3bbab"
+    },
+    {
+      "path": "web/components/HookEventsPanel.tsx",
+      "sha256": "c02b4dcd220561a0b949a9a694a9f2d49093c4501c78ed20280592bac2ca3d6f"
+    },
+    {
+      "path": "web/components/Icon.tsx",
+      "sha256": "35d1cc2a3cbaae63cfd9dea4d4a8bba7d7f00ad470a8b35dd160704b0b00fab2"
+    },
+    {
+      "path": "web/components/ImportPanel.tsx",
+      "sha256": "ecb4ab4e54be322978ed14c8e5441498863bef0a20cdc9d97d3bf9d4d044074d"
+    },
+    {
+      "path": "web/components/InputContextPicker.tsx",
+      "sha256": "1a0398c76f8aaff0b53f4b8bce70e9a68f92e25f1bf4ba957aaec689d4e1c2c3"
+    },
+    {
+      "path": "web/components/InputPreferences.tsx",
+      "sha256": "2532173fc09717411399d4dc1a0387b575e6b467eefc35dcea8672f4292f9e3f"
+    },
+    {
+      "path": "web/components/LoadedThreadsPanel.tsx",
+      "sha256": "22eda95baa5f9396b553de479c3fcae5d5cef8ad88b4f19bb870f8e40c7bf3db"
+    },
+    {
+      "path": "web/components/Login.tsx",
+      "sha256": "2207e9067a95506a67445a6bc13c4a3efcc5bc071b681cc36d4a065ceb327e14"
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "sha256": "e65527a013a7c2a53dc6b612858fcdd86cb9b435b9e370f7535c69d5e15fc25b"
+    },
+    {
+      "path": "web/components/McpAuthorization.tsx",
+      "sha256": "20a0513b9b75a0997c3e3d97af23e2e5bfaf86575a72f4b0648413fe2cecaf36"
+    },
+    {
+      "path": "web/components/McpConfiguration.tsx",
+      "sha256": "217ed6799d1d47a4e8930a374b34dde541cb1a45c1b9cbe9dde6abd4b155384a"
+    },
+    {
+      "path": "web/components/McpContent.tsx",
+      "sha256": "6f167a68daf53902af5887ecba8d847b38833fc07a91c69df5acf6aef91945e7"
+    },
+    {
+      "path": "web/components/McpPanel.tsx",
+      "sha256": "720f297ae42b6a645783ceb2a66160ad2fd089fdb4c6fec51228ba25478dda43"
+    },
+    {
+      "path": "web/components/MemorySettings.tsx",
+      "sha256": "0663dff1622ed5e001b40cbc353ca81eacc6dff41e8d236ebcf7e2b71df3ff12"
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "sha256": "5fb0051616f204b291e0210817c07b4aa5362298ca1ce8ad7dd4aeceab16ff80"
+    },
+    {
+      "path": "web/components/MessageMedia.tsx",
+      "sha256": "4e14e590d9b38e645d9eeee3f59b543f999a83f62bfcc00fe60e767328aab40e"
+    },
+    {
+      "path": "web/components/Messages.tsx",
+      "sha256": "1de41a64acd2ec9b517ff8292a3fefaa1264a2887c453ab3293174c451f310e6"
+    },
+    {
+      "path": "web/components/ModelCatalog.tsx",
+      "sha256": "5dc77d816c9889f3ef7d854c463d2c7167157efc88978ae89bf27cf47ab09811"
+    },
+    {
+      "path": "web/components/ModelDirectoryStatus.tsx",
+      "sha256": "038e2d0109bf835fa1a7149b8a9e034c854d42f0075d09de8e8548254a5b2b0c"
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "sha256": "4ed9eb864fab4db2ef056559a79c4e6ff736696e8b22a645b3282ca98724137a"
+    },
+    {
+      "path": "web/components/NativeProjects.tsx",
+      "sha256": "f5c9cc369cdb022a9dc792418b317b25dc16e59e770148a8a95dda7da17a4adc"
+    },
+    {
+      "path": "web/components/OperationHistory.tsx",
+      "sha256": "e42b5b8610f244234df4fa0a464f55e237fe18b095dca1b88d92c7ddc71b811f"
+    },
+    {
+      "path": "web/components/OrganizationPanel.tsx",
+      "sha256": "aba5e2b03c0cfb9211493915c9340ed47c7e70eb45cc6b85ed318d0e86690e13"
+    },
+    {
+      "path": "web/components/PluginSettings.tsx",
+      "sha256": "e083703b272543372866513ea9540fa4946528b4b59023feec6103a4cbf06d5e"
+    },
+    {
+      "path": "web/components/PluginSharing.tsx",
+      "sha256": "b10438ffca1311ceed046dd1f4a2f6cf3c19c2ae45fb80bbb2984e318b44f287"
+    },
+    {
+      "path": "web/components/PredictionPanel.tsx",
+      "sha256": "2ee1e4a91b03dd40ecdc2bf350c5dab7cf4b15183597f4e83e54135ae07c0444"
+    },
+    {
+      "path": "web/components/ProcessPanel.tsx",
+      "sha256": "f5f86f43f8104fb8fb039ffa550981f6cff9603bc6e9f3c29bf46c5232b461c0"
+    },
+    {
+      "path": "web/components/ProjectDialog.tsx",
+      "sha256": "2ca6f122e5c4859d706f5b444bc38ff635b40e7a9fc9f21899de5f6281f314f1"
+    },
+    {
+      "path": "web/components/ProjectTrustSettings.tsx",
+      "sha256": "1664881a8a5e899c1ac4b863bfa7a4b3a76057d6a3dc7d9db4fc93731e2ef88f"
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "sha256": "710468a00100aac797b287d05636630d6a2c859bfe65a32dc3e145cee1454fd9"
+    },
+    {
+      "path": "web/components/Prompts.tsx",
+      "sha256": "4eb8808bb298b92c4e487b115dd22bed83ae331f23fd00932ee3c45d805a6827"
+    },
+    {
+      "path": "web/components/ProviderProfiles.tsx",
+      "sha256": "9f3013e501ed687d395dce64ce94d314a64ea0525c0db96519fdbc88e896b27d"
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "sha256": "fd58ed57eb2181059c1482e8c67fc72cd575fb1c56945cfb624fe00ee0ff40e2"
+    },
+    {
+      "path": "web/components/RealtimePanel.tsx",
+      "sha256": "ef18e85e7a11aa858ee8389f6027d2ce1e44207c554971bc7e960b863d247c7a"
+    },
+    {
+      "path": "web/components/ReceiptMaintenance.tsx",
+      "sha256": "c78781236964ce8d63a6ff94dd2b91a5c03f3d12ab3cc0b1e1210d34cfae72d5"
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "e9f163c5be9158adcf2bb5b87700aeb8d8d8773844de463df2baf707f3e596aa"
+    },
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "sha256": "0e7bf5015327bdf9214b16ce175db7a0a0b13230a1fa69e7c66ba124f81ef8a3"
+    },
+    {
+      "path": "web/components/RenameDialog.tsx",
+      "sha256": "e52d346a6a900fb171c3d387eb48156dc62145204ea66ae6f9f0fea47e6a2893"
+    },
+    {
+      "path": "web/components/RuntimeInsights.tsx",
+      "sha256": "1404f9184c31c6c094ebff15530b45f727bfcfb1df16fdb3aacc70ebcf59b94a"
+    },
+    {
+      "path": "web/components/SafeMarkdown.tsx",
+      "sha256": "20a64b0068bb207f5596b545228551311474eb05541e47559c3c38619b3563e2"
+    },
+    {
+      "path": "web/components/SecuritySettings.tsx",
+      "sha256": "407a7e120ce6dad4df115d08bdb5a7fd911b4d74909ff56b73585f4e1f0e278d"
+    },
+    {
+      "path": "web/components/Settings.tsx",
+      "sha256": "920a000dd4a8d00427446df72e3334429f4ea7925e48570e41c821429c8b5459"
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "1fbd9f1bdacac3fa1f1baa03cf32e38951f85e111e008d70d2bfb3ccd7105498"
+    },
+    {
+      "path": "web/components/SidebarManagementDialog.tsx",
+      "sha256": "c91f9d53a510ce3164a73a4bb96e332b2298376ced2780f9af52a361edd22b26"
+    },
+    {
+      "path": "web/components/SkillLibraryTools.tsx",
+      "sha256": "df6fd5bacc489ba361594261143637ab80476f1e7659b5b7b803ee0676b64e41"
+    },
+    {
+      "path": "web/components/SkillSettings.tsx",
+      "sha256": "0b95d282aef2c29b3df7ae70e746a36d321eee4931ded92aefb8ee941342202d"
+    },
+    {
+      "path": "web/components/TaskPanel.tsx",
+      "sha256": "e0eaa97dba2b357a04b3792f9c3aa0e44b2dfc8095e9aa2192e86398dc95f762"
+    },
+    {
+      "path": "web/components/TerminalPanel.tsx",
+      "sha256": "f66be38ae4e7bf00a4bdb090ff3dc32704c0b6059306f22ba7c2a80947172d4e"
+    },
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "45901ad07e2434d439cab23b0fa4f3cbe61a2edfc5b62d780da46ca32fdc580c"
+    },
+    {
+      "path": "web/components/ThreadOrganization.tsx",
+      "sha256": "550b234a3f8b9c3beabe579dd93f837a9c552bc2c8b7e3e740f398df7a91a3af"
+    },
+    {
+      "path": "web/components/ThreadTerminals.tsx",
+      "sha256": "984cf27cde2a740e7eeb32bd1b829166a05b87dc0b234f09875abf85e3f2e0e7"
+    },
+    {
+      "path": "web/components/TurnFooter.tsx",
+      "sha256": "d98d32a02270d1358462a5eddcba279a31272cafa348ae14beb167f0fb762809"
+    },
+    {
+      "path": "web/components/UsagePopover.tsx",
+      "sha256": "1fe2e2f5836c77bc00862b95f8b8f742d3d4a9b29185a1c9f5b9736716b861c0"
+    },
+    {
+      "path": "web/components/Welcome.tsx",
+      "sha256": "de00c99381f777b880f820396b642f783ef07b3673f2561e5301f573ead713e2"
+    },
+    {
+      "path": "web/components/WorkspaceCommit.tsx",
+      "sha256": "4c2afe63e614182c403d0b212b2f8bf124204188f408de0c52215957c23d19b5"
+    },
+    {
+      "path": "web/components/WorkspaceDownload.tsx",
+      "sha256": "ecde699159eb97d5d02ff3bfcd1bc0093a097b753c38697d23ec1bd90a4b1135"
+    },
+    {
+      "path": "web/components/WorkspaceGit.tsx",
+      "sha256": "4fd0c631327fe29f9a3270e992c227089e6e539e00fdb8d0dcbe8aec9a863600"
+    },
+    {
+      "path": "web/components/WorkspaceIndex.tsx",
+      "sha256": "a2d1a6aac59dc431e0f38ae3c445605686a0f5b0b08d7e0af6aa7704deb9d0ce"
+    },
+    {
+      "path": "web/components/WorkspaceIndexRecovery.tsx",
+      "sha256": "f05e5fb6fe652a2eed017d347e7c715b4b5cc1972619a3363c81a110fce9b96f"
+    },
+    {
+      "path": "web/components/WorkspacePanel.tsx",
+      "sha256": "60669595946248e88002fa36adfb112cb51db564e3401d1e74435094a9736e71"
+    },
+    {
+      "path": "web/components/WorkspaceRecovery.tsx",
+      "sha256": "2913c69e0ac69b76b9d3ea119268dc69c887ccf1a3ca27db5b2c30c21dc68a75"
+    },
+    {
+      "path": "web/components/WorkspaceSearch.tsx",
+      "sha256": "128fa4b17135e355fe6e948aac90945e246e71e27f17878a8d78fbee00ce06c3"
+    },
+    {
+      "path": "web/components/WorkspaceWorktrees.tsx",
+      "sha256": "53e8ba6bf63d37c37605186b2e631ff2c64100ab457f6c7a1dca1a7332e58aeb"
+    },
+    {
+      "path": "web/hooks/useAutomationRuns.ts",
+      "sha256": "2282f3aff02c49ccf012959964526db1cff674c898748738269329ca4141fc79"
+    },
+    {
+      "path": "web/hooks/useConversation.ts",
+      "sha256": "925eeeeeaa73243b1bb871895d5f2e8a580015d93bab438ed17388ef7928c550"
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "sha256": "3230897a67fb463a1520b880f9278278cf0cbb4ef4c9f6dd677c9997114ea07f"
+    },
+    {
+      "path": "web/hooks/useEvents.ts",
+      "sha256": "62d057a8fcb9a5b758f44d18b4b15fd0f9266f2e106082d3387cdfda5a5b8f51"
+    },
+    {
+      "path": "web/hooks/useModelCatalogRefresh.ts",
+      "sha256": "20d8357cca7235cbba62f11cb0f988f8cc765a7d36820b09af87313a543a5db6"
+    },
+    {
+      "path": "web/hooks/useModelDirectory.tsx",
+      "sha256": "6b652174c74d799e356a32295db098e492b190f508b060cc1f91f7b69d98b637"
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "sha256": "76090982db4a492a856db0416447e628ae3acfbc042c5f25692ddf4ed0398c49"
+    },
+    {
+      "path": "web/hooks/usePrompts.ts",
+      "sha256": "b13628ce86618553bcd09f3c475c9ce408fbe564cc45d66ed5605400bac39ada"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "path": "web/hooks/useResume.ts",
+      "sha256": "6a56e7afe50f82279617831b9d92ae2ad5ed7b542c29b2ec5e02c0111fa40031"
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "sha256": "ac8b2d891088f9eeb49a607c4c90c0fac11204698c3f701d2773d1714eeaa156"
+    },
+    {
+      "path": "web/hooks/useWorkspaceWatch.ts",
+      "sha256": "00dd0425f48bb2a26d8101fa46956fbc4439a126366ba06205fed3ad614832ea"
+    },
+    {
+      "path": "web/index.html",
+      "sha256": "e87a9b75a52a29b482759e8f03be846b573901d5aeeefa9977ab6cc735aa3d3d"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "72ed65e12bf271ef5ba0ca703d9b4a5f0d1a62d11210a2b577bed1dbf7e25bdc"
+    },
+    {
+      "path": "web/lib/automations.ts",
+      "sha256": "cc60224d88c03596e463e138f0b665adc3da956483cf4fc4b356ce15f9032484"
+    },
+    {
+      "path": "web/lib/download.ts",
+      "sha256": "2263f60c277ca4ef7ca0de93cdeb03c988ff666d1044483f4f8abbf78c95b6a1"
+    },
+    {
+      "path": "web/lib/drafts.ts",
+      "sha256": "4e0de6a43ab7eeef5adda2edadece9e919ac5470e306ab0e130ba8edb96a1ac4"
+    },
+    {
+      "path": "web/lib/events.ts",
+      "sha256": "387fc1c1e000376d0cd58ebe9c996118b3a596d1b3e77dbf36e31cd1160e4429"
+    },
+    {
+      "path": "web/lib/execution-mode.ts",
+      "sha256": "fa143b984232f5ec015fffc4725ac4a310466c2b5abbce93a7dc5a9cadbe1107"
+    },
+    {
+      "path": "web/lib/file-drafts.ts",
+      "sha256": "2b4a86b951fa0700b12954773736784e4603c26743fc1fcce03bd78656a3696b"
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "sha256": "9c3ca836c163fd13dbb67717e881d5dc38768c0b80c38e9c51e9c264a0befded"
+    },
+    {
+      "path": "web/lib/git-state.ts",
+      "sha256": "5ed7132f44dd1edada75866cfb54228cb89c33809ea6b019ee8fb68b69c94e5b"
+    },
+    {
+      "path": "web/lib/history.ts",
+      "sha256": "963d9b6162bf54d76ae524763b0fe0e722ea543fa2b32628d48f0d0d23a8c6a6"
+    },
+    {
+      "path": "web/lib/ids.ts",
+      "sha256": "1879581127de9597673785e32fb4f3efc3cce012f94cf881332abc859406baa4"
+    },
+    {
+      "path": "web/lib/imports.ts",
+      "sha256": "4ca6c964e1e1f1d7f066a4bc953232365493d380911854de71766d2b8f0e408f"
+    },
+    {
+      "path": "web/lib/input-context.ts",
+      "sha256": "f7e5181d7ef801414eac64940720833483aaf73ce41f4d8ff27faf89e3a3d27c"
+    },
+    {
+      "path": "web/lib/input-modalities.ts",
+      "sha256": "739948eb338ead84a879038dfeabf20932a60ef8972da9ae01007425c9bf9faa"
+    },
+    {
+      "path": "web/lib/input-preference.ts",
+      "sha256": "2bbd70f35803c0377a67f7bfc8780ac97461c5d317972661476e4335a09b6d90"
+    },
+    {
+      "path": "web/lib/mcp-session.ts",
+      "sha256": "2203ce64e5844d5cd53c97563a0a95b2783b11e5da87a88aef66cd7e3ff6aad6"
+    },
+    {
+      "path": "web/lib/media.ts",
+      "sha256": "08a6206948c9120eaa4a37478cb6fb6a3f1c6426b366ab20147bfca991718c6a"
+    },
+    {
+      "path": "web/lib/operation-store.ts",
+      "sha256": "84471c85a2af28b1ae571fe5c4a1d2ca02d03c5206137e98aa58f6ecaf576e45"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "370b4300fe3e7966ccb62a365eb13d6a3e4fea3a15ddfbf5ea022cbfa5ed8038"
+    },
+    {
+      "path": "web/lib/organization.ts",
+      "sha256": "126eae596f9b5141ed9553f471e3d1bd717733178138229677988606913abd3b"
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "sha256": "eed59f8770a3efde470b67cd7179bbc260dbe2f47f19ceb241af6fa429c266d4"
+    },
+    {
+      "path": "web/lib/realtime-media.ts",
+      "sha256": "0989bc01d884061ecbe32a4ce93dc82bf5f2825550ac5ecb80be2f44aa3ac0cd"
+    },
+    {
+      "path": "web/lib/receipt-archive.ts",
+      "sha256": "1203a9f6627e9fe8252907e2faae903741ca2ae44a03a4528a363cac47fed472"
+    },
+    {
+      "path": "web/lib/stream-items.ts",
+      "sha256": "d42d38fea838170fb530a8b61fe51e49d4d65e0f6ce6822746c665601d1a526c"
+    },
+    {
+      "path": "web/lib/timeline.ts",
+      "sha256": "40372ce0338f6a464bb2b44fd39dc081e414688063a4892eefbe8358118bd218"
+    },
+    {
+      "path": "web/lib/types.ts",
+      "sha256": "2da3e2aee29419235305b6410b509134c1c92ab11a7a53d785720a7aa8eff092"
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "sha256": "fc108afbc6110b44daa292b6762efc21d9651d80bd8af3073890fcd34f1e43b5"
+    },
+    {
+      "path": "web/lib/workspace.ts",
+      "sha256": "7d1e147904b5a94feec6ac35c726174253b093cdef896a3df81f1bf6f5e6e5d5"
+    },
+    {
+      "path": "web/main.tsx",
+      "sha256": "a19b6395e30927be8069dba1baaef0c6ee203a4ca30e76649eca988483178a54"
+    },
+    {
+      "path": "web/styles-automations.css",
+      "sha256": "824c6f8b0faa40f70d6d360dd1aaca502c5b1556d5df28ed51c2cba96dbc5da9"
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "sha256": "4c34764b2b49740d3c68a51204c174a6be1ded30cc5097501a8ecf34a4f61832"
+    },
+    {
+      "path": "web/styles-input-context.css",
+      "sha256": "1796957fc6fa10b44a9a1cfdd98ea69a5ac2c7d09852a14d50f03ff6403b52e0"
+    },
+    {
+      "path": "web/styles-responsive.css",
+      "sha256": "0d145f7886961fe577840fe113a1a05283e62f08704c7d5080f187c884695334"
+    },
+    {
+      "path": "web/styles-usability.css",
+      "sha256": "1fc12509ac207f885e5ab78b1a10080d1ace00bc0cf4893503f92131fb5ee2b6"
+    },
+    {
+      "path": "web/styles-workflows.css",
+      "sha256": "c4f115f6493ab4553e19a354c73efa88f1be64df73509ce6d3da32a4b888f863"
+    },
+    {
+      "path": "web/styles-workspace.css",
+      "sha256": "754ef2376b75760ba360b1fa4a6647056f708de49f61ed41b0347f4ee8f286e5"
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "c0b3c7b9aff7863da450be2ae84946797162fb4f8a5612217cfb55ee19e20dc2"
+    },
+    {
+      "path": "web/tests/account-app.test.tsx",
+      "sha256": "cd97e289e3604e32ad136163e0d31e63e6d7a95910a9a2b661d9518270d85431"
+    },
+    {
+      "path": "web/tests/account-tools.test.tsx",
+      "sha256": "a8e464ef1478b39c645821a9732de0bc07794a423c986c6a32e61fd9524cb264"
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "086790117a0db9b8a1fe0ff0cd44fc2d5cdf83d5fbaf88a941f1caf8aa987e4d"
+    },
+    {
+      "path": "web/tests/attachments.test.tsx",
+      "sha256": "34050ba1ce7f600bf5378cfe7368236851cf0a706a696e468fca44a167fab295"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "5a53610ecb7786323c769bc1b80e25fd159b6a95dfb9dc531c03af605e74efce"
+    },
+    {
+      "path": "web/tests/builtin-auth.test.tsx",
+      "sha256": "9a0e4b7f1f04c328740744556236021943cd16d3dc29d39bde1acca95429c893"
+    },
+    {
+      "path": "web/tests/cli-diagnostics.test.tsx",
+      "sha256": "c2d30b4f82f0cda6de54f9e496425a6466bd2cd5c01fdc915d64c49e29c43ae1"
+    },
+    {
+      "path": "web/tests/compact-threshold.test.tsx",
+      "sha256": "bbe9991a5f68ff7274d686cb858563da32969c3e826aac178e202314f615367a"
+    },
+    {
+      "path": "web/tests/composer.test.tsx",
+      "sha256": "aa424eda1dd8e17a8be322a6d48fed6ca97a776b7b592892775d1e951c441121"
+    },
+    {
+      "path": "web/tests/conversation-recovery.test.tsx",
+      "sha256": "4d2d993258b55d92aaf753313593cefd9014eba66b60f26ff8267171752ecb8a"
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "sha256": "91240cd9c0b720bd3dec121e4f2ddfc0d8dd25d4f8a883dcbec1f8586cd57c9d"
+    },
+    {
+      "path": "web/tests/credit-nudge.test.tsx",
+      "sha256": "29fb51ea1e137eb9e70a63a370c8ef2adba6231e187b218b33fea1bbfb48e112"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "15e00539844947c2238642f1e9a48bdcf4fcdaee7d768864eef228cdea9b44ee"
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "sha256": "645eae33366396ec1913604a9f899fc9618fb513deb579b35504e90a8b4aa279"
+    },
+    {
+      "path": "web/tests/dialog.test.tsx",
+      "sha256": "baa1ce925bd1e9290738c4b5cd972d54832e25ad82aba4b2ee85d2b86509df54"
+    },
+    {
+      "path": "web/tests/draft-navigation.test.tsx",
+      "sha256": "935ddf8a1501f3595253b078fc93582cca59b03c139fba95f6c685d4bf2d3fb8"
+    },
+    {
+      "path": "web/tests/drafts.test.tsx",
+      "sha256": "7607695d8d858cf8712e8529d8e91c2f93123743352dd6db2a7e13bb5cf57f44"
+    },
+    {
+      "path": "web/tests/enabled-button.ts",
+      "sha256": "3fa4bf77f2408757a5d7597d30a66e6a7dc564f9c27cfeeb58bef6c2ed6256f2"
+    },
+    {
+      "path": "web/tests/environment-picker.test.tsx",
+      "sha256": "444108809ba1043de25660876b775a66279ab05182a7f78d00a2e71cc9c9f1aa"
+    },
+    {
+      "path": "web/tests/events.test.tsx",
+      "sha256": "bf4ead65626e77dc871e06b60d6395eb28bd4ad04e74bb654e18609414e0626f"
+    },
+    {
+      "path": "web/tests/execution-drafts.test.tsx",
+      "sha256": "5c36e7f43e845093a75c3545a9b8f62a6fe5b7bdfdb660c7dbcc8fff8deb7f74"
+    },
+    {
+      "path": "web/tests/execution-mode.test.tsx",
+      "sha256": "008d7f33faca4176a2879c1e1334d75066dd1e640c36eea3c6acf6499001e775"
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "sha256": "ee7bc0ce8739db48415e7c81031f051080daf00fd0cf47c3d1a800820eb21fe8"
+    },
+    {
+      "path": "web/tests/extension-mcp-drafts.test.tsx",
+      "sha256": "e8209cda1ac6cd1452523d968b29d69a1677c797ade695b7c6a29cb4098950dc"
+    },
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "sha256": "42f18a6a7cb8d30ff777d26d0ca69022d6908bca37a87aa10e8fe74fc3051528"
+    },
+    {
+      "path": "web/tests/git-index-ui.test.tsx",
+      "sha256": "b71489a9515a3321380ba1ad0c971106f7b8fae669591b7b80c91a8a2bbe125c"
+    },
+    {
+      "path": "web/tests/guardian-review.test.tsx",
+      "sha256": "6928accb8edcbefbe9e63d696f234ac53a9bb3a9d662e13459dfd9f8a56f30b8"
+    },
+    {
+      "path": "web/tests/history.test.ts",
+      "sha256": "1df869a2bf229ce06d9f30b51746c9e102a1ed18f0c598caf25e48217cdc061c"
+    },
+    {
+      "path": "web/tests/hook-events.test.tsx",
+      "sha256": "b046d2c1771373ad60d0ca3643ee5161794ddc927c342c0f50daac84bb68d356"
+    },
+    {
+      "path": "web/tests/import-ui.test.tsx",
+      "sha256": "f6b499e86250960047a68d62897a3d459410a79474d5356a148f755ef7fe974b"
+    },
+    {
+      "path": "web/tests/input-context.test.tsx",
+      "sha256": "bddfc54dfea558a3c2ccf6f59f6d44c0e81709e95a516201bb0855dee155fa67"
+    },
+    {
+      "path": "web/tests/input-modalities.test.tsx",
+      "sha256": "a7b96ef61d7869afa9930330869fe7c884f5555077b42adf79e325707b18ee8f"
+    },
+    {
+      "path": "web/tests/input-preference.test.tsx",
+      "sha256": "a5290b8270d0cfb60cbf27d3b20352c3e1cc93cb549922ff1faa80bc44382c7b"
+    },
+    {
+      "path": "web/tests/loaded-threads.test.tsx",
+      "sha256": "dbbb73bf95eb9661d477e22b0025dd0cac5b0d0999502ea14c35f7521da4c298"
+    },
+    {
+      "path": "web/tests/mcp-media.test.tsx",
+      "sha256": "35b08c362e819cf91639e716778580b83e6a817bd574a537703c2cb050b7f51c"
+    },
+    {
+      "path": "web/tests/mcp-oauth.test.tsx",
+      "sha256": "3f34984af4ab58582ab5bd1f0a78078fdfca73c0f61ba4e70badb3842edab7fa"
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "a53d755a5df4016488b7f8c18d86cd13d7534f3bd01dcbc4c4ff663f527b2fbe"
+    },
+    {
+      "path": "web/tests/memory-settings.test.tsx",
+      "sha256": "753a7e645604bbbc8366c77407d8eabdabbd4d13b0ac302583742e6aca1023ae"
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "sha256": "806bff39c18db5ef1e5d8c9af035f4fc615a7e21a02330897558fa8b0b1679d9"
+    },
+    {
+      "path": "web/tests/modal-mutations.test.tsx",
+      "sha256": "a664483454612ddd55f083a7e89b3f88806b3bbb44641f9ca12562b07ef76e64"
+    },
+    {
+      "path": "web/tests/model-consumers.test.tsx",
+      "sha256": "8c47bd0ff5075c7faa2639c151e8a5e711dc5d39bd970112dea76b9b62ff4294"
+    },
+    {
+      "path": "web/tests/model-picker.test.tsx",
+      "sha256": "12d5d027f3be92cf534e26a95a1bc1f63639ddf2ebd83ae5838c327bbe4fa083"
+    },
+    {
+      "path": "web/tests/operation-generation.test.ts",
+      "sha256": "c06f2a9dd0a2fcfc403f1d7eee3f4328ab9602855f8e75666081e581173f6985"
+    },
+    {
+      "path": "web/tests/operation-history.test.tsx",
+      "sha256": "f2626a0f732cfe035f731d58027b2084ff87ada271c24199c035cdc4bc0f8c14"
+    },
+    {
+      "path": "web/tests/operation-setup.ts",
+      "sha256": "d56c6e080984401c2178a3d4aa059353828fb135de0cb2cc9235c5eeba8e0317"
+    },
+    {
+      "path": "web/tests/operation-storage.test.ts",
+      "sha256": "1e19cc6c19dfccbeef252c9e002b8aae18ca057de391fcb996043de6cd8835e4"
+    },
+    {
+      "path": "web/tests/operations.test.ts",
+      "sha256": "994989d293125fe09727b8937433fa837f2eeb33ae8010f4bf61c8df553f7ab0"
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "sha256": "5b427b1d1a37f8ea3aa0009b56c3b05b52d8f6c1bdcc2e205bcbf2fc4a0981bf"
+    },
+    {
+      "path": "web/tests/paged-models.test.tsx",
+      "sha256": "b7dd1b8f88df315114920e9f5355768266f4220deaf9f09373918c041e6dbc49"
+    },
+    {
+      "path": "web/tests/prediction.test.tsx",
+      "sha256": "0a98eb33de09929c31e64b800f6e00c858dc5995db63e1c5eece958a41513b0b"
+    },
+    {
+      "path": "web/tests/preview-server.mjs",
+      "sha256": "ebe50163054bfb729cba296169e393ce790aa48237d241f47175925f2cfbbdec"
+    },
+    {
+      "path": "web/tests/preview-server.test.ts",
+      "sha256": "8ca631932b19e352985cfbc5f9745ef96bced6b4b8189abbc99e0265793cc5a2"
+    },
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "sha256": "3c5208222a9d0b30a8cbdbc493b4262d4c00432a4fc2a85eb42354357ec2d48b"
+    },
+    {
+      "path": "web/tests/project-create.test.tsx",
+      "sha256": "05041c1d3c4cb0b6fe00fad0f6c07a2cf5df0b95ca3e20dd2672144e18fb923f"
+    },
+    {
+      "path": "web/tests/project-handoff.test.tsx",
+      "sha256": "792112c42e51987044f25756f7cd96b1fc7f60b06e9696de0ee8bf727d7a2617"
+    },
+    {
+      "path": "web/tests/prompt-fields.test.tsx",
+      "sha256": "d53ad05ad2567b7537fb6373be58a91e3b40b76c857e3605521506d2e8cbd349"
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "sha256": "0db1f10def4ee011495ab87abfd24284297ea875b570aeb0659e3a614942f000"
+    },
+    {
+      "path": "web/tests/provider-advanced.test.tsx",
+      "sha256": "f0e5a75ae19f96d4ffe329e342da0b3dbb22d39411ce5e96b3149ca2d3d65c37"
+    },
+    {
+      "path": "web/tests/provider-catalog.test.tsx",
+      "sha256": "b4ef619b30ca4a64824cea1b2fc9120d5dd92e1e42662a6b03925807ad60d54c"
+    },
+    {
+      "path": "web/tests/provider-multi.test.tsx",
+      "sha256": "ae69a0ba7178a36a3046b82ea9e9a36afe5524dc9b32b944a4547a506679d79d"
+    },
+    {
+      "path": "web/tests/provider-profiles.test.tsx",
+      "sha256": "f68e563b49045df0439f1270c66831fd16b4d53dd998ad5eb8a9edce6997b8f4"
+    },
+    {
+      "path": "web/tests/provider.test.tsx",
+      "sha256": "af4bc65dc9c2c897af215b9ef489c485ee13b4ea28df208800843d9282fa71a1"
+    },
+    {
+      "path": "web/tests/realtime.test.tsx",
+      "sha256": "faeb932f358e9e7afa0be6cec9db732c94b704f186d5415327d86b0810a71395"
+    },
+    {
+      "path": "web/tests/receipt-maintenance.test.tsx",
+      "sha256": "13bd364fa7b400d35059e368372d653d684dfcdeb444f2d16e807856ffd86247"
+    },
+    {
+      "path": "web/tests/recovery.test.tsx",
+      "sha256": "1181e838b3631d2c2cbeb42b016703e78d2c0d5baac5d9132feb758d003fc06c"
+    },
+    {
+      "path": "web/tests/render-budget.test.tsx",
+      "sha256": "0f666724c5de49b1958500247380e8520990821eb0eea533d43bad5f539cfa18"
+    },
+    {
+      "path": "web/tests/resources.test.tsx",
+      "sha256": "a0714c97943b58c6fd83d4b61dc17cf2f9680e0872c9d49de9f26dd1f8697b4b"
+    },
+    {
+      "path": "web/tests/resume.test.tsx",
+      "sha256": "50f46330c76463d12df96c177ff2b90c4127c736c224b46667dcff0edfa54ddc"
+    },
+    {
+      "path": "web/tests/session.test.ts",
+      "sha256": "c387e7ae23992d74ff89ac90e60d78e3790e37d4dd68a678fefa53bacb5ab2de"
+    },
+    {
+      "path": "web/tests/settings-drafts.test.tsx",
+      "sha256": "9c879331f0e97d7a0483378626f24958377f707f7a3e43e7998295a0e97aa7ce"
+    },
+    {
+      "path": "web/tests/settings.test.tsx",
+      "sha256": "53fa2e514ea1a801ece086d4b61308e08823ed6e768685108e6c85c38e294117"
+    },
+    {
+      "path": "web/tests/shared-model-directory.test.tsx",
+      "sha256": "b4dbb6c2af11eba984e095d4c82a9844229d4d1856b48befbc06e9bd6ec06b26"
+    },
+    {
+      "path": "web/tests/sharing-diagnostics.test.tsx",
+      "sha256": "d5849a3805af5cf29fc1b3b4f9c807dfd0b96985e672f41d6ee612dbd00bb125"
+    },
+    {
+      "path": "web/tests/sidebar-management.test.tsx",
+      "sha256": "50cdec6b60a86da2524b1804ed2a7daa318aeef7100e0de53dbef5f48e1b299c"
+    },
+    {
+      "path": "web/tests/sidebar.test.tsx",
+      "sha256": "f54c2222aeab655cf3efb4891448d80d5aae7b9c7e032e4a47b6d9588d89b88f"
+    },
+    {
+      "path": "web/tests/skill-library.test.tsx",
+      "sha256": "af2661f65f7dc95dc71607e1a94e8e081f047134550382affe69795ce42420d8"
+    },
+    {
+      "path": "web/tests/stream-items.test.ts",
+      "sha256": "71652f10bbcd1222587c1838bd3bb89b3b0e01e7cd67419b1328abfdf395c015"
+    },
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "sha256": "b3fcb0a96317009ab6b275bcb4ecac8b54006647b33f19bc0b60f7da2d78252c"
+    },
+    {
+      "path": "web/tests/thread-terminals.test.tsx",
+      "sha256": "0b1c30586a3ecb0d08dabe8989a378652b109b5e13ca5d98719425ce31a40b1f"
+    },
+    {
+      "path": "web/tests/timeline-history.test.tsx",
+      "sha256": "b325e6f8867508ad6f87c65649ed45088c852c1aa9e2c517ae4e13e1821617ea"
+    },
+    {
+      "path": "web/tests/turn-footer.test.tsx",
+      "sha256": "1ba3cfb33f94b32d6f0220d6add1d82310b65a526db11ca8074ed59b8584621c"
+    },
+    {
+      "path": "web/tests/usage.test.tsx",
+      "sha256": "4fb2e54077a92a7e9b263ac1ed00b404516cabe6a4bb0a31b132a360ea322842"
+    },
+    {
+      "path": "web/tests/workflows.test.tsx",
+      "sha256": "c68d52bc60fac87c2476d87cf7bbe5350add6f7e1b50881c946ecaf88ded4d44"
+    },
+    {
+      "path": "web/tests/workspace-git-drafts.test.tsx",
+      "sha256": "bbb642d919f5f5dabdcfc45429f79d6bc4eb5dba54fbae1bd95dee00de8466bd"
+    },
+    {
+      "path": "web/tests/workspace-handoff.test.tsx",
+      "sha256": "46f5702958436dcf595d66d439cc378546a98c98095fadb459e2043881be8e2a"
+    },
+    {
+      "path": "web/tests/workspace-management.test.tsx",
+      "sha256": "d3261250e11fac67ca09a28de4e4710638467fd4737425ebc2140e62da2018de"
+    },
+    {
+      "path": "web/tests/workspace-search.test.tsx",
+      "sha256": "92b88084b95e733b599e8d7d9dd48474aab384e0073369ef05749be20ffc8fad"
+    },
+    {
+      "path": "web/tests/workspace-ui.test.tsx",
+      "sha256": "76cb3b0710251b202c6b708e3074da3e8f4689e8dc55f2b6c4c77bfcda43a7c5"
+    },
+    {
+      "path": "web/tests/workspace-watch.test.tsx",
+      "sha256": "fadbaea7dd162d59f2c7bdc97c30b9721608ded7c4618479e51461b04e7f805d"
+    },
+    {
+      "path": "web/tsconfig.json",
+      "sha256": "efd877301f02127f32d2a954ae07d485795fa317d1917f384a4782f8fe72ee09"
+    },
+    {
+      "path": "web/vite.config.ts",
+      "sha256": "ee2c8cacb1a7f4cc94ac3dcc7a16f3e40e062ce07a78cf867c58451b0b11e12e"
+    }
+  ],
+  "method": {
+    "kind": "Fresh full-scope static structural audit plus fresh semantic reinspection of key user journeys and cross-layer delivery/state ownership; no blanket line-by-line claim",
+    "completionMeaning": "All assigned paths were freshly byte-read, indexed and hash-verified. The key journey review was repeated after the gateway fix. complete means this explicitly described audit scope and depth is complete, not that every generated/test line was semantically reread or a device acceptance test passed.",
+    "currentSemanticPaths": [
+      "web/App.tsx",
+      "web/components/AdminSettings.tsx",
+      "web/components/Dialog.tsx",
+      "web/components/DraftsSettings.tsx",
+      "web/components/ExecutionModeSettings.tsx",
+      "web/components/ExtensionControls.tsx",
+      "web/components/McpAuthorization.tsx",
+      "web/components/MessageItem.tsx",
+      "web/components/Messages.tsx",
+      "web/components/ModelPicker.tsx",
+      "web/components/OperationHistory.tsx",
+      "web/components/Prompts.tsx",
+      "web/components/Recovery.tsx",
+      "web/components/SafeMarkdown.tsx",
+      "web/components/SecuritySettings.tsx",
+      "web/components/Settings.tsx",
+      "web/components/Sidebar.tsx",
+      "web/components/SidebarManagementDialog.tsx",
+      "web/components/TurnFooter.tsx",
+      "web/hooks/useConversation.ts",
+      "web/hooks/useDraft.ts",
+      "web/hooks/useEvents.ts",
+      "web/hooks/useModelCatalogRefresh.ts",
+      "web/hooks/useModelDirectory.tsx",
+      "web/hooks/usePaged.ts",
+      "web/hooks/usePrompts.ts",
+      "web/hooks/useResource.ts",
+      "web/hooks/useResume.ts",
+      "web/hooks/useWorkflow.ts",
+      "web/lib/api.ts",
+      "web/lib/drafts.ts",
+      "web/lib/execution-mode.ts",
+      "web/lib/mcp-session.ts"
+    ],
+    "currentFocusedPaths": [
+      "web/Workspace.tsx",
+      "web/components/AccountSettings.tsx",
+      "web/components/Composer.tsx",
+      "web/components/McpPanel.tsx",
+      "web/components/ProviderSettings.tsx",
+      "web/components/TerminalPanel.tsx",
+      "web/lib/operations.ts"
+    ],
+    "currentLayoutFullPaths": [
+      "web/styles-responsive.css",
+      "web/styles-usability.css"
+    ],
+    "currentLayoutExcerptPaths": [
+      "web/styles.css",
+      "web/styles-automations.css",
+      "web/styles-extensions.css",
+      "web/styles-input-context.css",
+      "web/styles-workflows.css",
+      "web/styles-workspace.css"
+    ],
+    "currentBuildPaths": [
+      "web/index.html",
+      "web/main.tsx",
+      "web/tsconfig.json",
+      "web/vite.config.ts"
+    ],
+    "currentStructuralOnlyPaths": [
+      "web/VERIFICATION.md",
+      "web/components/AccountToolsPanel.tsx",
+      "web/components/ArchiveActions.tsx",
+      "web/components/AttachmentButton.tsx",
+      "web/components/AutomationForm.tsx",
+      "web/components/AutomationsPanel.tsx",
+      "web/components/CliDiagnosticsPanel.tsx",
+      "web/components/CompactThreshold.tsx",
+      "web/components/ComposerOptions.tsx",
+      "web/components/ConfigSettings.tsx",
+      "web/components/CreditNudge.tsx",
+      "web/components/DiagnosticsPanel.tsx",
+      "web/components/EnvironmentPicker.tsx",
+      "web/components/ExtensionsPanel.tsx",
+      "web/components/FileEditor.tsx",
+      "web/components/GuardianReviewPanel.tsx",
+      "web/components/HistoryTools.tsx",
+      "web/components/HookEventsPanel.tsx",
+      "web/components/Icon.tsx",
+      "web/components/ImportPanel.tsx",
+      "web/components/InputContextPicker.tsx",
+      "web/components/InputPreferences.tsx",
+      "web/components/LoadedThreadsPanel.tsx",
+      "web/components/Login.tsx",
+      "web/components/McpArguments.tsx",
+      "web/components/McpConfiguration.tsx",
+      "web/components/McpContent.tsx",
+      "web/components/MemorySettings.tsx",
+      "web/components/MessageMedia.tsx",
+      "web/components/ModelCatalog.tsx",
+      "web/components/ModelDirectoryStatus.tsx",
+      "web/components/NativeProjects.tsx",
+      "web/components/OrganizationPanel.tsx",
+      "web/components/PluginSettings.tsx",
+      "web/components/PluginSharing.tsx",
+      "web/components/PredictionPanel.tsx",
+      "web/components/ProcessPanel.tsx",
+      "web/components/ProjectDialog.tsx",
+      "web/components/ProjectTrustSettings.tsx",
+      "web/components/PromptFields.tsx",
+      "web/components/ProviderProfiles.tsx",
+      "web/components/RealtimePanel.tsx",
+      "web/components/ReceiptMaintenance.tsx",
+      "web/components/RemoteSettings.tsx",
+      "web/components/RenameDialog.tsx",
+      "web/components/RuntimeInsights.tsx",
+      "web/components/SkillLibraryTools.tsx",
+      "web/components/SkillSettings.tsx",
+      "web/components/TaskPanel.tsx",
+      "web/components/ThreadExecutionSettings.tsx",
+      "web/components/ThreadOrganization.tsx",
+      "web/components/ThreadTerminals.tsx",
+      "web/components/UsagePopover.tsx",
+      "web/components/Welcome.tsx",
+      "web/components/WorkspaceCommit.tsx",
+      "web/components/WorkspaceDownload.tsx",
+      "web/components/WorkspaceGit.tsx",
+      "web/components/WorkspaceIndex.tsx",
+      "web/components/WorkspaceIndexRecovery.tsx",
+      "web/components/WorkspacePanel.tsx",
+      "web/components/WorkspaceRecovery.tsx",
+      "web/components/WorkspaceSearch.tsx",
+      "web/components/WorkspaceWorktrees.tsx",
+      "web/hooks/useAutomationRuns.ts",
+      "web/hooks/useWorkspaceWatch.ts",
+      "web/lib/automations.ts",
+      "web/lib/download.ts",
+      "web/lib/events.ts",
+      "web/lib/file-drafts.ts",
+      "web/lib/form-values.ts",
+      "web/lib/git-state.ts",
+      "web/lib/history.ts",
+      "web/lib/ids.ts",
+      "web/lib/imports.ts",
+      "web/lib/input-context.ts",
+      "web/lib/input-modalities.ts",
+      "web/lib/input-preference.ts",
+      "web/lib/media.ts",
+      "web/lib/operation-store.ts",
+      "web/lib/organization.ts",
+      "web/lib/prompt-validation.ts",
+      "web/lib/realtime-media.ts",
+      "web/lib/receipt-archive.ts",
+      "web/lib/stream-items.ts",
+      "web/lib/timeline.ts",
+      "web/lib/types.ts",
+      "web/lib/workflows.ts",
+      "web/lib/workspace.ts",
+      "web/tests/account-app.test.tsx",
+      "web/tests/account-tools.test.tsx",
+      "web/tests/app-lifecycle.test.tsx",
+      "web/tests/attachments.test.tsx",
+      "web/tests/automations.test.tsx",
+      "web/tests/builtin-auth.test.tsx",
+      "web/tests/cli-diagnostics.test.tsx",
+      "web/tests/compact-threshold.test.tsx",
+      "web/tests/composer.test.tsx",
+      "web/tests/conversation-recovery.test.tsx",
+      "web/tests/conversation.test.tsx",
+      "web/tests/credit-nudge.test.tsx",
+      "web/tests/defaults.test.tsx",
+      "web/tests/device-login.test.tsx",
+      "web/tests/dialog.test.tsx",
+      "web/tests/draft-navigation.test.tsx",
+      "web/tests/drafts.test.tsx",
+      "web/tests/enabled-button.ts",
+      "web/tests/environment-picker.test.tsx",
+      "web/tests/events.test.tsx",
+      "web/tests/execution-drafts.test.tsx",
+      "web/tests/execution-mode.test.tsx",
+      "web/tests/execution-settings.test.tsx",
+      "web/tests/extension-mcp-drafts.test.tsx",
+      "web/tests/extensions.test.tsx",
+      "web/tests/git-index-ui.test.tsx",
+      "web/tests/guardian-review.test.tsx",
+      "web/tests/history.test.ts",
+      "web/tests/hook-events.test.tsx",
+      "web/tests/import-ui.test.tsx",
+      "web/tests/input-context.test.tsx",
+      "web/tests/input-modalities.test.tsx",
+      "web/tests/input-preference.test.tsx",
+      "web/tests/loaded-threads.test.tsx",
+      "web/tests/mcp-media.test.tsx",
+      "web/tests/mcp-oauth.test.tsx",
+      "web/tests/mcp-ui.test.tsx",
+      "web/tests/memory-settings.test.tsx",
+      "web/tests/message-media.test.tsx",
+      "web/tests/modal-mutations.test.tsx",
+      "web/tests/model-consumers.test.tsx",
+      "web/tests/model-picker.test.tsx",
+      "web/tests/operation-generation.test.ts",
+      "web/tests/operation-history.test.tsx",
+      "web/tests/operation-setup.ts",
+      "web/tests/operation-storage.test.ts",
+      "web/tests/operations.test.ts",
+      "web/tests/organization.test.tsx",
+      "web/tests/paged-models.test.tsx",
+      "web/tests/prediction.test.tsx",
+      "web/tests/preview-server.mjs",
+      "web/tests/preview-server.test.ts",
+      "web/tests/process-remote.test.tsx",
+      "web/tests/project-create.test.tsx",
+      "web/tests/project-handoff.test.tsx",
+      "web/tests/prompt-fields.test.tsx",
+      "web/tests/prompts.test.tsx",
+      "web/tests/provider-advanced.test.tsx",
+      "web/tests/provider-catalog.test.tsx",
+      "web/tests/provider-multi.test.tsx",
+      "web/tests/provider-profiles.test.tsx",
+      "web/tests/provider.test.tsx",
+      "web/tests/realtime.test.tsx",
+      "web/tests/receipt-maintenance.test.tsx",
+      "web/tests/recovery.test.tsx",
+      "web/tests/render-budget.test.tsx",
+      "web/tests/resources.test.tsx",
+      "web/tests/resume.test.tsx",
+      "web/tests/session.test.ts",
+      "web/tests/settings-drafts.test.tsx",
+      "web/tests/settings.test.tsx",
+      "web/tests/shared-model-directory.test.tsx",
+      "web/tests/sharing-diagnostics.test.tsx",
+      "web/tests/sidebar-management.test.tsx",
+      "web/tests/sidebar.test.tsx",
+      "web/tests/skill-library.test.tsx",
+      "web/tests/stream-items.test.ts",
+      "web/tests/terminal.test.tsx",
+      "web/tests/thread-terminals.test.tsx",
+      "web/tests/timeline-history.test.tsx",
+      "web/tests/turn-footer.test.tsx",
+      "web/tests/usage.test.tsx",
+      "web/tests/workflows.test.tsx",
+      "web/tests/workspace-git-drafts.test.tsx",
+      "web/tests/workspace-handoff.test.tsx",
+      "web/tests/workspace-management.test.tsx",
+      "web/tests/workspace-search.test.tsx",
+      "web/tests/workspace-ui.test.tsx",
+      "web/tests/workspace-watch.test.tsx"
+    ],
+    "structuralEvidence": ".work/v230-round2-web-structural.json",
+    "structuralChecks": [
+      "Fresh inventory of imports, named functions, literal RPC/mutation methods, effect/handler counts and test/assertion declarations across every one of the 229 files; regex indexing is structural evidence rather than AST or typechecking",
+      "Fresh import graph from web/main.tsx reaches 136 production TS/TSX/CSS files and finds no orphan production module, excluding vite.config.ts from runtime roots",
+      "All 89 tests/helpers/fixture files freshly indexed and hash matched; individual tests were not rerun",
+      "Fresh production search for TODO/FIXME, unsafe HTML/eval and navigation entry points; only expected URL and login navigation references were found"
+    ],
+    "journeys": [
+      {
+        "scope": "Root authorization and actual execution identity",
+        "paths": [
+          "web/components/ExecutionModeSettings.tsx",
+          "web/lib/execution-mode.ts",
+          "web/hooks/useEvents.ts",
+          "web/Workspace.tsx",
+          "web/components/AdminSettings.tsx"
+        ],
+        "analysis": "Root selection requires valid UID/mode, server rootAllowed, a current revision and explicit restart/root confirmation. Actual identity changes immediately close native consumers before switching draft namespace. The previous root warning persists through unconfirmed reconnect. The original draft must become durable before the old thread is released; management readiness remains usable for recovery."
+      },
+      {
+        "scope": "Independent drafts, shared model directory and project/chat navigation",
+        "paths": [
+          "web/Workspace.tsx",
+          "web/hooks/useDraft.ts",
+          "web/lib/drafts.ts",
+          "web/hooks/usePaged.ts",
+          "web/hooks/useModelDirectory.tsx",
+          "web/hooks/useModelCatalogRefresh.ts",
+          "web/components/ModelPicker.tsx",
+          "web/components/Sidebar.tsx",
+          "web/components/SidebarManagementDialog.tsx",
+          "web/hooks/useResume.ts"
+        ],
+        "analysis": "Model list identity excludes project/thread selection and includes session/runtime/config identities. Account update/login completion refreshes config identity; pagination owners reject obsolete completions. Selected models/efforts remain in per-context drafts. Native/root and branch draft namespaces remain separate, exact accepted revisions clear only their own draft, sidebar list snapshots require matching project ownership, and management targets remain frozen independently of navigation. Loading history does not silently resume queued work."
+      },
+      {
+        "scope": "Public reasoning, complete answer footer and mobile interaction",
+        "paths": [
+          "web/components/MessageItem.tsx",
+          "web/components/Messages.tsx",
+          "web/components/TurnFooter.tsx",
+          "web/components/SafeMarkdown.tsx",
+          "web/components/Dialog.tsx",
+          "web/styles-responsive.css",
+          "web/styles-usability.css"
+        ],
+        "analysis": "Reasoning renders only public summary channels; completion collapses once and does not override later manual expansion. Copy selects explicit final answers or the legacy final unphased message, refuses mixed sync buffers and stale clipboard feedback. Menus stay within flow, with focus/Escape handling. Mobile styles retain viewport zoom, use 16px form controls on small/coarse-pointer surfaces, constrain popovers and scroll settings horizontally. This is static layout analysis only."
+      },
+      {
+        "scope": "Side effect receipt classifications and error recovery after the gateway fix",
+        "paths": [
+          "web/lib/api.ts",
+          "web/lib/operations.ts",
+          "web/components/Recovery.tsx",
+          "web/components/OperationHistory.tsx",
+          "web/components/ExtensionControls.tsx",
+          "web/hooks/useWorkflow.ts"
+        ],
+        "analysis": "Freshly traced the changed gateway dispatch acceptance boundary to Api.call and beginMutation. Only explicit not_sent becomes a definite non-execution local record; post-acknowledgement unknown does not unblock duplicate delivery as not_sent. Accepted local proof is monotonic. Original receipt reads reconcile without replay; pending/unknown remain gated, while accepted records are quietly reconciled and not_sent failures remain inspectable. Local stop-recovery requires explicit current unknown proof and consent."
+      },
+      {
+        "scope": "Account, MCP and terminal ordinary operation and asynchronous ownership",
+        "paths": [
+          "web/components/SecuritySettings.tsx",
+          "web/components/AccountSettings.tsx",
+          "web/components/McpAuthorization.tsx",
+          "web/components/McpPanel.tsx",
+          "web/lib/mcp-session.ts",
+          "web/components/TerminalPanel.tsx",
+          "web/components/Settings.tsx",
+          "web/components/ProviderSettings.tsx"
+        ],
+        "analysis": "Security fields are cleared on identity loss, changes bind expected revisions, and uncertain actions require readback. MCP uses discovered current runtime/session/thread ownership and original receipt IDs; hidden/different visits revoke consent and download ownership. Terminal startup/input/recovery retain original connection/program/project owners, bounded buffering, uncertain-input suspension and stale-start close behavior. Settings wiring keeps model login separate from gateway security, and preserves text without restoring obsolete action consent."
+      },
+      {
+        "scope": "Prompts and loaded history readiness",
+        "paths": [
+          "web/components/Prompts.tsx",
+          "web/hooks/usePrompts.ts",
+          "web/hooks/useConversation.ts",
+          "web/components/Composer.tsx"
+        ],
+        "analysis": "Prompt dispatch has a synchronous running guard, file approval requires matching preview identities, and opaque question keys use own-property helpers. History traversal checks identities/versions and treats live/snapshot overlap as incomplete until authoritative readback. Composer gates send on loading/default/model/media/context readiness; stale owner completions do not replace a new draft."
+      }
+    ],
+    "crossLayerReferences": [
+      {
+        "path": "src/gateway/dispatch.ts",
+        "lines": "111-235",
+        "depth": "fresh semantic excerpt: system status and accepted side effect delivery classification"
+      },
+      {
+        "path": "src/core/execution-mode.ts",
+        "lines": "full file",
+        "depth": "fresh semantic read of execution policy parsing/validation"
+      },
+      {
+        "path": "src/runtime/service.ts",
+        "lines": "94-103,173-182",
+        "depth": "fresh semantic excerpt: managed execution policy, actual worker identity and emitted status"
+      }
+    ],
+    "retainedEvidence": {
+      "roundId": "v230-round1",
+      "all229HashesUnchanged": true,
+      "structuralEvidence": ".work/v230-round1-web-structural.json",
+      "priorTargetedTestIntentPaths": [
+        "web/tests/shared-model-directory.test.tsx",
+        "web/tests/execution-drafts.test.tsx",
+        "web/tests/turn-footer.test.tsx",
+        "web/tests/render-budget.test.tsx"
+      ],
+      "priorSourceReadNotRepeated": [
+        "web/components/AccountToolsPanel.tsx",
+        "web/components/FileEditor.tsx",
+        "web/components/Login.tsx",
+        "web/components/ProviderProfiles.tsx",
+        "web/components/WorkspaceCommit.tsx",
+        "web/hooks/useWorkspaceWatch.ts",
+        "web/lib/download.ts",
+        "web/lib/events.ts",
+        "web/lib/file-drafts.ts",
+        "web/lib/form-values.ts",
+        "web/lib/git-state.ts",
+        "web/lib/history.ts",
+        "web/lib/ids.ts",
+        "web/lib/input-context.ts",
+        "web/lib/input-modalities.ts",
+        "web/lib/media.ts",
+        "web/lib/operation-store.ts",
+        "web/lib/organization.ts",
+        "web/lib/stream-items.ts",
+        "web/lib/timeline.ts",
+        "web/lib/types.ts",
+        "web/lib/workflows.ts",
+        "web/lib/workspace.ts"
+      ],
+      "note": "Prior source/test inspection details remain historical evidence with their original depth. Their no-findings conclusion was not used as proof. This round explicitly lists freshly reread semantic paths separately; unchanged test intent and non-key source context were retained rather than claimed as freshly line-by-line read."
+    },
+    "notRun": [
+      "No full or targeted test suite",
+      "No browser execution, real iOS/device test, OAuth login, external MCP, live terminal, paid inference or deployment",
+      "No source/test edits, Git mutation, personal credential read or sibling archive implementation access"
+    ],
+    "limitations": [
+      "Fresh full-file semantic reading is limited to currentSemanticPaths; currentFocusedPaths and CSS excerpt paths are targeted reviews, not all-line claims",
+      "Structural-only paths include tests and remaining production modules; regex inventory and reachability cannot prove runtime correctness",
+      "No runtime or UI acceptance result is claimed; mobile/zoom observations are CSS-level evidence",
+      "Output truncated during broad CSS search; affected non-core styles are listed as excerpts, and core Dialog/Sidebar code and primary mobile styles were visible/reviewed separately"
+    ],
+    "endVerification": {
+      "checkedAt": "2026-10-30T22:05:48.747Z",
+      "files": 229,
+      "mismatches": [],
+      "manifestScopeDigest": "2570f45ba8d9bbf48ab41be7344da2aa327023cfa5b8797c52e66663746ae85c",
+      "endScopeDigest": "2570f45ba8d9bbf48ab41be7344da2aa327023cfa5b8797c52e66663746ae85c"
+    }
+  },
+  "findings": []
+}

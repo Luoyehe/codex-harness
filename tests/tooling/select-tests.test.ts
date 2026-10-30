@@ -25,13 +25,13 @@ test('the one-stop shell entry retains deployment and operator journey coverage'
   expect(plan.requiresFullAudit).toEqual([]);
 });
 
-test('real root ownership fixtures have a separate impact group and retain their unprivileged companions', () => {
-  const ordinary = 'tests/deploy/test_control_update.py';
-  const privileged = 'tests/deploy/root/test_control_update.py';
+test.each(['control_update'])('%s root ownership fixtures have a separate impact group and retain their unprivileged companions', (module) => {
+  const ordinary = `tests/deploy/test_${module}.py`;
+  const privileged = `tests/deploy/root/test_${module}.py`;
   const inventory = [...available, ordinary, privileged];
-  const deployment = selectTests(['deploy/control_update.py'], inventory);
+  const deployment = selectTests([`deploy/${module}.py`], inventory);
   expect(deployment.status).toBe('selected');
-  expect(deployment.groups.deploy).toEqual(['tests/deploy/test_control_update.py', 'tests/deploy/test_deployment.py']);
+  expect(deployment.groups.deploy).toEqual([ordinary, 'tests/deploy/test_deployment.py'].sort());
   expect(deployment.groups['deploy-root']).toEqual([privileged]);
   for (const changed of [ordinary, privileged]) {
     const plan = selectTests([changed], inventory);
@@ -40,6 +40,35 @@ test('real root ownership fixtures have a separate impact group and retain their
   }
   expect(selectTests([ordinary], inventory.filter(name => name !== privileged)).requiresFullAudit)
     .toContainEqual({ path: privileged, reason: 'missing-deployment-identity-coverage' });
+});
+
+test('proxy core and transaction fixture changes select exactly all four identity companions', () => {
+  const ordinary = ['tests/deploy/test_proxy_core.py', 'tests/deploy/test_proxy_transaction.py'];
+  const privileged = ['tests/deploy/root/test_proxy_core.py', 'tests/deploy/root/test_proxy_transaction.py'];
+  const companions = [...ordinary, ...privileged], inventory = [...available, ...companions];
+  for (const changed of companions) {
+    const plan = selectTests([changed], inventory);
+    expect(plan.status).toBe('selected');
+    expect(plan.requiresFullAudit).toEqual([]);
+    expect(plan.groups).toEqual({ unit: [], deploy: ordinary, 'deploy-root': privileged, native: [], go: [] });
+    expect(plan.mappings).toEqual([{ path: changed, reason: 'changed-test', tests: [...companions].sort() }]);
+    for (const missing of companions.filter(name => name !== changed)) {
+      const incomplete = selectTests([changed], inventory.filter(name => name !== missing));
+      expect(incomplete.status).toBe('requires-full-audit');
+      expect(incomplete.requiresFullAudit).toEqual([{ path: missing, reason: 'missing-deployment-identity-coverage' }]);
+    }
+  }
+});
+
+test('project path fixtures retain real native/root filesystem identity coverage', () => {
+  const ordinary = 'tests/deploy/test_project_creation.py', privileged = 'tests/deploy/root/test_project_identity.py';
+  for (const changed of [ordinary, privileged]) {
+    const plan = selectTests([changed], [...available, ordinary, privileged]);
+    expect(plan.status).toBe('selected');
+    expect(plan.groups).toEqual({ unit: [], deploy: [ordinary], 'deploy-root': [privileged], native: [], go: [] });
+    const missing = changed === ordinary ? privileged : ordinary;
+    expect(selectTests([changed], [...available, changed]).requiresFullAudit).toEqual([{ path: missing, reason: 'missing-deployment-identity-coverage' }]);
+  }
 });
 
 test('the privileged group cannot disappear from execution or convert an unavailable interpreter to a pass', () => {
@@ -77,7 +106,13 @@ test('unknown files, absent coverage, dependency metadata and an empty diff cann
 });
 
 test('documentation is explicitly no-behavior-change and is never reported as a test pass', () => {
-  const result = runSelection(selectTests(['README.md', 'verification/audits.json'], available)); expect(result.status).toBe('no-behavior-change'); expect(result.results).toEqual([]); expect(result.note).toContain('not a test pass');
+  const result = runSelection(selectTests(['README.md', 'scripts/RELEASE-PREFLIGHT.md', 'verification/audits.json'], available)); expect(result.status).toBe('no-behavior-change'); expect(result.results).toEqual([]); expect(result.note).toContain('not a test pass');
+});
+
+test('preflight dependencies and workflow pins retain the preflight contract regression', () => {
+  const name = 'tests/tooling/release-preflight.test.ts', inventory = [...available, name, 'tests/tooling/ci-checks.test.ts'];
+  for (const changed of ['scripts/release-preflight.mjs', 'scripts/snapshot.mjs', 'scripts/release-authorization.mjs', 'scripts/ci-checks.mjs', '.github/workflows/affected.yml', '.github/workflows/security.yml', '.github/workflows/compatibility.yml'])
+    expect(selectTests([changed], inventory).groups.unit).toContain(name);
 });
 
 test('a rename is exposed as an old deletion and new addition without dropping either mapping', () => {

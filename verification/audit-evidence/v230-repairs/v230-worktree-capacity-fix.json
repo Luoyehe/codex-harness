@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "author": "root",
+  "resolvedFinding": "v230-round1 shared managed-worktree capacity after execution identity switch",
+  "files": [
+    {
+      "path": "src/runtime/worktree-bindings.ts",
+      "sha256": "2a4232845dfd42c6f4ac7ccbf22e25ad610d58f6552b2d5716eac0ceb01c338f"
+    },
+    {
+      "path": "src/runtime/workspace-witness.ts",
+      "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+    },
+    {
+      "path": "tests/runtime/worktree-witness.test.ts",
+      "sha256": "5dfc1a25b22f37f1c17bfbc8fa78dd2e97353be157cfc6295d8663b6976ed7c6"
+    }
+  ],
+  "change": "Reserve shared managed-worktree capacity before helper dispatch, counting retained bindings and unresolved create reservations across native/root homes. Preserve prior identity/unknown precedence, exact not_sent release and acknowledgement retention. Retain defensive post-ack validation.",
+  "targeted": {
+    "path": ".work/test-results/run-soGy9F/vitest.json",
+    "sha256": "2ef6735a6066ae0db06ea14095f64651b3dfa7031f39c7b4b563d9270d88dad8",
+    "files": 4,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0
+  },
+  "typecheck": {
+    "command": "pinned Node TypeScript -p tsconfig.server.json --noEmit",
+    "exitCode": 0
+  },
+  "independentReview": {
+    "path": ".work/v230-worktree-capacity-repair-review.json",
+    "sha256": "2e10878e719120538ccf07f1cfa97a54c2245eaacd32d83f8e6fa7d25291ec27"
+  },
+  "fullTestsRun": false
+}

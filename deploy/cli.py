@@ -40,8 +40,12 @@ def helper_main(instance: str) -> None:
         layout = Layout(instance)
         from .transactions import require_initialization_complete
         require_initialization_complete(layout)
-        require(sys.argv[1:] in (["rpc"], ["config-check"]) or (len(sys.argv) == 3 and sys.argv[1] == "execute" and
+        require(sys.argv[1:] in (["rpc"], ["config-check"], ["proxy-routes-start"], ["proxy-ready"], ["proxy-core-check"]) or (len(sys.argv) == 3 and sys.argv[1] == "execute" and
                 bool(re.fullmatch(r"[0-9a-f]{32}", sys.argv[2]))), "Invalid fixed management invocation")
+        if sys.argv[1:] in (["proxy-routes-start"], ["proxy-ready"], ["proxy-core-check"]):
+            from .service_proxy import helper
+            print(json.dumps({"ok": True, "result": helper(layout, sys.argv[1])}))
+            return
         if sys.argv[1:] == ["config-check"]:
             # Read-only fixed root service, deliberately no management.lock:
             # the caller starting the worker may already hold that lock.
@@ -56,7 +60,10 @@ def helper_main(instance: str) -> None:
                 with exclusive(layout.config / "management.lock"):
                     from .control_update import require_no_pending_control
                     require_no_pending_control(layout)
-                    result = Manager(layout).dispatch(request)
+                    manager = Manager(layout)
+                    from .service_proxy import require_management_membership
+                    require_management_membership(manager, request_id)
+                    result = manager.dispatch(request)
             except Exception as exc:
                 operation = request.get("operationId", "")
                 has_receipt = isinstance(operation, str) and bool(re.fullmatch(r"[0-9a-f-]{36}", operation)) and (layout.state / "receipts" / (operation + ".json")).exists()
@@ -81,11 +88,13 @@ def helper_main(instance: str) -> None:
             # waiting RPC process, but cannot kill the independently owned unit.
             spool = RequestSpool(layout)
             with spool.stage(request) as request_id:
+                from .service_proxy import enabled, table_name
+                proxy_properties = ["--property=NFTSet=cgroup:inet:" + table_name(layout) + ":workers"] if enabled(read_json(layout.config / "instance.json")) else []
                 command = ["/usr/bin/systemd-run", "--quiet", "--wait", "--unit=codex-harness-" + instance + "-manage-" + request_id,
                            "--property=Type=exec", "--property=User=root", "--property=UMask=0077", "--property=TimeoutStartSec=180",
                            "--property=RuntimeMaxSec=180", "--property=KillMode=control-group", "--property=StandardOutput=null",
                            "--property=StandardError=journal", "--property=MemoryMax=512M", "--property=MemorySwapMax=0",
-                           "--property=TasksMax=32", "--", str(layout.control / "manage"), "execute", request_id]
+                           "--property=TasksMax=32", *proxy_properties, "--", str(layout.control / "manage"), "execute", request_id]
                 failure = None
                 dispatched = True
                 try:
@@ -114,6 +123,18 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Codex Harness Linux installation and transaction manager")
     root.add_argument("--instance", default="main")
     subs = root.add_subparsers(dest="command", required=True)
+    subs.add_parser("proxy-status", help="Server-only: inspect this instance's optional service proxy")
+    for command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback"):
+        proxy = subs.add_parser(command, help="Server-only, journaled service proxy operation")
+        proxy.add_argument("--confirm-restart", action="store_true")
+        if command in ("proxy-configure", "proxy-core-update"):
+            proxy.add_argument("--version", required=True, help="Exact official Xray release, for example 26.10.29")
+            proxy.add_argument("--download-proxy", help="Explicit credential-free loopback HTTP proxy for official preparation only")
+        if command == "proxy-configure":
+            proxy.add_argument("--config-file", type=Path, required=True, help="Root-owned mode0600 JSON containing one VLESS outbound")
+            proxy.add_argument("--port", type=int, default=18793, help="Loopback transparent TCP port; HTTP listener uses port+1")
+    proxy_recover = subs.add_parser("proxy-recover", help="Recover the sole unfinished service proxy transaction")
+    proxy_recover.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("manage", help="Interactive installation, upgrades, HTTPS, diagnostics and account recovery")
     pack = subs.add_parser("pack-source", help="Package allowed source inputs; does not include credentials or dependencies")
     pack.add_argument("--source", type=Path, default=Path.cwd())
@@ -150,6 +171,20 @@ def parser() -> argparse.ArgumentParser:
     control_recover.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("config-layer-migrate", help="Operator only: migrate or refresh preserved host defaults and enforced provider requirements")
     subs.add_parser("config-layer-rollback", help="Operator only: restore legacy config mount and sudo compatibility, preserving user config bytes")
+    subs.add_parser("execution-mode-read", help="Read the instance's root authorization and execution identity")
+    execution = subs.add_parser("execution-mode-write", help="Select an authorized fixed execution identity; requires idle services")
+    execution.add_argument("--mode", choices=("native", "root"), required=True)
+    execution.add_argument("--expected-revision", required=True)
+    execution.add_argument("--confirm-restart", action="store_true")
+    execution.add_argument("--confirm-root", action="store_true")
+    execution.add_argument("--operation-id", default=None)
+    access = subs.add_parser("root-access", help="Independent server SSH/console only: authorize or revoke the web root switch")
+    policy = access.add_mutually_exclusive_group(required=True)
+    policy.add_argument("--allow", action="store_true")
+    policy.add_argument("--revoke", action="store_true")
+    access.add_argument("--confirm-restart", action="store_true")
+    execution_recover = subs.add_parser("execution-mode-recover", help="Recover one retained execution identity transaction")
+    execution_recover.add_argument("--target", choices=("old", "candidate"), default="old")
     layer_recover = subs.add_parser("config-layer-recover", help="Operator only: recover one interrupted configuration-layer transaction")
     layer_recover.add_argument("--target", choices=("old", "candidate"), default="old")
     control_rollback = subs.add_parser("control-rollback", help="Operator only: restore retained trusted control code as a new transaction")
@@ -251,6 +286,38 @@ def execute(args: argparse.Namespace) -> dict:
             manager = Manager(layout)
             if args.command == "status":
                 result = manager.status()
+            elif args.command == "proxy-status":
+                from .service_proxy import status
+                result = status(manager)
+            elif args.command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback"):
+                from .proxy_transaction import change
+                result = change(manager, action=args.command.removeprefix("proxy-"), confirm_restart=args.confirm_restart,
+                                input_file=getattr(args, "config_file", None), version=getattr(args, "version", None),
+                                port=getattr(args, "port", 18793), download_proxy=getattr(args, "download_proxy", None))
+            elif args.command == "proxy-recover":
+                from .proxy_transaction import recover
+                pending = [(path, read_json(path)) for path in (layout.state / "transactions").glob("*/state.json")]
+                pending = [(path, value) for path, value in pending if value.get("phase") not in ("committed", "recovered", "failed_first_start")]
+                require(len(pending) == 1 and pending[0][1].get("kind") == "service-proxy", "Expected one pending service proxy transaction", "recovery_required")
+                result = recover(manager, *pending[0], candidate=args.target == "candidate")
+            elif args.command == "execution-mode-read":
+                from .execution_identity import state
+                result = state(manager.config)
+            elif args.command == "execution-mode-write":
+                result = manager.dispatch({"method": "execution-mode/write", "operationId": args.operation_id or str(uuid.uuid4()),
+                    "params": {"mode": args.mode, "expectedRevision": args.expected_revision,
+                               "confirmRestart": args.confirm_restart, "confirmRoot": args.confirm_root}})
+            elif args.command == "root-access":
+                from .operator_origin import require_external_operator
+                from .execution_mode import change
+                require_external_operator(manager.config)
+                result = change(manager, root_allowed=args.allow, confirm_restart=args.confirm_restart)
+            elif args.command == "execution-mode-recover":
+                from .execution_mode import recover
+                pending = [(path, read_json(path)) for path in (layout.state / "transactions").glob("*/state.json")]
+                pending = [(path, value) for path, value in pending if value.get("phase") not in ("committed", "recovered", "failed_first_start")]
+                require(len(pending) == 1 and pending[0][1].get("kind") == "execution-mode", "Expected one pending execution transaction", "recovery_required")
+                result = recover(manager, *pending[0], candidate=args.target == "candidate")
             elif args.command == "candidate-list":
                 from .candidate_archive import list_candidates
                 result = list_candidates(manager)

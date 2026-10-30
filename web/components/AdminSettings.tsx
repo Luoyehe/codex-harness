@@ -3,6 +3,7 @@ import type { Api } from '../lib/api';
 import { useResource } from '../hooks/useResource';
 import { message, object } from '../lib/types';
 import { ReceiptMaintenance } from './ReceiptMaintenance';
+import { ExecutionModeSettings } from './ExecutionModeSettings';
 
 // The deployed manager serializes its transactions, including reads. Share this
 // queue across remounts so two page reads cannot race for the same manager lock.
@@ -30,7 +31,7 @@ function readManager(
   return pending;
 }
 
-export function AdminSettings({ api, epoch }: { api: Api; epoch: string }) {
+export function AdminSettings({ api, epoch, configurationReady = true }: { api: Api; epoch: string; configurationReady?: boolean }) {
   const [logService, setLogService] = useState('gateway');
   const status = useResource(epoch, (signal) => readManager(api, 'system/status', {}, signal));
   const logs = useResource(`${epoch}:${logService}`, (signal) =>
@@ -57,6 +58,8 @@ export function AdminSettings({ api, epoch }: { api: Api; epoch: string }) {
           {status.error}
         </p>
       )}
+      <ExecutionModeSettings key={api.csrf} api={api} value={status.data?.executionMode}
+        loading={status.loading} enabled={configurationReady} onRefresh={status.refresh} />
       {https.configured === true && (
         <div className="info-card stack" aria-label="HTTPS 状态">
           <h3>HTTPS 与证书</h3>

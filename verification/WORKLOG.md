@@ -515,3 +515,10 @@ The first complete push and PR checks on 8f5f966 failed. Nine test-only repairs 
 ## v2.2.0 memory fixture follow-up
 
 Complete CI2 failed its Linux memory-settings revision-conflict test, while Windows and root passed. The single additional test-only repair controls the second asynchronous read and checks compare/adopt/fresh-confirm/one-v2-write in order. Both pinned Node versions passed affected checks; independent review found no new issue. All other 1,940 source files are unchanged from CI2. Source `14158d3f46a6728c06fb33d7d7f0f2c5d628b8259178d2992f35d0bcc750965f` is authorized for a fresh complete attempt; publication/deployment remain pending.
+
+
+## 2026-10-31 — v2.3.0 final audit and full-test authorization
+
+Current source `24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37` (1975 files) completed one clean whole-repository team audit in v230-round6. The user chose one clean round instead of the default three. All 6 rounds retain their actual outcomes: v230-round1: nonclean (4 findings); v230-round2: clean; superseded for release; v230-round3: nonclean (2 findings); v230-round4: nonclean (1 findings); v230-round5: nonclean (1 findings); v230-round6: clean. Round5 found a remaining resume-success snapshot acknowledgement gap (V230-RG-004); its repair and worker serialization defense were independently reviewed before this final audit. Per-file review depth and unchanged inherited evidence remain explicit.
+
+New and existing projects use /-leading absolute paths or paths relative to the current execution identity's projects directory, with actual permission diagnostics. ROOT authorization, mobile/composer/reasoning/footer changes, shared model catalog, service-scoped proxy/core updates and CI preflight are included. Affected tests and isolated Linux identity/systemd/proxy evidence retain their original source/time boundaries. Hosted full-platform reconciliation, final online upgrade, fresh public browser acceptance and publication remain pending. This seal does not run tests, paid inference or external MCP.

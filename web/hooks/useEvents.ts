@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { object, type HarnessEvent } from '../lib/types';
 import { uuid } from '../lib/ids';
+import { executionIdentity, type ExecutionIdentity } from '../lib/execution-mode';
 
 export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enabled = true) {
   const callback = useRef(onEvent);
@@ -16,6 +17,8 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
   const [configurationReady, setConfigurationReady] = useState(false);
   const [revision, setRevision] = useState(0);
   const [connectionId, setConnectionId] = useState('');
+  const [executionMode, setExecutionMode] = useState<ExecutionIdentity>();
+  const [executionModeConfirmed, setExecutionModeConfirmed] = useState(false);
   useEffect(() => {
     api.connectionChanged?.();
     if (!enabled) {
@@ -24,6 +27,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
       setRestarting(false);
       setActivityReady(false);
       setConfigurationReady(false);
+      setExecutionModeConfirmed(false);
       return;
     }
     let disposed = false,
@@ -38,6 +42,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
       setRuntimeConnected(false);
       setActivityReady(false);
       setConfigurationReady(false);
+      setExecutionModeConfirmed(false);
       upstreamConnected = false;
       const url = new URL('/api/events', location.href);
       url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -64,6 +69,12 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
               activity = object(runtime.activity);
             const nextEpoch = runtime.epoch ?? data.epoch;
             const connected = data.connected === true && runtime.connected !== false;
+            const identity = executionIdentity(runtime.executionMode);
+            const identityConfirmed = Boolean(connected && runtime.restarting !== true && identity);
+            setExecutionModeConfirmed(identityConfirmed);
+            // Keep the last ROOT warning until a connected runtime explicitly confirms
+            // native execution. Missing/invalid/offline state is not a privilege drop.
+            if (identity && (identityConfirmed || identity.mode === 'root')) setExecutionMode(identity);
             if (
               connected &&
               (!upstreamConnected || (typeof nextEpoch === 'string' && nextEpoch !== observedEpoch))
@@ -114,6 +125,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
         setRuntimeConnected(false);
         setActivityReady(false);
         setConfigurationReady(false);
+        setExecutionModeConfirmed(false);
         void (async () => {
           try {
             const session = await api.session();
@@ -143,5 +155,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
     epoch,
     revision,
     connectionId,
+    executionMode,
+    executionModeConfirmed,
   };
 }

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v230-round2",
+  "sourceDigest": "7df4915129c1a10677f2d30a2c4f5e1cb2fa5d919b70237249f310913db0bdef",
+  "sourceFiles": 1975,
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-10-30T22:09:25.667Z",
+  "coveredFiles": 1975,
+  "findings": [],
+  "reports": [
+    {
+      "path": ".work/v230-round2-deployment.json",
+      "sha256": "0b70ca90061dd7b95716907e83c4c6955730819a39b39b476f91aa31cd9d2aaf",
+      "files": 138,
+      "findings": 0
+    },
+    {
+      "path": ".work/v230-round2-web.json",
+      "sha256": "553f49e5bd91d19f9e30a7830f44c4bc6e267348ef8004fe3cd3bbea0ecfefe9",
+      "files": 229,
+      "findings": 0
+    },
+    {
+      "path": ".work/v230-round2-runtime-gateway.json",
+      "sha256": "06cfe6251f1d2c7be8c2aaa405c4a97fae449b837a19c7d77d3b4f6702d03b0b",
+      "files": 209,
+      "findings": 0
+    },
+    {
+      "path": ".work/v230-round2-root-protocol-docs.json",
+      "sha256": "ddc0dadff9510e4d72ff33f0887c2caf948b01cb8f621ce06384fba57cad4b28",
+      "files": 1399,
+      "findings": 0
+    }
+  ],
+  "method": "Current complete partitioned review across runtime, gateway/core/tooling, web, deployment, protocol and metadata. Individual reports distinguish current semantic reading, structural inventory checks, and unchanged prior exact-source evidence. This is not a claim of rerunning tests or manually reading every generated line.",
+  "supersededForRelease": "User subsequently requested Root absolute project creation, explicit relative/absolute UI guidance, and relative path separator normalization. Those forthcoming changes are outside this frozen snapshot. This report must not authorize their full tests/release without renewed audit."
+}

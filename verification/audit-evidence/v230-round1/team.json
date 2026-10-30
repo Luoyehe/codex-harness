@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v230-round1",
+  "sourceDigest": "66835dab744b37d67270c8f6fc5a9f2cfc39322289e8fefa904aef71c1cc7d91",
+  "sourceFiles": 1975,
+  "complete": true,
+  "clean": false,
+  "coveredFiles": 1975,
+  "findings": [
+    {
+      "report": ".work/v230-round1-deployment.json",
+      "priority": "P2",
+      "path": "deploy/service_proxy.py",
+      "line": 408,
+      "trigger": "A proxy/upstream trickles response headers more frequently than the 12-second socket timeout during configure/core-update/rollback readiness; the same weakness exists in core download headers/body within the 30-second socket timeout.",
+      "impact": "Readiness can remain selected while holding management.lock for an unbounded practical duration, delaying commit/compensation and blocking administration. Core downloads similarly exceed their 300-second total budget because elapsed time is checked only after blocking open/header/read returns.",
+      "evidence": {
+        "locations": [
+          "deploy/service_proxy.py:408-414 no total deadline around HTTPSConnection/request/getresponse",
+          "deploy/proxy_core.py:167-174 open/read occurs before elapsed budget check",
+          "deploy/proxy_transaction.py:255-257 selected persisted before restore(upstream=True)",
+          "deploy/cli.py:283 shared management.lock encloses operation"
+        ],
+        "slowHeaders": {
+          "artifact": ".work/v230-round1-deployment-slow-header-repro.json",
+          "result": "Real local socket/http.client parser accepted progressive headers for 13.547 seconds with timeout=12 and returned ready. HTTPSConnection replaced with HTTPConnection solely to isolate parser timeout semantics; TLS/CONNECT/nft/systemd not tested."
+        },
+        "slowBody": {
+          "artifact": ".work/v230-round1-deployment-slow-download-repro.json",
+          "result": "Real urllib loopback socket delivered 16 bytes over 0.813 actual seconds. At 1000x monotonic time, the 300-second budget was checked only at 813 virtual seconds after read returned. This was accelerated-clock evidence, not an 813-second live test."
+        },
+        "repairBoundary": "Total deadline must enclose complete DNS/open/redirect/CONNECT/TLS/request/header/body lifecycle, preserve cleanup/origin/credentials/no-retry behavior, and permit transaction compensation on expiry."
+      }
+    },
+    {
+      "report": ".work/v230-round1-deployment.json",
+      "priority": "P3",
+      "path": "deploy/install.py",
+      "line": 132,
+      "trigger": "install_control wrapper has no current call/import; initialize uses initialize_recorded and control update uses stage_control directly.",
+      "impact": "Unused alternate installation entrypoint adds misleading maintenance surface beside the resumable installation flow.",
+      "evidence": {
+        "definition": "install_control(layout) only calls stage_control(layout, layout.control)",
+        "references": "Current-source rg finds only definition; install.py:155-156 uses initialize_recorded and control_update.py:598 uses stage_control.",
+        "repairBoundary": "Remove wrapper; no behavior-mirroring test needed."
+      }
+    },
+    {
+      "report": ".work/v230-round1-runtime.json",
+      "priority": "P2",
+      "path": "src/runtime/worktree-bindings.ts",
+      "line": 35,
+      "trigger": "Retain 32 managed worktrees under one execution identity, switch between native and Root while retaining the supervisor home, then create another worktree from a repository owned by the newly selected identity. Its new nativeHome can be below the helper-local limit while the shared supervisor managed_worktrees table is already full.",
+      "impact": "The helper creates the new checkout before the shared capacity check rejects its positive acknowledgement. The witness transaction rolls back to unknown without a binding, so the new retained checkout cannot be read/attached through the managed worktree API and requires manual inspection. This unnecessarily exceeds the intended shared retention budget and enters activity uncertainty instead of a safe not_sent capacity rejection.",
+      "evidence": [
+        "RuntimeWorkspace executes runWorkspace first (src/runtime/workspace-service.ts:61) and only then witness.complete (line 65). Its beforeWrite invokes boundary and witness.reserve; reserve validates only the witness-row budget, not managed-worktree capacity (src/runtime/workspace-witness.ts:66-79).",
+        "The shared managed_worktrees table is initialized from the supervisor witness DB, and its global count >=32 is checked only in WorktreeBindings.complete (src/runtime/worktree-bindings.ts:34-36), inside the post-ack transaction; failures roll that transaction back (src/runtime/workspace-witness.ts:107-119).",
+        "deploy/units.py:59-67,111-115 and deploy/execution_identity.py:31-36 select distinct worker/worker-root native homes but retain one supervisor home and DB. deploy/workspace_worktrees.py:79-89,264-296 checks only the selected native-home holders before physically creating the checkout and returning created:true.",
+        ".work/v230-round1-worktree-capacity-evidence.json: completedBindingsBeforeSwitch=32; reservePassed=true; completion={code:capacity,delivery:unknown}; witnessAfterCompletion.state=unknown; binding.code=worktree_unbound. The reproduction uses the actual WorkspaceWitness implementation, distinct project identities and simulated valid helper acknowledgements."
+      ]
+    },
+    {
+      "report": ".work/v230-round1-gateway-tooling.json",
+      "id": "V230-GT-001",
+      "priority": 2,
+      "severity": "P2",
+      "title": "Preserve unknown delivery when project registration fails after directory creation succeeds",
+      "path": "src/gateway/dispatch.ts",
+      "line": 178,
+      "endLine": 178,
+      "relatedLocations": [
+        {
+          "path": "src/gateway/dispatch.ts",
+          "line": 174,
+          "endLine": 178
+        },
+        {
+          "path": "src/gateway/dispatch.ts",
+          "line": 206,
+          "endLine": 210
+        },
+        {
+          "path": "src/core/ledger.ts",
+          "line": 249,
+          "endLine": 249
+        },
+        {
+          "path": "src/core/errors.ts",
+          "line": 8,
+          "endLine": 8
+        }
+      ],
+      "trigger": "With 127 registered projects, start two different project/create requests before either worker result returns. Both pass the pre-await count check, both cross beforeWrite and create their directory, and both return successful worker acknowledgements. The first addProject consumes slot 128; the second addProject throws HarnessError(capacity) with its default delivery=not_sent.",
+      "impact": "The second operation is permanently recorded and reported as not_sent even though its directory was already created. It is absent from project/list, the user receives false safe-to-retry guidance, and no project/create positive-proof recovery path repairs this receipt. This violates the explicit not_sent versus unknown contract.",
+      "evidence": [
+        "The standalone reproduction imports transformed current frozen source and uses a real in-memory SQLite Ledger, a barrier to order two positive worker acknowledgements, and actual mkdir under .work.",
+        ".work/v230-gateway-project-create-repro/proof.json: first request accepted; second request rejected with code=capacity and delivery=not_sent; second persisted receipt state=not_sent; both directoryExists=true; registeredProjects=128.",
+        "The handler catches this locally raised HarnessError through errorBody(error, unknown), but errorBody preserves the error delivery field and therefore ignores the fallback after the acknowledged side effect."
+      ],
+      "relatedSameCause": "The same post-success classification can be reached through object(created) or validText(created.path). Worktree receipt projection accepts identifier(worktreeId), while later Worktrees.apply calls uuid(worktreeId); malformed positive worker data there can likewise raise a default not_sent during local postprocessing. These are the same delivery-boundary defect, not separately counted findings; the concurrency case above is the dynamically confirmed trigger.",
+      "recommendation": "Track positive backend acknowledgement separately from dispatch and never downgrade a subsequent local postprocessing failure to not_sent. Preserve bounded recovery information and actionable guidance for a created-but-unregistered project. Optionally reserve or serialize project-registration capacity across creation/addition/worktree paths, while retaining the existing local project/rename transaction rollback exception."
+    }
+  ],
+  "reports": [
+    {
+      "path": ".work/v230-round1-deployment.json",
+      "sha256": "5dabe18d72543c81ee90137c0c781af0def561382cdfd56892be3eb259a572d1",
+      "files": 138,
+      "findings": 2
+    },
+    {
+      "path": ".work/v230-round1-web.json",
+      "sha256": "148d415a43a35f3a454b2aafdb952448d630f4eff6f732e6297c37f99c71de1d",
+      "files": 229,
+      "findings": 0
+    },
+    {
+      "path": ".work/v230-round1-runtime.json",
+      "sha256": "1615d4e2d71e0fb717a83c6d770b58c622cf31e0009015c8cd50f6f94452a231",
+      "files": 131,
+      "findings": 1
+    },
+    {
+      "path": ".work/v230-round1-gateway-tooling.json",
+      "sha256": "cc7eeab57ac7c973936a31548a200de919b31c9c9cf7c8368f38059d22a29b61",
+      "files": 78,
+      "findings": 1
+    },
+    {
+      "path": ".work/v230-round1-root-protocol-docs.json",
+      "sha256": "741ac5a91ca3da37003f77ef3ba94de10025fb481cd49072e6665d5539b1be58",
+      "files": 1399,
+      "findings": 0
+    }
+  ],
+  "limits": "Complete inventory coverage with semantic review of product boundaries and structural review of generated protocol and secondary tests. Individual reports retain exact depths and limitations. Not a claim that every test was rerun or every generated line manually read. The original four findings remain recorded; subsequent repair reviews do not retroactively make this round clean."
+}

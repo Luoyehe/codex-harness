@@ -14,6 +14,17 @@ function setup() {
   const create = { method: 'workspace/worktree/create', operationId: id, params: { projectId: origin.id, ref: 'HEAD' } };
   return { ledger, origin, id, result, dispatcher, create, set: (next: typeof run) => { run = next; } };
 }
+test('positive worktree replies with invalid registration identity stay unknown and never replay the native action', async () => {
+  const f = setup(); let calls = 0;
+  f.set(async () => { calls++; return { ...f.result, worktreeId: 'not-a-uuid' }; });
+  try {
+    await expect(f.dispatcher.call(f.create, { clientId: 'owner' })).rejects.toMatchObject({ delivery: 'unknown' });
+    expect(f.ledger.read(f.id)).toMatchObject({ state: 'unknown', error: { delivery: 'unknown' } });
+    expect(f.ledger.projects()).toHaveLength(1);
+    await expect(f.dispatcher.call(f.create, { clientId: 'owner' })).rejects.toMatchObject({ code: 'operation_unknown' });
+    expect(calls).toBe(1);
+  } finally { f.ledger.close(); }
+});
 test('worktree creation, archive and restore register exact projects atomically with receipts', async () => {
   const f = setup(); const context = { clientId: 'owner' };
   try {

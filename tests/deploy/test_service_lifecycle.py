@@ -6,10 +6,33 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy.common import DeployError, Layout, write_json
-from deploy.service_lifecycle import bindings, identity_state, read_record
+from deploy.service_lifecycle import activity, bindings, identity_state, read_record, service_paths
 
 
 class ServiceLifecycleAdmissionTests(unittest.TestCase):
+    def test_service_paths_add_proxy_pair_only_for_a_valid_configured_selection(self):
+        layout = Layout("fixture")
+        base = service_paths(layout)
+        selection = {"enabled": False, "port": 18793, "core": "a" * 64, "configuration": "b" * 64}
+        self.assertEqual(set(service_paths(layout, {"serviceProxy": selection})), set(base) | {"proxy", "proxy-routes"})
+        with self.assertRaises(DeployError):
+            service_paths(layout, {"serviceProxy": {"enabled": True}})
+
+    def test_retained_proxy_material_is_verified_before_lifecycle_changes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder))
+            selected = {"enabled": False, "port": 18793, "core": "a" * 64, "configuration": "b" * 64}
+            manager = types.SimpleNamespace(layout=layout, config={"serviceProxy": selected})
+            with patch("deploy.proxy_core.verify_core", side_effect=DeployError("integrity", "changed core")) as verify:
+                with self.assertRaisesRegex(DeployError, "changed core"):
+                    bindings(manager)
+                verify.assert_called_once_with(layout, selected["core"])
+            with patch("deploy.proxy_core.verify_core"), \
+                 patch("deploy.service_proxy.verify_configuration", side_effect=DeployError("integrity", "changed configuration")) as verify:
+                with self.assertRaisesRegex(DeployError, "changed configuration"):
+                    bindings(manager)
+                verify.assert_called_once_with(layout, selected)
+
     def test_retained_bindings_reject_changed_dns_material_before_service_restore(self):
         with tempfile.TemporaryDirectory() as folder:
             layout = Layout("fixture", Path(folder))

@@ -73,17 +73,14 @@
   border-left: 3px solid var(--accent);
   margin-left: calc(var(--agent-depth, 0) * 18px);
 }
-.turn-actions {
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.turn-actions summary {
-  padding: 5px 0;
-}
-.turn-actions .inline {
-  padding-top: 8px;
-}
+.turn-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; color: var(--muted); font-size: 12px; }
+.turn-completed, .turn-copy { display: inline-flex; align-items: center; gap: 5px; }
+.turn-completed { color: var(--accent); }
+.turn-actions { width: 32px; height: 32px; }
+.turn-menu-row { flex: 0 0 100%; min-width: 0; }
+.turn-action-menu { width: max-content; max-width: 100%; padding: 6px; display: grid; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; }
+.turn-action-menu .button { width: 100%; text-align: left; }
+.turn-footer > [role] { max-width: 100%; overflow-wrap: anywhere; }
 .message-anchor {
   outline: none;
   border-radius: 10px;

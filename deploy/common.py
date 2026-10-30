@@ -192,7 +192,7 @@ class Layout:
     def prefix(self): return "ch-" + self.instance
 
     def unit(self, role: str) -> str:
-        require(role in ("gateway", "worker", "caddy", "authelia", "config-check"), "Invalid service role")
+        require(role in ("gateway", "worker", "caddy", "authelia", "config-check", "proxy", "proxy-routes"), "Invalid service role")
         return "codex-harness-" + self.instance + "-" + role + ".service"
 
 

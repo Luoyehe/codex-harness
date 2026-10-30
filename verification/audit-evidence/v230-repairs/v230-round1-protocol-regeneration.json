@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "scope": "Fresh offline generated protocol comparison",
+  "version": "codex-cli 0.164.0",
+  "binarySha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+  "isolatedHome": true,
+  "inferenceCalls": 0,
+  "externalMcpCalls": 0,
+  "personalConfigRead": false,
+  "generations": [
+    {
+      "kind": "json",
+      "files": 458,
+      "exactByteMatches": 458,
+      "lineEndingOnly": 0
+    },
+    {
+      "kind": "ts",
+      "files": 904,
+      "exactByteMatches": 904,
+      "lineEndingOnly": 0
+    }
+  ],
+  "differences": [],
+  "complete": true,
+  "clean": true
+}

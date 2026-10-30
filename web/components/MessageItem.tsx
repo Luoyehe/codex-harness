@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { textContent } from '../lib/history';
 import { array, object, type Item, type Project } from '../lib/types';
@@ -23,37 +23,47 @@ const phaseNames: Record<string, string> = {
   commentary: '进度', partial_answer: '部分回答', final_answer: '最终回答',
 };
 
+function ReasoningSummary({ item, finished }: { item: Item; finished: boolean }) {
+  const [open, setOpen] = useState(!finished);
+  const collapsedForCompletion = useRef(finished);
+  useEffect(() => {
+    if (finished && !collapsedForCompletion.current) {
+      collapsedForCompletion.current = true;
+      setOpen(false);
+    }
+  }, [finished]);
+  const summary = array<unknown>(item.summary).filter(value => typeof value === 'string').join('\n\n');
+  const fragments = array<unknown>(item.historySync?.summaryDeltas)
+    .filter(value => typeof value === 'string').join('\n\n');
+  if (!summary.trim() && !fragments.trim()) return null;
+  return <details className="reasoning-card" open={open} onToggle={event => setOpen(event.currentTarget.open)}>
+    <summary>思考摘要{item.historySync && <span className="badge">同步中</span>}</summary>
+    <div className="reasoning-body">
+      {summary.trim() && <SafeMarkdown text={summary} />}
+      {item.historySync && fragments.trim() && <div className="reasoning-fragments">
+        <p className="muted small">实时摘要片段{summary.trim() ? '（可能与上方摘要重叠，暂不拼接）' : '（等待完整摘要）'}</p>
+        <SafeMarkdown text={fragments} />
+      </div>}
+    </div>
+  </details>;
+}
+
 export const MessageItem = memo(function MessageItem({
   item,
   api,
   threadId,
   project,
+  reasoningFinished = false,
 }: {
   item: Item;
   api?: Api;
   threadId?: string;
   project?: Project;
+  reasoningFinished?: boolean;
 }) {
   // Reasoning has a dedicated public-summary channel. The generic snapshot,
   // mixed delta buffer, content and raw item must never be a display fallback.
-  if (item.type === 'reasoning') {
-    const summary = array<unknown>(item.summary).filter(value => typeof value === 'string').join('\n\n');
-    const fragments = array<unknown>(item.historySync?.summaryDeltas)
-      .filter(value => typeof value === 'string').join('\n\n');
-    if (!summary.trim() && !fragments.trim()) return null;
-    return (
-      <details className="reasoning-card" open>
-        <summary>思考摘要{item.historySync && <span className="badge">同步中</span>}</summary>
-        <div className="reasoning-body">
-          {summary.trim() && <SafeMarkdown text={summary} />}
-          {item.historySync && fragments.trim() && <div className="reasoning-fragments">
-            <p className="muted small">实时摘要片段{summary.trim() ? '（可能与上方摘要重叠，暂不拼接）' : '（等待完整摘要）'}</p>
-            <SafeMarkdown text={fragments} />
-          </div>}
-        </div>
-      </details>
-    );
-  }
+  if (item.type === 'reasoning') return <ReasoningSummary key={item.id} item={item} finished={reasoningFinished} />;
   if (item.historySync)
     return (
       <article className="message assistant-message">

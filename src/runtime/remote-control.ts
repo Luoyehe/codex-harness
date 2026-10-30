@@ -27,7 +27,7 @@ export class RemoteControl {
       return this.host.configure(async write => {
         const status = await this.status(); if (!['connecting', 'connected'].includes(String(status.status))) throw new DeliveryError('remote_disabled', 'Enable remote control explicitly before pairing');
         const pairingId = randomUUID(); const secret = remoteResponse('RemoteControlPairingStartResponse', await write(method, params), 64 * 1024);
-        this.host.redactor.addSecret(string(secret.pairingCode, 'pairingCode', 4096)); if (secret.manualPairingCode !== null) this.host.redactor.addSecret(string(secret.manualPairingCode, 'manualPairingCode', 256));
+        this.host.redactor.addSecret(string(secret.pairingCode, 'pairingCode', 4096)); if (secret.manualPairingCode != null) this.host.redactor.addSecret(string(secret.manualPairingCode, 'manualPairingCode', 256));
         const expires = integer(secret.expiresAt, 'expiresAt', 1, Number.MAX_SAFE_INTEGER); const expiry = expires < 1000000000000 ? expires * 1000 : expires;
         const timer = setTimeout(() => { this.pairings.delete(pairingId); }, Math.min(600000, Math.max(1, expiry - Date.now()))); timer.unref();
         const entry = { pairingId, secret, clientId: context.clientId, eventChannelId: context.eventChannelId, revoked: false, timer }; this.pairings.set(pairingId, entry);
@@ -44,7 +44,7 @@ export class RemoteControl {
     if (method === 'remoteControl/client/list') {
       onlyKeys(params, ['environmentId', 'cursor', 'limit', 'order']); const p = { ...params, limit: params.limit == null ? 50 : integer(params.limit, 'limit', 1, 100) }; if (params.cursor != null) string(params.cursor, 'cursor', 4096);
       validateOfficial('RemoteControlClientsListParams', p); await this.requireEnvironment(params.environmentId); const result = remoteResponse('RemoteControlClientsListResponse', await this.host.native(method, p));
-      if (!Array.isArray(result.data) || result.data.length > 100 || (result.nextCursor !== null && (typeof result.nextCursor !== 'string' || Buffer.byteLength(result.nextCursor) > 4096 || result.nextCursor === params.cursor))) throw new DeliveryError('invalid_native_response', 'Remote clients page exceeded its bounds'); return result;
+      if (!Array.isArray(result.data) || result.data.length > 100 || (result.nextCursor != null && (typeof result.nextCursor !== 'string' || Buffer.byteLength(result.nextCursor) > 4096 || result.nextCursor === params.cursor))) throw new DeliveryError('invalid_native_response', 'Remote clients page exceeded its bounds'); return { ...result, nextCursor: result.nextCursor ?? null };
     }
     if (method === 'remoteControl/client/revoke') {
       onlyKeys(params, ['environmentId', 'clientId']); validateOfficial('RemoteControlClientsRevokeParams', params);

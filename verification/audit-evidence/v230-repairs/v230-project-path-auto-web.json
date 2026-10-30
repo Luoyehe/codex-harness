@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "task": "v230-project-path-auto-web",
+  "complete": true,
+  "reviewerId": "v230_audit_web",
+  "files": [
+    {
+      "path": "web/components/ProjectDialog.tsx",
+      "sha256": "323b81e8ea666f8689e01499c4563252737a5a328651ddef3612b06103084b0a",
+      "bytes": 9350,
+      "crlf": false
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "9324a2057c9e8e068eecae03b119ea45211136addb4dcdc71281bc4f243fcaad",
+      "bytes": 75303,
+      "crlf": false
+    },
+    {
+      "path": "web/tests/project-create.test.tsx",
+      "sha256": "f8ebd12ae4259be55380c65e0b8a209434df063327fa00fd0807d9436fdb6695",
+      "bytes": 20672,
+      "crlf": false
+    },
+    {
+      "path": "web/tests/project-handoff.test.tsx",
+      "sha256": "8d7fa514e42686f0745d8d8915e74b9ede9e55cd20fc11dbeafd0ab5473303fe",
+      "bytes": 9538,
+      "crlf": false
+    },
+    {
+      "path": "web/tests/modal-mutations.test.tsx",
+      "sha256": "1b43316cbdb319ec78f043de56343717a3a038210d6c4a0f235d5d0628bf7e8c",
+      "bytes": 18580,
+      "crlf": false
+    }
+  ],
+  "changes": [
+    "Unified project create/add path input and live absolute/relative lexical preview; new relative paths can derive a clearly displayed project-name suggestion",
+    "POSIX normalization accepts multilevel paths, dot/dotdot, duplicate/trailing slashes and literal backslashes; preview and submitted parameters share the same normalized path",
+    "Existing target uses the same auto semantics without mkdir; required existing parent/no-overwrite messages are visible",
+    "Keeps user text while API/session/runtime/execution identity/readiness ownership changes invalidate default reads and late operation callbacks",
+    "Workspace readiness includes existing executionBlocked gate; unmanaged dev/legacy connections remain usable without executionMode, and known ROOT unconfirmed states stay blocked",
+    "Mobile input disables auto-capitalization, autocorrection and spellchecking, retaining shared field styling"
+  ],
+  "validation": {
+    "targeted": {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/project-create.test.tsx web/tests/project-handoff.test.tsx web/tests/modal-mutations.test.tsx",
+      "files": 3,
+      "tests": 64,
+      "status": "passed",
+      "evidence": ".work/test-results/run-PTSCeP/vitest.json"
+    },
+    "webTypecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    "webBuild": {
+      "command": "node node_modules/vite/bin/vite.js build --config web/vite.config.ts",
+      "exitCode": 0,
+      "warning": "Existing large application chunk warning; no build error"
+    },
+    "earlierRuns": [
+      {
+        "evidence": ".work/test-results/run-9W2mpg/vitest.json",
+        "tests": 60,
+        "status": "passed",
+        "note": "Superseded relative/absolute identity-specific draft, not final auto-contract evidence"
+      },
+      {
+        "evidence": ".work/test-results/run-HhU5db/vitest.json",
+        "tests": 64,
+        "status": "failed",
+        "note": "Three existing modal tests submitted before the newly required default read settled. Test setup now awaits the actual enabled submit control; 64 tests then passed."
+      }
+    ]
+  },
+  "limits": [
+    "No full suite, browser/real mobile device test, paid inference, external MCP or deployment",
+    "Windows developer base/drive and UNC regression fixtures are covered; Linux is the deployment path contract",
+    "Permission guidance is displayed from the server error verbatim; no automatic ROOT switch or generic elevation recommendation"
+  ],
+  "completedAt": "2026-10-30T22:25:53.860Z"
+}

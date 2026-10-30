@@ -14,6 +14,7 @@ from deploy.manager import Manager
 from deploy.ownership import ROLES
 from deploy.safe_fs import inspect_tree
 from deploy.service_lifecycle import restore_services, uninstall_services
+from deploy.service_proxy import PROXY_ROLES
 from deploy.units import render_edge_units, render_units, sudo_rule
 from tests.deploy.test_control_update import previous_sudo_policy
 
@@ -26,8 +27,10 @@ class FixtureSystem:
 
     def state(self, unit):
         active = unit in self.active
+        routes = unit == self.layout.unit("proxy-routes")
         return {"LoadState": "loaded" if (self.layout.units / unit).exists() else "not-found", "ActiveState": "active" if active else "inactive",
-                "SubState": "running" if active else "dead", "MainPID": "100" if active else "0", "ControlPID": "0", "stopped": not active}
+                "SubState": ("exited" if routes else "running") if active else "dead",
+                "MainPID": "100" if active and not routes else "0", "ControlPID": "0", "stopped": not active}
 
     def stop(self, units):
         self.events.append("stop")
@@ -86,6 +89,47 @@ class ServiceLifecycleTests(unittest.TestCase):
     def journal(self):
         marker = read_json(self.layout.config / "uninstalled.json")
         return self.layout.state / "transactions" / marker["transaction"] / "state.json"
+
+    def configure_proxy(self):
+        self.manager.config["serviceProxy"] = {"enabled": True, "port": 18793,
+                                                "core": "a" * 64, "configuration": "b" * 64}
+        write_json(self.layout.config / "instance.json", self.manager.config)
+        for name, content in render_units(self.layout, self.manager.config, self.config["codexRelative"]).items():
+            atomic_write(self.layout.units / name, content.encode(), 0o644)
+        self.system.active.update(self.layout.unit(role) for role in PROXY_ROLES)
+        self.system.enabled.add(self.layout.unit("proxy"))
+        # Core/config byte ownership is exercised by proxy-specific root tests;
+        # this fixture focuses on real retained service files and recovery.
+        self.stack.enter_context(patch("deploy.proxy_core.verify_core", return_value={}))
+        self.stack.enter_context(patch("deploy.service_proxy.verify_configuration"))
+
+    def test_proxy_units_are_removed_and_restored_with_their_oneshot_activity(self):
+        from deploy.service_lifecycle import service_paths
+        self.configure_proxy()
+        original_active, original_enabled = set(self.system.active), set(self.system.enabled)
+        paths = service_paths(self.layout, self.manager.config)
+        contents = {role: path.read_bytes() if path.exists() else None for role, path in paths.items()}
+        config_bytes = (self.layout.config / "instance.json").read_bytes()
+        uninstall_services(self.manager)
+        record = read_json(self.journal())
+        self.assertEqual(set(record["before"]), set(ROLES) | set(PROXY_ROLES) | {"sudo"})
+        self.assertFalse(self.system.active)
+        self.assertTrue(all(not path.exists() for path in paths.values()))
+        restore_services(self.manager)
+        self.assertEqual(self.system.active, original_active)
+        self.assertEqual(self.system.enabled, original_enabled)
+        self.assertEqual({role: path.read_bytes() if path.exists() else None for role, path in paths.items()}, contents)
+        self.assertEqual((self.layout.config / "instance.json").read_bytes(), config_bytes)
+
+    def test_restored_legacy_marker_allows_a_new_uninstall_after_proxy_is_configured(self):
+        original = uninstall_services(self.manager)["transaction"]
+        restore_services(self.manager)
+        self.configure_proxy()
+        selected = uninstall_services(self.manager)["transaction"]
+        self.assertNotEqual(selected, original)
+        self.assertIn("proxy-routes", read_json(self.journal())["before"])
+        restore_services(self.manager)
+        self.assertIn(self.layout.unit("proxy-routes"), self.system.active)
 
     def enable_real_verification(self):
         # Keep process/account/network calls isolated, but exercise the complete

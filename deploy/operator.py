@@ -327,12 +327,28 @@ class Console:
 
     def loop(self) -> None:
         actions = {"1": self.install, "2": self.update, "3": self.https, "4": self.status, "5": self.logs,
-                   "6": self.reset_account, "8": self.recover}
+                   "6": self.reset_account, "8": self.recover, "10": self.execution_permissions, "11": self.service_proxy}
         while True:
             try:
+                try:
+                    from .common import read_json
+                    from .execution_identity import state
+                    execution = state(read_json(Layout(self.instance).config / "instance.json"))
+                    self.output("Root 授权：" + ("已授权" if execution["rootAllowed"] else "未授权") + "；当前执行身份：" + execution["mode"])
+                except Exception:
+                    self.output("Root 授权状态：尚未安装或暂不可读（不视为已授权）。")
+                try:
+                    from .service_proxy import selection
+                    from .proxy_core import verify_core
+                    layout = Layout(self.instance)
+                    proxy = selection(read_json(layout.config / "instance.json"))
+                    self.output("服务专属代理：" + ("未配置" if proxy is None else
+                                ("已启用" if proxy["enabled"] else "已关闭") + "；Xray " + verify_core(layout, proxy["core"])["version"]))
+                except Exception:
+                    self.output("服务专属代理：尚未安装或材料待检查。")
                 choice = self.choice(f"\nCodex Harness 管理 · {self.instance}", {"1": "安装新实例", "2": "升级当前实例",
                     "3": "域名、证书和 HTTPS", "4": "状态与诊断", "5": "查看日志", "6": "重置管理员用户名和密码",
-                    "7": "重启服务", "8": "修复 / 恢复 / 回滚", "9": "切换或新建实例名称", "0": "退出"})
+                    "7": "重启服务", "8": "修复 / 恢复 / 回滚", "9": "切换或新建实例名称", "10": "Root 授权 / 撤销与执行身份", "11": "服务专属代理", "0": "退出"})
                 if choice == "0":
                     return
                 if choice == "9":
@@ -353,6 +369,65 @@ class Console:
                 return
             except Exception:
                 self.output("操作未完成。请查看状态和日志、检查保留的恢复记录；不会自动重试。")
+
+    def execution_permissions(self) -> None:
+        current = self.command("execution-mode-read")
+        self.output("Root 授权：" + ("已授权" if current["rootAllowed"] else "未授权") + "；当前：" + current["mode"])
+        self.output("授权允许网页登录管理员启用整机 root，包括修改 Harness 控制面。普通模式必须从独立 SSH/控制台授权；网页终端/Agent 不能自行授权。已启用的完整 root 不受此来源限制。")
+        self.output("Root 和普通模式的 CLI 登录、历史及默认项目目录独立；不复制个人凭据。旧外置 UID 代理不自动覆盖 root；本菜单的服务专属代理同时覆盖两种身份。")
+        self.output("授权变更也会短暂停启服务；必须先完成任务并关闭终端。撤销会同时恢复普通身份，不撤销已做的系统修改或更改 root 文件归属。")
+        choice = self.choice("执行权限", {"1": "允许网页 root 开关（不自动启用）", "2": "撤销授权并切回普通身份", "3": "切换为普通身份", "4": "切换为 root 身份", "5": "恢复中断的身份事务"})
+        if not self.confirm("确认所选权限操作并短暂停启空闲服务"):
+            return
+        if choice in ("1", "2"):
+            self.command("root-access", "--allow" if choice == "1" else "--revoke", "--confirm-restart")
+        elif choice == "5":
+            self.command("execution-mode-recover")
+        else:
+            mode = "native" if choice == "3" else "root"
+            arguments = ["--mode", mode, "--expected-revision", current["revision"], "--confirm-restart"]
+            if mode == "root": arguments.append("--confirm-root")
+            self.command("execution-mode-write", *arguments)
+        self.output("执行权限操作完成。请确认状态；不会自动重放输入或恢复旧会话。")
+
+    def service_proxy(self) -> None:
+        current = self.command("proxy-status")
+        self.output("服务专属代理：" + ("已启用" if current.get("enabled") else "已关闭 / 未配置") +
+                    "；Xray " + str(current.get("coreVersion") or "未安装"))
+        self.output("仅代理本实例 Agent、终端、网关和管理目录请求的 TCP；普通与 root 身份均适用，不包含其它系统服务或 root 进程。智谱 bigmodel.cn、中国及私有地址直连，不代理 UDP。")
+        self.output("启用需 systemd 255+、nftables、cgroup v2。输入只接受服务器 root:0600 的 VLESS outbound JSON；不在网页、命令行参数或日志输入节点密钥。")
+        choice = self.choice("服务专属代理", {"1": "配置 / 启用 VLESS", "2": "关闭代理（保留配置和核心）",
+                             "3": "更新 Xray 核心", "4": "回滚上一项代理配置 / 核心", "5": "恢复中断的代理事务"})
+        arguments = []
+        version = None
+        download_proxy = ""
+        if choice in ("1", "3"):
+            if choice == "1":
+                path = self.prompt("服务器上的 VLESS JSON 文件绝对路径")
+                require(Path(path).is_absolute(), "请使用服务器上的绝对文件路径。")
+                port = self.port("本机透明 TCP 端口（相邻端口用于 HTTP）", current.get("port", 18793))
+                require(port < 65535, "请为相邻 HTTP 监听保留端口。")
+                arguments += ["--config-file", path, "--port", str(port)]
+            version = self.prompt("官方 Xray 精确版本，或 latest 查询最新正式版", "latest")
+            default_proxy = "http://127.0.0.1:" + str(current["port"] + 1) if current.get("enabled") else ""
+            download_proxy = self.prompt("仅用于官方核心下载的本机 HTTP 代理，留空直连", default_proxy)
+        if choice == "5":
+            direction = self.choice("恢复目标", {"1": "原配置 / 核心", "2": "本次候选配置 / 核心"}, "1")
+            arguments += ["--target", "old" if direction == "1" else "candidate"]
+        if not self.confirm("任务空闲且终端关闭，确认所选操作并短暂停启服务"):
+            return
+        if version is not None:
+            if version == "latest":
+                from .proxy_core import latest_version
+                version = latest_version(download_proxy=download_proxy or None)
+                self.output("已解析官方正式版本：" + version)
+            arguments += ["--version", version]
+            if download_proxy:
+                arguments += ["--download-proxy", download_proxy]
+        if choice != "5":
+            arguments.append("--confirm-restart")
+        self.command({"1": "proxy-configure", "2": "proxy-disable", "3": "proxy-core-update", "4": "proxy-rollback", "5": "proxy-recover"}[choice], *arguments)
+        self.output("代理操作完成；旧核心和恢复材料已保留。请检查状态，失败或未知时不要重复提交。")
 
     def select_instance(self, *, prefer_current: bool = False) -> None:
         known = installed_instances()

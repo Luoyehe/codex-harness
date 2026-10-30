@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { useExtensionAction } from './ExtensionControls';
 import { isArchivedReceipt, reconcileOperation } from '../lib/operations';
-import { array, message, object, type Model } from '../lib/types';
-import { usePaged } from '../hooks/usePaged';
+import { array, message, object } from '../lib/types';
+import { useModelDirectory } from '../hooks/useModelDirectory';
 import { ModelDirectoryStatus } from './ModelDirectoryStatus';
 type CatalogRow = {
   id: string;
@@ -59,12 +59,11 @@ export function ModelCatalog({
   const automatic = typeof provider.providerId === 'string';
   const native = automatic &&
     ['chatgpt', 'chatgpt-gateway', 'bedrock-runtime', 'bedrock-mantle'].includes(String(provider.kind));
-  const nativeCatalog = usePaged<Model>(
+  const nativeCatalog = useModelDirectory(
     api,
-    'model/list',
-    { modelProvider: provider.modelProvider },
     JSON.stringify([provider.providerId, provider.modelProvider, provider.kind, provider.revision, scopeKey]),
     native && active && enabled,
+    typeof provider.modelProvider === 'string' ? provider.modelProvider : undefined,
   );
   const [rows, setRows] = useState<CatalogRow[]>([]),
     [manual, setManual] = useState(''),

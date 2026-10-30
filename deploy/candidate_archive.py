@@ -140,7 +140,7 @@ def require_idle(manager) -> None:
         require(status.get("connected") is True and status.get("restarting", False) is False and
                 activity.get("activeThreads") == [] and activity.get("unknown") is False and
                 all(type(activity.get(key)) is int and activity[key] == 0 for key in ("pendingStarts", "terminals", "subscriptions", "processes")),
-                "Tasks are active or their state is unknown; finish them or recover/restart services before archival", "busy")
+                "Tasks are active or their state is unknown; finish them or recover services before this management operation", "busy")
     except (OSError, ValueError, AttributeError) as exc:
         raise DeployError("stop_unknown", "Cannot establish idle worker activity") from exc
     finally:

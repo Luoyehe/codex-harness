@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { useLayoutEffect } from 'react';
 import {
@@ -161,6 +161,42 @@ it('shows readable reasoning and explicit command failure exit codes', () => {
   expect(screen.queryByText('details')).toBeNull();
   expect(screen.queryByText('详细思考内容')).toBeNull();
   expect(screen.getByText('退出码 7')).toBeTruthy();
+});
+
+it('collapses public reasoning once on a real final answer and preserves subsequent manual disclosure', () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  const reasoning = { id: 'reason', type: 'reasoning', summary: ['Public short summary'], content: ['Private reasoning'] };
+  const props = { loading: false, complete: true, onMore: vi.fn(), threadId: 'thread' };
+  let turns: Turn[] = [{ id: 't', status: 'inProgress', items: [reasoning] }];
+  const view = render(<Messages {...props} turns={turns} />);
+  const detail = () => view.container.querySelector<HTMLDetailsElement>('.reasoning-card')!;
+  expect(detail().open).toBe(true);
+  turns = [{ ...turns[0]!, items: [reasoning, { id: 'progress', type: 'agentMessage', phase: 'commentary', text: 'Still working' },
+    { id: 'final', type: 'agentMessage', phase: 'final_answer', text: '' }] }];
+  view.rerender(<Messages {...props} turns={turns} />);
+  expect(detail().open).toBe(true);
+  turns = [{ ...turns[0]!, items: [reasoning, { id: 'final', type: 'agentMessage', phase: 'final_answer', text: 'Actual answer' }] }];
+  view.rerender(<Messages {...props} turns={turns} />);
+  expect(detail().open).toBe(false);
+  act(() => { detail().open = true; fireEvent(detail(), new Event('toggle')); });
+  turns = [{ ...turns[0]!, status: 'completed', items: [{ ...reasoning, summary: ['Final public summary'] }, turns[0]!.items[1]!] }];
+  view.rerender(<Messages {...props} turns={turns} />);
+  view.rerender(<Messages {...props} turns={[...turns]} />);
+  expect(detail().open).toBe(true);
+  expect(view.container.textContent).not.toContain('Private reasoning');
+});
+
+it('folds completed history by default and folds a phase-less live response when its turn completes', () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  const props = { loading: false, complete: true, onMore: vi.fn() };
+  const turn: Turn = { id: 't', status: 'completed', items: [{ id: 'r', type: 'reasoning', summary: ['Public summary'] }] };
+  const history = render(<Messages {...props} turns={[turn]} />);
+  expect(history.container.querySelector<HTMLDetailsElement>('.reasoning-card')!.open).toBe(false);
+  history.unmount();
+  const live = render(<Messages {...props} turns={[{ ...turn, status: 'inProgress' }]} />);
+  expect(live.container.querySelector<HTMLDetailsElement>('.reasoning-card')!.open).toBe(true);
+  live.rerender(<Messages {...props} turns={[turn]} />);
+  expect(live.container.querySelector<HTMLDetailsElement>('.reasoning-card')!.open).toBe(false);
 });
 
 it('shows only public summaries through live updates, overlap recovery and final replacement', () => {

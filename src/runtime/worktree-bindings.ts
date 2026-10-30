@@ -19,6 +19,10 @@ export class WorktreeBindings {
     if (!row) throw new DeliveryError('worktree_unbound', 'This worktree has no supervisor-owned creation proof');
     return object(JSON.parse(String(row.binding)) as JsonValue);
   }
+  requireCreateCapacity(pending: number): void {
+    if (Number(this.db.prepare('SELECT count(*) AS n FROM managed_worktrees').get()!.n) + pending >= 32)
+      throw new DeliveryError('capacity', '受管工作树保留数量已达上限（普通与 ROOT 模式共用）；此次未创建新目录。');
+  }
   complete(action: string, request: JsonObject, result: JsonObject, projectId: string): number {
     const params = object(request.params), root = absolute(request.root), creating = action === 'worktree/create';
     const id = string(creating ? request.operationId : params.worktreeId, 'worktreeId', 36);

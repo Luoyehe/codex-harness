@@ -19,7 +19,10 @@ import {
   branchDraftSource,
   draftChanged,
   emptyDraft,
+  executionDraftContext,
+  executionDraftKey,
   writeDraft,
+  type DraftMode,
 } from './lib/drafts';
 import { contextPayload, parseOutputSchema } from './lib/input-context';
 import {
@@ -37,6 +40,7 @@ import { usePrompts } from './hooks/usePrompts';
 import { useDraft } from './hooks/useDraft';
 import { useResume } from './hooks/useResume';
 import { useModelCatalogRefresh } from './hooks/useModelCatalogRefresh';
+import { ModelDirectoryContext } from './hooks/useModelDirectory';
 import { Sidebar } from './components/Sidebar';
 import { Recovery, useOperations } from './components/Recovery';
 import { ProjectDialog } from './components/ProjectDialog';
@@ -46,6 +50,7 @@ import { Composer, type Attachment, type SendIntent } from './components/Compose
 import { Diff, Messages } from './components/Messages';
 import { Prompts } from './components/Prompts';
 import { Settings } from './components/Settings';
+import { RootExecutionNotice } from './components/ExecutionModeSettings';
 import { Dialog } from './components/Dialog';
 import { Icon } from './components/Icon';
 import { UsagePopover } from './components/UsagePopover';
@@ -93,7 +98,13 @@ export function Workspace({
     [threadId, setThreadId] = useState(
       () => new URL(location.href).searchParams.get('thread') ?? '',
     );
-  const contextKey = threadId || `new:${projectId}`,
+  const [draftMode, setDraftMode] = useState<DraftMode>(() => {
+    const url = new URL(location.href);
+    if (url.searchParams.has('thread') || url.searchParams.has('executionMode')) return url.searchParams.get('executionMode') === 'root' ? 'root' : 'native';
+    try { return sessionStorage.getItem('harness.execution-mode') === 'root' ? 'root' : 'native'; } catch { return 'native'; }
+  });
+  const latestDraftMode = useRef(draftMode); latestDraftMode.current = draftMode;
+  const contextKey = executionDraftKey(threadId || `new:${projectId}`, draftMode),
     draftState = useDraft(contextKey),
     draft = draftState.text,
     options = draftState.options;
@@ -204,7 +215,8 @@ export function Workspace({
   });
   const committedUrl = useRef(location.href);
   const changeContext = (nextProject: string, nextThread: string, apply: () => void, accepted?: () => boolean) => {
-    if (!draftState.canNavigateTo(nextThread || `new:${nextProject}`) && !accepted?.()) {
+    if (executionBlocked) { setError('执行身份已变化或尚未确认。请先保留当前草稿并完成身份切换。'); return false; }
+    if (!draftState.canNavigateTo(executionDraftKey(nextThread || `new:${nextProject}`, draftMode)) && !accepted?.()) {
       setDiscardRevision(undefined);
       setDraftGuard(true);
       return false;
@@ -221,7 +233,7 @@ export function Workspace({
     setModal('');
     setBranchAction(undefined);
     setFocusTarget(undefined);
-    if (!settings.preserveAttachments && (id || `new:${settings.projectId ?? projectId}`) !== contextKey)
+    if (!settings.preserveAttachments && executionDraftKey(id || `new:${settings.projectId ?? projectId}`, draftMode) !== contextKey)
       setAttachmentContext(uuid());
     setPanel('chat');
     setMobile(false);
@@ -229,6 +241,8 @@ export function Workspace({
     const url = new URL(location.href);
     if (id) url.searchParams.set('thread', id);
     else url.searchParams.delete('thread');
+    if (draftMode === 'root') url.searchParams.set('executionMode', 'root');
+    else url.searchParams.delete('executionMode');
     if (!settings.fromHistory) history.pushState({}, '', url);
     committedUrl.current = url.href;
   }, settings.accepted);
@@ -270,8 +284,28 @@ export function Workspace({
     },
     [events, threadId],
   );
-  const network = useEvents(api, receive, active),
-    resourceEpoch = `${network.epoch}:${network.revision}:${configRevision}`;
+  const runtimeNetwork = useEvents(api, receive, active);
+  const modeChanged = runtimeNetwork.executionModeConfirmed && runtimeNetwork.executionMode?.mode !== draftMode;
+  const executionBlocked = modeChanged || ((draftMode === 'root' || Boolean(runtimeNetwork.executionMode)) && !runtimeNetwork.executionModeConfirmed);
+  // Keep the old draft owner until it is durable. All native consumers see the
+  // closed gate immediately, before the passive effect releases the old thread.
+  const network = executionBlocked ? { ...runtimeNetwork, runtimeConnected: false, activityReady: false, configurationReady: false } : runtimeNetwork;
+  const resourceEpoch = `${network.epoch}:${network.revision}:${configRevision}`;
+  useEffect(() => {
+    if (!modeChanged || !runtimeNetwork.executionMode) return;
+    const next = runtimeNetwork.executionMode.mode;
+    if (!draftState.canNavigateTo(executionDraftKey(`new:${projectId}`, next))) return;
+    navigation.current++;
+    setDraftMode(next); setThreadId(''); setBranchAction(undefined); setRestoreBranch(undefined); setFocusTarget(undefined);
+    setArchiveSelection(undefined); setCompletedHandoff(undefined); setAttachmentContext(uuid()); setError('');
+    setPanelState('chat'); setVoiceMounted(false); setProcessMounted(false); setTerminalMounted(false);
+    setThreadTerminalsMounted(false); setPredictionMounted(false); setWorkspaceMounted(false);
+    setModal(current => current === 'settings-admin' ? current : '');
+    const url = new URL(location.href); url.searchParams.delete('thread');
+    if (next === 'root') url.searchParams.set('executionMode', 'root'); else url.searchParams.delete('executionMode');
+    history.replaceState({}, '', url); committedUrl.current = url.href;
+    try { sessionStorage.setItem('harness.execution-mode', next); } catch { /* The URL also identifies this draft namespace. */ }
+  }, [modeChanged, runtimeNetwork.executionMode?.mode, draftState.hasUnsaved, draftState.revision, projectId]);
   const projectsResource = useResource(resourceEpoch, (signal) =>
     api.call('project/list', {}, signal),
   );
@@ -330,7 +364,9 @@ export function Workspace({
       }),
     [events, threadId, resourceEpoch],
   );
-  const models = usePaged<Model>(api, 'model/list', {}, `${resourceEpoch}:models`);
+  const models = usePaged<Model>(api, 'model/list', {},
+    JSON.stringify([api.csrf, resourceEpoch, runtimeNetwork.executionMode?.mode, runtimeNetwork.executionMode?.effectiveUid]),
+    active && network.connection === 'connected' && network.runtimeConnected && !network.restarting);
   const modes = useResource(
     resourceEpoch,
     (signal) => api.call<{ data: CollaborationModeMask[] }>('collaborationMode/list', {}, signal),
@@ -357,7 +393,7 @@ export function Workspace({
   useEffect(() => {
     if (!defaults.loading) setRetryingDefaults(false);
   }, [defaults.loading]);
-  const conversation = useConversation(api, events, threadId, resourceEpoch),
+  const conversation = useConversation(api, events, network.runtimeConnected ? threadId : '', resourceEpoch),
     prompts = usePrompts(api, events, resourceEpoch);
   const operations = useOperations();
   const settingsReceipts = operations.operations
@@ -371,7 +407,7 @@ export function Workspace({
     .join(',');
   const resume = useResume(
     api,
-    threadId,
+    network.runtimeConnected ? threadId : '',
     `${resourceEpoch}:${resumeRevision}:${settingsReceipts}`,
     conversation.refresh,
   );
@@ -414,7 +450,7 @@ export function Workspace({
       setRestoreBranch(undefined);
     }
   }, [restoreBranch, threadId, conversation.ready, conversation.turns]);
-  const visiblePrompts = prompts.prompts.filter((p) => !p.threadId || p.threadId === threadId);
+  const visiblePrompts = executionBlocked ? [] : prompts.prompts.filter((p) => !p.threadId || p.threadId === threadId);
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query), 250);
     return () => clearTimeout(timer);
@@ -452,6 +488,8 @@ export function Workspace({
   }, [conversation.thread?.cwd, projectsResource.data, threadId]);
   useEffect(() => {
     const back = () => {
+      const url = new URL(location.href), mode = url.searchParams.get('executionMode') === 'root' ? 'root' : 'native';
+      if (mode !== latestDraftMode.current) { setError('此历史位置属于另一执行模式，请先切换模式。'); history.pushState({}, '', committedUrl.current); return; }
       if (latestNavigate.current(new URL(location.href).searchParams.get('thread') ?? '', { fromHistory: true }))
         setResumeRevision((v) => v + 1);
       else history.pushState({}, '', committedUrl.current);
@@ -460,7 +498,7 @@ export function Workspace({
     return () => window.removeEventListener('popstate', back);
   }, []);
   useEffect(() => {
-    if (network.connection !== 'connected' || !network.runtimeConnected) return;
+    if (runtimeNetwork.connection !== 'connected' || !runtimeNetwork.runtimeConnected) return;
     let disposed = false;
     const recover = async () => {
       let records;
@@ -482,9 +520,9 @@ export function Workspace({
     return () => {
       disposed = true;
     };
-  }, [api, network.revision, network.connection, network.runtimeConnected]);
+  }, [api, runtimeNetwork.revision, runtimeNetwork.connection, runtimeNetwork.runtimeConnected]);
   const changeArchive = async (nextArchived: boolean) => {
-    if (archiveBusy) return;
+    if (archiveBusy || executionBlocked) return;
     const target = threadId,
       nav = navigation.current,
       canLeave = draftState.canLeave;
@@ -512,12 +550,14 @@ export function Workspace({
     setModal('sidebar-management');
   };
   const send = async (attachments: Attachment[], intent: SendIntent = 'send'): Promise<boolean> => {
+    const submit = (method: string, params: Record<string, unknown>) => draftMode === 'root'
+      ? api.mutate(method, params, 'root') : api.mutate(method, params);
     const key = contextKey,
       text = draft,
       nav = navigation.current,
       canLeaveAfterAcceptance = draftState.canLeaveAfterAcceptance;
     if (
-      !projectId ||
+      !projectId || executionBlocked ||
       pending ||
       isBusy ||
       draftState.error ||
@@ -541,7 +581,7 @@ export function Workspace({
       if (intent !== 'send' && schema) throw new Error('结构化输出只支持普通发送。');
       const structured = schema ? { outputSchema: schema } : {};
       if (!target) {
-        const result = await api.mutate('conversation/start', {
+        const result = await submit('conversation/start', {
           projectId,
           text,
           ...context,
@@ -563,14 +603,14 @@ export function Workspace({
         }
         threads.refresh();
       } else if (intent === 'queue')
-        await api.mutate('thread/queue/add', {
+        await submit('thread/queue/add', {
           threadId: target,
           text,
           ...context,
           attachmentIds: attachments.map((a) => a.attachmentId),
         });
       else if (intent === 'steer')
-        await api.mutate('turn/steer', {
+        await submit('turn/steer', {
           threadId: target,
           expectedTurnId: conversation.activeTurn!.id,
           text,
@@ -578,7 +618,7 @@ export function Workspace({
           attachmentIds: attachments.map((a) => a.attachmentId),
         });
       else
-        await api.mutate('turn/start', {
+        await submit('turn/start', {
           threadId: target,
           text,
           ...context,
@@ -651,8 +691,9 @@ export function Workspace({
   const finishBranch = (id: string, text: string | undefined, automatic: boolean) => {
     if (text !== undefined) {
       try {
-        writeDraft({ ...emptyDraft(id), text });
-        draftChanged(id);
+        const key = executionDraftKey(id, draftMode);
+        writeDraft({ ...emptyDraft(key), text });
+        draftChanged(key);
       } catch (e) {
         setError('分支已创建，但草稿保存失败：' + message(e));
         return false;
@@ -732,6 +773,7 @@ export function Workspace({
     threads.items.find((t) => t.id === threadId)?.name ||
     (threadId ? '会话' : '新会话');
   return (
+    <ModelDirectoryContext.Provider value={{ api, csrf: api.csrf, directory: models }}>
     <HookEventsProvider
       events={events}
       lease={`${network.epoch}:${network.connectionId}`}
@@ -914,7 +956,13 @@ export function Workspace({
               )}
             </div>
           </header>
+          <RootExecutionNotice identity={runtimeNetwork.executionMode} confirmed={runtimeNetwork.executionModeConfirmed}
+            onSettings={() => setModal('settings-admin')} />
           <div className="status-area">
+            {executionBlocked && <p className="connection-banner" role="status">
+              {modeChanged ? '执行身份已切换。当前草稿仍属于原模式；安全保存后将退出原会话，并打开新模式的独立草稿。' : '正在确认实际执行身份，当前输入保留，暂不发送或继续原会话。'}
+              {modeChanged && draftState.hasUnsaved && <button className="button small" onClick={() => draftState.retrySave()}>保存原模式草稿并继续</button>}
+            </p>}
             {(conversation.realtimeActive || conversation.historyStale) && (
               <p className="connection-banner" role="status">
                 {conversation.realtimeActive
@@ -1442,6 +1490,10 @@ export function Workspace({
             {modal === 'project' && (
               <ProjectDialog
                 api={api}
+                epoch={`${runtimeNetwork.epoch}:${runtimeNetwork.revision}`}
+                executionMode={runtimeNetwork.executionMode}
+                executionModeConfirmed={runtimeNetwork.executionModeConfirmed}
+                enabled={active && network.connection === 'connected' && network.runtimeConnected && !network.restarting}
                 onClose={() => setModal('')}
                 onAdded={projectsResource.refresh}
                 onOpen={(id) => {
@@ -1536,6 +1588,7 @@ export function Workspace({
                 connected={active && network.connection === 'connected' && network.runtimeConnected}
                 projectId={projectId}
                 configurationReady={active && network.configurationReady}
+                managementReady={active && runtimeNetwork.configurationReady && runtimeNetwork.connection === 'connected' && runtimeNetwork.runtimeConnected}
                 api={api}
                 epoch={resourceEpoch}
                 events={events}
@@ -1547,15 +1600,18 @@ export function Workspace({
                 onProjectAction={(target, action) => manageSidebar({ kind: 'project', target: { ...target }, action })}
                 onOpenThread={(id) => { void openThread(id); }}
                 onOpenDraft={(key) => {
-                  const branch = branchDraftSource(key);
+                  const context = executionDraftContext(key);
+                  if (context.mode !== draftMode || executionBlocked) { setError('此草稿属于另一执行模式，请先确认并切换到对应模式。'); return; }
+                  const branch = branchDraftSource(context.key);
                   if (branch) {
                     if (openThread(branch.threadId)) setRestoreBranch(branch);
                     return;
                   }
-                  if (key.startsWith('new:')) {
-                    navigate('', { projectId: key.slice(4) });
-                  } else openThread(key);
+                  if (context.key.startsWith('new:')) {
+                    navigate('', { projectId: context.key.slice(4) });
+                  } else openThread(context.key);
                 }}
+                draftMode={draftMode}
                 onLogout={logout}
               />
             )}{' '}
@@ -1654,13 +1710,14 @@ export function Workspace({
                 }
                 turn={branchAction.turn}
                 action={branchAction.action}
+                draftMode={draftMode}
                 onChanged={workflowChanged}
                 onClose={() => setBranchAction(undefined)}
                 memoryDraft={branchMemory.current.get(
-                  branchDraftKey(threadId, branchAction.turn.id),
+                  branchDraftKey(threadId, branchAction.turn.id, draftMode),
                 )}
                 onDraft={(text) => {
-                  const key = branchDraftKey(threadId, branchAction.turn.id);
+                  const key = branchDraftKey(threadId, branchAction.turn.id, draftMode);
                   branchMemory.current.delete(key);
                   branchMemory.current.set(key, text);
                   while (branchMemory.current.size > 20)
@@ -1698,5 +1755,6 @@ export function Workspace({
         )}
       </div>
     </HookEventsProvider>
+    </ModelDirectoryContext.Provider>
   );
 }

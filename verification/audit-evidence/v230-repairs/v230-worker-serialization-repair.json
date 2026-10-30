@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "v230-worker-serialization-repair",
+  "author": "v230_audit_runtime",
+  "completedAt": "2026-10-30T23:19:22.104Z",
+  "complete": true,
+  "classification": "defensive-hardening",
+  "establishedReachability": "Only a controlled service substitute returning malformed/oversized output. No real RuntimeService or pinned CLI path to this serialization failure has been established; this is not claimed as an observed native CLI bug.",
+  "scope": [
+    "src/runtime/main.ts",
+    "tests/runtime/server.test.ts"
+  ],
+  "files": [
+    {
+      "path": "src/runtime/main.ts",
+      "sha256": "1164fc04e1a750a5403ea2d594cddd630509c6cc6760f00d5359f5cc29f61bce"
+    },
+    {
+      "path": "tests/runtime/server.test.ts",
+      "sha256": "ebed3fa67c9d001ee667984ea1f2065a01986e5aa5f411ba01eb69d002f761ba"
+    }
+  ],
+  "changes": [
+    "Worker RPC tracks callResolved only after service.call fulfills. A subsequent reply failure is returned with delivery unknown even if jsonBytes throws a default-not_sent DeliveryError.",
+    "Original DeliveryError code, message and optional data remain unchanged. Existing explicit unknown stays unknown; pre-call rejection and service rejection retain their original delivery classification.",
+    "The real local HTTP/WebSocket worker fixture permits controlled completed-call results. Tests cover a normal success, response byte-budget overflow, an invalid JSON value, explicit unknown serialization error with data, and rejection before service.call. Existing authentication/lease/restart/routing cases remain included."
+  ],
+  "validation": {
+    "runtime": "Pinned public Node v24.22.1 Windows x64",
+    "targetedCommand": "node scripts/run-tests.mjs --targeted tests/runtime/server.test.ts",
+    "isolation": "Repository targeted runner isolates test process environment; test server binds loopback on an ephemeral port with fixture token and owner/channel registration. No native CLI, model, external MCP or personal credential access.",
+    "before": {
+      "evidence": ".work/test-results/run-kyvEIe/vitest.json",
+      "exitCode": 1,
+      "files": 1,
+      "total": 18,
+      "passed": 16,
+      "failed": 2,
+      "failures": [
+        {
+          "name": "worker HTTP preserves completed-call delivery and the original error for byte capacity",
+          "status": "failed",
+          "messages": [
+            "AssertionError: expected { ok: false, error: { …(3) } } to deeply equal { ok: false, error: { …(3) } }\n    at D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/server.test.ts:53:33\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///D:/Document/ChatGPT/codex-harness/rewrite-20261025/node_modules/.pnpm/vitest@5.0.5_@types+node@24_846e8cb3e0178b7fce0e4875673fc489/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:20"
+          ]
+        },
+        {
+          "name": "worker HTTP preserves completed-call delivery and the original error for invalid JSON value",
+          "status": "failed",
+          "messages": [
+            "AssertionError: expected { ok: false, error: { …(3) } } to deeply equal { ok: false, error: { …(3) } }\n    at D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/server.test.ts:53:33\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///D:/Document/ChatGPT/codex-harness/rewrite-20261025/node_modules/.pnpm/vitest@5.0.5_@types+node@24_846e8cb3e0178b7fce0e4875673fc489/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:20"
+          ]
+        }
+      ],
+      "interpretation": "Controlled completed output returned not_sent for capacity and invalid_json. Genuine failure evidence retained; no production reachability inference."
+    },
+    "after": {
+      "evidence": ".work/test-results/run-raO0HC/vitest.json",
+      "exitCode": 0,
+      "files": 1,
+      "total": 18,
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "exitCode": 0,
+      "log": ".work/v230-worker-serialization-tsc.log"
+    },
+    "diffCheck": {
+      "command": "git diff --check -- src/runtime/main.ts tests/runtime/server.test.ts",
+      "exitCode": 0
+    }
+  },
+  "evidence": [
+    {
+      "path": ".work/test-results/run-kyvEIe/vitest.json",
+      "sha256": "32c8a4c86527383f78b42a7f8ae3d5a0694132e10ba53d10e216cb74c10e3c5c"
+    },
+    {
+      "path": ".work/test-results/run-raO0HC/vitest.json",
+      "sha256": "a57654b49133e475474e0e59f0627a71b5395b1b7981b0186061127b94affce3"
+    },
+    {
+      "path": ".work/v230-worker-serialization-before.log",
+      "sha256": "9b4b8e72a8074b5f4c4f996ba3ac6e0942d66aee9ca7480ebfb9c27579d52ebb"
+    },
+    {
+      "path": ".work/v230-worker-serialization-after.log",
+      "sha256": "c467e9cb1be9787ad28dc91616e9c573a99685bc391514656135195b7fe3b1a1"
+    },
+    {
+      "path": ".work/v230-worker-serialization-tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "remainingFindings": [],
+  "limitations": [
+    "This is a two-file defensive implementation report, not an independent full audit or a clean-round gate result.",
+    "No full suite, browser, online service operation, deployment, real native CLI or paid/external call was performed.",
+    "No other source/test files were edited by this subtask. Concurrent parent RuntimeService work is outside this report."
+  ]
+}

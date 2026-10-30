@@ -194,6 +194,77 @@ it('offers only native projects that include current cwd and never changes the t
   expect(sameRoot('D:\\work\\project', 'd:/work/project/')).toBe(true);
   expect(sameRoot('/work/Project', '/work/project')).toBe(false);
 });
+it.each([
+  ['/srv/alpha\\beta', '/srv/alpha/beta', false],
+  ['/srv/alpha\\beta/', '/srv/alpha\\beta', true],
+  ['/srv/alpha\\', '/srv/alpha', false],
+  ['/srv/Project', '/srv/project', false],
+  ['/', '', false],
+  ['/', '///', true],
+  ['D:\\', 'd:/', true],
+  ['D:/', 'D:', false],
+  ['D:\\work\\project', 'd:/WORK/project/', true],
+  ['\\\\Server\\Share\\Work', '\\\\server/share/work/', true],
+  ['\\\\Server\\Share', '\\\\server/share/', true],
+  ['\\\\server\\share\\work', '//server/share/work', false],
+])('compares explicit path identities %s and %s as %s', (left, right, equal) => {
+  expect(sameRoot(left as string, right as string)).toBe(equal);
+  expect(sameRoot(right as string, left as string)).toBe(equal);
+});
+
+const rootCases = [
+  ['POSIX literal backslash', '/srv/alpha\\beta', '/srv/alpha\\beta/', '/srv/alpha/beta'],
+  ['POSIX root', '/', '///', '/srv'],
+  ['Windows drive', 'D:\\work\\project', 'd:/WORK/project/', 'd:/work/other'],
+  ['Windows UNC', '\\\\Server\\Share\\Work', '\\\\server/share/work/', '//server/share/work'],
+] as const;
+it.each(rootCases)('replacing %s directory scope submits only its matching registered project ID', async (_kind, rootPath, matchingPath, unrelatedPath) => {
+  const matching = { id: 'matching', name: 'Matching directory', cwd: matchingPath };
+  const unrelated = { id: 'unrelated', name: 'Unrelated directory', cwd: unrelatedPath };
+  const category = { id: 'category', name: 'Category', roots: [{ path: rootPath }], metadata: {} };
+  const { api, calls } = setup(call => call.method === 'nativeProject/list'
+    ? { data: [category], nextCursor: null } : { project: category });
+  render(<NativeProjects {...projectProps(api)} projects={[matching, unrelated]} />);
+  fireEvent.click(await screen.findByRole('button', { name: /Category.*1 个工作目录/ }));
+  fireEvent.click(await screen.findByRole('button', { name: '编辑项目名称与范围' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: /替换项目目录范围/ }));
+  expect(screen.getByRole('checkbox', { name: /Matching directory/ })).toHaveProperty('checked', true);
+  expect(screen.getByRole('checkbox', { name: /Unrelated directory/ })).toHaveProperty('checked', false);
+  fireEvent.click(screen.getByRole('button', { name: '保存项目变更' }));
+  await waitFor(() => expect(calls.filter(call => call.method === 'nativeProject/update')).toHaveLength(1));
+  expect(calls.find(call => call.method === 'nativeProject/update')?.params).toEqual({
+    nativeProjectId: 'category', name: 'Category', projectIds: ['matching'],
+  });
+});
+
+it('does not label a literal POSIX backslash root registered merely because its nested lookalike exists', async () => {
+  const category = { id: 'category', name: 'Category', roots: [{ path: '/srv/alpha\\beta' }], metadata: {} };
+  const { api, calls } = setup(call => call.method === 'nativeProject/list'
+    ? { data: [category], nextCursor: null } : { project: category });
+  render(<NativeProjects {...projectProps(api)} projects={[{ id: 'nested', name: 'Nested directory', cwd: '/srv/alpha/beta' }]} />);
+  fireEvent.click(await screen.findByRole('button', { name: /Category.*1 个工作目录/ }));
+  expect(await screen.findByText(/未注册，仅显示元数据/)).toBeTruthy();
+  expect(calls.some(call => call.method === 'nativeProject/update')).toBe(false);
+});
+
+it.each(rootCases)('thread association for %s excludes a distinct root and preserves the correct project identity', async (_kind, rootPath, matchingPath, unrelatedPath) => {
+  const matching = { ...native, id: 'matching-category', name: 'Matching category', roots: [{ path: rootPath }] };
+  const unrelated = { ...native, id: 'unrelated-category', name: 'Unrelated category', roots: [{ path: unrelatedPath }] };
+  const currentProject = { ...project, cwd: matchingPath };
+  const { api, calls } = setup(call => call.method === 'nativeProject/list'
+    ? { data: [matching, unrelated], nextCursor: null }
+    : call.method === 'thread/read'
+      ? { ...read, thread: { ...read.thread, cwd: matchingPath, projectId: matching.id } }
+      : defaults(call));
+  render(<ThreadOrganization {...threadProps(api)} project={currentProject} />);
+  await screen.findByRole('option', { name: 'Matching category' });
+  expect(screen.queryByRole('option', { name: 'Unrelated category' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '保存项目归属' }));
+  await waitFor(() => expect(calls.filter(call => call.method === 'thread/project/set')).toHaveLength(1));
+  expect(calls.find(call => call.method === 'thread/project/set')?.params).toEqual({
+    threadId: 'thread-one', nativeProjectId: 'matching-category',
+  });
+});
 it('preserves the read section when saving without editing its selection', async () => {
   const { api, calls } = setup();
   render(<ThreadOrganization {...threadProps(api)} />);

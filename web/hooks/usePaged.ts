@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { message, object } from '../lib/types';
 export function usePaged<T>(
@@ -19,6 +19,9 @@ export function usePaged<T>(
     pageCount = useRef(0),
     paramsRef = useRef(params);
   paramsRef.current = params;
+  const owner = useMemo(() => ({}), [api, method, resourceKey, enabled, revision]);
+  const [loadedOwner, setLoadedOwner] = useState<object>();
+  const running = useRef(false);
   const [snapshotKey, setSnapshotKey] = useState<string>();
   const validate = (value: unknown, current: T[]) => {
     const result = object(value),
@@ -47,6 +50,8 @@ export function usePaged<T>(
   useEffect(() => {
     const gen = ++epoch.current,
       controller = new AbortController();
+    setLoadedOwner(owner);
+    running.current = false;
     setItems([]);
     setError('');
     setWarning('');
@@ -81,10 +86,11 @@ export function usePaged<T>(
       epoch.current++;
       controller.abort();
     };
-  }, [api, method, resourceKey, enabled, revision]);
+  }, [owner]);
   const more = async () => {
-    if (loading || cursor === null) return;
+    if (!enabled || loadedOwner !== owner || running.current || loading || cursor === null) return;
     const gen = epoch.current;
+    running.current = true;
     setLoading(true);
     setError('');
     try {
@@ -105,16 +111,19 @@ export function usePaged<T>(
     } catch (e) {
       if (epoch.current === gen) setError(message(e));
     } finally {
-      if (epoch.current === gen) setLoading(false);
+      if (epoch.current === gen) { running.current = false; setLoading(false); }
     }
   };
+  // A new owner must never render the previous scope's catalog while its effect
+  // is still pending (including refresh, authentication and runtime changes).
+  const current = enabled && loadedOwner === owner;
   return {
-    items,
-    loading,
-    error,
-    warning,
-    snapshotKey,
-    hasMore: cursor !== null,
+    items: current ? items : [],
+    loading: enabled && (!current || loading),
+    error: current ? error : '',
+    warning: current ? warning : '',
+    snapshotKey: current ? snapshotKey : undefined,
+    hasMore: current && cursor !== null,
     more,
     refresh: () => setRevision((v) => v + 1),
   };

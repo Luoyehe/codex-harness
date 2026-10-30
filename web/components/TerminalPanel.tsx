@@ -414,7 +414,7 @@ export function TerminalPanel({
               ? '需要登录 ChatGPT。退出后后台会自动刷新，随后可继续对话或打开其他终端。'
               : program === 'codex'
                 ? '官方 Codex 交互终端，可输入 /hooks 管理钩子。使用期间暂停其他任务，退出后自动恢复。'
-                : '使用 worker 的 shell 权限，独立于当前回合的 sandbox 设置。断线后结束。'}
+                : '使用当前执行模式的账号权限，独立于当前回合的沙箱设置。断线后结束。'}
           </p>
         </div>
         {id ? (

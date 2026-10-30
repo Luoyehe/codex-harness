@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { Api } from '../lib/api';
 import { Recovery, useOperations } from '../components/Recovery';
-import { createOperation, listOperations, updateOperation } from '../lib/operations';
+import { createOperation, listOperations, reconcileOperation, updateOperation } from '../lib/operations';
 import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
 beforeEach(() => {
   localStorage.clear();
@@ -18,8 +18,49 @@ it('keeps successful receipts for reconciliation without displaying routine succ
   expect((await listOperations()).find((row) => row.id === accepted.id)?.state).toBe('accepted');
   const failed = await createOperation('system/provider/write', {});
   await act(async () => { await updateOperation(failed.id, 'not_sent'); });
-  await screen.findByText('1 笔操作未完成');
+  await screen.findByText('1 笔操作未执行');
   expect(view.container.textContent).not.toContain(accepted.id.slice(0, 8));
+});
+it('distinguishes a confirmed project failure from message delivery and reads the reason only on request', async () => {
+  const failed = await createOperation('project/add', {});
+  await updateOperation(failed.id, 'not_sent');
+  const api = { call: vi.fn().mockResolvedValue({ operationId: failed.id, method: 'project/add', state: 'not_sent',
+    error: { code: 'project_permission_denied', message: '项目执行账号无法进入此目录或其父目录。' } }), mutate: vi.fn() } as unknown as Api;
+  render(<Harness api={api} />);
+  await screen.findByText('1 笔操作未执行');
+  fireEvent.click(screen.getByText('1 笔操作未执行'));
+  expect(screen.getByText('添加已有项目')).toBeTruthy();
+  expect(screen.queryByText(/查询只读取结果。暂未收到记录/)).toBeNull();
+  expect(screen.queryByRole('button', { name: '查询回执' })).toBeNull();
+  expect(api.call).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '查看失败原因' }));
+  await screen.findByText('项目执行账号无法进入此目录或其父目录。');
+  expect(api.call).toHaveBeenCalledExactlyOnceWith('operation/read', { operationId: failed.id });
+  expect(api.mutate).not.toHaveBeenCalled();
+  expect(JSON.stringify(await listOperations())).not.toContain('项目执行账号');
+  await expect(createOperation('turn/start', { threadId: 'another' })).resolves.toBeDefined();
+});
+it('does not resurrect an acknowledged failure after a late reason read, reconciliation or remount', async () => {
+  const failed = await createOperation('project/add', {});
+  await updateOperation(failed.id, 'not_sent');
+  let finish!: (value: unknown) => void;
+  const api = { call: vi.fn().mockImplementation(() => new Promise(resolve => { finish = resolve; })) } as unknown as Api;
+  const view = render(<Harness api={api} />);
+  fireEvent.click(await screen.findByText('1 笔操作未执行'));
+  fireEvent.click(screen.getByRole('button', { name: '查看失败原因' }));
+  fireEvent.click(screen.getByRole('button', { name: '已知悉' }));
+  await waitFor(() => expect(view.container.textContent).toBe(''));
+  await act(async () => {
+    finish({ operationId: failed.id, method: 'project/add', state: 'not_sent', error: { message: 'Late reason' } });
+    await reconcileOperation(failed.id, { operationId: failed.id, state: 'not_sent' });
+    await updateOperation(failed.id, 'accepted');
+  });
+  expect(await listOperations()).toEqual([]);
+  view.unmount();
+  const remount = render(<Harness api={api} epoch="new-connection" />);
+  await act(async () => { await listOperations(); });
+  expect(remount.container.textContent).toBe('');
+  expect(api.call).toHaveBeenCalledTimes(1);
 });
 function Harness({
   api,
