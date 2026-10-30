@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "task": "v220-ci2-memory-conflict-test",
+  "completedAt": "2026-10-30T11:44:34.510Z",
+  "changedFiles": [
+    {
+      "file": "web/tests/memory-settings.test.tsx",
+      "sha256": "753a7e645604bbbc8366c77407d8eabdabbd4d13b0ac302583742e6aca1023ae"
+    }
+  ],
+  "productionChanged": false,
+  "inspectedProduction": [
+    {
+      "file": "web/components/MemorySettings.tsx",
+      "sha256": "0663dff1622ed5e001b40cbc353ca81eacc6dff41e8d236ebcf7e2b71df3ff12"
+    },
+    {
+      "file": "web/hooks/useWorkflow.ts",
+      "sha256": "ac8b2d891088f9eeb49a607c4c90c0fac11204698c3f701d2773d1714eeaa156"
+    },
+    {
+      "file": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "file": "web/components/ExtensionControls.tsx",
+      "sha256": "9bffd195afa540308d09af1c86875697aae765f62ee274739baa619b201f6c9a"
+    }
+  ],
+  "failure": {
+    "source": ".work/v220-ci2-linux-raw.txt:840-1020",
+    "assertion": "settings/write expectedVersion v2 was absent",
+    "finalDom": "Conflict section remained rendered and adopt-new-version button was disabled; save was also disabled.",
+    "diagnosis": "Test waited only for conflict text after an immediate async settings/read and clicked comparison/adoption without establishing that the fetched-data consent-reset effect had settled. The original test did not assert adoption succeeded before final confirmation. Local unchanged-file baseline was 4/4 passed; CI failure is not claimed locally reproduced or a proven production defect."
+  },
+  "repair": "Control only the second settings/read response with a deferred fixture promise. Verify no write while loading; resolve v2 inside async act to complete the associated reset before review. Assert adoption disabled before comparison and click cannot dismiss conflict. After explicit comparison, await enabled adoption, require conflict to disappear, verify new save confirmation unchecked/disabled, then explicitly reconfirm and verify exactly one leaf-only write with v2. No automatic retry or resend added.",
+  "originalAssertions": "Retained choice preservation, no writes during conflict or before fresh confirmation, exact v2 plus leaf changes payload. Strengthened comparison/adoption/readiness and exact-once assertions. All four original cases still execute; no skips/timeouts relaxed.",
+  "baseline": {
+    "log": ".work/v220-ci2-memory-red.log",
+    "result": "4/4 pass on local Windows Node 24.15.0 before edits; file name is diagnostic convention, not a red result."
+  },
+  "verification": [
+    {
+      "log": ".work/v220-ci2-memory-green.log",
+      "sha256": "99406564c5e3822b9a25b0b94b85e019713144f39488a5782cfe1ab0f058734b",
+      "node": "24.15.0",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-uhJbpn/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci2-memory-green-1.log",
+      "sha256": "f6f884e81454614f197f3a65a14bb3e453d48c55c9c7a4cf076fb10eac604c87",
+      "node": "24.15.0",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-yHr96K/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci2-memory-green-2.log",
+      "sha256": "7340591b6e9f86f2a3f25f3198fa6a2b7184413dd944b8f9cf9f947e59cdbc74",
+      "node": "24.15.0",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-pkP8Q5/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci2-memory-green-3.log",
+      "sha256": "e30a44c1be9ea98cb213223cf4008a924526294d4293cb53a7d5f52f6eb261db",
+      "node": "24.15.0",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-lfFggz/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci2-memory-node2422.log",
+      "sha256": "435eb9fe80d681c69d7043897deafc2e1425f5cf4067e0dad0a6b8ae59d8b350",
+      "node": "24.22.1",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-Rjoe7g/vitest.json"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "web TypeScript noEmit",
+      "passed": true,
+      "log": ".work/v220-ci2-memory-typecheck.log"
+    },
+    {
+      "kind": "git diff --check exact owned file",
+      "passed": true
+    }
+  ],
+  "scope": "Targeted CI test fixture repair; not a fresh full audit. No production edits, full tests, paid calls or deployment. Frozen for independent review; full CI still required."
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "test-only-review-carry-forward",
+  "completedAt": "2026-10-30T11:46:36.847Z",
+  "priorSourceDigest": "877ff9803635717ffae9a90ed318d901e281be1d40c00ac5e62461f2b22601a6",
+  "sourceDigest": "14158d3f46a6728c06fb33d7d7f0f2c5d628b8259178d2992f35d0bcc750965f",
+  "sourceFiles": 1941,
+  "priorReview": "verification/audit-evidence/v220-ci-repair/carry-forward.json",
+  "originalFullAudit": "verification/audit-evidence/v220-round4/team.json",
+  "changedFiles": [
+    {
+      "path": "web/tests/memory-settings.test.tsx",
+      "previousSha256": "862150a7e01acf58cafed4b0ef82fb9efc927807d595c9de5e4ffde49f26e249",
+      "sha256": "753a7e645604bbbc8366c77407d8eabdabbd4d13b0ac302583742e6aca1023ae"
+    }
+  ],
+  "unchangedFiles": 1940,
+  "unchangedProductionAndConfiguration": true,
+  "method": "Rehashed the complete source inventory against CI2. Exactly one test-only file changed. Independent semantic review preserves comparison, explicit fresh consent and exact-once revision-bound write assertions. All production code, configuration and protocol remain byte-identical to the clean round-4 audit. No new complete audit round is claimed.",
+  "newFullAuditRounds": 0,
+  "findings": [],
+  "reviewArtifacts": [
+    {
+      "path": "verification/audit-evidence/v220-ci-memory/ci2-failure.json",
+      "sha256": "6ecb20adc5fcb7749b63bce45cbefb7556a577ed62152b1b80f182b269f584b7"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-memory/repair.json",
+      "sha256": "51dfb16842d344fe5125bd759f4899b34d2eb0fa67066cc9adcaf7ca5f11e4ea"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-memory/review.json",
+      "sha256": "352619f2554e376dbd666007564ed96b8ffa3c599081291df85cf9839d53da99"
+    }
+  ],
+  "fullTestsPassed": false,
+  "deployed": false
+}

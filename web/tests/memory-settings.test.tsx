@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
 import { MemorySettings } from '../components/MemorySettings';
+import { enabledButton } from './enabled-button';
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
 const project = { id: 'memory-project', name: 'Project', cwd: '/project' };
 function settings(version = 'v1') {
@@ -74,30 +75,48 @@ it('shows effective and user values, confirms a leaf-only diff and clears a sing
   });
 });
 it('preserves choices across revision conflict and requires comparison and a fresh explicit confirmation', async () => {
-  let version = 'v1';
-  const { calls } = setup((c) => (c.method === 'settings/read' ? settings(version) : undefined));
+  let reads = 0, releaseRefresh: ((value: ReturnType<typeof settings>) => void) | undefined;
+  const { calls } = setup((c) => {
+    if (c.method !== 'settings/read') return undefined;
+    if (++reads === 2) return new Promise<ReturnType<typeof settings>>(resolve => { releaseRefresh = resolve; });
+    return settings(reads === 1 ? 'v1' : 'v2');
+  });
   const use = await screen.findByRole('combobox', { name: /在任务中使用全局记忆/ });
   await waitFor(() => expect((use as HTMLSelectElement).disabled).toBe(false));
   fireEvent.change(use, { target: { value: 'false' } });
   confirm();
-  version = 'v2';
   fireEvent.click(screen.getByRole('button', { name: '重新读取记忆设置' }));
+  await waitFor(() => expect(releaseRefresh).toBeDefined());
+  expect((screen.getByRole('button', { name: '保存记忆开关' }) as HTMLButtonElement).disabled).toBe(true);
+  expect((use as HTMLSelectElement).value).toBe('false');
+  save();
+  expect(calls.some((c) => c.method === 'settings/write')).toBe(false);
+  // Complete the fetched version and its consent-reset effect before reviewing it.
+  await act(async () => { releaseRefresh!(settings('v2')); });
   await screen.findByText(/用户配置版本已变化/);
+  const adopt = screen.getByRole('button', { name: '采用新版本作为保存基准' });
+  expect((adopt as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(adopt);
+  expect(screen.getByText(/用户配置版本已变化/)).toBeTruthy();
   save();
   expect(calls.some((c) => c.method === 'settings/write')).toBe(false);
   expect((use as HTMLSelectElement).value).toBe('false');
   fireEvent.click(screen.getByRole('checkbox', { name: /我已比较新版本/ }));
-  fireEvent.click(screen.getByRole('button', { name: '采用新版本作为保存基准' }));
+  fireEvent.click(await enabledButton({ name: '采用新版本作为保存基准' }));
+  await waitFor(() => expect(screen.queryByText(/用户配置版本已变化/)).toBeNull());
+  expect((screen.getByRole('checkbox', { name: '确认只修改以上明确选择的记忆开关' }) as HTMLInputElement).checked).toBe(false);
+  expect((screen.getByRole('button', { name: '保存记忆开关' }) as HTMLButtonElement).disabled).toBe(true);
   save();
   expect(calls.some((c) => c.method === 'settings/write')).toBe(false);
   confirm();
-  save();
+  fireEvent.click(await enabledButton({ name: '保存记忆开关' }));
   await waitFor(() =>
     expect(calls.find((c) => c.method === 'settings/write')?.params).toEqual({
       expectedVersion: 'v2',
       changes: [{ key: 'memories.use_memories', value: false }],
     }),
   );
+  expect(calls.filter((c) => c.method === 'settings/write')).toHaveLength(1);
 });
 it('refuses writes when there is no unique exact user layer version', async () => {
   const { calls } = setup((c) =>
