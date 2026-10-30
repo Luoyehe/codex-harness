@@ -16,9 +16,9 @@
 - `web`: React 页面，各资源独立状态及代际号。操作意图先提交到 IndexedDB 事务，再发送，断线只查询回执。网络状态与页面导航分离。远端内容作为不可信数据呈现。
 - `deploy`: Python 标准库的安装与管理事务。源码/运行时不可由服务账号修改。依赖准备与候选执行分离，候选以隔离非 root 身份验证。停机确认前不切换发布目录；恢复不确定时保留材料并失败。
 
-网页会话外壳、工作区编排、消息条目与 Markdown 排版、输入选项、服务管理各有独立组件。历史数据预算与可见 DOM 窗口分开：保留已加载的完整数据，最多显示 150 条时间线记录；Markdown 在解析前检查字符/结构预算，解析后检查节点数和深度，失败只降级当前消息。计划和思考增量沿用条目身份及终态保护；没有共同水位的历史快照和增量不猜测拼接。
+网页会话外壳、工作区编排、消息条目与 Markdown 排版、输入选项、服务管理各有独立组件。历史数据预算与可见 DOM 窗口分开：保留已加载的完整数据，最多显示 150 条时间线记录；Markdown 在解析前检查字符/结构预算，解析后检查节点数和深度，失败只降级当前消息。计划和思考增量沿用条目身份及终态保护；没有共同水位的历史快照和增量不猜测拼接。对话仅展示公开思考摘要，摘要与详细推理通道分离；实时工具进度只更新已知条目，终态不被迟到进度覆盖。新会话或分页遇明确的历史失效时，从第一页做有界只读重试，不恢复任务或重发输入。
 
-供应商以独立连接保存 endpoint、凭据和模型目录，可同时启用。新会话使用明确选择的 modelProvider；已有会话保持原供应商身份。模型目录和思考强度按供应商、模型联合匹配，分页不合并不同供应商的同名模型。非默认原生供应商的目录与共享 ChatGPT 状态通过有界只读探针读取；供应商设置修改仍经 root 事务生效。既有单供应商配置在配置层迁移中转换，保留账号和模型凭据。
+供应商以独立连接保存 endpoint、凭据和模型目录，可同时启用。新会话使用明确选择的 modelProvider；已有会话保持原供应商身份。模型目录和思考强度按供应商、模型联合匹配，分页不合并不同供应商的同名模型。非默认原生供应商的目录与共享 ChatGPT 状态通过有界只读探针读取；供应商设置修改仍经 root 事务生效。网关的管理 RPC 通过有容量和总期限的队列串行派发，已发请求须等 helper 关闭才释放槽位；外部管理锁冲突与未知回执仍保留。供应商编辑器的操作所有权跟随登录身份，不会因自身保存触发的运行时重启而丢失成功状态。既有单供应商配置在配置层迁移中转换，保留账号和模型凭据。
 
 浏览器从已认证 session、服务状态及 WebSocket 状态获取操作日志代际，仅新操作 ID 使用对应 UUID v8；资源 ID 不随之改变。归档维护必须完整读取分片、核对 SHA-256、下载并经用户确认，发送前另存维护身份；未知轮换结果只按代际和归档摘要核对，不能重发。旧代际回执保持 unknown/archived，不能降为 not_sent。管理器的只读状态与日志请求串行执行，取消页面读取不提前释放已发请求的客户端队列。
 
@@ -48,7 +48,7 @@ HTTP 同时限制连接数、处理中的请求数及实际保留的响应字节
 
 ## RPC 方法
 
-- gateway：`project/list|defaults|create|add|remove`，`operation/read|retire`，`system/status|logs|restart|provider/read|provider/write|models/refresh`。
+- gateway：`project/list|defaults|create|add|rename|remove`，`operation/read|retire`，`system/status|logs|restart|provider/read|provider/write|models/refresh`。项目重命名只更新登记名称，与成功回执在同一 SQLite 事务提交，不移动目录或修改原生项目。
 - runtime：`conversation/start`，`thread/list|resume|read|history|name/set|archive|unarchive|compact`，`turn/start|interrupt`，`model/list`，`defaults/read`，`account/read|login|login/cancel|logout|rateLimits`，`mcp/list|oauth`，`prompt/list|answer`，`attachment/upload|read|remove`，`terminal/open|write|resize|close`，`runtime/status`。
 - “新会话”在浏览器创建草稿，首次发送才调用 `conversation/start`，内部创建原生线程并启动第一回合，返回 `{thread,turn}`；gateway 将已注册 projectId 转为 cwd，客户端不可覆盖。上游空线程尚未物化，不能作为持久会话承诺。部分创建后的错误保持 unknown，可携带已创建 threadId 帮助核对；不自动重放。输入可包含附件、受控上下文引用和经过验证的模型、权限、协作模式及输出 schema；确切允许字段由 `validation.ts` 定义。`thread/history` 同时遍历回合和原生时间线，返回分项完整性、历史版本与 owner 绑定的不透明续页标识；容量不足、时间线变化或未走完所有分页都不能标 complete。
 - terminal/open 返回 `{terminalId}`，后续输出通过事件传递，不等待命令最终退出；终端必须绑定 clientId，最多每连接 2 个，非所有者不能控制。网页 clientId 由服务端会话/连接绑定，不信任提交字段。

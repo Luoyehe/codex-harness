@@ -325,7 +325,7 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     }
     return result;
   }
-  if (method === 'project/add' || method === 'project/create') { object(input); return { id: identifier(input.id), name: validText(input.name, 128), path: validText(input.path, 4096) }; }
+  if (method === 'project/add' || method === 'project/create' || method === 'project/rename') { object(input); return { id: identifier(input.id), name: validText(input.name, 128), path: validText(input.path, 4096) }; }
   if (method === 'mcp/oauth') {
     object(input); return { handoffId: identifier(input.handoffId), epoch: identifier(input.epoch), name: identifier(input.name), threadId: input.threadId === null ? null : identifier(input.threadId) };
   }

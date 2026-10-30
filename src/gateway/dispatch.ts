@@ -12,7 +12,7 @@ import { WorkspaceAcknowledgements } from './workspace-ack.js';
 import { ReceiptMaintenance } from './receipt-maintenance.js';
 
 const readMethods = new Set(['thread/list', 'thread/read', 'thread/history', 'model/list', 'defaults/read', 'account/read', 'account/rateLimits', 'mcp/list', 'prompt/list', 'attachment/read', 'runtime/status', 'project/defaults']);
-const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/create', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh']);
+const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/create', 'project/rename', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh']);
 const volatile = new Set(['turn/interrupt', 'terminal/write', 'terminal/resize', 'terminal/close']);
 const workMethods = new Set(['conversation/start', 'turn/start', 'thread/compact', 'terminal/open']);
 const systemReads = new Set(['system/status', 'system/logs', 'system/provider/read']);
@@ -114,11 +114,12 @@ export class Dispatcher extends EventEmitter {
     const startsWork = workMethods.has(method) || feature?.activity === 'start';
     const isWork = startsWork || feature?.activity === 'continue' || feature?.activity === 'idle';
     const rootManagement = method.startsWith('system/');
+    const localProject = method === 'project/remove' || method === 'project/rename';
     const management = rootManagement || feature?.activity === 'configuration';
     let locked = false; let dispatched = false;
     try {
       // Recorded identities replay before connection admission. Only a new worker dispatch needs a live owner.
-      if (!rootManagement && method !== 'project/remove') context.requireConnection?.();
+      if (!rootManagement && !localProject) context.requireConnection?.();
       if ((isWork || management || feature?.access === 'write' || method.startsWith('account/') || method.startsWith('project/')) && this.#maintenance) throw new HarnessError('maintenance', '服务器正在变更配置，请稍后重试。');
       if (isWork && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台任务状态需要核对，暂不能开始新任务。');
       if (isWork && (this.#pendingWork.has(scope) || ((startsWork || feature?.activity === 'idle') && this.#activity.activeThreads.includes(String(params.threadId))))) throw new HarnessError('thread_busy', '此会话已有正在执行或等待确认的任务。');
@@ -134,7 +135,7 @@ export class Dispatcher extends EventEmitter {
       const recordDispatch = () => { if (!dispatched) { this.ledger.dispatch(operationId); dispatched = true; } };
       const beforeWrite = () => {
         context.requireAuthorization?.();
-        if (!rootManagement && method !== 'project/remove') context.requireConnection?.();
+        if (!rootManagement && !localProject) context.requireConnection?.();
         recordDispatch();
       };
       let result: JsonValue;
@@ -142,6 +143,20 @@ export class Dispatcher extends EventEmitter {
         const originId = identifier(params.projectId);
         if (method !== 'workspace/worktree/create') this.ledger.worktrees.require(originId, params.worktreeId);
         else if (this.ledger.projects().length >= 128) throw new HarnessError('capacity', '请先释放项目登记空间再创建工作树。');
+      }
+      if (method === 'project/rename') {
+        if (Object.keys(params).some(key => !['id', 'name'].includes(key))) throw new HarnessError('invalid', '项目更名只接受项目编号和名称。');
+        const id = identifier(params.id), name = validText(params.name, 128, '项目名称');
+        // The registered label and accepted receipt commit together. A lost
+        // HTTP response can replay the original ID without changing it again.
+        const receipt = this.ledger.transaction(() => {
+          beforeWrite();
+          const result = receiptResult(method, this.ledger.renameProject(id, name) as unknown as JsonValue);
+          const saved = this.ledger.settle(operationId, { ok: true, value: result });
+          if (saved.state !== 'accepted') throw new HarnessError('journal_capacity', '无法保存项目更名回执，项目名称未改变。');
+          return saved;
+        });
+        this.emitReceipt(receipt); return this.replay(receipt);
       }
       if (method === 'project/create') {
         if (Object.keys(params).some(key => !['name', 'directory'].includes(key))) throw new HarnessError('invalid', '新建项目只接受项目名称和目录名。');
@@ -176,8 +191,12 @@ export class Dispatcher extends EventEmitter {
       await this.workspaceAcknowledgements.accepted(receipt, context, digest({ method, params }));
       return this.replay(receipt);
     } catch (error) {
-      const body = errorBody(error, dispatched ? 'unknown' : 'not_sent');
       const current = this.ledger.read(operationId);
+      // A local rename and its receipt share one transaction. The original
+      // pending row proves that transaction rolled back without changing it.
+      const body = method === 'project/rename' && current?.state === 'pending'
+        ? { ...errorBody(error), delivery: 'not_sent' as const }
+        : errorBody(error, dispatched ? 'unknown' : 'not_sent');
       if (current && ['pending', 'dispatching'].includes(current.state)) {
         const receipt = this.ledger.settle(operationId, { ok: false, error: body }); this.emitReceipt(receipt);
       }
@@ -230,6 +249,7 @@ export class Dispatcher extends EventEmitter {
       throw new HarnessError('journal_busy', '请先结束后台任务并恢复所有未知状态，再轮换回执。');
   }
   private scope(method: string, params: JsonObject): string {
+    if (method === 'project/rename') return 'project:' + identifier(params.id);
     if (typeof params.threadId === 'string') return 'thread:' + identifier(params.threadId);
     if (typeof params.projectId === 'string') return 'project:' + identifier(params.projectId);
     if (method.startsWith('system/')) return 'system';

@@ -161,7 +161,7 @@ describe('dialog keyboard containment', () => {
   });
   it('does not return focus to hidden opening controls or hidden fallbacks', () => {
     const wrapper = document.createElement('div');
-    wrapper.innerHTML = '<button class="sidebar-account">opener</button>';
+    wrapper.innerHTML = '<button class="sidebar-settings">opener</button>';
     document.body.append(wrapper);
     const opener = wrapper.querySelector('button')!;
     opener.focus();
@@ -174,6 +174,19 @@ describe('dialog keyboard containment', () => {
     wrapper.hidden = true;
     view.unmount();
     expect(focus).not.toHaveBeenCalled();
+    wrapper.remove();
+  });
+  it('falls back to the settings gear when the original opener is removed', () => {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = '<button class="opener">open</button><div class="sidebar-account">My workspace<button class="sidebar-settings">Settings</button></div>';
+    document.body.append(wrapper);
+    const opener = wrapper.querySelector<HTMLButtonElement>('.opener')!;
+    const gear = wrapper.querySelector<HTMLButtonElement>('.sidebar-settings')!;
+    opener.focus();
+    const view = render(<Dialog title="Dialog" onClose={vi.fn()}>Body</Dialog>);
+    opener.remove();
+    view.unmount();
+    expect(document.activeElement).toBe(gear);
     wrapper.remove();
   });
 });

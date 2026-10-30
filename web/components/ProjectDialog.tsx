@@ -66,8 +66,8 @@ export function ProjectDialog({
       >
         <fieldset className="submission-fields stack" disabled={frozen}>
           <div className="segmented" role="group" aria-label="添加项目方式">
-            <button type="button" aria-pressed={mode === 'create'} onClick={() => setMode('create')}>新建项目</button>
-            <button type="button" aria-pressed={mode === 'existing'} onClick={() => setMode('existing')}>添加已有目录</button>
+            <button type="button" className="segmented-option" aria-pressed={mode === 'create'} onClick={() => setMode('create')}>新建项目</button>
+            <button type="button" className="segmented-option" aria-pressed={mode === 'existing'} onClick={() => setMode('existing')}>添加已有目录</button>
           </div>
           <label className="field">
             项目名称
@@ -86,7 +86,7 @@ export function ProjectDialog({
             </label>
             {root ? <p className="small muted">创建位置：<code>{root}{root.includes('\\') ? '\\' : '/'}{chosenDirectory || '目录名'}</code></p> : <p className="small muted">正在读取默认项目目录…</p>}
             <p className="small muted">系统会创建空目录并设置好执行账号权限，可直接开始使用。</p>
-            {defaults.error && <div role="alert" className="error">{defaults.error}<button type="button" onClick={defaults.refresh}>重试读取目录</button></div>}
+            {defaults.error && <div role="alert" className="error">{defaults.error}<button type="button" className="button small" onClick={defaults.refresh}>重试读取目录</button></div>}
           </> : <label className="field">
             服务器上的绝对目录
             <input

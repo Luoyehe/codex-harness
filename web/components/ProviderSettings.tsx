@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Api } from '../lib/api';
+import { RpcError, type Api } from '../lib/api';
 import { useResource } from '../hooks/useResource';
 import { array, composing, object } from '../lib/types';
 import { ExtensionStatus, useExtensionAction } from './ExtensionControls';
@@ -53,7 +53,14 @@ function ProviderSettingsForm({
   accountPanel,
 }: ProviderSettingsProps) {
   const resource = useResource(
-    epoch, (signal) => api.call('system/provider/read', {}, signal), visible,
+    epoch, async (signal) => {
+      try { return await api.call('system/provider/read', {}, signal); }
+      catch (error) {
+        if (error instanceof RpcError && error.code === 'busy')
+          throw new Error('后台正在处理配置，请稍后重新读取。');
+        throw error;
+      }
+    }, visible,
   );
   // A refresh temporarily has no data. Keep non-secret editors mounted while it runs.
   const lastProvider = useRef(resource.data);
@@ -92,7 +99,10 @@ function ProviderSettingsForm({
       resource.refresh();
       onChanged();
     },
-    JSON.stringify([epoch, visible, enabled]),
+    // Saving restarts the runtime and changes readiness/epoch. Its original
+    // receipt still belongs to this authenticated editor throughout that restart.
+    // The outer keyed component replaces ownership on an API/session change.
+    'provider-registry',
   );
   const gatewayScope = JSON.stringify({ baseUrl, gateway }),
     isGateway = kind === 'chatgpt-gateway';
@@ -227,7 +237,7 @@ function ProviderSettingsForm({
         {resource.loading && <p role="status">读取配置中…</p>}
         {resource.error && (
           <p role="alert" className="error">
-            {resource.error}
+            {saved ? '配置已保存，但暂时无法读取最新状态。无需重复保存。' : '暂时无法读取最新配置，当前编辑已保留。'}{' '}{resource.error}
             <button
               type="button"
               className="button small"
@@ -464,6 +474,7 @@ function ProviderSettingsForm({
         <>
           <hr />
           <details open={!connections.length}><summary>配置备份</summary><ProviderProfiles
+            confirmationScope={JSON.stringify([epoch, visible, enabled])}
             provider={registry ?? provider}
             action={action}
             hasDraft={dirty.current}

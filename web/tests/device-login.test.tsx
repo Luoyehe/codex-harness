@@ -179,7 +179,7 @@ it('keeps account handoff mounted across settings tabs and ordinary config refre
     onTheme: vi.fn(),
     onClose: vi.fn(),
     onChanged: vi.fn(),
-    onProjectsChanged: vi.fn(),
+    onProjectAction: vi.fn(),
     onLogout: vi.fn(),
     onOpenDraft: vi.fn(),
   };

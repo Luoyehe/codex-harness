@@ -24,7 +24,7 @@ export function Settings({
   onTheme,
   onClose,
   onChanged,
-  onProjectsChanged,
+  onProjectAction,
   onLogout,
   onOpenDraft,
   onOpenThread,
@@ -59,15 +59,14 @@ export function Settings({
   onTheme: (theme: string) => void;
   onClose: () => void;
   onChanged: () => void;
-  onProjectsChanged: () => void;
+  onProjectAction: (project: Project, action: 'rename' | 'remove') => void;
   onLogout: () => Promise<void>;
   onOpenDraft: (key: string) => void;
   onOpenThread?: (id: string) => void;
 }) {
   const [visited, setVisited] = useState<string[]>([initialTab]);
   const [tab, setTab] = useState<string>(initialTab),
-    [error, setError] = useState(''),
-    [busy, setBusy] = useState('');
+    [error, setError] = useState('');
   const tabs = [
     ['general', '通用'],
     ['provider', '模型供应商'],
@@ -121,31 +120,12 @@ export function Settings({
                 <div className="info-card" key={p.id}>
                   <strong>{p.name}</strong>
                   <p className="small path">{p.cwd}</p>
-                  <button
-                    className="button small"
-                    disabled={Boolean(busy)}
-                    onClick={async () => {
-                      setBusy(p.id);
-                      setError('');
-                      try {
-                        await api.mutate('project/remove', { id: p.id });
-                        onProjectsChanged();
-                      } catch (e) {
-                        setError(message(e));
-                      } finally {
-                        setBusy('');
-                      }
-                    }}
-                  >
-                    移除项目
-                  </button>
+                  <div className="inline">
+                    <button className="button small" onClick={() => onProjectAction(p, 'rename')}>重命名项目</button>
+                    <button className="button small" onClick={() => onProjectAction(p, 'remove')}>移除项目</button>
+                  </div>
                 </div>
               ))}
-              {error && (
-                <p className="error" role="alert">
-                  {error}
-                </p>
-              )}
             </section>
           )}
           {tab === 'drafts' && <DraftsSettings projects={projects} onOpen={onOpenDraft} />}

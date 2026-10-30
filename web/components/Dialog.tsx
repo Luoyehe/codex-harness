@@ -104,7 +104,7 @@ export function Dialog({
       else if (remaining) remaining.focus();
       else
         Array.from(
-          document.querySelectorAll<HTMLElement>('.mobile-menu,.sidebar-account,#message-input'),
+          document.querySelectorAll<HTMLElement>('.mobile-menu,.sidebar-settings,#message-input'),
         )
           .find(visible)
           ?.focus();

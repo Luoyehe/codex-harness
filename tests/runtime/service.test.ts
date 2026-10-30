@@ -122,6 +122,31 @@ describe('history reconciles exact live turns without trusting mixed lifecycle s
     expect(await service.call('thread/history', { threadId: 't' }, { clientId: 'reader' })).toMatchObject({ turns: [row('turn-1', 'inProgress')] });
   });
 
+  test('the first live turn of a new thread rejects a mixed initial page and permits a fresh read without replaying the input', async () => {
+    const { service, native, cwd } = setup(), original = native.call.bind(native);
+    await service.call('thread/start', { cwd }, context);
+    let release!: () => void, entered!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; }), written = new Promise<void>(resolve => { entered = resolve; });
+    native.call = async (method, params, options) => {
+      const result = await original(method, params, options);
+      if (method === 'turn/start') { entered(); await gate; }
+      return result;
+    };
+    native.page = page(row('turn-1', 'interrupted'));
+    const starting = service.call('turn/start', { threadId: 'created-thread', text: 'first input' }, context);
+    await written;
+    native.beforeNativeWrite = method => {
+      if (method === 'thread/timeline/list') notify(native, 'turn/started', 'turn-1', 'inProgress', 'created-thread');
+    };
+    await expect(service.call('thread/history', { threadId: 'created-thread' }, context)).rejects.toMatchObject({ code: 'history_stale' });
+    release(); await starting;
+    native.beforeNativeWrite = undefined;
+    expect(await service.call('thread/history', { threadId: 'created-thread' }, context)).toMatchObject({ complete: true, turns: [row('turn-1', 'inProgress')] });
+    expect(native.calls.filter(call => call.method === 'turn/start')).toHaveLength(1);
+    expect(native.calls.some(call => call.method === 'thread/resume')).toBe(false);
+    expect(object(object(service.status()).activity).activeThreads).toContain('created-thread');
+  });
+
   test('an unknown live turn stays unknown and does not rewrite interrupted history as known in-progress', async () => {
     const { service, native } = setup(); notify(native, 'turn/started'); native.emit('fatal', new Error('lost native connection'));
     native.page = page(row('live', 'interrupted'));

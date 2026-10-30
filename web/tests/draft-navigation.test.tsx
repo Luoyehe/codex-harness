@@ -84,7 +84,7 @@ it.each(['new', 'thread', 'popstate'])('blocks a different draft key through %s 
   fireEvent.change(editor(), { target: { value: 'only copy' } });
   const before = location.href;
   if (route === 'new') fireEvent.click(screen.getByRole('button', { name: '新会话' }));
-  else if (route === 'thread') fireEvent.click(screen.getByRole('button', { name: /Saved thread/ }));
+  else if (route === 'thread') fireEvent.click(screen.getByRole('button', { name: 'Saved thread' }));
   else await act(async () => { history.pushState({}, '', '/?thread=t'); window.dispatchEvent(new PopStateEvent('popstate')); });
   expect(screen.getByRole('dialog', { name: '草稿尚未保存' })).toBeTruthy();
   expect(editor().value).toBe('only copy');
@@ -119,7 +119,7 @@ it('keeps settings open when another saved draft cannot be opened and requires a
   await setup();
   failWrites();
   fireEvent.change(editor(), { target: { value: 'only copy' } });
-  fireEvent.click(screen.getByRole('button', { name: /账户与设置/ }));
+  fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   const settings = within(screen.getByRole('dialog', { name: '设置' }));
   fireEvent.click(settings.getByRole('button', { name: '本地草稿' }));
   const row = settings.getByText('Project B').closest('.info-card')!;

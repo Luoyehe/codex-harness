@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+  "sourceFiles": 1941,
+  "baseCommit": "historical-commit-128",
+  "version": "2.2.0",
+  "approvedAt": "2026-10-30T17:27:58.147Z",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v220-round9",
+      "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+      "completedAt": "2026-10-30T17:27:57.636Z",
+      "files": 1941,
+      "reviewers": [
+        {
+          "id": "v220-round9-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round9/team.json",
+          "sha256": "323d2a719b6976a2a05f72bd5591f917c879cab64e6588217c06b28321c94e3c"
+        }
+      ]
+    }
+  ],
+  "note": "Actual complete clean audit9 meets the latest user one-round gate after a bounded user-experience recovery improvement. Prior CI8 and browser acceptance retain their source boundaries. This authorization permits new exact-source complete validation, not fabricated audit rounds.",
+  "scopedRepairReview": {
+    "path": "verification/audit-evidence/v220-defaults-retry/summary.json",
+    "sha256": "4821cfcff2f4a7545958fd9e9a463994ed94414817044fba0bcf3a88a1071ebb"
+  },
+  "publicCopyNotice": "Public historical summary. Operator-specific deployment details have been removed. The private original is the record of the original execution."
+}

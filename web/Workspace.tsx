@@ -40,6 +40,7 @@ import { useModelCatalogRefresh } from './hooks/useModelCatalogRefresh';
 import { Sidebar } from './components/Sidebar';
 import { Recovery, useOperations } from './components/Recovery';
 import { ProjectDialog } from './components/ProjectDialog';
+import { SidebarManagementDialog, type SidebarAction } from './components/SidebarManagementDialog';
 import { Welcome } from './components/Welcome';
 import { Composer, type Attachment, type SendIntent } from './components/Composer';
 import { Diff, Messages } from './components/Messages';
@@ -124,6 +125,9 @@ export function Workspace({
     [modal, setModal] = useState(''),
     [mobile, setMobile] = useState(false),
     [attachmentContext, setAttachmentContext] = useState(() => uuid());
+  const [sidebarManagement, setSidebarManagement] = useState<{
+    selection: SidebarAction; key: string; navigation: number; canLeave: () => boolean;
+  }>();
   const [threadTerminalsMounted, setThreadTerminalsMounted] = useState(false),
     [predictionMounted, setPredictionMounted] = useState(false);
   const [terminalProgram, setTerminalProgram] = useState<'shell' | 'codex' | 'codex-cloud'>(
@@ -502,6 +506,11 @@ export function Workspace({
       setArchiveBusy(false);
     }
   };
+  const manageSidebar = (selection: SidebarAction) => {
+    setSidebarManagement({ selection, key: uuid(), navigation: navigation.current, canLeave: draftState.canLeave });
+    setMobile(false);
+    setModal('sidebar-management');
+  };
   const send = async (attachments: Attachment[], intent: SendIntent = 'send'): Promise<boolean> => {
     const key = contextKey,
       text = draft,
@@ -682,6 +691,7 @@ export function Workspace({
       projects={projects}
       projectId={projectId}
       threads={search ? searchThreads.items.map((hit) => hit.thread) : threads.items}
+      threadsProjectId={(search ? searchThreads.snapshotKey : threads.snapshotKey) === threadListKey ? projectId : ''}
       snippets={
         search
           ? Object.fromEntries(searchThreads.items.map((hit) => [hit.thread.id, hit.snippet]))
@@ -697,6 +707,8 @@ export function Workspace({
         navigate('', { projectId: id });
       }}
       onThread={(id) => void openThread(id)}
+      onProjectAction={(target, action) => manageSidebar({ kind: 'project', target: { ...target }, action })}
+      onThreadAction={(target, action) => manageSidebar({ kind: 'thread', target: { ...target }, action })}
       onNew={() => navigate('')}
       onQuery={setQuery}
       onArchived={() => setArchived((v) => !v)}
@@ -1445,6 +1457,48 @@ export function Workspace({
                 }}
               />
             )}{' '}
+            {modal === 'sidebar-management' && sidebarManagement && (
+              <SidebarManagementDialog
+                key={sidebarManagement.key}
+                api={api}
+                events={events}
+                epoch={resourceEpoch}
+                selection={sidebarManagement.selection}
+                enabled={active && network.connection === 'connected' &&
+                  (sidebarManagement.selection.kind === 'project' || (network.runtimeConnected && network.activityReady))}
+                beforeSubmit={() => {
+                  const { selection, navigation: started, canLeave } = sidebarManagement;
+                  const leavesCurrent = selection.kind === 'project'
+                    ? selection.action === 'remove' && selection.target.id === projectId
+                    : selection.action !== 'rename' && selection.target.id === threadId;
+                  return !leavesCurrent || navigation.current !== started || canLeave();
+                }}
+                onAccepted={() => {
+                  const { selection, navigation: started, canLeave } = sidebarManagement;
+                  projectsResource.refresh();
+                  threads.refresh();
+                  searchThreads.refresh();
+                  setModal(current => current === 'sidebar-management' ? '' : current);
+                  if (navigation.current !== started) return;
+                  if (selection.kind === 'project') {
+                    if (selection.action !== 'remove' || selection.target.id !== projectId) return;
+                    if (!canLeave()) {
+                      setError('项目已移除，当前输入仍保留。请先保存或复制草稿，再切换项目。');
+                      return;
+                    }
+                    navigate('', { projectId: projects.find(item => item.id !== selection.target.id)?.id ?? '' });
+                  } else if (selection.target.id === threadId) {
+                    if (selection.action === 'rename') { conversation.refresh(); return; }
+                    if (!canLeave()) {
+                      setError('会话管理操作已完成，当前输入仍保留。请先保存或复制草稿，再切换会话。');
+                      return;
+                    }
+                    navigate('');
+                  }
+                }}
+                onClose={() => setModal('')}
+              />
+            )}{' '}
             {modal === 'rename' && (
               <RenameDialog
                 api={api}
@@ -1490,7 +1544,7 @@ export function Workspace({
                 onTheme={setTheme}
                 onClose={() => setModal('')}
                 onChanged={() => setConfigRevision((v) => v + 1)}
-                onProjectsChanged={projectsResource.refresh}
+                onProjectAction={(target, action) => manageSidebar({ kind: 'project', target: { ...target }, action })}
                 onOpenThread={(id) => { void openThread(id); }}
                 onOpenDraft={(key) => {
                   const branch = branchDraftSource(key);

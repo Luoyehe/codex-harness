@@ -102,6 +102,7 @@ describe('durable receipt data minimization', () => {
   it('preserves valid long project paths and attachment MIME metadata', () => {
     const project = { id: 'p', name: 'project', path: '/workspace/' + 'a'.repeat(300) };
     expect(receiptResult('project/add', project)).toEqual(project);
+    expect(receiptResult('project/rename', { ...project, privateExtra: 'discard' })).toEqual(project);
     expect(receiptResult('attachment/upload', { attachmentId: 'a', mimeType: 'image/png', size: 1, path: '/private' })).toEqual({ attachmentId: 'a', mimeType: 'image/png', size: 1 });
   });
   it('does not persist new upstream fields in login or attachment results', () => {

@@ -16,11 +16,13 @@ export function ProviderProfiles({
   action,
   hasDraft,
   onUpdated,
+  confirmationScope = '',
 }: {
   provider: Record<string, unknown>;
   action: ReturnType<typeof useExtensionAction>;
   hasDraft: boolean;
   onUpdated: () => void;
+  confirmationScope?: string;
 }) {
   const profiles = array<Profile>(provider.profiles),
     retention = object(provider.retention);
@@ -28,7 +30,7 @@ export function ProviderProfiles({
     [selected, setSelected] = useState(''),
     [confirm, setConfirm] = useState('');
   const profile = profiles.find((profile) => profile.id === selected);
-  useEffect(() => setConfirm(''), [action.scope]);
+  useEffect(() => setConfirm(''), [action.scope, confirmationScope]);
   const trimmedName = name.trim(),
     nameTooLong = Array.from(trimmedName).length > 64;
   const disabled = action.disabled || hasDraft || typeof provider.revision !== 'string';

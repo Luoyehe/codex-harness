@@ -84,3 +84,30 @@ test('an unknown project later confirmed accepted stays frozen without a second 
   expect(requests.filter(method => method === 'project/create')).toHaveLength(1);
   expect(onOpen).not.toHaveBeenCalled(); expect(onClose).not.toHaveBeenCalled();
 });
+
+test('project mode choices expose their selected state and retain both drafts without submitting', async () => {
+  const requests: string[] = [];
+  vi.stubGlobal('fetch', vi.fn(async (_url, init) => {
+    const request = JSON.parse(init.body); requests.push(request.method);
+    if (request.method !== 'project/defaults') throw new Error('Mode switching must not submit');
+    return { status: 200, ok: true, json: async () => ({ ok: true, result: { directory: '/native/projects' } }) };
+  }));
+  render(<ProjectDialog api={new Api()} onAdded={vi.fn()} onClose={vi.fn()} onOpen={vi.fn()} />);
+  await screen.findByText('/native/projects/目录名');
+  const create = screen.getByRole('button', { name: '新建项目' });
+  const existing = screen.getByRole('button', { name: '添加已有目录' });
+  expect(create.getAttribute('aria-pressed')).toBe('true');
+  expect(existing.getAttribute('aria-pressed')).toBe('false');
+  fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), { target: { value: 'Shared name' } });
+  fireEvent.change(screen.getByRole('textbox', { name: '目录名' }), { target: { value: 'new-directory' } });
+  fireEvent.click(existing);
+  expect(existing.getAttribute('aria-pressed')).toBe('true');
+  expect(create.getAttribute('aria-pressed')).toBe('false');
+  fireEvent.change(screen.getByRole('textbox', { name: '服务器上的绝对目录' }), { target: { value: '/existing/project' } });
+  fireEvent.click(create);
+  expect(screen.getByRole('textbox', { name: '目录名' })).toHaveProperty('value', 'new-directory');
+  fireEvent.click(existing);
+  expect(screen.getByRole('textbox', { name: '服务器上的绝对目录' })).toHaveProperty('value', '/existing/project');
+  expect(screen.getByRole('textbox', { name: '项目名称' })).toHaveProperty('value', 'Shared name');
+  expect(requests).toEqual(['project/defaults']);
+});

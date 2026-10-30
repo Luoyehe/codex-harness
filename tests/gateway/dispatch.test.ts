@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { Ledger } from '../../src/core/ledger.js';
 import { HarnessError } from '../../src/core/errors.js';
@@ -13,14 +14,91 @@ class Worker implements WorkerPort {
   run: (method: string, params: JsonObject, context: CallContext) => Promise<JsonValue> = async (_m, _p, c) => { c.beforeWrite?.(); return { turn: { id: 'turn', status: 'inProgress' } }; };
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> { this.calls++; return this.run(method, params, context); }
 }
-function setup() {
-  const ledger = new Ledger(':memory:'); const worker = new Worker();
+function setup(file = ':memory:') {
+  const ledger = new Ledger(file); const worker = new Worker();
   const manager: ManagerPort = { call: async (_m, _p, _id, before) => { before?.(); return {}; } };
   const dispatcher = new Dispatcher(ledger, worker, manager);
   dispatcher.event({ type: 'state', data: { epoch: 'one', connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
   return { ledger, worker, dispatcher, manager };
 }
 describe('gateway operation admission', () => {
+  it('durably renames a registered project without a worker and replays the original receipt after restart without reverting a later name', async () => {
+    const parent = path.resolve('.work/project-rename'); mkdirSync(parent, { recursive: true });
+    const directory = mkdtempSync(path.join(parent, 'run-')), file = path.join(directory, 'journal.sqlite');
+    let current = setup(file);
+    const context: CallContext = { clientId: 'owner', requireAuthorization: vi.fn(), requireConnection() { throw new HarnessError('connection_required', 'Worker disconnected'); } };
+    try {
+      current.worker.connected = false; current.dispatcher.disconnected();
+      const project = current.ledger.addProject('/native/unchanged', 'Original');
+      const call = { method: 'project/rename', operationId: randomUUID(), params: { id: project.id, name: '  First name  ' } };
+      const result = { ...project, name: 'First name' };
+      expect(await current.dispatcher.call(call, context)).toEqual(result);
+      expect(current.ledger.read(call.operationId)).toMatchObject({ method: 'project/rename', scope: 'project:' + project.id, state: 'accepted', result });
+      expect(await current.dispatcher.call({ ...call, operationId: randomUUID(), params: { id: project.id, name: 'Later name' } }, context)).toEqual({ ...project, name: 'Later name' });
+      expect(current.worker.calls).toBe(0);
+      current.ledger.close(); current = setup(file); current.worker.connected = false;
+      expect(current.ledger.recover()).toEqual({ unknown: 0, notSent: 0 });
+      expect(await current.dispatcher.call(call, context)).toEqual(result);
+      expect(await current.dispatcher.call({ method: 'operation/read', params: { operationId: call.operationId } }, context)).toMatchObject({ state: 'accepted', result });
+      expect(current.ledger.projects()).toEqual([{ ...project, name: 'Later name' }]);
+      await expect(current.dispatcher.call({ ...call, params: { id: project.id, name: 'Different payload' } }, context)).rejects.toMatchObject({ code: 'operation_conflict', delivery: 'not_sent' });
+      expect(current.worker.calls).toBe(0);
+    } finally { current.ledger.close(); rmSync(directory, { recursive: true, force: true }); }
+  });
+  it('returns a durable not_found for a removed project and rejects unknown rename fields without dispatch', async () => {
+    const { ledger, dispatcher, worker } = setup();
+    try {
+      const project = ledger.addProject('/native/project', 'Original'); ledger.removeProject(project.id);
+      const call = { method: 'project/rename', operationId: randomUUID(), params: { id: project.id, name: 'Missing' } };
+      await expect(dispatcher.call(call, { clientId: 'owner' })).rejects.toMatchObject({ code: 'not_found', delivery: 'not_sent' });
+      expect(ledger.read(call.operationId)).toMatchObject({ state: 'not_sent', error: { code: 'not_found' } });
+      await expect(dispatcher.call(call, { clientId: 'owner' })).rejects.toMatchObject({ code: 'not_found', delivery: 'not_sent' });
+      const existing = ledger.addProject('/native/existing', 'Existing');
+      await expect(dispatcher.call({ method: 'project/rename', operationId: randomUUID(), params: { id: existing.id, name: 'Changed', path: '/other' } }, { clientId: 'owner' })).rejects.toMatchObject({ code: 'invalid', delivery: 'not_sent' });
+      expect(ledger.projects()).toEqual([existing]); expect(worker.calls).toBe(0);
+    } finally { ledger.close(); }
+  });
+  it('proves a failed local rename was not sent when its transaction rolls back and the original receipt remains pending', async () => {
+    const { ledger, dispatcher, worker } = setup();
+    try {
+      const project = ledger.addProject('/native/project', 'Original');
+      const call = { method: 'project/rename', operationId: randomUUID(), params: { id: project.id, name: 'Uncommitted' } };
+      const settled = vi.spyOn(ledger, 'settle').mockImplementationOnce(() => { throw new Error('fixture receipt storage failure'); });
+      await expect(dispatcher.call(call, { clientId: 'owner' })).rejects.toMatchObject({ code: 'internal', delivery: 'not_sent' });
+      expect(ledger.projects()).toEqual([project]); expect(ledger.read(call.operationId)?.state).toBe('not_sent');
+      await expect(dispatcher.call(call, { clientId: 'owner' })).rejects.toMatchObject({ code: 'internal', delivery: 'not_sent' });
+      expect(settled).toHaveBeenCalledTimes(2); expect(worker.calls).toBe(0);
+    } finally { vi.restoreAllMocks(); ledger.close(); }
+  });
+  it('does not commit a renamed label when the journal can retain only an unknown result', async () => {
+    const { ledger, dispatcher } = setup();
+    try {
+      const project = ledger.addProject('/native/project', 'Original'), operationId = randomUUID();
+      const settle = ledger.settle.bind(ledger);
+      vi.spyOn(ledger, 'settle').mockImplementationOnce(id => settle(id, { ok: false, error: { code: 'journal_capacity', message: 'fixture capacity', delivery: 'unknown' } }));
+      await expect(dispatcher.call({ method: 'project/rename', operationId, params: { id: project.id, name: 'Uncommitted' } }, { clientId: 'owner' })).rejects.toMatchObject({ code: 'journal_capacity', delivery: 'not_sent' });
+      expect(ledger.projects()).toEqual([project]); expect(ledger.read(operationId)).toMatchObject({ state: 'not_sent' });
+    } finally { vi.restoreAllMocks(); ledger.close(); }
+  });
+  it('rechecks administrator authorization before committing a local project rename', async () => {
+    const { ledger, dispatcher, worker } = setup(); let checks = 0;
+    try {
+      const project = ledger.addProject('/native/project', 'Original'), operationId = randomUUID();
+      await expect(dispatcher.call({ method: 'project/rename', operationId, params: { id: project.id, name: 'Denied' } }, { clientId: 'owner', requireAuthorization() { if (++checks > 1) throw new HarnessError('unauthorized', 'Revoked'); } })).rejects.toMatchObject({ code: 'unauthorized', delivery: 'not_sent' });
+      expect(checks).toBe(2); expect(ledger.projects()).toEqual([project]); expect(ledger.read(operationId)?.state).toBe('not_sent'); expect(worker.calls).toBe(0);
+    } finally { ledger.close(); }
+  });
+  it('does not rename registered projects while a management transaction owns the gateway', async () => {
+    const { ledger, dispatcher, manager } = setup(); let finish!: (value: JsonValue) => void;
+    manager.call = async (_method, _params, _operationId, beforeWrite) => { beforeWrite?.(); return new Promise(resolve => { finish = resolve; }); };
+    const pending = dispatcher.call({ method: 'system/restart', operationId: randomUUID(), params: {} }, { clientId: 'owner' });
+    try {
+      const project = ledger.addProject('/native/project', 'Original'), operationId = randomUUID();
+      expect(dispatcher.maintenanceActive()).toBe(true);
+      await expect(dispatcher.call({ method: 'project/rename', operationId, params: { id: project.id, name: 'Denied' } }, { clientId: 'owner' })).rejects.toMatchObject({ code: 'maintenance', delivery: 'not_sent' });
+      expect(ledger.projects()).toEqual([project]); expect(ledger.read(operationId)?.state).toBe('not_sent');
+    } finally { finish({ restarted: true, release: 'a'.repeat(64) }); await pending; ledger.close(); }
+  });
   it('creates a managed project, persists its registration after a lost owner, and never creates twice on replay', async () => {
     const { ledger, worker, dispatcher } = setup(); let live = true;
     const context: CallContext = { clientId: 'owner', requireConnection() { if (!live) throw new HarnessError('connection_required', 'gone'); } };

@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-30T18:41:30.959Z",
+  "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "sourceFiles": 1947,
+  "changedFiles": [
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "9e0c2c917ed6cf5d34006b71bac80beaf19dc3f1f4c9e1b638c424b470953571",
+      "executableBits": 0
+    },
+    {
+      "path": "FEATURES.md",
+      "sha256": "17523b13ae0a30cbd1f8f1681814b00bc9c4f4480e48b7cffeb681076729bff1",
+      "executableBits": 0
+    },
+    {
+      "path": "README.md",
+      "sha256": "79771c37790c93c5ed9e59f792a7715ffabd517d78788dced3ea6ce1c5ba1740",
+      "executableBits": 0
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "f77f131ce1c9297bfe3bc17ef54ef61d7d0cfaf04a3b5c64ada8c3a24f303461",
+      "executableBits": 0
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "f17493bf533254f5b44c6d1501fadb322030df67c139f3c54fed0b95daba774f",
+      "executableBits": 0
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "2596646c35e2b15568a960090aa444add5572b39763e920878a200de00381e94",
+      "executableBits": 0
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "90cfc230b67c237d006154e20c9ddac6324022b14222aea659e0813b78d203a9",
+      "executableBits": 0
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "e45dfb387562bd9071cb1b234cf6b915c90ae1a29b8886bddfea95c9f3dbec6c",
+      "executableBits": 0
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "sha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de",
+      "executableBits": 0
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "eb642ba8b747ba08b458c2d381995eb3976c21a853ba02fc720eb4a6268be76b",
+      "executableBits": 0
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "b8a9bfd8a8997c6c99f8e4a5c31e61899d49dcaf134e71719583f4a5013a124d",
+      "executableBits": 0
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "9fbe2bbd3107514ae037de2a747db3c2c7e042cff1e307f806b832ed3c571cc5",
+      "executableBits": 0
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "sha256": "a501276286c270c7517fdf998007cf5825d30ff2d210d83ba4de55a04a90d31a",
+      "executableBits": 0
+    },
+    {
+      "path": "tests/runtime/reasoning-summary.test.ts",
+      "sha256": "f1a7473d3cc4ccc9c05e22e8b617b35e9dc60a527dcd8c9e89f1869f6b7d0438",
+      "executableBits": 0
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "8bdac12bf502cebb087c79324fb6500b5fbaddb112afce0b5b064b1bbd3b9a52",
+      "executableBits": 0
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "29f2e1354aba5b048828c8dc23358036ec8ab6deef65ff98199c8b2800c90450",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/Dialog.tsx",
+      "sha256": "0877f0f4bc27cbbee1e733bb53f8c7d73895cefaa600b9623a1ddf1f5b808af5",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/Icon.tsx",
+      "sha256": "c2c1a3e98c4f294d811f1c7aa2509a9513589b54609a44a459d1df976fd0d863",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "sha256": "85981e737aedad53c5523d50faf54bdee078aefa9a2600ec43375eedf0a3b508",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/ProjectDialog.tsx",
+      "sha256": "2ca6f122e5c4859d706f5b444bc38ff635b40e7a9fc9f21899de5f6281f314f1",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/ProviderProfiles.tsx",
+      "sha256": "9f3013e501ed687d395dce64ce94d314a64ea0525c0db96519fdbc88e896b27d",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "sha256": "fd58ed57eb2181059c1482e8c67fc72cd575fb1c56945cfb624fe00ee0ff40e2",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/Settings.tsx",
+      "sha256": "ce9ec8d8839d992f45616e82493fa8dfe0062b1d97de1e151d7b288bbcdd5f38",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "1fbd9f1bdacac3fa1f1baa03cf32e38951f85e111e008d70d2bfb3ccd7105498",
+      "executableBits": 0
+    },
+    {
+      "path": "web/components/SidebarManagementDialog.tsx",
+      "sha256": "c91f9d53a510ce3164a73a4bb96e332b2298376ced2780f9af52a361edd22b26",
+      "executableBits": 0
+    },
+    {
+      "path": "web/hooks/useConversation.ts",
+      "sha256": "925eeeeeaa73243b1bb871895d5f2e8a580015d93bab438ed17388ef7928c550",
+      "executableBits": 0
+    },
+    {
+      "path": "web/lib/history.ts",
+      "sha256": "963d9b6162bf54d76ae524763b0fe0e722ea543fa2b32628d48f0d0d23a8c6a6",
+      "executableBits": 0
+    },
+    {
+      "path": "web/lib/stream-items.ts",
+      "sha256": "d42d38fea838170fb530a8b61fe51e49d4d65e0f6ce6822746c665601d1a526c",
+      "executableBits": 0
+    },
+    {
+      "path": "web/lib/types.ts",
+      "sha256": "2da3e2aee29419235305b6410b509134c1c92ab11a7a53d785720a7aa8eff092",
+      "executableBits": 0
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "sha256": "4c34764b2b49740d3c68a51204c174a6be1ded30cc5097501a8ecf34a4f61832",
+      "executableBits": 0
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "62acf890b10d1a1cd640afd3baefde37562aaee4b8a663cd7ae9e99d0078b3b1",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "fb9fd4d6f8a3d9767598d4bfff0398915c4aabe36be56594432480f387cfe132",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/builtin-auth.test.tsx",
+      "sha256": "9a0e4b7f1f04c328740744556236021943cd16d3dc29d39bde1acca95429c893",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/conversation-recovery.test.tsx",
+      "sha256": "4d2d993258b55d92aaf753313593cefd9014eba66b60f26ff8267171752ecb8a",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "sha256": "645eae33366396ec1913604a9f899fc9618fb513deb579b35504e90a8b4aa279",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/dialog.test.tsx",
+      "sha256": "baa1ce925bd1e9290738c4b5cd972d54832e25ad82aba4b2ee85d2b86509df54",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/draft-navigation.test.tsx",
+      "sha256": "935ddf8a1501f3595253b078fc93582cca59b03c139fba95f6c685d4bf2d3fb8",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/project-create.test.tsx",
+      "sha256": "05041c1d3c4cb0b6fe00fad0f6c07a2cf5df0b95ca3e20dd2672144e18fb923f",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/provider-advanced.test.tsx",
+      "sha256": "f0e5a75ae19f96d4ffe329e342da0b3dbb22d39411ce5e96b3149ca2d3d65c37",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/provider-profiles.test.tsx",
+      "sha256": "f68e563b49045df0439f1270c66831fd16b4d53dd998ad5eb8a9edce6997b8f4",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/render-budget.test.tsx",
+      "sha256": "dfa6664f8a451480413e5a99696f546bcf388a8124265defcdb9f1f3e8db6e07",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/settings-drafts.test.tsx",
+      "sha256": "9c879331f0e97d7a0483378626f24958377f707f7a3e43e7998295a0e97aa7ce",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/settings.test.tsx",
+      "sha256": "53fa2e514ea1a801ece086d4b61308e08823ed6e768685108e6c85c38e294117",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/sidebar-management.test.tsx",
+      "sha256": "50cdec6b60a86da2524b1804ed2a7daa318aeef7100e0de53dbef5f48e1b299c",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/sidebar.test.tsx",
+      "sha256": "f54c2222aeab655cf3efb4891448d80d5aae7b9c7e032e4a47b6d9588d89b88f",
+      "executableBits": 0
+    },
+    {
+      "path": "web/tests/stream-items.test.ts",
+      "sha256": "71652f10bbcd1222587c1838bd3bb89b3b0e01e7cd67419b1328abfdf395c015",
+      "executableBits": 0
+    }
+  ],
+  "changes": [
+    "Projects contain their conversation list and visible row menus. Rename, archive/unarchive, confirmed permanent thread deletion and project unregister preserve original operation ownership, drafts and receipt recovery. Project rename updates registry and accepted receipt atomically without moving files.",
+    "Manager RPC helpers are bounded and serialized per gateway; queued requests recheck admission at dispatch, and sent requests retain unknown outcomes until helper close. Provider saves survive their own runtime restart while login identity changes remain isolated; accepted saves and failed follow-up reads are distinguished.",
+    "Explicit history_stale failures trigger at most two fresh read-only traversals, retaining independent live events and full-history readiness checks. Manual continuation uses the same generation-bound recovery.",
+    "Project controls and supported-browser select popups share light/dark styling. Narrow project lists and mobile menu Escape/focus are corrected. Only a custom inline SVG gear opens settings.",
+    "Public reasoning summaries are visible by default and separated from raw/detailed reasoning and mixed sync buffers. Official MCP progress is displayed for known items, cleared on completion, and never overrides terminal results. Agent phase labels use supplied protocol values."
+  ],
+  "independentReviews": [
+    {
+      "evidenceName": "v220-provider-save-independent-review.json",
+      "sha256": "8ed9414aec14e2ad2ff39996cd869242aa011e1cb3326ce23486b55e37bbbc83",
+      "findings": []
+    },
+    {
+      "evidenceName": "v220-sidebar-management-independent-review.json",
+      "sha256": "3449474e000b39b97a3dd117319b80df99af759e4cc98d0c219c6ca2f4cea959",
+      "findings": []
+    },
+    {
+      "evidenceName": "v220-sidebar-management-web-review.json",
+      "sha256": "0368350d86e0e86c610946dc87bc5e71c517fcdbff300be9e48736604d11abf8",
+      "findings": []
+    },
+    {
+      "evidenceName": "v220-manager-queue-review.json",
+      "sha256": "ee4f014cd24a5d3ec8fa32630453e89f9fddd81d4fcde159f4a140ee3fd2b5d3",
+      "findings": []
+    },
+    {
+      "evidenceName": "v220-history-recovery-independent-web-review.json",
+      "sha256": "09aaf20b9a8597bc0f5c44e5b6d38a4782f07d2cbddc25a03c1518f4f396dd00",
+      "findings": []
+    },
+    {
+      "evidenceName": "v220-reasoning-summary-progress-independent-review.json",
+      "sha256": "6a08ff52496e8f0eb126949fa09b157b1a08d7133a1771747eafc316aee85db5",
+      "findings": []
+    }
+  ],
+  "markdownReview": {
+    "path": "verification/audit-evidence/v220-user-feedback/markdown-review.json",
+    "sha256": "89f4326c9fada672153b815aaee94144c85b9e3983608e30d2ee224385e7741a",
+    "complete": true
+  },
+  "validation": {
+    "directedRegression": "Passed affected project/ledger/dispatch/manager queue, sidebar/settings/provider lifecycle, history recovery, public reasoning/progress and runtime protocol regressions. Original fixture failures and reproduced terminal-progress failures remain retained in local reports.",
+    "types": "Server and web TypeScript passed.",
+    "webBuild": "Passed; existing large-chunk advisory remains.",
+    "visual": "Actual in-app browser checked isolated read-only fixtures: project hierarchy/menus, public-summary-only rendering, themed expanded model picker, project modes, independent gear, light/dark and narrow-screen Escape/focus."
+  },
+  "limitations": [
+    "Fresh exact-source full CI and final deployment are pending; prior CI9 results cannot validate this source.",
+    "Read-only visual fixtures do not prove real provider model output. No paid model or external MCP call was performed.",
+    "Native select styling falls back to functional system controls on browsers without base-select support.",
+    "No online provider write was repeated during diagnosis; previously observed writes were accepted and committed."
+  ]
+}
