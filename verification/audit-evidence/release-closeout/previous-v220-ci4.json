@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "468803191f18e3950286f76348a8538a65ce5a90cb5538a7d0fafa56e3126cbe",
+  "sourceFiles": 1941,
+  "baseCommit": "historical-commit-128",
+  "version": "2.2.0",
+  "approvedAt": "2026-10-30T12:34:29.915981+00:00",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v220-round5",
+      "sourceDigest": "468803191f18e3950286f76348a8538a65ce5a90cb5538a7d0fafa56e3126cbe",
+      "completedAt": "2026-10-30T12:34:14.844Z",
+      "files": 1941,
+      "reviewers": [
+        {
+          "id": "v220-round5-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round5/team.json",
+          "sha256": "40caa55fdd8b869c834e1ddcbe3d32af5a41c16fb890e88462c07d26d09f08c8"
+        }
+      ]
+    }
+  ],
+  "note": "Only one actual clean complete round is claimed. Earlier rounds retain their findings. This source-bound record authorizes full testing; it is not a test or deployment result.",
+  "publicCopyNotice": "Public historical summary. Operator-specific deployment details have been removed. The private original is the record of the original execution."
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "scoped-test-fixture-repair",
+  "author": "/root/v220_round4_web",
+  "completedAt": "2026-10-30T12:52:35.7862991Z",
+  "file": "web/tests/credit-nudge.test.tsx",
+  "sha256": "29fb51ea1e137eb9e70a63a370c8ef2adba6231e187b218b33fea1bbfb48e112",
+  "failureLog": ".work/v220-ci4-linux-raw.txt",
+  "originalFailure": "uncertain email delivery queries its original receipt and never resends: recovery button absent; DOM has unchecked confirmation and disabled send button",
+  "diagnosis": "The original test awaited an already-rendered button, not completion of the account preview. If the preview was still loading, checking confirmation stored an empty hash, leaving send disabled. The controlled pending-preview fixture demonstrates this ordering; the original random CI failure did not reproduce in the one local pre-fix run.",
+  "productionReview": [
+    "CreditNudge confirmation binds to the current preview hash, and send stays disabled until accountId and explicit confirmation exist.",
+    "useResource commits the asynchronous preview after its request completes.",
+    "useWorkflow only exposes the failed operation ID after Api.mutate fails; ExtensionStatus queries the original receipt and never repeats the mutation."
+  ],
+  "changes": [
+    "Both cases use an explicitly controlled preview promise.",
+    "Assert the pending preview cannot grant consent or send; release it within awaited React act, then require fresh user confirmation.",
+    "Retain reason-change consent revocation, cooldown messaging and exactly one email mutation.",
+    "For uncertain delivery, assert no automatic receipt read, exactly one write before and after recovery, and every receipt read uses the original operation ID."
+  ],
+  "productionFilesChanged": [],
+  "tests": [
+    {
+      "path": ".work/test-results/run-jaV9eE/vitest.json",
+      "phase": "before fix",
+      "node": "24.22.1",
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "path": ".work/test-results/run-ZAjeN3/vitest.json",
+      "phase": "after fix",
+      "node": "24.22.1",
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "checks": [
+    "web TypeScript noEmit passed",
+    "git diff --check for changed test passed"
+  ],
+  "independentReview": {
+    "path": ".work/v220-ci4-credit-nudge-review.json",
+    "sha256": "3d31446230893909b609312102e14c05f86325d43c59b6388e0b23cee7c8a91a",
+    "findings": []
+  },
+  "relatedNodeEvidence": {
+    "review": ".work/v220-windows-upstream-review.json",
+    "parentReportedTargetedResult": ".work/test-results/run-TWYJDB/vitest.json",
+    "cases": 40,
+    "note": "Parent ran HTTP25 + preview15 on Node24.22.1; this does not reproduce or prove the cause of the historical native crash."
+  },
+  "limits": [
+    "No real email, external account, paid model, or production call was made. Fetch is stubbed locally.",
+    "No full suite or deployment was run by this agent.",
+    "This scoped fixture repair and review are not an additional full audit round."
+  ],
+  "findings": []
+}
