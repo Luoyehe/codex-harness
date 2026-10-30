@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "classification": "Invalid test profile fixture omitted provider kind; production code unchanged",
+  "changedFiles": ["tests/deploy/test_edge_diagnostics.py"],
+  "repair": "Use real Profiles.save with complete legacy and multi-provider settings; assert that both active and disabled saved credentials are redacted, while retaining the fixed-unit allowlist checks.",
+  "validation": {
+    "windows": {"passed": 11, "skipped": 2, "skipReason": "Two real Linux symlink retention cases"},
+    "linuxNonroot": {"passed": 13, "skipped": 0, "evidence": ".work/v220-ci-deploy-identity-extra-linux.json"},
+    "files": ["tests/deploy/test_edge_diagnostics.py", "tests/deploy/test_provider_lifecycle.py"]
+  },
+  "productionCodeChanged": false,
+  "mainInstanceChanged": false,
+  "fullTestClaim": false
+}

@@ -101,8 +101,10 @@ class ProviderRegistryTests(unittest.TestCase):
     def test_generation_writes_a_bounded_public_registry_and_endpoint_keys(self):
         current = self.add(self.current)
         store = ProviderStore(self.layout, 1)
+        # This ordinary fixture checks serialization. Root-owned publication
+        # uses fchown and is exercised in root/test_provider_extended.py.
         with patch("deploy.provider.mkdir", side_effect=lambda path, *args, **kwargs: path.mkdir(parents=True, exist_ok=True)), \
-             patch("deploy.common.os.chown", create=True):
+             patch("deploy.common.os.fchown", create=True):
             store.prepare(current, layered=False)
         generation = self.layout.config / "providers" / current["revision"]
         public = json.loads((generation / "runtime.json").read_text(encoding="utf-8"))
@@ -131,7 +133,7 @@ class ProviderRegistryTests(unittest.TestCase):
                 disabled = change({"expectedRevision": current["revision"], "providerId": entries(current)[1]["id"],
                                    "enabled": False}, current)
                 with patch("deploy.provider.mkdir", side_effect=lambda path, *args, **kwargs: path.mkdir(parents=True, exist_ok=True)), \
-                     patch("deploy.common.os.chown", create=True):
+                     patch("deploy.common.os.fchown", create=True):
                     generation = store.prepare(disabled, layered=False)
                 self.assertTrue((store.root / generation / "runtime.json").exists())
                 self.assertNotIn("fixture-only", (store.root / generation / "provider.env").read_text())

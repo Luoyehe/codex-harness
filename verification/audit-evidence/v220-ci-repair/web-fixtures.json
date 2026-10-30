@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "task": "v220-ci-web-fixtures",
+  "completedAt": "2026-10-30T11:29:24.916Z",
+  "changedFiles": [
+    {
+      "file": "web/tests/extensions.test.tsx",
+      "sha256": "42f18a6a7cb8d30ff777d26d0ca69022d6908bca37a87aa10e8fe74fc3051528"
+    },
+    {
+      "file": "web/tests/operation-history.test.tsx",
+      "sha256": "f2626a0f732cfe035f731d58027b2084ff87ada271c24199c035cdc4bc0f8c14"
+    },
+    {
+      "file": "web/tests/preview-server.test.ts",
+      "sha256": "8ca631932b19e352985cfbc5f9745ef96bced6b4b8189abbc99e0265793cc5a2"
+    }
+  ],
+  "unchangedProductionFilesInspected": [
+    {
+      "file": "web/components/PluginSettings.tsx",
+      "sha256": "e083703b272543372866513ea9540fa4946528b4b59023feec6103a4cbf06d5e"
+    },
+    {
+      "file": "web/components/ExtensionControls.tsx",
+      "sha256": "9bffd195afa540308d09af1c86875697aae765f62ee274739baa619b201f6c9a"
+    },
+    {
+      "file": "web/components/OperationHistory.tsx",
+      "sha256": "e42b5b8610f244234df4fa0a464f55e237fe18b095dca1b88d92c7ddc71b811f"
+    },
+    {
+      "file": "web/components/Recovery.tsx",
+      "sha256": "d52cb6b5e7de07f8f3a5eddb177b72899148a20308735626d7c8916a6e16f0fa"
+    },
+    {
+      "file": "web/hooks/useWorkflow.ts",
+      "sha256": "ac8b2d891088f9eeb49a607c4c90c0fac11204698c3f701d2773d1714eeaa156"
+    },
+    {
+      "file": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "file": "web/lib/operations.ts",
+      "sha256": "370b4300fe3e7966ccb62a365eb13d6a3e4fea3a15ddfbf5ea022cbfa5ed8038"
+    },
+    {
+      "file": "web/tests/preview-server.mjs",
+      "sha256": "ebe50163054bfb729cba296169e393ce790aa48237d241f47175925f2cfbbdec"
+    }
+  ],
+  "issues": [
+    {
+      "file": "web/tests/extensions.test.tsx",
+      "evidence": ".work/v220-ci1-windows-raw.txt:962-1195",
+      "diagnosis": "CI clicked immediately after an asynchronously loaded preview. The final DOM had a disabled install button and no install request. Current implementation resets consent in a preview-hash effect; the original test did not establish that effect completion or assert readiness after consent. Local bounded reproductions did not recreate this failure, so a browser production defect is not claimed.",
+      "repair": "Explicit async act completes the immediate fixture preview interaction, then readiness is awaited after consent. Retains disabled-before-consent and exact previewHash checks; adds a disabled-button no-dispatch assertion. Applies the same interaction boundary to original-receipt recovery test."
+    },
+    {
+      "file": "web/tests/operation-history.test.tsx",
+      "evidence": ".work/v220-ci1-pr-windows-raw.txt:1326-1343",
+      "diagnosis": "Total operation count includes pending records. createOperation publishes count 2 before updateOperation publishes the completed set through a separate asynchronous IDB read. The prior test waited for total count, not the newly completed result.",
+      "repair": "Separately assert the two-record/one-completed pending state, then await two-completed state. Verify consent revoked, clear button disabled, disabled click retains both records."
+    },
+    {
+      "file": "web/tests/preview-server.test.ts",
+      "evidence": ".work/v220-ci-web-repeat-2.log",
+      "diagnosis": "Reproduced Fetch bad port with ephemeral loopback server. Host TCP dynamic port range is 1024-15000, which intersects the Fetch forbidden-port list. This is distinct from the CI native worker exit.",
+      "repair": "Use node:http with test-owned connections, no shared keep-alive pool and bounded timeout. Preserve all 15 real HTTP/raw TCP/WebSocket tests and assertions; no skip/retry/filter added."
+    }
+  ],
+  "nativeWorkerExit": {
+    "code": 3221226505,
+    "hexadecimal": "0xC0000409",
+    "source": ".work/v220-ci1-windows-raw.txt:1665-1675",
+    "status": "cause undetermined, not reproduced",
+    "evidence": "Same-head PR CI in .work/v220-ci1-pr-windows-raw.txt passed this file. Before changes, two Node versions plus 14 bounded exact-file repeats never reproduced this worker exit (one repeat exposed the separate forbidden-port failure). No process-targeting or native child-process use exists in the preview fixture/test. This does not prove a native crash cause or fix.",
+    "gate": "Next complete CI must execute this entire file and treat any worker error as failure; no exception or retry acceptance."
+  },
+  "verification": [
+    {
+      "log": ".work/v220-ci-web-fixtures-green.log",
+      "sha256": "805bd0b732d5551f388a68638b7c3fc705348e9314b0801c96eb62ba344eaa42",
+      "node": "24.15.0",
+      "files": 3,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-gY0xFT/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci-web-fixtures-node2422.log",
+      "sha256": "b37060284b1a983b280a432e8100769dc3d5bbe493836dcbc28884353aa16984",
+      "node": "24.22.1",
+      "files": 3,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-h9X05n/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci-web-fixtures-green-1.log",
+      "sha256": "9013cbe01837fa709c9c248efae49359d569cd586237b03d9fd5cfd4b4a0b934",
+      "node": "24.15.0",
+      "files": 3,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-vN737H/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci-web-fixtures-green-2.log",
+      "sha256": "aa03e77393e16c7669fa756861bf60e8e10e3a62224b249070fafbe89015be1c",
+      "node": "24.15.0",
+      "files": 3,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-6RVJlX/vitest.json"
+    },
+    {
+      "log": ".work/v220-ci-web-fixtures-green-3.log",
+      "sha256": "3f109796eb7e292bd2689a7522f9ec9063a501566339ca34082100f4791d29c9",
+      "node": "24.15.0",
+      "files": 3,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "report": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/.work/test-results/run-PjnDN7/vitest.json"
+    }
+  ],
+  "checks": [
+    "web TypeScript noEmit passed on Node 24.15.0",
+    "git diff --check on four owned test files passed"
+  ],
+  "priorInputContextFix": {
+    "file": "web/tests/input-context.test.tsx",
+    "sha256": "bddfc54dfea558a3c2ccf6f59f6d44c0e81709e95a516201bb0855dee155fa67",
+    "report": ".work/v220-ci-input-context-fix.json",
+    "changedAgain": false
+  },
+  "scope": "Focused CI repair and current-flow inspection only; not a fresh full-repository audit. No production source change, no full suite, no deploy, no paid calls. Ready for independent review."
+}

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-runtime",
+  "scope": [
+    "tests/deploy/test_candidate_archive.py",
+    "tests/deploy/test_provider_registry.py",
+    "tests/deploy/root/test_candidate_archive.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/test_edge_diagnostics.py",
+    "web/tests/input-context.test.tsx"
+  ],
+  "method": "Independent read-only review of all six diffs, complete five Python fixture files, the changed Composer test with its setup and production guards, relevant production filesystem/provider/logging functions, and matching CI1 failure excerpts. No test execution by this reviewer.",
+  "conclusion": "No actionable issue found in the six fixture fixes. Existing behavioral assertions remain; added root-boundary and UI checks strengthen the evidence. This does not claim that the pending CI2 has passed.",
+  "findings": [],
+  "evidence": [
+    {
+      "topic": "Candidate archive ordinary/root separation",
+      "locations": [
+        "tests/deploy/test_candidate_archive.py:47",
+        "tests/deploy/test_candidate_archive.py:64",
+        "tests/deploy/root/test_candidate_archive.py:92",
+        "tests/deploy/root/test_candidate_archive.py:101",
+        "deploy/candidate_archive.py:38",
+        "deploy/service_lifecycle.py:25",
+        "deploy/install.py:15"
+      ],
+      "assessment": "CI1 ordinary Linux runner failed at root ownership before reaching intended archive fault assertions. The ordinary fixture now substitutes privileged validation while retaining real directory types, device/inode identity, contents, rename behavior, recovery bindings, and existing service-order/no-stop checks. The read_private replacement also bypasses private-file metadata checks in this ordinary fixture; it is not evidence of real filesystem security. The root fixture does not mock those validators and adds real foreign-ownership rejection for the candidate and preparation record before service removal; existing real symlink and successful archive integration remain. No prior negative security assertion was removed."
+    },
+    {
+      "topic": "Provider publication ownership",
+      "locations": [
+        "tests/deploy/test_provider_registry.py:107",
+        "tests/deploy/test_provider_registry.py:136",
+        "tests/deploy/root/test_provider_extended.py:80",
+        "deploy/common.py:58",
+        "deploy/provider.py:310",
+        ".work/v220-ci1-linux-raw.txt:1916"
+      ],
+      "assessment": "Ordinary fixture mock is corrected from unused chown to actual fchown; serialization, endpoint-key isolation, disabled-provider omission and rejection-before-writing assertions are retained. New root test executes real publication and checks root/native-group 0640 ownership of runtime/native-env, private provider.env ownership/mode, absence of bearer in public registry, and the selected endpoint credential in native environment."
+    },
+    {
+      "topic": "Logs credential redaction",
+      "locations": [
+        "tests/deploy/test_edge_diagnostics.py:78",
+        "deploy/manager.py:674",
+        "deploy/provider_lifecycle.py:79",
+        "deploy/provider_registry.py:25",
+        ".work/v220-ci1-windows-raw.txt:2159"
+      ],
+      "assessment": "Old fake profile omitted kind and could not represent a valid saved provider, causing KeyError before redaction. Fixture now uses real Profiles.save/records for both valid legacy and multi-connection settings. Exact redaction assertion expands from two to three secrets including a disabled connection. Allowed fixed service/line-count and unrelated ssh rejection assertions remain. Production saveProfileName stores ProviderStore.read settings, not the removed incomplete mock shape."
+    },
+    {
+      "topic": "Composer collapsed settings",
+      "locations": [
+        "web/tests/input-context.test.tsx:232",
+        "web/components/Composer.tsx:106",
+        "web/components/Composer.tsx:123",
+        "web/components/Composer.tsx:427",
+        ".work/v220-ci1-linux-raw.txt:823"
+      ],
+      "assessment": "Test opens the actual default-collapsed settings control before selecting send mode. Original reference-only success, wrong-project blocking and queued-schema blocking assertions remain. Additional checks verify actual onSend arguments, no call after disabled-button clicks, visible schema reason and restored enabled normal-send state. No production gate is mocked away."
+    }
+  ],
+  "ci2Requirements": [
+    "Inspect actual plan output for mode=authorized-full, exact candidate head/source digest and complete current test inventory.",
+    "PR workflow checks out pull_request.head.sha and plans from the PR merge base. A changed source snapshot requires a matching current release authorization; no manual dispatch is necessary merely to obtain full PR selection.",
+    "Require Linux standard, Windows standard, Linux root and final reconciliation success; read exact distinct case count from reconciliation output/artifact, never infer it from green jobs."
+  ],
+  "excluded": [
+    "Pending extensions test changes",
+    "Pending preview-server investigation",
+    "Other unrequested changes"
+  ],
+  "unexecutedIntegrations": [
+    "No local tests",
+    "No hosted workflow mutation or retry",
+    "No deployment or online acceptance",
+    "New Linux root assertions require the authorized hosted Linux root execution"
+  ],
+  "completedAt": "2026-10-30T11:28:28.7268637Z",
+  "reviewedFileHashes": [
+    {
+      "path": "tests/deploy/test_candidate_archive.py",
+      "sha256": "da416e480f113070d39ebaa67784255c1962cbb6b909b5946da931cb8351f80b"
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "sha256": "bf215c0993cec33817e53a696a1c13c2478fc74661080aa56106e1023d2f90ea"
+    },
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "sha256": "02318e76e0046093b640be7c3a81416f9e5a1a3ebf4d0ff7c3d941430eb1de77"
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2"
+    },
+    {
+      "path": "tests/deploy/test_edge_diagnostics.py",
+      "sha256": "b9af43f064fb7740b671ec1fb4c15ba67b7f1490e84a8d499943a9a630d9fb1e"
+    },
+    {
+      "path": "web/tests/input-context.test.tsx",
+      "sha256": "bddfc54dfea558a3c2ccf6f59f6d44c0e81709e95a516201bb0855dee155fa67"
+    }
+  ]
+}

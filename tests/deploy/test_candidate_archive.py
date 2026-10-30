@@ -1,6 +1,7 @@
-"""Archival fault boundaries using real rename/inventory files and substituted services."""
+"""Archival faults with real files; root ownership and services are separate fixtures."""
 import json
 import os
+import stat
 import tempfile
 import types
 import unittest
@@ -44,6 +45,11 @@ class CandidateArchiveTests(unittest.TestCase):
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
         self.stack.enter_context(patch.object(archive, "trusted_ancestors"))
+        # Ordinary runners own these files as themselves. Substitute only the
+        # root-owned boundary; root/test_candidate_archive.py exercises it with
+        # real ownership. Keep directory types and inode bindings real here.
+        self.stack.enter_context(patch.object(archive, "ordinary_directory", side_effect=self.directory_identity))
+        self.stack.enter_context(patch.object(archive, "read_private", side_effect=read_json))
         self.stack.enter_context(patch.object(archive, "unmounted"))
         self.stack.enter_context(patch.object(archive, "stopped_units"))
         self.stack.enter_context(patch.object(archive, "require_recovered", side_effect=self.recovered))
@@ -54,6 +60,12 @@ class CandidateArchiveTests(unittest.TestCase):
         self.stack.enter_context(patch.object(archive, "verify_retained"))
         self.stack.enter_context(patch.object(archive, "service_paths", return_value={}))
         self.stack.enter_context(patch.object(archive, "restore_services", side_effect=self.restore))
+
+    def directory_identity(self, path):
+        self.assertTrue(path.is_relative_to(self.layout.root))
+        info = path.lstat()
+        self.assertTrue(stat.S_ISDIR(info.st_mode))
+        return info.st_dev, info.st_ino
 
     def recovered(self, _):
         if self.lifecycle["phase"] != "recovered":

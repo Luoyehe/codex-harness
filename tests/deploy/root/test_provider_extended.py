@@ -77,6 +77,20 @@ class ExtendedProviderGenerationTests(unittest.TestCase):
         invalid = self.invoke_token(provider_id=ident)
         self.assertNotEqual(invalid.returncode, 0); self.assertEqual(invalid.stdout, b"")
 
+    def test_registry_publication_retains_real_root_and_native_group_ownership(self):
+        registry = change({"expectedRevision": self.selected["revision"], "providerId": "new", "kind": "responses",
+                           "baseUrl": "https://fixture.invalid/v1", "apiKey": "fixture-registry-bearer"}, self.selected)
+        directory = self.store.root / self.store.prepare(registry, layered=True)
+        for name in ("runtime.json", "native-env.json"):
+            info = (directory / name).stat()
+            self.assertEqual((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)), (0, 65534, 0o640))
+        private = (directory / "provider.env").stat()
+        self.assertEqual((private.st_uid, stat.S_IMODE(private.st_mode)), (0, 0o600))
+        self.assertNotIn("fixture-registry-bearer", (directory / "runtime.json").read_text())
+        ident = entries(registry)[1]["id"]
+        environment = json.loads((directory / "native-env.json").read_text())
+        self.assertEqual(environment["HARNESS_PROVIDER_KEY_" + ident.upper()], "fixture-registry-bearer")
+
     def test_zhipu_helper_passes_only_its_selected_key_to_the_local_mcp(self):
         registry = change({"expectedRevision": self.selected["revision"], "providerId": "new", "kind": "zhipu-coding",
                            "apiKey": "fixture-zhipu-key"}, self.selected)

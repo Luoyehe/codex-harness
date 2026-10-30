@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "finding": "CI-input-context-hidden-send-mode",
+  "complete": true,
+  "classification": "stale accessibility-flow test after the intentional composer settings collapse",
+  "changedFiles": ["web/tests/input-context.test.tsx"],
+  "sha256": "bddfc54dfea558a3c2ccf6f59f6d44c0e81709e95a516201bb0855dee155fa67",
+  "sourceFrozen": true,
+  "productionCodeChanged": false,
+  "reproduction": {
+    "command": "node scripts/run-tests.mjs --targeted web/tests/input-context.test.tsx",
+    "failed": 1,
+    "passed": 7,
+    "log": ".work/v220-ci-input-context-red.log",
+    "failure": "Unable to find an accessible combobox named 发送方式 because composer settings are deliberately hidden and inert until expanded"
+  },
+  "repair": [
+    "Assert that settings start collapsed and the send-mode selector is not accessible.",
+    "Open the real 对话设置 button and assert aria-expanded before selecting queue mode.",
+    "Preserve all original admission assertions and additionally verify ordinary send intent, no dispatch from wrong-project or schema-queue disabled controls, the visible schema error, and restoration of ordinary send readiness."
+  ],
+  "validation": {
+    "testFiles": ["web/tests/input-context.test.tsx", "web/tests/composer.test.tsx"],
+    "passed": 13,
+    "failed": 0,
+    "report": ".work/test-results/run-4GR318/vitest.json",
+    "log": ".work/v220-ci-input-context-green.log",
+    "typecheckExitCode": 0,
+    "typecheckLog": ".work/v220-ci-input-context-typecheck.log",
+    "diffCheckExitCode": 0,
+    "fullSuiteRun": false,
+    "onlineActions": false
+  }
+}

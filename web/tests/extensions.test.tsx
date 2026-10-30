@@ -6,6 +6,7 @@ import { SkillSettings } from '../components/SkillSettings';
 import { PluginSettings } from '../components/PluginSettings';
 import { ConfigSettings } from '../components/ConfigSettings';
 import { AppCatalog, RuntimeInsights } from '../components/RuntimeInsights';
+import { enabledButton } from './enabled-button';
 const project = { id: 'extension-project', name: 'Extensions', cwd: '/registered/project' },
   hash = 'a'.repeat(64);
 const props = (api: Api) => ({ api, project, epoch: 'first', enabled: true, onChanged: vi.fn() });
@@ -137,11 +138,15 @@ function catalogResult(call: Call, extra = {}) {
 it('requires reviewing the selected plugin and submits the exact preview hash', async () => {
   const { api, calls } = routed((call) => catalogResult(call));
   render(<PluginSettings {...props(api)} />);
-  fireEvent.click(await screen.findByRole('button', { name: /Design Tools.*Design support/ }));
+  const selected = await screen.findByRole('button', { name: /Design Tools.*Design support/ });
+  // Settle the fetched preview and its consent reset before the user reviews it.
+  await act(async () => { fireEvent.click(selected); });
   const install = await screen.findByRole('button', { name: '安装此插件' });
   expect((install as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.click(screen.getByRole('checkbox', { name: /我已查看插件内容/ }));
   fireEvent.click(install);
+  expect(calls.some((call) => call.method === 'plugin/install')).toBe(false);
+  fireEvent.click(screen.getByRole('checkbox', { name: /我已查看插件内容/ }));
+  fireEvent.click(await enabledButton({ name: '安装此插件' }));
   await waitFor(() => expect(calls.some((call) => call.method === 'plugin/install')).toBe(true));
   expect(calls.find((call) => call.method === 'plugin/install')?.params).toEqual({
     projectId: project.id,
@@ -178,10 +183,11 @@ it('recovers an unknown plugin install by its original receipt without repeating
     return catalogResult(call);
   });
   render(<PluginSettings {...props(api)} />);
-  fireEvent.click(await screen.findByRole('button', { name: /Design Tools.*Design support/ }));
+  const selected = await screen.findByRole('button', { name: /Design Tools.*Design support/ });
+  await act(async () => { fireEvent.click(selected); });
   await screen.findByRole('button', { name: '安装此插件' });
   fireEvent.click(screen.getByRole('checkbox', { name: /我已查看插件内容/ }));
-  fireEvent.click(screen.getByRole('button', { name: '安装此插件' }));
+  fireEvent.click(await enabledButton({ name: '安装此插件' }));
   fireEvent.click(await screen.findByRole('button', { name: '查询原扩展操作回执' }));
   await waitFor(() => expect(calls.some((call) => call.method === 'operation/read')).toBe(true));
   expect(calls.filter((call) => call.method === 'plugin/install')).toHaveLength(1);

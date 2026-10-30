@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-30T11:25:37.381774+00:00",
+  "classification": "Test fixture identity substitutions missing; no production defect or production change required.",
+  "filesChanged": [
+    "tests/deploy/test_candidate_archive.py",
+    "tests/deploy/test_provider_registry.py",
+    "tests/deploy/root/test_candidate_archive.py",
+    "tests/deploy/root/test_provider_extended.py"
+  ],
+  "fileHashes": {
+    "tests/deploy/test_candidate_archive.py": "da416e480f113070d39ebaa67784255c1962cbb6b909b5946da931cb8351f80b",
+    "tests/deploy/test_provider_registry.py": "bf215c0993cec33817e53a696a1c13c2478fc74661080aa56106e1023d2f90ea",
+    "tests/deploy/root/test_candidate_archive.py": "02318e76e0046093b640be7c3a81416f9e5a1a3ebf4d0ff7c3d941430eb1de77",
+    "tests/deploy/root/test_provider_extended.py": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2"
+  },
+  "productionFilesUnchanged": 62,
+  "fixes": [
+    {
+      "file": "tests/deploy/test_candidate_archive.py",
+      "change": "Ordinary archival fault fixtures explicitly substitute root-owned directory/record admission while retaining real lstat directory type, inode, rename, inventory and service fault behavior. Real root boundaries remain covered separately."
+    },
+    {
+      "file": "tests/deploy/test_provider_registry.py",
+      "change": "Replace the ineffective os.chown patch with os.fchown, which atomic_write actually uses; real file contents, modes, fsync and generation handling remain exercised."
+    },
+    {
+      "file": "tests/deploy/root/test_candidate_archive.py",
+      "change": "Add real Linux root tests rejecting foreign-owned candidate directories and prepared records before service removal."
+    },
+    {
+      "file": "tests/deploy/root/test_provider_extended.py",
+      "change": "Add real Linux root verification that registry/native environment files are root-owned, native-group readable 0640, and provider.env stays root-only 0600 without leaking credentials into public metadata."
+    }
+  ],
+  "evidence": {
+    "originalCI": [
+      ".work/v220-ci1-linux-raw.txt",
+      ".work/v220-ci1-windows-raw.txt"
+    ],
+    "beforeFixLinuxNonroot": {
+      "uid": 65534,
+      "tests": 35,
+      "failures": 8,
+      "errors": 11,
+      "log": ".work/v220-ci-deploy-identity-red-linux.log"
+    },
+    "windows": {
+      "tests": 35,
+      "passed": 35,
+      "skipped": 0,
+      "result": ".work/v220-ci-deploy-identity-green-windows.json"
+    },
+    "linuxNonroot": {
+      "uid": 65534,
+      "tests": 35,
+      "passed": 35,
+      "skipped": 0,
+      "result": ".work/v220-ci-deploy-identity-green-linux.json"
+    },
+    "linuxRoot": {
+      "uid": 0,
+      "tests": 13,
+      "passed": 13,
+      "skipped": 0,
+      "result": ".work/v220-ci-deploy-identity-green-final-linux-root.json"
+    },
+    "additionalRootAgentFilesLinuxNonroot": {
+      "files": [
+        "tests/deploy/test_edge_diagnostics.py",
+        "tests/deploy/test_provider_lifecycle.py"
+      ],
+      "uid": 65534,
+      "tests": 13,
+      "passed": 13,
+      "skipped": 0,
+      "result": ".work/v220-ci-deploy-identity-extra-linux.json"
+    },
+    "intermediateFailure": {
+      "result": ".work/v220-ci-deploy-identity-green-linux-root.log",
+      "reason": "New root ownership regression initially expected a later error message; production correctly rejected earlier in trusted_ancestors. The test now asserts the exact unsafe_path code and unchanged services."
+    }
+  },
+  "mainInstance": {
+    "deploymentPerformed": false,
+    "servicesChanged": false,
+    "beforeAfterGatewayWorkerCaddyPidsAndStateEqual": true
+  },
+  "limitations": [
+    "Targeted fixture validation only, not full CI or deployment acceptance.",
+    "Root fixtures substitute service/account operations except explicit unprivileged native helper invocations; actual ownership, locks, files and filesystem operations run on Linux."
+  ],
+  "deploymentState": "Blocked on new source-specific CI success and fresh explicit root deployment authorization."
+}
