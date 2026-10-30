@@ -1,0 +1,502 @@
+{
+  "schemaVersion": 1,
+  "finalRound": "v230-round6",
+  "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+  "archivePolicy": "semantic records LF canonical; exact originals retained in sidecars when needed",
+  "files": [
+    {
+      "from": ".work/v230-round1-deployment.json",
+      "to": "verification/audit-evidence/v230-round1/deployment.json",
+      "originalSha256": "5dabe18d72543c81ee90137c0c781af0def561382cdfd56892be3eb259a572d1",
+      "archivedSha256": "0b50dd7295e0214d35084943fc3baa60d375db98ba3633476edbb9135fbde2b8",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round1/deployment-original-bytes.json",
+        "sha256": "31c4fb06bc8950d699e23c683881ff678f69ef6e8a74cb09b03d0041d45de24d",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round1-gateway-tooling.json",
+      "to": "verification/audit-evidence/v230-round1/gateway-tooling.json",
+      "originalSha256": "cc7eeab57ac7c973936a31548a200de919b31c9c9cf7c8368f38059d22a29b61",
+      "archivedSha256": "d6bd5fb32efefa18503f8bae4f004efc961446a3c3e71e1ce09b19170af53086",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round1/gateway-tooling-original-bytes.json",
+        "sha256": "3c4c63b8d666bab5ad961c80d1daa6100165d869f55ccb647e9ab5bd67994046",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round1-root-protocol-docs.json",
+      "to": "verification/audit-evidence/v230-round1/root-protocol-docs.json",
+      "originalSha256": "741ac5a91ca3da37003f77ef3ba94de10025fb481cd49072e6665d5539b1be58",
+      "archivedSha256": "741ac5a91ca3da37003f77ef3ba94de10025fb481cd49072e6665d5539b1be58"
+    },
+    {
+      "from": ".work/v230-round1-runtime.json",
+      "to": "verification/audit-evidence/v230-round1/runtime.json",
+      "originalSha256": "1615d4e2d71e0fb717a83c6d770b58c622cf31e0009015c8cd50f6f94452a231",
+      "archivedSha256": "1615d4e2d71e0fb717a83c6d770b58c622cf31e0009015c8cd50f6f94452a231"
+    },
+    {
+      "from": ".work/v230-round1-snapshot.json",
+      "to": "verification/audit-evidence/v230-round1/snapshot.json",
+      "originalSha256": "26f796da4b2b0a907a744293b9934f7b9c0737152a1a48ea6d84d9e4f9180b39",
+      "archivedSha256": "26f796da4b2b0a907a744293b9934f7b9c0737152a1a48ea6d84d9e4f9180b39"
+    },
+    {
+      "from": ".work/v230-round1-team.json",
+      "to": "verification/audit-evidence/v230-round1/team.json",
+      "originalSha256": "11e38324e457a63e7a16ae45307857035a143b1f8deb25c28849770d141ecd88",
+      "archivedSha256": "11e38324e457a63e7a16ae45307857035a143b1f8deb25c28849770d141ecd88"
+    },
+    {
+      "from": ".work/v230-round1-web.json",
+      "to": "verification/audit-evidence/v230-round1/web.json",
+      "originalSha256": "148d415a43a35f3a454b2aafdb952448d630f4eff6f732e6297c37f99c71de1d",
+      "archivedSha256": "148d415a43a35f3a454b2aafdb952448d630f4eff6f732e6297c37f99c71de1d"
+    },
+    {
+      "from": ".work/v230-round2-deployment.json",
+      "to": "verification/audit-evidence/v230-round2/deployment.json",
+      "originalSha256": "0b70ca90061dd7b95716907e83c4c6955730819a39b39b476f91aa31cd9d2aaf",
+      "archivedSha256": "2756c0549eae1712c489f86267c1d56158561aa08ef8bbbf553f39ae5dcf9f15",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round2/deployment-original-bytes.json",
+        "sha256": "0d745ad49261870a6ac87273546b9aec62552e9f9b7e49a11092a312a1c9dd74",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round2-root-protocol-docs.json",
+      "to": "verification/audit-evidence/v230-round2/root-protocol-docs.json",
+      "originalSha256": "ddc0dadff9510e4d72ff33f0887c2caf948b01cb8f621ce06384fba57cad4b28",
+      "archivedSha256": "ddc0dadff9510e4d72ff33f0887c2caf948b01cb8f621ce06384fba57cad4b28"
+    },
+    {
+      "from": ".work/v230-round2-runtime-gateway.json",
+      "to": "verification/audit-evidence/v230-round2/runtime-gateway.json",
+      "originalSha256": "06cfe6251f1d2c7be8c2aaa405c4a97fae449b837a19c7d77d3b4f6702d03b0b",
+      "archivedSha256": "06cfe6251f1d2c7be8c2aaa405c4a97fae449b837a19c7d77d3b4f6702d03b0b"
+    },
+    {
+      "from": ".work/v230-round2-snapshot.json",
+      "to": "verification/audit-evidence/v230-round2/snapshot.json",
+      "originalSha256": "95d1d86025cefd299f27bf1791b511ce1ea5381c1c463fd5c5f1dfcef5cb6093",
+      "archivedSha256": "95d1d86025cefd299f27bf1791b511ce1ea5381c1c463fd5c5f1dfcef5cb6093"
+    },
+    {
+      "from": ".work/v230-round2-team.json",
+      "to": "verification/audit-evidence/v230-round2/team.json",
+      "originalSha256": "26db9a6e63f72c4606277ac77e0e0a19e69f6f0e829e5a18169d39f64314ff1b",
+      "archivedSha256": "26db9a6e63f72c4606277ac77e0e0a19e69f6f0e829e5a18169d39f64314ff1b"
+    },
+    {
+      "from": ".work/v230-round2-web.json",
+      "to": "verification/audit-evidence/v230-round2/web.json",
+      "originalSha256": "553f49e5bd91d19f9e30a7830f44c4bc6e267348ef8004fe3cd3bbea0ecfefe9",
+      "archivedSha256": "553f49e5bd91d19f9e30a7830f44c4bc6e267348ef8004fe3cd3bbea0ecfefe9"
+    },
+    {
+      "from": ".work/v230-round3-deployment.json",
+      "to": "verification/audit-evidence/v230-round3/deployment.json",
+      "originalSha256": "27ce19a8f476e5cc93cb0cfca6dd540bcb5cf4a75e1212418ae0e33334f21e4d",
+      "archivedSha256": "ed76fe28650ac42bf7716ea1864af0ae393d74d9db1c4cb1b261e536c83ee8c1",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round3/deployment-original-bytes.json",
+        "sha256": "60625c9e0d8ff2f8baf24ab1a34ee53e3f38791f21288dd68f4aa2c804c28dd3",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round3-root-protocol-docs.json",
+      "to": "verification/audit-evidence/v230-round3/root-protocol-docs.json",
+      "originalSha256": "8760f68b137c1280989a2972fc85ce6f69f811cb4838549ffb5f9e09a838a996",
+      "archivedSha256": "8760f68b137c1280989a2972fc85ce6f69f811cb4838549ffb5f9e09a838a996"
+    },
+    {
+      "from": ".work/v230-round3-runtime-child-initial.json",
+      "to": "verification/audit-evidence/v230-round3/runtime-child-initial.json",
+      "originalSha256": "e927feb5c9b92c95977149dc545d1baeb167bf8de70e644444c2418396886125",
+      "archivedSha256": "4fb2f07f1291fccff3f733f94d38a2def942aedb4d65f1328f314735e19820ad",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round3/runtime-child-initial-original-bytes.json",
+        "sha256": "ad40c16d02a143c1e13c660675494cc1082449f22f308dde0f53625f8dd2fec8",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round3-runtime-gateway-initial.json",
+      "to": "verification/audit-evidence/v230-round3/runtime-gateway-initial.json",
+      "originalSha256": "2eaa3b2514e8c573e39a33192970deb2198a6e74bbf7bb3d54ffae835fe61fac",
+      "archivedSha256": "9a64b65ffc761866fed26129dc0e5eb4ca2d1fcd31dcd27fdbab9450e5306ecc",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round3/runtime-gateway-initial-original-bytes.json",
+        "sha256": "d31dd673400cada947fa39688650a8022c9bd759b8ec9cc949ecd39d811bfe5f",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round3-runtime-gateway.json",
+      "to": "verification/audit-evidence/v230-round3/runtime-gateway.json",
+      "originalSha256": "555057d528a6b5f03dd892f1204c23d77ac58438d153c2f29fd703edfd1bdb47",
+      "archivedSha256": "c678ac382c377f76dd43930fe99b5f0effb10faff1d5e3320ec06412cf035d51",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round3/runtime-gateway-original-bytes.json",
+        "sha256": "a6bc9bce80c051c48c919f1feb07c57287ec086dabdc7f4206963184df41583c",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round3-snapshot.json",
+      "to": "verification/audit-evidence/v230-round3/snapshot.json",
+      "originalSha256": "2050923a0c814068b165bfe97cda1a80b93f5362eef9b5cba17deb2c1930d3bc",
+      "archivedSha256": "2050923a0c814068b165bfe97cda1a80b93f5362eef9b5cba17deb2c1930d3bc"
+    },
+    {
+      "from": ".work/v230-round3-team.json",
+      "to": "verification/audit-evidence/v230-round3/team.json",
+      "originalSha256": "f4ad0ce8bfe6991b192197797028c8450cb9573f65574bb20cceb7d45f0d3d2c",
+      "archivedSha256": "f4ad0ce8bfe6991b192197797028c8450cb9573f65574bb20cceb7d45f0d3d2c"
+    },
+    {
+      "from": ".work/v230-round3-web.json",
+      "to": "verification/audit-evidence/v230-round3/web.json",
+      "originalSha256": "29ff687966217aac4e5c2cb49b53ecc76c841f168da727d3f9fa27930b300587",
+      "archivedSha256": "29ff687966217aac4e5c2cb49b53ecc76c841f168da727d3f9fa27930b300587"
+    },
+    {
+      "from": ".work/v230-round4-deployment.json",
+      "to": "verification/audit-evidence/v230-round4/deployment.json",
+      "originalSha256": "e45e8f678a2fb3d6b8e726c8bf7ed230bbf35ff974f366901c70cef060ef9c39",
+      "archivedSha256": "566b52865d5108417d8f8b57ed26f2730f165ded6676dbe62d4a09d886645a36",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round4/deployment-original-bytes.json",
+        "sha256": "c6a3b2bc5b1ee502c26e4b9d2acf76621f145b9f6d55bed12d92e9b3b67d68d4",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round4-root-protocol-docs.json",
+      "to": "verification/audit-evidence/v230-round4/root-protocol-docs.json",
+      "originalSha256": "7e07775a3d47b4c559b945de17af0991e79f22367e7c27827dfc2ac559256d16",
+      "archivedSha256": "7e07775a3d47b4c559b945de17af0991e79f22367e7c27827dfc2ac559256d16"
+    },
+    {
+      "from": ".work/v230-round4-runtime-gateway-initial.json",
+      "to": "verification/audit-evidence/v230-round4/runtime-gateway-initial.json",
+      "originalSha256": "76f29fed6f43a5d17063c5c5fb3fc105fb20b8e66bed4e4b72d0e24d89759b80",
+      "archivedSha256": "b69e5fc4ccea7a3b78839db058ea2a377a7c58f99c132bae7a67454a76016909",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round4/runtime-gateway-initial-original-bytes.json",
+        "sha256": "b61a742fe70564a0282b7d6350826ae7572d5403ca85ce98d92463b9d982a959",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round4-runtime-gateway.json",
+      "to": "verification/audit-evidence/v230-round4/runtime-gateway.json",
+      "originalSha256": "83efdd189bfa30c63a320966f652e0010b62515f0e844b44bf430bc58d76ec70",
+      "archivedSha256": "83efdd189bfa30c63a320966f652e0010b62515f0e844b44bf430bc58d76ec70"
+    },
+    {
+      "from": ".work/v230-round4-snapshot.json",
+      "to": "verification/audit-evidence/v230-round4/snapshot.json",
+      "originalSha256": "41a7bed121aed1b3cdfa905bbe923e3aab7393f3d9262ab2bc104753ffd4e13c",
+      "archivedSha256": "41a7bed121aed1b3cdfa905bbe923e3aab7393f3d9262ab2bc104753ffd4e13c"
+    },
+    {
+      "from": ".work/v230-round4-team.json",
+      "to": "verification/audit-evidence/v230-round4/team.json",
+      "originalSha256": "cafa51d2acd098f7e1cd41bcbc7360163db5a60eaad4e9cde3bede854299b92b",
+      "archivedSha256": "cafa51d2acd098f7e1cd41bcbc7360163db5a60eaad4e9cde3bede854299b92b"
+    },
+    {
+      "from": ".work/v230-round4-web-preserved.json",
+      "to": "verification/audit-evidence/v230-round4/web-preserved.json",
+      "originalSha256": "256246d5c8cef4112534a2161e8db76f77f00f6c1baf2203eea78f6d919137c4",
+      "archivedSha256": "256246d5c8cef4112534a2161e8db76f77f00f6c1baf2203eea78f6d919137c4"
+    },
+    {
+      "from": ".work/v230-round4-web.json",
+      "to": "verification/audit-evidence/v230-round4/web.json",
+      "originalSha256": "dfe3e8f9bd12e09d50e83b7a01d7fb6a6916fa87754295617175f42155f45d14",
+      "archivedSha256": "dfe3e8f9bd12e09d50e83b7a01d7fb6a6916fa87754295617175f42155f45d14"
+    },
+    {
+      "from": ".work/v230-round5-deployment.json",
+      "to": "verification/audit-evidence/v230-round5/deployment.json",
+      "originalSha256": "3150a6bcddc58bd399a99de1c810809a0ab080165c8aa94902e691eaf374abf8",
+      "archivedSha256": "4d3c0b389462a7becb8de2020a59e660c07a44ba0a23621134d0578b7617a56e",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round5/deployment-original-bytes.json",
+        "sha256": "313a307e4fcd13160976039d858b26c60880db4099eb438849a61cc76a1915db",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round5-root-protocol-docs.json",
+      "to": "verification/audit-evidence/v230-round5/root-protocol-docs.json",
+      "originalSha256": "859d2ddb4de00716f8e994bcd1f88c8d60454fde1554736a6816802610d68cdf",
+      "archivedSha256": "859d2ddb4de00716f8e994bcd1f88c8d60454fde1554736a6816802610d68cdf"
+    },
+    {
+      "from": ".work/v230-round5-runtime-gateway-initial.json",
+      "to": "verification/audit-evidence/v230-round5/runtime-gateway-initial.json",
+      "originalSha256": "b17a70c539cab7c3137d28f9f84a4941e5df68a95db1663d1444bec61c4f7131",
+      "archivedSha256": "b17a70c539cab7c3137d28f9f84a4941e5df68a95db1663d1444bec61c4f7131"
+    },
+    {
+      "from": ".work/v230-round5-runtime-gateway.json",
+      "to": "verification/audit-evidence/v230-round5/runtime-gateway.json",
+      "originalSha256": "ede5715811545658fd66f5ad36714f5690d1a4d5b449d1e96a5b0ff056f8b9d9",
+      "archivedSha256": "ede5715811545658fd66f5ad36714f5690d1a4d5b449d1e96a5b0ff056f8b9d9"
+    },
+    {
+      "from": ".work/v230-round5-snapshot.json",
+      "to": "verification/audit-evidence/v230-round5/snapshot.json",
+      "originalSha256": "7a8a3b0c2324414cd5d3a4a5ac1fa6dbefa60d5fa1ad01be47d350bce91f5c3f",
+      "archivedSha256": "7a8a3b0c2324414cd5d3a4a5ac1fa6dbefa60d5fa1ad01be47d350bce91f5c3f"
+    },
+    {
+      "from": ".work/v230-round5-team.json",
+      "to": "verification/audit-evidence/v230-round5/team.json",
+      "originalSha256": "3f0f9ed306a4a9641b74becbd23fa962d1da8969e2fce07e9ffb9b4e865bf826",
+      "archivedSha256": "3f0f9ed306a4a9641b74becbd23fa962d1da8969e2fce07e9ffb9b4e865bf826"
+    },
+    {
+      "from": ".work/v230-round5-web.json",
+      "to": "verification/audit-evidence/v230-round5/web.json",
+      "originalSha256": "17aa058469e5cfcb3d41ad0ff76cb51ac347c2d8d789a4be71d3c7739812fe46",
+      "archivedSha256": "17aa058469e5cfcb3d41ad0ff76cb51ac347c2d8d789a4be71d3c7739812fe46"
+    },
+    {
+      "from": ".work/v230-round6-deployment.json",
+      "to": "verification/audit-evidence/v230-round6/deployment.json",
+      "originalSha256": "ead048771b1602677cc25bab866e02ac1b0fabc5a53d37f76f2b879884f9f682",
+      "archivedSha256": "9db060f3fe853ee6afff2876fdbfef330a3a46ca3ffb963328029da23ea25770",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round6/deployment-original-bytes.json",
+        "sha256": "771991bba013ec496e4e25f31ce432c4940ab37a5d516a2aa05e0f75f7816b48",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round6-root-protocol-docs.json",
+      "to": "verification/audit-evidence/v230-round6/root-protocol-docs.json",
+      "originalSha256": "699f8d3df7b75e2e28a24f62b5ef4c4d5eacfaed972ee52d064e427e989e5b85",
+      "archivedSha256": "699f8d3df7b75e2e28a24f62b5ef4c4d5eacfaed972ee52d064e427e989e5b85"
+    },
+    {
+      "from": ".work/v230-round6-runtime-gateway-initial.json",
+      "to": "verification/audit-evidence/v230-round6/runtime-gateway-initial.json",
+      "originalSha256": "dc7316d9c042c28aaf1cd54676a976ba208eca2ebd44500f14a57a364e2407be",
+      "archivedSha256": "dc7316d9c042c28aaf1cd54676a976ba208eca2ebd44500f14a57a364e2407be"
+    },
+    {
+      "from": ".work/v230-round6-runtime-gateway.json",
+      "to": "verification/audit-evidence/v230-round6/runtime-gateway.json",
+      "originalSha256": "b54e742c1e8d27dcdf4e54fe1ec0bc260d75c759264061fe9b4da291022d893c",
+      "archivedSha256": "b54e742c1e8d27dcdf4e54fe1ec0bc260d75c759264061fe9b4da291022d893c"
+    },
+    {
+      "from": ".work/v230-round6-snapshot.json",
+      "to": "verification/audit-evidence/v230-round6/snapshot.json",
+      "originalSha256": "f064d4f8bc7e00e8b94af914ff7032d81aae6931ad30576d39fcb22e280e0d21",
+      "archivedSha256": "f064d4f8bc7e00e8b94af914ff7032d81aae6931ad30576d39fcb22e280e0d21"
+    },
+    {
+      "from": ".work/v230-round6-team.json",
+      "to": "verification/audit-evidence/v230-round6/team.json",
+      "originalSha256": "c0b4498b575cae08ad63b0923618b646ff0cd0533f37460242a7fe7f1cdce4f4",
+      "archivedSha256": "c0b4498b575cae08ad63b0923618b646ff0cd0533f37460242a7fe7f1cdce4f4"
+    },
+    {
+      "from": ".work/v230-round6-web.json",
+      "to": "verification/audit-evidence/v230-round6/web.json",
+      "originalSha256": "6dc33cea9315937726bc4db95b56717086f0a160a7c470e2bf586a48f35b2f56",
+      "archivedSha256": "6dc33cea9315937726bc4db95b56717086f0a160a7c470e2bf586a48f35b2f56"
+    },
+    {
+      "from": ".work/v230-gateway-acknowledgement-fix.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-gateway-acknowledgement-fix.json",
+      "originalSha256": "735f71fee57acdac9ded70486a3518c72a7c7fda68bae2f349283b8d6de45beb",
+      "archivedSha256": "735f71fee57acdac9ded70486a3518c72a7c7fda68bae2f349283b8d6de45beb"
+    },
+    {
+      "from": ".work/v230-gateway-acknowledgement-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-gateway-acknowledgement-repair-review.json",
+      "originalSha256": "7efab0ee8112dd275c1b52b45006c4f6a47df6f980cfb7246fc0bcabe03dd9ef",
+      "archivedSha256": "8dcf6e274438faed1356ebbef56dd747cbde0543e5c19d713fe7408830be2e3f",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-repairs/v230-gateway-acknowledgement-repair-review-original-bytes.json",
+        "sha256": "8d446bf2070cbd24593e6b251df9aac05881d20ce08f320454b2c9ac8122deec",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-proxy-deadline-fix.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-proxy-deadline-fix.json",
+      "originalSha256": "58e00202ef47551af6eca74a0f44c78f2b4dbad5777fe3b7cc7f393275c8c415",
+      "archivedSha256": "321f94a53606d4729389b77d9b13cb0647b7ccaef3e662eabbb1a2b227c5373e",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-repairs/v230-proxy-deadline-fix-original-bytes.json",
+        "sha256": "8d51195081b95e6aaa7efdebc60586a036ca9af35d97ce8a4ece6a58756fe0ee",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-proxy-deadline-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-proxy-deadline-repair-review.json",
+      "originalSha256": "7947cc4faa9b218f3d0ae7303cb18133f249654c6216d3b5276919c5cbd39b8c",
+      "archivedSha256": "14a89161db51de4621105e1fe5b829fb5de383f8f4435a96277d1da10adde474",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-repairs/v230-proxy-deadline-repair-review-original-bytes.json",
+        "sha256": "98a31747256af19808759c3d7cca9e55c60bf22068c85f0704d53a0bb66ccaf2",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-worktree-capacity-fix.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-worktree-capacity-fix.json",
+      "originalSha256": "8c8ad2f2e5629939e6891614b0b70dd629904e117e1b29fc818b7243b6d92b3f",
+      "archivedSha256": "8c8ad2f2e5629939e6891614b0b70dd629904e117e1b29fc818b7243b6d92b3f"
+    },
+    {
+      "from": ".work/v230-worktree-capacity-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-worktree-capacity-repair-review.json",
+      "originalSha256": "2e10878e719120538ccf07f1cfa97a54c2245eaacd32d83f8e6fa7d25291ec27",
+      "archivedSha256": "2e10878e719120538ccf07f1cfa97a54c2245eaacd32d83f8e6fa7d25291ec27"
+    },
+    {
+      "from": ".work/v230-proxy-fixture-selection-fix.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-proxy-fixture-selection-fix.json",
+      "originalSha256": "9404305971914fe17bb479bca33bf99b4a0a929228eb390f99a7ad165b4bb1ae",
+      "archivedSha256": "592b97042fd8367ba4e76d7fe717eff979199df822b81ad6ee3eea3ba6fde645",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-repairs/v230-proxy-fixture-selection-fix-original-bytes.json",
+        "sha256": "aeef27b636f994c8e49024ab98e413c9e80de8a17fe5ecf56cd7efad0f2faf96",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-project-auto-runtime.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-project-auto-runtime.json",
+      "originalSha256": "740a41bef4d865f9db4ded7749c83cdd6256b788d9046457bd1434a21683047d",
+      "archivedSha256": "ad299a5808a542ff6797c4ffbbe3d14bee9d8d1a86e032a6f7b3a8264669ac17",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-repairs/v230-project-auto-runtime-original-bytes.json",
+        "sha256": "56c3b2d9eff78b25ee8ef5e7fabc52bf455bf111efc8698a64ae595d5d24da01",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-project-auto-path-helper-implementation.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-project-auto-path-helper-implementation.json",
+      "originalSha256": "668a5d593328ffc14b912f05715d00bfe85b8754d4281c202c9b993be89242ea",
+      "archivedSha256": "668a5d593328ffc14b912f05715d00bfe85b8754d4281c202c9b993be89242ea"
+    },
+    {
+      "from": ".work/v230-project-auto-path-utf8-repair.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-project-auto-path-utf8-repair.json",
+      "originalSha256": "0204ad3ad7617f7d4eb317e38afe54eca46633114d5605537563aa875c46a624",
+      "archivedSha256": "0204ad3ad7617f7d4eb317e38afe54eca46633114d5605537563aa875c46a624"
+    },
+    {
+      "from": ".work/v230-project-path-auto-web.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-project-path-auto-web.json",
+      "originalSha256": "e96c64b9d9fb754a38de6345aecae14e2f38399fae55a2452500c7b1fe96e244",
+      "archivedSha256": "e96c64b9d9fb754a38de6345aecae14e2f38399fae55a2452500c7b1fe96e244"
+    },
+    {
+      "from": ".work/v230-workspace-ack-repair.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-workspace-ack-repair.json",
+      "originalSha256": "fe1acb887bf562d8d9b67536569a9e78e1851344ce6440fd303e848fa73b31b2",
+      "archivedSha256": "fe1acb887bf562d8d9b67536569a9e78e1851344ce6440fd303e848fa73b31b2"
+    },
+    {
+      "from": ".work/v230-workspace-ack-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-workspace-ack-repair-review.json",
+      "originalSha256": "92e523a2ce209e9829eaf077ee91a028b1375abc6dda0c732f7dfb498d1f8117",
+      "archivedSha256": "92e523a2ce209e9829eaf077ee91a028b1375abc6dda0c732f7dfb498d1f8117"
+    },
+    {
+      "from": ".work/v230-round3-web-organization-repair.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-round3-web-organization-repair.json",
+      "originalSha256": "085060c4e101dfd2cb6a37acc9d276674c8c64f7855b0b7ec74a2db2a4d186ed",
+      "archivedSha256": "085060c4e101dfd2cb6a37acc9d276674c8c64f7855b0b7ec74a2db2a4d186ed"
+    },
+    {
+      "from": ".work/v230-round1-protocol-regeneration.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-round1-protocol-regeneration.json",
+      "originalSha256": "7489895f70215bc7814e99427370458e0bcd8554173df8bee4b0e592597dd238",
+      "archivedSha256": "7489895f70215bc7814e99427370458e0bcd8554173df8bee4b0e592597dd238"
+    },
+    {
+      "from": ".work/v230-round5-source-scan.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-round5-source-scan.json",
+      "originalSha256": "2e243c5842661067dd4d04480e4adf3d3b38e7700eeaa5eaaf89473d54e5d1b7",
+      "archivedSha256": "2e243c5842661067dd4d04480e4adf3d3b38e7700eeaa5eaaf89473d54e5d1b7"
+    },
+    {
+      "from": ".work/v230-configuration-repair.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-configuration-repair.json",
+      "originalSha256": "bcafab60528e7b390f382dd077c5f97ec579af7665fe060b9c99441c1aa56511",
+      "archivedSha256": "bcafab60528e7b390f382dd077c5f97ec579af7665fe060b9c99441c1aa56511"
+    },
+    {
+      "from": ".work/v230-configuration-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-configuration-repair-review.json",
+      "originalSha256": "92939abc32c6e1ce6fdc61929dd51d58e295d44ee0388928fb3f25d104a9228d",
+      "archivedSha256": "92939abc32c6e1ce6fdc61929dd51d58e295d44ee0388928fb3f25d104a9228d"
+    },
+    {
+      "from": ".work/v230-round4-web-organization-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-round4-web-organization-repair-review.json",
+      "originalSha256": "58ad9646d65c5d496722329164285c29041387c201654e9084b2aabfd27cb312",
+      "archivedSha256": "58ad9646d65c5d496722329164285c29041387c201654e9084b2aabfd27cb312"
+    },
+    {
+      "from": ".work/v230-resume-ack-repair.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-resume-ack-repair.json",
+      "originalSha256": "36329d7c89d03a929426bafeb5d21bd8f9d0cd8025a9c6997e488c32684c44b3",
+      "archivedSha256": "36329d7c89d03a929426bafeb5d21bd8f9d0cd8025a9c6997e488c32684c44b3"
+    },
+    {
+      "from": ".work/v230-resume-ack-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-resume-ack-repair-review.json",
+      "originalSha256": "eaf98f0fde6fd62d2bffd5f36cad14605e0606512398e85f73cd9d12ab7e0afe",
+      "archivedSha256": "eaf98f0fde6fd62d2bffd5f36cad14605e0606512398e85f73cd9d12ab7e0afe"
+    },
+    {
+      "from": ".work/v230-worker-serialization-repair.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-worker-serialization-repair.json",
+      "originalSha256": "c10c47d630474b51d93e9b1435ef40202ee06e876d747914bb3dcf64939532ee",
+      "archivedSha256": "c10c47d630474b51d93e9b1435ef40202ee06e876d747914bb3dcf64939532ee"
+    },
+    {
+      "from": ".work/v230-worker-serialization-repair-review.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-worker-serialization-repair-review.json",
+      "originalSha256": "6610a88a46d14918e096dc73e23d1be0620d7193bc22f1bf201cf5928fcc9ad0",
+      "archivedSha256": "6610a88a46d14918e096dc73e23d1be0620d7193bc22f1bf201cf5928fcc9ad0"
+    },
+    {
+      "from": ".work/v230-round6-source-scan.json",
+      "to": "verification/audit-evidence/v230-repairs/v230-round6-source-scan.json",
+      "originalSha256": "680f79525d36226f64db6c9d2e3c6be5a738bd758c9a32ddc744381cce572f39",
+      "archivedSha256": "680f79525d36226f64db6c9d2e3c6be5a738bd758c9a32ddc744381cce572f39"
+    },
+    {
+      "from": "verification/audit-evidence/release-closeout/authorization.json",
+      "to": "verification/audit-evidence/v230-repairs/previous-v220-authorization.json",
+      "originalSha256": "f6aeefabedf0fdfbaa8302e0dc76b6d446e3ec42277344397bfc5a2162f3442b",
+      "archivedSha256": "f6aeefabedf0fdfbaa8302e0dc76b6d446e3ec42277344397bfc5a2162f3442b"
+    }
+  ],
+  "limitations": [
+    "Referenced local raw tests/probes were not fabricated or reexecuted by archiving.",
+    "Author/reviewer records and original nonclean audit reports remain separate.",
+    "Original team member SHA256 references bind original bytes; archivedSha256 and ledger reviewer SHA256 bind public LF files.",
+    "No paid model or external MCP verification was performed by this seal."
+  ]
+}

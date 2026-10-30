@@ -65,17 +65,19 @@ def user_layer(manager) -> None:
     try:
         fd = os.open(manager.layout.state, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         descriptors.append(fd)
-        for name in ("worker", "codex"):
+        from .execution_identity import native_settings
+        settings = native_settings(manager.layout, manager.config)
+        for name in (("worker-root" if settings["uid"] == 0 else "worker"), "codex"):
             fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
             descriptors.append(fd)
             info = os.fstat(fd)
-            require(info.st_uid == manager.config["workerUid"] and info.st_gid == manager.config["workerGid"] and not info.st_mode & 0o022,
+            require(info.st_uid == settings["uid"] and info.st_gid == settings["gid"] and not info.st_mode & 0o022,
                     "Native configuration directory ownership changed", "configuration_conflict")
         fd = os.open("config.toml", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
         descriptors.append(fd)
         before = os.fstat(fd)
         require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size <= limit and
-                before.st_uid == manager.config["workerUid"] and before.st_gid == manager.config["workerGid"] and
+                before.st_uid == settings["uid"] and before.st_gid == settings["gid"] and
                 stat.S_IMODE(before.st_mode) == 0o600, "Native user configuration ownership or size changed", "configuration_conflict")
         data = bytearray()
         while len(data) <= limit:
@@ -203,7 +205,7 @@ def apply_candidate(manager, journal: dict) -> None:
         paths(layout)["check"].unlink(missing_ok=True)
     else:
         atomic_write(paths(layout)["check"], check.encode(), 0o644)
-    atomic_write(paths(layout)["sudo"], sudo_rule(layout, workspace=journal["targetMode"] == LAYER_MODE).encode(), 0o440)
+    atomic_write(paths(layout)["sudo"], sudo_rule(layout, config=config, workspace=journal["targetMode"] == LAYER_MODE).encode(), 0o440)
     fsync_directory(layout.units)
     manager.config = config
     manager.system.reload()
@@ -242,6 +244,7 @@ def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidat
 
 
 def change_config_layer(manager, *, layered: bool = True) -> dict:
+    require(layered or manager.config.get("executionMode", "native") != "root", "Switch to native execution before restoring the legacy provider layer", "configuration_conflict")
     manager.require_recovered_transactions(None)
     manager.require_service_ownership()
     layout = manager.layout
@@ -249,7 +252,7 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
     require_provider_layer(current, layered=layered)
     user_layer(manager)
     mode = LAYER_MODE if layered else "legacy"
-    if not layered and manager.config.get("providerConfigLayer") is None and not paths(layout)["check"].exists() and paths(layout)["sudo"].read_bytes() == sudo_rule(layout, workspace=False).encode():
+    if not layered and manager.config.get("providerConfigLayer") is None and not paths(layout)["check"].exists() and paths(layout)["sudo"].read_bytes() == sudo_rule(layout, config=manager.config, workspace=False).encode():
         return {"providerConfigLayer": "legacy", "changed": False, "nativeWorkspace": False}
     require(sum(1 for path in (layout.state / "transactions").glob("*/state.json") if read_json(path).get("kind") == "config-layer") < 128,
             "Configuration-layer retention budget reached; inspect completed records", "budget")
@@ -266,7 +269,7 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
                 # A recognized old policy can still lack catalog-server after
                 # control code changed. Publish its replacement through this
                 # transaction so failures can restore the exact prior policy.
-                if "connections" in current and paths(layout)["sudo"].read_bytes() == sudo_rule(layout).encode():
+                if "connections" in current and paths(layout)["sudo"].read_bytes() == sudo_rule(layout, config=manager.config).encode():
                     return {"providerConfigLayer": LAYER_MODE, "changed": False}
     candidate_config = {key: value for key, value in manager.config.items() if key != "providerConfigLayer"}
     if layered:
@@ -286,7 +289,7 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
         require((layout.config / "providers" / generation / "config.toml").read_bytes() == native_config(current, layout),
                 "Legacy provider configuration is unavailable", "integrity")
     pending_sudo = layout.config / "sudo.layer.pending"
-    atomic_write(pending_sudo, sudo_rule(layout, workspace=layered).encode(), 0o440)
+    atomic_write(pending_sudo, sudo_rule(layout, config=candidate_config, workspace=layered).encode(), 0o440)
     run(["/usr/sbin/visudo", "-cf", str(pending_sudo)])
     active, before = active_services(manager), snapshot(layout)
     transaction = layout.state / "transactions" / uuid.uuid4().hex

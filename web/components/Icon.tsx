@@ -15,6 +15,7 @@ export function Icon({ name, size = 19 }: { name: string; size?: number }) {
     sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2M12 20v2M2 12h2M20 12h2',
     close: 'm5 5 14 14M19 5 5 19',
     check: 'm4 12 5 5L20 6',
+    copy: 'M9 9h12v12H9zM5 15H3V3h12v2',
     more: 'M5 12h.01M12 12h.01M19 12h.01',
     refresh: 'M20 7A9 9 0 1 0 21 14M20 2v5h-5',
   };

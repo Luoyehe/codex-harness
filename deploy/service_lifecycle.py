@@ -11,14 +11,15 @@ import uuid
 from .common import DeployError, atomic_write, digest, fsync_directory, mkdir, read_json, require, write_json
 from .ownership import ROLES, present, regular
 from .safe_fs import inspect_tree
+from .service_proxy import PROXY_ROLES, active as service_active, roles as service_roles, selection as proxy_selection
 from .system import run
 
 DROPIN = "93-codex-harness-service-lifecycle.conf"
 TERMINAL = ("committed", "recovered")
 
 
-def service_paths(layout):
-    return {**{role: layout.units / layout.unit(role) for role in ROLES},
+def service_paths(layout, config=None):
+    return {**{role: layout.units / layout.unit(role) for role in service_roles(config or {}, ROLES)},
             "sudo": layout.root / "etc/sudoers.d" / ("codex-harness-" + layout.instance)}
 
 
@@ -57,6 +58,10 @@ def bindings(manager):
         from .https import read_https_metadata
         from .dns_tls import validate_dns_selection
         validate_dns_selection(layout, read_https_metadata(layout))
+    proxy = proxy_selection(manager.config)
+    if proxy is not None:
+        from .service_proxy import verify_selection
+        verify_selection(layout, manager.config)
     files = {}
     for name in ("instance.json", "native.json", "gateway-token", "auth-bootstrap.json", "https.json", "Caddyfile"):
         path = layout.config / name
@@ -75,10 +80,10 @@ def bindings(manager):
 
 def activity(manager):
     active, enabled = [], []
-    for role in ROLES:
+    for role in service_roles(manager.config, ROLES):
         unit = manager.layout.unit(role)
         state = manager.system.state(unit)
-        running = state["ActiveState"] == "active" and state["SubState"] == "running" and state["MainPID"] != "0" and state["ControlPID"] == "0"
+        running = service_active(state, role)
         require(state["stopped"] or running, "Service lifecycle requires stable activity", "stop_unknown")
         if running: active.append(role)
         if present(manager.layout.units / unit):
@@ -98,7 +103,7 @@ def barriers(manager, allowed=()):
         require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o700),
                 "Unsafe service lifecycle barrier directory", "integrity")
     mkdir(root, 0o700)
-    for role in ROLES:
+    for role in service_roles(manager.config, ROLES):
         marker = root / role
         if role in allowed:
             marker.unlink(missing_ok=True)
@@ -165,8 +170,13 @@ def read_record(layout):
             value.get("phase") in ("prepared", "stopped", "removed", "restoring", "committed", "recovered") and
             marker.get("snapshotDigest") == digest({key: value[key] for key in ("before", "active", "enabled", "bindings")}),
             "Invalid service lifecycle recovery binding", "corrupt_state")
-    require(set(value["before"]) == set(service_paths(layout)) and isinstance(value["active"], list) and isinstance(value["enabled"], list) and
-            set(value["active"]) <= set(ROLES) and set(value["enabled"]) <= set(ROLES), "Invalid service lifecycle snapshot", "corrupt_state")
+    # Historical restored records may predate proxy configuration. Validate the
+    # complete optional pair from the sealed record, not today's instance state.
+    names = set(value["before"])
+    require(names in (set(ROLES) | {"sudo"}, set(ROLES) | set(PROXY_ROLES) | {"sudo"}) and
+            isinstance(value["active"], list) and isinstance(value["enabled"], list) and
+            set(value["active"]) <= names - {"sudo"} and set(value["enabled"]) <= names - {"sudo"},
+            "Invalid service lifecycle snapshot", "corrupt_state")
     return path, value
 
 
@@ -175,7 +185,9 @@ def verify_retained(manager, value):
     for release in (value["bindings"]["release"], value["bindings"]["previous"]):
         if release is not None: manager.verify_release(release)
     manager.require_service_ownership(allow_absent=True)
-    for name, path in service_paths(manager.layout).items():
+    paths = service_paths(manager.layout, manager.config)
+    require(set(value["before"]) == set(paths), "Retained service roles changed", "integrity")
+    for name, path in paths.items():
         saved = value["before"][name]
         if present(path):
             require(saved is not None, "A previously absent service definition appeared", "ownership_conflict")
@@ -196,14 +208,14 @@ def verify_retained_definition(manager, journal, role):
     require(saved is not None, "Retained service definition is missing", "corrupt_state")
     data = base64.b64decode(saved["data"], validate=True)
     if role == "sudo":
-        allowed = {sudo_rule(manager.layout, workspace=workspace, legacy_catalog_server=True).encode()
+        allowed = {sudo_rule(manager.layout, config=manager.config, workspace=workspace, legacy_catalog_server=True).encode()
                    for workspace in (False, True)}
     else:
         allowed = {render_units(manager.layout, manager.config, manager.config["codexRelative"],
                                 legacy_runtime_directory=runtime, legacy_native_home=home)[manager.layout.unit("worker")].encode()
                    for runtime in (False, True) for home in (False, True)}
     require(data in allowed, "Retained service is not an exact supported definition", "integrity")
-    target = service_paths(manager.layout)[role]
+    target = service_paths(manager.layout, manager.config)[role]
     regular(target, {data})
     require(type(saved["mode"]) is int and stat.S_IMODE(target.lstat().st_mode) == saved["mode"],
             "Retained service permissions changed", "integrity")
@@ -227,7 +239,7 @@ def uninstall_services(manager):
     manager.require_service_ownership(allow_absent=True)
     active, enabled = activity(manager)
     before = {}
-    for name, path in service_paths(layout).items():
+    for name, path in service_paths(layout, manager.config).items():
         if present(path):
             info = path.lstat()
             before[name] = {"data": base64.b64encode(path.read_bytes()).decode(), "mode": stat.S_IMODE(info.st_mode)}
@@ -248,17 +260,18 @@ def uninstall_services(manager):
 
 def finish_uninstall(manager, journal, value):
     layout = manager.layout
+    roles = service_roles(manager.config, ROLES)
     barriers(manager)
-    manager.system.stop([layout.unit(role) for role in ROLES])
+    manager.system.stop([layout.unit(role) for role in roles])
     value["phase"] = "stopped"
     write_json(journal, value)
-    available = [layout.unit(role) for role in ROLES if present(layout.units / layout.unit(role))]
+    available = [layout.unit(role) for role in roles if present(layout.units / layout.unit(role))]
     if available: run(["/usr/bin/systemctl", "disable", *available])
-    for path in service_paths(layout).values(): path.unlink(missing_ok=True)
+    for path in service_paths(layout, manager.config).values(): path.unlink(missing_ok=True)
     fsync_directory(layout.units)
     fsync_directory(layout.root / "etc/sudoers.d")
     manager.system.reload()
-    require(all(manager.system.state(layout.unit(role))["stopped"] for role in ROLES), "Removed service is not stopped", "stop_unknown")
+    require(all(manager.system.state(layout.unit(role))["stopped"] for role in roles), "Removed service is not stopped", "stop_unknown")
     # Keep the transaction pending while uninstalled, so no other mutation can
     # bypass the retained definition/identity binding or its start barriers.
     value["phase"] = "removed"
@@ -271,17 +284,18 @@ def finish_uninstall(manager, journal, value):
 
 def restore_services(manager):
     layout = manager.layout
+    roles = service_roles(manager.config, ROLES)
     journal, value = read_record(layout)
     require_only_transaction(layout, journal)
     verify_retained(manager, value)
     if value["phase"] == "recovered":
         return {"servicesRestored": True, "alreadyRestored": True, "transaction": journal.parent.name}
     barriers(manager)
-    manager.system.stop([layout.unit(role) for role in ROLES])
+    manager.system.stop([layout.unit(role) for role in roles])
     manager.recover_control()
     value["phase"] = "restoring"
     write_json(journal, value)
-    paths = service_paths(layout)
+    paths = service_paths(layout, manager.config)
     for name, saved in value["before"].items():
         if saved is None: continue
         data = base64.b64decode(saved["data"], validate=True)
@@ -291,14 +305,14 @@ def restore_services(manager):
         else: atomic_write(paths[name], data, saved["mode"])
     run(["/usr/sbin/visudo", "-cf", str(paths["sudo"])])
     manager.system.reload()
-    available = [layout.unit(role) for role in ROLES if value["before"][role] is not None]
+    available = [layout.unit(role) for role in roles if value["before"][role] is not None]
     if available: run(["/usr/bin/systemctl", "disable", *available])
     if value["enabled"]: manager.system.enable([layout.unit(role) for role in value["enabled"]])
     sudo_policy = unit_policy = None
     try:
         allowed = set(value["active"]) | {"config-check"}
         barriers(manager, allowed)
-        if value["active"]: manager.system.start([layout.unit(role) for role in ROLES if role in value["active"]])
+        if value["active"]: manager.system.start([layout.unit(role) for role in roles if role in value["active"]])
         actual_active, actual_enabled = activity(manager)
         require(set(actual_active) == set(value["active"]) and set(actual_enabled) == set(value["enabled"]),
                 "Original service activity or enablement was not restored", "recovery_required")
@@ -314,10 +328,10 @@ def restore_services(manager):
         write_json(layout.config / "uninstalled.json", {**marker, "servicesRemoved": False, "servicesRestored": True})
         # All original services have been checked. Clear every condition before
         # the terminal journal so a lost completion remains safely retryable.
-        barriers(manager, ROLES)
+        barriers(manager, roles)
     except Exception as exc:
         barriers(manager)
-        manager.system.stop([layout.unit(role) for role in ROLES])
+        manager.system.stop([layout.unit(role) for role in roles])
         raise DeployError("recovery_required", "Service restoration is incomplete; retained services remain blocked. Retry restore-services.") from exc
     # There must be no compensation after terminal publication: atomic_write
     # can publish bytes and then report a directory-fsync failure. In either

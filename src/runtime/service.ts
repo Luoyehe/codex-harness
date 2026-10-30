@@ -6,7 +6,7 @@ import { Attachments, type PreparedAttachments } from './attachments.js';
 import { options, supportedPrompt, validateOfficial, validatePrompt } from './validation.js';
 import { canonical, DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue, type RuntimeEvent } from './types.js';
 import { DiagnosticRedactor } from './redaction.js';
-import { resolveNativeProject } from './native-launch.js';
+import { readNativeExecutionMode, resolveNativeProject, type ExecutionMode, type ExecutionPolicy } from './native-launch.js';
 import { createProject, resolveProject } from './projects.js';
 import { Workflows, type WorkflowMutation } from './workflows.js';
 import { workflowMethods } from './workflow-methods.js';
@@ -40,7 +40,7 @@ import { Predictions, predictionMethods } from './predictions.js';
 import { ThreadActivity, hasTurnActivity, type Activity } from './thread-activity.js';
 import { ManagedProviders, readNativeCatalog } from './providers.js';
 
-export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject }
+export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject; executionPolicy?: ExecutionPolicy }
 interface Prompt { promptId: string; epoch: string; method: string; params: JsonObject; threadId: string | null; turnId: string | null; requestId: string | number; bytes: number; answering: boolean }
 interface Terminal { terminalId: string; clientId: string; eventChannelId: string | undefined; generation: number; ended: boolean }
 export class RuntimeService extends EventEmitter {
@@ -94,8 +94,10 @@ export class RuntimeService extends EventEmitter {
   private workspace: RuntimeWorkspace;
   private sessions = new SessionSnapshots();
   private continuationChecks = new Map<string, Promise<void>>();
-  constructor(readonly config: RuntimeConfig, readonly native: NativeRpc) {
+  private readonly executionMode: Readonly<ExecutionMode> | undefined;
+  constructor(readonly config: RuntimeConfig, readonly native: NativeRpc, executionMode?: ExecutionMode) {
     super();
+    this.executionMode = executionMode && Object.freeze({ ...executionMode });
     this.providers = new ManagedProviders(config.providerRegistry);
     this.workspace = new RuntimeWorkspace({
       config, cwd: value => this.cwd(value), admit: () => this.admit(),
@@ -169,13 +171,15 @@ export class RuntimeService extends EventEmitter {
     this.gcTimer = setInterval(() => { try { this.attachments.gc(); } catch { this.emit('diagnostic', 'Attachment collection failed'); } }, 60 * 60 * 1000); this.gcTimer.unref();
   }
   static async create(config: RuntimeConfig): Promise<RuntimeService> {
+    if (config.launcher?.user === 'root' && !config.executionPolicy) throw new DeliveryError('native_identity_mismatch', 'Root execution requires a managed execution policy');
+    const executionMode = config.executionPolicy ? await readNativeExecutionMode(config, config.executionPolicy) : undefined;
     const native = new NativeRpc(config); let service: RuntimeService | undefined;
-    try { service = new RuntimeService(config, native); await native.initialize(); service.emitState(); return service; } catch (error) { if (service) await service.close(); else await native.close(); throw error; }
+    try { service = new RuntimeService(config, native, executionMode); await native.initialize(); service.emitState(); return service; } catch (error) { if (service) await service.close(); else await native.close(); throw error; }
   }
   status(): JsonValue {
     const activeThreads = new Set([...this.activity].filter(([, value]) => hasTurnActivity(value) || value.pending || value.unknown || value.goalActive || value.queued || value.checkingContinuation).map(([id]) => id));
     for (const id of this.realtime.activeThreads()) activeThreads.add(id);
-    return { epoch: this.epoch, connected: this.native.connected && !this.closed, restarting: this.restarting, activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + (this.predictions?.activeThreads().length ?? 0), terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || [...this.activity.values()].some(value => value.unknown) }, budget: this.native.budget, prompts: this.prompts.size };
+    return { epoch: this.epoch, connected: this.native.connected && !this.closed, restarting: this.restarting, ...(this.executionMode ? { executionMode: { ...this.executionMode } } : {}), activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + (this.predictions?.activeThreads().length ?? 0), terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || [...this.activity.values()].some(value => value.unknown) }, budget: this.native.budget, prompts: this.prompts.size };
   }
   private emitEvent(type: RuntimeEvent['type'], data: JsonValue, eventChannelId?: string): void { jsonBytes({ type, data }, LIMITS.eventBytes); this.emit('event', { type, data, ...(eventChannelId ? { eventChannelId } : {}) } satisfies RuntimeEvent); }
   private ownerKey(clientId: string, eventChannelId?: string): string { return canonical([eventChannelId ?? null, clientId]); }
@@ -293,8 +297,8 @@ export class RuntimeService extends EventEmitter {
         validateOfficial('TurnStartParams', { threadId: 'preflight', input: [{ type: 'text', text: 'validation', text_elements: [] }], ...this.threadOptions(params.options, true) }); return {};
       }
       case 'project/resolve': {
-        onlyKeys(params, ['path']); const requested = this.cwd(params.path);
-        return resolveProject(this.config, requested);
+        onlyKeys(params, ['path']); const requested = string(params.path, 'path');
+        return resolveProject(this.config, requested, this.config.nativeHome ?? this.config.workerHome);
       }
       case 'project/defaults': {
         onlyKeys(params, []); return { directory: path.join(this.config.nativeHome ?? this.config.workerHome, 'projects') };
@@ -334,8 +338,14 @@ export class RuntimeService extends EventEmitter {
       case 'thread/resume': {
         onlyKeys(params, ['threadId']); const threadId = string(params.threadId, 'threadId'); const p = { threadId, excludeTurns: true }; validateOfficial('ThreadResumeParams', p);
         this.pendingStarts++; this.emitState();
-        try { const result = await this.workflowMutation({ method, params: p, schema: 'ThreadResumeParams', responseSchema: 'ThreadResumeResponse', threadId, mode: 'any', history: true }, context); this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
-        catch (error) { if (error instanceof DeliveryError && error.delivery === 'unknown') this.track(threadId).unknown = true; throw error; }
+        let accepted = false;
+        try { const result = await this.workflowMutation({ method, params: p, schema: 'ThreadResumeParams', responseSchema: 'ThreadResumeResponse', threadId, mode: 'any', history: true }, context); accepted = true; this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
+        catch (error) {
+          const failure = accepted && (!(error instanceof DeliveryError) || error.delivery === 'not_sent')
+            ? new DeliveryError('invalid_native_response', 'Thread loaded, but its settings could not be confirmed; inspect its state before continuing', 'unknown') : error;
+          if (accepted || failure instanceof DeliveryError && failure.delivery === 'unknown') this.track(threadId).unknown = true;
+          throw failure;
+        }
         finally { this.pendingStarts--; this.emitState(); }
       }
       case 'thread/read': {
@@ -533,14 +543,21 @@ export class RuntimeService extends EventEmitter {
   private async configurationMutation(operation: (write: (method: string, params: JsonValue, options?: NativeOptions) => Promise<JsonValue>, beforeWrite: () => void) => Promise<JsonValue>, context: CallContext, invalidate = true): Promise<JsonValue> {
     if (!context.beforeWrite) throw new DeliveryError('operation_required', 'Configuration changes require the durable operation boundary');
     const idle = (own = false): void => this.assertIdle(own);
-    idle(); this.configurationPending = true; this.pendingStarts++; this.emitState(); let dispatched = false;
+    idle(); this.configurationPending = true; this.pendingStarts++; this.emitState(); let dispatched = false; let acknowledged = false;
     try {
       const beforeWrite = (): void => { idle(true); context.beforeWrite!(); dispatched = true; };
-      const result = await operation((method, params, options = {}) => this.native.call(method, params, { ...options, beforeWrite: () => { beforeWrite(); options.beforeWrite?.(); } }), beforeWrite);
+      const result = await operation(async (method, params, options = {}) => {
+        const value = await this.native.call(method, params, { ...options, beforeWrite: () => { beforeWrite(); options.beforeWrite?.(); } });
+        acknowledged = true; return value;
+      }, beforeWrite);
       if (invalidate) { this.defaultsCache.clear(); this.sessions.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); } return result;
     } catch (error) {
-      if (dispatched && (!(error instanceof DeliveryError) || error.delivery === 'unknown')) this.unknown = true;
-      throw error;
+      // Local postprocessing cannot turn a positive native reply into proof
+      // that no configuration operation ran, including in multi-write flows.
+      const failure = acknowledged && (!(error instanceof DeliveryError) || error.delivery === 'not_sent')
+        ? new DeliveryError('configuration_acknowledgement', 'Configuration acknowledgement could not be confirmed; inspect its state before another change', 'unknown') : error;
+      if ((dispatched || acknowledged) && (!(failure instanceof DeliveryError) || failure.delivery === 'unknown')) this.unknown = true;
+      throw failure;
     } finally { this.configurationPending = false; this.pendingStarts--; this.emitState(); }
   }
   private async workflowMutation(operation: WorkflowMutation, context: CallContext): Promise<JsonValue> {

@@ -12,7 +12,7 @@ import {
   type TerminalResult,
 } from './operations';
 import { message, object } from './types';
-import { readDraft } from './drafts';
+import { executionDraftKey, readDraft, type DraftMode } from './drafts';
 import { INPUT_METHODS } from './workflows';
 import { parseOutputSchema, referenceInput } from './input-context';
 
@@ -367,14 +367,16 @@ export class Api {
   async mutate<T = Record<string, unknown>>(
     method: string,
     params: Record<string, unknown> = {},
+    draftMode: DraftMode = 'native',
   ): Promise<T> {
-    return this.beginMutation<T>(method, params).result;
+    return this.beginMutation<T>(method, params, undefined, draftMode).result;
   }
   /** Expose an intent ID; result persists it before prepare callbacks or dispatch. */
   beginMutation<T = Record<string, unknown>>(
     method: string,
     params: Record<string, unknown> = {},
     prepare?: (operationId: string) => void,
+    draftMode: DraftMode = 'native',
   ): { operationId: string; result: Promise<T> } {
     try { params = JSON.parse(JSON.stringify(params)) as Record<string, unknown>; }
     catch { throw new RpcError('请求参数无法保存为 JSON，尚未发送请求。', 'local_intent_failed', 'not_sent'); }
@@ -393,10 +395,10 @@ export class Api {
       params = { ...params, clientUserMessageId: uuid() };
     let draftScope = {};
     if (INPUT_METHODS.includes(method)) {
-      const key =
+      const key = executionDraftKey(
           method === 'conversation/start'
             ? `new:${String(params.projectId)}`
-            : String(params.threadId),
+            : String(params.threadId), draftMode),
         draft = readDraft(key);
       let schemaMatches = false;
       try {

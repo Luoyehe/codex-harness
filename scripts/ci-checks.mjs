@@ -33,8 +33,8 @@ export function selectCiPlan({ changed, available, head, sourceDigest, authoriza
   };
 }
 
-export function buildCiPlan(base = root, env = process.env) {
-  const event = env.GITHUB_EVENT_PATH ? json(env.GITHUB_EVENT_PATH) : {};
+export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
+  const event = suppliedEvent ?? (env.GITHUB_EVENT_PATH ? json(env.GITHUB_EVENT_PATH) : {});
   const head = env.HARNESS_CI_HEAD || event.pull_request?.head?.sha || env.GITHUB_SHA;
   let baseCommit = env.HARNESS_CI_BASE || event.pull_request?.base?.sha || event.before;
   const pullRequestBase = !env.HARNESS_CI_BASE && event.pull_request?.base?.sha;

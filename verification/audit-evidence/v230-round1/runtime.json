@@ -1,0 +1,623 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v230-round1",
+  "reviewerId": "v230_audit_runtime",
+  "digest": "66835dab744b37d67270c8f6fc5a9f2cfc39322289e8fefa904aef71c1cc7d91",
+  "complete": true,
+  "scopes": [
+    "src/runtime/**",
+    "tests/runtime/**",
+    "tests/fixtures/**"
+  ],
+  "inspectedFiles": 131,
+  "files": [
+    {
+      "path": "src/runtime/account-tools.ts",
+      "sha256": "002ba18612e76cfd53b667e7a09ca5747bca5bd9b7ee8d4657f9ec06355f85ec"
+    },
+    {
+      "path": "src/runtime/attachments.ts",
+      "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+    },
+    {
+      "path": "src/runtime/cli-diagnostics.ts",
+      "sha256": "79f421a39df3de5468b6e6ad662ee76c1cb70160b5621f46380fb2ee0a33f5ba"
+    },
+    {
+      "path": "src/runtime/cli-terminals.ts",
+      "sha256": "1d7bb6b9479e5b3e5e38735860a05d2083c6b344cf00b4812124e266a69ae373"
+    },
+    {
+      "path": "src/runtime/dev-resources.ts",
+      "sha256": "c53d5f7d4d81aa6c944974e9bd15941e7f56c7e72a1191a61c7112d7603d0a59"
+    },
+    {
+      "path": "src/runtime/device-login.ts",
+      "sha256": "9de0debd83ead4ec67fba35b8c00fd244f45493bac03d27f1a710995d69d0308"
+    },
+    {
+      "path": "src/runtime/environments.ts",
+      "sha256": "e0a9a6a38b84695d12e49e1fc9cd3ead8eea92d119cd12fdf2eedaf2eda49cd1"
+    },
+    {
+      "path": "src/runtime/extensions.ts",
+      "sha256": "ced7c804ccb2f9061d1d2fa34bfcb605a4f5b50d422f0187d90359da4a5ce3c5"
+    },
+    {
+      "path": "src/runtime/feedback.ts",
+      "sha256": "aac1bed56ed149bd025cf2bb0de13aa5b6ac34884fb9e546aa37e6b5fd725135"
+    },
+    {
+      "path": "src/runtime/guardian.ts",
+      "sha256": "d11a731bbfb91eec51aa1edcbaa0182eae444108971940b98e003756cc95da4e"
+    },
+    {
+      "path": "src/runtime/history.ts",
+      "sha256": "48c57ac313c4b7c5d060c1f76c45f5a5bbac844954a1cc7ed166fe744e419c44"
+    },
+    {
+      "path": "src/runtime/imports.ts",
+      "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+    },
+    {
+      "path": "src/runtime/input-context.ts",
+      "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+    },
+    {
+      "path": "src/runtime/input-modalities.ts",
+      "sha256": "baa8dcba1e9107d4a112f413c54b00b5fffde7aeb301897eb083a9126fbf3360"
+    },
+    {
+      "path": "src/runtime/linux-process.ts",
+      "sha256": "7fd8e590412340772610ee3687ae3641a3ecd7f46e1df4d5e71817783fabe3ce"
+    },
+    {
+      "path": "src/runtime/main.ts",
+      "sha256": "a5f13095925634d1c9860ebe4f1058a782feabf1b6940569654ec13d01565cb5"
+    },
+    {
+      "path": "src/runtime/mcp-configuration.ts",
+      "sha256": "966a533fc21d8a1f0925568924f1a7c14f9f40821131bc4705744909d87e6e85"
+    },
+    {
+      "path": "src/runtime/mcp-oauth.ts",
+      "sha256": "c2f36b1fce17f526e96783d56dedd6852f00f7e4d4c01d94e8b23119baaf5de3"
+    },
+    {
+      "path": "src/runtime/mcp-schema.ts",
+      "sha256": "f796b23409cd21f607e82a7c04cd4595a4a24f60c2f335f9978b38b17a78999c"
+    },
+    {
+      "path": "src/runtime/mcp.ts",
+      "sha256": "a123f2b84aab63c509940f2c9b65ff5297bc8240ff52c96ea6d446e7c505989f"
+    },
+    {
+      "path": "src/runtime/metadata.ts",
+      "sha256": "51e1d02cbe02ea1a436cadfe818e302a83c1fb608b537421716dff36f5001c5c"
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "274cdab3023187a2ca5fd91c955ecc7f8cfa7c6cbf8f22cf38d751650a72767d"
+    },
+    {
+      "path": "src/runtime/native.ts",
+      "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37"
+    },
+    {
+      "path": "src/runtime/organization.ts",
+      "sha256": "0744df619c14ea25c1afc874d5647a068db0fa96703a22e99e9a16defd078dba"
+    },
+    {
+      "path": "src/runtime/permission-grants.ts",
+      "sha256": "98fb19a78cd3c0255c8a11268e8267fa2dab93b57a4d55ff315e1b741f13d8c6"
+    },
+    {
+      "path": "src/runtime/plugin-sharing.ts",
+      "sha256": "3d2e6f5e7d33ba05bf522b74803935ec359abc4da00e3f419a5b5325c86979b8"
+    },
+    {
+      "path": "src/runtime/predictions.ts",
+      "sha256": "017b6a449adc97efa67f5f696407e4d929e697fdde5a813459e87e0e3ab833c6"
+    },
+    {
+      "path": "src/runtime/processes.ts",
+      "sha256": "c063b69fa769ba90562a1b587856fd618da794a830a21a7302060fe2fe777db2"
+    },
+    {
+      "path": "src/runtime/project-trust.ts",
+      "sha256": "2fbf7cc2f754054815fb74ec9e3afcca49fa053ff893db90af835190f5013a16"
+    },
+    {
+      "path": "src/runtime/projects.ts",
+      "sha256": "4d8de2c388fa4708b6d6732c5426e1e451bcec47c749f5c8cf666bc42daa6f0a"
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "e7802d9c4af089913646deddb84ec7b2ff31ee5a7fac5d4f9884a6847b678018"
+    },
+    {
+      "path": "src/runtime/realtime.ts",
+      "sha256": "b8074f724c585636717fbb1905184be2c4339cd8b3f71474057560214ab91e4b"
+    },
+    {
+      "path": "src/runtime/redaction.ts",
+      "sha256": "38342ce9b58efce9ca36b64ab107944cdfb02d7ce8f9ea444432109c789a195a"
+    },
+    {
+      "path": "src/runtime/remote-control.ts",
+      "sha256": "9cd520e0b2062c6b920b917932b94e31e36492caef17c265422e4efb262f97ac"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "ab7e97cd6a9a3dab16f237291da1be42f37ea6742f75aa6dd71bb360bfe93d0b"
+    },
+    {
+      "path": "src/runtime/session-snapshots.ts",
+      "sha256": "0d4ae99c3eacd6849e9a2bbc660d02a497e19c15401e2624ac18105034c8cbe6"
+    },
+    {
+      "path": "src/runtime/skill-resources.ts",
+      "sha256": "b958998f32d0f07507e66627f88d8fdba5d9ccd43b7ade9f91e6900966f0c178"
+    },
+    {
+      "path": "src/runtime/structured-output.ts",
+      "sha256": "324537dca6387f89679896ad85955d8f8aa63f1171d82481c0a28737b75892de"
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6"
+    },
+    {
+      "path": "src/runtime/thread-terminals.ts",
+      "sha256": "7c52526e01de582b3881f9aabe7470d7da3e8eb1bcd7b31c09845dad0a4645e6"
+    },
+    {
+      "path": "src/runtime/timeline-contract.ts",
+      "sha256": "5abcc19fc9cc8697601fd56c9db86d81d5073b00c78442adb7b8aa65252ae5c4"
+    },
+    {
+      "path": "src/runtime/types.ts",
+      "sha256": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0"
+    },
+    {
+      "path": "src/runtime/validation.ts",
+      "sha256": "8c8670e9871a13a93a73654c114cff7f8982916a9bbb72141e19420a3f64d246"
+    },
+    {
+      "path": "src/runtime/windows-job.ts",
+      "sha256": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0"
+    },
+    {
+      "path": "src/runtime/windows-process.ts",
+      "sha256": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2"
+    },
+    {
+      "path": "src/runtime/workflow-methods.ts",
+      "sha256": "40bfbf562c8d51e538256510772087a58962ae1ceb7482ca066f726b36a2c6d8"
+    },
+    {
+      "path": "src/runtime/workflows.ts",
+      "sha256": "3330e7962ee3ae65f47bea86c681c6c29367fe424ad34cf02ccece87cccae190"
+    },
+    {
+      "path": "src/runtime/workspace-index.ts",
+      "sha256": "94108d13acc49982d652a73cfba577f78b8c6bc87bcfab4336e67e8e50540670"
+    },
+    {
+      "path": "src/runtime/workspace-service.ts",
+      "sha256": "d58c12fca3b67a88ee47175ec1ed34447562dea1877d84ff7a55c07f55b630cf"
+    },
+    {
+      "path": "src/runtime/workspace-witness.ts",
+      "sha256": "9794a2c3460d83ca6a9b437d3898174f8e71f4dfdb4f60bae42c4a92d922fd13"
+    },
+    {
+      "path": "src/runtime/workspace.ts",
+      "sha256": "4c9e1a677cbf79d610f5de6171e34a622ef7122b71886e2e33a60fad1c50534c"
+    },
+    {
+      "path": "src/runtime/worktree-bindings.ts",
+      "sha256": "3e02f04121fb36220962518bd8d7b198776ced6f1559554c9fd2859c5031c1b6"
+    },
+    {
+      "path": "tests/fixtures/native-env.ts",
+      "sha256": "3f2e70c6a85bf7e780ff3013e1d0844cb9118273f79c31551c03c9ad9cbf3c31"
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "sha256": "df6d065029bee962b3dc9bd99643950fd60bb66fddcad6f882a9ff8ab1962925"
+    },
+    {
+      "path": "tests/runtime/account-tools.test.ts",
+      "sha256": "0ce398d1cf2a8470a7ece04779abe39a2ecd09bc9a9e86903a4293b2e323de35"
+    },
+    {
+      "path": "tests/runtime/approval-native.test.ts",
+      "sha256": "a1856582e532e55d69a89d81d45aff4e022f8c5ecf0d6645cbfd3d8c21990337"
+    },
+    {
+      "path": "tests/runtime/attachments.test.ts",
+      "sha256": "96af9b29a2a6cfe2b468f67d3226c56d018dab52b19656d1089425072f4ae5c3"
+    },
+    {
+      "path": "tests/runtime/automation-native.test.ts",
+      "sha256": "f45f4608a0afcf5af4de02fd38db4b2d10486f2d47759b6162d3dcd05494701c"
+    },
+    {
+      "path": "tests/runtime/cli-diagnostics-native.test.ts",
+      "sha256": "89668d8f3331417b05d48c32dfaf806eef420f9a33d74ae7d059e0e99d44d593"
+    },
+    {
+      "path": "tests/runtime/cli-diagnostics.test.ts",
+      "sha256": "586c12963edd552b1799f72082b16d02cf148608e96412f2b4d70dc092265e4a"
+    },
+    {
+      "path": "tests/runtime/cli-terminals.test.ts",
+      "sha256": "b0247ad957568fa7a86cadbdb657ae0fd52413b325d1b02a13884b64245c64e6"
+    },
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "c5dcc0a9b761d48b094f8b0c642f1e28ed3d2fc7e6ff0a6ee96e46d333a8d30c"
+    },
+    {
+      "path": "tests/runtime/dev-resources-special-file-fixture.mjs",
+      "sha256": "16c2b8a6d6b9c850ff7cedf0c12fa371e7c6c1b72757e0e927a12a234cfb34b3"
+    },
+    {
+      "path": "tests/runtime/dev-resources.test.ts",
+      "sha256": "bb3e69200e92d0202921d6a688be9e818b1884c47fe2063d5e57ec2a5719d042"
+    },
+    {
+      "path": "tests/runtime/device-login.test.ts",
+      "sha256": "e65865e0c83a015dff54a8329d68c37ab89f6965720a45917bf9c201eea92919"
+    },
+    {
+      "path": "tests/runtime/entrypoint.test.ts",
+      "sha256": "c0b443ba727b0e9b0f564c485a7a117c2c6971802aae38ea8216674e930402c3"
+    },
+    {
+      "path": "tests/runtime/execution-mode.test.ts",
+      "sha256": "1959eb04c46f39f64de119289886fed0566acc9ae7be5c2df19699ddf1ab767f"
+    },
+    {
+      "path": "tests/runtime/extensions-native.test.ts",
+      "sha256": "31764abbfeeaab924ab52190fb508de720aa64e2ef7eec9992f6d6bb9d60a764"
+    },
+    {
+      "path": "tests/runtime/extensions.test.ts",
+      "sha256": "36c48b99cd9ea9b16ae739dee451fcffc399a41db0ee5d65991e9f0a9df87d08"
+    },
+    {
+      "path": "tests/runtime/fixture-cleanup.test.ts",
+      "sha256": "ed28287d9ca737d95066747cc6eb7b8a25f5ff02df6448034ccffdd422ea72db"
+    },
+    {
+      "path": "tests/runtime/fixture-cleanup.ts",
+      "sha256": "6ce7341e14b69cd2e0fb05891b12843e5bfdd5b4323c2410c1ad5466e5ab9cce"
+    },
+    {
+      "path": "tests/runtime/fixture-model-catalog.json",
+      "sha256": "a5cf6d8bf59a93bc16ae99dd83a4f8a18bb0ee8baeb4b864fe8212a6ddd5bcf1"
+    },
+    {
+      "path": "tests/runtime/fixture-values.ts",
+      "sha256": "64f3abe0d3bda2a849d38acb5db535e579bb1be4ff91f7ae81796428e4d5af13"
+    },
+    {
+      "path": "tests/runtime/gateway-native.test.ts",
+      "sha256": "0f7daf618891f1b80fcd0347476ebf4c8d6f9527827c921b1417e38edd69efc4"
+    },
+    {
+      "path": "tests/runtime/gateway-oauth-native.test.ts",
+      "sha256": "77ac32a081458138aa9b04b00d5c7a7c445d2df5b31e35bc113f45e8f53b560f"
+    },
+    {
+      "path": "tests/runtime/guardian-native.test.ts",
+      "sha256": "51ea412a29765fc37170a0e56b2ee1fcc122746de3ef5d00b16364e14d245d02"
+    },
+    {
+      "path": "tests/runtime/guardian.test.ts",
+      "sha256": "8f791842a3ec0ab6c8a610ca66a8b1b2fa8b88aeac010b79cc87f7fc0cb34a64"
+    },
+    {
+      "path": "tests/runtime/imports.test.ts",
+      "sha256": "cd5b2afb60f6924ca39d2a15edeea94c97329e7050e8d768c19c1feff7b34173"
+    },
+    {
+      "path": "tests/runtime/input-context.test.ts",
+      "sha256": "a85505a2e83cdc8c2a298b4079b943d295d6860742e4ea237437dbd74d086e4e"
+    },
+    {
+      "path": "tests/runtime/input-modalities.test.ts",
+      "sha256": "aaa51816ef17f6962ab6a5f2b1bc36f1f3c6564237ad8540c2404589dfc7d502"
+    },
+    {
+      "path": "tests/runtime/input-native.test.ts",
+      "sha256": "7e59d489fbcd77b34b8fddef3cf6b81130b21fe7e29881b5c94ee039e5c30eaf"
+    },
+    {
+      "path": "tests/runtime/loopback-provider.ts",
+      "sha256": "12de7c4fcf457345dc2e9c92207c56846d86c13faea27b051e81a38e6048d87e"
+    },
+    {
+      "path": "tests/runtime/mcp-configuration.test.ts",
+      "sha256": "0f6180356e6499194b085c8bf7ef7705b1d7a94f8186c4275cc66b131f6ba2be"
+    },
+    {
+      "path": "tests/runtime/mcp-fixture.mjs",
+      "sha256": "c9fd3598be8ba7dcd03c26894cf6c79a51e6be215f1448a9930f6f713c6abb91"
+    },
+    {
+      "path": "tests/runtime/mcp-native.test.ts",
+      "sha256": "5f20fbc808ff46d6a5294ef50d6b6ab509569209b5e8162cf0b3fa2efce9faf9"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth-fixture.mjs",
+      "sha256": "17f5857d8ca6ac0495150aab3a74e1d34363e6b76594a763126f20abe84910bb"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth.test.ts",
+      "sha256": "9ff0ed81c51085386037478dd268c9776f72f350374a83f8b24d3215c096bdfd"
+    },
+    {
+      "path": "tests/runtime/mcp-schema.test.ts",
+      "sha256": "7315e9db67297119fc093f035ad81c063feead6332afcab2f51b3360462312b3"
+    },
+    {
+      "path": "tests/runtime/mcp.test.ts",
+      "sha256": "43b2e0ca39de327da5d089e41752f80fa20e69bdc5ccd2128e027331509137a9"
+    },
+    {
+      "path": "tests/runtime/native-env.test.ts",
+      "sha256": "d9ac65de937c7e4afe9b223e849d9989d5f43a53ed46db89fb65f59c9a1249e7"
+    },
+    {
+      "path": "tests/runtime/native-fixture.mjs",
+      "sha256": "d34e23f65716ad112ac9f6847bb93ebf203197da0caa2e91abd49c3be757251a"
+    },
+    {
+      "path": "tests/runtime/native-smoke.test.ts",
+      "sha256": "100f5cf4ad78866fd5185768fe9780e7ac25307c2539531edceacddec04c53ba"
+    },
+    {
+      "path": "tests/runtime/native.test.ts",
+      "sha256": "f6407192c3e211346b59574a927a23eeb62cff9a02913f66aa81e4dd0420fc3e"
+    },
+    {
+      "path": "tests/runtime/organization-native.test.ts",
+      "sha256": "33451ca99f320a22a4c5c259cd3c77fcc0fb657d20c7116728f34f8835f3133a"
+    },
+    {
+      "path": "tests/runtime/organization.test.ts",
+      "sha256": "062321809e82354e8e21e9e7fb1c727e9ddb08bb7a323564709a1e4f316a9f88"
+    },
+    {
+      "path": "tests/runtime/permission-validation.test.ts",
+      "sha256": "56bf986c78e7d79d817db9ffee6054bafee587fd9539ae77cc6c5ee39407abc2"
+    },
+    {
+      "path": "tests/runtime/predictions.test.ts",
+      "sha256": "373f664687e5b7c9f753fd596bc442e24fa243e76a64a595a8da904850ae442e"
+    },
+    {
+      "path": "tests/runtime/process-native.test.ts",
+      "sha256": "a9f92e81d23140fe42927d2436ecba5cba703bc98b7d34ce50792720129b0599"
+    },
+    {
+      "path": "tests/runtime/processes.test.ts",
+      "sha256": "10aab7225568135629e99d18733382d4e411530f0d07b68b8aaf13fa296cace7"
+    },
+    {
+      "path": "tests/runtime/project-trust.test.ts",
+      "sha256": "8c99e30d5de5571d827e8894351db923742e7e41c3ff1cc8435c4088bf820e67"
+    },
+    {
+      "path": "tests/runtime/projects.test.ts",
+      "sha256": "c978bdbfbe8872b10b53edd2be30f787552677624a1665b1affaffb5267e521a"
+    },
+    {
+      "path": "tests/runtime/providers.test.ts",
+      "sha256": "1e1bcc20038c58173955584fa7d6281431a68ce77e067c37aacf77597a1b39f2"
+    },
+    {
+      "path": "tests/runtime/pty-transcript.test.ts",
+      "sha256": "7ed732610e90cf6f47a9f809a2a856ccf88f7f6fb9df2c87e0ae63eb86ca609d"
+    },
+    {
+      "path": "tests/runtime/pty-transcript.ts",
+      "sha256": "9f63572096722063c78773a2c07f9719bf587a97f7558196128e7376b25754a4"
+    },
+    {
+      "path": "tests/runtime/realtime.test.ts",
+      "sha256": "facf511de1e796e1c4b608104ca0050347a6d6be239f55a945f0381925226adf"
+    },
+    {
+      "path": "tests/runtime/reasoning-summary.test.ts",
+      "sha256": "f1a7473d3cc4ccc9c05e22e8b617b35e9dc60a527dcd8c9e89f1869f6b7d0438"
+    },
+    {
+      "path": "tests/runtime/redaction.test.ts",
+      "sha256": "d181f2d37dfbea3a700d01cdc24178aa4e6d66ce14937df76f96a44011b7464e"
+    },
+    {
+      "path": "tests/runtime/remote-native.test.ts",
+      "sha256": "62ae74c0359003e166fa4550ea5fc696400fdc30c1554783043239a328beeb76"
+    },
+    {
+      "path": "tests/runtime/remote.test.ts",
+      "sha256": "05e3b2b9fb008d9293f0647a895530007520bfca88bd28fd22ed8850b2a6642e"
+    },
+    {
+      "path": "tests/runtime/server.test.ts",
+      "sha256": "285a9285eeefdb584f7018dc1e9211a607f4b0eafd350a4d1366948b5403186e"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "8bdac12bf502cebb087c79324fb6500b5fbaddb112afce0b5b064b1bbd3b9a52"
+    },
+    {
+      "path": "tests/runtime/sharing-feedback.test.ts",
+      "sha256": "7bbac66d7bff456af2d30f1220cb6dc964a3c2bf5b0afc8028a43e25f9aa0bf9"
+    },
+    {
+      "path": "tests/runtime/skill-resources.test.ts",
+      "sha256": "05bb53c6f9cce82efd8f2d2698e94ecf619dd0f721117eb2bf44dba13d5e61fb"
+    },
+    {
+      "path": "tests/runtime/terminal-cleanup-fixture.mjs",
+      "sha256": "969e1349ffd8defee0e2aec9e8a1e5c4a8e5dd1bbbef363f11d076654a15b8f7"
+    },
+    {
+      "path": "tests/runtime/terminal-cleanup.test.ts",
+      "sha256": "92c0bd1c1713bd31d4b1b01b1f94c18f11f9fcd83495144e5fd01d5d5fc2b1d5"
+    },
+    {
+      "path": "tests/runtime/thread-activity.test.ts",
+      "sha256": "26b02cb2cd2fac8b7fe91b54d44a1c58cbfe508e2ebc35f5965466e80fde9dbd"
+    },
+    {
+      "path": "tests/runtime/thread-terminals.test.ts",
+      "sha256": "5dab3f19b3edc43be5592c7f06949af75eb7edd28277a8899bd42292240f8d98"
+    },
+    {
+      "path": "tests/runtime/timeline-contract.test.ts",
+      "sha256": "07be160f3150a6b791d392fb8154566e7c2c014405daa6a3c7bc82caf1e895e1"
+    },
+    {
+      "path": "tests/runtime/windows-job-fixture.mjs",
+      "sha256": "c95b3d6482fb8136e8b3f30597d0f4295b43ee2f092d80bb085c1066161a7b2b"
+    },
+    {
+      "path": "tests/runtime/windows-job-owner.mjs",
+      "sha256": "7c5c655a227dbf9dad77c0609d5aac0045918753a4e2b20bdd2d9fb486dcffef"
+    },
+    {
+      "path": "tests/runtime/windows-job.test.ts",
+      "sha256": "3ef9571ded8feff983fd5b51930eec47e438e1ae3e815ceb69e93b7601cc12ae"
+    },
+    {
+      "path": "tests/runtime/windows-module-bootstrap.test.ts",
+      "sha256": "1395a5d73cc88f2ba1af87e28b44445eba07315b9d68b5ae42f08c26766ca03a"
+    },
+    {
+      "path": "tests/runtime/windows-process.test.ts",
+      "sha256": "1a0e90ac1f50f6066dea1015812bccb4efdf9c4712d64471b084839b0f61e970"
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "sha256": "ab76bcc45cb22c4882907237db70338efb383c61c9716928fe15046871773a77"
+    },
+    {
+      "path": "tests/runtime/workflows.test.ts",
+      "sha256": "a1ae649c9f799000823b5625117ec68df893bbd46d9b247b6c61eac1034732d9"
+    },
+    {
+      "path": "tests/runtime/workspace-index.test.ts",
+      "sha256": "c739b6ed90add83bce62f92dc054d4fd575dbb844d29d5c074a5d6a4d7676ec9"
+    },
+    {
+      "path": "tests/runtime/workspace-service.test.ts",
+      "sha256": "5e2bc27ad6f0d32cabee491f4d54dd260aaf35f49711076d11d556557aa0d5c9"
+    },
+    {
+      "path": "tests/runtime/workspace-witness-durability.test.ts",
+      "sha256": "40f4c40b44faafb36f548418513b891a2bc189956f03b8dfecc506f37259ce40"
+    },
+    {
+      "path": "tests/runtime/workspace-witness.test.ts",
+      "sha256": "9d0ea30aa601106f9fcc817d3a27b0512563a78e92ef88d5b1c2e1c24f2445ff"
+    },
+    {
+      "path": "tests/runtime/workspace.test.ts",
+      "sha256": "06e4dd335f7aa815b047ac63a8c3d969ca9ffd3e13086f4eff543976e2dc3c60"
+    },
+    {
+      "path": "tests/runtime/worktree-witness.test.ts",
+      "sha256": "be921f1866ab4515eb753e3b9993ee3e1fa10b9ff098acc80f3e40074f75ba50"
+    }
+  ],
+  "method": {
+    "independence": "Fresh review of current round1 source and tests; AGENTS.md read first. No neighboring archived repository code or previous audit conclusions used as evidence. User-authorized single complete independent audit overrides the default three-round convention.",
+    "sourceBinding": "All 131 assigned paths verified byte-for-byte against their round1 manifest hashes before reporting. The report is not rebound to changes made by other reviewers outside this scope.",
+    "production": "Complete semantic reading of all 52 src/runtime production modules, including dispatch routing, lifecycle, ownership, persistence, response projection, cleanup, and resource limits.",
+    "tests": "Structural declaration/import and coverage mapping across all 78 tests/runtime files plus the separate tests/fixtures file. Representative test and support bodies listed below were read in full. The remaining test bodies were not all read line by line; tests/runtime/README.md was inspected for its coverage/limits and was not treated as execution evidence.",
+    "representativeTestBodies": [
+      "tests/runtime/project-trust.test.ts",
+      "tests/runtime/mcp-configuration.test.ts",
+      "tests/runtime/native-env.test.ts",
+      "tests/runtime/providers.test.ts",
+      "tests/runtime/reasoning-summary.test.ts",
+      "tests/runtime/native-smoke.test.ts",
+      "tests/runtime/execution-mode.test.ts",
+      "tests/runtime/workflows.test.ts",
+      "tests/runtime/native.test.ts",
+      "tests/runtime/workspace-service.test.ts",
+      "tests/runtime/workspace-witness.test.ts",
+      "tests/runtime/worktree-witness.test.ts",
+      "tests/runtime/service.test.ts"
+    ],
+    "fixtureAndSupportBodies": [
+      "tests/fixtures/native-env.ts",
+      "tests/runtime/fixture-cleanup.ts",
+      "tests/runtime/fixture-values.ts",
+      "tests/runtime/native-fixture.mjs",
+      "tests/runtime/terminal-cleanup-fixture.mjs",
+      "tests/runtime/mcp-fixture.mjs",
+      "tests/runtime/mcp-oauth-fixture.mjs",
+      "tests/runtime/windows-job-owner.mjs",
+      "tests/runtime/windows-job-fixture.mjs",
+      "tests/runtime/dev-resources-special-file-fixture.mjs",
+      "tests/runtime/loopback-provider.ts",
+      "tests/runtime/pty-transcript.ts",
+      "tests/runtime/fixture-model-catalog.json"
+    ],
+    "functionalCoverage": [
+      "Provider selection, per-provider catalogs, immutable ownership of existing chats, restart/resume, official public reasoning summary and preserved history fields",
+      "History pagination, owner-bound completeness proofs, explicit loading, turn admission, queues, goals, plan mode and activity uncertainty",
+      "Native protocol startup, request/notification lifecycle, terminal and CLI epoch ownership, Windows/Linux process cleanup, account/device login and remote state",
+      "MCP configuration, OAuth correlation and cleanup, tools, elicitation/forms, permission subsets, plugins/extensions, skills, imports and private account data",
+      "Workspace files, Git/worktree lifecycle, supervisor durable witnesses, Root identity selection/startup/recovery, cross-identity retention capacity",
+      "Bounded frames, pending work, histories, attachments, tool results, retained resources, and production import/route connectivity for dead-code review"
+    ],
+    "executedChecks": [
+      {
+        "name": "Official CLI empty-HOME config/read",
+        "script": ".work/v230-round1-empty-config.mjs",
+        "evidence": ".work/v230-round1-empty-config-evidence.json",
+        "runtime": "Pinned Node 24.22.1 and official Codex CLI 0.164.0",
+        "result": "Passed: absent config.toml still returns user layer version sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a with empty config. The proposed initial-save-disabled userVersion=null defect is not established.",
+        "isolation": "Fresh dedicated HOME/USERPROFILE/CODEX_HOME and temp/application-data directories; no personal credentials, login, inference or external MCP. Proxy points to a non-listening local address."
+      },
+      {
+        "name": "Worktree capacity across changed nativeHome and retained supervisor DB",
+        "script": ".work/v230-round1-worktree-capacity.mjs",
+        "evidence": ".work/v230-round1-worktree-capacity-evidence.json",
+        "runtime": "Pinned Node 24.22.1 importing the actual round1 WorkspaceWitness implementation through TypeScript transformation",
+        "result": "Confirmed: after 32 acknowledged managed-worktree bindings, reopen the same temporary supervisor home with another nativeHome/project. The 33rd reserve succeeds; completion rejects capacity/unknown; its witness remains unknown and no worktree binding exists.",
+        "limitation": "Uses valid simulated helper acknowledgements and does not create real Git worktrees. Actual helper creation-before-ack order and execution-mode home selection were verified by direct reading of the current deployment code."
+      }
+    ],
+    "crossScopeCorroboration": [
+      "src/gateway/dispatch.ts worktree/create checks project capacity 128 but has no 32-worktree preflight",
+      "deploy/execution_identity.py native_settings selects worker versus worker-root",
+      "deploy/units.py keeps supervisor/HARNESS_WORKER_HOME fixed while HARNESS_NATIVE_HOME changes by execution mode",
+      "deploy/workspace_worktrees.py storage/run counts all retained holders within the selected native home before creation, then creates and returns the acknowledgement"
+    ],
+    "exclusions": "No full test suite or targeted vitest suite was run in this review. No deployment, paid inference, personal credential access, live external MCP, source edit or test edit was performed. Only fresh .work evidence/report artifacts were written."
+  },
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "src/runtime/worktree-bindings.ts",
+      "line": 35,
+      "trigger": "Retain 32 managed worktrees under one execution identity, switch between native and Root while retaining the supervisor home, then create another worktree from a repository owned by the newly selected identity. Its new nativeHome can be below the helper-local limit while the shared supervisor managed_worktrees table is already full.",
+      "impact": "The helper creates the new checkout before the shared capacity check rejects its positive acknowledgement. The witness transaction rolls back to unknown without a binding, so the new retained checkout cannot be read/attached through the managed worktree API and requires manual inspection. This unnecessarily exceeds the intended shared retention budget and enters activity uncertainty instead of a safe not_sent capacity rejection.",
+      "evidence": [
+        "RuntimeWorkspace executes runWorkspace first (src/runtime/workspace-service.ts:61) and only then witness.complete (line 65). Its beforeWrite invokes boundary and witness.reserve; reserve validates only the witness-row budget, not managed-worktree capacity (src/runtime/workspace-witness.ts:66-79).",
+        "The shared managed_worktrees table is initialized from the supervisor witness DB, and its global count >=32 is checked only in WorktreeBindings.complete (src/runtime/worktree-bindings.ts:34-36), inside the post-ack transaction; failures roll that transaction back (src/runtime/workspace-witness.ts:107-119).",
+        "deploy/units.py:59-67,111-115 and deploy/execution_identity.py:31-36 select distinct worker/worker-root native homes but retain one supervisor home and DB. deploy/workspace_worktrees.py:79-89,264-296 checks only the selected native-home holders before physically creating the checkout and returning created:true.",
+        ".work/v230-round1-worktree-capacity-evidence.json: completedBindingsBeforeSwitch=32; reservePassed=true; completion={code:capacity,delivery:unknown}; witnessAfterCompletion.state=unknown; binding.code=worktree_unbound. The reproduction uses the actual WorkspaceWitness implementation, distinct project identities and simulated valid helper acknowledgements."
+      ]
+    }
+  ]
+}

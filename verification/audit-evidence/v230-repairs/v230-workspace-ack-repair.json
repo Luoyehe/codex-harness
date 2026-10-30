@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "finding": "V230-RG-001",
+  "files": [
+    {
+      "path": "src/runtime/workspace-service.ts",
+      "sha256": "8fd770ec723a46780aa71c511446810f861fbafcc3c7a9583aa58bf34f2e19a2"
+    },
+    {
+      "path": "tests/runtime/workspace-service.test.ts",
+      "sha256": "79d5e99b15ddebffa5c03855359e09f18aa73d1e068676534d40a9fef462abde"
+    }
+  ],
+  "behavior": [
+    "Positive helper acknowledgement is tracked before local result validation and durable witness completion. Any subsequent local not_sent or generic error becomes unknown; the reserved witness remains and runtime is marked uncertain.",
+    "Existing unknown error details remain unchanged; actual helper not_sent before positive acknowledgement still releases the reservation.",
+    "Malformed mkdir and worktree-binding results retain proof, and subsequent attempts never call the helper again."
+  ],
+  "tests": {
+    "current": {
+      "path": ".work/test-results/run-VeiEWx/vitest.json",
+      "sha256": "6242857a7e00f7137963b223b7df949946f49eb5201de2ad3f452e609982dcbc",
+      "passed": 10
+    },
+    "retained": {
+      "path": ".work/test-results/run-hb7SJa/vitest.json",
+      "sha256": "a63550a02dec1e1cd27a0f2469ea662a5cbc3db3220e1c9b508b83ba7b1ae581",
+      "files": [
+        "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/gateway/dispatch.test.ts",
+        "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/workspace-witness.test.ts",
+        "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/worktree-witness.test.ts"
+      ],
+      "passed": 57
+    },
+    "initialFailure": "The first new worktree fixture lacked worktreeId and reached the existing unknown identity guard before malformed binding validation. The fixture was corrected to carry the actual operationId; no production behavior was weakened.",
+    "notRun": "An initial target command named absent worktree.test.ts and the runner rejected it before running tests; corrected to worktree-witness.test.ts."
+  },
+  "serverTypecheck": {
+    "exitCode": 0
+  },
+  "fullTests": false,
+  "onlineChanges": false
+}

@@ -15,6 +15,29 @@ from deploy.operator import Cancelled, Console, installed_instances, manage
 
 
 class OperatorTests(unittest.TestCase):
+    def test_service_proxy_configures_private_file_with_exact_core_and_confirmation(self):
+        path = str(Path(self.temp.name).resolve() / "node.json")
+        menu = self.console(["1", path, "18793", "26.10.29", "", "y"])
+        menu.service_proxy()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status", "proxy-configure"])
+        args = self.calls[-1]
+        self.assertEqual((args.config_file, args.version, args.port, args.confirm_restart), (Path(path), "26.10.29", 18793, True))
+        self.assertNotIn("apiKey", "\n".join(self.output))
+
+    def test_proxy_latest_is_resolved_only_after_confirmation_and_failure_not_replayed(self):
+        def status(args):
+            if args.command == "proxy-status": return {"enabled": True, "coreVersion": "26.10.1", "port": 18793}
+            raise DeployError("unknown", "Fixture uncertain switch")
+        menu = self.console(["3", "latest", "", "y"], run=status)
+        with patch("deploy.proxy_core.latest_version", return_value="26.10.29") as latest, self.assertRaises(DeployError): menu.service_proxy()
+        latest.assert_called_once_with(download_proxy="http://127.0.0.1:18794")
+        self.assertEqual([args.command for args in self.calls], ["proxy-status", "proxy-core-update"])
+        self.assertEqual(self.calls[-1].version, "26.10.29")
+        self.calls.clear()
+        menu = self.console(["3", "latest", "", "n"], run=status)
+        with patch("deploy.proxy_core.latest_version") as latest: menu.service_proxy()
+        latest.assert_not_called(); self.assertEqual(len(self.calls), 1)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

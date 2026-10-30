@@ -22,6 +22,7 @@ from .safe_fs import inspect_tree, snapshot
 from .system import System, run
 from .transactions import require_recovered
 from .ownership import require_owned
+from .service_proxy import PROXY_ROLES, active as service_active, roles as service_roles, selection as proxy_selection
 from .units import sudo_rule
 
 ROLES = ("worker", "gateway", "authelia", "caddy")
@@ -88,7 +89,7 @@ class ControlSystem(System):
             suffix = fields[0][len(prefix):-len(".service")]
             # Instance names may contain '-': a broad main-* glob must never
             # stop main-other's services. Known transient suffixes end in a UUID.
-            if suffix in (*ROLES, "config-check") or re.fullmatch(r"(?:manage|fetch|install|tsc|web|gateway-check|worker-check|runtime-probe|sandbox|dns-fetch|dns-verify|dns-test|dns-build|dns-probe)-[0-9a-f]{32}", suffix):
+            if suffix in (*ROLES, *PROXY_ROLES, "config-check") or re.fullmatch(r"(?:manage|fetch|install|tsc|web|gateway-check|worker-check|runtime-probe|sandbox|dns-fetch|dns-verify|dns-test|dns-build|dns-probe)-[0-9a-f]{32}", suffix):
                 units.append(fields[0])
         return units
 
@@ -175,11 +176,10 @@ class ControlUpdater:
 
     def service_snapshot(self) -> dict:
         saved = {}
-        for role in ROLES:
+        for role in service_roles(self.config, ROLES):
             unit = self.layout.unit(role)
             state = self.system.state(unit)
-            active = (state["ActiveState"] == "active" and state["SubState"] == "running" and
-                      state["MainPID"] != "0" and state["ControlPID"] == "0")
+            active = service_active(state, role)
             require(active or state["stopped"], "Control update requires stable service state", "stop_unknown")
             enabled = self.system.enabled_state(unit)
             require(not active or enabled not in ("masked", "masked-runtime", "not-found"),
@@ -189,7 +189,7 @@ class ControlUpdater:
 
     def guard_preflight(self, state: dict) -> list[tuple[Path, Path, bytes]]:
         dropins = []
-        for role in ROLES:
+        for role in service_roles(self.config, ROLES):
             directory = self.layout.units / (self.layout.unit(role) + ".d")
             trusted_ancestors(directory)
             path = directory / "90-codex-harness-control-maintenance.conf"
@@ -215,7 +215,7 @@ class ControlUpdater:
         # Keep one marker per role so restoring an active gateway does not start
         # a worker which the operator had intentionally left stopped.
         dropins = self.guard_preflight(state)
-        for role in ROLES:
+        for role in service_roles(self.config, ROLES):
             atomic_write(self.barriers / role, b"control maintenance\n")
         if self.layout.control.exists():
             trusted_ancestors(self.layout.control)
@@ -229,7 +229,8 @@ class ControlUpdater:
         self.system.reload()
 
     def stop_all(self) -> None:
-        units = list(dict.fromkeys([self.layout.unit(role) for role in reversed(ROLES)] + self.system.instance_units(self.layout)))
+        roles = service_roles(self.config, tuple(reversed(ROLES)))
+        units = list(dict.fromkeys([self.layout.unit(role) for role in roles] + self.system.instance_units(self.layout)))
         self.system.stop(units)
         # Enumeration is repeated so a previously queued management transient is
         # included before any directory rename. stop() confirms cgroup emptiness.
@@ -296,14 +297,17 @@ class ControlUpdater:
 
     def restore_services(self, state: dict) -> None:
         self.validate_dns_selection()
+        self.validate_proxy_selection()
         services = state["services"]
-        for role in ROLES:
+        roles = service_roles(self.config, ROLES)
+        require(set(services) == set(roles), "Service roles changed during control maintenance", "recovery_required")
+        for role in roles:
             require(self.system.enabled_state(self.layout.unit(role)) == services[role]["enabled"],
                     "Service enablement changed during control maintenance", "recovery_required")
         journal = self.layout.state / "gateway/journal.sqlite"
         if journal.exists():
             recover_as_owner(journal, self.config["gatewayUid"], self.config["gatewayGid"])
-        active = [role for role in ROLES if services[role]["active"]]
+        active = [role for role in roles if services[role]["active"]]
         for role in active:
             (self.barriers / role).unlink(missing_ok=True)
         fsync_directory(self.barriers)
@@ -311,21 +315,21 @@ class ControlUpdater:
             self.system.start([self.layout.unit(role) for role in active])
         if "gateway" in active and "worker" in active:
             self.system.control_healthy(self.layout, self.config)
-        for role in ROLES:
+        for role in roles:
             current = self.system.state(self.layout.unit(role))
             if role in active:
-                require(current["ActiveState"] == "active" and current["SubState"] == "running" and current["MainPID"] != "0",
+                require(service_active(current, role),
                         "Original service activity was not restored", "health")
             else:
                 require(current["stopped"], "Previously stopped service started during control maintenance", "health")
-        for role in ROLES:
+        for role in roles:
             (self.barriers / role).unlink(missing_ok=True)
         fsync_directory(self.barriers)
 
     def validate_state(self, state: dict) -> None:
         require(state.get("format") == 1 and state.get("kind") == "control" and state.get("instance") == self.layout.instance and
                 isinstance(state.get("old"), dict) and isinstance(state.get("candidate"), dict) and
-                isinstance(state.get("services"), dict) and set(state["services"]) == set(ROLES) and
+                isinstance(state.get("services"), dict) and set(state["services"]) in (set(ROLES), set(ROLES) | set(PROXY_ROLES)) and
                 isinstance(state.get("launchers"), dict) and set(state["launchers"]) == {"old", "candidate"},
                 "Invalid control recovery record", "corrupt_state")
         for service in state["services"].values():
@@ -343,7 +347,10 @@ class ControlUpdater:
 
     def recover_transaction(self, path: Path, state: dict) -> dict:
         self.validate_state(state)
+        require(set(state["services"]) == set(service_roles(self.config, ROLES)),
+                "Service roles changed during control maintenance", "recovery_required")
         require_owned(self.layout, self.config)
+        self.validate_proxy_selection()
         old = path / "old"
         source = old if old.exists() else self.layout.control
         # Recovery is a control selection too. Check the complete retained tree
@@ -362,9 +369,10 @@ class ControlUpdater:
             self.require_account_guard(capabilities)
             self.require_dns_guard(capabilities)
         except DeployError as error:
-            if error.code not in ("authentication_downgrade", "dns_downgrade"):
+            if error.code not in ("authentication_downgrade", "dns_downgrade", "execution_unsupported", "proxy_unsupported"):
                 raise
-            feature = "account guard" if error.code == "authentication_downgrade" else "selected DNS challenge support"
+            feature = {"authentication_downgrade": "account guard", "dns_downgrade": "selected DNS challenge support",
+                       "execution_unsupported": "root execution support", "proxy_unsupported": "service proxy support"}[error.code]
             raise DeployError(error.code,
                               "Previous control tools lack " + feature + "; recovery has not changed services or selected code. "
                               "Correct any runtime prerequisite, then run control-recover --target candidate to validate and resume the original candidate.") from error
@@ -397,7 +405,10 @@ class ControlUpdater:
     def recover_candidate(self, path: Path, state: dict) -> dict:
         """Resume only the sealed candidate already named by one pending journal."""
         self.validate_state(state)
+        require(set(state["services"]) == set(service_roles(self.config, ROLES)),
+                "Service roles changed during control maintenance", "recovery_required")
         require_owned(self.layout, self.config)
+        self.validate_proxy_selection()
         staged, failed, old = path / "candidate", path / "failed", path / "old"
         if staged.exists():
             require(not failed.exists(), "Ambiguous retained control candidates", "recovery_required")
@@ -481,9 +492,21 @@ class ControlUpdater:
             from .dns_tls import validate_dns_selection
             validate_dns_selection(self.layout, read_https_metadata(self.layout))
 
+    def validate_proxy_selection(self) -> None:
+        # A healthy listener does not prove retained executable/config bytes.
+        # Check them before control selection and immediately before restart.
+        from .service_proxy import verify_selection
+        verify_selection(self.layout, self.config)
+
     def require_dns_guard(self, capabilities: dict) -> None:
-        """Control selection cannot discard support for an installed DNS mode."""
+        """Control selection cannot discard installed DNS, identity or proxy support."""
         require(isinstance(capabilities, dict), "Invalid retained control capabilities", "integrity")
+        from .execution_identity import require_control
+        require_control(capabilities, self.config)
+        if proxy_selection(self.config) is not None:
+            require(capabilities.get("serviceProxy") == 1,
+                    "Rollback target lacks service proxy support; select a compatible control generation",
+                    "proxy_unsupported")
         from .dns_providers import PROVIDERS
         supported = set()
         if capabilities.get("dnsChallenge") == "caddy-dns-v1":
@@ -540,6 +563,7 @@ class ControlUpdater:
     def update(self, rollback: str | None = None) -> dict:
         require_recovered(self.layout)
         require_owned(self.layout, self.config)
+        self.validate_proxy_selection()
         self.prepare_paths()
         require(not self.pending(), "Run control-recover before another control update", "recovery_required")
         require(len(list(self.records.iterdir())) < 32, "Control generation retention budget reached; inspect and archive completed records", "budget")
@@ -559,7 +583,7 @@ class ControlUpdater:
             require(self.config.get("providerConfigLayer") is None or capabilities.get("providerConfigLayer") == "system-v1",
                     "Rollback target predates system provider layers; roll back the configuration layer first", "configuration_conflict")
             require(capabilities.get("nativeWorkspace") == 1 or
-                    (self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)).read_bytes() == sudo_rule(self.layout, workspace=False).encode(),
+                    (self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)).read_bytes() == sudo_rule(self.layout, config=self.config, workspace=False).encode(),
                     "Rollback target predates workspace policy; use config-layer-rollback to restore legacy control compatibility", "configuration_conflict")
         services = self.service_snapshot()
         path = self.records / uuid.uuid4().hex

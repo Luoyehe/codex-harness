@@ -2,6 +2,7 @@ import type { JsonObject, JsonValue } from '../core/contracts.js';
 import { HarnessError } from '../core/errors.js';
 import { identifier, object, validText } from '../core/validation.js';
 import { organizationMethods } from '../core/organization-methods.js';
+import { executionModeState } from '../core/execution-mode.js';
 import { organizationReceipt } from './organization-receipt.js';
 
 function threadMetadata(input: JsonValue | undefined): JsonObject {
@@ -340,6 +341,15 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     return { restarted: true, release: hex(input.release, 64) };
   }
   if (method === 'system/provider/write') return providerReceipt(input);
+  if (method === 'system/execution-mode/write') {
+    const result = executionModeState(input); object(input);
+    if (typeof input.changed !== 'boolean' || input.servicesRestored !== true ||
+        input.changed && (typeof input.transaction !== 'string' || !/^[a-f0-9]{32}$/.test(input.transaction)) ||
+        !input.changed && input.transaction !== undefined)
+      throw new Error('Execution mode change is not confirmed');
+    return { ...result, changed: input.changed, servicesRestored: true,
+      ...(input.changed ? { transaction: input.transaction! } : {}) };
+  }
   if (method === 'system/models/refresh') {
     const result = providerReceipt(input); object(input);
     if (typeof input.applied !== 'boolean' || typeof input.requiresConfirmation !== 'boolean' || input.applied && input.requiresConfirmation) throw new Error('Invalid catalog confirmation');

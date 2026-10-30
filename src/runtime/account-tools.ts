@@ -17,8 +17,8 @@ export class AccountTools {
   constructor(private host: Host) {}
   private async creditPreview(): Promise<JsonObject> {
     const result = checked('GetAccountRateLimitsResponse', await this.host.native('account/rateLimits/read', {}));
-    const summary = result.rateLimitResetCredits === null ? null : object(result.rateLimitResetCredits);
-    const value: JsonObject = { accountId: result.accountId!, summary };
+    const summary = result.rateLimitResetCredits == null ? null : object(result.rateLimitResetCredits);
+    const value: JsonObject = { accountId: result.accountId ?? null, summary };
     return { ...value, previewHash: hash(value), redeemable: typeof result.accountId === 'string' && result.accountId.length > 0 && summary !== null && typeof summary.availableCount === 'number' && Number.isSafeInteger(summary.availableCount) && summary.availableCount > 0 };
   }
   async read(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {

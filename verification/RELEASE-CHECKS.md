@@ -274,3 +274,10 @@ Frozen source `aaf648ede72d410cbebd6b66e11020024d7affc4f82d1cbe47929fa05f734803`
 These are 2,857 observations across the three targets, not 2,857 independent cases. Every one of the 107 skipped observations has an exact file/case match that passed on an applicable platform at the same source digest. Original skips, group results and exit codes remain unchanged. [The machine-readable summary](audit-evidence/v201-release/full-summary.json) retains all skipped identities and their passing targets, SHA-256 hashes of the original platform reports, the reconciliation result, test plan and authorization reference. Earlier failing attempts remain historical evidence and are not counted as this successful run.
 
 
+
+
+## 2026-10-31 — v2.3.0 final audit and full-test authorization
+
+Current source `24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37` (1975 files) completed one clean whole-repository team audit in v230-round6. The user chose one clean round instead of the default three. All 6 rounds retain their actual outcomes: v230-round1: nonclean (4 findings); v230-round2: clean; superseded for release; v230-round3: nonclean (2 findings); v230-round4: nonclean (1 findings); v230-round5: nonclean (1 findings); v230-round6: clean. Round5 found a remaining resume-success snapshot acknowledgement gap (V230-RG-004); its repair and worker serialization defense were independently reviewed before this final audit. Per-file review depth and unchanged inherited evidence remain explicit.
+
+New and existing projects use /-leading absolute paths or paths relative to the current execution identity's projects directory, with actual permission diagnostics. ROOT authorization, mobile/composer/reasoning/footer changes, shared model catalog, service-scoped proxy/core updates and CI preflight are included. Affected tests and isolated Linux identity/systemd/proxy evidence retain their original source/time boundaries. Hosted full-platform reconciliation, final online upgrade, fresh public browser acceptance and publication remain pending. This seal does not run tests, paid inference or external MCP.

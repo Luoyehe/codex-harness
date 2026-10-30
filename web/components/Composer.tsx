@@ -329,6 +329,7 @@ export function Composer({
           }}
         />
         <div className="composer-toolbar">
+          <div className="composer-tools">
           <input
             ref={fileInput}
             className="sr-only"
@@ -389,13 +390,14 @@ export function Composer({
           >
             设置⌄
           </button>
+          </div>
+          <div className="composer-send-actions">
           {active && existingThread && <label className="composer-send-mode">
             <span className="sr-only">当前发送方式</span>
             <select value={selectedIntent} onChange={(e) => setIntent(e.target.value as SendIntent)}>
               <option value="queue">排队</option><option value="steer" disabled={!canSteer}>追加指令</option>
             </select>
           </label>}
-          <div className="spacer" />
           {active && (
             <button className="stop-button" aria-label="停止当前回合" onClick={onStop}>
               ■ <span>停止</span>
@@ -422,6 +424,7 @@ export function Composer({
           >
             <Icon name="arrow" />
           </button>
+          </div>
         </div>
 
         <div className="composer-extras" id="composer-settings" hidden={!expanded} inert={!expanded}>

@@ -21,14 +21,14 @@ from .units import render_units, sudo_rule
 from .transactions import require_recovered
 from .ownership import require_owned
 
-MUTATIONS = ("restart", "provider/write", "models/refresh")
+MUTATIONS = ("restart", "provider/write", "models/refresh", "execution-mode/write")
 
 
 def validate_request(request: dict) -> tuple[str, dict]:
     require(isinstance(request, dict) and not set(request) - {"method", "params", "operationId"}, "Invalid management envelope")
     method, params = request.get("method"), request.get("params", {})
     require(isinstance(params, dict), "Management params must be an object")
-    require(method in ("status", "logs", "provider/read", "operation/read", *MUTATIONS),
+    require(method in ("status", "logs", "provider/read", "execution-mode/read", "operation/read", *MUTATIONS),
             "Management method is not permitted", "method_not_found")
     if method in MUTATIONS:
         operation = request.get("operationId")
@@ -96,6 +96,8 @@ class Manager:
         return path.exists() and read_json(path).get("authentication") == "builtin"
 
     def require_account_compatibility(self, candidate: str) -> None:
+        from .execution_identity import require_application
+        require_application(self.layout, candidate, self.config)
         # The selected application's declaration also covers accounts initialized
         # in the browser without a bootstrap file; never open its writable DB as root.
         required = ((self.layout.config / "auth-bootstrap.json").exists() or self.builtin_edge() or
@@ -243,6 +245,10 @@ class Manager:
                     value = json.loads(content)
                     require(value.get("ok") is True and value.get("result", {}).get("connected") is True,
                             "Native runtime is not connected", "health")
+                    from .execution_identity import managed, state
+                    if managed(self.config):
+                        require(value["result"].get("executionMode") == state(self.config),
+                                "Runtime execution identity does not match its configured policy", "health")
                 finally:
                     worker.close()
                 if self.builtin_edge() or self.release_accounts(self.selected()):
@@ -266,15 +272,17 @@ class Manager:
         recover_as_owner(self.layout.state / "gateway/journal.sqlite", self.config["gatewayUid"], self.config["gatewayGid"])
 
     def status(self) -> dict:
+        from .execution_identity import state
+        from .service_proxy import status as proxy_status
         roles = ["gateway", "worker"]
         if (self.layout.config / "https.json").exists() or (self.layout.config / "https.json").is_symlink():
             roles.append("caddy")
         from .https_health import https_health
-        return {"instance": self.layout.instance, "release": self.selected(), "previous": self.selected("previous"),
+        return {"instance": self.layout.instance, "release": self.selected(), "previous": self.selected("previous"), "executionMode": state(self.config),
                 "providerConfigLayer": self.config.get("providerConfigLayer", "legacy"),
                 "origin": self.config["origin"], "nodeVersion": NODE_VERSION, "pnpmVersion": PNPM_VERSION, "codexVersion": CODEX_VERSION,
                 "services": {role: self.system.state(self.layout.unit(role)) for role in roles},
-                "https": https_health(self, connect_address="127.0.0.1", timeout=3)}
+                "https": https_health(self, connect_address="127.0.0.1", timeout=3), "serviceProxy": proxy_status(self)}
 
     def verify_https(self, *, probe: bool = True) -> dict:
         from .https_health import https_health
@@ -315,9 +323,21 @@ class Manager:
         return result
 
     def verify(self, *, https_probe: bool = True, service_recovery: Path | None = None) -> dict:
+        from .execution_identity import managed, native_settings, require_application, state
+        from .service_proxy import enabled as proxy_enabled, ready as proxy_ready, selection as proxy_selection, verify_selection
+        verify_selection(self.layout, self.config)
         release = self.selected()
         require(release is not None, "No active release", "not_installed")
         result = self.verify_release(release)
+        require_application(self.layout, release, self.config)
+        if managed(self.config):
+            from .ownership import regular
+            regular(self.layout.config / "native.json", {canonical(native_settings(self.layout, self.config)) + b"\n"})
+            if state(self.config)["mode"] == "root":
+                for directory in (self.layout.state / "worker-root", self.layout.state / "worker-root/codex"):
+                    info = directory.lstat()
+                    require(stat.S_ISDIR(info.st_mode) and info.st_uid == info.st_gid == 0 and stat.S_IMODE(info.st_mode) == 0o700,
+                            "Root execution home ownership changed", "integrity")
         token = self.layout.config / "gateway-token"
         details = token.lstat()
         require(stat.S_ISREG(details.st_mode) and details.st_uid == 0 and details.st_gid == self.config["gatewayGid"] and
@@ -339,9 +359,9 @@ class Manager:
                 verify_retained_definition(self, service_recovery, "worker")
                 unit_policy = "retained-legacy"
         sudo_path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
-        sudo_policies = {sudo_rule(self.layout).encode()}
+        sudo_policies = {sudo_rule(self.layout, config=self.config).encode()}
         if self.config.get("providerConfigLayer") is None:
-            sudo_policies.add(sudo_rule(self.layout, workspace=False).encode())
+            sudo_policies.add(sudo_rule(self.layout, workspace=False, config=self.config).encode())
         sudo_policy = "current"
         if sudo_path.read_bytes() not in sudo_policies:
             require(service_recovery is not None, "Fixed sudo policy changed", "integrity")
@@ -359,15 +379,20 @@ class Manager:
             from .provider_layers import verify_system_layers
             verify_system_layers(self.layout)
         https = self.verify_https(probe=https_probe)
+        proxy = {"configured": proxy_selection(self.config) is not None, "enabled": proxy_enabled(self.config), "ready": False}
+        if proxy_enabled(self.config) and any(not self.system.state(self.layout.unit(role))["stopped"] for role in ("worker", "gateway")):
+            proxy.update(proxy_ready(self))
         roles = ("gateway", "worker", "caddy") if https["configured"] else ("gateway", "worker")
-        return {**result, "permissions": True, "managedUnits": True, "unitPolicy": unit_policy,
+        return {**result, "executionMode": state(self.config), "permissions": True, "managedUnits": True, "unitPolicy": unit_policy,
                 "sudoPolicy": sudo_policy, "accountBootstrap": account_bootstrap,
-                "providerRevision": settings["revision"], "https": https,
+                "providerRevision": settings["revision"], "https": https, "serviceProxy": proxy,
                 "services": {role: self.system.state(self.layout.unit(role)) for role in roles}}
 
     def activate(self, candidate: str, transaction_id: str | None = None) -> dict:
+        from .execution_identity import require_application
         installation = self.require_update_ready()
         self.verify_release(candidate)
+        require_application(self.layout, candidate, self.config)
         old = self.selected()
         if installation is not None and installation["phase"] == "pending":
             # A pointer retained by an older failed first start is not a
@@ -578,6 +603,12 @@ class Manager:
         require(len(pending) <= 1, "Multiple unfinished transactions require operator inspection", "recovery_required")
         require(not pending or pending[0][1].get("kind") != "service-lifecycle",
                 "Service removal or restoration is incomplete; run restore-services", "recovery_required")
+        if pending and pending[0][1].get("kind") == "execution-mode":
+            from .execution_mode import recover
+            return recover(self, *pending[0], candidate=target == "candidate")
+        if pending and pending[0][1].get("kind") == "service-proxy":
+            from .proxy_transaction import recover
+            return recover(self, *pending[0], candidate=target == "candidate")
         if target == "candidate":
             require(len(pending) == 1, "Candidate recovery requires one unfinished application transaction", "recovery_required")
             return self.repair_candidate(*pending[0])
@@ -631,13 +662,18 @@ class Manager:
                 return {"ok": True, "result": saved["result"]}
             return {"ok": False, "error": saved.get("error", {"code": "unknown", "message": "Management outcome needs inspection", "delivery": "unknown"})}
         require(len(list(receipts.glob("*.json"))) < 10000, "Management receipt retention budget reached", "budget")
-        if method == "restart":
+        if method in ("restart", "execution-mode/write"):
             self.require_update_ready(persist=False)
         else:
             self.require_recovered_transactions(None)
             if method == "provider/write" or "models" in params or params.get("automatic") is True or "providerId" in params:
                 self.require_service_ownership()
-        if method == "provider/write":
+        if method == "execution-mode/write":
+            from .execution_mode import validate_write
+            from .candidate_archive import require_idle
+            validate_write(self.config, params)
+            require_idle(self)
+        elif method == "provider/write":
             self.providers.validate_change(params, self.providers.read())
         elif method == "models/refresh":
             require(not set(params) - {"expectedRevision", "models", "confirmCapabilities", "providerId", "automatic"}, "Invalid catalog refresh fields")
@@ -701,6 +737,13 @@ class Manager:
             elif method == "provider/read":
                 require(not params, "provider/read takes no parameters")
                 value = self.providers.public()
+            elif method == "execution-mode/read":
+                from .execution_identity import state
+                require(not params, "execution-mode/read takes no parameters")
+                value = state(self.config)
+            elif method == "execution-mode/write":
+                from .execution_mode import change
+                value = change(self, params)
             elif method == "provider/write":
                 value = self.provider_change(params)
             elif method == "models/refresh":

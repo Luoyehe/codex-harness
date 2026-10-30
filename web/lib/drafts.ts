@@ -23,6 +23,10 @@ export type DraftChange =
   | { type: 'attachment-removed'; attachmentId: string };
 const prefix = 'harness.draft.v1.';
 const storageKey = (key: string) => prefix + encodeURIComponent(key);
+export type DraftMode = 'native' | 'root';
+export const executionDraftKey = (key: string, mode: DraftMode = 'native') => mode === 'root' ? `root:${key}` : key;
+export const executionDraftContext = (key: string): { mode: DraftMode; key: string } =>
+  key.startsWith('root:') ? { mode: 'root', key: key.slice(5) } : { mode: 'native', key };
 const validEnvironments = (value: unknown) =>
   value === undefined ||
   (Array.isArray(value) &&
@@ -125,8 +129,8 @@ export function discardDraft(key: string, storage: Storage = sessionStorage) {
   storage.removeItem(storageKey(key));
   draftChanged(key);
 }
-export const branchDraftKey = (threadId: string, turnId: string) =>
-  `branch:${encodeURIComponent(JSON.stringify([threadId, turnId]))}`;
+export const branchDraftKey = (threadId: string, turnId: string, mode: DraftMode = 'native') =>
+  executionDraftKey(`branch:${encodeURIComponent(JSON.stringify([threadId, turnId]))}`, mode);
 export function branchDraftSource(key: string): { threadId: string; turnId: string } | undefined {
   if (!key.startsWith('branch:')) return;
   try {

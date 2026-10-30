@@ -44,6 +44,11 @@ def validate_origin(origin: str) -> str:
 
 
 def render_units(layout: Layout, config: dict, codex_relative: str, *, legacy_runtime_directory: bool = False, legacy_native_home: bool = False) -> dict[str, str]:
+    from .execution_identity import managed, state
+    from .service_proxy import render_proxy_units, worker_unit_fields
+    proxy_unit, proxy_service = worker_unit_fields(layout, config)
+    execution = state(config) if managed(config) else {"mode": "native"}
+    root_execution = execution["mode"] == "root"
     origin = validate_origin(config["origin"])
     port = config["port"]
     require(type(port) is int and 1024 <= port <= 65535, "Port must be 1024-65535")
@@ -51,7 +56,7 @@ def render_units(layout: Layout, config: dict, codex_relative: str, *, legacy_ru
     base = layout.app / "current"
     node = base / "node/bin/node"
     app = base / "app"
-    worker = layout.state / "worker"
+    worker = layout.state / ("worker-root" if root_execution else "worker")
     supervisor = layout.state / "supervisor"
     require(config.get("providerConfigLayer") in (None, "system-v1"), "Invalid provider configuration layer")
     layered = config.get("providerConfigLayer") == "system-v1"
@@ -60,6 +65,10 @@ def render_units(layout: Layout, config: dict, codex_relative: str, *, legacy_ru
                      f"BindReadOnlyPaths={layout.config}/providers/current/config.toml:{worker}/codex/config.toml")
     config_check = f"ExecStartPre=+/usr/bin/systemctl start {layout.unit('config-check')}\n" if layered else ""
     native_home = "" if legacy_native_home else f"Environment=HARNESS_NATIVE_HOME={worker}\n"
+    execution_env = (f"Environment=HARNESS_EXECUTION_MODE={execution['mode']}\n"
+                     f"Environment=HARNESS_EXECUTION_REVISION={execution['revision']}\n"
+                     f"Environment=HARNESS_ROOT_ALLOWED={int(execution['rootAllowed'])}\n") if managed(config) else ""
+    native_user = "root" if root_execution else layout.prefix + "-worker"
     worker_group = layout.prefix + ("-control" if legacy_runtime_directory else "-ipc")
     supplementary = layout.prefix + ("-ipc" if legacy_runtime_directory else "-control") + " " + layout.prefix + "-worker"
     # Kept solely to identify the exact previous managed unit for a safe,
@@ -91,7 +100,7 @@ WantedBy=multi-user.target
 Description=Codex Harness {layout.instance} worker
 After=network-online.target
 Wants=network-online.target
-
+{proxy_unit}
 [Service]
 Type=simple
 User={layout.prefix}-control
@@ -99,7 +108,7 @@ Group={worker_group}
 SupplementaryGroups={supplementary}
 RuntimeDirectory=codex-harness-{layout.instance}
 RuntimeDirectoryMode=2750
-{legacy_prestart}{config_check}WorkingDirectory={supervisor}
+{legacy_prestart}{config_check}{proxy_service}WorkingDirectory={supervisor}
 ExecStart={node} --disable-sigusr1 {app}/dist/src/runtime/main.js
 Environment=HOME={supervisor}
 Environment=PATH={base}/node/bin:/usr/local/bin:/usr/bin:/bin
@@ -107,8 +116,8 @@ Environment=HARNESS_WORKER_HOME={supervisor}
 {native_home}Environment=HARNESS_CODEX_HOME={worker}/codex
 Environment=HARNESS_CODEX_BIN={base}/codex/{codex_relative}
 Environment=HARNESS_NATIVE_LAUNCHER={layout.control}/native-launch
-Environment=HARNESS_NATIVE_USER={layout.prefix}-worker
-Environment=HARNESS_ATTACHMENT_GID={config['workerGid']}
+Environment=HARNESS_NATIVE_USER={native_user}
+{execution_env}Environment=HARNESS_ATTACHMENT_GID={config['workerGid']}
 Environment=HARNESS_WORKER_SOCKET={layout.run}/worker.sock
 EnvironmentFile={layout.config}/providers/current/provider.env
 {provider_bind}
@@ -117,19 +126,28 @@ ProtectProc=invisible
 NoNewPrivileges=no
 CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE
 {common}"""
+    if root_execution:
+        # Opt-in host administration is not a sandbox. Keep resource/lifecycle
+        # limits, but do not advertise root while silently stripping host DAC,
+        # namespace or system-administration capabilities from its sudo child.
+        for directive in (f"InaccessiblePaths={layout.state}/gateway {layout.state}/transactions {layout.config}/gateway-token\n",
+                          "ProtectProc=invisible\n", "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE\n",
+                          "PrivateTmp=yes\n", "ProtectKernelTunables=yes\n", "ProtectKernelModules=yes\n",
+                          "ProtectControlGroups=yes\n", "RestrictRealtime=yes\n", "LockPersonality=yes\n"):
+            worker_unit = worker_unit.replace(directive, "")
     # The sole sudo RPC must retain host write namespaces. DAC ownership, rather
     # than ProtectSystem, separates gateway from root-managed configuration/code.
     gateway_unit = f"""[Unit]
 Description=Codex Harness {layout.instance} gateway
 After={layout.unit('worker')}
 Wants={layout.unit('worker')}
-
+{proxy_unit}
 [Service]
 Type=simple
 User={layout.prefix}-gateway
 Group={layout.prefix}-gateway
 SupplementaryGroups={layout.prefix}-ipc
-WorkingDirectory={layout.state}/gateway
+{proxy_service}WorkingDirectory={layout.state}/gateway
 ExecStart={node} --disable-sigusr1 {app}/dist/src/gateway/main.js
 Environment=HOME={layout.state}/gateway
 Environment=HARNESS_TOKEN_FILE={layout.config}/gateway-token
@@ -145,17 +163,21 @@ NoNewPrivileges=no
     result = {layout.unit("worker"): worker_unit, layout.unit("gateway"): gateway_unit}
     if layered:
         result[layout.unit("config-check")] = render_config_check(layout)
+    result.update(render_proxy_units(layout, config))
     return result
 
 
-def sudo_rule(layout: Layout, *, workspace: bool = True, legacy_catalog_server: bool = False) -> str:
+def sudo_rule(layout: Layout, *, workspace: bool = True, legacy_catalog_server: bool = False, config: dict | None = None) -> str:
+    from .execution_identity import managed, state
+    target = "root" if config is not None and managed(config) and state(config)["mode"] == "root" else layout.prefix + "-worker"
+    identity = f"{layout.control}/native-launch identity, " if config is not None and managed(config) else ""
     # Exact pre-registry policy is recognized only for upgrade/recovery. New
     # publication always uses the default, including the fixed catalog helper.
     catalog = "" if legacy_catalog_server else f"{layout.control}/native-launch catalog-server *, "
     return (f"Defaults:{layout.prefix}-gateway env_reset,!setenv\n"
             f"{layout.prefix}-gateway ALL=(root) NOPASSWD: {layout.control}/manage rpc\n"
             f"Defaults:{layout.prefix}-control env_reset,!setenv,!use_pty\n"
-            f"{layout.prefix}-control ALL=({layout.prefix}-worker) NOPASSWD: {layout.control}/native-launch version, "
+            f"{layout.prefix}-control ALL=({target}) NOPASSWD: {identity}{layout.control}/native-launch version, "
             f"{layout.control}/native-launch app-server, {catalog}{layout.control}/native-launch resolve-project" +
             (f", {layout.control}/native-launch workspace" if workspace else "") + "\n")
 

@@ -20,6 +20,9 @@ const deploymentPairs = [
   ['tests/deploy/test_initialization_resume.py', 'tests/deploy/root/test_initialization_resume.py'],
   ['tests/deploy/test_service_lifecycle.py', 'tests/deploy/root/test_service_lifecycle.py'],
   ['tests/deploy/test_candidate_archive.py', 'tests/deploy/root/test_candidate_archive.py'],
+  ['tests/deploy/test_project_creation.py', 'tests/deploy/root/test_project_identity.py'],
+  // Both root suites reuse LoopbackPeer from the ordinary proxy-core fixture.
+  ['tests/deploy/test_proxy_core.py', 'tests/deploy/root/test_proxy_core.py', 'tests/deploy/test_proxy_transaction.py', 'tests/deploy/root/test_proxy_transaction.py'],
   ['tests/deploy/test_control_update.py', 'tests/deploy/root/test_control_update.py'],
   ['tests/deploy/test_https.py', 'tests/deploy/root/test_https.py'],
   ['tests/deploy/test_install_recovery.py', 'tests/deploy/root/test_release_reuse.py'],
@@ -29,7 +32,7 @@ const deploymentPairs = [
   ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py'],
 ];
 const auditMetadata = new Set(['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'web/tsconfig.json', 'web/vite.config.ts', 'reference/PROVENANCE.json']);
-const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md', 'ARCHITECTURE.md', 'FEATURES.md', 'PROBLEM-ACCEPTANCE.md', 'deploy/README.md', 'deploy/RECOVERY.md', 'tests/runtime/README.md', 'reference/PROTOCOL-CONTRACT.md']);
+const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md', 'ARCHITECTURE.md', 'FEATURES.md', 'PROBLEM-ACCEPTANCE.md', 'deploy/README.md', 'deploy/RECOVERY.md', 'tests/runtime/README.md', 'scripts/RELEASE-PREFLIGHT.md', 'reference/PROTOCOL-CONTRACT.md']);
 
 export function testInventory(base = root) {
   const names = [];
@@ -87,9 +90,10 @@ export function selectTests(changed, available) {
     else if (name === 'scripts/reviewed-history.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/reviewed-history.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts'], 'immutable-historical-pattern-review');
     else if (name === 'scripts/select-tests.mjs') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/go-tests.test.ts'], 'affected-test-selection-and-runner');
     else if (['scripts/go-tests.mjs', 'scripts/prepare-ci-go.py'].includes(name)) add(name, [goTestFile, 'tests/deploy/test_prepare_ci_go.py', 'tests/tooling/go-tests.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/test-environment.test.ts'], 'go-preparation-offline-execution-and-coverage');
-    else if (['scripts/run-tests.mjs', 'scripts/test-environment.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/prepare-ci-native.test.ts', 'tests/tooling/go-tests.test.ts', goTestFile], 'test-execution-and-release-gates');
-    else if (name === 'scripts/snapshot.mjs') add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/select-tests.test.ts'], 'source-snapshot-and-evidence-classification');
-    else if (['.github/workflows/affected.yml', '.github/workflows/security.yml', '.github/workflows/compatibility.yml', 'scripts/compatibility-watch.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/compatibility-watch.test.ts', 'tests/tooling/release-audit.test.ts', goTestFile, ...domain('tests/deploy/')], 'ci-orchestration-and-deployment-identities');
+    else if (name === 'scripts/release-preflight.mjs') add(name, ['tests/tooling/release-preflight.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/select-tests.test.ts'], 'release-preflight-without-test-execution');
+    else if (['scripts/run-tests.mjs', 'scripts/test-environment.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/prepare-ci-native.test.ts', 'tests/tooling/go-tests.test.ts', goTestFile], 'test-execution-and-release-gates');
+    else if (name === 'scripts/snapshot.mjs') add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/release-preflight.test.ts'], 'source-snapshot-and-evidence-classification');
+    else if (['.github/workflows/affected.yml', '.github/workflows/security.yml', '.github/workflows/compatibility.yml', 'scripts/compatibility-watch.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/compatibility-watch.test.ts', 'tests/tooling/release-audit.test.ts', goTestFile, ...domain('tests/deploy/')], 'ci-orchestration-and-deployment-identities');
     else if (name === '.gitignore' || name === '.gitattributes') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'source-inventory-policy');
     else if (documentation.has(name) || evidencePath(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-or-audit-evidence-only' });
     else plan.requiresFullAudit.push({ path: name, reason: 'unknown-change-mapping' });

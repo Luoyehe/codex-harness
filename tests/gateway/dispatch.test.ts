@@ -125,6 +125,84 @@ describe('gateway operation admission', () => {
     } finally { ledger.close(); }
   });
 
+  it('forwards a bounded absolute creation path without letting browser parameters select root identity', async () => {
+    const { ledger, worker, dispatcher } = setup();
+    const directory = '/root/' + ['a'.repeat(120), 'b'.repeat(120), 'c'.repeat(120)].join('/');
+    worker.run = async (method, params, context) => {
+      expect(method).toBe('project/create'); expect(params).toEqual({ directory }); context.beforeWrite?.();
+      return { path: directory, name: 'c'.repeat(120) };
+    };
+    try {
+      for (const invalid of [{ name: 'Project', directory, mode: 'root' }, { name: 'Project', directory: '/' + 'x'.repeat(4096) }]) {
+        await expect(dispatcher.call({ method: 'project/create', operationId: randomUUID(), params: invalid }, { clientId: 'owner' })).rejects.toMatchObject({ delivery: 'not_sent' });
+      }
+      expect(worker.calls).toBe(0);
+      const request = { method: 'project/create', operationId: randomUUID(), params: { name: 'Project', directory } };
+      expect(await dispatcher.call(request, { clientId: 'owner' })).toMatchObject({ path: directory, name: 'Project' });
+      expect(ledger.read(request.operationId)?.state).toBe('accepted');
+      await dispatcher.call(request, { clientId: 'owner' }); expect(worker.calls).toBe(1);
+    } finally { ledger.close(); }
+  });
+
+  it('registers a relative existing-directory input only after the worker resolves its actual location', async () => {
+    const { ledger, worker, dispatcher } = setup();
+    worker.run = async (method, params) => {
+      expect(method).toBe('project/resolve'); expect(params).toEqual({ path: './nested//existing/' });
+      return { path: '/native/projects/nested/existing', name: 'existing' };
+    };
+    const request = { method: 'project/add', operationId: randomUUID(), params: { name: 'Existing project', path: './nested//existing/' } };
+    try {
+      const project = await dispatcher.call(request, { clientId: 'owner' });
+      expect(project).toMatchObject({ name: 'Existing project', path: '/native/projects/nested/existing' });
+      expect(ledger.projects()).toEqual([project]); expect(ledger.read(request.operationId)?.state).toBe('accepted');
+      expect(await dispatcher.call(request, { clientId: 'owner' })).toEqual(project); expect(worker.calls).toBe(1);
+    } finally { ledger.close(); }
+  });
+
+  it('retains created directories as unknown when concurrent project registrations reach capacity, without replaying creation', async () => {
+    const { ledger, worker, dispatcher } = setup();
+    for (let index = 0; index < 127; index++) ledger.addProject('/existing/' + index, 'Existing ' + index);
+    let release!: () => void, arrivals = 0;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    worker.run = async (_method, params, context) => {
+      context.beforeWrite?.(); if (++arrivals === 2) release(); await gate;
+      return { path: '/native/projects/' + params.directory, name: params.directory! };
+    };
+    const calls = ['first', 'second'].map(directory => ({ method: 'project/create', operationId: randomUUID(), params: { directory, name: directory } }));
+    try {
+      const results = await Promise.allSettled(calls.map(call => dispatcher.call(call, { clientId: 'owner' })));
+      expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+      const failedIndex = results.findIndex(result => result.status === 'rejected'), failed = calls[failedIndex]!;
+      expect(results[failedIndex]).toMatchObject({ status: 'rejected', reason: { code: 'project_registration_failed', delivery: 'unknown', data: { path: '/native/projects/' + failed.params.directory } } });
+      expect(ledger.read(failed.operationId)).toMatchObject({ state: 'unknown', error: { code: 'project_registration_failed', delivery: 'unknown' } });
+      expect(ledger.projects()).toHaveLength(128);
+      await expect(dispatcher.call(failed, { clientId: 'owner' })).rejects.toMatchObject({ code: 'operation_unknown', delivery: 'unknown' });
+      expect(worker.calls).toBe(2);
+    } finally { ledger.close(); }
+  });
+
+  it.each([true, false])('never classifies invalid positive project results as unsent (boundary callback: %s)', async boundary => {
+    const { ledger, worker, dispatcher } = setup();
+    worker.run = async (_method, _params, context) => { if (boundary) context.beforeWrite?.(); return { path: null }; };
+    const call = { method: 'project/create', operationId: randomUUID(), params: { name: 'Project', directory: 'project' } };
+    try {
+      await expect(dispatcher.call(call, { clientId: 'owner' })).rejects.toMatchObject({ delivery: 'unknown' });
+      expect(ledger.read(call.operationId)).toMatchObject({ state: 'unknown', error: { delivery: 'unknown' } });
+      await expect(dispatcher.call(call, { clientId: 'owner' })).rejects.toMatchObject({ code: 'operation_unknown' });
+      expect(worker.calls).toBe(1); expect(ledger.projects()).toEqual([]);
+    } finally { ledger.close(); }
+  });
+
+  it('preserves a definite backend rejection before any positive acknowledgement', async () => {
+    const { ledger, worker, dispatcher } = setup();
+    worker.run = async (_method, _params, context) => { context.beforeWrite?.(); throw new HarnessError('project_exists', 'Directory exists'); };
+    const call = { method: 'project/create', operationId: randomUUID(), params: { name: 'Project', directory: 'project' } };
+    try {
+      await expect(dispatcher.call(call, { clientId: 'owner' })).rejects.toMatchObject({ code: 'project_exists', delivery: 'not_sent' });
+      expect(ledger.read(call.operationId)?.state).toBe('not_sent'); expect(ledger.projects()).toEqual([]);
+    } finally { ledger.close(); }
+  });
+
   it.each(['session revoked', 'owner replaced'] as const)('does not register a project when %s during path resolution', async change => {
     const { ledger, worker, dispatcher } = setup(); const operationId = randomUUID(), owner = {};
     let authenticated = true, currentOwner = owner, finish!: (value: JsonValue) => void;

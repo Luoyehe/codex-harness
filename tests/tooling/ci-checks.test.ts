@@ -132,7 +132,8 @@ test('documentation-only CI explicitly reports that no tests ran', () => {
 
 test('hosted root work is scoped and every matrix result is reconciled before the coverage gate passes', () => {
   const workflow = readFileSync('.github/workflows/affected.yml', 'utf8');
-  expect(workflow).toContain("branches: ['**']"); expect(workflow).toContain('workflow_dispatch:');
+  expect(workflow).toContain('branches: [main]'); expect(workflow).toContain('pull_request:'); expect(workflow).toContain('workflow_dispatch:');
+  expect(workflow).not.toContain("branches: ['**']");
   expect(workflow).toContain('scripts/ci-checks.mjs plan'); expect(workflow).toContain('scripts/ci-checks.mjs reconcile');
   expect(workflow).toContain('test "$RUNNER_ENVIRONMENT" = github-hosted');
   expect(workflow).toContain('/usr/bin/sudo -n -- /usr/bin/env -i');

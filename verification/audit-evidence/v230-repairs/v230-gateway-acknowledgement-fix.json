@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "author": "root",
+  "resolvedFinding": "V230-GT-001",
+  "scope": [
+    "src/gateway/dispatch.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/worktrees.test.ts"
+  ],
+  "change": "Positive backend acknowledgements mark dispatch before local postprocessing. Projection, registration and receipt failures afterward remain unknown. Failed project registration retains the acknowledged path and explicit add-existing-directory guidance without replaying creation. Read-only resolution, definite backend rejection and atomically rolled-back rename remain not_sent.",
+  "files": [
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "03c81eba9c16b1c532a662796d8bb3073b98a7c65b17a7d35844d6625f33743c"
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "6f44d1038b767fc4c30c07eab3ddbe8a6e98537964df58acc191088eb8a9513a"
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "sha256": "facc579f89fa7178c50b953c42ab76d2ef19b8e8daa7aeebb887d41685c0e1c6"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/test-results/run-rn7NHG/vitest.json",
+      "sha256": "a25f3d5242193203ef4c3efe53f80a4b64196261bb9365d2dc86068631723b2f",
+      "cases": 69,
+      "passed": 69,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-aheDCn/vitest.json",
+      "sha256": "5a0d3dfa10b9539f7aeb9886121a2f6ada38f763b613a9ac9119edd31a00ebfa",
+      "cases": 28,
+      "passed": 28,
+      "skipped": 0
+    }
+  ],
+  "typecheck": {
+    "command": "pinned Node TypeScript -p tsconfig.server.json --noEmit",
+    "exitCode": 0
+  },
+  "initialInvocation": {
+    "path": ".work/v230-acknowledgement-targeted.log",
+    "result": "No tests started: one nonexistent filename was rejected. Corrected exact inventory used by both later passes."
+  },
+  "independentReview": {
+    "path": ".work/v230-gateway-acknowledgement-repair-review.json",
+    "sha256": "7efab0ee8112dd275c1b52b45006c4f6a47df6f980cfb7246fc0bcabe03dd9ef"
+  },
+  "fullTestsRun": false
+}

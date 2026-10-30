@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "task": "Unified auto project creation and existing-project resolution",
+  "complete": true,
+  "files": [
+    {
+      "path": "src/runtime/projects.ts",
+      "sha256": "5cf97418daf0c87102ede5798a23ab77804a36a353ed2b5b7eda080bb7a41544"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "584e040efdb4eb9a6558a679bd65e8591711fc2339c9eea51d5d8adbf172adb8"
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "a040bd0dcf8b03f7649443dbf56055e64688b87bb22a8f09b82bdff1ef66566d"
+    },
+    {
+      "path": "tests/runtime/projects.test.ts",
+      "sha256": "d0a809a0de48d659b7a4b6b164bf133cd5b12a9fc71fb8d532101c7260106a99"
+    },
+    {
+      "path": "tests/runtime/execution-mode.test.ts",
+      "sha256": "8f228b9bf25daa16f4e49e761cf02e36317cc21252695c83d1a845fb615b1391"
+    }
+  ],
+  "supersedes": {
+    "artifact": ".work/v230-project-runtime-implementation.json",
+    "sha256": "0eb522f2b4178a793c46172c9cf588608104282522faeed8d2038807836f8d63",
+    "status": "superseded by final user auto-path requirements; prior 36 tests are not this implementation acceptance"
+  },
+  "behavior": [
+    "New creation directory and existing-project path share automatic absolute-or-relative parsing for both native and Root identities.",
+    "Production Linux uses slash separators and lexical normalization of repeated slash, trailing slash, dot and parent segments; backslash, spaces and Windows-reserved names remain POSIX literals.",
+    "Relative paths are interpreted by the trusted helper under that identity nativeHome/projects; parent segments may leave this base. No identity-selected syntax branch or browser-supplied mode remains.",
+    "project/defaults returns only directory. resolve does not require an absolute caller path and never creates directories.",
+    "Relative creation retains default projects-root initialization; absolute creation does not initialize it. User-selected missing parents are never recursively created and existing paths are not overwritten.",
+    "Raw path UTF8/Unicode/control checks and normalized helper JSON 4096-byte budget run before creation beforeWrite. Root directory creation is explicitly rejected.",
+    "Definitive parent, permission and read-only filesystem errors remain not_sent with specific messages; failed parsing/readback after positive creation remains unknown.",
+    "Windows development fallback retains platform path behavior; production fixed launcher stays tied to the actual trusted execution identity with no automatic elevation."
+  ],
+  "tests": {
+    "scope": [
+      "tests/runtime/projects.test.ts",
+      "tests/runtime/execution-mode.test.ts"
+    ],
+    "passed": 41,
+    "failed": 0,
+    "report": ".work/test-results/run-Dtq6AI/vitest.json",
+    "sha256": "260f90f9a033b547bff59e759d6d2507cb44bbf1925c9f67c4359f047de81072",
+    "coverage": [
+      "Actual development filesystem create/write/read and normalized nested/parent relative paths",
+      "Absolute create leaves default root absent, missing/non-directory parents do not create side effects, existing files remain unchanged",
+      "Relative resolve reads existing sibling with absent default root and never creates a missing root",
+      "Mocked trusted native and Root launchers both receive normalized relative/absolute payloads and retain actual user identity",
+      "Both creation and read reject oversized escaped JSON before helper spawn; creation beforeWrite remains untouched",
+      "Long POSIX name acknowledgement and safe parent/permission/read-only error projection, malformed positive creation returns unknown"
+    ]
+  },
+  "serverTypecheck": {
+    "command": "Pinned Node 24.22.1 node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+    "exitCode": 0
+  },
+  "limitations": [
+    "No full suite or live deployment was performed.",
+    "Actual Linux helper UID/permission and fsync behavior is covered by the deployment reviewer separately; this runtime test run uses real temporary development filesystem operations and controlled helper responses.",
+    "Original round2 audit remains bound to its old source digest and is not rebound to these feature changes."
+  ],
+  "createdAt": "2026-10-30T22:21:42.7321244Z"
+}

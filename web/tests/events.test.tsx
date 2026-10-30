@@ -9,6 +9,30 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('transport and runtime state separation', () => {
+  it('keeps the previous ROOT warning until a connected runtime confirms native identity', () => {
+    let socket!: { onmessage: (event: { data: string }) => void; onclose: () => void };
+    vi.stubGlobal('WebSocket', class { onmessage = (_: { data: string }) => {}; onclose = () => {}; close() {} constructor() { socket = this; } });
+    const api = { clientId: 'owner', connectionChanged: vi.fn(), session: vi.fn().mockResolvedValue({ authenticated: false }) } as unknown as Api;
+    const { result } = renderHook(() => useEvents(api, vi.fn()));
+    const state = (extra: Record<string, unknown>) => act(() => socket.onmessage({ data: JSON.stringify({ type: 'state', data: {
+      connected: true, epoch: 'one', activity: { unknown: false, activeThreads: [], pendingStarts: 0, terminals: 0 }, ...extra,
+    } }) }));
+    expect(result.current.executionMode).toBeUndefined();
+    state({ executionMode: { mode: 'root', effectiveUid: 0 } });
+    expect(result.current.executionModeConfirmed).toBe(true);
+    for (const extra of [{}, { connected: false }, { executionMode: { mode: 'native', effectiveUid: 0 } }, { connected: false, executionMode: { mode: 'native', effectiveUid: 990 } }]) {
+      state(extra);
+      expect(result.current.executionMode).toEqual({ mode: 'root', effectiveUid: 0 });
+      expect(result.current.executionModeConfirmed).toBe(false);
+    }
+    state({ executionMode: { mode: 'native', effectiveUid: 990 } });
+    expect(result.current.executionMode).toEqual({ mode: 'native', effectiveUid: 990 });
+    expect(result.current.executionModeConfirmed).toBe(true);
+    state({ executionMode: { mode: 'root', effectiveUid: 0 } });
+    act(() => socket.onclose());
+    expect(result.current.executionMode?.mode).toBe('root');
+    expect(result.current.executionModeConfirmed).toBe(false);
+  });
   it('blocks work only during automatic CLI refresh and restores it on the next runtime epoch', () => {
     let socket!: { onmessage: (event: { data: string }) => void };
     vi.stubGlobal('WebSocket', class { onmessage = (_: { data: string }) => {}; close() {} constructor() { socket = this; } });

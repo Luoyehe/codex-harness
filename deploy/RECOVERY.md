@@ -10,6 +10,8 @@ Run operator commands from the reviewed deployment checkout. Keep the original i
 | Initialization completed; build or first application startup failed | `update --source /absolute/harness-source.tgz` |
 | Application/provider/HTTPS transaction interrupted | Inspect the error, then `repair`; application-only forward recovery supports `repair --target candidate` |
 | Trusted control update interrupted | `control-recover` from the separate reviewed checkout |
+| Execution identity or root-authorization transaction interrupted | `execution-mode-recover --target old` (default) or explicitly `--target candidate`; `repair` routes this same retained transaction |
+| Service proxy transaction interrupted | `proxy-recover --target old` (default) or explicitly `--target candidate`; retain both core/configuration generations |
 | Services removed by a recorded new-version `uninstall` | `restore-services` |
 
 For example:
@@ -25,6 +27,8 @@ sudo python3 -B -m deploy.cli --instance demo restore-services
 If initialization names a shared service directory with insufficient traversal permissions, inspect that exact path before retrying. A restrictive `umask` and interruption between directory creation and permission setup can leave a root-owned `0700` shared container. The installer preserves existing directory permissions and stops before creating service identities or starting services. An operator may correct only the diagnosed, verified root-owned shared container (normally `/etc/codex-harness`, `/opt/codex-harness`, `/var/lib/codex-harness-instances` or `/usr/lib/codex-harness`) to its intended traversable mode, usually `0755`, then use `install-resume` if the initialization journal exists; otherwise repeat the original install command. Do not recursively chmod, change private instance directories, adopt unknown ownership, or delete journals to bypass this check.
 
 `restore-services` restores the saved unit/sudo definitions and original running/enabled sets while preserving the account, provider settings and data. It requires the protected snapshot created by the new uninstall workflow. An older `uninstalled.json` containing only `servicesRemoved` is insufficient. If restoration remains unconfirmed, retain the barriers/journal and retry `restore-services`; `repair` does not replace this operation. Never reinstall the same instance to reconstruct missing evidence.
+
+Execution-mode recovery restores the recorded configuration, native identity, worker unit and sudo policy only after confirming service shutdown. It retains both `worker/codex` and the independent `worker-root/codex`; it never recursively changes ownership or copies credentials/history between them. A failed restore leaves its pending transaction and start barriers for explicit recovery. Recovery of an authorization change while root is disabled requires an independent administrator SSH/console, just like the original authorization. Revoking an active root policy returns to native in the same transaction or fails without presenting root as disabled. This does not undo earlier host-root actions, restore changed system files or make root-owned project files accessible to the native UID.
 
 ## Consistent offline backup
 
@@ -43,12 +47,13 @@ The complete instance snapshot covers:
 | Path for instance `demo` | Contents |
 | --- | --- |
 | `/opt/codex-harness/demo` | Immutable releases and both selection pointers |
+| `/opt/codex-harness-proxy/demo` when present | Selected and retained immutable Xray core generations; required when the snapshot has a proxy selection, even if disabled |
 | `/etc/codex-harness/demo` | Configuration, manifests, account bootstrap, token, provider generations, TLS/CA generations and recovery barriers |
 | `/etc/codex-harness/.demo-initialize.json` when present | Original initialization ownership journal |
-| `/var/lib/codex-harness-instances/demo` | Gateway databases, worker/native home, supervisor state, receipts, transactions, Caddy certificates/ACME account and retained identity material |
+| `/var/lib/codex-harness-instances/demo` | Gateway databases, separate native/root homes, supervisor state, receipts, transactions, Caddy certificates/ACME account and retained identity material |
 | `/usr/lib/codex-harness/demo` and `.demo-control-transactions` beside it | Exact trusted control generation, edge binaries and completed control recovery generations |
 | `/var/cache/codex-harness/demo` | Toolchain and retained build/recovery workspaces, including sparse images |
-| Exact `codex-harness-demo-{gateway,worker,caddy,authelia,config-check}.service.d` directories | Only this instance's persistent start barriers; service files and enablement links are removed during the window |
+| Exact `codex-harness-demo-{gateway,worker,caddy,authelia,config-check,proxy,proxy-routes}.service.d` directories when present | Only this instance's persistent start barriers, including retained proxy barriers; service files and enablement links are removed during the window |
 | Bound service-lifecycle journal inside the instance state directory | Saved unit/sudo contents and original active/enabled sets used by `restore-services` |
 
 Project directories outside these roots need a separate filesystem snapshot during the same stopped window. Record those paths explicitly. `/run/codex-harness-demo` is ephemeral and is not restored. Record, but do not overwrite, shared `/etc/codex/{config,requirements,managed_config}.toml`; other instances may use them. Preserve service UID/GID mappings; this is a same-machine restore procedure, not a cross-host migration.
@@ -80,6 +85,7 @@ from deploy.control_update import ControlSystem
 from deploy.manager import Manager
 from deploy.ownership import ROLES, present
 from deploy.service_lifecycle import identity_state, read_record, require_only_transaction, service_paths, verify_retained
+from deploy.service_proxy import PROXY_ROLES
 from deploy.safe_fs import inspect_tree
 
 layout = Layout(os.environ['INSTANCE'])
@@ -90,16 +96,18 @@ journal, lifecycle = read_record(layout)
 require(lifecycle['phase'] == 'removed', 'Complete recorded uninstall before backup')
 require_only_transaction(layout, journal)
 verify_retained(manager, lifecycle)
-require(all(not present(path) for path in service_paths(layout).values()), 'A removed service definition reappeared')
+require(all(not present(path) for path in service_paths(layout, manager.config).values()), 'A removed service definition reappeared')
 installation = manager.initial_installation(persist=False)
 require(manager.selected() is not None and (installation is None or installation['phase'] == 'complete'),
         'Finish first installation before this backup procedure')
 services = {'active': lifecycle['active'], 'enabled': lifecycle['enabled']}
-fixed = [layout.unit(role) for role in ('caddy', 'authelia', 'gateway', 'worker', 'config-check')]
+roles = (*ROLES, *PROXY_ROLES)
+fixed = [layout.unit(role) for role in roles]
 system.stop(list(dict.fromkeys(fixed + system.instance_units(layout))))
 system.stop(list(dict.fromkeys(fixed + system.instance_units(layout))))
 system.no_instance_processes(layout, manager.config)
 roots = [layout.app, layout.config, layout.state, layout.control, layout.work,
+         layout.root / 'opt/codex-harness-proxy' / layout.instance,
          layout.control.parent / ('.' + layout.instance + '-control-transactions')]
 for line in Path('/proc/self/mountinfo').read_text().splitlines():
     mounted = Path(line.split()[4])
@@ -108,7 +116,7 @@ for line in Path('/proc/self/mountinfo').read_text().splitlines():
 paths = [path for path in roots if present(path)]
 paths += [path for path in [layout.config.parent / ('.' + layout.instance + '-initialize.json'),
           Path('/etc/sudoers.d') / ('codex-harness-' + layout.instance)] if present(path)]
-for role in ROLES:
+for role in roles:
     unit = layout.unit(role)
     paths += [path for path in (layout.units / unit, layout.units / (unit + '.d')) if present(path)]
     for suffix in ('wants', 'requires'):
@@ -155,22 +163,25 @@ Use only a trusted snapshot produced above. Keep the same instance name, paths, 
 
 3. Compare `snapshot.json` identities with `identity_state(Layout(INSTANCE))` and the three host-policy fingerprints with the current host. Stop on differences; do not recreate accounts, `chown -R`, or overwrite shared host policy to force a match. Check that the archive's top-level instance paths and exact unit/link paths match its saved `paths` list.
 4. Preserve the current directories in adjacent, timestamped quarantine directories before installing the corresponding staged directories. Use same-filesystem renames and retain that quarantine until acceptance. For `/etc/codex-harness/INSTANCE`, preserve the **directory and its existing `management.lock` inode**: move each other child into a private adjacent quarantine directory and copy each staged child back with `cp -a`, excluding staged `management.lock`. Replacing that lock or its parent would let another process acquire a different inode while this shell still appears locked. Keep the adjacent initialization lock too.
-5. Restore only the instance's saved drop-in/barrier directories and recorded state. Unit files, sudo policy and enablement links remain absent; their original contents are inside the lifecycle journal. Quarantine any current entries for those exact five unit names, including links absent from the snapshot. Never copy a complete `.wants` directory or another instance's files. Preserve numeric ownership, modes, ACLs and symlinks. Do not restore runtime sockets, PIDs or transient units.
+5. Restore only the instance's saved drop-in/barrier directories and recorded state. Unit files, sudo policy and enablement links remain absent; their original contents are inside the lifecycle journal. Quarantine current entries for the exact seven unit names listed above, including proxy entries or links absent from an older snapshot. Never copy a complete `.wants` directory or another instance's files. Preserve numeric ownership, modes, ACLs and symlinks. Do not restore runtime sockets, PIDs or transient units.
 6. Validate the restored `removed` lifecycle record with `verify_retained`, which checks the recorded configuration/control/identity/release bindings while allowing absent managed definitions. Do not invoke `systemctl start` or recreate unit files by hand.
 7. Leave services removed on any failure. After a clean inspection, release descriptors 9 and 8, then run `restore-services`. It restores the snapshot's exact original running/enabled sets through the checked lifecycle transaction. Confirm its result and run `status`. Run full `verify` when gateway and Caddy are intended to be running, then test public HTTPS from an external client. A deliberately stopped edge should remain stopped.
 
 The following performs steps 3–6 on the already stopped, locked instance. `STAGE` must be the new extraction directory from step 2. Before the first move it prints and durably writes `restore-progress-ID.json` in the backup directory. Each rename/copy destination is recorded before the action and marked complete afterward; replaced paths remain beside their originals. There is no recursive deletion or automatic startup.
 
+A snapshot with a configured proxy must include its core directory and both proxy barrier directories; its selected core and configuration are verified in staging before any move. Older snapshots without a proxy selection need no proxy files. When restoring such a snapshot, any current proxy core directory and exact proxy service entries are quarantined with the other replaced materials, not deleted or adopted by the old configuration.
+
 ```sh
 python3 -B - <<'PY'
 import hashlib, json, os, re, subprocess, uuid
 from pathlib import Path
-from deploy.common import Layout, digest, fsync_directory, require, write_json
+from deploy.common import Layout, digest, fsync_directory, read_json, require, write_json
 from deploy.control_update import ControlSystem
 from deploy.manager import Manager
 from deploy.ownership import ROLES, present
 from deploy.safe_fs import inspect_tree
 from deploy.service_lifecycle import identity_state, read_record, require_only_transaction, service_paths, verify_retained
+from deploy.service_proxy import PROXY_ROLES, selection, verify_selection
 
 layout = Layout(os.environ['INSTANCE'])
 backup, stage = Path(os.environ['BACKUP']), Path(os.environ['STAGE'])
@@ -190,13 +201,19 @@ journal, current = read_record(layout)
 require(current['phase'] == 'removed', 'Complete recorded uninstall before restoration')
 require_only_transaction(layout, journal)
 verify_retained(manager, current)
-require(all(not present(path) for path in service_paths(layout).values()), 'A removed service definition reappeared')
+require(all(not present(path) for path in service_paths(layout, manager.config).values()), 'A removed service definition reappeared')
 manager.system.no_instance_processes(layout, manager.config)
+staged_layout = Layout(layout.instance, stage)
+staged_config = read_json(staged_layout.config / 'instance.json')
+staged_proxy = selection(staged_config)
+verify_selection(staged_layout, staged_config)
+proxy_root = layout.root / 'opt/codex-harness-proxy' / layout.instance
 roots = [layout.app, layout.config, layout.state, layout.control, layout.work,
+         proxy_root,
          layout.control.parent / ('.' + layout.instance + '-control-transactions'),
          layout.config.parent / ('.' + layout.instance + '-initialize.json'),
          Path('/etc/sudoers.d') / ('codex-harness-' + layout.instance)]
-units = [layout.unit(role) for role in ROLES]
+units = [layout.unit(role) for role in (*ROLES, *PROXY_ROLES)]
 for unit in units:
     roots += [layout.units / unit, layout.units / (unit + '.d')]
 allowed = {str(path.relative_to('/')) for path in roots}
@@ -205,6 +222,9 @@ require(len(saved['paths']) == len(set(saved['paths'])) and
         all(path in allowed or re.fullmatch(link_pattern, path) for path in saved['paths']),
         'Snapshot contains a path outside this instance')
 required = {str(path.relative_to('/')) for path in (layout.app, layout.config, layout.state, layout.control, layout.work)}
+if staged_proxy is not None:
+    required.add(str(proxy_root.relative_to('/')))
+    required.update(str((layout.units / (layout.unit(role) + '.d')).relative_to('/')) for role in PROXY_ROLES)
 require(required <= set(saved['paths']), 'Snapshot omits a required instance root')
 for path in saved['paths']:
     require(present(stage / path), 'Staged snapshot path is missing')
@@ -261,7 +281,7 @@ journal, restored = read_record(layout)
 require(restored['phase'] == 'removed', 'Snapshot was not taken during recorded removal')
 require_only_transaction(layout, journal)
 verify_retained(manager, restored)
-require(all(not present(path) for path in service_paths(layout).values()), 'Snapshot unexpectedly contains service definitions')
+require(all(not present(path) for path in service_paths(layout, manager.config).values()), 'Snapshot unexpectedly contains service definitions')
 require(digest(inspect_tree(layout.control, root_owned=True)) == saved['controlDigest'], 'Restored control tree differs')
 progress['phase'] = 'verified'
 progress['quarantined'] = quarantined
@@ -316,3 +336,11 @@ mv -T -- /var/cache/codex-harness/demo/candidate-VERIFIED_32_HEX_ID \
 Require an absent destination and equal filesystem device IDs before `mv`; never merge or overwrite an archive. Record the ID, release and checks performed in the archive inventory. Keep its transaction records in their original location. Release both locks and use `restore-services` to end the window. Moving a candidate frees a retention slot, **not disk space**. Failed, unprepared, mounted, active or ambiguous candidates remain untouched for inspection. Do not use wildcard deletion or treat application `rollback` as a candidate-cleanup command.
 
 DNS component preparation has a separate eight-directory retention limit under `dns-build-ID`. It can retain `work.ext4` and a mounted `work` directory after a failure. Inspect the exact `dns-fetch/verify/test/build/probe-ID` transient units and their cgroups before handling that workspace. A successful component build does not prove certificate issuance. Do not apply the candidate archive command to DNS workspaces or remove a mounted image. Selected binary generations under `control/edge/caddy/dns` and credential generations under `config/dns` are recovery material; retain them with the instance backup. In particular, an old RAM key may need to remain valid until an interrupted rotation has been resolved.
+
+## Service proxy recovery
+
+Use the same trusted control generation and retain the private transaction journal, selected VLESS configuration and both core generations. `proxy-recover --target old` restores the recorded selection and activity; `--target candidate` explicitly completes the interrupted candidate. `repair --target old|candidate` also routes a sole pending service-proxy transaction through this recovery. Neither command retries an unrelated request or deletes a journal to bypass a guard.
+
+Recovery validates retained configuration/core hashes and exact unit definitions, confirms the main service cgroups stopped, then stops the proxy pair before publishing rules and selection. It changes only the owned chains while preserving the PID1-managed membership set; removal requires empty membership. The proxy and routing units are static dependencies with no separately modified enablement state. Unknown shutdown or failed restoration leaves barriers and a pending journal. Keep both old and candidate materials until recovery is verified.
+
+A normal `proxy-rollback --confirm-restart` uses the previous completed selection bound to the current proxy configuration; it does not roll back accounts, application data or root execution policy. Disabling retains proxy configuration and cores. Retained proxy selections require a control generation declaring proxy support, including when disabled. The fixed `proxy-core-check`, `proxy-routes-start` and `proxy-ready` launcher helpers can run during control restoration only from their exact root systemd service contexts; management RPC and execute requests remain blocked by unfinished control maintenance.

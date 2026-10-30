@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "kind": "author-repair",
+  "finding": "V230-RG-002",
+  "compatibilityObservation": "V230-RG-003",
+  "files": [
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9d8d0335b714ae1484340f56ac47de36952c36eedb5117c1277649f065cab165"
+    },
+    {
+      "path": "src/runtime/remote-control.ts",
+      "sha256": "12502fa5d675e6c6b08cb2ce0aa3024e0a845b81406b40376ef07d0a1f2272a3"
+    },
+    {
+      "path": "src/runtime/environments.ts",
+      "sha256": "fcd148f95ea1133195b739cb1cd61aeda82c855cb330a1e92eace58ec12e49f2"
+    },
+    {
+      "path": "src/runtime/account-tools.ts",
+      "sha256": "f504a9df8dbff74b669e17808364821a061fc09dfb49b16b1b88aa05c6295648"
+    },
+    {
+      "path": "tests/runtime/remote.test.ts",
+      "sha256": "6a9fc5034419e8f830cbb57ed7e203cb4b426219a1961e6c4b3955c90b69bd46"
+    },
+    {
+      "path": "tests/runtime/account-tools.test.ts",
+      "sha256": "dc02c3297cd6e5b3832a7523b5ccffb0fa9136ac7fb243e5155e38d357dd9609"
+    }
+  ],
+  "behavior": [
+    "Configuration writes track every positive native reply before adapter postprocessing. Later local not_sent/generic failures become unknown, runtime uncertainty is retained, and another write cannot be dispatched. Original unknown errors stay unknown; actual pre-positive rejection and revoked final owner remain not_sent.",
+    "Only four bounded remote/account display adapters tolerate JSON-schema-optional nullable response fields: manual pairing code absent means no manual code; absent remote default cwd clears selection; absent remote client cursor becomes null; missing accountId/reset credits become explicit null and cannot authorize spending or email.",
+    "Official TypeScript declarations require these nullable fields; JSON schemas permit omission. These compatibility changes do not assert a reproduced omission by the actual pinned CLI. History/model/MCP/organization completeness contracts are unchanged."
+  ],
+  "tests": {
+    "path": ".work/test-results/run-iFN1tC/vitest.json",
+    "sha256": "8cc561576cf01d99820293c3bf8512f446f2a946620929f1db5356b29f06716d",
+    "files": 6,
+    "passed": 103,
+    "failed": 0,
+    "skipped": 0
+  },
+  "serverTypecheck": {
+    "exitCode": 0
+  },
+  "diffCheck": {
+    "exitCode": 0
+  },
+  "fullTests": false,
+  "onlineMutation": false
+}

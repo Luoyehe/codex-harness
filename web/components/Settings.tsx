@@ -15,6 +15,7 @@ import { McpPanel } from './McpPanel';
 import { CliDiagnosticsPanel } from './CliDiagnosticsPanel';
 import { SecuritySettings } from './SecuritySettings';
 import { OperationHistory } from './OperationHistory';
+import type { DraftMode } from '../lib/drafts';
 export function Settings({
   api,
   epoch,
@@ -29,6 +30,7 @@ export function Settings({
   onOpenDraft,
   onOpenThread,
   configurationReady = true,
+  managementReady,
   connectionId = '',
   runtimeEpoch = epoch,
   projectId,
@@ -39,6 +41,7 @@ export function Settings({
   connected = true,
   initialTab = 'general',
   onOpenNativeTerminal,
+  draftMode = 'native',
 }: {
   initialTab?: 'general' | 'admin' | 'provider';
   onOpenNativeTerminal?: (projectId: string) => void;
@@ -50,6 +53,7 @@ export function Settings({
   lease?: string;
   connected?: boolean;
   configurationReady?: boolean;
+  managementReady?: boolean;
   projectId?: string;
   api: Api;
   epoch: string;
@@ -63,6 +67,7 @@ export function Settings({
   onLogout: () => Promise<void>;
   onOpenDraft: (key: string) => void;
   onOpenThread?: (id: string) => void;
+  draftMode?: DraftMode;
 }) {
   const [visited, setVisited] = useState<string[]>([initialTab]);
   const [tab, setTab] = useState<string>(initialTab),
@@ -128,7 +133,7 @@ export function Settings({
               ))}
             </section>
           )}
-          {tab === 'drafts' && <DraftsSettings projects={projects} onOpen={onOpenDraft} />}
+          {tab === 'drafts' && <DraftsSettings projects={projects} onOpen={onOpenDraft} draftMode={draftMode} />}
           {tab === 'operations' && <OperationHistory api={api} runtimeReady={configurationReady && connected}
             recoveryEpoch={epoch} openThread={onOpenThread ?? (() => {})} />}
           {tab === 'security' && <section className="stack">
@@ -205,7 +210,7 @@ export function Settings({
           )}{' '}
           {tab === 'admin' && (
             <div className="stack">
-              <AdminSettings api={api} epoch={epoch} />
+              <AdminSettings api={api} epoch={epoch} configurationReady={managementReady ?? (configurationReady && connected)} />
               <CliDiagnosticsPanel
                 api={api}
                 epoch={runtimeEpoch}

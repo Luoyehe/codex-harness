@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "changeId": "v230-proxy-fixture-selection",
+  "authorId": "v230_audit_gateway_tooling",
+  "completedAt": "2026-10-30T21:59:05.386724+00:00",
+  "complete": true,
+  "files": [
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "fb59bb16ec6578ed4cc7eb9dad8011b93901ee94c5ecb17a4a47bc803f68e904"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "97389277babec386aff789b85c6d2ad804215dd55b86ee0d1d7c6ca20937b7ed"
+    }
+  ],
+  "beforeHashes": {
+    "scripts/select-tests.mjs": "0e913385c99aaef5288e87b67f092b2c04d894c6a2090d5e2008f7b67116deaf",
+    "tests/tooling/select-tests.test.ts": "825002f2e1bea2603edfc202da734c37b388dea9414d2c8b808b2744014efc79"
+  },
+  "problem": "First-match deploymentPairs selection treated proxy-core and proxy-transaction as separate ordinary/root pairs although both root suites import LoopbackPeer from ordinary proxy-core. A test-only change to shared fixture could omit root transaction coverage.",
+  "fixtureImportEvidence": [
+    {
+      "path": "tests/deploy/root/test_proxy_core.py",
+      "line": 20,
+      "import": "from tests.deploy.test_proxy_core import LoopbackPeer"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "line": 25,
+      "import": "from tests.deploy.test_proxy_core import LoopbackPeer"
+    },
+    {
+      "path": "tests/deploy/test_proxy_core.py",
+      "line": 48,
+      "definition": "class LoopbackPeer"
+    }
+  ],
+  "changes": [
+    "Merged proxy_core ordinary/root and proxy_transaction ordinary/root into one explicit four-file impact group.",
+    "Replaced proxy-only pair expectations with exact groups and mappings assertions for a change to each of the four files.",
+    "For every changed member, removing each other member must report missing-deployment-identity-coverage and require full audit."
+  ],
+  "selection": [
+    "tests/deploy/test_proxy_core.py",
+    "tests/deploy/root/test_proxy_core.py",
+    "tests/deploy/test_proxy_transaction.py",
+    "tests/deploy/root/test_proxy_transaction.py"
+  ],
+  "validation": {
+    "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted tests/tooling/select-tests.test.ts",
+    "exitCode": 0,
+    "total": 15,
+    "passed": 15,
+    "failed": 0,
+    "evidence": ".work/test-results/run-XGZdI4/vitest.json",
+    "evidenceSha256": "2073885f8d6caec05737e449c7f996f3e48af7f5ac0b3d43bf8e55ce95805d4a",
+    "log": ".work/v230-proxy-fixture-selection-targeted.log",
+    "fullSuiteExecuted": false,
+    "pythonSuitesExecuted": false,
+    "testExecutions": 1
+  },
+  "limitations": [
+    "This is an implementation report, not independent approval. Parent will review the exact recorded file bytes.",
+    "No deployment, real root/native integration, credential access, or main repository Git mutation performed; selection test creates isolated Git fixtures as designed."
+  ],
+  "remainingFindings": []
+}

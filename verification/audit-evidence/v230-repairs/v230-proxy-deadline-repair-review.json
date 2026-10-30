@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v230_audit_deployment",
+  "kind": "independent-incremental-repair-review",
+  "baseRoundId": "v230-round1",
+  "baseDigest": "66835dab744b37d67270c8f6fc5a9f2cfc39322289e8fefa904aef71c1cc7d91",
+  "complete": true,
+  "closedFindings": [
+    "deployment P2: total deadlines for upstream proxy readiness and core download",
+    "deployment P3: unused install_control wrapper"
+  ],
+  "files": [
+    {
+      "path": "deploy/proxy_core.py",
+      "sha256": "a2d3cd83b79a1a35c6cc39aa0ce492f44cc9f691b0e748572f460ae7da948b90"
+    },
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "038479c2cbb3989d78be13482e2bc4d6022f6c6d1aa0ec3407639190cc3c3563"
+    },
+    {
+      "path": "tests/deploy/test_proxy_core.py",
+      "sha256": "7fb8d77362963b75ae5213b3fa2f8ff8ef474c5bec59c5e780a031cf454629aa"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_core.py",
+      "sha256": "b6c4fde4a9a794880928acf65fc1bfefed78b0b410c70803c10d26b660ea9787"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "3d9270d2aa8120e3c7a2e475d9b08edba102bc95e5fc609da417be9de908e1b4"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "132fdd76323a8735dc24d4bd66a9b3d340812e09d1b3d3a6efc585e497a50bfc"
+    }
+  ],
+  "findings": [],
+  "method": {
+    "sourceReview": "Read the finalized network_deadline implementation, both complete networking entrypoints, all added timer/loopback/TLS/compensation cases and their fixtures. Followed propagation into existing proxy selected-state compensation and CLI management lock. Checked current install_control deletion against round1 bytes by reinserting only the deleted wrapper and recovering the exact frozen SHA256.",
+    "deadlineAnalysis": [
+      "Linux main-thread and available setitimer admission occurs before networking; preexisting active or periodic real timer rejects without modifying timer or handler.",
+      "One-shot alarm covers open/redirect/response body for each official object and CONNECT/TLS/HEAD/header parse for readiness; socket timeout remains secondary.",
+      "Expiry raises sanitized DeployError; _fetch does not reclassify it or retry. urllib context closes returned response, readiness closes response and connection, and deadline finally disarms timer and restores original handler even on installation failure.",
+      "The existing proxy transaction catches this failure after selected publication and restores old core/config/activity; the regression case asserts exact snapshot and no unresolved recovery.",
+      "Root/native permission, cgroup/NFT policy, digest/origin restrictions and immutable publication logic are not changed by these repairs."
+    ],
+    "evidenceReview": "Verified every evidence file hash in author report and matched all six current reviewed source hashes to the final Linux fixture hash map. Read final raw root and nonroot unittest outputs and Windows case statuses. These tests were run by the author, not personally rerun by this reviewer.",
+    "executedByReviewer": [
+      "Read-only AST parse of six files",
+      "SHA256 verification of final source and author evidence",
+      "Exact inverse-deletion check for install_control"
+    ],
+    "authorTestEvidence": {
+      "linuxRoot": {
+        "passed": 17,
+        "skipped": 0,
+        "realComponents": "Linux signal deadlines, loopback sockets/urllib, local trusted TLS, root ownership; transaction systemd/nft remain substitutes"
+      },
+      "linuxNonroot": {
+        "passed": 29,
+        "skipped": 0
+      },
+      "windows": {
+        "passed": 29,
+        "skipped": 0,
+        "boundary": "Signal interface substituted for portable contract tests; no claim of real SIGALRM support"
+      },
+      "deadlineCases": "Real 0.25-second budget with 1-second margin for slow download headers/body/redirect; slow CONNECT, actual TLS handshake stall, TLS HEAD headers and positive success; cleanup/timer/lock checks. Not production-duration or external-service acceptance."
+    },
+    "limitations": [
+      "This closes two specific round1 deployment findings only; it is not a new complete repository audit.",
+      "No independent full-suite rerun, production operation, external official download, live DNS/VLESS, or real systemd/nft mutation was performed.",
+      "Original round1 nonclean report and reproduction evidence remain unmodified."
+    ]
+  },
+  "authorReport": {
+    "path": ".work/v230-proxy-deadline-fix.json",
+    "sha256": "58e00202ef47551af6eca74a0f44c78f2b4dbad5777fe3b7cc7f393275c8c415"
+  },
+  "verifiedEvidence": [
+    {
+      "path": ".work/v230-round1-deployment.json",
+      "sha256": "5dabe18d72543c81ee90137c0c781af0def561382cdfd56892be3eb259a572d1"
+    },
+    {
+      "path": ".work/v230-round1-deployment-slow-header-repro.json",
+      "sha256": "656574452cd52a84ecdf3f764c81adc18f9a1015b3cdf491b426703e0c8d6f15"
+    },
+    {
+      "path": ".work/v230-round1-deployment-slow-download-repro.json",
+      "sha256": "0708dca65a30dbd915641bc88c41c9c2280a1a794040feaf67d2b6601e52c2e5"
+    },
+    {
+      "path": ".work/v230-proxy-deadline-final-windows.json",
+      "sha256": "ec678fc1d18852b93cf772a6a387552abbfa674f5e9dc61d01b55e3027ad9ee7"
+    },
+    {
+      "path": ".work/v230-proxy-deadline-linux-320cfb7d.json",
+      "sha256": "d80c90bb09faeae868b98ad2f0ea60cab89c87f59808d9145fcc85075c104fbe"
+    },
+    {
+      "path": ".work/v230-proxy-deadline-linux-ee8c6382.json",
+      "sha256": "59039d346e283f3e853643e8b2590e224399f8cb668519bcaf91dc98de6f4431"
+    },
+    {
+      "path": ".work/v230-proxy-deadline-tls-correction-24fbd2f2.json",
+      "sha256": "54eb7138523dd274a18e8c11d5d3ff5fb06b143b083e762ae9fc85e795f5818d"
+    },
+    {
+      "path": ".work/v230-proxy-deadline-source-scan.json",
+      "sha256": "fbcf922e9a4118f0d14ef2e4dc706a6942a9b02bce3570e6ea46389d8e28ee2b"
+    }
+  ],
+  "checkedAtUtc": "2026-10-30T22:00:54.448507+00:00"
+}

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { AccountTools } from '../../src/runtime/account-tools.js';
 import { DiagnosticRedactor } from '../../src/runtime/redaction.js';
-import { DeliveryError, object, type JsonValue } from '../../src/runtime/types.js';
+import { DeliveryError, jsonBytes, object, type JsonValue } from '../../src/runtime/types.js';
 import type { NativeOptions } from '../../src/runtime/native.js';
 const owner = { clientId: 'one', eventChannelId: 'channel', operationId: '00000000-0000-0000-0000-000000000001', beforeWrite: () => {} };
 const limits = () => ({ accountId: 'account', ordinaryUsageAllowed: true, rateLimits: { limitId: null, limitName: null, normalModelSlug: null, primary: null, secondary: null, credits: null, individualLimit: null, spendControlReached: null, planType: null, rateLimitReachedType: null }, rateLimitsByLimitId: null, rateLimitResetCredits: { availableCount: 1, credits: [{ id: 'credit', resetType: 'codexRateLimits', status: 'available', grantedAt: 1, expiresAt: null, title: 'Reset', description: null }] }, rateLimitUpsell: null });
@@ -32,6 +32,17 @@ test('unavailable account identity cannot authorize consuming a credit', async (
   const current = { ...limits(), accountId: null }, tools = new AccountTools({ native: async () => current, redactor: new DiagnosticRedactor({}) });
   const shown = object(await tools.read('account/resetCredit/preview', {}, owner)); expect(shown.redeemable).toBe(false);
   await expect(tools.mutate('account/resetCredit/consume', { previewHash: shown.previewHash!, confirm: true }, async () => { throw new Error('must not dispatch'); }, owner)).rejects.toMatchObject({ code: 'credit_preview_changed' });
+});
+test.each(['omitted', 'null'])('missing account credit metadata (%s) yields a serializable unavailable preview and cannot spend or email', async mode => {
+  const current = { rateLimits: limits().rateLimits, ...(mode === 'null' ? { accountId: null, rateLimitResetCredits: null } : {}) };
+  const tools = new AccountTools({ native: async () => current, redactor: new DiagnosticRedactor({}) });
+  try {
+    const shown = object(await tools.read('account/resetCredit/preview', {}, owner));
+    expect(JSON.parse(jsonBytes(shown))).toMatchObject({ accountId: null, summary: null, redeemable: false });
+    const write = async () => { throw new Error('Unavailable account must not dispatch'); };
+    await expect(tools.mutate('account/resetCredit/consume', { previewHash: shown.previewHash!, confirm: true }, write, owner)).rejects.toMatchObject({ code: 'credit_preview_changed' });
+    await expect(tools.mutate('account/sendAddCreditsNudgeEmail', { previewHash: shown.previewHash!, creditType: 'credits', confirm: true }, write, owner)).rejects.toMatchObject({ code: 'account_changed' });
+  } finally { tools.close(); }
 });
 function gateway() {
   const notifications: unknown[] = [], calls: unknown[] = []; let failCancel = false;

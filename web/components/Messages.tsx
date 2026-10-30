@@ -3,6 +3,8 @@ import type { Api } from '../lib/api';
 import { timelineRows, type RealtimeItem, type TimelineEntry } from '../lib/timeline';
 import { object, type Turn, type Project } from '../lib/types';
 import { MessageItem } from './MessageItem';
+import { TurnFooter } from './TurnFooter';
+import { textContent } from '../lib/history';
 import { PlainText } from './SafeMarkdown';
 export { Diff } from './SafeMarkdown';
 
@@ -82,6 +84,10 @@ export function Messages({
   const [locateError, setLocateError] = useState(''),
     [locating, setLocating] = useState<string | null>(null);
   const rows = useMemo(() => timelineRows(turns, timeline), [turns, timeline]);
+  const reasoningFinished = useMemo(() => new Set(turns.filter(turn =>
+    turn.status === 'completed' || turn.items.some(item => item.type === 'agentMessage' &&
+      item.phase === 'final_answer' && textContent(item).trim().length > 0),
+  ).map(turn => turn.id)), [turns]);
   const savedEnd = endKey === null ? -1 : rows.findIndex((row) => row.key === endKey);
   const end = savedEnd < 0 ? rows.length : savedEnd + 1,
     start = Math.max(0, end - WINDOW_ROWS);
@@ -197,7 +203,8 @@ export function Messages({
                   else anchors.current.delete(row.key);
                 }}
               >
-                <MessageItem item={row.item} api={api} threadId={threadId} project={project} />
+                <MessageItem item={row.item} api={api} threadId={threadId} project={project}
+                  reasoningFinished={reasoningFinished.has(row.turnId)} />
               </div>
             );
           const turn = row.turn;
@@ -215,36 +222,7 @@ export function Messages({
                 </p>
               ) : null}
               {turn.status === 'interrupted' && <p className="muted small">此回合已停止</p>}
-              {onAction && turn.status !== 'inProgress' && (
-                <details className="turn-actions">
-                  <summary>回合操作</summary>
-                  <div className="inline wrap">
-                    <button
-                      className="button small"
-                      disabled={actionsDisabled}
-                      onClick={() => onAction(turn, 'fork')}
-                    >
-                      从此处分支
-                    </button>
-                    <button
-                      className="button small"
-                      disabled={
-                        actionsDisabled || !turn.items.some((item) => item.type === 'userMessage')
-                      }
-                      onClick={() => onAction(turn, 'edit')}
-                    >
-                      从此前编辑消息
-                    </button>
-                    <button
-                      className="button danger small"
-                      disabled={actionsDisabled || active}
-                      onClick={() => onAction(turn, 'revert')}
-                    >
-                      回退至此前
-                    </button>
-                  </div>
-                </details>
-              )}
+              <TurnFooter turn={turn} onAction={onAction} actionsDisabled={actionsDisabled} active={active} />
             </section>
           );
         })}

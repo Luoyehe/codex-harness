@@ -92,11 +92,71 @@ class ControlBoundaryTests(unittest.TestCase):
             "codex-harness-main-other-dns-build-" + "f" * 32 + ".service loaded active running other DNS build",
             "codex-harness-main-dns-test-" + "a" * 32 + ".service loaded active running DNS test",
             "codex-harness-main-other-dns-test-" + "b" * 32 + ".service loaded active running other DNS test",
+            "codex-harness-main-proxy.service loaded active running proxy",
+            "codex-harness-main-proxy-routes.service loaded active exited routes",
+            "codex-harness-main-other-proxy.service loaded active running other proxy",
+            "codex-harness-main-other-proxy-routes.service loaded active exited other routes",
         ])
         with patch("deploy.control_update.run", return_value=subprocess.CompletedProcess([], 0, text, "")):
             units = ControlSystem().instance_units(Layout("main"))
-        self.assertEqual(len(units), 5)
+        self.assertEqual(len(units), 7)
         self.assertFalse(any("main-other" in unit for unit in units))
+
+    def test_proxy_selection_requires_capable_control_even_when_disabled(self):
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder))
+            layout.config.mkdir(parents=True)
+            write_json(layout.config / "instance.json", {})
+            updater = ControlUpdater(layout)
+            updater.require_dns_guard({})
+            for enabled in (False, True):
+                updater.config["serviceProxy"] = {"enabled": enabled, "port": 18793,
+                                                  "core": "a" * 64, "configuration": "b" * 64}
+                with self.subTest(enabled=enabled):
+                    with self.assertRaises(DeployError) as failure:
+                        updater.require_dns_guard({})
+                    self.assertEqual(failure.exception.code, "proxy_unsupported")
+                    updater.require_dns_guard({"serviceProxy": 1})
+
+    def test_proxy_routes_snapshot_accepts_only_stable_oneshot_activity(self):
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder))
+            layout.config.mkdir(parents=True)
+            write_json(layout.config / "instance.json", {"serviceProxy": {
+                "enabled": True, "port": 18793, "core": "a" * 64, "configuration": "b" * 64}})
+            updater = ControlUpdater(layout)
+            def state(unit):
+                routes = unit == layout.unit("proxy-routes")
+                return {"ActiveState": "active", "SubState": "exited" if routes else "running",
+                        "MainPID": "0" if routes else "100", "ControlPID": "0", "stopped": False}
+            with patch.object(updater.system, "state", side_effect=state), \
+                 patch.object(updater.system, "enabled_state", return_value="static"):
+                snapshot = updater.service_snapshot()
+                self.assertEqual(set(snapshot), {"worker", "gateway", "authelia", "caddy", "proxy", "proxy-routes"})
+                self.assertTrue(snapshot["proxy-routes"]["active"])
+            with patch.object(updater.system, "state", return_value={"ActiveState": "activating", "SubState": "start",
+                    "MainPID": "0", "ControlPID": "100", "stopped": False}), self.assertRaises(DeployError):
+                updater.service_snapshot()
+
+    def test_control_checks_retained_proxy_material_before_preparation_and_service_restart(self):
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder))
+            layout.config.mkdir(parents=True)
+            write_json(layout.config / "instance.json", {"serviceProxy": {
+                "enabled": True, "port": 18793, "core": "a" * 64, "configuration": "b" * 64}})
+            updater = ControlUpdater(layout)
+            with patch("deploy.control_update.require_recovered"), patch("deploy.control_update.require_owned"), \
+                 patch("deploy.service_proxy.verify_selection", side_effect=DeployError("integrity", "changed proxy material")) as verify, \
+                 patch.object(updater, "prepare_paths") as prepare, patch.object(updater.system, "start") as start:
+                with self.assertRaisesRegex(DeployError, "changed proxy material"):
+                    updater.update()
+                verify.assert_called_once_with(layout, updater.config)
+                prepare.assert_not_called()
+                start.assert_not_called()
+                with self.assertRaisesRegex(DeployError, "changed proxy material"):
+                    updater.restore_services({})
+                self.assertEqual(verify.call_count, 2)
+                start.assert_not_called()
 
     def test_stage_has_fixed_real_paths_and_excludes_checkout_bytecode(self):
         with tempfile.TemporaryDirectory(prefix="stage-control-") as folder:

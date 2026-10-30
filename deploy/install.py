@@ -89,7 +89,7 @@ def control_material(layout: Layout) -> dict[str, tuple[bytes, int]]:
         result["deploy/caddy_dns_source/" + name] = (data, 0o644)
     result.update(control_launchers(layout))
     from .dns_providers import PROVIDERS
-    result["capabilities.json"] = (canonical({"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
+    result["capabilities.json"] = (canonical({"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1, "executionMode": 1, "serviceProxy": 1,
                                              "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1",
                                              "dnsProviders": list(PROVIDERS)}) + b"\n", 0o644)
     return result
@@ -106,7 +106,10 @@ import sys
 sys.dont_write_bytecode = True
 import json
 from pathlib import Path
-for record in ([] if sys.argv[1:] == ["config-check"] else Path({str(layout.control.parent / ('.' + layout.instance + '-control-transactions'))!r}).glob("*/state.json")):
+# These fixed, argument-free service preflights must also run while control
+# recovery is starting services. Each helper retains its own admission checks.
+service_preflight = sys.argv[1:] in (["config-check"], ["proxy-core-check"], ["proxy-routes-start"], ["proxy-ready"])
+for record in ([] if service_preflight else Path({str(layout.control.parent / ('.' + layout.instance + '-control-transactions'))!r}).glob("*/state.json")):
     try:
         if json.loads(record.read_text()).get("phase") not in ("committed", "recovered"):
             raise SystemExit(75)
@@ -124,10 +127,6 @@ from deploy.native_launcher import native_main
 native_main({layout.instance!r})
 '''
     return {"manage": (launcher.encode(), 0o755), "native-launch": (native.encode(), 0o755)}
-
-
-def install_control(layout: Layout) -> None:
-    stage_control(layout, layout.control)
 
 
 def initialize(layout: Layout, *, origin: str, port: int, account: dict | None = None) -> tuple[int, int]:

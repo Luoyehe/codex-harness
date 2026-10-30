@@ -257,6 +257,8 @@
     gap: 4px;
   }
   .settings-tabs .nav-item {
+    flex: 0 0 auto;
+    min-height: 40px;
     white-space: nowrap;
     padding: 8px 10px;
     font-size: 11px;
@@ -375,12 +377,11 @@
   .composer-note {
     font-size: 8px;
   }
-  .dialog {
+  .dialog,
+  .dialog.wide {
     width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
     max-height: calc(100dvh - 16px);
-  }
-  .dialog-body {
-    max-height: calc(100dvh - 85px);
   }
   .recovery-row {
     align-items: flex-start;

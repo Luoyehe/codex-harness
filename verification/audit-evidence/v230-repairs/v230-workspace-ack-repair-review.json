@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "finding": "V230-RG-001",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "status": "resolved in the reviewed two-file repair",
+  "files": [
+    {
+      "path": "src/runtime/workspace-service.ts",
+      "sha256": "8fd770ec723a46780aa71c511446810f861fbafcc3c7a9583aa58bf34f2e19a2"
+    },
+    {
+      "path": "tests/runtime/workspace-service.test.ts",
+      "sha256": "79d5e99b15ddebffa5c03855359e09f18aa73d1e068676534d40a9fef462abde"
+    }
+  ],
+  "preservedOriginalReport": {
+    "path": ".work/v230-round3-runtime-gateway.json",
+    "sha256": "555057d528a6b5f03dd892f1204c23d77ac58438d153c2f29fd703edfd1bdb47"
+  },
+  "authorReport": {
+    "path": ".work/v230-workspace-ack-repair.json",
+    "sha256": "fe1acb887bf562d8d9b67536569a9e78e1851344ce6440fd303e848fa73b31b2"
+  },
+  "method": [
+    "Fresh full-text semantic review of both modified files; acknowledged is set immediately after positive runWorkspace return and before every local witness/postprocessing step.",
+    "Post-ack default-not_sent and generic exceptions become unknown, original unknown errors are preserved, unresolved witness remains, and uncertain callback marks runtime. Pre-positive explicit helper not_sent still releases exactly its reservation.",
+    "Independently reran unchanged original actual-mkdir reproduction against current source, then added six isolated cases through current RuntimeWorkspace plus Dispatcher/Ledger and the worker error projection.",
+    "No full suite, live deployment, source/test edits or next-round digest rebinding in this incremental report."
+  ],
+  "evidence": {
+    "originalReproductionScript": {
+      "path": ".work/v230-round3-workspace-ack-repro.mjs",
+      "sha256": "8ce78de89f4d34464392bf44f2ef6a06e45d5b7e7949120332c26508bc68c6da"
+    },
+    "repairedOriginalRun": {
+      "path": ".work/v230-round3-workspace-ack-FjpIaI/proof.json",
+      "sha256": "32cf2de31db1d9d7ba85367632bf3a730332d81c691192f4a138ea54e9c50446"
+    },
+    "independentBoundaryScript": {
+      "path": ".work/v230-workspace-ack-repair-repro.mjs",
+      "sha256": "aadc3bcc301b6d29bd75fac0181f6b9c5bf78aa5ef36ecd2b51235f9df4bbf85"
+    },
+    "independentBoundaryRun": {
+      "path": ".work/v230-workspace-ack-repair-zgUVdl/proof.json",
+      "sha256": "9426a7d5a8a69b59381c4ec8f532cdc5e764548f72c9ef25442e6a6fd20e2d65"
+    },
+    "assertions": [
+      "Actual directory remains after malformed positive mkdir response; durable gateway receipt unknown; witness unknown; uncertain true.",
+      "Malformed positive worktree binding has the same conservative outcome.",
+      "Existing invalid-native-response unknown identity error remains unchanged.",
+      "Generic local proof failure after positive helper response becomes unknown.",
+      "Definite helper rejection remains not_sent with witness not_received and uncertain false; a distinct subsequent operation succeeds.",
+      "Final owner rejection before write creates no directory or helper request.",
+      "Original operation replay calls no mutation helper in all six cases."
+    ],
+    "testReports": [
+      {
+        "path": ".work/test-results/run-VeiEWx/vitest.json",
+        "sha256": "6242857a7e00f7137963b223b7df949946f49eb5201de2ad3f452e609982dcbc",
+        "provenance": "Author-run JSON independently inspected",
+        "passed": 10,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "path": ".work/test-results/run-hb7SJa/vitest.json",
+        "sha256": "a63550a02dec1e1cd27a0f2469ea662a5cbc3db3220e1c9b508b83ba7b1ae581",
+        "provenance": "Earlier mixed author run; overall FAILED 66/67. Only unchanged passing files retained.",
+        "overallSuccess": false,
+        "retainedPassed": 57,
+        "retainedFiles": [
+          "tests/gateway/dispatch.test.ts",
+          "tests/runtime/workspace-witness.test.ts",
+          "tests/runtime/worktree-witness.test.ts"
+        ]
+      }
+    ],
+    "initialFixtureFailure": "Independent six-case harness initially counted accepted-operation cleanup operation/ack as a second mutation, yielding 3 vs 2. Fixed harness separates internal acknowledgement from mutation calls and responds with the exact ack identity; current six cases all pass. No product code changed.",
+    "authorInitialFailure": "Author first worktree regression omitted worktreeId and exercised the existing unknown identity guard instead of malformed binding; corrected test passes. Absent test path command was rejected before execution.",
+    "typecheck": "Author reports server tsc exit 0; not independently rerun."
+  },
+  "limitations": [
+    "Fault-injected helper responses with actual isolated local mkdir establish wrapper semantics, not live Linux helper failure frequency or Linux filesystem acceptance.",
+    "The independent boundary fixture uses RuntimeWorkspace directly with a recording uncertain callback. The actual RuntimeService state/barrier path is covered by the ten inspected author-run service cases."
+  ],
+  "remainingFindings": []
+}

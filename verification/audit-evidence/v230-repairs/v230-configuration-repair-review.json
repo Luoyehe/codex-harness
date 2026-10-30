@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-repair-review",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "finding": "V230-RG-002",
+  "status": "resolved",
+  "round5Digest": "2a748e7c8210a9bbf8e1314b20220ed53da3d1803b1da8d95aa2a8fb5d0c742e",
+  "files": [
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9d8d0335b714ae1484340f56ac47de36952c36eedb5117c1277649f065cab165",
+      "reviewDepth": "Full changed configuration wrapper plus callers/catches inspected; unchanged surrounding service semantics retained from prior rounds"
+    },
+    {
+      "path": "src/runtime/remote-control.ts",
+      "sha256": "12502fa5d675e6c6b08cb2ce0aa3024e0a845b81406b40376ef07d0a1f2272a3",
+      "reviewDepth": "Fresh complete adapter source review"
+    },
+    {
+      "path": "src/runtime/environments.ts",
+      "sha256": "fcd148f95ea1133195b739cb1cd61aeda82c855cb330a1e92eace58ec12e49f2",
+      "reviewDepth": "Fresh complete adapter source review"
+    },
+    {
+      "path": "src/runtime/account-tools.ts",
+      "sha256": "f504a9df8dbff74b669e17808364821a061fc09dfb49b16b1b88aa05c6295648",
+      "reviewDepth": "Fresh complete adapter source review"
+    },
+    {
+      "path": "tests/runtime/remote.test.ts",
+      "sha256": "6a9fc5034419e8f830cbb57ed7e203cb4b426219a1961e6c4b3955c90b69bd46",
+      "reviewDepth": "Fresh complete test-file body review"
+    },
+    {
+      "path": "tests/runtime/account-tools.test.ts",
+      "sha256": "dc02c3297cd6e5b3832a7523b5ccffb0fa9136ac7fb243e5155e38d357dd9609",
+      "reviewDepth": "Fresh complete test-file body review"
+    }
+  ],
+  "originalFindingEvidence": {
+    "path": ".work/v230-round4-runtime-gateway.json",
+    "sha256": "83efdd189bfa30c63a320966f652e0010b62515f0e844b44bf430bc58d76ec70"
+  },
+  "authorEvidence": {
+    "path": ".work/v230-configuration-repair.json",
+    "sha256": "bcafab60528e7b390f382dd077c5f97ec579af7665fe060b9c99441c1aa56511"
+  },
+  "method": {
+    "semantic": "Checked every shared configuration write acknowledgement is awaited and recorded before adapter processing. Once acknowledged, generic/not_sent local failures become unknown, existing unknown remains intact, and finally clears admission counters. Prior positive remains sticky across multi-write operations by construction. Read-only prerequisites do not set acknowledged. The four limited nullable adapters retain schema/type/budget/ownership constraints and do not change history/model/MCP/organization cursor completeness.",
+    "sourceChanges": "Exactly six author files match current hash and frozen round5 snapshot; no reviewer source/test edits.",
+    "compatibility": "JSON permits missing nullable fields while generated TypeScript requires explicit null. Tests prove controlled response compatibility, not occurrence of omitted fields from the actual pinned CLI."
+  },
+  "independentValidation": {
+    "script": {
+      "path": ".work/v230-configuration-repair-independent.mjs",
+      "sha256": "c233acff64dc1c869ce58289a37863cbd09cd3b37198bb305912dac78607ee9d"
+    },
+    "proof": {
+      "path": ".work/v230-configuration-repair-independent-6XdCum/proof.json",
+      "sha256": "6e67f5ef8e9334f9a54e2ee5112f421a5e751a62bad1d1d085b06bdb9870a848"
+    },
+    "cases": 17,
+    "acknowledgementCases": [
+      {
+        "kind": "redactor-capacity",
+        "receiptState": "unknown",
+        "runtimeUnknown": true,
+        "pendingStarts": 0,
+        "positiveAtFailure": true,
+        "pairingCallsAtFailure": 1,
+        "replayAdditionalCalls": 0
+      },
+      {
+        "kind": "manual-code-bound",
+        "receiptState": "unknown",
+        "runtimeUnknown": true,
+        "pendingStarts": 0,
+        "positiveAtFailure": true,
+        "pairingCallsAtFailure": 1,
+        "replayAdditionalCalls": 0
+      },
+      {
+        "kind": "generic-post-ack",
+        "receiptState": "unknown",
+        "runtimeUnknown": true,
+        "pendingStarts": 0,
+        "positiveAtFailure": true,
+        "pairingCallsAtFailure": 1,
+        "replayAdditionalCalls": 0
+      },
+      {
+        "kind": "existing-unknown",
+        "receiptState": "unknown",
+        "runtimeUnknown": true,
+        "pendingStarts": 0,
+        "positiveAtFailure": true,
+        "pairingCallsAtFailure": 1,
+        "replayAdditionalCalls": 0
+      },
+      {
+        "kind": "positive-without-beforewrite",
+        "receiptState": "unknown",
+        "runtimeUnknown": true,
+        "pendingStarts": 0,
+        "positiveAtFailure": true,
+        "pairingCallsAtFailure": 1,
+        "replayAdditionalCalls": 0
+      },
+      {
+        "kind": "native-not-sent",
+        "receiptState": "not_sent",
+        "runtimeUnknown": false,
+        "pendingStarts": 0,
+        "positiveAtFailure": false,
+        "pairingCallsAtFailure": 1,
+        "replayAdditionalCalls": 0
+      },
+      {
+        "kind": "owner-not-sent",
+        "receiptState": "not_sent",
+        "runtimeUnknown": false,
+        "pendingStarts": 0,
+        "positiveAtFailure": false,
+        "pairingCallsAtFailure": 0,
+        "replayAdditionalCalls": 0
+      },
+      {
+        "kind": "read-only-preflight-error",
+        "receiptState": "unknown",
+        "runtimeUnknown": false,
+        "pendingStarts": 0,
+        "positiveAtFailure": false,
+        "pairingCallsAtFailure": 0,
+        "replayAdditionalCalls": 0
+      }
+    ],
+    "compatibilityCases": [
+      {
+        "kind": "manual-omitted",
+        "controls": [
+          "owner-only secret; public identity contains no secret"
+        ]
+      },
+      {
+        "kind": "manual-null",
+        "controls": [
+          "owner-only secret; public identity contains no secret"
+        ]
+      },
+      {
+        "kind": "cursor-omitted",
+        "controls": [
+          "repeated cursor still rejected"
+        ]
+      },
+      {
+        "kind": "cursor-null",
+        "controls": [
+          "repeated cursor still rejected"
+        ]
+      },
+      {
+        "kind": "cwd-omitted",
+        "controls": [
+          "prior selection cleared; no native thread start"
+        ]
+      },
+      {
+        "kind": "cwd-null",
+        "controls": [
+          "prior selection cleared; no native thread start"
+        ]
+      },
+      {
+        "kind": "credit-omitted",
+        "controls": [
+          "unavailable metadata never permits credit spend; absent account prevents email"
+        ]
+      },
+      {
+        "kind": "credit-null",
+        "controls": [
+          "unavailable metadata never permits credit spend; absent account prevents email"
+        ]
+      },
+      {
+        "kind": "credit-omitted-account-present",
+        "controls": [
+          "unavailable metadata never permits credit spend; absent account prevents email"
+        ]
+      }
+    ],
+    "importantLimits": [
+      "Actual RuntimeService plus Dispatcher/Ledger, isolated homes, controlled native replies; no account/network/MCP access.",
+      "Real redactor capacity, oversized valid-schema manual code, generic local error, preserved unknown, and no-beforeWrite adapter positive result all become unknown and block new writes.",
+      "True native not_sent remains reusable after rejection clears; owner-beforeWrite failure calls no pairing backend.",
+      "Malformed read-only prerequisite creates no pairing call and leaves runtime uncertainty false; its request receipt is conservatively unknown because remoteResponse emits unknown. This was observed, not claimed as not_sent.",
+      "No independent live CLI execution or full suite."
+    ]
+  },
+  "authorValidation": {
+    "path": ".work/test-results/run-iFN1tC/vitest.json",
+    "sha256": "8cc561576cf01d99820293c3bf8512f446f2a946620929f1db5356b29f06716d",
+    "inspected": true,
+    "rerun": false,
+    "passed": 103,
+    "failed": 0,
+    "pending": 0,
+    "files": [
+      "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/account-tools.test.ts",
+      "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/device-login.test.ts",
+      "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/mcp-configuration.test.ts",
+      "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/remote.test.ts",
+      "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/service.test.ts",
+      "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/workspace-service.test.ts"
+    ],
+    "typecheck": "Author reports server tsc exit 0; not independently rerun"
+  },
+  "remainingFindings": [],
+  "completedAt": "2026-10-30T23:05:55.243Z"
+}

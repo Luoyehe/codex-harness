@@ -8,7 +8,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { RuntimeService, type RuntimeConfig } from './service.js';
 import { DeliveryError, jsonBytes, object, onlyKeys, string, type JsonValue, type RuntimeEvent } from './types.js';
 import { CODEX_VERSION } from './metadata.js';
-import { runNativeHelper, validateLauncher } from './native-launch.js';
+import { runNativeHelper, validateLauncher, type ExecutionPolicy } from './native-launch.js';
 
 export interface WorkerServerConfig { socket?: string; devPort?: number; token?: string }
 export async function startWorkerServer(service: RuntimeService, config: WorkerServerConfig): Promise<{ server: Server; close: () => Promise<void> }> {
@@ -43,7 +43,7 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
       // give an in-flight request authority from a different event connection.
       try { if (req.url !== '/disconnect') requireChannel(); else if (!eventChannelId) throw new DeliveryError('gateway_disconnected', 'An event channel identity is required'); }
       catch (error) { const fault = error as DeliveryError; reply(res, 200, { ok: false, error: { code: fault.code, message: fault.message, delivery: fault.delivery } }); req.resume(); return; }
-      calls++; let bytes = 0; const chunks: Buffer[] = [];
+      calls++; let bytes = 0; let callResolved = false; const chunks: Buffer[] = [];
       try {
         for await (const raw of req) {
           const chunk = Buffer.isBuffer(raw) ? raw : Buffer.from(raw as string);
@@ -73,10 +73,13 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
         const gatewayRequestDigest = context.gatewayRequestDigest === undefined ? undefined : string(context.gatewayRequestDigest, 'gatewayRequestDigest', 64);
         const projectId = context.projectId === undefined ? undefined : string(context.projectId, 'projectId', 36);
         const result = await service.call(method, object(envelope.params ?? {}), { clientId, eventChannelId: eventChannelId!, beforeWrite: requireOwner, ...(operationId ? { operationId } : {}), ...(gatewayRequestDigest ? { gatewayRequestDigest } : {}), ...(projectId ? { projectId } : {}) });
+        callResolved = true;
         reply(res, 200, { ok: true, result });
       } catch (error) {
         const fault = error instanceof DeliveryError ? error : new DeliveryError('internal_error', 'Worker request failed', 'unknown');
-        reply(res, 200, { ok: false, error: { code: fault.code, message: fault.message, delivery: fault.delivery, ...(fault.data !== undefined ? { data: fault.data } : {}) } });
+        // Serializing a completed call cannot establish that its work was unsent.
+        const delivery = callResolved ? 'unknown' : fault.delivery;
+        reply(res, 200, { ok: false, error: { code: fault.code, message: fault.message, delivery, ...(fault.data !== undefined ? { data: fault.data } : {}) } });
       } finally {
         // A fast CLI exit can race its open/close RPC. Flush the definitive
         // response before recycling the worker, so an accepted open stays known.
@@ -118,6 +121,14 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
   } };
 }
 
+export function executionPolicyFromEnvironment(env: NodeJS.ProcessEnv, launcherUser: string): ExecutionPolicy | undefined {
+  const revision = env.HARNESS_EXECUTION_REVISION, mode = env.HARNESS_EXECUTION_MODE, allowed = env.HARNESS_ROOT_ALLOWED;
+  if (revision === undefined && mode === undefined && allowed === undefined && /^ch-[a-z0-9][a-z0-9-]*-worker$/.test(launcherUser)) return undefined;
+  if (!revision || !/^[a-f0-9]{64}$/.test(revision) || !['native', 'root'].includes(mode ?? '') || !['0', '1'].includes(allowed ?? '') ||
+      (mode === 'root' ? launcherUser !== 'root' || allowed !== '1' : !/^ch-[a-z0-9][a-z0-9-]*-worker$/.test(launcherUser))) throw new Error('Invalid managed execution policy');
+  return { mode: mode as 'native' | 'root', rootAllowed: allowed === '1', revision };
+}
+
 export function configFromEnvironment(env: NodeJS.ProcessEnv): { runtime: RuntimeConfig; server: WorkerServerConfig } {
   const dev = env.HARNESS_DEV === '1'; const bin = string(env.HARNESS_CODEX_BIN, 'HARNESS_CODEX_BIN'); const home = string(env.HARNESS_CODEX_HOME, 'HARNESS_CODEX_HOME'); const workerHome = string(env.HARNESS_WORKER_HOME, 'HARNESS_WORKER_HOME');
   if (![bin, home, workerHome].every(value => path.isAbsolute(value))) throw new Error('Worker paths must be absolute');
@@ -138,12 +149,19 @@ export function configFromEnvironment(env: NodeJS.ProcessEnv): { runtime: Runtim
   }
   if (dev) { const token = string(env.HARNESS_WORKER_TOKEN, 'HARNESS_WORKER_TOKEN', 256); if (token.length < 32) throw new Error('Worker token must contain at least 32 characters'); const port = Number(env.HARNESS_WORKER_PORT ?? '4318'); if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid worker port'); return { runtime, server: { devPort: port, token } }; }
   const launcher = { path: string(env.HARNESS_NATIVE_LAUNCHER, 'HARNESS_NATIVE_LAUNCHER'), user: string(env.HARNESS_NATIVE_USER, 'HARNESS_NATIVE_USER', 64) }; validateLauncher(launcher);
+  const executionPolicy = executionPolicyFromEnvironment(env, launcher.user);
   const gid = Number(string(env.HARNESS_ATTACHMENT_GID, 'HARNESS_ATTACHMENT_GID', 16)); if (!Number.isSafeInteger(gid) || gid <= 0 || gid > 0xffffffff || !process.getgroups?.().includes(gid)) throw new Error('Invalid native attachment read group');
-  runtime.launcher = launcher; runtime.attachmentGid = gid;
+  runtime.launcher = launcher; runtime.attachmentGid = gid; if (executionPolicy) runtime.executionPolicy = executionPolicy;
   return { runtime, server: { socket: string(env.HARNESS_WORKER_SOCKET, 'HARNESS_WORKER_SOCKET') } };
 }
+export function prepareRuntimeHomes(config: RuntimeConfig): void {
+  // Managed native homes belong to the selected execution identity, which can
+  // be root. The unprivileged supervisor only creates its own private storage.
+  if (!config.launcher) mkdirSync(config.home, { recursive: true, mode: 0o700 });
+  mkdirSync(config.workerHome, { recursive: true, mode: 0o700 });
+}
 async function main(): Promise<void> {
-  const config = configFromEnvironment(process.env); mkdirSync(config.runtime.home, { recursive: true, mode: 0o700 }); mkdirSync(config.runtime.workerHome, { recursive: true, mode: 0o700 });
+  const config = configFromEnvironment(process.env); prepareRuntimeHomes(config.runtime);
   if ((await runNativeHelper(config.runtime, 'version')).trim() !== `codex-cli ${CODEX_VERSION}`) throw new Error('Codex runtime version does not match the pinned package');
   const service = await RuntimeService.create(config.runtime); let shuttingDown = false;
   let handle: Awaited<ReturnType<typeof startWorkerServer>>;

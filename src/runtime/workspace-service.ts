@@ -55,6 +55,7 @@ export class RuntimeWorkspace {
     if (!context.beforeWrite) throw new DeliveryError('operation_required', 'Workspace mutations require the durable operation boundary');
     const execute = async (boundary: () => void): Promise<JsonValue> => {
       let sent = false;
+      let acknowledged = false;
       const body = workspaceRequest(root, action, request, context);
       const witness = this.witness();
       try {
@@ -62,9 +63,14 @@ export class RuntimeWorkspace {
           ...context,
           beforeWrite: () => { boundary(); witness.reserve(method, body, context); sent = true; },
         });
+        acknowledged = true;
         return witness.complete(method, body, result, context);
       } catch (error) {
-        const failure = error instanceof DeliveryError ? error : new DeliveryError('workspace_witness', 'Workspace acknowledgement could not be confirmed', sent ? 'unknown' : 'not_sent');
+        // A positive helper reply means the mutation may already exist. Local
+        // result validation or proof storage cannot downgrade it to not_sent.
+        const failure = acknowledged && (!(error instanceof DeliveryError) || error.delivery === 'not_sent')
+          ? new DeliveryError('workspace_witness', 'Workspace acknowledgement could not be confirmed', 'unknown')
+          : error instanceof DeliveryError ? error : new DeliveryError('workspace_witness', 'Workspace acknowledgement could not be confirmed', sent ? 'unknown' : 'not_sent');
         if (sent && failure.delivery === 'not_sent') witness.discardNotSent(method, body, context);
         if (failure.delivery === 'unknown') this.host.uncertain();
         throw failure;

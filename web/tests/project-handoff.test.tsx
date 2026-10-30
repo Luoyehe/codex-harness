@@ -42,6 +42,7 @@ test.each(['new', 'existing', 'draft-save-failure'])('adding a project respects 
   render(<App/>);
   await screen.findByRole('button',{name:'Old Project'});
   await waitFor(()=>expect(sockets.length).toBe(1));
+  // A supported development runtime has no managed execution identity in its state.
   await act(async()=>{sockets[0].onopen();sockets[0].onmessage({data:JSON.stringify({type:'state',data:{connected:true,runtime:{connected:true,epoch:'epoch',activity:{unknown:false,activeThreads:[],pendingStarts:0,terminals:0,processes:0,subscriptions:0}}}})});});
   if(kind === 'draft-save-failure') {
     const original = Storage.prototype.setItem;
@@ -54,7 +55,7 @@ test.each(['new', 'existing', 'draft-save-failure'])('adding a project respects 
   fireEvent.click(screen.getByRole('button',{name:'添加项目'}));
   if(kind === 'existing') {
     fireEvent.click(screen.getByRole('button',{name:'添加已有目录'}));
-    fireEvent.change(screen.getByRole('textbox',{name:'服务器上的绝对目录'}),{target:{value:'/projects/New Project'}});
+    fireEvent.change(screen.getByRole('textbox',{name:'项目路径'}),{target:{value:'/projects/New Project'}});
   }
   fireEvent.change(screen.getByRole('textbox',{name:'项目名称'}),{target:{value:'New Project'}});
   const save=within(screen.getByRole('dialog',{name:'添加项目'})).getByRole('button',{name:kind === 'existing' ? '添加项目' : '创建项目'});
@@ -86,4 +87,41 @@ test.each(['new', 'existing', 'draft-save-failure'])('adding a project respects 
   await waitFor(()=>expect(screen.getByRole('button',{name:'发送消息'}).matches(':disabled')).toBe(false));
   fireEvent.click(screen.getByRole('button',{name:'发送消息'}));
   await waitFor(()=>expect(requests.find(row=>row.method==='conversation/start')?.params.projectId).toBe('new'));
+});
+
+test('a known ROOT workspace blocks project submissions after its actual identity becomes unconfirmed', async () => {
+  settleMutations = async () => {};
+  localStorage.clear(); sessionStorage.clear(); history.replaceState({}, '', '/');
+  sessionStorage.setItem('harness.project', 'p'); sessionStorage.setItem('harness.execution-mode', 'root');
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
+  Element.prototype.scrollIntoView = vi.fn();
+  const sockets: any[] = [], requests: any[] = [];
+  vi.stubGlobal('WebSocket', class { onopen = () => {}; onclose = () => {}; onmessage = (_: any) => {}; close() {} constructor() { sockets.push(this); } });
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init: any) => {
+    if (url === '/api/session') return { status: 200, ok: true, json: async () => ({ authenticated: true, csrf: 'csrf', operationRecoveryProtocol: 2 }) };
+    const request = JSON.parse(init.body); requests.push(request);
+    const result = request.method === 'project/list' ? { projects: [{ id: 'p', name: 'Project', path: '/root/projects/p' }] }
+      : request.method === 'project/defaults' ? { directory: '/root/projects' }
+        : request.method === 'prompt/list' ? { prompts: [] } : { data: [], nextCursor: null };
+    return { status: 200, ok: true, json: async () => ({ ok: true, result }) };
+  }));
+  render(<App />);
+  await screen.findByRole('button', { name: 'Project' });
+  await waitFor(() => expect(sockets).toHaveLength(1));
+  const state = (connected: boolean) => ({ data: JSON.stringify({ type: 'state', data: { connected, runtime: {
+    connected, epoch: 'root-epoch', ...(connected ? { executionMode: { mode: 'root', effectiveUid: 0 } } : {}),
+    activity: { unknown: false, activeThreads: [], pendingStarts: 0, terminals: 0, processes: 0, subscriptions: 0 },
+  } } }) });
+  await act(async () => { sockets[0].onopen(); sockets[0].onmessage(state(true)); });
+  fireEvent.click(screen.getByRole('button', { name: '添加项目' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), { target: { value: 'Pending project' } });
+  fireEvent.change(screen.getByRole('textbox', { name: '项目路径' }), { target: { value: '../pending' } });
+  const save = within(screen.getByRole('dialog', { name: '添加项目' })).getByRole('button', { name: '创建项目' });
+  await waitFor(() => expect(save).toHaveProperty('disabled', false));
+  await act(async () => sockets[0].onmessage(state(false)));
+  expect(save).toHaveProperty('disabled', true);
+  fireEvent.submit(save.closest('form')!);
+  expect(requests.some(request => ['project/create', 'project/add'].includes(request.method))).toBe(false);
+  expect(screen.getByRole('textbox', { name: '项目路径' })).toHaveProperty('value', '../pending');
 });

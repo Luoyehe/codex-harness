@@ -14,6 +14,7 @@ import {
   emptyDraft,
   readDraft,
   writeDraft,
+  type DraftMode,
 } from '../lib/drafts';
 
 type Base = {
@@ -35,6 +36,7 @@ export function BranchDialog({
   onCreatedFork = onFork,
   memoryDraft,
   onDraft,
+  draftMode = 'native',
 }: Base & {
   turn: Turn;
   action: 'fork' | 'edit' | 'revert';
@@ -42,11 +44,12 @@ export function BranchDialog({
   onCreatedFork?: (threadId: string, draft?: string) => boolean;
   memoryDraft?: string;
   onDraft: (text: string) => void;
+  draftMode?: DraftMode;
 }) {
   const [boundary, setBoundary] = useState<'before' | 'through'>(
     kind === 'edit' ? 'before' : 'through',
   );
-  const key = branchDraftKey(threadId, turn.id);
+  const key = branchDraftKey(threadId, turn.id, draftMode);
   const [initial] = useState(() => {
     const source = turn.items
       .filter((item) => item.type === 'userMessage')

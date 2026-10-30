@@ -1,6 +1,6 @@
 {
   "name": "codex-harness",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,7 +9,9 @@
   "packageManager": "pnpm@11.22.0",
   "codexVersion": "0.164.0",
   "harnessAuthentication": "account-v1",
+  "codexHarnessExecutionMode": 1,
   "scripts": {
+    "release:preflight": "node scripts/release-preflight.mjs",
     "build:server": "tsc -p tsconfig.server.json",
     "build:web": "vite build --config web/vite.config.ts",
     "build": "pnpm build:server && pnpm build:web",

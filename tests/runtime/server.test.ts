@@ -7,13 +7,13 @@ import type { AddressInfo } from 'node:net';
 import { WebSocket } from 'ws';
 import { startWorkerServer, configFromEnvironment } from '../../src/runtime/main.js';
 import type { RuntimeService } from '../../src/runtime/service.js';
-import { DeliveryError, type CallContext } from '../../src/runtime/types.js';
+import { DeliveryError, LIMITS, type CallContext } from '../../src/runtime/types.js';
 import { nativeCommand } from '../../src/runtime/native-launch.js';
 const handles: Awaited<ReturnType<typeof startWorkerServer>>[] = [];
 afterEach(async () => { await Promise.all(handles.splice(0).map(handle => handle.close())); });
-async function setup() {
+async function setup(result?: () => unknown) {
   const service = Object.assign(new EventEmitter(), { status: () => ({ epoch: 'epoch', connected: true }), calls: [] as unknown[], writes: [] as string[], disconnected: [] as string[], closedChannels: [] as string[], writeGate: undefined as Promise<void> | undefined,
-    async call(method: string, params: unknown, context: CallContext) { this.calls.push({ method, params, context }); await this.writeGate; context.beforeWrite?.(); this.writes.push(method); if (method === 'bad') throw new DeliveryError('invalid_params', 'bad parameters'); return { method }; },
+    async call(method: string, params: unknown, context: CallContext) { this.calls.push({ method, params, context }); await this.writeGate; context.beforeWrite?.(); this.writes.push(method); if (method === 'bad') throw new DeliveryError('invalid_params', 'bad parameters'); return result ? result() : { method }; },
     async clientDisconnected(clientId: string) { this.disconnected.push(clientId); }, async gatewayDisconnected(eventChannelId: string) { this.closedChannels.push(eventChannelId); },
   });
   const token = `${randomUUID()}${randomUUID()}`; const handle = await startWorkerServer(service as unknown as RuntimeService, { devPort: 0, token }); handles.push(handle); const port = (handle.server.address() as AddressInfo).port;
@@ -35,6 +35,32 @@ test('worker HTTP authenticates all private routes and preserves delivery classi
   const accepted = await fetch(`${base}/rpc`, { method: 'POST', headers: channel.headers, body: JSON.stringify(request) }); expect(await accepted.json()).toEqual({ ok: true, result: { method: 'good' } }); expect(service.calls).toHaveLength(1);
   const denied = await fetch(`${base}/rpc`, { method: 'POST', headers: channel.headers, body: JSON.stringify({ ...request, method: 'bad' }) }); expect(await denied.json()).toMatchObject({ ok: false, error: { code: 'invalid_params', delivery: 'not_sent' } });
   await fetch(`${base}/disconnect`, { method: 'POST', headers: channel.headers, body: JSON.stringify({ clientId: channel.clientId }) }); expect(service.disconnected).toEqual([channel.clientId]);
+});
+
+// Controlled service outputs exercise the HTTP boundary; they do not establish
+// that the real RuntimeService or pinned native CLI produces these invalid values.
+test.each([
+  { name: 'valid JSON', result: () => ({ value: 'accepted' }), expected: { ok: true, result: { value: 'accepted' } } },
+  { name: 'byte capacity', result: () => ({ value: 'x'.repeat(LIMITS.frameBytes) }), expected: { ok: false, error: { code: 'capacity', message: 'JSON exceeds byte budget', delivery: 'unknown' } } },
+  { name: 'invalid JSON value', result: () => ({ value: undefined }), expected: { ok: false, error: { code: 'invalid_json', message: 'Value is not JSON', delivery: 'unknown' } } },
+  { name: 'explicit unknown error', result: () => ({ get value() { throw new DeliveryError('fixture_serialization', 'Fixture output is uncertain', 'unknown', { fixture: true }); } }), expected: { ok: false, error: { code: 'fixture_serialization', message: 'Fixture output is uncertain', delivery: 'unknown', data: { fixture: true } } } },
+])('worker HTTP preserves completed-call delivery and the original error for $name', async ({ result, expected }) => {
+  let completed = 0;
+  const { token, base, service, ws } = await setup(() => { const value = result(); completed++; return value; });
+  const owner = await connect(ws, token);
+  const response = await fetch(`${base}/rpc`, { method: 'POST', headers: owner.headers, body: JSON.stringify({ method: 'fixture/mutate', params: {}, context: { clientId: owner.clientId, operationId: randomUUID() } }) });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual(expected);
+  expect(completed).toBe(1); expect(service.calls).toHaveLength(1); expect(service.writes).toEqual(['fixture/mutate']);
+});
+
+test('worker HTTP keeps a rejection before service.call as not_sent', async () => {
+  let completed = 0;
+  const { token, base, service, ws } = await setup(() => { completed++; return { value: 'must not run' }; });
+  const owner = await connect(ws, token);
+  const response = await fetch(`${base}/rpc`, { method: 'POST', headers: owner.headers, body: JSON.stringify({ method: 'fixture/mutate', params: [], context: { clientId: owner.clientId, operationId: randomUUID() } }) });
+  expect(await response.json()).toEqual({ ok: false, error: { code: 'invalid_params', message: 'params must be an object', delivery: 'not_sent' } });
+  expect(completed).toBe(0); expect(service.calls).toHaveLength(0); expect(service.writes).toEqual([]);
 });
 
 test('automatic CLI refresh waits for an in-flight RPC to finish before recycling the worker', async () => {

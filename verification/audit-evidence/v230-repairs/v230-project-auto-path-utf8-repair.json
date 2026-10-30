@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "task": "v230-project-auto-path-utf8-boundary-repair",
+  "completedAt": "2026-10-30T22:32:23.872972+00:00",
+  "complete": true,
+  "kind": "incremental repair and targeted real-Linux validation; not a full audit",
+  "supersedesOnly": [
+    "success-result serialization and output budget in the prior helper implementation"
+  ],
+  "preservedOriginalReport": {
+    "path": ".work/v230-project-auto-path-helper-implementation.json",
+    "sha256": "668a5d593328ffc14b912f05715d00bfe85b8754d4281c202c9b993be89242ea"
+  },
+  "confirmedDefect": {
+    "trigger": "12 nested existing path components each consisting of 60 emoji = 240 UTF8 bytes, followed by a short project name; runtime-equivalent JSON UTF8 request <=4096 bytes but ensure_ascii=True result >8192 bytes",
+    "impact": "Both actual native uid65534 and root uid0 creation mutated the directory but failed to return a success result; resolve also returned failure despite an accessible legal path.",
+    "redEvidence": {
+      "path": ".work/v230-project-path-utf8-linux-a50c73ab.json",
+      "sha256": "c66e5b4bbbabcd27e00ca7a8ebd48dce03ea7352530350735f469d1e73a63ca1",
+      "tests": 1,
+      "failingSubtests": 4,
+      "exitCode": 1,
+      "fixture": "/opt/harness-project-path-test-1ab68acdfa77"
+    }
+  },
+  "changes": [
+    "Both successful result budget checks count ensure_ascii=False UTF8 bytes plus the emitted newline.",
+    "Only resolve-project success stdout writes exactly the checked UTF8 encoding, independent of locale; unrelated and error output is unchanged.",
+    "The root identity fixture now sends ensure_ascii=False compact UTF8 JSON matching runtime JSON.stringify and covers long Unicode create/resolve for actual native and root identities. Each complete stdout including newline must decode correctly and remain <=8192 bytes."
+  ],
+  "files": [
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "9b30c65bb2e654ff538d5de54e428134927ec22d43325022e9c187aa94f80c06",
+      "lineEndings": "LF"
+    },
+    {
+      "path": "tests/deploy/root/test_project_identity.py",
+      "sha256": "377be23a0a25f3ab13a73c9116399bcc404dcdb6c132a2bef607bd8ef1a17816",
+      "lineEndings": "LF"
+    }
+  ],
+  "unchangedRelatedTest": {
+    "path": "tests/deploy/test_project_creation.py",
+    "sha256": "47f535f84fc50bddbb30acf4ea7d451cbb208de41ea19755f8e217c7ba3079de"
+  },
+  "validation": {
+    "scope": [
+      "tests.deploy.root.test_project_identity"
+    ],
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "evidence": ".work/v230-project-path-utf8-linux-9314bf59.json",
+    "sha256": "3918e2fffa980cb631b0bebfd57312ae723ab2cbe621da84c5ea352853deea6d",
+    "fixture": "/opt/harness-project-path-test-6bef9472cfcc",
+    "sourceUnchanged": true,
+    "sourceHashesMatchLocal": true,
+    "diffCheck": "passed"
+  },
+  "evidenceBoundaries": [
+    "Actual uid65534 and uid0 helper subprocesses, real isolated directories and UTF8 stdout were exercised. No main instance or service was changed.",
+    "Existing post-mkdir fsync/readback failure injection cases passed in the same targeted root module and continue to return no replayable structured definite failure.",
+    "No full suite or unrelated ordinary suite rerun was performed; root fixture assertions include the exact native/root Unicode path boundary and complete stdout byte budget."
+  ],
+  "findings": []
+}

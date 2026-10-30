@@ -1,0 +1,510 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v230-round1",
+  "reviewerId": "v230-audit-gateway-tooling",
+  "digest": "66835dab744b37d67270c8f6fc5a9f2cfc39322289e8fefa904aef71c1cc7d91",
+  "complete": true,
+  "scopes": [
+    "gateway-core",
+    "tooling-ci-release"
+  ],
+  "scopePaths": [
+    "src/core/**",
+    "src/gateway/**",
+    "tests/core/**",
+    "tests/gateway/**",
+    "tests/tooling/**",
+    "scripts/**",
+    ".github/**"
+  ],
+  "inspectedFiles": [
+    ".github/workflows/affected.yml",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/security.yml",
+    "scripts/RELEASE-PREFLIGHT.md",
+    "scripts/ci-checks.mjs",
+    "scripts/compatibility-watch.mjs",
+    "scripts/go-tests.mjs",
+    "scripts/prepare-ci-go.py",
+    "scripts/prepare-ci-native.mjs",
+    "scripts/python-tests.py",
+    "scripts/release-audit.mjs",
+    "scripts/release-authorization.mjs",
+    "scripts/release-preflight.mjs",
+    "scripts/reviewed-history.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "scripts/test-environment.mjs",
+    "scripts/windows-controller-preflight.mjs",
+    "src/core/automations.ts",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/execution-mode.ts",
+    "src/core/extension-methods.ts",
+    "src/core/feature-methods.ts",
+    "src/core/ledger.ts",
+    "src/core/mcp-oauth-receipt.ts",
+    "src/core/operation-retention.ts",
+    "src/core/organization-methods.ts",
+    "src/core/process-methods.ts",
+    "src/core/realtime-methods.ts",
+    "src/core/remote-methods.ts",
+    "src/core/schedule.ts",
+    "src/core/validation.ts",
+    "src/core/worktrees.ts",
+    "src/gateway/auth-crypto.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/organization-receipt.ts",
+    "src/gateway/receipt-maintenance.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/recovery-protocol.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "src/gateway/workspace-ack.ts",
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/operation-retention.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/authorization-dispatch.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/execution-mode.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/manager-client.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-maintenance.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/go-tests.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/release-preflight.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/test-environment.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts"
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "caa953de087e91ff28cdef5a810ba4da7e8ca6fb1e5688d2631db8a6ba718799"
+    },
+    {
+      "path": ".github/workflows/compatibility.yml",
+      "sha256": "b78dea2aa061b52fbdaed997b4bb28b45aa8eeedbdfc666ded21fe3209188069"
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "7387ff5dfaa60e438ef9eb57f3965edd0c96b7e60a03c32813ae5920f8e3cee5"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "fb23c0d7e61ef3a33200c1fabf3457871a3164317c064c4e065f7bb8035c9dc7"
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "ba1acc4784644e2b4d1292d58d1ba3b439ff4bbcbff0dc43001bb194a26c5c72"
+    },
+    {
+      "path": "scripts/compatibility-watch.mjs",
+      "sha256": "a474298e01e90fd87f364327e99f336e77f33d2398faaca9c2744ef98aa3bf6f"
+    },
+    {
+      "path": "scripts/go-tests.mjs",
+      "sha256": "56a3556da7833399f4979b5011b1f0ee3a81af4ea055aac76481992e8b721a45"
+    },
+    {
+      "path": "scripts/prepare-ci-go.py",
+      "sha256": "2ec71bcdb84ebe9a912b3ba58cb73b277346febfc69e51c709f899ec5cda8a4f"
+    },
+    {
+      "path": "scripts/prepare-ci-native.mjs",
+      "sha256": "330ac0475fde81efd586d525127e74b3e2f833980df53e3089ae58fcc323925d"
+    },
+    {
+      "path": "scripts/python-tests.py",
+      "sha256": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab"
+    },
+    {
+      "path": "scripts/release-audit.mjs",
+      "sha256": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b"
+    },
+    {
+      "path": "scripts/release-authorization.mjs",
+      "sha256": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e"
+    },
+    {
+      "path": "scripts/release-preflight.mjs",
+      "sha256": "5a8f85ebfd4e47bec037e4b94f47ee57059dd2697ea90728694398183d8721e4"
+    },
+    {
+      "path": "scripts/reviewed-history.mjs",
+      "sha256": "a7f5201a2ece3bbf15b526f8e6c60cc288e8c7a066fa87af5504979efc31a4e2"
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "f922d6caeb89fb7631071b4b1f8c5e521c5dd83d8afe0436f111ab264fde2a40"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "0e913385c99aaef5288e87b67f092b2c04d894c6a2090d5e2008f7b67116deaf"
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432"
+    },
+    {
+      "path": "scripts/test-environment.mjs",
+      "sha256": "156ce382187684f60bf3f08c7f12f1acfe13110ec7b21a230f21a3d09e4cffe4"
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d"
+    },
+    {
+      "path": "src/core/automations.ts",
+      "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a"
+    },
+    {
+      "path": "src/core/budget.ts",
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b"
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5"
+    },
+    {
+      "path": "src/core/errors.ts",
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a"
+    },
+    {
+      "path": "src/core/execution-mode.ts",
+      "sha256": "3aeb8eb3ea729de0fbffcd74302d1c8b3a35395fae81025ba14bead24ff4ec0b"
+    },
+    {
+      "path": "src/core/extension-methods.ts",
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a"
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "fe23d36edf07ae235fad8ca695d0b58f1e3f96dcd3fa203fe05f78432ac638b9"
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "f17493bf533254f5b44c6d1501fadb322030df67c139f3c54fed0b95daba774f"
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad"
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "sha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b"
+    },
+    {
+      "path": "src/core/organization-methods.ts",
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4"
+    },
+    {
+      "path": "src/core/process-methods.ts",
+      "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f"
+    },
+    {
+      "path": "src/core/realtime-methods.ts",
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41"
+    },
+    {
+      "path": "src/core/remote-methods.ts",
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43"
+    },
+    {
+      "path": "src/core/schedule.ts",
+      "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a"
+    },
+    {
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+    },
+    {
+      "path": "src/core/worktrees.ts",
+      "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089"
+    },
+    {
+      "path": "src/gateway/auth-crypto.ts",
+      "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea"
+    },
+    {
+      "path": "src/gateway/auth.ts",
+      "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3"
+    },
+    {
+      "path": "src/gateway/automation-scheduler.ts",
+      "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9"
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "d04054d5a192dceba536f601ace2961170b97457057eafcc76a2486db689ee00"
+    },
+    {
+      "path": "src/gateway/main.ts",
+      "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd"
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "90cfc230b67c237d006154e20c9ddac6324022b14222aea659e0813b78d203a9"
+    },
+    {
+      "path": "src/gateway/organization-receipt.ts",
+      "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d"
+    },
+    {
+      "path": "src/gateway/receipt-maintenance.ts",
+      "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6"
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "022519e8a63879ea32b9e04a2283ac93b423a4bf24b028fd1c3fdada9566d39d"
+    },
+    {
+      "path": "src/gateway/recovery-protocol.ts",
+      "sha256": "84995b1c4f70f1179b806248a3d84f5aab3522602fb8ea991f20ad04b8196505"
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "6f88bc5217e1aadb303a05f6bdecad1bda8381874575ab12929e9ccfb4f72b61"
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "2720fdd6660b9d26aa6f9a321615ef5f20dc84d1302fe56a8fe2c00a0d036417"
+    },
+    {
+      "path": "src/gateway/workspace-ack.ts",
+      "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade"
+    },
+    {
+      "path": "tests/core/automation-retention.test.ts",
+      "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3"
+    },
+    {
+      "path": "tests/core/ledger-capacity.test.ts",
+      "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d"
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "sha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de"
+    },
+    {
+      "path": "tests/core/operation-retention.test.ts",
+      "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9"
+    },
+    {
+      "path": "tests/core/schedule.test.ts",
+      "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328"
+    },
+    {
+      "path": "tests/gateway/auth.test.ts",
+      "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679"
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "ef20720e0146164fa58c3bdd44238be7686b4ec7f4b311a1c06526ca13285d2d"
+    },
+    {
+      "path": "tests/gateway/automation-scheduler.test.ts",
+      "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5"
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "eb642ba8b747ba08b458c2d381995eb3976c21a853ba02fc720eb4a6268be76b"
+    },
+    {
+      "path": "tests/gateway/execution-mode.test.ts",
+      "sha256": "d5cbbd567b2b674e3fcb0d6cfc56088c3d7e7d3de073d65d7c08666a291718a7"
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "3d0738545643c9d5670f9e7d856b65007ff78a5e4d17b577c5fef17518cdd616"
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "b8a9bfd8a8997c6c99f8e4a5c31e61899d49dcaf134e71719583f4a5013a124d"
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "83c0d7951907e9676dd4c89dacff63a691cb7770e31767bc66bdb113fa942a34"
+    },
+    {
+      "path": "tests/gateway/receipt-maintenance.test.ts",
+      "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f"
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "9fbe2bbd3107514ae037de2a747db3c2c7e042cff1e307f806b832ed3c571cc5"
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "c28e54e7593375379dd4176fe792198be714dd94657e1b220c381ebd86cd4bfa"
+    },
+    {
+      "path": "tests/gateway/workspace-ack.test.ts",
+      "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b"
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "sha256": "20af6f36cc5a90d277a28922830bba7efadd3118aebd2500b2265f8ec0130cb4"
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "d086e0450804c2acb608cc76219d6230d722d64d51bec9a7fa8e8dc0449d1ef2"
+    },
+    {
+      "path": "tests/tooling/compatibility-watch.test.ts",
+      "sha256": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89"
+    },
+    {
+      "path": "tests/tooling/go-tests.test.ts",
+      "sha256": "112457e214569432f5b2de19a0e79034cb4f88b0701914204fa44c78472881e4"
+    },
+    {
+      "path": "tests/tooling/prepare-ci-native.test.ts",
+      "sha256": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371"
+    },
+    {
+      "path": "tests/tooling/release-audit.test.ts",
+      "sha256": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4"
+    },
+    {
+      "path": "tests/tooling/release-preflight.test.ts",
+      "sha256": "9625389c2b122aed1603a8705afe3ee4c9729a72c3b2282eb708f3f40a5aade8"
+    },
+    {
+      "path": "tests/tooling/reviewed-history.test.ts",
+      "sha256": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5"
+    },
+    {
+      "path": "tests/tooling/run-tests.test.ts",
+      "sha256": "bed3c9a1c47770120417bc12cfec47ed076ceab89bc310dde20f69075b1f36ad"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "825002f2e1bea2603edfc202da734c37b388dea9414d2c8b808b2744014efc79"
+    },
+    {
+      "path": "tests/tooling/test-environment.test.ts",
+      "sha256": "b4e0884156216c6a5a8442563c860b7d2963242595ba64af80943af07f4de7ea"
+    },
+    {
+      "path": "tests/tooling/windows-controller-preflight.test.ts",
+      "sha256": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e"
+    }
+  ],
+  "method": "Independent full-scope source review against the frozen manifest, reading every assigned implementation, test, script and workflow rather than relying on prior audit conclusions. Semantically traced authentication and exact browser/worker leases, admission and activity locks, durable receipt reservation/dispatch/settlement/replay, recovery proofs and rotation, automation schedules and lifecycle, registered projects/worktrees, provider and execution-mode interfaces, bounded transport resources, exact test selection, source-bound authorization/preflight, CI platform skip reconciliation and release scanner. Reviewed test fixture setup, synchronization, assertions and declared platform exclusions. Added non-executing syntax/transform checks for all TS/ESM and Python scripts. Reproduced one post-acknowledgement project-registration failure with an in-memory Ledger, controlled successful worker responses and actual task-local directory creation. Initial and final SHA-256 checks match all 78 frozen file entries; hashes establish identity only, not semantic correctness.",
+  "semanticCoverage": [
+    {
+      "area": "core and gateway production files",
+      "result": "Read all assigned bytes; manually traced success, rejection, asynchronous revocation/replacement, restart recovery, unknown-result and resource-capacity paths."
+    },
+    {
+      "area": "tests/core, tests/gateway, tests/tooling",
+      "result": "Read all assigned test code and assertions. Verified substantive boundary coverage and identified missing concurrent project-registration capacity case. Existing tests were not executed during this audit."
+    },
+    {
+      "area": "scripts and workflows",
+      "result": "Read all assigned tooling, Python preparation code, CI matrix and release-gate definitions. Cross-checked selection, mandatory inventory, engine prerequisites, explicit skips, source digests and authorization checks. Workflow string assertions are structural checks, not hosted CI execution."
+    },
+    {
+      "area": "dead and disabled code",
+      "result": "Reviewed enumerated method dispatch and receipt projection fallbacks plus scan for TODO/FIXME/XXX/only/unconditional skip markers; no additional actionable defect established."
+    }
+  ],
+  "verification": {
+    "initialHashVerification": {
+      "matched": 78,
+      "changed": []
+    },
+    "finalHashVerification": {
+      "matched": 78,
+      "changed": [],
+      "sourceDigest": "66835dab744b37d67270c8f6fc5a9f2cfc39322289e8fefa904aef71c1cc7d91"
+    },
+    "structuralChecks": {
+      "tsAndEsmFiles": 72,
+      "pythonFiles": 2,
+      "status": "passed",
+      "evidence": ".work/v230-gateway-tooling-structural.json",
+      "notATypecheckOrBehaviorTest": true
+    },
+    "narrowReproduction": {
+      "status": "confirmed",
+      "script": ".work/v230-gateway-project-create-repro.mjs",
+      "evidence": ".work/v230-gateway-project-create-repro/proof.json",
+      "nodeVersion": "24.22.1"
+    },
+    "fullSuiteExecuted": false,
+    "deployed": false,
+    "gitMutations": false,
+    "personalCredentialsRead": false
+  },
+  "limitations": [
+    "No full or targeted Vitest/Python/Go suite was run; only a necessary standalone reproduction and non-executing parse checks were performed.",
+    "No actual hosted GitHub Actions, paid inference, external MCP, root manager or live Linux/systemd integration was exercised.",
+    "Runtime and deployment implementation were owned by separate reviewers; this report covers only the exact 78 assigned files. A narrow runtime search supplied project/create boundary context but is not claimed as runtime full-scope review."
+  ],
+  "skipped": [],
+  "findings": [
+    {
+      "id": "V230-GT-001",
+      "priority": 2,
+      "severity": "P2",
+      "title": "Preserve unknown delivery when project registration fails after directory creation succeeds",
+      "path": "src/gateway/dispatch.ts",
+      "line": 178,
+      "endLine": 178,
+      "relatedLocations": [
+        {
+          "path": "src/gateway/dispatch.ts",
+          "line": 174,
+          "endLine": 178
+        },
+        {
+          "path": "src/gateway/dispatch.ts",
+          "line": 206,
+          "endLine": 210
+        },
+        {
+          "path": "src/core/ledger.ts",
+          "line": 249,
+          "endLine": 249
+        },
+        {
+          "path": "src/core/errors.ts",
+          "line": 8,
+          "endLine": 8
+        }
+      ],
+      "trigger": "With 127 registered projects, start two different project/create requests before either worker result returns. Both pass the pre-await count check, both cross beforeWrite and create their directory, and both return successful worker acknowledgements. The first addProject consumes slot 128; the second addProject throws HarnessError(capacity) with its default delivery=not_sent.",
+      "impact": "The second operation is permanently recorded and reported as not_sent even though its directory was already created. It is absent from project/list, the user receives false safe-to-retry guidance, and no project/create positive-proof recovery path repairs this receipt. This violates the explicit not_sent versus unknown contract.",
+      "evidence": [
+        "The standalone reproduction imports transformed current frozen source and uses a real in-memory SQLite Ledger, a barrier to order two positive worker acknowledgements, and actual mkdir under .work.",
+        ".work/v230-gateway-project-create-repro/proof.json: first request accepted; second request rejected with code=capacity and delivery=not_sent; second persisted receipt state=not_sent; both directoryExists=true; registeredProjects=128.",
+        "The handler catches this locally raised HarnessError through errorBody(error, unknown), but errorBody preserves the error delivery field and therefore ignores the fallback after the acknowledged side effect."
+      ],
+      "relatedSameCause": "The same post-success classification can be reached through object(created) or validText(created.path). Worktree receipt projection accepts identifier(worktreeId), while later Worktrees.apply calls uuid(worktreeId); malformed positive worker data there can likewise raise a default not_sent during local postprocessing. These are the same delivery-boundary defect, not separately counted findings; the concurrency case above is the dynamically confirmed trigger.",
+      "recommendation": "Track positive backend acknowledgement separately from dispatch and never downgrade a subsequent local postprocessing failure to not_sent. Preserve bounded recovery information and actionable guidance for a created-but-unregistered project. Optionally reserve or serialize project-registration capacity across creation/addition/worktree paths, while retaining the existing local project/rename transaction rollback exception."
+    }
+  ],
+  "completedAt": "2026-10-30T21:40:51.008317+00:00"
+}

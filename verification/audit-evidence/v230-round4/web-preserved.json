@@ -1,0 +1,18 @@
+[
+  {
+    "path": ".work/v230-round3-web.json",
+    "sha256": "29ff687966217aac4e5c2cb49b53ecc76c841f168da727d3f9fa27930b300587"
+  },
+  {
+    "path": ".work/v230-round3-web-repro.test.ts",
+    "sha256": "46ac1db091e20cca7338e1b68bf9329d298c00435810250cd0cebfb0c77217f8"
+  },
+  {
+    "path": ".work/v230-round3-web-repro-evidence.json",
+    "sha256": "9e26d3aaf66b0b3c151d821346756d277e198cbfdbcb08043c94acbe5e70d1f9"
+  },
+  {
+    "path": ".work/v230-round3-web-repro-vitest.json",
+    "sha256": "c12a50a181471f5284b5a6d9ff27a920657b8d72ac55cc137c920e8d9b0b10e3"
+  }
+]

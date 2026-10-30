@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v230_audit_runtime",
+  "reviewKind": "independent incremental repair review",
+  "complete": true,
+  "originalRoundId": "v230-round1",
+  "originalDigest": "66835dab744b37d67270c8f6fc5a9f2cfc39322289e8fefa904aef71c1cc7d91",
+  "originalFinding": {
+    "priority": "P2",
+    "path": "src/runtime/worktree-bindings.ts",
+    "line": 35,
+    "trigger": "Retain 32 managed worktrees under one execution identity, switch between native and Root while retaining the supervisor home, then create another worktree from a repository owned by the newly selected identity. Its new nativeHome can be below the helper-local limit while the shared supervisor managed_worktrees table is already full.",
+    "impact": "The helper creates the new checkout before the shared capacity check rejects its positive acknowledgement. The witness transaction rolls back to unknown without a binding, so the new retained checkout cannot be read/attached through the managed worktree API and requires manual inspection. This unnecessarily exceeds the intended shared retention budget and enters activity uncertainty instead of a safe not_sent capacity rejection.",
+    "evidence": [
+      "RuntimeWorkspace executes runWorkspace first (src/runtime/workspace-service.ts:61) and only then witness.complete (line 65). Its beforeWrite invokes boundary and witness.reserve; reserve validates only the witness-row budget, not managed-worktree capacity (src/runtime/workspace-witness.ts:66-79).",
+      "The shared managed_worktrees table is initialized from the supervisor witness DB, and its global count >=32 is checked only in WorktreeBindings.complete (src/runtime/worktree-bindings.ts:34-36), inside the post-ack transaction; failures roll that transaction back (src/runtime/workspace-witness.ts:107-119).",
+      "deploy/units.py:59-67,111-115 and deploy/execution_identity.py:31-36 select distinct worker/worker-root native homes but retain one supervisor home and DB. deploy/workspace_worktrees.py:79-89,264-296 checks only the selected native-home holders before physically creating the checkout and returning created:true.",
+      ".work/v230-round1-worktree-capacity-evidence.json: completedBindingsBeforeSwitch=32; reservePassed=true; completion={code:capacity,delivery:unknown}; witnessAfterCompletion.state=unknown; binding.code=worktree_unbound. The reproduction uses the actual WorkspaceWitness implementation, distinct project identities and simulated valid helper acknowledgements."
+    ]
+  },
+  "files": [
+    {
+      "path": "src/runtime/worktree-bindings.ts",
+      "sha256": "2a4232845dfd42c6f4ac7ccbf22e25ad610d58f6552b2d5716eac0ceb01c338f"
+    },
+    {
+      "path": "src/runtime/workspace-witness.ts",
+      "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+    },
+    {
+      "path": "tests/runtime/worktree-witness.test.ts",
+      "sha256": "5dfc1a25b22f37f1c17bfbc8fa78dd2e97353be157cfc6295d8663b6976ed7c6"
+    }
+  ],
+  "conclusion": "The original cross-execution-identity managed-worktree capacity defect is repaired for these exact three file hashes. No remaining findings were identified in this incremental scope.",
+  "method": {
+    "reading": "Read both changed production modules and the entire changed test file. Rechecked the unchanged RuntimeWorkspace beforeWrite caller and runWorkspace stdin boundary to verify that a failed reserve cannot send the helper request.",
+    "ordering": "Existing operation identity conflict/unknown checks precede capacity checks. Shared live bindings plus unresolved worktree/create reservations are checked before the witness INSERT and before stdin.end(body). Synchronous single-supervisor admission has no await between count and INSERT. The complete-stage defensive limit remains.",
+    "lifecycle": "Completing a reservation atomically replaces its pending contribution with a managed binding. Acknowledgement deletes only completed witness rows, preserving bound slots. discardNotSent deletes only the exact unresolved operation identity and therefore releases only a proven-not-sent reservation. Non-create operations bypass the worktree slot check.",
+    "tests": "Read the added cross-nativeHome restart / 32 acknowledged bindings / 32 unconfirmed reservations / exact not_sent release / ordinary mutation cases. Verified the supplied targeted JSON artifact records four passed test files and 29 passed tests; did not rerun that suite."
+  },
+  "independentExecution": {
+    "script": ".work/v230-worktree-capacity-repair-check.mjs",
+    "evidence": ".work/v230-worktree-capacity-repair-evidence.json",
+    "runtime": "Pinned Node 24.22.1; actual WorkspaceWitness implementation loaded through TypeScript transformation",
+    "result": "passed",
+    "completedBindingCase": {
+      "acknowledgedBindingsBeforeSwitch": 32,
+      "changedNativeHomeAndProject": true,
+      "rejectedAt": "reserve",
+      "error": {
+        "code": "capacity",
+        "delivery": "not_sent"
+      },
+      "witnessState": "not_received",
+      "binding": "absent"
+    },
+    "reservationCases": {
+      "pendingHome": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025\\.work\\v230-worktree-reservations-repair-wDGtDh",
+      "restartPreserved32PendingSlots": true,
+      "priorUnknownAndConflictPreserved": true,
+      "wrongNotSentDidNotRelease": true,
+      "exactNotSentReleasedOne": true,
+      "ordinaryMutationUnaffected": true,
+      "mixed31PendingPlus1AcknowledgedBindingStillBlocks": true
+    },
+    "limitations": "Valid helper acknowledgements are simulated; no actual Git worktree is created. Actual stdin-beforeWrite ordering was independently re-read. No deployment, personal credentials, commercial inference, external MCP or full suite was used."
+  },
+  "suppliedTargetedExecution": {
+    "artifact": ".work/test-results/run-soGy9F/vitest.json",
+    "success": true,
+    "passedSuites": 4,
+    "passedTests": 29,
+    "failedTests": 0,
+    "independentlyRerun": false
+  },
+  "preservation": "Original round1 report and reproduction evidence remain unchanged. This repair review binds only the three explicit current hashes and does not silently replace the original manifest digest.",
+  "remainingFindings": []
+}

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "task": "v230-round3-organization-repair",
+  "authorId": "v230_audit_web",
+  "complete": true,
+  "kind": "author repair report; independent review remains separate",
+  "sourceAudit": {
+    "path": ".work/v230-round3-web.json",
+    "digest": "5b804614b7a63051a6467ef5f46fb84726356aa7e1702395a4742bfc0eb81e2a",
+    "reviewerId": "v230_audit_runtime"
+  },
+  "finding": {
+    "priority": "P2",
+    "path": "web/lib/organization.ts",
+    "line": 5,
+    "title": "POSIX literal backslash roots are conflated with distinct nested directories"
+  },
+  "files": [
+    {
+      "path": "web/lib/organization.ts",
+      "beforeSha256": "126eae596f9b5141ed9553f471e3d1bd717733178138229677988606913abd3b",
+      "sha256": "0663f21bb884b57fb249b43280c29ae3828a7f472ca92320bf3dd5c4ae73e4b0",
+      "bytes": 953,
+      "lfOnly": true,
+      "utf8Bom": false
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "beforeSha256": "5b427b1d1a37f8ea3aa0009b56c3b05b52d8f6c1bdcc2e205bcbf2fc4a0981bf",
+      "sha256": "cd8b107a6e936c08de3f5a69604fb02c63b7688637ee35d6bd052cc2b3c1967c",
+      "bytes": 24829,
+      "lfOnly": true,
+      "utf8Bom": false
+    }
+  ],
+  "repair": [
+    "Windows separator and case folding apply only to explicit drive-absolute or backslash-UNC paths",
+    "sameRoot also compares path syntax class so Windows UNC normalization cannot alias a slash-leading POSIX path",
+    "POSIX backslashes and case remain literal, trailing forward slashes remain compatible, and / remains nonempty and distinct from absent roots",
+    "Direct root identity assertions cover POSIX literal backslash/case/root, Windows drive/root and UNC compatibility",
+    "Actual NativeProjects forms verify only the correct registered projectId is preselected and submitted when replacing scope for four POSIX/Windows path pairs",
+    "Actual NativeProjects registration text remains unregistered for a POSIX nested-directory lookalike",
+    "Actual ThreadOrganization options exclude unrelated paths and submit only the matching native project identity across the same four path pairs"
+  ],
+  "evidence": {
+    "independentBeforeReproduction": ".work/v230-round3-web-repro.test.ts",
+    "independentBeforeCapture": ".work/v230-round3-web-repro-evidence.json",
+    "targetedTests": {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/organization.test.tsx",
+      "files": 1,
+      "tests": 38,
+      "passed": 38,
+      "failed": 0,
+      "path": ".work/test-results/run-ClI4D0/vitest.json",
+      "sha256": "904aa73bd96a15f89cc45d74f64812edb83b641e07101bd16237eefc47c80435"
+    },
+    "webTypecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    "whitespaceCheck": {
+      "command": "git diff --check -- web/lib/organization.ts web/tests/organization.test.tsx",
+      "exitCode": 0
+    },
+    "runtime": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe"
+  },
+  "limits": [
+    "Only the assigned module and organization test file were changed",
+    "No full suite, build, deployment, real browser/device, external MCP or paid inference",
+    "Assertions exercise local DOM/fixture RPC behavior; no real project metadata was mutated",
+    "This report is author validation rather than a new independent complete audit"
+  ],
+  "completedAt": "2026-10-30T22:50:10.794Z"
+}

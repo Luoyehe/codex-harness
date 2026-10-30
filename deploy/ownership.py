@@ -29,14 +29,16 @@ def regular(path, expected: set[bytes]) -> None:
 
 
 def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
-                  prior_units: dict[str, bytes | None] | None = None, candidate_dns: dict | None = None) -> None:
+                  prior_units: dict[str, bytes | None] | None = None, candidate_dns: dict | None = None,
+                  prior_sudo: bytes | None = None) -> None:
     expected = {**render_units(layout, config, config["codexRelative"]), **render_edge_units(layout), layout.unit("config-check"): render_config_check(layout)}
     worker_variants = {render_units(layout, config, config["codexRelative"], legacy_runtime_directory=runtime, legacy_native_home=home)[layout.unit("worker")].encode()
                        for runtime in (False, True) for home in (False, True)}
-    for role in ROLES:
+    from .service_proxy import PROXY_ROLES
+    for role in (*ROLES, *PROXY_ROLES):
         unit = layout.unit(role)
         path = layout.units / unit
-        allowed = {expected[unit].encode()}
+        allowed = {expected[unit].encode()} if unit in expected else set()
         if role == "caddy":
             allowed.add(render_edge_units(layout, builtin=True)[unit].encode())
             if candidate_dns is not None:
@@ -53,7 +55,7 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
         if present(path):
             regular(path, allowed)
         else:
-            require(allow_absent or role in ("authelia", "caddy") or role == "config-check" and
+            require(not allowed or allow_absent or role in ("authelia", "caddy") or role == "config-check" and
                     (config.get("providerConfigLayer") is None or prior_units is not None and "config-check" in prior_units and prior_units["config-check"] is None),
                     "Managed service definition is missing", "ownership_conflict")
         for root in SYSTEMD_PATHS:
@@ -77,8 +79,11 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
                 regular(item, {allowed_dropins[item.name]})
     sudo = layout.root / "etc/sudoers.d" / ("codex-harness-" + layout.instance)
     if present(sudo):
-        regular(sudo, {sudo_rule(layout, workspace=workspace, legacy_catalog_server=legacy).encode()
-                       for workspace in (False, True) for legacy in (False, True)})
+        policies = {sudo_rule(layout, config=config, workspace=workspace, legacy_catalog_server=legacy).encode()
+                    for workspace in (False, True) for legacy in (False, True)}
+        if prior_sudo is not None:
+            policies.add(prior_sudo)
+        regular(sudo, policies)
     else:
         require(allow_absent, "Managed sudo policy is missing", "ownership_conflict")
 
@@ -88,7 +93,8 @@ def preflight_new(layout: Layout, system) -> None:
                  layout.control.parent / ("." + layout.instance + "-control-transactions"),
                  layout.root / "etc/sudoers.d" / ("codex-harness-" + layout.instance)):
         require(not present(path), "Instance path already exists; inspect before installation", "collision")
-    for role in ROLES:
+    from .service_proxy import PROXY_ROLES
+    for role in (*ROLES, *PROXY_ROLES):
         unit = layout.unit(role)
         for root in SYSTEMD_PATHS:
             directory = layout.root / root

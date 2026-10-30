@@ -1,24 +1,32 @@
 # 重写边界与实现契约
 
-本文描述 2.2.0 的实现边界；交付验证状态以 `verification/WORKLOG.md` 为准。本目录从空项目开始，测试也重新编写，固定上游协议为 Codex CLI 0.164.0。
+本文描述 2.3.0 的实现边界；交付验证状态以 `verification/WORKLOG.md` 为准。本目录从空项目开始，测试也重新编写，固定上游协议为 Codex CLI 0.164.0。
 
 ## 产品范围
 
 单管理员自托管 Codex 网页工作台。基础会话、审批、附件、终端和部署之外，提供队列、目标、子 Agent、审查、定时任务、文件与 Git 恢复、worktree、技能/插件/MCP、记忆、远端环境及原生语音工作流。供应商包括 ChatGPT、企业网关、智谱、自定义 Responses 和 Bedrock。逐项入口、官方平台限制及验收证据见 `FEATURES.md` 和 `verification/feature-evidence/capability-coverage.json`。
 
-不增加多用户协作或跨用户隔离承诺。项目列表是工作目录选择，不能冒充安全边界。网页终端显式使用 worker 的 shell 权限，与某个模型回合的 sandbox 设置无关。
+不增加多用户协作或跨用户隔离承诺。项目列表是工作目录选择，不能冒充安全边界。网页终端显式使用当前受管执行账号的 shell 权限，与某个模型回合的 sandbox 设置无关。
+
+执行身份默认 `native`。服务器管理员通过一站式运维脚本设置 `rootAllowed`，网页不能授予此授权；授权后，已登录管理员可在服务管理中明确选择 `root` 并确认重启及整机权限。授权不自动切换模式。ROOT 是受控开启的整机管理能力，不是新的隔离边界：root Agent、文件操作与终端可以读取或改写 Harness 控制面、账号、服务和凭据。下述 native 与 control 身份隔离、受保护文件及凭据不可读承诺适用于普通模式，不能用于宣称 ROOT 模式下的同宿主隔离。切回普通身份不撤销此前系统修改或自动重写项目文件权限。
 
 ## 模块所有权
 
 - `src/core`: 不依赖 HTTP/UI/进程的校验、错误类型、SQLite 操作回执、任务准入与资源预算。提交结果只有 accepted / not_sent / unknown；未知不是可重试的失败。
-- `src/runtime`: 独立 control 身份运行 supervisor，管理官方 CLI 的 stdio、模型/线程/审批/附件/终端。只接受固定 RPC 方法；通过固定 launcher 以另一个 native 身份启动 CLI、检查目录或执行受控文件操作，不获得 root 管理权限。native 身份不能连接控制 socket、读取 supervisor 进程资源或修改附件索引与受保护的成功记录。
+- `src/runtime`: 独立 control 身份运行 supervisor，管理官方 CLI 的 stdio、模型/线程/审批/附件/终端。只接受固定 RPC 方法；通过固定 launcher 按受管执行模式启动 CLI、检查目录或执行文件操作。默认 native 身份不能连接控制 socket、读取 supervisor 进程资源或修改附件索引与受保护的成功记录；明确启用 ROOT 后不再作此身份隔离保证，supervisor 本身仍使用 control 身份。
 - `src/gateway`: gateway 身份下运行，持有单管理员账号、登录会话、持久化操作日志和项目注册；验证网页请求，控制操作准入，通过私有 Unix socket 调用 worker；管理调用交给固定 root 管理入口。
-- `web`: React 页面，各资源独立状态及代际号。操作意图先提交到 IndexedDB 事务，再发送，断线只查询回执。网络状态与页面导航分离。远端内容作为不可信数据呈现。
-- `deploy`: Python 标准库的安装与管理事务。源码/运行时不可由服务账号修改。依赖准备与候选执行分离，候选以隔离非 root 身份验证。停机确认前不切换发布目录；恢复不确定时保留材料并失败。
+- `web`: React 页面，各资源独立状态及代际号。工作区模型目录按认证、运行时与配置代际、执行身份共享，项目和会话导航不重新建立目录；设置页共享相同分页与刷新入口，会话模型选项仍归各自草稿。新代际同步隐藏旧目录，迟到分页不得写回新范围。操作意图先提交到 IndexedDB 事务，再发送，断线只查询回执。网络状态与页面导航分离。远端内容作为不可信数据呈现。
+- `deploy`: Python 标准库的安装与管理事务。源码/运行时不可由普通服务账号修改；显式 ROOT 执行具整机权限。依赖准备与候选执行分离，候选以隔离非 root 身份验证。停机确认前不切换发布目录；恢复不确定时保留材料并失败。
 
 网页会话外壳、工作区编排、消息条目与 Markdown 排版、输入选项、服务管理各有独立组件。历史数据预算与可见 DOM 窗口分开：保留已加载的完整数据，最多显示 150 条时间线记录；Markdown 在解析前检查字符/结构预算，解析后检查节点数和深度，失败只降级当前消息。计划和思考增量沿用条目身份及终态保护；没有共同水位的历史快照和增量不猜测拼接。对话仅展示公开思考摘要，摘要与详细推理通道分离；实时工具进度只更新已知条目，终态不被迟到进度覆盖。新会话或分页遇明确的历史失效时，从第一页做有界只读重试，不恢复任务或重发输入。
 
 供应商以独立连接保存 endpoint、凭据和模型目录，可同时启用。新会话使用明确选择的 modelProvider；已有会话保持原供应商身份。模型目录和思考强度按供应商、模型联合匹配，分页不合并不同供应商的同名模型。非默认原生供应商的目录与共享 ChatGPT 状态通过有界只读探针读取；供应商设置修改仍经 root 事务生效。网关的管理 RPC 通过有容量和总期限的队列串行派发，已发请求须等 helper 关闭才释放槽位；外部管理锁冲突与未知回执仍保留。供应商编辑器的操作所有权跟随登录身份，不会因自身保存触发的运行时重启而丢失成功状态。既有单供应商配置在配置层迁移中转换，保留账号和模型凭据。
+
+普通与 ROOT 执行使用独立 Codex home，分别保留原生登录、用户配置和会话历史；不复制 `auth.json`，首次切入 ROOT 的 ChatGPT 账号需单独登录。系统供应商配置共享。模式切换不自动继续旧身份的原生会话；自动化在启动时使用当前执行模式。浏览器通过已认证 WebSocket 状态读取实际 `executionMode:{mode,effectiveUid}`，不用管理状态轮询维持提示；断线、字段缺失或未知身份不会被解释为已降回普通权限。
+
+服务专属代理默认关闭，只通过服务器运维入口配置，不提供网页代理设置。启用需 systemd 255+、统一 cgroup v2 与 nftables；通过本实例 worker、gateway 和固定 `manage-UUID` 管理任务的 cgroup 匹配 TCP 流量，不使用全局 UID 0 规则，因此覆盖该服务内的 native/root 执行而不接管其他系统服务。私网地址绕过，Xray 规则将 `bigmodel.cn` 及国内目录规则匹配的流量直连；其余匹配 TCP 流量走选定 VLESS 出站。UDP 不在此透明 TCP 代理范围内。ROOT 另行建立、离开实例 cgroup 的系统服务不自动进入代理，这是流量作用范围而非对已授权 host root 的权限限制。
+
+代理使用独立的受限 Xray 服务，凭据配置通过 systemd credential 传入；不导入用户提供的任意监听、API 或路由规则。核心从官方 XTLS/Xray-core release 下载，精确版本和 SHA-256 校验后保存为独立代际，配置与核心分别绑定内容摘要；更新不能代替服务切换及恢复事务。普通部署不要求启用代理，也不因提供此功能而自动改变 ROOT 授权。上游许可见 `NOTICE.md`。
 
 浏览器从已认证 session、服务状态及 WebSocket 状态获取操作日志代际，仅新操作 ID 使用对应 UUID v8；资源 ID 不随之改变。归档维护必须完整读取分片、核对 SHA-256、下载并经用户确认，发送前另存维护身份；未知轮换结果只按代际和归档摘要核对，不能重发。旧代际回执保持 unknown/archived，不能降为 not_sent。管理器的只读状态与日志请求串行执行，取消页面读取不提前释放已发请求的客户端队列。
 
@@ -48,7 +56,7 @@ HTTP 同时限制连接数、处理中的请求数及实际保留的响应字节
 
 ## RPC 方法
 
-- gateway：`project/list|defaults|create|add|rename|remove`，`operation/read|retire`，`system/status|logs|restart|provider/read|provider/write|models/refresh`。项目重命名只更新登记名称，与成功回执在同一 SQLite 事务提交，不移动目录或修改原生项目。
+- gateway：`project/list|defaults|create|add|rename|remove`，`operation/read|retire`，`system/status|logs|restart|provider/read|provider/write|models/refresh|execution-mode/read|execution-mode/write`。项目重命名只更新登记名称，与成功回执在同一 SQLite 事务提交，不移动目录或修改原生项目。
 - runtime：`conversation/start`，`thread/list|resume|read|history|name/set|archive|unarchive|compact`，`turn/start|interrupt`，`model/list`，`defaults/read`，`account/read|login|login/cancel|logout|rateLimits`，`mcp/list|oauth`，`prompt/list|answer`，`attachment/upload|read|remove`，`terminal/open|write|resize|close`，`runtime/status`。
 - “新会话”在浏览器创建草稿，首次发送才调用 `conversation/start`，内部创建原生线程并启动第一回合，返回 `{thread,turn}`；gateway 将已注册 projectId 转为 cwd，客户端不可覆盖。上游空线程尚未物化，不能作为持久会话承诺。部分创建后的错误保持 unknown，可携带已创建 threadId 帮助核对；不自动重放。输入可包含附件、受控上下文引用和经过验证的模型、权限、协作模式及输出 schema；确切允许字段由 `validation.ts` 定义。`thread/history` 同时遍历回合和原生时间线，返回分项完整性、历史版本与 owner 绑定的不透明续页标识；容量不足、时间线变化或未走完所有分页都不能标 complete。
 - terminal/open 返回 `{terminalId}`，后续输出通过事件传递，不等待命令最终退出；终端必须绑定 clientId，最多每连接 2 个，非所有者不能控制。网页 clientId 由服务端会话/连接绑定，不信任提交字段。
@@ -58,11 +66,13 @@ HTTP 同时限制连接数、处理中的请求数及实际保留的响应字节
 - 技能切换从当前项目的原生目录解析身份；插件安装以刚查看的详情摘要核对当前身份和策略。安装返回的认证需求、更新的逐项失败均保留；reconcile 不作为工具就绪证明。配置修改固定写原生用户配置、检查版本，不允许浏览器指定任意配置路径或改写供应商管理边界。
 - 登录回执只有登录 ID；设备码与网关授权链接只在当前连接私有内存中读取。未确认的登录和取消不重复提交。诊断与预测内容同样通过 owner 绑定的临时结果读取；建议只能由用户明确放入草稿，不自动发送。
 - 固定原生 Codex / Cloud 交互终端持有全局执行租约，准备、运行与进程树回收期间禁止并发配置和任务；确认结束后先送达尚在处理的 HTTP 回执，再自动重建后台进程，重新同步 CLI 可能修改的设置与账号。无法确认进程退出时仍保留未知状态。云任务启动前检查共享 ChatGPT 登录；原生诊断使用固定只读命令和独立进程回收证明。
-- 文件写入通过 native 身份的描述符相对路径操作，校验旧版本并保留恢复材料。native 可写的恢复日志只供检查；supervisor 在收到并验证成功应答后，先将最小回执写入自己的私有 SQLite，再返回结果。`operation/read` 仅凭匹配操作、项目、原请求摘要的 supervisor 成功记录解除对应未知回执；只有 native 日志或缺少记录时保持未知，不重放文件变更。
+- 文件写入通过当前执行身份（默认 native）的描述符相对路径操作，校验旧版本并保留恢复材料。执行账号可写的恢复日志只供检查；supervisor 在收到并验证成功应答后，先将最小回执写入自己的私有 SQLite，再返回结果。`operation/read` 仅凭匹配操作、项目、原请求摘要的 supervisor 成功记录解除对应未知回执；只有执行账号的日志或缺少记录时保持未知，不重放文件变更。
 
 浏览器需从 /api/session 获取 CSRF，POST /api/rpc 时带上。只订阅服务器事件，终端写入仍走鉴权 RPC。所有请求超时都有独立状态，过时代际回调不修改当前页面。
 
 `operation/retire` 接收 `{operationId}`：仅当原编号从未登记时写入持久拒绝记录，使之后迟到的同编号请求确定不会执行；已有回执保持原状态。一次 `not_received` 查询本身不能证明请求永远不会到达。显式 `system/restart` 会终止当前任务与终端，并在 root 管理器确认实例进程全部停止后恢复准入；未知回执保持未知。仍在网关提交中的任务会暂时阻止重启，供应商及配置变更仍要求无活动任务。
+
+`system/execution-mode/read` 及 `system/status.executionMode` 返回 `mode`、`effectiveUid`、`rootAllowed`、绑定模式与授权状态的 `revision` 和 `requiresRestart:true`。模式写入须携带 `mode`、`expectedRevision`、`confirmRestart:true`，启用 ROOT 还须 `confirmRoot:true`，切回普通使用 `false`；不能通过网页修改 `rootAllowed`。服务端校验授权、版本和空闲条件后按持久化管理事务切换，未知结果只查询原操作回执。页面确认是明确操作意图，不代替服务端授权校验；收到 accepted 也不乐观宣称新执行身份已生效。
 
 ## 审计与迁移
 
@@ -79,4 +89,4 @@ pnpm build
 pnpm test:targeted tests/core/ledger.test.ts tests/gateway/http.test.ts
 ```
 
-代码修改期间运行受影响的定向测试。全量测试在完整审计通过后执行；本次 2.2.0 发布按维护者明确指定的一轮完整审计无新增问题标准收尾，审计与授权记录绑定实际源码摘要。平台跳过项须由适用平台补足，不能计作测试通过。CI 同时提供 CodeQL、依赖漏洞和固定上游版本检查；真实供应商、公网证书及外部服务需另有实测证据。具体证据与完整测试入口见 [验证说明](verification/RELEASE-CHECKS.md)。
+代码修改期间运行受影响的定向测试。全量测试在完整审计通过后执行；发布前按维护者明确指定的一轮完整审计无新增问题标准检查，审计与授权记录绑定实际源码摘要，不将流程说明作为通过证明。平台跳过项须由适用平台补足，不能计作测试通过。CI 同时提供 CodeQL、依赖漏洞和固定上游版本检查；真实供应商、公网证书及外部服务需另有实测证据。具体证据与完整测试入口见 [验证说明](verification/RELEASE-CHECKS.md)。
