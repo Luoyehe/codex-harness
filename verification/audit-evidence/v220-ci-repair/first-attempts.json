@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "head": "8f5f966364406693702700b70940c18a660cf600",
+  "sourceDigest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+  "result": "failed",
+  "selectedTestFiles": 227,
+  "runs": [
+    {"id": "41019301457", "event": "push", "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41019301457", "root": "success", "linux": "failure", "windows": "failure", "reconciliation": "failure"},
+    {"id": "41020016075", "event": "pull_request", "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41020016075", "root": "success", "linux": "failure", "windows": "failure", "reconciliation": "failure"}
+  ],
+  "failures": [
+    "input-context test queried a deliberately collapsed control without opening its settings",
+    "candidate archive ordinary fixtures did not substitute their root-only admission boundary on Linux nonroot runners",
+    "provider registry fixture mocked chown while the implementation uses fchown",
+    "edge diagnostics fake saved profile omitted its provider kind",
+    "extensions confirmation test failed only in the first Windows run",
+    "operation-history completion review test failed only in the second Windows run",
+    "preview-server first Windows worker exited with 3221226505; the same file passed in the second complete Windows run"
+  ],
+  "evidence": {
+    "source": "Complete rendered raw GitHub job logs saved through the logged-in browser; split DOM reads avoided the tool's string-length truncation.",
+    "files": [
+      ".work/v220-ci1-linux-raw.txt",
+      ".work/v220-ci1-windows-raw.txt",
+      ".work/v220-ci1-pr-linux-raw.txt",
+      ".work/v220-ci1-pr-windows-raw.txt"
+    ],
+    "expectedNegativeSelftests": "test_empty.py and broken setUpClass output are intentional fixture self-tests and are not additional suite failures."
+  },
+  "publicationOrDeploymentFromTheseRuns": false
+}

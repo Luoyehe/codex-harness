@@ -1,4 +1,5 @@
 import net from 'node:net';
+import http from 'node:http';
 import { once } from 'node:events';
 import { WebSocket } from 'ws';
 import { afterEach, expect, it } from 'vitest';
@@ -20,11 +21,28 @@ async function fixture(lifetimeMs?: number) {
   cleanup.push(value.close);
   return value;
 }
-const rpc = (server: Fixture, method: string, params = {}) => fetch(server.url + '/api/rpc', {
+// OS-assigned loopback ports may be on Fetch's browser forbidden-port list.
+// Use a test-owned HTTP connection, without a process-global keep-alive pool.
+function request(url: string, options: { method?: string; body?: string } = {}) {
+  return new Promise<{ status: number; json: () => Promise<any> }>((resolve, reject) => {
+    const client = http.request(url, { method: options.method ?? 'GET', agent: false }, response => {
+      const chunks: Buffer[] = [];
+      response.on('data', chunk => chunks.push(Buffer.from(chunk)));
+      response.once('error', reject);
+      response.once('end', () => resolve({
+        status: response.statusCode!, json: async () => JSON.parse(Buffer.concat(chunks).toString('utf8')),
+      }));
+    });
+    client.once('error', reject);
+    client.setTimeout(5000, () => client.destroy(new Error('Fixture HTTP request timed out')));
+    client.end(options.body);
+  });
+}
+const rpc = (server: Fixture, method: string, params = {}) => request(server.url + '/api/rpc', {
   method: 'POST', body: JSON.stringify({ method, params }),
 });
 async function ready(server: Fixture) {
-  const response = await fetch(server.url + '/api/session');
+  const response = await request(server.url + '/api/session');
   expect(response.status).toBe(200);
   expect(await response.json()).toMatchObject({ authenticated: true, operationRecoveryProtocol: 2, csrf: 'visual-fixture-only' });
 }
@@ -62,14 +80,14 @@ it('rejects all non-allowlisted methods including resume and inherited object pr
   for (const method of ['thread/resume', 'turn/start', 'conversation/start', 'workspace/write', 'terminal/open', 'toString', '__proto__']) {
     expect(await (await rpc(server, method)).json()).toMatchObject({ ok: false, error: { code: 'fixture_readonly', delivery: 'not_sent' } });
   }
-  expect((await fetch(server.url + '/api/session', { method: 'DELETE' })).status).toBe(405);
+  expect((await request(server.url + '/api/session', { method: 'DELETE' })).status).toBe(405);
   await ready(server);
 });
 
 it.each(['', '{', 'null', '[]', 'true', '{}', '{"method":1}', '{"method":""}'])(
   'returns a bounded 400 for invalid body %j and remains usable', async body => {
     const server = await fixture();
-    const response = await fetch(server.url + '/api/rpc', { method: 'POST', body });
+    const response = await request(server.url + '/api/rpc', { method: 'POST', body });
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ ok: false, error: { code: 'fixture_invalid_request', delivery: 'not_sent' } });
     await ready(server);
@@ -78,7 +96,7 @@ it.each(['', '{', 'null', '[]', 'true', '{}', '{"method":1}', '{"method":""}'])(
 
 it('rejects a request beyond its byte budget without losing the server', async () => {
   const server = await fixture();
-  const response = await fetch(server.url + '/api/rpc', { method: 'POST', body: JSON.stringify({ method: 'thread/read', text: '界'.repeat(34000) }) });
+  const response = await request(server.url + '/api/rpc', { method: 'POST', body: JSON.stringify({ method: 'thread/read', text: '界'.repeat(34000) }) });
   expect(response.status).toBe(413);
   expect(await response.json()).toMatchObject({ ok: false, error: { code: 'fixture_limit' } });
   await ready(server);
@@ -108,14 +126,14 @@ it('closes its own incomplete HTTP body and active WebSocket, idempotently', asy
   const httpClosed = once(client, 'close'), wsClosed = once(websocket, 'close');
   await Promise.all([server.close(), server.close(), httpClosed, wsClosed]);
   expect(websocket.readyState).toBe(WebSocket.CLOSED);
-  await expect(fetch(server.url + '/api/session')).rejects.toThrow();
+  await expect(request(server.url + '/api/session')).rejects.toThrow();
 });
 
 it('enforces its lifetime even with an incomplete request', async () => {
   const server = await fixture(250), client = await socket(server);
   client.write('POST /api/rpc HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 100\r\n\r\n{');
   await once(client, 'close');
-  await expect(fetch(server.url + '/api/session')).rejects.toThrow();
+  await expect(request(server.url + '/api/session')).rejects.toThrow();
 });
 
 it('rejects a failed listen while leaving the original fixture usable', async () => {

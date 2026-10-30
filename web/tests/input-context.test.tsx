@@ -232,18 +232,34 @@ it('allows reference-only messages but blocks wrong-project references and schem
   const view = render(<Composer {...props} />);
   fireEvent.click(screen.getByRole('button', { name: '发送消息' }));
   expect(send).toHaveBeenCalledOnce();
+  expect(send).toHaveBeenLastCalledWith([], 'send');
   view.rerender(<Composer {...props} projectId="foreign" />);
   expect((screen.getByRole('button', { name: '发送消息' }) as HTMLButtonElement).disabled).toBe(
     true,
   );
+  fireEvent.click(screen.getByRole('button', { name: '发送消息' }));
+  expect(send).toHaveBeenCalledOnce();
   view.rerender(<Composer {...props} outputSchema='{"type":"object"}' />);
+  const settings = screen.getByRole('button', { name: '对话设置' });
+  expect(settings.getAttribute('aria-expanded')).toBe('false');
+  expect(screen.queryByRole('combobox', { name: '发送方式' })).toBeNull();
+  fireEvent.click(settings);
+  expect(settings.getAttribute('aria-expanded')).toBe('true');
   fireEvent.change(screen.getByRole('combobox', { name: '发送方式' }), {
     target: { value: 'queue' },
   });
   expect((screen.getByRole('button', { name: '加入队列' }) as HTMLButtonElement).disabled).toBe(
     true,
   );
+  expect(screen.getByRole('alert').textContent).toContain('结构化输出只支持普通发送');
+  fireEvent.click(screen.getByRole('button', { name: '加入队列' }));
   expect(send).toHaveBeenCalledOnce();
+  fireEvent.change(screen.getByRole('combobox', { name: '发送方式' }), {
+    target: { value: 'send' },
+  });
+  expect((screen.getByRole('button', { name: '发送消息' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
 });
 it('references only selected saved lines at the displayed revision and refuses dirty content', async () => {
   const text = 'one\ntwo\nthree\nfour',

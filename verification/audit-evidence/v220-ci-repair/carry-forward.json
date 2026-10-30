@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "kind": "test-only-review-carry-forward",
+  "completedAt": "2026-10-30T11:30:57.095Z",
+  "priorFullAudit": {
+    "round": "v220-round4",
+    "sourceDigest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+    "evidence": "verification/audit-evidence/v220-round4/team.json"
+  },
+  "sourceDigest": "877ff9803635717ffae9a90ed318d901e281be1d40c00ac5e62461f2b22601a6",
+  "sourceFiles": 1941,
+  "changedFiles": [
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "previousSha256": "de0dfba80c321df14d1f5c98600832e94b49b055391af695303b24e9c6e516a6",
+      "sha256": "02318e76e0046093b640be7c3a81416f9e5a1a3ebf4d0ff7c3d941430eb1de77"
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "previousSha256": "524b829bf7018d07e5ede380d903f1c84fc1422ae284ff96a9027f90c978f10a",
+      "sha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2"
+    },
+    {
+      "path": "tests/deploy/test_candidate_archive.py",
+      "previousSha256": "bf07c83cc781e356ea1e62a8755f89ea23147c09394e586eebd2ca100ec4e23b",
+      "sha256": "da416e480f113070d39ebaa67784255c1962cbb6b909b5946da931cb8351f80b"
+    },
+    {
+      "path": "tests/deploy/test_edge_diagnostics.py",
+      "previousSha256": "43d8f3e4c73f2e19c611151acfa969d7fac441bcea7caaaaae6568dd83b780a8",
+      "sha256": "b9af43f064fb7740b671ec1fb4c15ba67b7f1490e84a8d499943a9a630d9fb1e"
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "previousSha256": "3fbae8dc94568ab82aae833818d97c8b8a46295dea7579e74dba8d5a20d9c671",
+      "sha256": "bf215c0993cec33817e53a696a1c13c2478fc74661080aa56106e1023d2f90ea"
+    },
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "previousSha256": "1bdd5aa6e8fae67181891ebef32d3a7ec93690e2991fe7a45ce1d4eef7b81b4a",
+      "sha256": "42f18a6a7cb8d30ff777d26d0ca69022d6908bca37a87aa10e8fe74fc3051528"
+    },
+    {
+      "path": "web/tests/input-context.test.tsx",
+      "previousSha256": "5566b6490f2ee09c7dd0e85232bfa134c381c6c9ccc50b192e6d1514e3d6e120",
+      "sha256": "bddfc54dfea558a3c2ccf6f59f6d44c0e81709e95a516201bb0855dee155fa67"
+    },
+    {
+      "path": "web/tests/operation-history.test.tsx",
+      "previousSha256": "7c0e64295f35c507d60a5c05473fb9c735c0f9f8241ae423ccd83396820d51df",
+      "sha256": "f2626a0f732cfe035f731d58027b2084ff87ada271c24199c035cdc4bc0f8c14"
+    },
+    {
+      "path": "web/tests/preview-server.test.ts",
+      "previousSha256": "b9fb1cccad4a30d0df38fe64c4d61a02bddb143dbe1ddc84b848f3f2bc94fa31",
+      "sha256": "8ca631932b19e352985cfbc5f9745ef96bced6b4b8189abbc99e0265793cc5a2"
+    }
+  ],
+  "unchangedFiles": 1932,
+  "unchangedProductionAndConfiguration": true,
+  "method": "Rehashed every source file against the complete round-4 inventory. All changes are the nine explicitly listed test files; independent semantic review covers each change and its production contract. Preserve the existing full-source review for byte-identical files. This scoped follow-up does not claim another independent full audit round.",
+  "newFullAuditRounds": 0,
+  "findings": [],
+  "observations": [
+    "The first Windows preview worker crash 3221226505 was not reproduced; the same original file passed the second complete Windows run. No skip, retry-to-pass or failure suppression was added. A new complete CI run must still execute and pass this file."
+  ],
+  "reviewArtifacts": [
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json",
+      "sha256": "19d965126094430d2fc7235854f870b4c6c2424dc2040ead588a84e6dc393292"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/deploy-fixtures.json",
+      "sha256": "66eb3d251edb251f8fbf42c89935d26fc5abea64e9859c984c94a76c4b96d6a1"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/composer-fixture.json",
+      "sha256": "d2ea59e0cd0f2379752f1dba75ec1f95b7612a475a9f84b562f177dbd1063d29"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/edge-fixture.json",
+      "sha256": "2ad6075a19d492745a539ac5b372a22db954364ca7ef26cd866a03951614ea9e"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json",
+      "sha256": "c54177b4941977c106ed3327fe3dc2c1d885c710d4d24d7cd5477677bac58682"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/web-review.json",
+      "sha256": "1348efa7e398e0ba1244c61a35def644453405e3cdf6075c08a0640b29734213"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/web-fixtures.json",
+      "sha256": "57246247bfd22e2b643b8f36a4669f329fa800cacd78765d1d108bf787afe64f"
+    }
+  ],
+  "fullTestsPassed": false,
+  "deployed": false
+}

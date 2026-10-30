@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+  "sourceFiles": 1941,
+  "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+  "version": "2.2.0",
+  "approvedAt": "2026-10-30T07:17:44.312782+00:00",
+  "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。最新指示将审计门槛改为一轮无新增问题，版本选择 v2.2.0。",
+  "auditWaiverInstruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v220-round4",
+      "sourceDigest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+      "completedAt": "2026-10-30T07:16:56.040Z",
+      "files": 1941,
+      "reviewers": [
+        {
+          "id": "v220-round4-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round4/team.json",
+          "sha256": "15110b2019d22aed55482596406f8381cd84d2c077a5ebf96b6d1d8ff6d5c459"
+        }
+      ]
+    }
+  ],
+  "note": "Only one actual clean complete round is claimed. Earlier rounds retain their findings. This source-bound record authorizes full testing; it is not a test or deployment result."
+}

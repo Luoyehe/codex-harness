@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-runtime",
+  "scope": [
+    "web/tests/extensions.test.tsx",
+    "web/tests/operation-history.test.tsx",
+    "web/tests/preview-server.test.ts"
+  ],
+  "method": {
+    "type": "Independent read-only static review",
+    "reviewed": [
+      "All diffs in the three requested files",
+      "Complete operation-history and preview-server test files",
+      "Extensions test setup and both modified plugin tests, plus catalog-policy neighbor",
+      "Relevant PluginSettings selection/preview/consent/install guards, ExtensionControls receipt recovery, useResource generation ownership and useWorkflow mutation guard",
+      "Complete OperationHistory component, Recovery.useOperations and operation creation/update/acknowledgement notification paths",
+      "Complete preview-server.mjs fixture and existing enabled-button helper",
+      "Matching Windows CI1 extension assertion failure and preview worker crash log excerpts"
+    ],
+    "checks": [
+      "git diff --check for the three requested files: passed"
+    ],
+    "execution": "No tests, network actions, workflow changes or product source changes performed by this reviewer. No full manual review of unrelated portions of extensions.test.tsx or unrelated components is claimed."
+  },
+  "findings": [],
+  "conclusion": "No actionable issue found in the reviewed test changes. Important assertions remain or are strengthened; no production failure is suppressed by the new test code. Hosted execution is still required.",
+  "evidence": [
+    {
+      "file": "web/tests/extensions.test.tsx",
+      "lines": [
+        138,
+        169
+      ],
+      "assessment": "Awaited act settles selection/preview publication and the existing consent-reset effect before review. The existing enabledButton helper polls the actual disabled attribute without changing it, mocks or retries. Test still requires a consent click and exact projectId/pluginId/previewHash, adds an explicit no-install assertion for clicking the unreviewed disabled control, and retains one-install/original-operationId recovery assertions. Component installability policy and workflow pending/error guards remain in the path. The CI1 log establishes a missing install call assertion, not independently the full scheduling root cause."
+    },
+    {
+      "file": "web/tests/operation-history.test.tsx",
+      "lines": [
+        40,
+        49,
+        53
+      ],
+      "assessment": "The test now observes the actual completed-set transition. A newly persisted pending record changes total count but correctly leaves the reviewed completed set unchanged; after acceptance it waits for the completed summary count, then checks the clear button disabled, confirmation unchecked and records retained after a disabled click. This matches the component completedKey identity/state binding and preserves the original requirement that a new completed result requires review again. It does not mock IndexedDB updates or the subscription path."
+    },
+    {
+      "file": "web/tests/preview-server.test.ts",
+      "lines": [
+        15,
+        24,
+        28,
+        37,
+        119
+      ],
+      "assessment": "The private helper uses direct node:http with agent:false, preserving all request methods/bodies, response status/JSON assertions and all 15 cases. It rejects request/response errors and destroys its request on a five-second inactivity timeout; it contains no success fallback or retry. Fixture responses do not depend on Fetch content-type, cookie, redirect or browser forbidden-port behavior. Using direct HTTP therefore tests the same local server contract without claiming browser-port compatibility. Existing afterEach awaits all owned server/socket cleanup, fails on cleanup rejection, and the server tracks/destroys accepted sockets; explicit idempotent close, incomplete upload, active WS, lifetime, post-close rejection and failed-listen tests remain."
+    }
+  ],
+  "limitations": [
+    "The Windows CI1 preview worker exited with decimal 3221226505 (0xC0000409), recorded in .work/v220-ci1-windows-raw.txt:1672. Its root cause remains undetermined.",
+    "The new HTTP client avoids Fetch forbidden-port policy and process-global keep-alive pooling, but this review does not establish either as the cause of the native worker crash or claim the crash fixed.",
+    "No CI2 or author test success is inferred from static review."
+  ],
+  "completedAt": "2026-10-30T11:30:34.2316930Z",
+  "fileHashes": [
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "sha256": "42f18a6a7cb8d30ff777d26d0ca69022d6908bca37a87aa10e8fe74fc3051528"
+    },
+    {
+      "path": "web/tests/operation-history.test.tsx",
+      "sha256": "f2626a0f732cfe035f731d58027b2084ff87ada271c24199c035cdc4bc0f8c14"
+    },
+    {
+      "path": "web/tests/preview-server.test.ts",
+      "sha256": "8ca631932b19e352985cfbc5f9745ef96bced6b4b8189abbc99e0265793cc5a2"
+    }
+  ]
+}

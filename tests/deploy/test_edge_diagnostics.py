@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 from deploy.common import DeployError, Layout, atomic_write, write_json
 from deploy.https import caddy_configuration
 from deploy.manager import Manager
+from deploy.provider_lifecycle import Profiles
 from deploy.units import render_edge_units
 
 
@@ -79,12 +80,20 @@ class EdgeDiagnosticsTests(unittest.TestCase):
         profiles = self.layout.state / 'providers'
         profiles.mkdir(parents=True)
         self.manager.providers = SimpleNamespace(root=profiles)
-        self.manager.system.logs.return_value = 'diagnostic fixture-secret fixture-api-key'
-        with patch('deploy.provider_lifecycle.Profiles') as provider:
-            provider.return_value.records.return_value = [{'settings': {'apiKey': 'fixture-api-key'}}]
-            result = self.manager.dispatch({'method': 'logs', 'params': {'service': 'caddy', 'lines': 12}})
+        settings = {'revision': 'a' * 32, 'kind': 'responses', 'baseUrl': 'https://edge.invalid/v1',
+                    'model': 'fixture-model', 'models': [], 'apiKey': 'fixture-api-key'}
+        Profiles(self.layout).save('Legacy endpoint', settings)
+        Profiles(self.layout).save('Multiple endpoints', {
+            **settings, 'defaultProviderId': 'default', 'connections': [
+                {'id': 'default', 'name': 'Primary', 'enabled': True, 'settings': settings},
+                {'id': 'b' * 32, 'name': 'Secondary', 'enabled': False,
+                 'settings': {**settings, 'apiKey': 'secondary-fixture-key'}},
+            ],
+        })
+        self.manager.system.logs.return_value = 'diagnostic fixture-secret fixture-api-key secondary-fixture-key'
+        result = self.manager.dispatch({'method': 'logs', 'params': {'service': 'caddy', 'lines': 12}})
         self.assertTrue(result['ok'])
-        self.assertEqual(result['result']['text'], 'diagnostic [redacted] [redacted]')
+        self.assertEqual(result['result']['text'], 'diagnostic [redacted] [redacted] [redacted]')
         self.manager.system.logs.assert_called_once_with(self.layout.unit('caddy'), 12)
         self.manager.system.logs.reset_mock()
         result = self.manager.dispatch({'method': 'logs', 'params': {'service': 'ssh'}})

@@ -46,11 +46,15 @@ it('requires review again when a new completed result arrives before bulk cleari
   fireEvent.click(screen.getByText('清理已完成记录（1 条）'));
   fireEvent.click(screen.getByLabelText('我已核对这些操作的结果'));
   expect(screen.getByRole('button', { name: '清理已完成记录' }).hasAttribute('disabled')).toBe(false);
-  await act(async () => {
-    const next = await createOperation('conversation/start', { projectId: 'second' });
-    await updateOperation(next.id, 'accepted', 'unseen-thread');
-  });
+  const next = await act(async () => createOperation('conversation/start', { projectId: 'second' }));
   await screen.findByText('本地操作记录 2 条');
+  expect(screen.getByText('清理已完成记录（1 条）')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '清理已完成记录' }).hasAttribute('disabled')).toBe(false);
+  await act(async () => { await updateOperation(next.id, 'accepted', 'unseen-thread'); });
+  // Total count also includes pending records; wait for the completed set to change.
+  await screen.findByText('清理已完成记录（2 条）');
   expect(screen.getByRole('button', { name: '清理已完成记录' }).hasAttribute('disabled')).toBe(true);
+  expect((screen.getByLabelText('我已核对这些操作的结果') as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: '清理已完成记录' }));
   expect(await listOperations()).toHaveLength(2);
 });

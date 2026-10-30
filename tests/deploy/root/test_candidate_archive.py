@@ -89,6 +89,27 @@ class CandidateArchiveRootTests(unittest.TestCase):
         self.assertTrue((retained / "retained.txt").exists())
         self.assertEqual(self.system.events, [])
 
+    def test_foreign_owned_candidate_is_rejected_before_service_removal(self):
+        os.chown(self.source, 65534, 65534)
+        with self.assertRaises(DeployError) as raised:
+            self.perform()
+        self.assertEqual(raised.exception.code, "unsafe_path")
+        self.assertTrue(self.source.exists())
+        self.assertFalse(self.target_exists())
+        self.assertEqual(self.system.events, [])
+
+    def test_foreign_owned_preparation_is_rejected_before_service_removal(self):
+        record = self.layout.state / "transactions" / self.candidate / "prepared.json"
+        os.chown(record, 65534, 65534)
+        with self.assertRaisesRegex(DeployError, "Unsafe service lifecycle record"):
+            self.perform()
+        self.assertTrue(self.source.exists())
+        self.assertFalse(self.target_exists())
+        self.assertEqual(self.system.events, [])
+
+    def target_exists(self):
+        return (archive.archive_root(self.layout) / self.source.name).exists()
+
     def test_management_lock_contention_keeps_online_fixture_untouched(self):
         lock = self.layout.config / "management.lock"
         code = "import fcntl,sys; f=open(sys.argv[1],'a+b'); fcntl.flock(f,fcntl.LOCK_EX); print('locked',flush=True); sys.stdin.read()"

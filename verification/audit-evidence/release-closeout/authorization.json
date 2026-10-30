@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+  "sourceDigest": "877ff9803635717ffae9a90ed318d901e281be1d40c00ac5e62461f2b22601a6",
   "sourceFiles": 1941,
   "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
   "version": "2.2.0",
-  "approvedAt": "2026-10-30T07:17:44.312782+00:00",
+  "approvedAt": "2026-10-30T11:30:57.097Z",
   "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。最新指示将审计门槛改为一轮无新增问题，版本选择 v2.2.0。",
   "auditWaiverInstruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
   "repairsReviewed": true,
@@ -36,5 +36,9 @@
       ]
     }
   ],
-  "note": "Only one actual clean complete round is claimed. Earlier rounds retain their findings. This source-bound record authorizes full testing; it is not a test or deployment result."
+  "note": "The actual clean complete audit remains round 4 on its original digest. Nine subsequent test-only repairs have independent scoped review and exact whole-inventory hash comparison; all production code, configuration and protocol are unchanged. No new complete audit round or full-test success is invented. The existing user release instruction authorizes a fresh complete test attempt on this exact source.",
+  "scopedRepairReview": {
+    "path": "verification/audit-evidence/v220-ci-repair/carry-forward.json",
+    "sha256": "3e114f8e1433bc781907cb746608d124de635e8ff198c67a6f93bb6d46760740"
+  }
 }
