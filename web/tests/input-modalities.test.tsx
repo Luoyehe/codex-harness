@@ -129,7 +129,7 @@ it('allows supported queued audio but blocks steering until a current-turn model
   );
   fireEvent.click(screen.getByRole('button', { name: '加入队列' }));
   expect(p.onSend).toHaveBeenCalledWith([audio], 'queue');
-  fireEvent.change(screen.getByRole('combobox', { name: '发送方式' }), {
+  fireEvent.change(screen.getByRole('combobox', { name: '当前发送方式' }), {
     target: { value: 'steer' },
   });
   expect(

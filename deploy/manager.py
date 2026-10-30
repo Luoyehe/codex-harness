@@ -414,11 +414,12 @@ class Manager:
         self.complete_initial_installation(candidate)
         return {"release": candidate, "previous": old, "changed": True}
 
-    def provider_change(self, params: dict, *, catalog: bool = False) -> dict:
+    def provider_change(self, params: dict, *, catalog: bool = False, prepared: dict | None = None) -> dict:
         self.require_recovered_transactions(None)
         self.require_service_ownership()
         old = self.providers.read()
-        action, value = ("provider", validate_catalog(params, old)) if catalog else self.providers.validate_change(params, old)
+        require(prepared is None or params.get("expectedRevision") == old["revision"], "Provider changed; read again", "revision_conflict")
+        action, value = ("provider", prepared) if prepared is not None else (("provider", validate_catalog(params, old)) if catalog else self.providers.validate_change(params, old))
         if action != "provider":
             from .provider_lifecycle import Profiles
             profiles = Profiles(self.layout)
@@ -428,6 +429,18 @@ class Manager:
                 profiles.remove(value)
             return self.providers.public(old)
         new = value
+        if not catalog and "connections" in new and ("kind" in params):
+            from .provider_registry import entries, combine
+            from .provider_catalogs import initialize
+            rows = entries(new)
+            target = params.get("providerId", new.get("defaultProviderId", "default"))
+            if target == "new":
+                old_ids = {row["id"] for row in entries(old)}
+                target = next(row["id"] for row in rows if row["id"] not in old_ids)
+            for row in rows:
+                if row["id"] == target:
+                    row["settings"] = initialize(row["settings"])
+            new = combine(new, rows, new["defaultProviderId"])
         if new == old:
             return self.providers.public(old)
         generation = self.providers.prepare(new)
@@ -462,9 +475,25 @@ class Manager:
         return self.providers.public(new)
 
     def refresh_models(self, params: dict) -> dict:
-        require(not set(params) - {"expectedRevision", "models", "confirmCapabilities"}, "Invalid catalog refresh fields")
+        require(not set(params) - {"expectedRevision", "models", "confirmCapabilities", "providerId", "automatic"}, "Invalid catalog refresh fields")
         current = self.providers.read()
         require(params.get("expectedRevision") == current["revision"], "Provider changed; read again", "revision_conflict")
+        if params.get("automatic") is True or "providerId" in params:
+            from .provider_registry import selected, replace_settings, provider_id
+            from .provider_catalogs import apply_discovery
+            row = selected(current, params.get("providerId"))
+            if row["settings"]["kind"] in ("chatgpt", "chatgpt-gateway", "bedrock-runtime", "bedrock-mantle"):
+                return {**redacted(row["settings"]), "revision": current["revision"], "providerId": row["id"],
+                        "modelProvider": provider_id(row), "source": "native", "applied": False, "requiresConfirmation": False}
+            if "models" in params:
+                require(params.get("confirmCapabilities") is True, "Confirm the model capabilities before applying the catalog", "confirmation_required")
+                value = validate_catalog({"expectedRevision": row["settings"]["revision"], "models": params["models"]}, row["settings"])
+            else:
+                value = apply_discovery(row["settings"])
+            updated = replace_settings(current, row["id"], value)
+            result = self.provider_change({"expectedRevision": current["revision"]}, prepared=updated)
+            return {**result, **redacted(value), "revision": result["revision"], "providerId": row["id"],
+                    "modelProvider": provider_id(row), "source": "provider", "applied": True, "requiresConfirmation": False}
         if "models" in params:
             require(params.get("confirmCapabilities") is True, "Confirm the model capabilities before applying the catalog", "confirmation_required")
             return {**self.provider_change({"expectedRevision": params["expectedRevision"], "models": params["models"]}, catalog=True),
@@ -594,17 +623,27 @@ class Manager:
             self.require_update_ready(persist=False)
         else:
             self.require_recovered_transactions(None)
-            if method == "provider/write" or "models" in params:
+            if method == "provider/write" or "models" in params or params.get("automatic") is True or "providerId" in params:
                 self.require_service_ownership()
         if method == "provider/write":
             self.providers.validate_change(params, self.providers.read())
         elif method == "models/refresh":
-            require(not set(params) - {"expectedRevision", "models", "confirmCapabilities"}, "Invalid catalog refresh fields")
+            require(not set(params) - {"expectedRevision", "models", "confirmCapabilities", "providerId", "automatic"}, "Invalid catalog refresh fields")
             current = self.providers.read()
             require(params.get("expectedRevision") == current["revision"], "Provider changed; read again", "revision_conflict")
+            if "automatic" in params:
+                require(type(params["automatic"]) is bool, "automatic must be a boolean")
+            if "providerId" in params:
+                from .provider_registry import selected
+                selected(current, params["providerId"])
             if "models" in params:
                 require(params.get("confirmCapabilities") is True, "Confirm model capabilities before applying", "confirmation_required")
-                validate_catalog({"expectedRevision": params["expectedRevision"], "models": params["models"]}, current)
+                if "providerId" in params:
+                    from .provider_registry import selected
+                    target = selected(current, params["providerId"])["settings"]
+                else:
+                    target = current
+                validate_catalog({"expectedRevision": target["revision"], "models": params["models"]}, target)
             else:
                 require("confirmCapabilities" not in params, "Confirmation requires a model catalog")
         else:
@@ -637,10 +676,13 @@ class Manager:
                 # Service diagnostics may accidentally include credentials. Remove exact known secrets.
                 known_secrets = [(self.layout.config / "gateway-token").read_text().strip()]
                 from .provider_lifecycle import Profiles
-                known_secrets.extend(profile["settings"].get("apiKey") for profile in Profiles(self.layout).records())
+                from .provider_registry import entries
+                known_secrets.extend(row["settings"].get("apiKey") for profile in Profiles(self.layout).records()
+                                     for row in entries(profile["settings"]))
                 for generation in self.providers.root.iterdir():
                     if re.fullmatch(r"[0-9a-f]{32}", generation.name):
-                        known_secrets.append(read_json(generation / "settings.json", 4 * 1024 * 1024).get("apiKey"))
+                        settings = read_json(generation / "settings.json", 4 * 1024 * 1024)
+                        known_secrets.extend(row["settings"].get("apiKey") for row in entries(settings))
                 for secret in sorted({value for value in known_secrets if isinstance(value, str) and value}, key=len, reverse=True):
                     text = text.replace(secret, "[redacted]")
                 value = {"text": text, "truncated": len(text) >= 131072}
@@ -661,7 +703,7 @@ class Manager:
                 value = self.restart()
             result = {"ok": True, "result": value}
         except DeployError as exc:
-            discovery = method == "models/refresh" and "models" not in params
+            discovery = method == "models/refresh" and "models" not in params and params.get("automatic") is not True and "providerId" not in params
             result = {"ok": False, "error": {"code": exc.code, "message": str(exc), "delivery": "unknown" if mutation and not discovery else "not_sent"}}
         if mutation:
             saved["state"] = "completed" if result["ok"] else "failed"

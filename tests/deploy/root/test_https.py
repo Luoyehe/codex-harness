@@ -12,9 +12,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy.common import DeployError, Layout, atomic_write, digest, fsync_directory, mkdir, read_json, write_json
+from deploy.cli import execute
 from deploy.https import (EDGE_ROLES, caddy_configuration, https_revision, read_https_metadata, setup_https,
                           tls_ca_path, tls_paths, transaction_paths)
 from deploy.manager import Manager
+from deploy.operator import Console
 from deploy.units import render_units, render_edge_units, sudo_rule
 
 
@@ -210,6 +212,66 @@ class HttpsTransactionTests(unittest.TestCase):
 
     def rotate(self):
         return setup_https(self.manager, **self.kwargs, certificate=self.new_cert_path, private_key=self.new_key_path)
+
+    def menu_https(self, *, host="", public=""):
+        answers = iter([host, "", "", public, "3", "y", str(self.new_cert_path), str(self.new_key_path), "", "n"])
+        calls = []
+        def dispatch(args):
+            calls.append(args)
+            return execute(args)
+        with patch("deploy.cli.require_linux"), patch("deploy.cli.Layout", return_value=self.layout), \
+             patch("deploy.cli.Manager", return_value=self.manager), \
+             patch("deploy.accounts.read_password", return_value=self.kwargs["password"]):
+            Console("fixture", execute=dispatch, ask=lambda _: next(answers), output=lambda _: None).https(username="admin")
+        return calls
+
+    def test_menu_migrates_legacy_standard_ports_without_inventing_a_public_origin(self):
+        self.metadata.update(httpPort=80, httpsPort=443)
+        self.config["origin"] = "https://work.example.test"
+        self.manager.config = dict(self.config)
+        write_json(self.layout.config / "https.json", self.metadata)
+        write_json(self.layout.config / "instance.json", self.config)
+        self.write_owned_units()
+        atomic_write(self.layout.config / "Caddyfile", caddy_configuration(self.layout, self.config, self.metadata).encode(), 0o644)
+        calls = self.menu_https()
+        self.assertEqual([args.command for args in calls], ["https-read", "https-plan", "https"])
+        self.assertIsNone(calls[-1].public_origin)
+        metadata = read_json(self.layout.config / "https.json")
+        self.assertEqual((metadata["authentication"], metadata["phase"]), ("builtin", "active"))
+        self.assertNotIn("publicOrigin", metadata)
+        self.assertEqual(self.journal()[1]["phase"], "committed")
+        self.assert_identity_preserved()
+
+    def test_menu_resumes_failed_first_https_then_migrates_the_active_address(self):
+        self.system.active = {"worker", "gateway"}
+        self.system.enabled = {"worker", "gateway"}
+        for path in (self.layout.units / self.layout.unit("caddy"), self.layout.units / self.layout.unit("authelia"),
+                     self.layout.config / "Caddyfile", self.layout.config / "https.json"):
+            path.unlink()
+        self.manager.config["origin"] = "http://127.0.0.1:3300"
+        write_json(self.layout.config / "instance.json", self.manager.config)
+        for name, content in render_units(self.layout, self.manager.config, self.config["codexRelative"]).items():
+            atomic_write(self.layout.units / name, content.encode(), 0o644)
+        # Fail a real initial menu transaction after it retains prepared TLS
+        # metadata, then retry using the values returned by real https-read.
+        self.validation_failure = True
+        with self.assertRaisesRegex(DeployError, "validation failure"):
+            self.menu_https(host="work.example.test")
+        prepared = read_json(self.layout.config / "https.json")
+        self.assertEqual(prepared["phase"], "prepared")
+        self.assertEqual(self.manager.config["origin"], "http://127.0.0.1:3300")
+        self.validation_failure = False
+        calls = self.menu_https()
+        self.assertEqual(calls[-1].command, "https")
+        self.assertEqual(calls[-1].public_origin, prepared["publicOrigin"])
+        self.assertEqual(read_json(self.layout.config / "https.json")["phase"], "active")
+        origin = self.manager.config["origin"]
+        revision = https_revision(read_json(self.layout.config / "https.json"))
+        calls = self.menu_https(host="changed.example.test", public="https://changed.example.test")
+        self.assertEqual(calls[-1].command, "https-migrate")
+        self.assertEqual((calls[-1].expected_origin, calls[-1].expected_https_revision), (origin, revision))
+        self.assertEqual(self.manager.config["origin"], "https://changed.example.test")
+        self.assertEqual(self.system.active, {"worker", "gateway", "caddy"})
 
     def test_transaction_parent_sync_failure_precedes_https_stop_and_selection(self):
         def fail(path, **kwargs):

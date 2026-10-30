@@ -13,6 +13,7 @@ import { message, type Model, type Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
 import { useAutomationRuns } from '../hooks/useAutomationRuns';
 import { AutomationForm } from './AutomationForm';
+import type { ModelPagination } from './ModelDirectoryStatus';
 import { Dialog } from './Dialog';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 export function AutomationsPanel({
@@ -21,6 +22,7 @@ export function AutomationsPanel({
   projects,
   projectId,
   models,
+  modelCatalog,
   modes,
   enabled,
   idle,
@@ -33,6 +35,7 @@ export function AutomationsPanel({
   projects: Project[];
   projectId: string;
   models: Model[];
+  modelCatalog?: ModelPagination;
   modes: CollaborationModeMask[];
   enabled: boolean;
   idle: boolean;
@@ -134,6 +137,7 @@ export function AutomationsPanel({
                 : editing.record
             }
             models={models}
+            modelCatalog={modelCatalog}
             modes={modes}
             enabled={enabled}
             onChanged={refresh}

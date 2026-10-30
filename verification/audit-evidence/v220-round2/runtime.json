@@ -1,0 +1,2119 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-audit2-runtime",
+  "roundId": "v220-audit2",
+  "repository": "D:/Document/ChatGPT/codex-harness/rewrite-20261025",
+  "digest": "c6f55746080e5feba82a88190e7c48789f583169475e9aa82e1b968511fee34a",
+  "sourceFileCount": 1938,
+  "startedAt": "2026-10-30T05:58:46.197Z",
+  "completedAt": "2026-10-30T06:08:10.961Z",
+  "timingBasis": "startedAt records the formal AST coverage pass; manual preparation and initial source reading began earlier in the same uninterrupted reviewer task.",
+  "complete": true,
+  "skipped": [],
+  "findings": [],
+  "scope": [
+    "src/core/**",
+    "src/gateway/**",
+    "src/runtime/**",
+    "tests/core/**",
+    "tests/gateway/**",
+    "tests/runtime/**"
+  ],
+  "inspectedFiles": [
+    "src/core/automations.ts",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/extension-methods.ts",
+    "src/core/feature-methods.ts",
+    "src/core/ledger.ts",
+    "src/core/mcp-oauth-receipt.ts",
+    "src/core/operation-retention.ts",
+    "src/core/organization-methods.ts",
+    "src/core/process-methods.ts",
+    "src/core/realtime-methods.ts",
+    "src/core/remote-methods.ts",
+    "src/core/schedule.ts",
+    "src/core/validation.ts",
+    "src/core/worktrees.ts",
+    "src/gateway/auth-crypto.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/organization-receipt.ts",
+    "src/gateway/receipt-maintenance.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/recovery-protocol.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "src/gateway/workspace-ack.ts",
+    "src/runtime/account-tools.ts",
+    "src/runtime/attachments.ts",
+    "src/runtime/cli-diagnostics.ts",
+    "src/runtime/cli-terminals.ts",
+    "src/runtime/dev-resources.ts",
+    "src/runtime/device-login.ts",
+    "src/runtime/environments.ts",
+    "src/runtime/extensions.ts",
+    "src/runtime/feedback.ts",
+    "src/runtime/guardian.ts",
+    "src/runtime/history.ts",
+    "src/runtime/imports.ts",
+    "src/runtime/input-context.ts",
+    "src/runtime/input-modalities.ts",
+    "src/runtime/linux-process.ts",
+    "src/runtime/main.ts",
+    "src/runtime/mcp-configuration.ts",
+    "src/runtime/mcp-oauth.ts",
+    "src/runtime/mcp-schema.ts",
+    "src/runtime/mcp.ts",
+    "src/runtime/metadata.ts",
+    "src/runtime/native-launch.ts",
+    "src/runtime/native.ts",
+    "src/runtime/organization.ts",
+    "src/runtime/permission-grants.ts",
+    "src/runtime/plugin-sharing.ts",
+    "src/runtime/predictions.ts",
+    "src/runtime/processes.ts",
+    "src/runtime/project-trust.ts",
+    "src/runtime/projects.ts",
+    "src/runtime/providers.ts",
+    "src/runtime/realtime.ts",
+    "src/runtime/redaction.ts",
+    "src/runtime/remote-control.ts",
+    "src/runtime/service.ts",
+    "src/runtime/session-snapshots.ts",
+    "src/runtime/skill-resources.ts",
+    "src/runtime/structured-output.ts",
+    "src/runtime/thread-activity.ts",
+    "src/runtime/thread-terminals.ts",
+    "src/runtime/timeline-contract.ts",
+    "src/runtime/types.ts",
+    "src/runtime/validation.ts",
+    "src/runtime/windows-job.ts",
+    "src/runtime/windows-process.ts",
+    "src/runtime/workflow-methods.ts",
+    "src/runtime/workflows.ts",
+    "src/runtime/workspace-index.ts",
+    "src/runtime/workspace-service.ts",
+    "src/runtime/workspace-witness.ts",
+    "src/runtime/workspace.ts",
+    "src/runtime/worktree-bindings.ts",
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/operation-retention.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/authorization-dispatch.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-maintenance.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "tests/runtime/README.md",
+    "tests/runtime/account-tools.test.ts",
+    "tests/runtime/approval-native.test.ts",
+    "tests/runtime/attachments.test.ts",
+    "tests/runtime/automation-native.test.ts",
+    "tests/runtime/cli-diagnostics-native.test.ts",
+    "tests/runtime/cli-diagnostics.test.ts",
+    "tests/runtime/cli-terminals.test.ts",
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/dev-resources-special-file-fixture.mjs",
+    "tests/runtime/dev-resources.test.ts",
+    "tests/runtime/device-login.test.ts",
+    "tests/runtime/entrypoint.test.ts",
+    "tests/runtime/extensions-native.test.ts",
+    "tests/runtime/extensions.test.ts",
+    "tests/runtime/fixture-cleanup.test.ts",
+    "tests/runtime/fixture-cleanup.ts",
+    "tests/runtime/fixture-model-catalog.json",
+    "tests/runtime/fixture-values.ts",
+    "tests/runtime/gateway-native.test.ts",
+    "tests/runtime/gateway-oauth-native.test.ts",
+    "tests/runtime/guardian-native.test.ts",
+    "tests/runtime/guardian.test.ts",
+    "tests/runtime/imports.test.ts",
+    "tests/runtime/input-context.test.ts",
+    "tests/runtime/input-modalities.test.ts",
+    "tests/runtime/input-native.test.ts",
+    "tests/runtime/loopback-provider.ts",
+    "tests/runtime/mcp-configuration.test.ts",
+    "tests/runtime/mcp-fixture.mjs",
+    "tests/runtime/mcp-native.test.ts",
+    "tests/runtime/mcp-oauth-fixture.mjs",
+    "tests/runtime/mcp-oauth.test.ts",
+    "tests/runtime/mcp-schema.test.ts",
+    "tests/runtime/mcp.test.ts",
+    "tests/runtime/native-env.test.ts",
+    "tests/runtime/native-fixture.mjs",
+    "tests/runtime/native-smoke.test.ts",
+    "tests/runtime/native.test.ts",
+    "tests/runtime/organization-native.test.ts",
+    "tests/runtime/organization.test.ts",
+    "tests/runtime/permission-validation.test.ts",
+    "tests/runtime/predictions.test.ts",
+    "tests/runtime/process-native.test.ts",
+    "tests/runtime/processes.test.ts",
+    "tests/runtime/project-trust.test.ts",
+    "tests/runtime/projects.test.ts",
+    "tests/runtime/providers.test.ts",
+    "tests/runtime/pty-transcript.test.ts",
+    "tests/runtime/pty-transcript.ts",
+    "tests/runtime/realtime.test.ts",
+    "tests/runtime/redaction.test.ts",
+    "tests/runtime/remote-native.test.ts",
+    "tests/runtime/remote.test.ts",
+    "tests/runtime/server.test.ts",
+    "tests/runtime/service.test.ts",
+    "tests/runtime/sharing-feedback.test.ts",
+    "tests/runtime/skill-resources.test.ts",
+    "tests/runtime/terminal-cleanup-fixture.mjs",
+    "tests/runtime/terminal-cleanup.test.ts",
+    "tests/runtime/thread-activity.test.ts",
+    "tests/runtime/thread-terminals.test.ts",
+    "tests/runtime/timeline-contract.test.ts",
+    "tests/runtime/windows-job-fixture.mjs",
+    "tests/runtime/windows-job-owner.mjs",
+    "tests/runtime/windows-job.test.ts",
+    "tests/runtime/windows-module-bootstrap.test.ts",
+    "tests/runtime/windows-process.test.ts",
+    "tests/runtime/workflows-native.test.ts",
+    "tests/runtime/workflows.test.ts",
+    "tests/runtime/workspace-index.test.ts",
+    "tests/runtime/workspace-service.test.ts",
+    "tests/runtime/workspace-witness-durability.test.ts",
+    "tests/runtime/workspace-witness.test.ts",
+    "tests/runtime/workspace.test.ts",
+    "tests/runtime/worktree-witness.test.ts"
+  ],
+  "coverage": {
+    "inventorySource": ".work/v220-audit2-snapshot.json#names",
+    "inspectedCount": 173,
+    "fullTextSourceCount": 81,
+    "fullTextSourceFiles": [
+      "src/core/automations.ts",
+      "src/core/budget.ts",
+      "src/core/contracts.ts",
+      "src/core/errors.ts",
+      "src/core/extension-methods.ts",
+      "src/core/feature-methods.ts",
+      "src/core/ledger.ts",
+      "src/core/mcp-oauth-receipt.ts",
+      "src/core/operation-retention.ts",
+      "src/core/organization-methods.ts",
+      "src/core/process-methods.ts",
+      "src/core/realtime-methods.ts",
+      "src/core/remote-methods.ts",
+      "src/core/schedule.ts",
+      "src/core/validation.ts",
+      "src/core/worktrees.ts",
+      "src/gateway/auth-crypto.ts",
+      "src/gateway/auth.ts",
+      "src/gateway/automation-scheduler.ts",
+      "src/gateway/dispatch.ts",
+      "src/gateway/main.ts",
+      "src/gateway/manager-client.ts",
+      "src/gateway/organization-receipt.ts",
+      "src/gateway/receipt-maintenance.ts",
+      "src/gateway/receipt-result.ts",
+      "src/gateway/recovery-protocol.ts",
+      "src/gateway/server.ts",
+      "src/gateway/worker-client.ts",
+      "src/gateway/workspace-ack.ts",
+      "src/runtime/account-tools.ts",
+      "src/runtime/attachments.ts",
+      "src/runtime/cli-diagnostics.ts",
+      "src/runtime/cli-terminals.ts",
+      "src/runtime/dev-resources.ts",
+      "src/runtime/device-login.ts",
+      "src/runtime/environments.ts",
+      "src/runtime/extensions.ts",
+      "src/runtime/feedback.ts",
+      "src/runtime/guardian.ts",
+      "src/runtime/history.ts",
+      "src/runtime/imports.ts",
+      "src/runtime/input-context.ts",
+      "src/runtime/input-modalities.ts",
+      "src/runtime/linux-process.ts",
+      "src/runtime/main.ts",
+      "src/runtime/mcp-configuration.ts",
+      "src/runtime/mcp-oauth.ts",
+      "src/runtime/mcp-schema.ts",
+      "src/runtime/mcp.ts",
+      "src/runtime/metadata.ts",
+      "src/runtime/native-launch.ts",
+      "src/runtime/native.ts",
+      "src/runtime/organization.ts",
+      "src/runtime/permission-grants.ts",
+      "src/runtime/plugin-sharing.ts",
+      "src/runtime/predictions.ts",
+      "src/runtime/processes.ts",
+      "src/runtime/project-trust.ts",
+      "src/runtime/projects.ts",
+      "src/runtime/providers.ts",
+      "src/runtime/realtime.ts",
+      "src/runtime/redaction.ts",
+      "src/runtime/remote-control.ts",
+      "src/runtime/service.ts",
+      "src/runtime/session-snapshots.ts",
+      "src/runtime/skill-resources.ts",
+      "src/runtime/structured-output.ts",
+      "src/runtime/thread-activity.ts",
+      "src/runtime/thread-terminals.ts",
+      "src/runtime/timeline-contract.ts",
+      "src/runtime/types.ts",
+      "src/runtime/validation.ts",
+      "src/runtime/windows-job.ts",
+      "src/runtime/windows-process.ts",
+      "src/runtime/workflow-methods.ts",
+      "src/runtime/workflows.ts",
+      "src/runtime/workspace-index.ts",
+      "src/runtime/workspace-service.ts",
+      "src/runtime/workspace-witness.ts",
+      "src/runtime/workspace.ts",
+      "src/runtime/worktree-bindings.ts"
+    ],
+    "fullTextTestAndDocumentFiles": [
+      "tests/runtime/native-smoke.test.ts",
+      "tests/runtime/gateway-native.test.ts",
+      "tests/runtime/README.md",
+      "tests/runtime/fixture-model-catalog.json"
+    ],
+    "partialTextTestFiles": [
+      {
+        "path": "tests/runtime/realtime.test.ts",
+        "lines": "1-75"
+      },
+      {
+        "path": "tests/runtime/processes.test.ts",
+        "lines": "1-45"
+      }
+    ],
+    "parsedAndTraversedCount": 171,
+    "jsonParsedCount": 1,
+    "parseFailures": [],
+    "detail": [
+      {
+        "path": "src/core/automations.ts",
+        "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a",
+        "bytes": 15964,
+        "lines": 130,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/budget.ts",
+        "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b",
+        "bytes": 1146,
+        "lines": 25,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/contracts.ts",
+        "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5",
+        "bytes": 1712,
+        "lines": 27,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/errors.ts",
+        "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a",
+        "bytes": 772,
+        "lines": 12,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/extension-methods.ts",
+        "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a",
+        "bytes": 2413,
+        "lines": 36,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/feature-methods.ts",
+        "sha256": "fe23d36edf07ae235fad8ca695d0b58f1e3f96dcd3fa203fe05f78432ac638b9",
+        "bytes": 5219,
+        "lines": 111,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/ledger.ts",
+        "sha256": "8cc405820a94cc53c6518bef0db5ae9e3ded6fab13d4e3b54c07238e1950fa49",
+        "bytes": 17900,
+        "lines": 258,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/mcp-oauth-receipt.ts",
+        "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+        "bytes": 1379,
+        "lines": 24,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/operation-retention.ts",
+        "sha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b",
+        "bytes": 8822,
+        "lines": 132,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/organization-methods.ts",
+        "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4",
+        "bytes": 969,
+        "lines": 14,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/process-methods.ts",
+        "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f",
+        "bytes": 464,
+        "lines": 7,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/realtime-methods.ts",
+        "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41",
+        "bytes": 560,
+        "lines": 8,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/remote-methods.ts",
+        "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43",
+        "bytes": 921,
+        "lines": 10,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/schedule.ts",
+        "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a",
+        "bytes": 4577,
+        "lines": 45,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+        "bytes": 3162,
+        "lines": 56,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/core/worktrees.ts",
+        "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089",
+        "bytes": 5380,
+        "lines": 54,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/auth-crypto.ts",
+        "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+        "bytes": 4054,
+        "lines": 56,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/auth.ts",
+        "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3",
+        "bytes": 21527,
+        "lines": 233,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/automation-scheduler.ts",
+        "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9",
+        "bytes": 10936,
+        "lines": 151,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/dispatch.ts",
+        "sha256": "3fe5901539d707859bb2fda6af0c83e9432ad5bfa8d178798af7c172bbed9525",
+        "bytes": 23100,
+        "lines": 260,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/main.ts",
+        "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd",
+        "bytes": 3119,
+        "lines": 42,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/manager-client.ts",
+        "sha256": "d786a1ab12e4c015a9cb7636a82c1015b483040e849abe97e59a2598ca22fe42",
+        "bytes": 3701,
+        "lines": 61,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/organization-receipt.ts",
+        "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d",
+        "bytes": 1608,
+        "lines": 13,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/receipt-maintenance.ts",
+        "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6",
+        "bytes": 3294,
+        "lines": 52,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/receipt-result.ts",
+        "sha256": "b694173e3d8dc2799c9d419137abbcf316fc86fc6c20c5d455c17ff5aa8ba596",
+        "bytes": 33795,
+        "lines": 356,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/recovery-protocol.ts",
+        "sha256": "a11bfc056861be1b8672e72f260f3516e6d0b364ff0be50cf01f7257c7878e8d",
+        "bytes": 1087,
+        "lines": 16,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/server.ts",
+        "sha256": "6f88bc5217e1aadb303a05f6bdecad1bda8381874575ab12929e9ccfb4f72b61",
+        "bytes": 24046,
+        "lines": 348,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/worker-client.ts",
+        "sha256": "2720fdd6660b9d26aa6f9a321615ef5f20dc84d1302fe56a8fe2c00a0d036417",
+        "bytes": 10063,
+        "lines": 154,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/gateway/workspace-ack.ts",
+        "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+        "bytes": 6230,
+        "lines": 110,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/account-tools.ts",
+        "sha256": "002ba18612e76cfd53b667e7a09ca5747bca5bd9b7ee8d4657f9ec06355f85ec",
+        "bytes": 11204,
+        "lines": 118,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+        "bytes": 21475,
+        "lines": 242,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/cli-diagnostics.ts",
+        "sha256": "79f421a39df3de5468b6e6ad662ee76c1cb70160b5621f46380fb2ee0a33f5ba",
+        "bytes": 7816,
+        "lines": 69,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/cli-terminals.ts",
+        "sha256": "1d7bb6b9479e5b3e5e38735860a05d2083c6b344cf00b4812124e266a69ae373",
+        "bytes": 6415,
+        "lines": 57,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/dev-resources.ts",
+        "sha256": "c53d5f7d4d81aa6c944974e9bd15941e7f56c7e72a1191a61c7112d7603d0a59",
+        "bytes": 6454,
+        "lines": 68,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/device-login.ts",
+        "sha256": "9de0debd83ead4ec67fba35b8c00fd244f45493bac03d27f1a710995d69d0308",
+        "bytes": 7177,
+        "lines": 88,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/environments.ts",
+        "sha256": "e0a9a6a38b84695d12e49e1fc9cd3ead8eea92d119cd12fdf2eedaf2eda49cd1",
+        "bytes": 7633,
+        "lines": 70,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/extensions.ts",
+        "sha256": "ced7c804ccb2f9061d1d2fa34bfcb605a4f5b50d422f0187d90359da4a5ce3c5",
+        "bytes": 25998,
+        "lines": 274,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/feedback.ts",
+        "sha256": "aac1bed56ed149bd025cf2bb0de13aa5b6ac34884fb9e546aa37e6b5fd725135",
+        "bytes": 2815,
+        "lines": 30,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/guardian.ts",
+        "sha256": "d11a731bbfb91eec51aa1edcbaa0182eae444108971940b98e003756cc95da4e",
+        "bytes": 9996,
+        "lines": 90,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/history.ts",
+        "sha256": "f1beecd1513e70984cada579337e1d5e82306a505a2fd4fd580b108452cd3848",
+        "bytes": 9114,
+        "lines": 82,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+        "bytes": 7724,
+        "lines": 75,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+        "bytes": 7323,
+        "lines": 78,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/input-modalities.ts",
+        "sha256": "baa8dcba1e9107d4a112f413c54b00b5fffde7aeb301897eb083a9126fbf3360",
+        "bytes": 2969,
+        "lines": 33,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/linux-process.ts",
+        "sha256": "7fd8e590412340772610ee3687ae3641a3ecd7f46e1df4d5e71817783fabe3ce",
+        "bytes": 8022,
+        "lines": 130,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/main.ts",
+        "sha256": "15e78d8ff90d444370a6f4f6f5f889e670de348667bd3846aa3260ea814b6a32",
+        "bytes": 16699,
+        "lines": 164,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/mcp-configuration.ts",
+        "sha256": "966a533fc21d8a1f0925568924f1a7c14f9f40821131bc4705744909d87e6e85",
+        "bytes": 9135,
+        "lines": 84,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/mcp-oauth.ts",
+        "sha256": "c2f36b1fce17f526e96783d56dedd6852f00f7e4d4c01d94e8b23119baaf5de3",
+        "bytes": 8236,
+        "lines": 106,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/mcp-schema.ts",
+        "sha256": "f796b23409cd21f607e82a7c04cd4595a4a24f60c2f335f9978b38b17a78999c",
+        "bytes": 3804,
+        "lines": 48,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/mcp.ts",
+        "sha256": "a123f2b84aab63c509940f2c9b65ff5297bc8240ff52c96ea6d446e7c505989f",
+        "bytes": 16257,
+        "lines": 155,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/metadata.ts",
+        "sha256": "51e1d02cbe02ea1a436cadfe818e302a83c1fb608b537421716dff36f5001c5c",
+        "bytes": 564,
+        "lines": 9,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/native-launch.ts",
+        "sha256": "f1bcede3e6ba8ad43558998f887665fd73e5e7475d2d15bd2e27bbb30657a26c",
+        "bytes": 4811,
+        "lines": 56,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/native.ts",
+        "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+        "bytes": 14570,
+        "lines": 210,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/organization.ts",
+        "sha256": "0744df619c14ea25c1afc874d5647a068db0fa96703a22e99e9a16defd078dba",
+        "bytes": 13660,
+        "lines": 85,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/permission-grants.ts",
+        "sha256": "98fb19a78cd3c0255c8a11268e8267fa2dab93b57a4d55ff315e1b741f13d8c6",
+        "bytes": 4332,
+        "lines": 82,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/plugin-sharing.ts",
+        "sha256": "3d2e6f5e7d33ba05bf522b74803935ec359abc4da00e3f419a5b5325c86979b8",
+        "bytes": 6692,
+        "lines": 74,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/predictions.ts",
+        "sha256": "017b6a449adc97efa67f5f696407e4d929e697fdde5a813459e87e0e3ab833c6",
+        "bytes": 8267,
+        "lines": 80,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/processes.ts",
+        "sha256": "c063b69fa769ba90562a1b587856fd618da794a830a21a7302060fe2fe777db2",
+        "bytes": 15005,
+        "lines": 92,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/project-trust.ts",
+        "sha256": "2fbf7cc2f754054815fb74ec9e3afcca49fa053ff893db90af835190f5013a16",
+        "bytes": 3303,
+        "lines": 32,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/projects.ts",
+        "sha256": "4d8de2c388fa4708b6d6732c5426e1e451bcec47c749f5c8cf666bc42daa6f0a",
+        "bytes": 3626,
+        "lines": 52,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/providers.ts",
+        "sha256": "e7802d9c4af089913646deddb84ec7b2ff31ee5a7fac5d4f9884a6847b678018",
+        "bytes": 9361,
+        "lines": 129,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/realtime.ts",
+        "sha256": "b8074f724c585636717fbb1905184be2c4339cd8b3f71474057560214ab91e4b",
+        "bytes": 17906,
+        "lines": 174,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/redaction.ts",
+        "sha256": "38342ce9b58efce9ca36b64ab107944cdfb02d7ce8f9ea444432109c789a195a",
+        "bytes": 2032,
+        "lines": 33,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/remote-control.ts",
+        "sha256": "9cd520e0b2062c6b920b917932b94e31e36492caef17c265422e4efb262f97ac",
+        "bytes": 6761,
+        "lines": 58,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/service.ts",
+        "sha256": "c05007c284696c1aa9dc0f338e8b6bd5b8baa52b268426b667d1c024ec3e6e22",
+        "bytes": 80009,
+        "lines": 776,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/session-snapshots.ts",
+        "sha256": "0d4ae99c3eacd6849e9a2bbc660d02a497e19c15401e2624ac18105034c8cbe6",
+        "bytes": 3299,
+        "lines": 35,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/skill-resources.ts",
+        "sha256": "b958998f32d0f07507e66627f88d8fdba5d9ccd43b7ade9f91e6900966f0c178",
+        "bytes": 3530,
+        "lines": 39,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/structured-output.ts",
+        "sha256": "324537dca6387f89679896ad85955d8f8aa63f1171d82481c0a28737b75892de",
+        "bytes": 950,
+        "lines": 14,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/thread-activity.ts",
+        "sha256": "5884d60d40f7037142f48210a5df5534e455ef1026cbb4ef50593af2ab16d018",
+        "bytes": 3434,
+        "lines": 97,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/thread-terminals.ts",
+        "sha256": "7c52526e01de582b3881f9aabe7470d7da3e8eb1bcd7b31c09845dad0a4645e6",
+        "bytes": 4841,
+        "lines": 46,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/timeline-contract.ts",
+        "sha256": "5abcc19fc9cc8697601fd56c9db86d81d5073b00c78442adb7b8aa65252ae5c4",
+        "bytes": 3349,
+        "lines": 38,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/types.ts",
+        "sha256": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0",
+        "bytes": 3544,
+        "lines": 44,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/validation.ts",
+        "sha256": "8c8670e9871a13a93a73654c114cff7f8982916a9bbb72141e19420a3f64d246",
+        "bytes": 9999,
+        "lines": 123,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/windows-job.ts",
+        "sha256": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0",
+        "bytes": 12947,
+        "lines": 131,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/windows-process.ts",
+        "sha256": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2",
+        "bytes": 9397,
+        "lines": 83,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/workflow-methods.ts",
+        "sha256": "40bfbf562c8d51e538256510772087a58962ae1ceb7482ca066f726b36a2c6d8",
+        "bytes": 1018,
+        "lines": 11,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/workflows.ts",
+        "sha256": "3330e7962ee3ae65f47bea86c681c6c29367fe424ad34cf02ccece87cccae190",
+        "bytes": 22207,
+        "lines": 208,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/workspace-index.ts",
+        "sha256": "94108d13acc49982d652a73cfba577f78b8c6bc87bcfab4336e67e8e50540670",
+        "bytes": 3955,
+        "lines": 54,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/workspace-service.ts",
+        "sha256": "d58c12fca3b67a88ee47175ec1ed34447562dea1877d84ff7a55c07f55b630cf",
+        "bytes": 5125,
+        "lines": 98,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "9794a2c3460d83ca6a9b437d3898174f8e71f4dfdb4f60bae42c4a92d922fd13",
+        "bytes": 15407,
+        "lines": 161,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/workspace.ts",
+        "sha256": "4c9e1a677cbf79d610f5de6171e34a622ef7122b71886e2e33a60fad1c50534c",
+        "bytes": 12919,
+        "lines": 138,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "src/runtime/worktree-bindings.ts",
+        "sha256": "3e02f04121fb36220962518bd8d7b198776ced6f1559554c9fd2859c5031c1b6",
+        "bytes": 4216,
+        "lines": 45,
+        "methods": [
+          "full-text-manual-source-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "tests/core/automation-retention.test.ts",
+        "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3",
+        "bytes": 3142,
+        "lines": 59,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/core/ledger-capacity.test.ts",
+        "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d",
+        "bytes": 17691,
+        "lines": 210,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/core/ledger.test.ts",
+        "sha256": "42896338d81019729da40dd1e3269ff5977d643449940f99f9ea13e67e34f9f2",
+        "bytes": 5755,
+        "lines": 91,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/core/operation-retention.test.ts",
+        "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9",
+        "bytes": 6572,
+        "lines": 93,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/core/schedule.test.ts",
+        "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328",
+        "bytes": 3301,
+        "lines": 42,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/auth.test.ts",
+        "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679",
+        "bytes": 17981,
+        "lines": 203,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/authorization-dispatch.test.ts",
+        "sha256": "ef20720e0146164fa58c3bdd44238be7686b4ec7f4b311a1c06526ca13285d2d",
+        "bytes": 10567,
+        "lines": 154,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/automation-scheduler.test.ts",
+        "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5",
+        "bytes": 12425,
+        "lines": 143,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/dispatch.test.ts",
+        "sha256": "537443abd58479ee2ccb72bfbd2745261f979f9ffcf0a12721b4690fddb20698",
+        "bytes": 26543,
+        "lines": 300,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/http.test.ts",
+        "sha256": "3d0738545643c9d5670f9e7d856b65007ff78a5e4d17b577c5fef17518cdd616",
+        "bytes": 35312,
+        "lines": 408,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/mcp-oauth.test.ts",
+        "sha256": "83c0d7951907e9676dd4c89dacff63a691cb7770e31767bc66bdb113fa942a34",
+        "bytes": 9955,
+        "lines": 117,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/receipt-maintenance.test.ts",
+        "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f",
+        "bytes": 4639,
+        "lines": 55,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/receipt-result.test.ts",
+        "sha256": "ad79681d8b7aa03d955d28979fd94baa272cb1dc264523463a54fd39818e602a",
+        "bytes": 13806,
+        "lines": 114,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/worker-client.test.ts",
+        "sha256": "c28e54e7593375379dd4176fe792198be714dd94657e1b220c381ebd86cd4bfa",
+        "bytes": 11543,
+        "lines": 160,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/workspace-ack.test.ts",
+        "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b",
+        "bytes": 7434,
+        "lines": 102,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/gateway/worktrees.test.ts",
+        "sha256": "20af6f36cc5a90d277a28922830bba7efadd3118aebd2500b2265f8ec0130cb4",
+        "bytes": 6248,
+        "lines": 62,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/README.md",
+        "sha256": "8308c87eb08ebf9e525269617f15f87e13640c13f5056084a8e27578dc3900fa",
+        "bytes": 36516,
+        "lines": 119,
+        "methods": [
+          "full-text-contract-document-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/account-tools.test.ts",
+        "sha256": "0ce398d1cf2a8470a7ece04779abe39a2ecd09bc9a9e86903a4293b2e323de35",
+        "bytes": 11004,
+        "lines": 83,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/approval-native.test.ts",
+        "sha256": "a1856582e532e55d69a89d81d45aff4e022f8c5ecf0d6645cbfd3d8c21990337",
+        "bytes": 7503,
+        "lines": 79,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/attachments.test.ts",
+        "sha256": "96af9b29a2a6cfe2b468f67d3226c56d018dab52b19656d1089425072f4ae5c3",
+        "bytes": 14180,
+        "lines": 164,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/automation-native.test.ts",
+        "sha256": "d72ac7956778a347ffeb2931fec71b5dd3a06b8d9df453042fa017b8df5a3816",
+        "bytes": 5226,
+        "lines": 42,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/cli-diagnostics-native.test.ts",
+        "sha256": "89668d8f3331417b05d48c32dfaf806eef420f9a33d74ae7d059e0e99d44d593",
+        "bytes": 2817,
+        "lines": 25,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/cli-diagnostics.test.ts",
+        "sha256": "586c12963edd552b1799f72082b16d02cf148608e96412f2b4d70dc092265e4a",
+        "bytes": 9766,
+        "lines": 76,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/cli-terminals.test.ts",
+        "sha256": "b0247ad957568fa7a86cadbdb657ae0fd52413b325d1b02a13884b64245c64e6",
+        "bytes": 11540,
+        "lines": 105,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/defaults-lifecycle.test.ts",
+        "sha256": "c5dcc0a9b761d48b094f8b0c642f1e28ed3d2fc7e6ff0a6ee96e46d333a8d30c",
+        "bytes": 4842,
+        "lines": 68,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/dev-resources-special-file-fixture.mjs",
+        "sha256": "16c2b8a6d6b9c850ff7cedf0c12fa371e7c6c1b72757e0e927a12a234cfb34b3",
+        "bytes": 1058,
+        "lines": 20,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/dev-resources.test.ts",
+        "sha256": "bb3e69200e92d0202921d6a688be9e818b1884c47fe2063d5e57ec2a5719d042",
+        "bytes": 7866,
+        "lines": 87,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/device-login.test.ts",
+        "sha256": "e65865e0c83a015dff54a8329d68c37ab89f6965720a45917bf9c201eea92919",
+        "bytes": 6254,
+        "lines": 69,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/entrypoint.test.ts",
+        "sha256": "c0b443ba727b0e9b0f564c485a7a117c2c6971802aae38ea8216674e930402c3",
+        "bytes": 2033,
+        "lines": 26,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/extensions-native.test.ts",
+        "sha256": "31764abbfeeaab924ab52190fb508de720aa64e2ef7eec9992f6d6bb9d60a764",
+        "bytes": 14216,
+        "lines": 103,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/extensions.test.ts",
+        "sha256": "36c48b99cd9ea9b16ae739dee451fcffc399a41db0ee5d65991e9f0a9df87d08",
+        "bytes": 11158,
+        "lines": 80,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/fixture-cleanup.test.ts",
+        "sha256": "ed28287d9ca737d95066747cc6eb7b8a25f5ff02df6448034ccffdd422ea72db",
+        "bytes": 6941,
+        "lines": 122,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/fixture-cleanup.ts",
+        "sha256": "6ce7341e14b69cd2e0fb05891b12843e5bfdd5b4323c2410c1ad5466e5ab9cce",
+        "bytes": 849,
+        "lines": 17,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/fixture-model-catalog.json",
+        "sha256": "a5cf6d8bf59a93bc16ae99dd83a4f8a18bb0ee8baeb4b864fe8212a6ddd5bcf1",
+        "bytes": 908,
+        "lines": 25,
+        "methods": [
+          "JSON-parse-and-full-text-fixture-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/fixture-values.ts",
+        "sha256": "64f3abe0d3bda2a849d38acb5db535e579bb1be4ff91f7ae81796428e4d5af13",
+        "bytes": 761,
+        "lines": 5,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/gateway-native.test.ts",
+        "sha256": "0f7daf618891f1b80fcd0347476ebf4c8d6f9527827c921b1417e38edd69efc4",
+        "bytes": 15685,
+        "lines": 119,
+        "methods": [
+          "full-text-manual-test-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/gateway-oauth-native.test.ts",
+        "sha256": "77ac32a081458138aa9b04b00d5c7a7c445d2df5b31e35bc113f45e8f53b560f",
+        "bytes": 4010,
+        "lines": 35,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/guardian-native.test.ts",
+        "sha256": "51ea412a29765fc37170a0e56b2ee1fcc122746de3ef5d00b16364e14d245d02",
+        "bytes": 15642,
+        "lines": 140,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/guardian.test.ts",
+        "sha256": "8f791842a3ec0ab6c8a610ca66a8b1b2fa8b88aeac010b79cc87f7fc0cb34a64",
+        "bytes": 7382,
+        "lines": 52,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/imports.test.ts",
+        "sha256": "cd5b2afb60f6924ca39d2a15edeea94c97329e7050e8d768c19c1feff7b34173",
+        "bytes": 5214,
+        "lines": 50,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/input-context.test.ts",
+        "sha256": "a85505a2e83cdc8c2a298b4079b943d295d6860742e4ea237437dbd74d086e4e",
+        "bytes": 5307,
+        "lines": 56,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/input-modalities.test.ts",
+        "sha256": "aaa51816ef17f6962ab6a5f2b1bc36f1f3c6564237ad8540c2404589dfc7d502",
+        "bytes": 2630,
+        "lines": 21,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/input-native.test.ts",
+        "sha256": "7e59d489fbcd77b34b8fddef3cf6b81130b21fe7e29881b5c94ee039e5c30eaf",
+        "bytes": 8266,
+        "lines": 50,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/loopback-provider.ts",
+        "sha256": "12de7c4fcf457345dc2e9c92207c56846d86c13faea27b051e81a38e6048d87e",
+        "bytes": 2210,
+        "lines": 17,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/mcp-configuration.test.ts",
+        "sha256": "0f6180356e6499194b085c8bf7ef7705b1d7a94f8186c4275cc66b131f6ba2be",
+        "bytes": 4299,
+        "lines": 43,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/mcp-fixture.mjs",
+        "sha256": "c9fd3598be8ba7dcd03c26894cf6c79a51e6be215f1448a9930f6f713c6abb91",
+        "bytes": 1948,
+        "lines": 20,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/mcp-native.test.ts",
+        "sha256": "5f20fbc808ff46d6a5294ef50d6b6ab509569209b5e8162cf0b3fa2efce9faf9",
+        "bytes": 3900,
+        "lines": 32,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/mcp-oauth-fixture.mjs",
+        "sha256": "17f5857d8ca6ac0495150aab3a74e1d34363e6b76594a763126f20abe84910bb",
+        "bytes": 788,
+        "lines": 16,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/mcp-oauth.test.ts",
+        "sha256": "9ff0ed81c51085386037478dd268c9776f72f350374a83f8b24d3215c096bdfd",
+        "bytes": 8668,
+        "lines": 103,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/mcp-schema.test.ts",
+        "sha256": "7315e9db67297119fc093f035ad81c063feead6332afcab2f51b3360462312b3",
+        "bytes": 1787,
+        "lines": 18,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/mcp.test.ts",
+        "sha256": "43b2e0ca39de327da5d089e41752f80fa20e69bdc5ccd2128e027331509137a9",
+        "bytes": 13015,
+        "lines": 107,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/native-env.test.ts",
+        "sha256": "d9ac65de937c7e4afe9b223e849d9989d5f43a53ed46db89fb65f59c9a1249e7",
+        "bytes": 2834,
+        "lines": 39,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/native-fixture.mjs",
+        "sha256": "d34e23f65716ad112ac9f6847bb93ebf203197da0caa2e91abd49c3be757251a",
+        "bytes": 1424,
+        "lines": 20,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/native-smoke.test.ts",
+        "sha256": "100f5cf4ad78866fd5185768fe9780e7ac25307c2539531edceacddec04c53ba",
+        "bytes": 16370,
+        "lines": 179,
+        "methods": [
+          "full-text-manual-test-review",
+          "AST-parse-and-control-call-structure-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/native.test.ts",
+        "sha256": "f6407192c3e211346b59574a927a23eeb62cff9a02913f66aa81e4dd0420fc3e",
+        "bytes": 7287,
+        "lines": 87,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/organization-native.test.ts",
+        "sha256": "33451ca99f320a22a4c5c259cd3c77fcc0fb657d20c7116728f34f8835f3133a",
+        "bytes": 8101,
+        "lines": 49,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/organization.test.ts",
+        "sha256": "062321809e82354e8e21e9e7fb1c727e9ddb08bb7a323564709a1e4f316a9f88",
+        "bytes": 9253,
+        "lines": 70,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/permission-validation.test.ts",
+        "sha256": "56bf986c78e7d79d817db9ffee6054bafee587fd9539ae77cc6c5ee39407abc2",
+        "bytes": 13020,
+        "lines": 175,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/predictions.test.ts",
+        "sha256": "373f664687e5b7c9f753fd596bc442e24fa243e76a64a595a8da904850ae442e",
+        "bytes": 9172,
+        "lines": 73,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/process-native.test.ts",
+        "sha256": "a9f92e81d23140fe42927d2436ecba5cba703bc98b7d34ce50792720129b0599",
+        "bytes": 5354,
+        "lines": 28,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/processes.test.ts",
+        "sha256": "10aab7225568135629e99d18733382d4e411530f0d07b68b8aaf13fa296cace7",
+        "bytes": 8732,
+        "lines": 79,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/project-trust.test.ts",
+        "sha256": "8c99e30d5de5571d827e8894351db923742e7e41c3ff1cc8435c4088bf820e67",
+        "bytes": 1832,
+        "lines": 15,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/projects.test.ts",
+        "sha256": "c978bdbfbe8872b10b53edd2be30f787552677624a1665b1affaffb5267e521a",
+        "bytes": 3291,
+        "lines": 42,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/providers.test.ts",
+        "sha256": "1e1bcc20038c58173955584fa7d6281431a68ce77e067c37aacf77597a1b39f2",
+        "bytes": 5897,
+        "lines": 74,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/pty-transcript.test.ts",
+        "sha256": "7ed732610e90cf6f47a9f809a2a856ccf88f7f6fb9df2c87e0ae63eb86ca609d",
+        "bytes": 1867,
+        "lines": 34,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/pty-transcript.ts",
+        "sha256": "9f63572096722063c78773a2c07f9719bf587a97f7558196128e7376b25754a4",
+        "bytes": 1451,
+        "lines": 36,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/realtime.test.ts",
+        "sha256": "facf511de1e796e1c4b608104ca0050347a6d6be239f55a945f0381925226adf",
+        "bytes": 23275,
+        "lines": 217,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/redaction.test.ts",
+        "sha256": "d181f2d37dfbea3a700d01cdc24178aa4e6d66ce14937df76f96a44011b7464e",
+        "bytes": 1037,
+        "lines": 10,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/remote-native.test.ts",
+        "sha256": "62ae74c0359003e166fa4550ea5fc696400fdc30c1554783043239a328beeb76",
+        "bytes": 6694,
+        "lines": 49,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/remote.test.ts",
+        "sha256": "05e3b2b9fb008d9293f0647a895530007520bfca88bd28fd22ed8850b2a6642e",
+        "bytes": 8939,
+        "lines": 77,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/server.test.ts",
+        "sha256": "285a9285eeefdb584f7018dc1e9211a607f4b0eafd350a4d1366948b5403186e",
+        "bytes": 15614,
+        "lines": 139,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/service.test.ts",
+        "sha256": "894314eda80cb45a99d700e61b4ec37ae579dac9be7709b00e138f34c5b124ce",
+        "bytes": 42391,
+        "lines": 400,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/sharing-feedback.test.ts",
+        "sha256": "7bbac66d7bff456af2d30f1220cb6dc964a3c2bf5b0afc8028a43e25f9aa0bf9",
+        "bytes": 5259,
+        "lines": 41,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/skill-resources.test.ts",
+        "sha256": "05bb53c6f9cce82efd8f2d2698e94ecf619dd0f721117eb2bf44dba13d5e61fb",
+        "bytes": 3853,
+        "lines": 48,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/terminal-cleanup-fixture.mjs",
+        "sha256": "969e1349ffd8defee0e2aec9e8a1e5c4a8e5dd1bbbef363f11d076654a15b8f7",
+        "bytes": 1304,
+        "lines": 22,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/terminal-cleanup.test.ts",
+        "sha256": "92c0bd1c1713bd31d4b1b01b1f94c18f11f9fcd83495144e5fd01d5d5fc2b1d5",
+        "bytes": 6213,
+        "lines": 78,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/thread-activity.test.ts",
+        "sha256": "26b02cb2cd2fac8b7fe91b54d44a1c58cbfe508e2ebc35f5965466e80fde9dbd",
+        "bytes": 3714,
+        "lines": 69,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/thread-terminals.test.ts",
+        "sha256": "5dab3f19b3edc43be5592c7f06949af75eb7edd28277a8899bd42292240f8d98",
+        "bytes": 5294,
+        "lines": 50,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/timeline-contract.test.ts",
+        "sha256": "07be160f3150a6b791d392fb8154566e7c2c014405daa6a3c7bc82caf1e895e1",
+        "bytes": 1597,
+        "lines": 14,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/windows-job-fixture.mjs",
+        "sha256": "c95b3d6482fb8136e8b3f30597d0f4295b43ee2f092d80bb085c1066161a7b2b",
+        "bytes": 1181,
+        "lines": 21,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/windows-job-owner.mjs",
+        "sha256": "7c5c655a227dbf9dad77c0609d5aac0045918753a4e2b20bdd2d9fb486dcffef",
+        "bytes": 714,
+        "lines": 13,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/windows-job.test.ts",
+        "sha256": "3ef9571ded8feff983fd5b51930eec47e438e1ae3e815ceb69e93b7601cc12ae",
+        "bytes": 7250,
+        "lines": 82,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/windows-module-bootstrap.test.ts",
+        "sha256": "1395a5d73cc88f2ba1af87e28b44445eba07315b9d68b5ae42f08c26766ca03a",
+        "bytes": 4815,
+        "lines": 47,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/windows-process.test.ts",
+        "sha256": "1a0e90ac1f50f6066dea1015812bccb4efdf9c4712d64471b084839b0f61e970",
+        "bytes": 5920,
+        "lines": 55,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/workflows-native.test.ts",
+        "sha256": "ab76bcc45cb22c4882907237db70338efb383c61c9716928fe15046871773a77",
+        "bytes": 14322,
+        "lines": 96,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/workflows.test.ts",
+        "sha256": "a1ae649c9f799000823b5625117ec68df893bbd46d9b247b6c61eac1034732d9",
+        "bytes": 36124,
+        "lines": 314,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/workspace-index.test.ts",
+        "sha256": "c739b6ed90add83bce62f92dc054d4fd575dbb844d29d5c074a5d6a4d7676ec9",
+        "bytes": 2716,
+        "lines": 33,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/workspace-service.test.ts",
+        "sha256": "5e2bc27ad6f0d32cabee491f4d54dd260aaf35f49711076d11d556557aa0d5c9",
+        "bytes": 9640,
+        "lines": 96,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/workspace-witness-durability.test.ts",
+        "sha256": "40f4c40b44faafb36f548418513b891a2bc189956f03b8dfecc506f37259ce40",
+        "bytes": 6963,
+        "lines": 108,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/workspace-witness.test.ts",
+        "sha256": "9d0ea30aa601106f9fcc817d3a27b0512563a78e92ef88d5b1c2e1c24f2445ff",
+        "bytes": 16536,
+        "lines": 185,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/workspace.test.ts",
+        "sha256": "06e4dd335f7aa815b047ac63a8c3d969ca9ffd3e13086f4eff543976e2dc3c60",
+        "bytes": 11084,
+        "lines": 122,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      },
+      {
+        "path": "tests/runtime/worktree-witness.test.ts",
+        "sha256": "be921f1866ab4515eb753e3b9993ee3e1fa10b9ff098acc80f3e40074f75ba50",
+        "bytes": 4128,
+        "lines": 53,
+        "methods": [
+          "AST-parse-and-control-call-structure-review",
+          "test-title-helper-catch-and-assertion-inventory-review"
+        ]
+      }
+    ],
+    "astEvidence": ".work/v220-audit2-runtime-ast.json",
+    "astOutline": ".work/v220-audit2-runtime-ast-outline.txt"
+  },
+  "methods": [
+    "Fresh independent review of the current frozen snapshot. No prior audit result was used as passing evidence. No Git history, sibling/archive source, personal Codex home, or real account credentials was read.",
+    "All scoped implementation files were read as full source. Cross-file reasoning followed dispatch policy, validation, native writes, beforeWrite owner/activity fences, receipt delivery classification, retained resources, disconnect/close paths, persistence and restart behavior.",
+    "All 171 scoped TS/JS files were parsed and recursively traversed with the installed rolldown TypeScript/JavaScript AST parser. Recorded function/method entries, control branches, awaited calls, catch bodies, call inventory and test declarations were inspected. Test assertion matcher inventories were also inspected. This is structural review, not a claim of manual line-by-line reading of every test.",
+    "The README was read as declared contracts and evidence limitations, not as proof that previous tests passed. The model fixture was parsed and manually inspected. Ignored/untracked runtime products outside the frozen names were not silently added to scope.",
+    "Targeted execution used the pinned Node 24.22.1 runtime and official CLI 0.164.0 only. Native tests used fresh .work homes and the sanitized nativeTestEnvironment with non-loopback HTTP(S)/ALL_PROXY blocked at 127.0.0.1:9 and no inherited account/provider credentials.",
+    "Final scripts/snapshot.mjs inventory/digest and independent per-file hashes matched the frozen snapshot after the focused tests. No source/configuration/test changes were made."
+  ],
+  "reviewedFlows": [
+    "Provider registry identity, equal model IDs across providers, reasoning/default effort, dedicated bounded default probes, account identity while API provider is default, owner-scoped device login and logout.",
+    "Project resolution under native identity, canonical managed creation, trust edits, configured root/environment authority and permissions/approval subset validation.",
+    "Cloud preflight rejection without PTY/activity poisoning, CLI terminal barriers and proven subtree cleanup, automatic refresh request, in-flight worker response draining and restart signalling.",
+    "HTTP cookie/CSRF/origin/host checks, password/TOTP/recovery state, WS lease ownership, worker channel revocation, late request/response races and bounded transport budgets.",
+    "Automation scheduling/timezone arithmetic, revisioned immutable run specifications, due windows, restart uncertainty, manual run identity, stop and history-based positive reconciliation.",
+    "Durable operation receipts and capacity commitments, accepted/unknown/not_sent semantics, replay identity, retention generations, workspace witness/hash/root/inode bindings and acknowledgement ordering.",
+    "History and timeline hydration authority, stale reads and owner fencing, queue/goal/steer/review/fork/revert continuity, attachment retention and actual model modality validation.",
+    "Standalone processes and shell terminals, Windows owned Job Object proof, Linux descendant controller, cleanup failure/timeout behavior and output retention.",
+    "MCP configuration merging, fresh discovery/schema validation, resource/template identities, result ownership, OAuth lifecycle and asynchronous subscription cleanup.",
+    "Realtime sequencing/queues/stop proof, Guardian denied-action capabilities, predictions expiry and revision invalidation, native organization APIs, extensions/import/sharing/feedback, diagnostic/resource helpers and remote executor/account-control boundaries."
+  ],
+  "targetedValidation": [
+    {
+      "status": "passed",
+      "files": [
+        "tests/runtime/providers.test.ts",
+        "tests/runtime/device-login.test.ts",
+        "tests/runtime/projects.test.ts",
+        "tests/runtime/cli-terminals.test.ts",
+        "tests/gateway/automation-scheduler.test.ts",
+        "tests/core/schedule.test.ts"
+      ],
+      "cases": 47,
+      "log": ".work/v220-audit2-runtime-targeted.log",
+      "report": ".work/test-results/run-bMoI4c/vitest.json"
+    },
+    {
+      "status": "passed",
+      "files": [
+        "tests/runtime/native-smoke.test.ts"
+      ],
+      "cases": 3,
+      "durationMs": 23959,
+      "log": ".work/v220-audit2-runtime-native.log",
+      "report": ".work/test-results/run-cW0zAz/vitest.json",
+      "evidence": "Real CLI process exit and interactive PTY; shared synthetic ChatGPT identity when API provider is default; simultaneous equal model IDs route to separate loopback providers and resume after catalog replacement."
+    },
+    {
+      "status": "passed",
+      "files": [
+        "tests/runtime/gateway-native.test.ts"
+      ],
+      "cases": 1,
+      "durationMs": 2127,
+      "log": ".work/v220-audit2-runtime-gateway-native.log",
+      "report": ".work/test-results/run-rRdp3G/vitest.json",
+      "evidence": "Real authenticated HTTP/WS gateway/worker/CLI chain; managed writable project; unauthenticated Cloud not_sent leaves local work available; loopback turns/history/receipts, replay without duplicate provider request, interrupt and verified cleanup."
+    }
+  ],
+  "testedHypotheses": [
+    {
+      "hypothesis": "Repeated base64 validation regular expression might fail at allowed large input sizes.",
+      "result": "Not reproduced under pinned Node: valid 65,536, 131,072, 262,144 and 1,048,576 byte encodings matched, including a cold 1 MiB input. No finding inferred."
+    }
+  ],
+  "boundaries": [
+    "This is the assigned runtime/core/gateway audit, not the root audit of protocol generation, UI, native launcher implementation, packaging or deployment.",
+    "No full-repository test suite, build/release publication or online account action was performed. Passing targeted tests do not stand in for the separately gated final full suite.",
+    "Actual browser rendering/IME/accessibility, authenticated paid Cloud submission, real device-code login, commercial provider inference, live external MCP/OAuth, provider realtime audio and remote account pairing were not exercised.",
+    "Current execution host is Windows. Linux implementation was statically reviewed; no new Linux cross-UID/systemd/native permissions integration was run in this scope.",
+    "Tests other than the explicitly listed full-text cases received AST/control/assertion-structure review and cross-file implementation review, not a claim that each test line was manually read or every test executed."
+  ],
+  "snapshotVerification": {
+    "initial": {
+      "files": 1938,
+      "digest": "c6f55746080e5feba82a88190e7c48789f583169475e9aa82e1b968511fee34a"
+    },
+    "final": {
+      "files": 1938,
+      "digest": "c6f55746080e5feba82a88190e7c48789f583169475e9aa82e1b968511fee34a"
+    },
+    "unchanged": true,
+    "evidence": ".work/v220-audit2-runtime-final-snapshot.json"
+  }
+}

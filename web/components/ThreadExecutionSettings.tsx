@@ -87,7 +87,8 @@ export function ThreadExecutionSettings({
     if (
       value.requiresResume !== false ||
       object(value.thread).id !== threadId ||
-      typeof value.model !== 'string'
+      typeof value.model !== 'string' ||
+      typeof value.modelProvider !== 'string' || !value.modelProvider
     )
       throw new Error('会话设置身份不匹配，请重新读取。');
     return value;
@@ -191,11 +192,15 @@ export function ThreadExecutionSettings({
             api={api}
             threadId={threadId}
             turnId={scope === 'turn' ? activeTurnId : ''}
-            models={models}
+            models={snapshot?.requiresResume === false
+              ? models.filter(row => !row.modelProvider || row.modelProvider === snapshot.modelProvider ||
+                  row.providerAliases?.includes(String(snapshot.modelProvider)))
+              : []}
             moreModels={moreModels}
             modelsLoading={modelsLoading}
             onMoreModels={onMoreModels}
             baseModel={typeof snapshot?.model === 'string' ? snapshot.model : ''}
+            baseProvider={typeof snapshot?.modelProvider === 'string' ? snapshot.modelProvider : ''}
             profiles={profiles.items}
             profilesLoading={profiles.loading}
             profilesError={profiles.error}
@@ -221,6 +226,7 @@ function ExecutionForm({
   modelsLoading,
   onMoreModels,
   baseModel,
+  baseProvider,
   profiles,
   profilesLoading,
   profilesError,
@@ -237,6 +243,7 @@ function ExecutionForm({
   modelsLoading: boolean;
   onMoreModels: () => void;
   baseModel: string;
+  baseProvider: string;
   profiles: PermissionProfileSummary[];
   profilesLoading: boolean;
   profilesError: string;
@@ -246,18 +253,22 @@ function ExecutionForm({
   onChanged: () => void;
 }) {
   const [changes, setChanges] = useState(empty),
+    [selectionProvider, setSelectionProvider] = useState(''),
     [confirmed, setConfirmed] = useState(false),
     [result, setResult] = useState('');
   const submitting = useRef(false);
   const action = useExtensionAction(api, enabled, onChanged);
-  const model = models.find((row) => (row.model ?? row.id) === (changes.model || baseModel));
+  const candidates = models.filter((row) => (row.model ?? row.id) === (changes.model || baseModel));
+  const model = candidates.length === 1 ? candidates[0] : undefined;
   const efforts = array<{ reasoningEffort: string; description?: string }>(
     model?.supportedReasoningEfforts,
   );
   const tiers = array<{ id: string; name: string; description: string }>(model?.serviceTiers);
   const profile = profiles.find((row) => row.id === changes.permissions && row.allowed === true);
   const valid =
-    (!changes.model || models.some((row) => (row.model ?? row.id) === changes.model)) &&
+    (!(changes.model || changes.effort || changes.serviceTier) ||
+      (!modelsLoading && selectionProvider === baseProvider)) &&
+    (!changes.model || Boolean(model)) &&
     (!changes.effort || efforts.some((row) => row.reasoningEffort === changes.effort)) &&
     (!changes.serviceTier ||
       changes.serviceTier === '__clear__' ||
@@ -265,6 +276,7 @@ function ExecutionForm({
     (!changes.permissions || (Boolean(profile) && !profilesLoading && !profilesError));
   const selected = Object.values(changes).some(Boolean);
   const change = (field: keyof Changes, value: string) => {
+    if (['model', 'effort', 'serviceTier'].includes(field)) setSelectionProvider(baseProvider);
     setConfirmed(false);
     setResult('');
     setChanges((previous) => ({
@@ -318,8 +330,11 @@ function ExecutionForm({
             模型
             <select value={changes.model} onChange={(event) => change('model', event.target.value)}>
               <option value="">保持不变</option>
+              {changes.model && !models.some(row => (row.model ?? row.id) === changes.model) && (
+                <option value={changes.model} disabled>{changes.model}（原模型已不可用）</option>
+              )}
               {models.map((row) => (
-                <option key={row.id} value={row.model ?? row.id}>
+                <option key={`${row.modelProvider ?? ''}:${row.model ?? row.id}`} value={row.model ?? row.id}>
                   {row.displayName ?? row.model ?? row.id}
                 </option>
               ))}
@@ -333,6 +348,9 @@ function ExecutionForm({
               onChange={(event) => change('effort', event.target.value)}
             >
               <option value="">保持不变</option>
+              {changes.effort && !efforts.some(row => row.reasoningEffort === changes.effort) && (
+                <option value={changes.effort} disabled>{changes.effort}（原强度已不可用）</option>
+              )}
               {efforts.map((row) => (
                 <option key={row.reasoningEffort} value={row.reasoningEffort}>
                   {row.reasoningEffort}
@@ -362,6 +380,10 @@ function ExecutionForm({
             >
               <option value="">保持不变</option>
               <option value="__clear__">清除覆盖，使用默认档位</option>
+              {changes.serviceTier && changes.serviceTier !== '__clear__' &&
+                !tiers.some(row => row.id === changes.serviceTier) && (
+                  <option value={changes.serviceTier} disabled>{changes.serviceTier}（原档位已不可用）</option>
+                )}
               {tiers.map((row) => (
                 <option key={row.id} value={row.id}>
                   {row.name} · {row.description}

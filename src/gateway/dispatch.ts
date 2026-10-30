@@ -11,8 +11,8 @@ import { automationReads, automationWrites, automationSpec } from '../core/autom
 import { WorkspaceAcknowledgements } from './workspace-ack.js';
 import { ReceiptMaintenance } from './receipt-maintenance.js';
 
-const readMethods = new Set(['thread/list', 'thread/read', 'thread/history', 'model/list', 'defaults/read', 'account/read', 'account/rateLimits', 'mcp/list', 'prompt/list', 'attachment/read', 'runtime/status']);
-const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh']);
+const readMethods = new Set(['thread/list', 'thread/read', 'thread/history', 'model/list', 'defaults/read', 'account/read', 'account/rateLimits', 'mcp/list', 'prompt/list', 'attachment/read', 'runtime/status', 'project/defaults']);
+const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/create', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh']);
 const volatile = new Set(['turn/interrupt', 'terminal/write', 'terminal/resize', 'terminal/close']);
 const workMethods = new Set(['conversation/start', 'turn/start', 'thread/compact', 'terminal/open']);
 const systemReads = new Set(['system/status', 'system/logs', 'system/provider/read']);
@@ -143,7 +143,17 @@ export class Dispatcher extends EventEmitter {
         if (method !== 'workspace/worktree/create') this.ledger.worktrees.require(originId, params.worktreeId);
         else if (this.ledger.projects().length >= 128) throw new HarnessError('capacity', '请先释放项目登记空间再创建工作树。');
       }
-      if (method === 'project/add') {
+      if (method === 'project/create') {
+        if (Object.keys(params).some(key => !['name', 'directory'].includes(key))) throw new HarnessError('invalid', '新建项目只接受项目名称和目录名。');
+        const name = validText(params.name, 128, '项目名称').trim(), directory = validText(params.directory, 320, '目录名');
+        if (!name) throw new HarnessError('invalid', '项目名称不能为空。');
+        if (this.ledger.projects().length >= 128) throw new HarnessError('capacity', '项目数量已达上限，请先移除不再使用的项目。');
+        const created = await this.worker.call('project/create', { directory }, { ...context, operationId, beforeWrite }); object(created);
+        // Directory creation is already accepted even if the browser goes away.
+        // Persist registration and its receipt without demanding a new lease.
+        result = this.ledger.addProject(validText(created.path, 4096), name) as unknown as JsonValue;
+      } else if (method === 'project/add') {
+        if (Object.keys(params).some(key => !['name', 'path'].includes(key))) throw new HarnessError('invalid', '添加已有项目只接受项目名称和目录。');
         const path = validText(params.path, 4096, '项目路径');
         const resolved = await this.worker.call('project/resolve', { path }, context); object(resolved);
         const name = params.name === undefined ? validText(resolved.name, 128) : validText(params.name, 128, '项目名称').trim();

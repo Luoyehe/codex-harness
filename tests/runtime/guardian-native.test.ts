@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { createServer, type ServerResponse } from 'node:http';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
@@ -57,8 +57,9 @@ test.each([true, 'permissions'] as const)('real CLI denial %s is captured once a
     expect(f.errors).toEqual([]);
     expect(object(await f.service.call('thread/guardian/list', { threadId }, f.context)).data).toEqual([]);
 }), 30000);
-test('fixed native CLI PTY exposes the real hook trust flow, makes zero model calls and requires restart after proven cleanup', () => withFixtureCleanup(async defer => {
+test('fixed native CLI PTY exposes the real hook trust flow and requests one automatic refresh after proven cleanup', () => withFixtureCleanup(async defer => {
   const f = await fixture(false, defer); let terminalId: JsonValue | undefined, unansweredQueries = 0;
+  const restart = vi.fn(); f.service.on('restart-required', restart);
   const transcript = new PtyTranscript(), pending: Promise<unknown>[] = [], replyErrors: unknown[] = [];
   const phases: { phase: string; at: number; monotonicMs: number; outputLength: number; hasReview: boolean; hasTrustAll: boolean }[] = [];
   defer(() => { writeFileSync(path.join(f.root, 'hook-pty-transcript.json'), JSON.stringify({ phases, terminalTail: transcript.tail })); });
@@ -107,8 +108,9 @@ test('fixed native CLI PTY exposes the real hook trust flow, makes zero model ca
     await expect.poll(async () => JSON.stringify(await f.service.call('hooks/list', { cwd: f.root }, f.context)), { timeout: 10000 }).toContain('"trustStatus":"trusted"');
     await Promise.all(pending); expect(replyErrors).toEqual([]);
     await f.service.call('terminal/close', { terminalId }, f.context);
-    expect(object(object(f.service.status()).activity)).toMatchObject({ terminals: 0, unknown: true }); expect(f.requests).toHaveLength(0); expect(f.errors).toEqual([]);
-    await expect(f.service.call('thread/start', { cwd: f.root }, f.context)).rejects.toMatchObject({ code: 'activity_unknown' });
+    expect(f.service.status()).toMatchObject({ restarting: true, activity: { terminals: 0, unknown: false } });
+    expect(restart).toHaveBeenCalledOnce(); expect(f.requests).toHaveLength(0); expect(f.errors).toEqual([]);
+    await expect(f.service.call('thread/start', { cwd: f.root }, f.context)).rejects.toMatchObject({ code: 'runtime_restarting', delivery: 'not_sent' });
   } catch (error) {
     phase('failure');
     // Only this isolated, zero-credential fixture is included. Preserve actual
@@ -118,12 +120,20 @@ test('fixed native CLI PTY exposes the real hook trust flow, makes zero model ca
   }
 }), 45000);
 
-test('fixed cloud PTY reports actual missing ChatGPT auth and releases its tree only with a restart requirement', () => withFixtureCleanup(async defer => {
-  const f = await fixture(false, defer); let text = '';
-  f.service.on('event', (event: RuntimeEvent) => { if (event.type === 'terminal' && object(event.data).type === 'output') text = (text + Buffer.from(String(object(event.data).deltaBase64), 'base64').toString()).slice(-262144); });
-    const result = object(await f.service.call('terminal/open', { cwd: f.root, program: 'codex-cloud', rows: 30, cols: 100 }, f.context)); expect(typeof result.terminalId).toBe('string');
-    await expect.poll(() => f.events.some(event => event.type === 'terminal' && object(event.data).type === 'exit'), { timeout: 10000 }).toBe(true);
-    expect(text).toContain('Not signed in.'); expect(text).toContain('codex login'); expect(f.requests).toHaveLength(0); expect(f.errors).toEqual([]);
-    expect(object(object(f.service.status()).activity)).toMatchObject({ terminals: 0, unknown: true });
-    await expect(f.service.call('thread/start', { cwd: f.root }, f.context)).rejects.toMatchObject({ code: 'activity_unknown' });
+test('real CLI account preflight rejects unsigned Cloud without a PTY or refresh and leaves local work available', () => withFixtureCleanup(async defer => {
+  const f = await fixture(false, defer), nativeCall = vi.spyOn(f.service.native, 'call'), restart = vi.fn();
+  defer(() => nativeCall.mockRestore()); f.service.on('restart-required', restart);
+  const epoch = object(f.service.status()).epoch;
+  await expect(f.service.call('terminal/open', { cwd: f.root, program: 'codex-cloud', rows: 30, cols: 100 }, f.context)).rejects.toMatchObject({ code: 'chatgpt_login_required', delivery: 'not_sent' });
+  expect(nativeCall.mock.calls.map(([method]) => method)).toEqual(['account/read']);
+  expect(f.events.some(event => event.type === 'terminal')).toBe(false);
+  expect(f.service.status()).toMatchObject({ epoch, connected: true, restarting: false, activity: { terminals: 0, processes: 0, unknown: false } });
+  expect(restart).not.toHaveBeenCalled();
+  const thread = object(await f.service.call('thread/start', { cwd: f.root }, f.context)); expect(typeof object(thread.thread).id).toBe('string');
+  const spawned = object(await f.service.call('process/spawn', { cwd: f.root, command: [process.execPath, '-e', 'process.stdout.write("local-work-after-cloud-rejection")'] }, f.context));
+  const read = async () => object(await f.service.call('process/read', { processHandle: spawned.processHandle! }, f.context));
+  await expect.poll(async () => (await read()).status, { timeout: 10000 }).toBe('exited');
+  const result = await read(); expect(result.exitCode).toBe(0); expect(Buffer.from(String(result.stdoutBase64), 'base64').toString()).toBe('local-work-after-cloud-rejection');
+  expect(f.service.status()).toMatchObject({ epoch, connected: true, restarting: false, activity: { terminals: 0, processes: 0, unknown: false } });
+  expect(restart).not.toHaveBeenCalled(); expect(f.requests).toHaveLength(0); expect(f.errors).toEqual([]);
 }), 20000);

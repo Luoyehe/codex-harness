@@ -2,71 +2,39 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
-  "sourceFiles": 1911,
-  "sourceHead": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
-  "baseCommit": "e3599781289e74c5c4a2e9f36bce14470a2232f8",
-  "version": "2.1.1",
-  "approvedAt": "2026-10-29T20:11:31.550Z",
-  "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。",
-  "auditWaiverInstruction": "用户要求连续两轮完整审计，并质疑仅增加测试最终状态等待后重启全仓审计。两轮完整审计仍属于原始基线；保留其证据并单独审查精确测试差异，是执行方的范围判断，不是用户豁免全部审查，也不表示新字节已完成两轮全审。默认第三轮不另行要求。",
+  "sourceDigest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+  "sourceFiles": 1941,
+  "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+  "version": "2.2.0",
+  "approvedAt": "2026-10-30T07:17:44.312782+00:00",
+  "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。最新指示将审计门槛改为一轮无新增问题，版本选择 v2.2.0。",
+  "auditWaiverInstruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
   "repairsReviewed": true,
   "unresolvedBlockers": [],
   "scopes": [
     "full-tests"
   ],
-  "requiredCleanAuditRounds": 2,
+  "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "public-https-round24",
-      "sequence": 52,
-      "sourceDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
-      "completedAt": "2026-10-29T18:57:04.961Z",
-      "files": 1911,
+      "roundId": "v220-round4",
+      "sourceDigest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+      "completedAt": "2026-10-30T07:16:56.040Z",
+      "files": 1941,
       "reviewers": [
         {
-          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-deploy-tooling.json",
-          "sha256": "e9140e74b08668174fa9244ed8040ff380345bde646ceaa4ac9128c8d14a6fdf"
-        },
-        {
-          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-runtime-gateway.json",
-          "sha256": "29b2fb8d7fd3fbbf0bda1cd17ce2152e1b94e365d34b95fedbdf11d459a01ecb"
-        },
-        {
-          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-web.json",
-          "sha256": "6893ac879844eacafd5e0acd8ac34bbf116eadb7300ca1490674882571c65e4e"
-        }
-      ]
-    },
-    {
-      "roundId": "public-https-round25",
-      "sequence": 53,
-      "sourceDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
-      "completedAt": "2026-10-29T19:21:44.064Z",
-      "files": 1911,
-      "reviewers": [
-        {
-          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-deploy-tooling.json",
-          "sha256": "f38def50efa14534eb22d7323c1c20dc6b8a7675653ac32c8620ed269ec16bef"
-        },
-        {
-          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-runtime-gateway-normalized.json",
-          "sha256": "7d084d38ecfb2dd6e515c7cf276601351c1712135b4b155a80006c91281a38f5"
-        },
-        {
-          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-web.json",
-          "sha256": "8f4cb8642c2b51e1704f662e58d0ba2063829ae5b25517dff5f14a03d99166ab"
+          "id": "v220-round4-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round4/team.json",
+          "sha256": "15110b2019d22aed55482596406f8381cd84d2c077a5ebf96b6d1d8ff6d5c459"
         }
       ]
     }
   ],
-  "testOnlyAuditCarryForward": {
-    "path": "verification/audit-evidence/public-https-test-delta/carry-forward.json",
-    "sha256": "843905140e1d82e62a32fb0303e8e320c4714237627cfd6faeb3496084057427",
-    "baselineDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
-    "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561"
-  },
-  "exactCurrentDigestCleanAuditRounds": 0,
-  "newFullAuditsClaimed": 0,
-  "note": "The baseline R24/R25 reports and original failures remain unchanged. This authorization binds the repaired digest through an exact one-line test-await review; it does not create or amend audit rounds and does not claim a full-suite pass."
+  "note": "Only one actual clean complete round is claimed. Earlier rounds retain their findings. This source-bound record authorizes full testing; it is not a test or deployment result."
 }

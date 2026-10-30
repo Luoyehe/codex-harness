@@ -57,18 +57,20 @@ describe('composer keyboard ownership', () => {
       );
     }
     const view = render(<Harness id="a" />);
+    fireEvent.click(screen.getByRole('button', { name: '对话设置' }));
     fireEvent.click(screen.getByText('执行环境 · 本机项目', { selector: 'summary' }));
     await waitFor(() => expect(call).toHaveBeenCalledOnce());
     const oldPicker = view.container.querySelector('.environment-picker')!;
     for (const id of ['b', 'c', 'a', 'b']) {
       view.rerender(<Harness id={id} />);
       expect(view.container.querySelectorAll('.environment-picker')).toHaveLength(1);
-      expect(screen.getAllByRole('button', { name: '引用与输出格式' })).toHaveLength(1);
+      expect(screen.getAllByRole('button', { name: '引用与输出格式', hidden: true })).toHaveLength(1);
       expect(
         (screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value,
       ).toBe(`unsent ${id}`);
     }
     expect(oldPicker.isConnected).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '对话设置' }));
     fireEvent.click(screen.getByText('执行环境 · 本机项目', { selector: 'summary' }));
     const current = await screen.findByRole('checkbox', { name: /Current worker/ });
     await act(async () =>

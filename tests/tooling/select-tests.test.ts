@@ -17,6 +17,14 @@ test('source dependencies, Python deployment, browser and independent native tes
   expect(plan.groups.unit).toEqual(['tests/core/ledger.test.ts', 'tests/gateway/auth.test.ts', 'tests/runtime/native.test.ts', 'web/tests/composer.test.tsx']);
 });
 
+test('the one-stop shell entry retains deployment and operator journey coverage', () => {
+  const operator = 'tests/deploy/test_operator.py';
+  const plan = selectTests(['harness.sh'], [...available, operator]);
+  expect(plan.status).toBe('selected');
+  expect(plan.groups.deploy).toEqual(['tests/deploy/test_deployment.py', operator]);
+  expect(plan.requiresFullAudit).toEqual([]);
+});
+
 test('real root ownership fixtures have a separate impact group and retain their unprivileged companions', () => {
   const ordinary = 'tests/deploy/test_control_update.py';
   const privileged = 'tests/deploy/root/test_control_update.py';

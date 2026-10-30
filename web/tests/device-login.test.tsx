@@ -27,7 +27,12 @@ function setup(handler: (c: Call) => unknown = () => undefined) {
       calls.push(c);
       const result =
         (await handler(c)) ??
-        (c.method === 'account/read'
+        (c.method === 'system/provider/read'
+          ? { revision: 'provider-fixture', defaultProviderId: 'chatgpt', profiles: [], connections: [{
+            id: 'chatgpt', name: 'ChatGPT', kind: 'chatgpt', enabled: true, modelProvider: 'harness_chatgpt',
+          }] }
+          : c.method === 'model/list' ? { data: [], nextCursor: null }
+          : c.method === 'account/read'
           ? { account: null }
           : c.method === 'account/login'
             ? { loginId: 'login', type: 'chatgptDeviceCode' }
@@ -179,13 +184,13 @@ it('keeps account handoff mounted across settings tabs and ordinary config refre
     onOpenDraft: vi.fn(),
   };
   const view = render(<Settings {...p} />);
-  fireEvent.click(screen.getByRole('button', { name: '模型账户' }));
-  start();
+  fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
+  fireEvent.click(await enabledButton({ name: '使用 ChatGPT 登录' }));
   await screen.findByText('PRIVATE-DEVICE-CODE');
   fireEvent.click(screen.getByRole('button', { name: '通用' }));
   expect(screen.queryByRole('link', { name: '打开验证页面 ↗' })).toBeNull();
   view.rerender(<Settings {...p} epoch="resource-2" />);
-  fireEvent.click(screen.getByRole('button', { name: '模型账户' }));
+  fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
   expect(screen.getByRole('link', { name: '打开验证页面 ↗' })).toBeTruthy();
   expect(s.calls.filter((c) => c.method === 'account/login')).toHaveLength(1);
 });

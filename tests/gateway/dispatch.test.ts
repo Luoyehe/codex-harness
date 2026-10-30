@@ -21,6 +21,32 @@ function setup() {
   return { ledger, worker, dispatcher, manager };
 }
 describe('gateway operation admission', () => {
+  it('creates a managed project, persists its registration after a lost owner, and never creates twice on replay', async () => {
+    const { ledger, worker, dispatcher } = setup(); let live = true;
+    const context: CallContext = { clientId: 'owner', requireConnection() { if (!live) throw new HarnessError('connection_required', 'gone'); } };
+    worker.run = async (method, params, current) => {
+      expect(method).toBe('project/create'); expect(params).toEqual({ directory: 'new-project' }); current.beforeWrite?.(); live = false;
+      return { path: '/native/projects/new-project', name: 'new-project' };
+    };
+    const call = { method: 'project/create', operationId: randomUUID(), params: { name: 'New project', directory: 'new-project' } };
+    try {
+      const project = await dispatcher.call(call, context);
+      expect(project).toMatchObject({ name: 'New project', path: '/native/projects/new-project' });
+      expect(ledger.projects()).toEqual([project]); expect(ledger.read(call.operationId)?.state).toBe('accepted');
+      expect(await dispatcher.call(call, context)).toEqual(project); expect(worker.calls).toBe(1);
+    } finally { ledger.close(); }
+  });
+
+  it('rejects malformed project creation before dispatch and exposes the managed location as a read', async () => {
+    const { ledger, worker, dispatcher } = setup();
+    try {
+      await expect(dispatcher.call({ method: 'project/create', operationId: randomUUID(), params: { name: '', directory: 'project' } }, { clientId: 'owner' })).rejects.toMatchObject({ delivery: 'not_sent' });
+      expect(worker.calls).toBe(0);
+      worker.run = async method => { expect(method).toBe('project/defaults'); return { directory: '/native/projects' }; };
+      expect(await dispatcher.call({ method: 'project/defaults', params: {} }, { clientId: 'owner' })).toEqual({ directory: '/native/projects' });
+    } finally { ledger.close(); }
+  });
+
   it.each(['session revoked', 'owner replaced'] as const)('does not register a project when %s during path resolution', async change => {
     const { ledger, worker, dispatcher } = setup(); const operationId = randomUUID(), owner = {};
     let authenticated = true, currentOwner = owner, finish!: (value: JsonValue) => void;

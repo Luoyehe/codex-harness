@@ -128,9 +128,9 @@ export function NativeProjects({
   return (
     <section className="stack">
       <div className="section-heading">
-        <h3>原生会话项目</h3>
+        <h3>原生项目归类</h3>
         <button className="button small" disabled={action.disabled} onClick={() => begin()}>
-          新建会话项目
+          新建项目归类
         </button>
       </div>
       <p className="small muted">
@@ -161,7 +161,7 @@ export function NativeProjects({
       </div>
       {list.hasMore && (
         <button className="button" disabled={list.loading} onClick={() => void list.more()}>
-          更多会话项目
+          更多项目归类
         </button>
       )}
       {selected && (
@@ -262,7 +262,7 @@ export function NativeProjects({
           }}
         >
           <fieldset disabled={action.busy} className="stack">
-            <h4>{draft.id ? '编辑会话项目' : '创建会话项目'}</h4>
+            <h4>{draft.id ? '编辑项目归类' : '创建项目归类'}</h4>
             <label className="field">
               项目名称
               <input
@@ -392,7 +392,7 @@ export function NativeProjects({
                   ? '保存项目变更'
                   : draft.importCurrent
                     ? '创建项目并导入当前会话'
-                    : '创建会话项目'}
+                    : '创建项目归类'}
               </button>
               <button
                 type="button"

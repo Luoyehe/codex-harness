@@ -44,6 +44,7 @@ function server(handler: (call: Call) => unknown) {
     'fetch',
     vi.fn(async (_url, init: RequestInit) => {
       const call: Call = JSON.parse(String(init.body));
+      if (call.method === 'project/defaults') return { status: 200, ok: true, json: async () => ({ ok: true, result: { directory: '/managed/projects' } }) };
       calls.push(call);
       try {
         const result = await handler(call);
@@ -216,7 +217,8 @@ function transient(kind: ModalKind, api: Api) {
       <RenameDialog api={api} threadId="thread" name="name A" onSaved={changed} onClose={close} />,
     );
   else if (kind === 'project') {
-    render(<ProjectDialog api={api} onAdded={changed} onClose={close} />);
+    render(<ProjectDialog api={api} onAdded={changed} onClose={close} onOpen={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: '添加已有目录' }));
     fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), {
       target: { value: 'project A' },
     });
@@ -253,7 +255,7 @@ it.each(['rename', 'project', 'review'] as const)(
     }
     attemptClose();
     expect(ui.close).not.toHaveBeenCalled();
-    await act(async () => request.resolve({}));
+    await act(async () => request.resolve(kind === 'project' ? { id: 'created-project' } : {}));
     expect(calls).toHaveLength(1);
     expect(ui.close).toHaveBeenCalledOnce();
     expect(ui.changed).toHaveBeenCalledOnce();

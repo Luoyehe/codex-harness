@@ -78,6 +78,15 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
     browser = new WebSocket(`${origin.replace('http:', 'ws:')}/api/events?clientId=${tabId}`, { headers: { origin, cookie } }); const events: RuntimeEvent[] = []; browser.on('message', data => events.push(JSON.parse(data.toString()) as RuntimeEvent)); await once(browser, 'open');
     const models = await rpc('model/list', {}); expect(models.data).toHaveLength(1); expect(object((models.data as JsonValue[])[0])).toMatchObject({ id: 'harness-loopback-fixture', isDefault: true, defaultReasoningEffort: 'low', supportedReasoningEfforts: [{ reasoningEffort: 'low', description: 'Local protocol fixture' }], inputModalities: ['text'] });
     const project = await rpc('project/add', { path: projectPath, name: 'Fixture project' }, randomUUID()); const operationId = randomUUID();
+    const managedProject = await rpc('project/create', { name: 'Managed fixture', directory: 'managed-fixture' }, randomUUID());
+    expect(managedProject.path).toBe(path.join(root, 'projects', 'managed-fixture'));
+    writeFileSync(path.join(String(managedProject.path), 'editable.txt'), 'created by functional acceptance');
+    expect(readFileSync(path.join(String(managedProject.path), 'editable.txt'), 'utf8')).toBe('created by functional acceptance');
+    const cloudOperation = randomUUID();
+    await expect(rpc('terminal/open', { projectId: project.id!, program: 'codex-cloud' }, cloudOperation)).rejects.toThrow('chatgpt_login_required');
+    expect((await rpc('operation/read', { operationId: cloudOperation })).state).toBe('not_sent');
+    expect(await rpc('runtime/status', {})).toMatchObject({ connected: true, restarting: false, activity: { unknown: false, terminals: 0 } });
+    // The rejected cloud launch must not prevent the following real native turn.
     const creationParams = { projectId: project.id!, text: 'First deterministic fixture message.', options: { model: 'harness-loopback-fixture', effort: 'low', approvalPolicy: 'never', sandbox: 'read-only' } };
     const created = await rpc('conversation/start', creationParams, operationId); const threadId = object(created.thread).id!; const firstTurnId = object(created.turn).id!;
     const completed = (turnId: JsonValue): RuntimeEvent | undefined => events.find(event => event.type === 'notification' && object(event.data).method === 'turn/completed' && object(object(object(event.data).params).turn).id === turnId);

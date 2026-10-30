@@ -121,7 +121,7 @@ it('offers explicit steering and queue intent while a turn runs and keeps stop s
   );
   fireEvent.click(screen.getByRole('button', { name: '加入队列' }));
   await waitFor(() => expect(send).toHaveBeenCalledWith([], 'queue'));
-  fireEvent.change(screen.getByRole('combobox', { name: '发送方式' }), {
+  fireEvent.change(screen.getByRole('combobox', { name: '当前发送方式' }), {
     target: { value: 'steer' },
   });
   fireEvent.keyDown(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { key: 'Enter' });

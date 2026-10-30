@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import { Api } from '../lib/api';
 import {
-  acknowledgeOperation, createOperation, initializeOperations, listOperations, operationStorageWarning,
+  acknowledgeOperation, consumeThreadOperations, createOperation, initializeOperations, listOperations, operationStorageWarning,
   stopUnknownRecovery, updateOperation, type Operation,
 } from '../lib/operations';
 import { operationTransaction, stored } from '../lib/operation-store';
@@ -28,6 +28,80 @@ it('handles sustained completed operations with constant recovery metadata and n
   expect(await listOperations()).toEqual([]);
   expect(Object.keys(localStorage).filter((key) => key.startsWith(ack))).toEqual([]);
   expect(await operationTransaction(async (records, metadata) => [await stored(records.count()), await stored(metadata.count())])).toEqual([0, 1]);
+});
+
+it('keeps more than 200 real API chat submissions usable while preserving unseen creates and unknown results', async () => {
+  const fetch = vi.fn(async (_url: unknown, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    return { ok: true, status: 200, json: async () => ({ ok: true, result: body.method === 'conversation/start'
+      ? { thread: { id: 'unseen-thread' } } : { turn: { id: body.operationId } } }) };
+  });
+  vi.stubGlobal('fetch', fetch);
+  const api = new Api();
+  await api.mutate('conversation/start', { projectId: 'other-project', text: 'unseen accepted creation' });
+  const unseen = (await listOperations()).find(row => row.method === 'conversation/start')!;
+  const unresolved = await createOperation('turn/start', { threadId: 'unknown-thread' });
+  await updateOperation(unresolved.id, 'unknown');
+  for (let index = 0; index < 240; index++) {
+    const draft = { ...emptyDraft('current-thread'), text: `message ${index}` };
+    writeDraft(draft);
+    const submission = api.beginMutation('turn/start', { threadId: 'current-thread', text: draft.text });
+    await submission.result;
+    expect(readDraft('current-thread').text).toBe('');
+    // This is the view's later successful thread/session load acknowledgement,
+    // not transport acceptance. The receipt remains available until capacity GC.
+    await consumeThreadOperations('current-thread', [submission.operationId]);
+  }
+  const records = await listOperations();
+  expect(fetch).toHaveBeenCalledTimes(241);
+  expect(records.length).toBeLessThanOrEqual(160);
+  expect(records.find(row => row.id === unseen.id)).toMatchObject({ state: 'accepted', resolvedThreadId: 'unseen-thread' });
+  expect(records.find(row => row.id === unseen.id)?.consumed).toBeUndefined();
+  expect(records.find(row => row.id === unresolved.id)?.state).toBe('unknown');
+  expect(records.filter(row => row.method === 'turn/start' && row.threadId === 'current-thread').every(row => row.consumed)).toBe(true);
+});
+
+it('consumption matches the destination, retains fresh receipts and never clears a newer draft', async () => {
+  const source = await createOperation('thread/fork', { threadId: 'parent' });
+  await updateOperation(source.id, 'accepted', 'child');
+  await consumeThreadOperations('parent', [source.id]);
+  expect((await listOperations())[0]?.consumed).toBeUndefined();
+  await consumeThreadOperations('child', [source.id]);
+  expect((await listOperations())[0]).toMatchObject({ id: source.id, consumed: true });
+  const oldDraft = { ...emptyDraft('child'), text: 'first input' };
+  writeDraft(oldDraft);
+  const input = await createOperation('turn/start', { threadId: 'child', draftKey: 'child', draftRevision: oldDraft.revision });
+  await updateOperation(input.id, 'accepted');
+  const newer = { ...emptyDraft('child'), text: 'still composing' };
+  writeDraft(newer);
+  await consumeThreadOperations('child', [input.id]);
+  expect(readDraft('child').text).toBe('still composing');
+  expect((await listOperations()).find(row => row.id === input.id)).toMatchObject({ consumed: true, state: 'accepted' });
+});
+
+it('never marks unknown, legacy or terminal ownership records as consumed', async () => {
+  const unknown = await createOperation('turn/start', { threadId: 'pending-thread' });
+  await updateOperation(unknown.id, 'unknown');
+  const terminal = await createOperation('terminal/open', { projectId: 'project', threadId: 'pending-thread' });
+  await updateOperation(terminal.id, 'accepted', undefined, { terminalId: 'owned-terminal' });
+  const migrated = await createOperation('turn/start', { threadId: 'legacy-thread' });
+  await updateOperation(migrated.id, 'accepted');
+  await operationTransaction(async records => {
+    const record = await stored(records.get(migrated.id)) as Operation;
+    await stored(records.put({ ...record, legacy: true }));
+  });
+  await consumeThreadOperations('pending-thread', [unknown.id, terminal.id]);
+  await consumeThreadOperations('legacy-thread', [migrated.id]);
+  expect((await listOperations()).every(row => row.consumed === undefined)).toBe(true);
+});
+
+it('capacity protection retains all unconsumed creations and gives an actionable settings path', async () => {
+  for (let index = 0; index < 200; index++) {
+    const record = await createOperation('conversation/start', { projectId: `project-${index}` });
+    await updateOperation(record.id, 'accepted', `unseen-${index}`);
+  }
+  await expect(createOperation('turn/start', { threadId: 'another' })).rejects.toThrow('设置 → 操作记录');
+  expect(await listOperations()).toHaveLength(200);
 });
 it('migrates a full localStorage without allocating there before the durable copy, preserving unknown identities', async () => {
   const pending = legacy('pending'), unknown = legacy(), completed = legacy('accepted');

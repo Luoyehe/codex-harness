@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { useExtensionAction } from './ExtensionControls';
 import { isArchivedReceipt, reconcileOperation } from '../lib/operations';
-import { array, message, object } from '../lib/types';
+import { array, message, object, type Model } from '../lib/types';
+import { usePaged } from '../hooks/usePaged';
+import { ModelDirectoryStatus } from './ModelDirectoryStatus';
 type CatalogRow = {
   id: string;
   defaultEffort: string | null;
@@ -54,6 +56,16 @@ export function ModelCatalog({
   visible?: boolean;
   scopeKey?: string;
 }) {
+  const automatic = typeof provider.providerId === 'string';
+  const native = automatic &&
+    ['chatgpt', 'chatgpt-gateway', 'bedrock-runtime', 'bedrock-mantle'].includes(String(provider.kind));
+  const nativeCatalog = usePaged<Model>(
+    api,
+    'model/list',
+    { modelProvider: provider.modelProvider },
+    JSON.stringify([provider.providerId, provider.modelProvider, provider.kind, provider.revision, scopeKey]),
+    native && active && enabled,
+  );
   const [rows, setRows] = useState<CatalogRow[]>([]),
     [manual, setManual] = useState(''),
     [query, setQuery] = useState(''),
@@ -82,6 +94,14 @@ export function ModelCatalog({
     if (!current(request) || request.resolved) return;
     if (result.kind !== provider.kind || typeof result.revision !== 'string')
       throw new Error('目录回执缺少匹配的供应商身份。');
+    if (automatic && result.providerId !== provider.providerId)
+      throw new Error('目录回执与所选供应商不匹配。');
+    if (automatic && request.kind === 'discover' && result.applied === true && result.requiresConfirmation === false) {
+      request.resolved = true;
+      setStatus('已同步供应商模型目录。');
+      onApplied();
+      return;
+    }
     if (request.kind === 'apply') {
       if (result.applied !== true || result.requiresConfirmation !== false)
         throw new Error('目录应用尚未取得明确的应用证明，未刷新供应商配置。');
@@ -101,6 +121,7 @@ export function ModelCatalog({
       throw new Error('发现结果与当前配置版本不匹配，请重新读取供应商配置。');
     if (result.source === 'native') {
       request.resolved = true;
+      nativeCatalog.refresh();
       setStatus('当前使用原生模型目录，无需应用自定义目录。');
       return;
     }
@@ -141,6 +162,7 @@ export function ModelCatalog({
         'system/models/refresh',
         {
           expectedRevision: provider.revision,
+          ...(automatic ? { providerId: provider.providerId, automatic: true } : {}),
           ...(kind === 'apply' ? { models, confirmCapabilities: true } : {}),
         },
         '目录请求已受理，正在核对结果。',
@@ -208,9 +230,25 @@ export function ModelCatalog({
         </div>
       )}
       <p className="muted">
+        {automatic ? '模型与思考强度按此供应商的目录显示；未提供能力信息时不会推测可选档位。' : <>
         从已保存配置读取模型
         ID。目录发现不会证明工具调用、图片、音频或推理参数可用；请按供应商文档核对后再应用。
+        </>}
       </p>
+      {automatic && <>
+        {Boolean(provider.catalogError) && <p className="error" role="alert">{String(provider.catalogError)}</p>}
+        {Boolean(provider.catalogSource) && String(provider.catalogSource).startsWith('https://docs.bigmodel.cn/') &&
+          <p className="small muted">目录来自智谱官方 Codex 文档；套餐是否有权调用仍由智谱决定。</p>}
+        <ul className="model-catalog-list">
+          {(native ? nativeCatalog.items.map(value => ({
+            id: value.model ?? value.id, efforts: array<Record<string, unknown>>(value.supportedReasoningEfforts).map(e => e.reasoningEffort),
+          })) : array<Record<string, unknown>>(provider.models)).map(value => <li key={String(value.id)}>
+            <strong>{String(value.id)}</strong>
+            <span className="muted"> · {array<string>(value.efforts).length ? array<string>(value.efforts).join(' / ') : '供应商默认思考设置'}</span>
+          </li>)}
+        </ul>
+        {native && <ModelDirectoryStatus directory={nativeCatalog} enabled={enabled && active} />}
+      </>}
       <div className="inline">
         <button
           type="button"

@@ -53,7 +53,9 @@ export function mediaAdmission({
   }
   if (typeof id !== 'string' || !id)
     return unavailable('尚未确认实际输入模型，不能发送图片或音频附件。');
-  const matches = models.filter((row) => row.id === id || row.model === id);
+  const provider = intent === 'send' ? options.modelProvider ?? defaults?.modelProvider : defaults?.modelProvider;
+  const matches = models.filter((row) => (row.id === id || row.model === id) &&
+    (!provider || !row.modelProvider || row.modelProvider === provider || (typeof provider === 'string' && row.providerAliases?.includes(provider))));
   if (
     matches.length !== 1 ||
     !Array.isArray(matches[0]!.inputModalities) ||

@@ -107,7 +107,7 @@ export function MemorySettings({
         </button>
       </div>
       <p className="small muted">
-        保存只改变用户配置中的这两个开关，不改动其他记忆参数。停用生成或使用不会删除已有记忆，也不等于停止当前任务；当前会话参与记忆的开关在“会话组织”中。管理或项目层仍可能覆盖用户值。
+        保存只改变用户配置中的这两个开关，不改动其他记忆参数。停用生成或使用不会删除已有记忆，也不等于停止当前任务；当前会话参与记忆的开关在“会话分组”中。管理或项目层仍可能覆盖用户值。
       </p>
       <ReadState {...resource} />
       <ExtensionStatus api={api} action={action} recoveryLabel="查询原记忆设置回执" />

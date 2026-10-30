@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
-import { chmodSync, lstatSync, mkdirSync, realpathSync, unlinkSync } from 'node:fs';
+import { chmodSync, lstatSync, mkdirSync, readFileSync, realpathSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createConnection } from 'node:net';
@@ -13,6 +13,10 @@ import { runNativeHelper, validateLauncher } from './native-launch.js';
 export interface WorkerServerConfig { socket?: string; devPort?: number; token?: string }
 export async function startWorkerServer(service: RuntimeService, config: WorkerServerConfig): Promise<{ server: Server; close: () => Promise<void> }> {
   let calls = 0; let retained = 0; let closing = false;
+  let restartPending = false;
+  const restartWhenIdle = (): void => { if (restartPending && calls === 0 && !closing) { restartPending = false; service.emit('restart-ready'); } };
+  const requestRestart = (): void => { restartPending = true; restartWhenIdle(); };
+  service.on('restart-required', requestRestart);
   const sockets = new Set<WebSocket>(); const alive = new WeakMap<WebSocket, boolean>();
   const channels = new Map<string, WebSocket>(); const channelIds = new WeakMap<WebSocket, string>();
   const leases = new Map<string, Map<string, object>>();
@@ -73,7 +77,15 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
       } catch (error) {
         const fault = error instanceof DeliveryError ? error : new DeliveryError('internal_error', 'Worker request failed', 'unknown');
         reply(res, 200, { ok: false, error: { code: fault.code, message: fault.message, delivery: fault.delivery, ...(fault.data !== undefined ? { data: fault.data } : {}) } });
-      } finally { calls--; retained -= bytes; }
+      } finally {
+        // A fast CLI exit can race its open/close RPC. Flush the definitive
+        // response before recycling the worker, so an accepted open stays known.
+        if (restartPending && !res.writableFinished && !res.destroyed) await new Promise<void>(resolve => {
+          const done = () => { res.off('finish', done); res.off('close', done); resolve(); };
+          res.once('finish', done); res.once('close', done);
+        });
+        calls--; retained -= bytes; restartWhenIdle();
+      }
     })().catch(() => res.destroy());
   });
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024, perMessageDeflate: false });
@@ -100,7 +112,7 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
   await new Promise<void>((resolve, reject) => { server.once('error', reject); if (config.socket) server.listen(config.socket, resolve); else server.listen(config.devPort ?? 4318, '127.0.0.1', resolve); });
   if (config.socket) chmodSync(config.socket, 0o660);
   return { server, close: async () => {
-    if (closing) return; closing = true; channels.clear(); leases.clear(); clearInterval(heartbeat); service.off('event', events); for (const ws of sockets) ws.terminate(); wss.close();
+    if (closing) return; closing = true; channels.clear(); leases.clear(); clearInterval(heartbeat); service.off('event', events); service.off('restart-required', requestRestart); for (const ws of sockets) ws.terminate(); wss.close();
     await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
     if (config.socket) try { unlinkSync(config.socket); } catch {}
   } };
@@ -115,7 +127,15 @@ export function configFromEnvironment(env: NodeJS.ProcessEnv): { runtime: Runtim
   if (!dev && process.getuid?.() === 0) throw new Error('Production worker must run as an unprivileged supervisor identity');
   const childEnv: NodeJS.ProcessEnv = { HOME: workerHome, USERPROFILE: workerHome, CODEX_HOME: home };
   for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC', 'TEMP', 'TMP', 'LANG', 'LC_ALL', 'TERM', 'HARNESS_PROVIDER_API_KEY', 'AWS_BEARER_TOKEN_BEDROCK', 'AWS_REGION', 'Z_AI_API_KEY', 'Z_AI_MODE', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'SSL_CERT_FILE', 'SSL_CERT_DIR']) if (env[key] !== undefined) childEnv[key] = env[key];
+  for (const [key, value] of Object.entries(env)) if (/^HARNESS_PROVIDER_KEY_(?:DEFAULT|[0-9A-F]{32})$/.test(key) && value !== undefined) childEnv[key] = value;
   const runtime: RuntimeConfig = { bin, home, workerHome, ...(nativeHome === undefined ? {} : { nativeHome }), cwd: workerHome, env: childEnv, dev };
+  if (env.HARNESS_PROVIDER_REGISTRY_FILE) {
+    const registryPath = env.HARNESS_PROVIDER_REGISTRY_FILE;
+    if (!path.isAbsolute(registryPath)) throw new Error('Provider registry path must be absolute');
+    const info = lstatSync(registryPath);
+    if (!info.isFile() || info.isSymbolicLink() || info.size > 4 * 1024 * 1024 || !dev && (info.uid !== 0 || (info.mode & 0o022) !== 0)) throw new Error('Invalid managed provider registry');
+    runtime.providerRegistry = object(JSON.parse(readFileSync(registryPath, 'utf8')));
+  }
   if (dev) { const token = string(env.HARNESS_WORKER_TOKEN, 'HARNESS_WORKER_TOKEN', 256); if (token.length < 32) throw new Error('Worker token must contain at least 32 characters'); const port = Number(env.HARNESS_WORKER_PORT ?? '4318'); if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid worker port'); return { runtime, server: { devPort: port, token } }; }
   const launcher = { path: string(env.HARNESS_NATIVE_LAUNCHER, 'HARNESS_NATIVE_LAUNCHER'), user: string(env.HARNESS_NATIVE_USER, 'HARNESS_NATIVE_USER', 64) }; validateLauncher(launcher);
   const gid = Number(string(env.HARNESS_ATTACHMENT_GID, 'HARNESS_ATTACHMENT_GID', 16)); if (!Number.isSafeInteger(gid) || gid <= 0 || gid > 0xffffffff || !process.getgroups?.().includes(gid)) throw new Error('Invalid native attachment read group');
@@ -129,7 +149,11 @@ async function main(): Promise<void> {
   let handle: Awaited<ReturnType<typeof startWorkerServer>>;
   try { handle = await startWorkerServer(service, config.server); } catch (error) { await service.close(); throw error; }
   const stop = (code: number): void => { if (shuttingDown) return; shuttingDown = true; const deadline = setTimeout(() => process.exit(code || 1), 7000); void (async () => { try { await handle.close(); await service.close(); clearTimeout(deadline); process.exit(code); } catch { process.exit(1); } })(); };
-  service.on('fatal', () => stop(1)); process.on('SIGTERM', () => stop(0)); process.on('SIGINT', () => stop(0));
+  service.on('fatal', () => stop(1));
+  // Managed services use Restart=on-failure. Code 75 requests a clean new epoch
+  // after a separately hosted CLI has finished and all RPC replies have drained.
+  service.on('restart-ready', () => stop(75));
+  process.on('SIGTERM', () => stop(0)); process.on('SIGINT', () => stop(0));
   if (!service.native.connected) stop(1);
 }
 // Release activation uses a `current` symlink. Node resolves the module URL to

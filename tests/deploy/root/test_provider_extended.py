@@ -8,10 +8,11 @@ import sys
 import tempfile
 import unittest
 
-from deploy.common import Layout, mkdir, write_json
+from deploy.common import Layout, atomic_write, mkdir, write_json
 from deploy.install import stage_control
 from deploy.provider import ProviderStore, validate_provider
 from deploy.provider_layers import prepare_host_targets
+from deploy.provider_registry import change, entries
 
 
 @unittest.skipUnless(sys.platform == "linux" and os.geteuid() == 0, "Real Linux root and native UID boundary")
@@ -42,14 +43,14 @@ class ExtendedProviderGenerationTests(unittest.TestCase):
         self.assertEqual(json.loads((self.store.root / generation / "native-env.json").read_text()), {"HARNESS_PROVIDER_API_KEY": ""})
         self.assertNotIn("AWS_", (self.store.root / generation / "provider.env").read_text())
 
-    def invoke_token(self, *, native=True, verb="bedrock-token"):
+    def invoke_token(self, *, native=True, verb="bedrock-token", provider_id=None):
         write_json(self.layout.config / "native.json", {"uid": 65534, "gid": 65534, "bin": "/not-executed", "home": "/not-opened", "cwd": "/not-opened"}, mode=0o644)
-        code = "from pathlib import Path; import sys; from deploy.common import Layout; import deploy.native_launcher as launcher; root=Path(sys.argv[1]); verb=sys.argv[2]; launcher.Layout=lambda instance:Layout(instance,root); sys.argv=['native-launch',verb]; launcher.native_main('fixture')"
+        code = "from pathlib import Path; import sys; from deploy.common import Layout; import deploy.native_launcher as launcher; root=Path(sys.argv[1]); args=sys.argv[2:]; launcher.Layout=lambda instance:Layout(instance,root); sys.argv=['native-launch',*args]; launcher.native_main('fixture')"
         def identity():
             os.setgroups([]); os.setgid(65534); os.setuid(65534)
-        return subprocess.run([sys.executable, "-B", "-c", code, str(self.layout.root), verb],
+        return subprocess.run([sys.executable, "-B", "-c", code, str(self.layout.root), verb, *([provider_id] if provider_id else [])],
                               cwd=self.layout.control, env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
-                              stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
+                              input=b"", stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
                               preexec_fn=identity if native else None)
 
     def test_fixed_native_token_verb_returns_only_managed_token_and_root_is_denied(self):
@@ -61,6 +62,32 @@ class ExtendedProviderGenerationTests(unittest.TestCase):
     def test_foreign_owned_environment_cannot_feed_token_command(self):
         path = self.store.root / self.generation / "native-env.json"; os.chown(path, 65534, 65534)
         result = self.invoke_token(); self.assertNotEqual(result.returncode, 0); self.assertEqual(result.stdout, b"")
+
+    def test_scoped_bedrock_helpers_select_the_saved_connection_and_reject_disabled_ids(self):
+        registry = change({"expectedRevision": self.selected["revision"], "providerId": "new", "kind": "bedrock-mantle",
+                           "region": "us-east-1", "apiKey": "fixture-mantle-bearer"}, self.selected)
+        self.store.select(self.store.prepare(registry, layered=True))
+        ident = entries(registry)[1]["id"]
+        self.assertEqual(self.invoke_token(provider_id="default").stdout, b"fixture-managed-bearer\n")
+        self.assertEqual(self.invoke_token(provider_id=ident).stdout, b"fixture-mantle-bearer\n")
+        invalid = self.invoke_token(provider_id="f" * 32)
+        self.assertNotEqual(invalid.returncode, 0); self.assertEqual(invalid.stdout, b"")
+        registry = change({"expectedRevision": registry["revision"], "providerId": ident, "enabled": False}, registry)
+        self.store.select(self.store.prepare(registry, layered=True))
+        invalid = self.invoke_token(provider_id=ident)
+        self.assertNotEqual(invalid.returncode, 0); self.assertEqual(invalid.stdout, b"")
+
+    def test_zhipu_helper_passes_only_its_selected_key_to_the_local_mcp(self):
+        registry = change({"expectedRevision": self.selected["revision"], "providerId": "new", "kind": "zhipu-coding",
+                           "apiKey": "fixture-zhipu-key"}, self.selected)
+        self.store.select(self.store.prepare(registry, layered=True))
+        ident = entries(registry)[1]["id"]
+        node = self.layout.app / "current/node/bin/node"
+        mkdir(node.parent, 0o755)
+        atomic_write(node, b'#!/bin/sh\nprintf "%s:%s" "$Z_AI_API_KEY" "${HARNESS_PROVIDER_KEY_DEFAULT-unset}"\n', 0o755)
+        result = self.invoke_token(verb="zai-server", provider_id=ident)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, b"fixture-zhipu-key:unset")
 
 
 if __name__ == "__main__": unittest.main()

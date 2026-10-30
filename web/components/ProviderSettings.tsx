@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Api } from '../lib/api';
 import { useResource } from '../hooks/useResource';
-import { composing, object } from '../lib/types';
+import { array, composing, object } from '../lib/types';
 import { ExtensionStatus, useExtensionAction } from './ExtensionControls';
 import { ModelCatalog } from './ModelCatalog';
 import { ProviderProfiles } from './ProviderProfiles';
@@ -34,6 +34,7 @@ type ProviderSettingsProps = {
   onChanged: () => void;
   enabled?: boolean;
   visible?: boolean;
+  accountPanel?: ReactNode | ((provider: Record<string, unknown>, isDefault: boolean) => ReactNode);
 };
 export function ProviderSettings(props: ProviderSettingsProps) {
   const owner = useRef({ api: props.api, csrf: props.api.csrf, generation: 0 });
@@ -49,6 +50,7 @@ function ProviderSettingsForm({
   onChanged,
   enabled = true,
   visible = true,
+  accountPanel,
 }: ProviderSettingsProps) {
   const resource = useResource(
     epoch, (signal) => api.call('system/provider/read', {}, signal), visible,
@@ -56,7 +58,18 @@ function ProviderSettingsForm({
   // A refresh temporarily has no data. Keep non-secret editors mounted while it runs.
   const lastProvider = useRef(resource.data);
   if (resource.data) lastProvider.current = resource.data;
-  const provider = resource.data ?? lastProvider.current;
+  const registry = resource.data ?? lastProvider.current;
+  const [selectedId, setSelectedId] = useState('');
+  const connections = array<Record<string, unknown>>(registry?.connections);
+  const effectiveId = selectedId || String(registry?.defaultProviderId ?? 'default');
+  const provider = useMemo(() => {
+    const values = resource.data ?? lastProvider.current;
+    if (!values) return undefined;
+    const row = array<Record<string, unknown>>(values.connections).find(item => item.id === effectiveId);
+    return row ? { ...row, revision: values.revision, providerId: row.id } : effectiveId === 'new' ? undefined : values;
+  }, [resource.data, effectiveId]);
+  const [name, setName] = useState(''), [connectionEnabled, setConnectionEnabled] = useState(true);
+  const [supportsTools, setSupportsTools] = useState(true);
   const [kind, setKind] = useState('chatgpt'),
     [baseUrl, setBaseUrl] = useState(''),
     [model, setModel] = useState(''),
@@ -97,24 +110,37 @@ function ProviderSettingsForm({
       return;
     }
     if (!resource.data) return;
+    if (effectiveId === 'new') {
+      baseRevision.current = resource.data.revision;
+      setConflict(false); setInitialized(true); setKind('responses'); setName('');
+      setBaseUrl(''); setModel(''); setEffort(''); setRegion(''); setApiKey('');
+      setClearKey(false); setAllowInsecureHttp(false); setGatewayConsent(''); setGateway(emptyGateway);
+      setConnectionEnabled(true);
+      setSupportsTools(true);
+      return;
+    }
+    const value = provider ?? resource.data;
     baseRevision.current = resource.data.revision;
     setConflict(false);
-    setKind(String(resource.data.kind));
-    setBaseUrl(String(resource.data.baseUrl ?? ''));
-    setModel(String(resource.data.model ?? ''));
-    setEffort(String(resource.data.effort ?? ''));
-    setRegion(String(resource.data.region ?? ''));
+    setKind(String(value.kind));
+    setName(String(value.name ?? ''));
+    setConnectionEnabled(value.enabled !== false);
+    setSupportsTools(value.supportsTools !== false);
+    setBaseUrl(String(value.baseUrl ?? ''));
+    setModel(String(value.model ?? ''));
+    setEffort(String(value.effort ?? ''));
+    setRegion(String(value.region ?? ''));
     setApiKey('');
     setClearKey(false);
-    setAllowInsecureHttp(resource.data.allowInsecureHttp === true);
+    setAllowInsecureHttp(value.allowInsecureHttp === true);
     setGatewayConsent('');
-    const oauth = object(resource.data.gatewayOAuth);
+    const oauth = object(value.gatewayOAuth);
     setGateway(
       Object.fromEntries(gatewayFields.map(([key]) => [key, String(oauth[key] ?? '')])) as Gateway,
     );
     // Expose editors only after their displayed values and revision share one baseline.
     setInitialized(true);
-  }, [resource.data]);
+  }, [resource.data, provider, effectiveId]);
   const save = async () => {
     if (
       !initialized ||
@@ -127,8 +153,12 @@ function ProviderSettingsForm({
     setSaved(false);
     const params = {
       expectedRevision: baseRevision.current,
+      ...(connections.length || effectiveId === 'new' ? {
+        providerId: effectiveId, enabled: connectionEnabled,
+        ...(name.trim() ? { name: name.trim() } : {}),
+      } : {}),
       kind,
-      ...(kind === 'responses' ? { baseUrl, allowInsecureHttp } : {}),
+      ...(kind === 'responses' ? { baseUrl, allowInsecureHttp, ...(connections.length ? { supportsTools } : {}) } : {}),
       ...(isBedrock ? { region } : {}),
       ...(isGateway
         ? {
@@ -149,8 +179,14 @@ function ProviderSettingsForm({
     };
     // Secret input is intentionally not retained while a result is uncertain.
     setApiKey('');
-    if (await action.run('system/provider/write', params, '配置已保存，正在读取新运行环境。')) {
+    const result = await action.run('system/provider/write', params, '配置已保存，正在读取新运行环境。');
+    if (result) {
       dirty.current = false;
+      if (effectiveId === 'new') {
+        const previous = new Set(connections.map(row => row.id));
+        const added = array<Record<string, unknown>>(result.connections).find(row => !previous.has(row.id));
+        setSelectedId(typeof added?.id === 'string' ? added.id : '');
+      }
       setSaved(true);
       resource.refresh();
     }
@@ -158,6 +194,22 @@ function ProviderSettingsForm({
   return (
     <div className="stack">
       <ExtensionStatus api={api} action={action} recoveryLabel="查询原供应商配置回执" />
+      {connections.length > 0 && (
+        <section className="stack" aria-label="已添加模型供应商">
+          <div className="inline">
+            {connections.map(row => <button key={String(row.id)} type="button"
+              className={row.id === effectiveId ? 'button primary' : 'button'}
+              disabled={action.busy || dirty.current}
+              aria-pressed={row.id === effectiveId}
+              onClick={() => { dirty.current = false; setSelectedId(String(row.id)); setSaved(false); }}>
+              {String(row.name)}{row.enabled === false ? '（已停用）' : row.id === registry?.defaultProviderId ? '（默认）' : ''}
+            </button>)}
+            <button type="button" className="button" disabled={action.busy || dirty.current || connections.length >= 16}
+              onClick={() => { dirty.current = false; setSelectedId('new'); setSaved(false); }}>添加供应商</button>
+          </div>
+          {dirty.current && <button type="button" className="button small" onClick={() => { dirty.current = false; setSaved(false); resource.refresh(); }}>放弃当前编辑</button>}
+        </section>
+      )}
       <form
         className="settings-form stack"
         onChange={() => {
@@ -189,15 +241,19 @@ function ProviderSettingsForm({
         <fieldset className="provider-fields stack" disabled={action.busy || !visible || !initialized}>
           <h3>模型供应商</h3>
           <p className="muted">
-            配置只影响此 Harness 的独立运行环境。自定义服务需要支持 Responses
-            API、流式输出及工具调用。保存会重启原生服务。
+            可同时启用多个服务，开始新对话时选择模型。保存配置会重启运行时，请先结束正在执行的任务。
           </p>
+          {(connections.length > 0 || effectiveId === 'new') && <>
+            <label className="field">显示名称<input value={name} maxLength={64} onChange={event => setName(event.target.value)} placeholder="例如：个人 Coding Plan" /></label>
+            <label className="check-row"><input type="checkbox" checked={connectionEnabled} onChange={event => setConnectionEnabled(event.target.checked)} />启用此供应商</label>
+          </>}
           <label className="field">
             供应商
             <select
               value={kind}
               onChange={(e) => {
                 setKind(e.target.value);
+                setModel(''); setEffort(''); setBaseUrl(''); setRegion('');
                 setSaved(false);
                 setApiKey('');
                 setClearKey(false);
@@ -232,6 +288,10 @@ function ProviderSettingsForm({
           {kind === 'zhipu-coding' && (
             <p className="small muted">服务地址：https://open.bigmodel.cn/api/v1</p>
           )}
+          {kind === 'responses' && <>
+            <label className="check-row"><input type="checkbox" checked={supportsTools} onChange={event => setSupportsTools(event.target.checked)} />默认支持工具调用</label>
+            <p className="small muted">用于文件、命令等 Agent 任务。这是你的配置声明；只返回模型 ID 的目录无法验证此能力。服务明确声明不支持时会遵循服务返回值。</p>
+          </>}
           {isBedrock && (
             <>
               <label className="field">
@@ -267,7 +327,7 @@ function ProviderSettingsForm({
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={
-                    resource.data?.kind === kind && resource.data?.hasApiKey
+                    provider?.kind === kind && provider?.hasApiKey
                       ? '供应商与地址未变时，留空保留密钥'
                       : '输入此供应商的 API Key'
                   }
@@ -306,7 +366,7 @@ function ProviderSettingsForm({
             <>
               <p>
                 此网关需要代理 Codex 的 models 与 responses 路径，并支持 OAuth 授权码与
-                PKCE。ChatGPT 登录和网关授权是两个独立步骤；保存后在“模型账户”中完成。
+                PKCE。保存后在下方完成账号登录与网关授权。
               </p>
               {gatewayFields.map(([key, label]) => (
                 <label className="field" key={key}>
@@ -338,10 +398,12 @@ function ProviderSettingsForm({
           <label className="field">
             默认模型 ID
             <input
+              aria-label="默认模型 ID"
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder="由供应商实际支持的模型"
             />
+            <small className="muted">可以留空；保存后读取模型目录，再选择默认模型。</small>
           </label>
           <label className="field">
             默认推理强度
@@ -386,21 +448,33 @@ function ProviderSettingsForm({
           </button>
         </fieldset>
       </form>
+      {provider && initialized && !dirty.current && ['chatgpt', 'chatgpt-gateway'].includes(kind) && provider.kind === kind && provider.enabled !== false &&
+        (typeof accountPanel === 'function' ? accountPanel(provider, effectiveId === registry?.defaultProviderId || !connections.length) : accountPanel)}
+      {provider && initialized && connections.length > 0 && effectiveId !== 'new' && !dirty.current && (
+        <div className="inline">
+          <button type="button" className="button" disabled={action.disabled || provider.enabled === false || effectiveId === registry?.defaultProviderId}
+            onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, defaultProviderId: effectiveId }, '已更新新对话的默认供应商。')) resource.refresh(); }}>设为默认供应商</button>
+          <details><summary>移除供应商</summary><p>移除后，使用此供应商的历史对话将无法继续，直到重新配置相同服务。</p>
+            <button type="button" className="button danger" disabled={action.disabled || connections.length <= 1}
+              onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, removeProviderId: effectiveId }, '已移除供应商。')) { setSelectedId(''); resource.refresh(); } }}>确认移除 {String(provider.name)}</button>
+          </details>
+        </div>
+      )}
       {provider && initialized && (
         <>
           <hr />
-          <ProviderProfiles
-            provider={provider}
+          <details open={!connections.length}><summary>配置备份</summary><ProviderProfiles
+            provider={registry ?? provider}
             action={action}
             hasDraft={dirty.current}
             onUpdated={() => {
               dirty.current = false;
               resource.refresh();
             }}
-          />
+          /></details>
           <hr />
           <ModelCatalog
-            key={String(provider.revision)}
+            key={effectiveId + ':' + String(provider.revision)}
             api={api}
             provider={provider}
             visible={visible}

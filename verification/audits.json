@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "phase": "v2.1.1-validated-release",
-  "consecutiveClean": 0,
+  "phase": "v2.2.0-functional-workflows-audit",
+  "consecutiveClean": 1,
   "rounds": [
     {
       "id": "round1",
@@ -6000,6 +6000,636 @@
           "sha256": "8f4cb8642c2b51e1704f662e58d0ba2063829ae5b25517dff5f14a03d99166ab"
         }
       ]
+    },
+    {
+      "digest": "21c655db59635a455853dacbd4a29c792606bb5baca27cdb198d9fb96b048d62",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V220-R1-DOC-01",
+          "priority": "P3",
+          "file": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+          "lines": [
+            25,
+            31
+          ],
+          "summary": "Current Cloud/hooks descriptions still imply explicit restart after CLI exit; confirmed cleanup now triggers automatic refresh. Historical test results must stay historical.",
+          "fix": "Update current workflow explanation, preserve dated historical evidence and its limits."
+        },
+        {
+          "id": "runtime-001",
+          "priority": "P2",
+          "category": "test-contract-regression",
+          "title": "Native CLI acceptance tests still require the pre-v2.2.0 terminal lifecycle and unauthenticated Cloud dispatch",
+          "path": "tests/runtime/guardian-native.test.ts",
+          "line": 110,
+          "endLine": 111,
+          "relatedLocations": [
+            {
+              "path": "tests/runtime/guardian-native.test.ts",
+              "line": 121,
+              "endLine": 128
+            },
+            {
+              "path": "src/runtime/service.ts",
+              "line": 130,
+              "endLine": 136
+            },
+            {
+              "path": "src/runtime/service.ts",
+              "line": 188,
+              "endLine": 188
+            },
+            {
+              "path": "src/runtime/cli-terminals.ts",
+              "line": 24,
+              "endLine": 32
+            },
+            {
+              "path": "tests/runtime/cli-terminals.test.ts",
+              "line": 89,
+              "endLine": 104
+            }
+          ],
+          "scenario": "Run the existing guardian-native acceptance cases against the pinned native fixture. The hooks case successfully closes a proven-clean CLI tree and then asserts unknown:true/activity_unknown. The Cloud case creates a fresh zero-credential fixture, expects terminal/open(codex-cloud) to dispatch and emit Not signed in, and then expects the same unknown state.",
+          "actual": "Confirmed CLI cleanup now sets restarting:true and raises runtime_restarting without making activity unknown. Cloud open checks account/read and throws chatgpt_login_required before process/spawn for this unauthenticated fixture.",
+          "impact": "These two existing acceptance cases contradict the implemented and unit-tested behavior and prevent a passing full validation run. This is a test regression, not evidence that the intended production automatic-refresh behavior is defective.",
+          "evidence": "Static executable-call-chain proof: CliTerminals.finish invokes host.settled; RuntimeService.settled sets restarting; RuntimeService.admit rejects with runtime_restarting. The fixture uses a newly created empty CODEX_HOME with a local requires_openai_auth=false provider and no ChatGPT credential, so the Cloud precheck rejects before its expected terminal output.",
+          "verification": "No native acceptance run performed during read-only audit; assertions and implementation are directly contradictory.",
+          "recommendation": "Update both native acceptance cases to verify the current automatic-refresh and pre-dispatch ChatGPT-login contract while retaining the isolated fixture and no-external-network checks."
+        },
+        {
+          "id": "runtime-002",
+          "priority": "P3",
+          "category": "current-documentation-inconsistency",
+          "title": "Runtime verification guide still describes proven CLI cleanup as unknown with explicit durable restart",
+          "path": "tests/runtime/README.md",
+          "line": 106,
+          "endLine": 106,
+          "scenario": "A maintainer follows the current terminal/open lifecycle description or uses it to assess the expected CLI exit acceptance result.",
+          "actual": "The guide says proven cleanup marks the runtime unknown and requires explicit durable restart. RuntimeService now marks restarting, emits restart-required and the worker/entrypoint schedules an automatic refresh; unknown is reserved for failed cleanup.",
+          "impact": "The current contract documentation directs maintainers toward the obsolete state and manual recovery expectation and aligns with the stale native tests above.",
+          "evidence": "tests/runtime/README.md:106 versus src/runtime/service.ts:130-136 and tests/runtime/cli-terminals.test.ts:98-104; worker restart response/drain lifecycle was read in src/runtime/main.ts and tests/runtime/server.test.ts.",
+          "recommendation": "Update the current lifecycle description to automatic refresh after proven cleanup, preserving separately identified historical acceptance evidence."
+        },
+        {
+          "id": "WEB-V220-01",
+          "priority": "P2",
+          "title": "Creating a project leaves the next message targeted at the previous project",
+          "path": "web/components/ProjectDialog.tsx",
+          "line": 37,
+          "related": [
+            {
+              "path": "web/components/ProjectDialog.tsx",
+              "line": 14
+            },
+            {
+              "path": "web/Workspace.tsx",
+              "line": 1398
+            },
+            {
+              "path": "web/Workspace.tsx",
+              "line": 389
+            }
+          ],
+          "scenario": "With Old Project already selected, create New Project using the new-project dialog. The dialog closes without selecting the returned ID or retaining a success-target notice. The old project remains selected; the next ordinary message dispatches conversation/start with projectId old.",
+          "impact": "The primary create-project/start-work flow can send intended new-project work into an existing directory or old thread.",
+          "evidence": {
+            "test": ".work/v220-web-repro.test.tsx",
+            "line": 8,
+            "log": ".work/v220-web-repro.log",
+            "observed": "New Project appears, Old Project remains selected, and the captured conversation/start params.projectId is old."
+          },
+          "recommendation": "Return the accepted project ID to Workspace, refresh the registered list, and explicitly hand off to a new chat in that project while retaining the prior draft and respecting navigation changes."
+        },
+        {
+          "id": "WEB-V220-02",
+          "priority": "P2",
+          "title": "Automation model selection loses provider identity",
+          "path": "web/components/AutomationForm.tsx",
+          "line": 618,
+          "related": [
+            {
+              "path": "web/components/AutomationForm.tsx",
+              "line": 280
+            },
+            {
+              "path": "web/components/AutomationForm.tsx",
+              "line": 288
+            },
+            {
+              "path": "web/components/AutomationForm.tsx",
+              "line": 294
+            }
+          ],
+          "scenario": "Enable two providers that advertise model shared, with A supporting high and B supporting max. The automation editor emits both options with value/key shared, uses the first provider's reasoning list, reads defaults using model alone, and saves options {model:'shared'} without the intended provider.",
+          "impact": "The automation editor cannot distinguish same-name models, cannot reliably configure a nondefault provider, and may preserve an old provider when an existing automation changes its model.",
+          "evidence": {
+            "test": ".work/v220-web-repro.test.tsx",
+            "line": 60,
+            "log": ".work/v220-web-repro.log",
+            "observed": "Both provider options have value shared; high is offered, max is absent; saved automation/create.spec.options contains only model. React also reports duplicate shared keys."
+          },
+          "recommendation": "Use provider-plus-model identity for selection, persist modelProvider, fetch defaults with that provider, resolve effort against that exact catalog entry, and carry provider identity through collaboration mode preparation."
+        },
+        {
+          "id": "WEB-V220-03",
+          "priority": "P2",
+          "title": "Existing-thread settings use another provider's model capabilities",
+          "path": "web/components/ThreadExecutionSettings.tsx",
+          "line": 253,
+          "related": [
+            {
+              "path": "web/components/ThreadExecutionSettings.tsx",
+              "line": 194
+            },
+            {
+              "path": "web/components/ThreadExecutionSettings.tsx",
+              "line": 260
+            },
+            {
+              "path": "web/components/ThreadExecutionSettings.tsx",
+              "line": 322
+            }
+          ],
+          "scenario": "Open execution settings for thread B whose session snapshot says shared/provider-b. Pass the merged catalog with provider A's shared/high first and provider B's shared/max second. The form offers A's high, omits B's max, and allows thread/settings/update{threadId:'thread-b',effort:'high'}. It also lists models belonging only to other providers.",
+          "impact": "A valid provider-B reasoning setting becomes unavailable, and the UI admits overrides that do not belong to the actual thread provider.",
+          "evidence": {
+            "test": ".work/v220-web-repro.test.tsx",
+            "line": 80,
+            "log": ".work/v220-web-repro.log",
+            "observed": "Snapshot shared/provider-b is visible while high is offered and max is absent; captured settings update sends high to thread-b."
+          },
+          "recommendation": "Pass snapshot.modelProvider into the form, filter models to that provider including supported legacy aliases, and validate model/effort/serviceTier using only the matching provider entry."
+        },
+        {
+          "id": "DEPLOY-1",
+          "priority": "P2",
+          "title": "HTTPS menu sends prepared and legacy configurations into address-migration-only path",
+          "path": "deploy/operator.py",
+          "line": 245,
+          "relatedLocations": [
+            {
+              "path": "deploy/operator.py",
+              "line": 222
+            },
+            {
+              "path": "deploy/https.py",
+              "line": 495
+            },
+            {
+              "path": "deploy/https.py",
+              "line": 503
+            }
+          ],
+          "scenario": "An initial HTTPS setup fails after retaining phase=prepared metadata, or an existing instance retains legacy Authelia HTTPS metadata. The operator retries setup from the one-stop HTTPS menu with the same address.",
+          "actual": "Any nonempty https-read result causes Console.https to select https-migrate. setup_https rejects prepared/legacy metadata with identity_conflict: Address migration requires an active built-in HTTPS configuration. The operator cannot recover through this menu even after the original certificate/network issue is resolved.",
+          "expected": "Use the ordinary HTTPS resume/legacy migration path for prepared/legacy metadata; use address migration only for eligible active builtin metadata. Preserve omitted publicOrigin when resuming a retained address: the menu currently always adds it and the ordinary resume guard compares omission explicitly.",
+          "reproduction": ".work/v220-deploy-repro/results.json",
+          "reproductionMethod": "Real Console menu and parser plus real setup_https early validation; only persisted-metadata read and host/precondition boundaries stubbed. Both prepared builtin and legacy fixtures return the stated error. No network or service actions.",
+          "testsGap": "Existing menu test bodies were reviewed; coverage does not require successful resume of prepared/legacy HTTPS metadata through the menu."
+        },
+        {
+          "id": "DEPLOY-2",
+          "priority": "P2",
+          "title": "Provider layer requirement checks only registry default and allows advanced secondary providers in legacy mode",
+          "path": "deploy/provider.py",
+          "line": 18,
+          "relatedLocations": [
+            {
+              "path": "deploy/provider.py",
+              "line": 287
+            },
+            {
+              "path": "deploy/config_layer.py",
+              "line": 188
+            },
+            {
+              "path": "deploy/config_layer.py",
+              "line": 249
+            }
+          ],
+          "scenario": "A provider registry keeps ChatGPT as its default and contains an enabled nondefault Bedrock provider; the operator rolls back the configuration layer or resumes an old legacy-mode candidate.",
+          "actual": "require_provider_layer reads top-level kind, which combine projects from the default connection, and accepts layered=False. Actual ProviderStore.prepare(layered=False) writes a generation containing amazon-bedrock-runtime without requirements.toml; require_candidate_layer(targetMode=legacy) accepts that exact generation. This defeats the documented managed-layer requirement for advanced provider definitions and permits removing enforced provider requirements while they remain enabled.",
+          "expected": "Validate relevant registry connection kinds at every preparation, rollback, and candidate recovery guard so an enabled provider requiring system-v1 prevents legacy publication.",
+          "reproduction": ".work/v220-deploy-layer-repro/result.json",
+          "reproductionMethod": "Real provider_registry.change, ProviderStore.prepare(layered=False), and config_layer.require_candidate_layer. Files written only below .work using a synthetic API key; ownership-only directory wrappers substituted for Windows. No service or network activity.",
+          "testsGap": "Existing advanced-provider layer gates are single-provider checks; focused registry tests cover registry generation on legacy mode with Responses but do not reject enabled advanced secondary providers."
+        }
+      ],
+      "skipped": [],
+      "startedAt": "2026-10-30T05:29:40.105884+00:00",
+      "completedAt": "2026-10-30T05:44:08.279Z",
+      "sourceFiles": 1937,
+      "id": "v220-round1",
+      "sequence": 54,
+      "reviewers": [
+        {
+          "id": "v220-round1-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round1/team.json",
+          "sha256": "febfca3876709ef0af4b6073f62232d5655885fb2aee9f04ba05f80984963213"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round1/root.json",
+          "sha256": "d3bb01e51a85df81e1d8339180fe36d4c766cc2161c8af8523c61071fef3178f",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round1/runtime.json",
+          "sha256": "e66f0ec0335eeaff4ab2ac56c3bdc0bf9c732aa203bc74f004c8946dacac2f62",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round1/web.json",
+          "sha256": "f967883eeb98987ba1d98f8cd61a9944da9db40e29f541eff5c96b6c4cd88cc6",
+          "files": 213
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round1/deploy.json",
+          "sha256": "e0a4f37d5433b9067395bdc13b52bf636255a2643c569ff515207dfb50a7418c",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1937,
+        "missing": []
+      },
+      "gatePassed": false
+    },
+    {
+      "digest": "c6f55746080e5feba82a88190e7c48789f583169475e9aa82e1b968511fee34a",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V220-WEB-01",
+          "priority": "P2",
+          "title": "Model catalog consumers drop pagination, making later models and reasoning choices unreachable",
+          "locations": [
+            {
+              "file": "web/Workspace.tsx",
+              "start": 1339,
+              "end": 1354
+            },
+            {
+              "file": "web/components/AutomationsPanel.tsx",
+              "start": 126,
+              "end": 139
+            },
+            {
+              "file": "web/components/AutomationForm.tsx",
+              "start": 635,
+              "end": 669
+            },
+            {
+              "file": "web/components/ConfigSettings.tsx",
+              "start": 99,
+              "end": 99
+            },
+            {
+              "file": "web/components/ModelCatalog.tsx",
+              "start": 60,
+              "end": 64
+            },
+            {
+              "file": "web/components/ModelCatalog.tsx",
+              "start": 239,
+              "end": 249
+            }
+          ],
+          "details": "Workspace loads model/list in pages of 50. AutomationsPanel forwards only models.items, and AutomationForm renders these options without a cursor/loading/error/refresh or more-model control. A provider whose models begin on a later page cannot be selected within this dialog. ConfigSettings owns a separate 50-row usePaged but never exposes models.more, models.hasMore or model errors; a configured model on a later page has no available reasoning choices, and its configuration refresh button does not refresh this catalog. The native-provider ModelCatalog branch separately requests limit:100 with useResource and ignores nextCursor; discovery simply refreshes the first page, silently omitting model 101 onward. Server ManagedProviders.list actually paginates these catalogs, so this is a reachable response shape.",
+          "reproduction": [
+            "Provide a model/list response with 50 Alpha models and nextCursor page-two; page two contains the only Beta model. Open Automations -> New -> model/mode settings. Only the default option plus 50 Alpha rows exist; no pagination control exists. No cursor request is sent.",
+            "Close automation, open composer model picker and click load more, then reopen the same automation draft. The Beta option appears. This proves the catalog entry is available from the same endpoint but inaccessible from the automation workflow itself.",
+            "For ConfigSettings, provide config.model=later/model_provider=beta and a first 50-row Alpha page plus cursor to Beta. The reasoning select contains only its default/clear option. Reload configuration reads settings again, but never requests the later model page.",
+            "For native ModelCatalog, provide 100 rows plus nextCursor providers:100 and a 101st model on the next page. No more control exists; clicking Discover models produces another cursorless first-page read and still omits model 101."
+          ],
+          "expected": "Expose paged catalog continuation and read/error state in every consumer, or use a shared bounded catalog owner that fetches the selected provider/model. Preserve current draft and provider identity while pages load.",
+          "observed": "All three affected consumers remain incomplete without an actionable explanation; automation only works around the omission by leaving the dialog and preloading composer pages.",
+          "unaffected": "Composer and ThreadExecutionSettings explicitly receive moreModels/onMoreModels and render load-more controls. Responses/Zhipu ModelCatalog rows sourced from provider.models are not affected by the native limit:100 branch.",
+          "evidence": [
+            ".work/v220-audit2-web-repro.test.tsx",
+            ".work/v220-audit2-web-repro-result.json",
+            ".work/v220-audit2-web-pagination-result.json"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "V220-WEB-02",
+          "priority": "P2",
+          "title": "Effective configuration selects reasoning capabilities from the first same-named model across providers",
+          "locations": [
+            {
+              "file": "web/components/ConfigSettings.tsx",
+              "start": 255,
+              "end": 261
+            }
+          ],
+          "details": "The model lookup compares only (model.model ?? model.id) to the configured model name. Managed model/list returns provider-tagged rows and may legitimately contain identical IDs from multiple providers. It therefore derives allowed reasoning efforts from whichever provider occurs first, ignoring config.model_provider and aliases. This is distinct from the pagination issue and reproduces with both rows in the first page.",
+          "reproduction": [
+            "Return settings/read config={model:shared,model_provider:beta}, editableKeys including model_reasoning_effort and userVersion v1.",
+            "Return model/list rows Alpha/shared supporting high, then Beta/shared supporting max.",
+            "Open effective configuration. Its reasoning select offers high and does not offer max. Selecting high and saving sends settings/write changes=[{key:model_reasoning_effort,value:high}]."
+          ],
+          "expected": "Resolve capabilities against the configured provider and model, supporting stable aliases and treating ambiguity/missing identity visibly. Never borrow effort options from a different provider.",
+          "observed": "The only valid Beta effort is not selectable, while the unrelated Alpha effort can be submitted. A real native/provider rejection would surface only after the incorrect UI-guided configuration write.",
+          "evidence": [
+            ".work/v220-audit2-web-repro.test.tsx",
+            ".work/v220-audit2-web-repro-result.json"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "DEPLOY-A2-001",
+          "priority": "P2",
+          "title": "Persist the newly created projects directory before reporting project creation success",
+          "file": "deploy/native_launcher.py",
+          "startLine": 51,
+          "endLine": 58,
+          "function": "create_project_from_input",
+          "trigger": "First successful project creation when native_home/projects does not yet exist; also a retry following interruption after creating that root.",
+          "description": "root.mkdir publishes native_home/projects, then project.mkdir publishes the child. Only fsync_directory(root) runs before the helper returns success. This synchronizes entries within projects but does not establish persistence of the projects name in native_home. The higher-level project registration can be durably committed after success while an abrupt reboot can lose that newly published ancestor entry.",
+          "impact": "A successfully registered first project can point to a missing directory after abrupt host failure; this violates durable publication before success. Ordinary non-crash creation succeeds.",
+          "evidence": ".work/v220-audit2-project-durability-repro.json",
+          "reproduce": [
+            "Run the ignored offline probe with the supplied Python: .work/audit2_deploy_project_probe.py.",
+            "The probe uses a fresh temporary native home and patches fsync_directory only to record its arguments.",
+            "Call create_project_from_input with {\"directory\":\"first-project\"}.",
+            "Observe a successful result while fsyncCallsRelativeToNativeHome equals [\"projects\"] and nativeHomeSynced equals false."
+          ],
+          "expected": "After root.mkdir and its directory/symlink checks, synchronize native_home before creating/publishing the project; do this even when projects already exists to cover interrupted retries. Also review synchronization of the newly created empty project directory itself before returning success.",
+          "validationBoundary": "Confirmed actual helper call ordering only. No power cut, destructive reboot, service changes or Linux filesystem durability experiment was performed.",
+          "testGap": "Both project-creation unit tests and native-identity project tests exercise ordinary success/error/ownership paths but do not require ancestor-directory durability."
+        }
+      ],
+      "skipped": [
+        {
+          "activity": "Full and targeted deployment test suites",
+          "reason": "This read-only audit stage explicitly prohibits full tests; only the narrow offline probes above were run."
+        },
+        {
+          "activity": "Real Linux root/systemd/UID/namespace/network/mount integration and actual reboot/power loss",
+          "reason": "No authorized disposable integration host used; current environment is Windows."
+        },
+        {
+          "activity": "Live installation, HTTPS issuance, DNS provider APIs, live administrator reset, real provider/model/MCP calls",
+          "reason": "Would mutate services or use external credentials/calls outside this audit scope."
+        },
+        {
+          "activity": "Historical documentation verification claims and externally linked source documentation",
+          "reason": "Not used as fresh evidence; this audit binds current repository source and offline observations."
+        }
+      ],
+      "startedAt": "2026-10-30T05:55:43.772986+00:00",
+      "completedAt": "2026-10-30T06:08:42.373Z",
+      "sourceFiles": 1938,
+      "id": "v220-round2",
+      "sequence": 55,
+      "reviewers": [
+        {
+          "id": "v220-round2-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round2/team.json",
+          "sha256": "b51535f78217603bdb9b3f1d05537f3b3e9906e6cc8418b1e3d1475ab34d01e5"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round2/root.json",
+          "sha256": "46e8c94935e8f8ae1b2ea7391110629f2572a48ed806badf46218500f4eb96eb",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round2/runtime.json",
+          "sha256": "4e309b7c3fad4267a5c4fa181033d1b6cb5498252dfe5e24930d1fd6c27e39b8",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round2/web.json",
+          "sha256": "9170794f56466e6019b48bc5b23599cc9d8f6bfa402e7f51ed6bb6b90cb19aae",
+          "files": 214
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round2/deploy.json",
+          "sha256": "c3f13ca365825376a4fbd4a88892bbd4154e5da0a972b730f0007f53b3051f9a",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1938,
+        "missing": []
+      },
+      "gatePassed": false
+    },
+    {
+      "digest": "cd4e178ca9dae1ced35ad58e7a1f1d504c62c783cef7ec8739141737e4351763",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "WEB-R3-001",
+          "priority": "P2",
+          "title": "普通导航绕过草稿离开检查，导致保存失败的输入永久丢失",
+          "file": "web/Workspace.tsx",
+          "line": 678,
+          "endLine": 681,
+          "description": "Sidebar 的真实项目点击在 Workspace 中直接 setProjectId(id) 再 navigate('')，navigate 本身也不调用 draftState.canLeave。useDraft 只有当前 key 的内存副本；切换 key 后 load 会用新 key 的持久化记录覆盖 current 并清空 unsaved/error。因此 sessionStorage 写入失败（配额不足或存储被阻止）时，用户仍可切换项目/会话，返回后未保存输入消失，原保存失败提示也消失。只针对项目创建成功的自动跳转加 canLeave 无法保护普通导航。",
+          "userSteps": [
+            "已登录且有项目 A、B；位于项目 A 的新会话编辑器。",
+            "让 sessionStorage 对 harness.draft.v1.* 的 setItem 抛出 QuotaExceededError，输入一段消息，看到草稿保存失败提示。",
+            "点击实际侧栏的项目 B，再点击项目 A。",
+            "实际消息 textarea 已为空，原来的保存失败提示也消失；未保存文本只有内存副本且已丢失。"
+          ],
+          "impact": "存储异常时常规站内导航会静默丢失用户尚未发送的输入；已有持久化草稿可能回退为旧版本。项目切换路径已执行验证；同一无保护导航函数涉及的其他入口是源码追踪结论，未声称逐个进行交互实测。",
+          "relatedLocations": [
+            {
+              "file": "web/components/Sidebar.tsx",
+              "line": 122,
+              "reason": "实际项目按钮调用 onProject(p.id)。"
+            },
+            {
+              "file": "web/Workspace.tsx",
+              "line": 444,
+              "endLine": 458,
+              "reason": "统一 navigate 未做草稿离开检查。"
+            },
+            {
+              "file": "web/Workspace.tsx",
+              "line": 406,
+              "endLine": 418,
+              "reason": "popstate 直接重置当前路由状态。"
+            },
+            {
+              "file": "web/hooks/useDraft.ts",
+              "line": 56,
+              "endLine": 68,
+              "reason": "只保留同 key 的未保存输入；新 key 读入后覆盖当前内存副本。"
+            },
+            {
+              "file": "web/hooks/useDraft.ts",
+              "line": 145,
+              "endLine": 154,
+              "reason": "已有普通 canLeave 与已发送快照 canLeaveAfterAcceptance，可复用其不同语义。"
+            }
+          ],
+          "evidence": [
+            ".work/v220-audit3-web-draft-probe.test.tsx",
+            ".work/v220-audit3-web-probe.config.ts",
+            ".work/v220-audit3-web-run-probe.mjs",
+            ".work/v220-audit3-web-draft-probe-result.json"
+          ],
+          "validation": "A single isolated jsdom test passed, asserting the unwanted data loss through the real App + Sidebar click path. Only HTTP/WebSocket and unused xterm integrations were mocked; no Workspace/Sidebar callback substitutes were used.",
+          "recommendation": "在 Workspace 的集中导航所有者处同步检查是否可离开；检查通过前不要先修改 projectId、threadId、分支、modal 或 history。存储失败时保留当前页面，提供重试保存及明确放弃未保存修改动作，并保留已受理发送的精确快照清理例外。将项目、会话、新会话、popstate、自动项目选择、打开工作区/原生终端、打开草稿、恢复/分支/审阅后的跳转统一纳入检查。"
+        }
+      ],
+      "skipped": [],
+      "startedAt": "2026-10-30T06:30:03.297951+00:00",
+      "completedAt": "2026-10-30T06:45:21.659Z",
+      "sourceFiles": 1940,
+      "id": "v220-round3",
+      "sequence": 56,
+      "reviewers": [
+        {
+          "id": "v220-round3-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round3/team.json",
+          "sha256": "1780ad4e6f7c1b65a13edf324d6d3fc7000be83da8071d8a0346893b550f5ca2"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round3/root.json",
+          "sha256": "97eade1d24545cf2fa9534cd34a43ddfaaa8f133b61a2df2224ad409b5ac79a2",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round3/runtime.json",
+          "sha256": "a3d4795a006c94d205d8543a641965c5137d46a2af7d21eb0fbf5685bdd63bb4",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round3/web.json",
+          "sha256": "48723272d25453c5147cc0630b464a969a056fe466f68db0591753f127edaab6",
+          "files": 216
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round3/deploy.json",
+          "sha256": "b6db58d8881104bd79e12909ee03f38e6b4b76af74e570d9244e70feb4480bc5",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1940,
+        "missing": []
+      },
+      "gatePassed": false
+    },
+    {
+      "digest": "2fa91dccad09fdd474ec433628391235352afc8bde924f05a34608c0c314e36f",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "startedAt": "2026-10-30T07:07:49.065032+00:00",
+      "completedAt": "2026-10-30T07:16:56.040Z",
+      "sourceFiles": 1941,
+      "id": "v220-round4",
+      "sequence": 57,
+      "reviewers": [
+        {
+          "id": "v220-round4-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round4/team.json",
+          "sha256": "15110b2019d22aed55482596406f8381cd84d2c077a5ebf96b6d1d8ff6d5c459"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round4/root.json",
+          "sha256": "0f91f08429e815ef51225c87a6d70bd870c457ec065075906438cdc03cc0b60b",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round4/runtime.json",
+          "sha256": "fbcff03131485d3e0f9a6aa5e2c1104ee71e048090aa88d0225fe82eec84f130",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round4/web.json",
+          "sha256": "6bb05e42044463d7ac9c1bb2573ad858d1fe25806db483c6c54ac7be8558c04f",
+          "files": 217
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round4/deploy.json",
+          "sha256": "e17aa8e863474b83e394c00dd961823066953b43bd61ff066de6c04b6fcc0cc2",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1941,
+        "missing": []
+      },
+      "gatePassed": true
     }
   ],
   "fullTests": {

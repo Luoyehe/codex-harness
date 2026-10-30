@@ -13,7 +13,7 @@ MAX_PROFILES = 16
 MAX_GENERATIONS = 128
 KEEP_HISTORY = 3
 GENERATION = re.compile(r"[0-9a-f]{32}")
-GENERATION_FILES = {"settings.json", "models.json", "config.toml", "host-layers.json", "system-config.toml",
+GENERATION_FILES = {"settings.json", "models.json", "runtime.json", "config.toml", "host-layers.json", "system-config.toml",
                     "requirements.toml", "provider.env", "native-env.json"}
 
 
@@ -158,7 +158,8 @@ def collect_generations(layout, root: Path) -> dict:
     # Validate the entire removal set before changing any generation.
     for path in [*remove, *retired]:
         entries = list(path.iterdir())
-        require(len(entries) <= len(GENERATION_FILES) and all(entry.name in GENERATION_FILES for entry in entries),
+        require(len(entries) <= len(GENERATION_FILES) + MAX_PROFILES and all(entry.name in GENERATION_FILES or
+                re.fullmatch(r"catalog-(?:default|[0-9a-f]{32})\.json", entry.name) for entry in entries),
                 "Unexpected provider generation material; retained for inspection", "recovery_required")
         for entry in entries:
             details = entry.lstat()

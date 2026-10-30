@@ -26,6 +26,7 @@ class Native extends EventEmitter {
     if (method === 'thread/turns/list') return { data: this.history, nextCursor: null, backwardsCursor: null };
     if (method === 'thread/timeline/list') return { data: [], nextCursor: null, activeRealtimeSessionAtPageStart: null };
     if (method === 'model/list') return { data: [{ id: 'fixture', model: 'fixture', inputModalities: ['text', 'image', 'audio'] }], nextCursor: null };
+    if (method === 'account/read') return { account: null, requiresOpenaiAuth: false };
     if (method === 'turn/steer') return { turnId: p.expectedTurnId! };
     if (method === 'turn/start' || method === 'thread/queue/start') return { turn: turn('new-turn', 'inProgress') };
     if (method === 'review/start') return { turn: turn('review', 'inProgress'), reviewThreadId: p.threadId! };
@@ -235,7 +236,7 @@ test.each(['before', 'during'] as const)('continuation reads begun %s a goal wri
 });
 test('fork retains source project and goal deferral; child and reverted history need new complete proofs', async () => {
   const { service, native } = setup(); await hydrate(service); const forked = object(await service.call('thread/fork', { threadId: 't', beforeTurnId: 'u' }, context)); expect(object(forked.thread).id).toBe('fork');
-  expect(native.calls.find(item => item.method === 'thread/fork')!.params).toEqual({ threadId: 't', beforeTurnId: 'u', excludeTurns: true, deferGoalContinuation: true });
+  expect(native.calls.find(item => item.method === 'thread/fork')!.params).toEqual({ threadId: 't', beforeTurnId: 'u', excludeTurns: true, deferGoalContinuation: true, model: 'fixture', modelProvider: 'fixture' });
   await expect(service.call('turn/start', { threadId: 'fork', text: 'edit' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
   await service.call('thread/revert', { threadId: 't', beforeTurnId: 'u' }, context);
   await expect(service.call('turn/start', { threadId: 't', text: 'new' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });

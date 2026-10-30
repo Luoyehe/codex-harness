@@ -3,7 +3,7 @@ import type { QueuedSubmission as NativeQueuedSubmission } from '../../protocol/
 import type { ThreadGoal } from '../../protocol/ts/v2/ThreadGoal';
 import type { ThreadSearchOccurrence } from '../../protocol/ts/v2/ThreadSearchOccurrence';
 import type { ReviewTarget } from '../../protocol/ts/v2/ReviewTarget';
-import { array, object, type Options, type Thread } from './types';
+import { array, object, type Model, type Options, type Thread } from './types';
 export type { CollaborationModeMask, ThreadGoal, ThreadSearchOccurrence, ReviewTarget };
 export type QueuedSubmission = NativeQueuedSubmission & {
   text?: string;
@@ -30,6 +30,8 @@ export function executionOptions(
   const preset = modes.find((item) => item.mode === mode);
   if (!preset) throw new Error('当前运行时没有提供所选协作模式，请刷新模式目录。');
   const model = options.model || defaults?.model || preset.model;
+  const sameModel = (!options.model || options.model === defaults?.model) &&
+    (!options.modelProvider || options.modelProvider === defaults?.modelProvider);
   if (typeof model !== 'string' || !model)
     throw new Error('请等待默认模型读取完成，或明确选择模型后再切换模式。');
   return {
@@ -39,11 +41,34 @@ export function executionOptions(
       settings: {
         model,
         reasoning_effort:
-          options.effort ?? defaults?.reasoningEffort ?? preset.reasoning_effort ?? null,
+          options.effort ?? (sameModel ? defaults?.reasoningEffort ?? preset.reasoning_effort : null) ?? null,
         developer_instructions: null,
       },
     },
   };
+}
+/** Validate explicit reasoning settings against this exact provider/model, without changing the draft. */
+export function modelSettingsIssue({ options, defaults, defaultsLoading, models, modelsLoading, modes }: {
+  options: Options; defaults?: Record<string, unknown>; defaultsLoading: boolean;
+  models: Model[]; modelsLoading: boolean; modes: CollaborationModeMask[];
+}): string {
+  if (defaultsLoading) return '正在核对模型设置，完成后即可发送。';
+  if (!options.effort) return '';
+  if (modelsLoading) return '正在核对模型的思考强度，完成后即可发送。';
+  let model: unknown;
+  try {
+    const prepared = object(executionOptions(options, defaults, modes));
+    model = object(object(prepared.collaborationMode).settings).model ?? prepared.model ?? defaults?.model;
+  } catch (error) { return error instanceof Error ? error.message : '模型设置尚未确认，请重新选择。'; }
+  const provider = options.modelProvider ?? defaults?.modelProvider;
+  const matches = models.filter(row => (row.model ?? row.id) === model &&
+    (!provider || !row.modelProvider || row.modelProvider === provider ||
+      typeof provider === 'string' && row.providerAliases?.includes(provider)));
+  if (matches.length !== 1)
+    return '尚未确认当前模型支持的思考强度，请刷新或继续加载模型目录，或恢复模型默认强度。';
+  if (!matches[0]!.supportedReasoningEfforts?.some(row => row.reasoningEffort === options.effort))
+    return '所选思考强度已不适用于当前模型，请重新选择或恢复模型默认强度。';
+  return '';
 }
 export function checkedExport(value: unknown, format: 'json' | 'markdown') {
   const result = object(value);

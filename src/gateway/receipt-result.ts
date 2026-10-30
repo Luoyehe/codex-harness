@@ -36,7 +36,32 @@ function providerReceipt(input: JsonValue): JsonObject {
   object(input);
   if (typeof input.kind !== 'string' || !providerKinds.includes(input.kind) || typeof input.hasApiKey !== 'boolean' || !Array.isArray(input.models) || input.models.length > 1000) throw new Error('Invalid provider receipt');
   const result: JsonObject = { kind: input.kind!, revision: hex(input.revision, 32), hasApiKey: input.hasApiKey };
+  const providerId = (value: JsonValue | undefined): string => {
+    const id = managementText(value, 32);
+    if (id !== 'default' && !/^[a-f0-9]{32}$/.test(id)) throw new Error('Invalid provider identity');
+    return id;
+  };
+  if (input.providerId !== undefined) result.providerId = providerId(input.providerId);
+  if (input.defaultProviderId !== undefined) result.defaultProviderId = providerId(input.defaultProviderId);
+  if (input.modelProvider !== undefined) result.modelProvider = managementText(input.modelProvider, 80);
+  if (input.connections !== undefined) {
+    if (!Array.isArray(input.connections) || input.connections.length < 1 || input.connections.length > 16) throw new Error('Invalid provider registry');
+    const seen = new Set<string>();
+    result.connections = input.connections.map(value => {
+      object(value);
+      const id = providerId(value.id);
+      if (seen.has(id) || value.connections !== undefined || typeof value.enabled !== 'boolean') throw new Error('Invalid provider record');
+      seen.add(id);
+      return { ...providerReceipt(value), id, name: managementText(value.name, 256), enabled: value.enabled,
+        modelProvider: managementText(value.modelProvider, 80) };
+    });
+  }
   for (const key of ['model', 'region', 'effort']) if (input[key] !== undefined) result[key] = managementText(input[key], key === 'effort' ? 64 : 256);
+  if (input.supportsTools !== undefined) {
+    if (typeof input.supportsTools !== 'boolean') throw new Error('Invalid provider tool default');
+    result.supportsTools = input.supportsTools;
+  }
+  for (const key of ['catalogSource', 'catalogError']) if (input[key] !== undefined) result[key] = managementText(input[key], 2048);
   if (input.baseUrl !== undefined) result.baseUrl = endpoint(input.baseUrl);
   if (input.allowInsecureHttp !== undefined) {
     if (typeof input.allowInsecureHttp !== 'boolean') throw new Error('Invalid transport confirmation');
@@ -69,6 +94,10 @@ function providerReceipt(input: JsonValue): JsonObject {
     if (item.supportsTools !== undefined) {
       if (typeof item.supportsTools !== 'boolean') throw new Error('Invalid model tools flag');
       model.supportsTools = item.supportsTools;
+    }
+    if (item.toolsSource !== undefined) {
+      if (!['provider', 'configured', 'administrator'].includes(String(item.toolsSource))) throw new Error('Invalid tool metadata source');
+      model.toolsSource = item.toolsSource;
     }
     if (item.instructions !== undefined) {
       const instructions = validText(item.instructions, 65536);
@@ -296,7 +325,7 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     }
     return result;
   }
-  if (method === 'project/add') { object(input); return { id: identifier(input.id), name: validText(input.name, 128), path: validText(input.path, 4096) }; }
+  if (method === 'project/add' || method === 'project/create') { object(input); return { id: identifier(input.id), name: validText(input.name, 128), path: validText(input.path, 4096) }; }
   if (method === 'mcp/oauth') {
     object(input); return { handoffId: identifier(input.handoffId), epoch: identifier(input.epoch), name: identifier(input.name), threadId: input.threadId === null ? null : identifier(input.threadId) };
   }

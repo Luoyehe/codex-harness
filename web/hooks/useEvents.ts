@@ -11,6 +11,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
   );
   const [epoch, setEpoch] = useState('');
   const [runtimeConnected, setRuntimeConnected] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const [activityReady, setActivityReady] = useState(false);
   const [configurationReady, setConfigurationReady] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -20,6 +21,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
     if (!enabled) {
       setConnection('offline');
       setRuntimeConnected(false);
+      setRestarting(false);
       setActivityReady(false);
       setConfigurationReady(false);
       return;
@@ -77,14 +79,17 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
               setEpoch(nextEpoch);
             }
             setRuntimeConnected(connected);
+            setRestarting(previous => typeof runtime.restarting === 'boolean' ? runtime.restarting : connected ? false : previous);
             setActivityReady(
               connected &&
+                runtime.restarting !== true &&
                 activity.unknown === false &&
                 data.activityUncertain !== true &&
                 data.maintenance !== true,
             );
             setConfigurationReady(
               connected &&
+                runtime.restarting !== true &&
                 activity.unknown === false &&
                 data.activityUncertain !== true &&
                 data.maintenance !== true &&
@@ -132,6 +137,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
   return {
     connection,
     runtimeConnected,
+    restarting,
     activityReady,
     configurationReady,
     epoch,

@@ -61,8 +61,8 @@ export function Login({ api, onLogin, initialError, externalAuthentication = fal
         }
       }}>
         <div className="brand-mark" aria-hidden="true">⌘</div>
-        <span className="eyebrow">CODEX HARNESS</span>
-        <h1>{setup ? '创建你的管理员账号。' : '你的工作，从这里继续。'}</h1>
+        <span className="product-name">Codex Harness</span>
+        <h1>{setup ? '创建管理员账号' : '登录工作台'}</h1>
         {external ? <>
           <p className="muted">当前部署仍使用外部访问认证。请在新标签页完成认证，再回来检查登录。当前页面的草稿和操作记录会保留。</p>
           <a className="button primary" href={location.href} target="_blank" rel="noreferrer">在新标签页完成访问认证 ↗</a>

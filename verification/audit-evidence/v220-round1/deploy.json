@@ -1,0 +1,1589 @@
+{
+  "scope": "deploy/**, tests/deploy/**, harness.sh in the clean-room checkout only",
+  "start": "2026-10-30T05:29:40Z",
+  "startPrecision": "Parent supplied frozen snapshot creation time, a lower bound for the review window; exact task dispatch and first manual-read time were not recorded. First retained reproduction artifact was created 2026-10-30T05:34:09Z.",
+  "end": "2026-10-30T05:43:51.872427+00:00",
+  "digest": "21c655db59635a455853dacbd4a29c792606bb5baca27cdb198d9fb96b048d62",
+  "digestMeaning": "Assigned 1937-file frozen snapshot identity. Scope SHA256 values were independently recorded and rechecked with no changes; parent owns full-snapshot verification.",
+  "complete": true,
+  "clean": false,
+  "acceptanceGatePassed": false,
+  "completionMeaning": "All 124 scoped files covered by recorded methods; this is full scope coverage, not a claim of manual line-by-line reading of every test body or execution of a full test suite.",
+  "fileCount": 124,
+  "lineCount": 26777,
+  "method": [
+    "Read AGENTS.md and stayed inside the clean-room checkout.",
+    "Read all deployment implementation, shell wrappers, Go implementation/tests, go.mod and deployment documentation; trace install/update/config-layer/HTTPS/account-reset/archive/native-launcher/credential/process/recovery workflows.",
+    "Read selected complete tests/probes and inspect all remaining Python tests through complete AST parse and in-memory compilation plus function/test/guard, fixture/mock/decorator/high-impact-call inventories. The fixture summaries are bounded to 2800 characters/file and individual extracted guard expressions to 450 characters; those summaries are not complete test bodies.",
+    "Run only two narrowly scoped synthetic local reproductions; all generated scripts, outputs and fixture files are below .work.",
+    "Validate all Go lock records, module pin inclusion and embedded source digests without downloads or network execution.",
+    "Rehash all scoped files against the retained review inventory; none changed."
+  ],
+  "findings": [
+    {
+      "id": "DEPLOY-1",
+      "priority": "P2",
+      "title": "HTTPS menu sends prepared and legacy configurations into address-migration-only path",
+      "path": "deploy/operator.py",
+      "line": 245,
+      "relatedLocations": [
+        {
+          "path": "deploy/operator.py",
+          "line": 222
+        },
+        {
+          "path": "deploy/https.py",
+          "line": 495
+        },
+        {
+          "path": "deploy/https.py",
+          "line": 503
+        }
+      ],
+      "scenario": "An initial HTTPS setup fails after retaining phase=prepared metadata, or an existing instance retains legacy Authelia HTTPS metadata. The operator retries setup from the one-stop HTTPS menu with the same address.",
+      "actual": "Any nonempty https-read result causes Console.https to select https-migrate. setup_https rejects prepared/legacy metadata with identity_conflict: Address migration requires an active built-in HTTPS configuration. The operator cannot recover through this menu even after the original certificate/network issue is resolved.",
+      "expected": "Use the ordinary HTTPS resume/legacy migration path for prepared/legacy metadata; use address migration only for eligible active builtin metadata. Preserve omitted publicOrigin when resuming a retained address: the menu currently always adds it and the ordinary resume guard compares omission explicitly.",
+      "reproduction": ".work/v220-deploy-repro/results.json",
+      "reproductionMethod": "Real Console menu and parser plus real setup_https early validation; only persisted-metadata read and host/precondition boundaries stubbed. Both prepared builtin and legacy fixtures return the stated error. No network or service actions.",
+      "testsGap": "Existing menu test bodies were reviewed; coverage does not require successful resume of prepared/legacy HTTPS metadata through the menu."
+    },
+    {
+      "id": "DEPLOY-2",
+      "priority": "P2",
+      "title": "Provider layer requirement checks only registry default and allows advanced secondary providers in legacy mode",
+      "path": "deploy/provider.py",
+      "line": 18,
+      "relatedLocations": [
+        {
+          "path": "deploy/provider.py",
+          "line": 287
+        },
+        {
+          "path": "deploy/config_layer.py",
+          "line": 188
+        },
+        {
+          "path": "deploy/config_layer.py",
+          "line": 249
+        }
+      ],
+      "scenario": "A provider registry keeps ChatGPT as its default and contains an enabled nondefault Bedrock provider; the operator rolls back the configuration layer or resumes an old legacy-mode candidate.",
+      "actual": "require_provider_layer reads top-level kind, which combine projects from the default connection, and accepts layered=False. Actual ProviderStore.prepare(layered=False) writes a generation containing amazon-bedrock-runtime without requirements.toml; require_candidate_layer(targetMode=legacy) accepts that exact generation. This defeats the documented managed-layer requirement for advanced provider definitions and permits removing enforced provider requirements while they remain enabled.",
+      "expected": "Validate relevant registry connection kinds at every preparation, rollback, and candidate recovery guard so an enabled provider requiring system-v1 prevents legacy publication.",
+      "reproduction": ".work/v220-deploy-layer-repro/result.json",
+      "reproductionMethod": "Real provider_registry.change, ProviderStore.prepare(layered=False), and config_layer.require_candidate_layer. Files written only below .work using a synthetic API key; ownership-only directory wrappers substituted for Windows. No service or network activity.",
+      "testsGap": "Existing advanced-provider layer gates are single-provider checks; focused registry tests cover registry generation on legacy mode with Responses but do not reject enabled advanced secondary providers."
+    }
+  ],
+  "inspectedFiles": [
+    {
+      "path": "deploy/__init__.py",
+      "lines": 1,
+      "sha256": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/accounts.py",
+      "lines": 191,
+      "sha256": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/archive.py",
+      "lines": 161,
+      "sha256": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/build.py",
+      "lines": 352,
+      "sha256": "1f4c0733cbc7973c58594efb3c91e9c5847a1f02c3a943ceb3ebe7595d79b79c",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/caddy_dns_source/go.mod",
+      "lines": 215,
+      "sha256": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/caddy_dns_source/go.sum",
+      "lines": 1545,
+      "sha256": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975",
+      "methods": [
+        "whole-file byte hash",
+        "all 1545 checksum record syntax/base64/duplicate validation",
+        "all 195 go.mod required module and go.mod hashes present",
+        "embedded SOURCE_HASHES equality"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "deploy/caddy_dns_source/main.go",
+      "lines": 111,
+      "sha256": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/caddy_dns_source/main_test.go",
+      "lines": 183,
+      "sha256": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/candidate_archive.py",
+      "lines": 252,
+      "sha256": "f5932546f85aafafca86312b14db5fb33a692605b60f756599ff5e530ae6b91b",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/candidate_probe.py",
+      "lines": 115,
+      "sha256": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/catalog.py",
+      "lines": 128,
+      "sha256": "f90928d0f5d52c95793f0a8af8fbdfd00e8410ab82fefba83f132d2599a9ec29",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/cli.py",
+      "lines": 360,
+      "sha256": "1bf4a8e14f1a923b9ba95d0cc9dfc9451aa9b4e7d2ad0282cdea4cdbe04dbb40",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/common.py",
+      "lines": 207,
+      "sha256": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "lines": 312,
+      "sha256": "65eac1a170900e1c15dcb9e8d290bc0e53cb1f3bbbdb5a3bd015cc840135271f",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/control_update.py",
+      "lines": 631,
+      "sha256": "5793a688d763b27a4d90665dc59fea8b82b9e390fa62b044328af01c5f7a2f59",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/dns_caddy_build.py",
+      "lines": 355,
+      "sha256": "88babaac6ea04d2e63df0c3bba128c1e7c987dad22eda8d188b3b6bb71e63c89",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/dns_providers.py",
+      "lines": 86,
+      "sha256": "e85f0d718dd911d1116c604d497bd637e7e7e3927cc4457eb6a8bbbcc76de167",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/dns_tls.py",
+      "lines": 135,
+      "sha256": "4b451e88758577d41507b3ef3c9fdeb69729b211650d6095d3cfadf9211db612",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/edge_defaults.py",
+      "lines": 4,
+      "sha256": "b2ee74b8c5fe22c095f13651cfc4a174449ab367e1d30bce78421fcc4c099ae1",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/https.py",
+      "lines": 678,
+      "sha256": "0c6d05e5f2233cd42ff1ee4fc112d6b736b62a32711edca5259e89dea4edc6d7",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/https_guidance.py",
+      "lines": 98,
+      "sha256": "143157050a8f0ffe69f6a214bc1d7cc7661968bee4c65b9b3f4511ff3db4b218",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/https_health.py",
+      "lines": 279,
+      "sha256": "1862f1c1373a582ea08a3627d2449e17ce998dc517bdd513b147d1e046ba1d90",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/install.py",
+      "lines": 179,
+      "sha256": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/install.sh",
+      "lines": 4,
+      "sha256": "5c255716dcbe6f9fc2e973c078838639a4846383900b6e5b93a54890a2a523de",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/install_recovery.py",
+      "lines": 427,
+      "sha256": "7195b20796ac0c301415c5c931292e131a5392d26e6b34a335f9c70355b85306",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/journal.py",
+      "lines": 82,
+      "sha256": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/journal_schema.py",
+      "lines": 75,
+      "sha256": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/manager.py",
+      "lines": 712,
+      "sha256": "8ed3237c3f844a0191db447cc54311a2dbf2c1d1fa9c813d24fa99a1e979e8b2",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "lines": 267,
+      "sha256": "fa28203049c31f13743bbbdc567d20968243f9024eb4bd2d300cb8c2ea4365ea",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/operator.py",
+      "lines": 370,
+      "sha256": "6b3a5de27f6a2ca3b37c1979c1946fb45a569b10c181bbe2fe604a7414155bb1",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/ownership.py",
+      "lines": 98,
+      "sha256": "5984bb21c541f7ad6f87e6a4b44052a4171e41c2eff876cb4944dafa49b74c6a",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/ports.py",
+      "lines": 71,
+      "sha256": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/provider.py",
+      "lines": 334,
+      "sha256": "e6aa4abb536ec6ca67148ba5c919e3080e6cb2e1cb5e9a3d0696bdb5101d4300",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/provider_bedrock.py",
+      "lines": 36,
+      "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/provider_catalogs.py",
+      "lines": 51,
+      "sha256": "54c26f79ffdfb48777ab4d9f1fdd96d3726760b2d09734e5549573cf986f9e57",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/provider_gateway.py",
+      "lines": 53,
+      "sha256": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "lines": 284,
+      "sha256": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/provider_lifecycle.py",
+      "lines": 180,
+      "sha256": "41ab476b99fe8f3d78047ea228e186fe6b25af299bb5c3973845c411466745be",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "lines": 205,
+      "sha256": "26d9adb18c915a57a2fd38577002b0ed4c97ef7a1834fcb639cf60b4d6223bf6",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/README.md",
+      "lines": 490,
+      "sha256": "54ca6f7167dfa44e6c4957bb62eb75b5553a8b99091de35351cc08b78fea7984",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/RECOVERY.md",
+      "lines": 318,
+      "sha256": "74b82b96b8d0b81abc268735e440800eb1628e32a144efcd60dddbffcf215361",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/requests.py",
+      "lines": 165,
+      "sha256": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/safe_fs.py",
+      "lines": 330,
+      "sha256": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/sandbox.py",
+      "lines": 55,
+      "sha256": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/service_lifecycle.py",
+      "lines": 298,
+      "sha256": "8930c198999fa857e58ad48de12793d9e2280d93f33cc2a11fc5d4f56b8b081c",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/system.py",
+      "lines": 136,
+      "sha256": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/transactions.py",
+      "lines": 36,
+      "sha256": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/units.py",
+      "lines": 189,
+      "sha256": "e77d031d2bcc97c42528c8540efd184a1a4adc14389fd4b3abac83fdbfba951e",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace.py",
+      "lines": 334,
+      "sha256": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_commit.py",
+      "lines": 197,
+      "sha256": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "lines": 166,
+      "sha256": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_git_transaction.py",
+      "lines": 75,
+      "sha256": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_git_view.py",
+      "lines": 74,
+      "sha256": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_index.py",
+      "lines": 244,
+      "sha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_index_store.py",
+      "lines": 155,
+      "sha256": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_paths.py",
+      "lines": 156,
+      "sha256": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_recovery.py",
+      "lines": 163,
+      "sha256": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_resources.py",
+      "lines": 139,
+      "sha256": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_search.py",
+      "lines": 129,
+      "sha256": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_store.py",
+      "lines": 310,
+      "sha256": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "lines": 339,
+      "sha256": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "tests/deploy/linux_isolation.py",
+      "lines": 98,
+      "sha256": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "tests/deploy/linux_native_boundary.py",
+      "lines": 104,
+      "sha256": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "tests/deploy/recovery_runbook_probe.py",
+      "lines": 304,
+      "sha256": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "lines": 159,
+      "sha256": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_accounts.py",
+      "lines": 71,
+      "sha256": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "lines": 118,
+      "sha256": "de0dfba80c321df14d1f5c98600832e94b49b055391af695303b24e9c6e516a6",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "lines": 492,
+      "sha256": "0c29dde612a5669a48c6fc2ec2a9f0a528061e6ca93475a8ce74c8da2188b715",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "lines": 778,
+      "sha256": "3e785369e24808977b71edcd41ef24b906938c2f38db2cb1914141d0a76418a7",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_directory_durability.py",
+      "lines": 143,
+      "sha256": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_dns_caddy_build.py",
+      "lines": 182,
+      "sha256": "f9566f96a8faadb17e6c34c7202553e66fc888c8d6b30519e4a0778cfe2f1107",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_edge_diagnostics.py",
+      "lines": 100,
+      "sha256": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_https.py",
+      "lines": 958,
+      "sha256": "2ef68e181950585f39aa62a51ce83f4dcc0572f10a84bb37c6c131dcba473133",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_initialization_resume.py",
+      "lines": 237,
+      "sha256": "6899ed54037018616ec35fe0bb40727e01f21a2dbc1a8bdc12310874768907e8",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_journal_recovery.py",
+      "lines": 113,
+      "sha256": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_management_boundaries.py",
+      "lines": 205,
+      "sha256": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_project_identity.py",
+      "lines": 69,
+      "sha256": "8f4375f4ef646ac04f2c9a6af09adbdc66f2b6d5ef48c215ec36aa234bdb2410",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "lines": 93,
+      "sha256": "524b829bf7018d07e5ede380d903f1c84fc1422ae284ff96a9027f90c978f10a",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_provider_layers.py",
+      "lines": 129,
+      "sha256": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_release_reuse.py",
+      "lines": 71,
+      "sha256": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_request_spool.py",
+      "lines": 81,
+      "sha256": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_service_lifecycle.py",
+      "lines": 223,
+      "sha256": "892aea63c1657ba1563c128c23d7a9b36827b8915abba4aac84b0a4181b0bbc6",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/root/test_tree_durability.py",
+      "lines": 289,
+      "sha256": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_accounts.py",
+      "lines": 179,
+      "sha256": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_candidate_archive.py",
+      "lines": 274,
+      "sha256": "bf07c83cc781e356ea1e62a8755f89ea23147c09394e586eebd2ca100ec4e23b",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "lines": 227,
+      "sha256": "ddff9786433e9192aaa07df309ccc8c87e84a9bd814e70fa87831b46d9ef5c5e",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_dependency_lock.py",
+      "lines": 164,
+      "sha256": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "lines": 841,
+      "sha256": "16e1cbdf1f4f7b8b575ffbb0cee553dc184aed86f1e526d43222f10278e58c7e",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_directory_durability.py",
+      "lines": 137,
+      "sha256": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_dns_caddy_build.py",
+      "lines": 110,
+      "sha256": "5faf7d10a41d8942d9bf5f52c79d85d2e928b1a59d2357322098e5d3c4293ae9",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_dns_tls.py",
+      "lines": 234,
+      "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_edge_diagnostics.py",
+      "lines": 96,
+      "sha256": "43d8f3e4c73f2e19c611151acfa969d7fac441bcea7caaaaae6568dd83b780a8",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_https.py",
+      "lines": 148,
+      "sha256": "33e7f111cb83dd7e175b10fe9429c0a98634be092f969725f3b2f937ac34290d",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_https_defaults.py",
+      "lines": 111,
+      "sha256": "3939b56ba536286c41e25b1386f4b7942e020d8caeefb42f41674e3d4971a6e5",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_https_guidance.py",
+      "lines": 115,
+      "sha256": "691002a67f5ae2f25223eee2bf6943a6f1e82f2f74bb7203eecf9bdb8efcb7b2",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_https_health.py",
+      "lines": 362,
+      "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_https_ports.py",
+      "lines": 69,
+      "sha256": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_initialization_resume.py",
+      "lines": 110,
+      "sha256": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "lines": 380,
+      "sha256": "6d0a9a326bf67c77dc1bcd4e3a9058a8de1d4e1b235a447fc64a61da590da2b1",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_journal_schema.py",
+      "lines": 164,
+      "sha256": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_management_boundaries.py",
+      "lines": 71,
+      "sha256": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_native_shutdown.py",
+      "lines": 139,
+      "sha256": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_operator.py",
+      "lines": 310,
+      "sha256": "28c4b09f8d5a6421612abfa8017d82897852814694248816e0c298749d7331c1",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash",
+        "full Python AST parse and in-memory compile"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "tests/deploy/test_origins.py",
+      "lines": 31,
+      "sha256": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_prepare_ci_go.py",
+      "lines": 239,
+      "sha256": "f6809e2784c5d6a4aef0789dd82a495669632107e090ac2d8f0f6eea33a920c6",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_project_creation.py",
+      "lines": 55,
+      "sha256": "9c3ff6d7c65ff5ef515b2becce457b2236e5bb91c915cb3297b1310da7bb2cb8",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_provider_bedrock.py",
+      "lines": 79,
+      "sha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_provider_gateway.py",
+      "lines": 87,
+      "sha256": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_provider_layers.py",
+      "lines": 138,
+      "sha256": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_provider_lifecycle.py",
+      "lines": 149,
+      "sha256": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "lines": 195,
+      "sha256": "97c937cc1c7adcc56c7fdd6202b4e8a659a3a20a6ac1d68f3834c83765308944",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "focused body review lines 1-160 (not entire file)",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_request_spool.py",
+      "lines": 335,
+      "sha256": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_sandbox.py",
+      "lines": 43,
+      "sha256": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_service_lifecycle.py",
+      "lines": 56,
+      "sha256": "4e1fbf7a4938e0c566b66aa0fddeddf693e73ac25913bbda38c065ec30850b85",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "lines": 347,
+      "sha256": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace_ack.py",
+      "lines": 116,
+      "sha256": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace_commit.py",
+      "lines": 226,
+      "sha256": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace_index.py",
+      "lines": 305,
+      "sha256": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace_recovery.py",
+      "lines": 200,
+      "sha256": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace_resources.py",
+      "lines": 166,
+      "sha256": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace_search.py",
+      "lines": 82,
+      "sha256": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/test_workspace_worktrees.py",
+      "lines": 291,
+      "sha256": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+      "methods": [
+        "full Python AST parse and in-memory compile",
+        "function/test/guard assertion inventory",
+        "fixture/mock/decorator/high-impact-call contract extraction and review",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": false
+    },
+    {
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "lines": 43,
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    },
+    {
+      "path": "harness.sh",
+      "lines": 11,
+      "sha256": "016d68a0d4c996f7d96158e17e8a4909cc41693a46552a613d6de262b64ab6a6",
+      "methods": [
+        "whole-file text review",
+        "cross-file workflow and failure/recovery tracing",
+        "whole-file byte hash"
+      ],
+      "wholeFileManualSemanticRead": true
+    }
+  ],
+  "evidence": [
+    ".work/v220-deploy-static.py",
+    ".work/v220-deploy-static.json",
+    ".work/v220-deploy-test-contracts.txt",
+    ".work/v220-deploy-repros.py",
+    ".work/v220-deploy-repro/results.json",
+    ".work/v220-deploy-final-check.py",
+    ".work/v220-deploy-layer-repro/result.json",
+    ".work/v220-deploy-lock-check.json"
+  ],
+  "notRun": [
+    "Full test suite",
+    "Linux/systemd/native namespace integration execution",
+    "Public DNS/certificate issuance or renewal",
+    "Paid model inference or external MCP",
+    "Online instance changes"
+  ],
+  "notEstablished": [
+    "Tests other than stated targeted reproductions pass on this frozen snapshot.",
+    "Real host lifecycle, certificate/provider integration, or disaster recovery works end-to-end."
+  ],
+  "closedQuestions": [
+    {
+      "scenario": "Fresh legacy-format install has no provider runtime.json",
+      "status": "Not a finding",
+      "evidence": "Parent relayed runtime auditor confirmation: without registry environment ManagedProviders uses legacy path and does not invoke catalog-server."
+    }
+  ]
+}

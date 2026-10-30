@@ -640,7 +640,10 @@ class BoundaryTests(unittest.TestCase):
         self.assertIn("HARNESS_NATIVE_USER=ch-fixture-worker", worker)
         rule = sudo_rule(layout)
         self.assertIn("manage rpc", rule)
-        self.assertNotIn("*", rule)
+        # The sole variable argument is revalidated as one enabled native
+        # provider identity by the fixed launcher before any command starts.
+        self.assertNotIn("*", rule.replace("catalog-server *", "catalog-server"))
+        self.assertEqual(rule.count("catalog-server *"), 1)
         self.assertIn("ALL=(ch-fixture-worker)", rule)
         self.assertNotIn("ch-fixture-worker ALL=", rule)
 
@@ -731,6 +734,33 @@ class ReadinessTests(unittest.TestCase):
 
 
 class NativeLauncherTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "linux", "Linux descriptor registration and process cleanup")
+    def test_stream_initialization_failure_reaps_the_already_started_child(self):
+        driver = """import sys
+import deploy.native_launcher as native
+native.security_process()
+original = native.subprocess.Popen
+pids = []
+def spawn(*args, **kwargs):
+    child = original(*args, **kwargs)
+    pids.append(child.pid)
+    return child
+native.subprocess.Popen = spawn
+try:
+    native.supervise([sys.executable, '-c', 'import time; time.sleep(60)'], {'PATH':'/usr/bin:/bin'}, '/', streaming=True)
+except PermissionError:
+    assert not native.direct_children()
+    print(pids[0])
+else:
+    raise AssertionError('Expected epoll rejection of /dev/null')
+"""
+        command = [sys.executable, "-c", driver]
+        if os.geteuid() == 0:
+            command = ["/usr/bin/setpriv", "--bounding-set=-all", "--inh-caps=-all", "--ambient-caps=-all", *command]
+        result = subprocess.run(command, stdin=subprocess.DEVNULL, timeout=10, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        self.assertFalse(Path("/proc", result.stdout.decode().strip()).exists())
+
     @unittest.skipUnless(sys.platform == "linux", "Linux pipe backpressure and subreaper")
     def test_native_bridge_backpressures_without_losing_large_protocol_frames(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -776,9 +806,9 @@ class NativeLauncherTests(unittest.TestCase):
 
 class CatalogDiscoveryTests(unittest.TestCase):
     def test_ids_do_not_inherit_unverified_capabilities(self):
-        models = parse_ids(json.dumps({"data": [{"id": "fixture-model", "defaultEffort": "high", "inputModalities": ["image"]}]}).encode())
+        models = parse_ids(json.dumps({"data": [{"id": "fixture-model", "defaultEffort": "high"}]}).encode())
         self.assertEqual(models, [{"id": "fixture-model", "defaultEffort": None, "efforts": []}])
-        for body in (b"not json", b'{"data":[],"has_more":true}', b'{"data":[{"id":"x"},{"id":"x"}]}', b"x" * (1024*1024+1)):
+        for body in (b"not json", b'{"data":[],"has_more":true}', b'{"data":[{"id":"x"},{"id":"x"}]}', b'{"data":[{"id":"x","inputModalities":["image"]}]}', b"x" * (1024*1024+1)):
             with self.assertRaises(DeployError): parse_ids(body)
 
     def test_local_no_auth_discovery_and_redirect_rejection(self):

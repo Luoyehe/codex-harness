@@ -34,6 +34,10 @@ export type Item = {
 export type Turn = { id: string; status: string; items: Item[]; error?: unknown };
 export type Model = {
   id: string;
+  modelProvider?: string;
+  providerId?: string;
+  providerName?: string;
+  providerAliases?: string[];
   model?: string;
   displayName?: string;
   supportedReasoningEfforts?: { reasoningEffort: string; description?: string }[];
@@ -41,6 +45,7 @@ export type Model = {
 };
 export type Options = {
   model?: string;
+  modelProvider?: string;
   effort?: string;
   approvalPolicy?: string;
   sandbox?: string;

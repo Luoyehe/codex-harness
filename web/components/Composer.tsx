@@ -4,6 +4,7 @@ import { useEnterBehavior } from '../lib/input-preference';
 import { composing, message, object, type Model, type Options } from '../lib/types';
 import { Icon } from './Icon';
 import { ComposerOptions } from './ComposerOptions';
+import { ModelPicker } from './ModelPicker';
 import { AttachmentButton } from './AttachmentButton';
 import { EnvironmentPicker } from './EnvironmentPicker';
 import { InputContextPicker } from './InputContextPicker';
@@ -14,7 +15,7 @@ import {
   type DraftReference,
 } from '../lib/input-context';
 import { mediaAdmission } from '../lib/input-modalities';
-import type { CollaborationModeMask } from '../lib/workflows';
+import { modelSettingsIssue, type CollaborationModeMask } from '../lib/workflows';
 export type Attachment = { attachmentId: string; name: string; size: number; mimeType: string };
 export type SendIntent = 'send' | 'steer' | 'queue';
 export function Composer({
@@ -35,6 +36,7 @@ export function Composer({
   contextKey,
   moreModels,
   modelsLoading,
+  modelsRefreshDisabled,
   onMoreModels,
   onRefreshModels,
   savedAttachments,
@@ -54,6 +56,7 @@ export function Composer({
   onExtraContext,
   onOutputSchema,
   onFiles,
+  onProviders,
 }: {
   projectId?: string;
   threadId?: string;
@@ -65,6 +68,7 @@ export function Composer({
   onExtraContext?: (value: ContextNote[]) => void;
   onOutputSchema?: (value: string) => void;
   onFiles?: () => void;
+  onProviders?: () => void;
   api: Api;
   value: string;
   onChange: (value: string) => void;
@@ -82,6 +86,7 @@ export function Composer({
   contextKey: string;
   moreModels?: boolean;
   modelsLoading?: boolean;
+  modelsRefreshDisabled?: boolean;
   onMoreModels?: () => void;
   onRefreshModels?: () => void;
   savedAttachments?: Attachment[];
@@ -139,6 +144,7 @@ export function Composer({
     setUploading(0);
     setError('');
     setIntent('send');
+    setExpanded(false);
   }, [contextKey]);
   const inherited = (key: string): string => {
     const value = defaultsLoading ? undefined : defaults?.[key];
@@ -154,11 +160,6 @@ export function Composer({
   };
   const inheritance = existingThread ? '沿用会话设置' : '项目默认';
   const inheritedMode = defaultsLoading ? undefined : object(defaults?.collaborationMode).mode;
-  const model = models.find(
-      (m) =>
-        (m.model ?? m.id) === (options.model ?? (defaultsLoading ? undefined : defaults?.model)),
-    ),
-    efforts = model?.supportedReasoningEfforts ?? [];
   const media = mediaAdmission({
     attachments,
     intent: selectedIntent,
@@ -170,6 +171,9 @@ export function Composer({
     modes,
   });
   if (!contextIssue) contextIssue = media.issue;
+  if (!contextIssue && selectedIntent === 'send') contextIssue = modelSettingsIssue({
+    options, defaults, defaultsLoading, models, modelsLoading: Boolean(modelsLoading), modes,
+  });
   const send = async () => {
     if (
       busy ||
@@ -229,34 +233,11 @@ export function Composer({
   return (
     <div className="composer-wrap">
       <div className="composer">
-        <EnvironmentPicker
-          key={`environment:${contextKey}`}
-          api={api}
-          epoch={epoch}
-          value={options.environments}
-          existingThread={existingThread}
-          defaults={defaults}
-          disabled={selectedIntent !== 'send' || busy}
-          onChange={(environments) => onOptions({ ...options, environments })}
-          onProblem={setEnvironmentIssue}
-        />
-        {onReferences && onExtraContext && onOutputSchema && (
-          <InputContextPicker
-            key={`input-context:${contextKey}`}
-            api={api}
-            projectId={projectId}
-            threadId={threadId}
-            epoch={epoch}
-            references={references}
-            notes={extraContext}
-            schema={outputSchema}
-            onReferences={onReferences}
-            onNotes={onExtraContext}
-            onSchema={onOutputSchema}
-            normalTurn={selectedIntent === 'send'}
-            onFiles={onFiles}
-          />
-        )}
+        {(references.length > 0 || extraContext.length > 0 || outputSchema.trim() || options.environments?.length) && <div className="composer-context-summary">
+          {references.length + extraContext.length > 0 && <button onClick={() => setExpanded(true)}>已添加 {references.length + extraContext.length} 项引用</button>}
+          {outputSchema.trim() && <button onClick={() => setExpanded(true)}>结构化输出</button>}
+          {!!options.environments?.length && <button onClick={() => setExpanded(true)}>远端环境 {options.environments.length}</button>}
+        </div>}
         {(attachments.length > 0 || uploading > 0) && (
           <div className="attachment-list">
             {attachments.map((a) => (
@@ -325,7 +306,7 @@ export function Composer({
           id="message-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="描述你的想法，剩下的交给 Codex…"
+          placeholder="输入消息，或添加文件…"
           rows={3}
           onCompositionStart={() => {
             composition.current = true;
@@ -394,33 +375,26 @@ export function Composer({
                 ))}
             </select>
           </label>
-          <label className="model-select">
-            <span className="sr-only">模型</span>
-            <select
-              disabled={selectedIntent !== 'send'}
-              value={options.model ?? ''}
-              onChange={(e) =>
-                onOptions({ ...options, model: e.target.value || undefined, effort: undefined })
-              }
-            >
-              <option value="">
-                {inheritance}（{inherited('model')}）
-              </option>
-              {models.map((m) => (
-                <option key={m.id} value={m.model ?? m.id}>
-                  {m.displayName ?? m.id}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ModelPicker key={`model:${contextKey}`} models={models} options={options} onOptions={onOptions}
+            defaults={defaultsLoading ? undefined : defaults} defaultsLoading={defaultsLoading} existingThread={existingThread}
+            loading={modelsLoading} disabled={selectedIntent !== 'send' || busy}
+            refreshDisabled={modelsRefreshDisabled}
+            onRefresh={onRefreshModels} more={moreModels} onMore={onMoreModels} onProviders={onProviders} />
           <button
             className="button subtle small options-trigger"
             aria-expanded={expanded}
-            disabled={selectedIntent !== 'send'}
+            aria-controls="composer-settings"
+            aria-label="对话设置"
             onClick={() => setExpanded((v) => !v)}
           >
-            {options.effort ?? inherited('reasoningEffort')} · 权限⌄
+            设置⌄
           </button>
+          {active && existingThread && <label className="composer-send-mode">
+            <span className="sr-only">当前发送方式</span>
+            <select value={selectedIntent} onChange={(e) => setIntent(e.target.value as SendIntent)}>
+              <option value="queue">排队</option><option value="steer" disabled={!canSteer}>追加指令</option>
+            </select>
+          </label>}
           <div className="spacer" />
           {active && (
             <button className="stop-button" aria-label="停止当前回合" onClick={onStop}>
@@ -449,6 +423,45 @@ export function Composer({
             <Icon name="arrow" />
           </button>
         </div>
+
+        <div className="composer-extras" id="composer-settings" hidden={!expanded} inert={!expanded}>
+        {selectedIntent === 'send' && (
+          <ComposerOptions
+            existingThread={existingThread}
+            options={options}
+            onOptions={onOptions}
+            inheritance={inheritance}
+            inherited={inherited}
+          />
+        )}
+        <EnvironmentPicker
+          key={`environment:${contextKey}`}
+          api={api}
+          epoch={epoch}
+          value={options.environments}
+          existingThread={existingThread}
+          defaults={defaults}
+          disabled={selectedIntent !== 'send' || busy}
+          onChange={(environments) => onOptions({ ...options, environments })}
+          onProblem={setEnvironmentIssue}
+        />
+        {onReferences && onExtraContext && onOutputSchema && (
+          <InputContextPicker
+            key={`input-context:${contextKey}`}
+            api={api}
+            projectId={projectId}
+            threadId={threadId}
+            epoch={epoch}
+            references={references}
+            notes={extraContext}
+            schema={outputSchema}
+            onReferences={onReferences}
+            onNotes={onExtraContext}
+            onSchema={onOutputSchema}
+            normalTurn={selectedIntent === 'send'}
+            onFiles={onFiles}
+          />
+        )}
         {existingThread && (
           <div className="composer-intent">
             <label>
@@ -478,20 +491,7 @@ export function Composer({
             </span>
           </div>
         )}
-        {expanded && selectedIntent === 'send' && (
-          <ComposerOptions
-            existingThread={existingThread}
-            options={options}
-            onOptions={onOptions}
-            inheritance={inheritance}
-            inherited={inherited}
-            efforts={efforts}
-            onRefreshModels={onRefreshModels}
-            modelsLoading={modelsLoading}
-            moreModels={moreModels}
-            onMoreModels={onMoreModels}
-          />
-        )}
+        </div>
       </div>
       {(error || contextIssue) && (
         <p className="error small" role="alert">

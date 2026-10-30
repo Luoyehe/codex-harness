@@ -93,16 +93,44 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
     {account && <>
       <div className="info-card"><strong>{account.username}</strong><p className="small">两步验证：{account.mfaEnabled ? '已开启' : '未开启'}{account.mfaEnabled ? ` · 剩余恢复码 ${account.recoveryCodesRemaining} 个` : ''}</p></div>
       {recoveryCodes.length > 0 && <div className="info-card stack">
-        <h4>保存恢复码</h4>
+        <h4>3. 保存恢复码</h4>
         <p>恢复码仅在这里展示一次，每个只能使用一次。请保存到密码管理器或其他安全位置。页面关闭后不会保留；重新生成会使旧恢复码全部失效。</p>
         <label className="field">新的恢复码<textarea readOnly rows={Math.min(10, recoveryCodes.length)} value={recoveryCodes.join('\n')} spellCheck={false} autoComplete="off" /></label>
         <button className="button" onClick={() => setRecoveryCodes([])}>我已保存，隐藏恢复码</button>
       </div>}
       <fieldset className="submission-fields stack" disabled={locked || recoveryCodes.length > 0}>
-        <h4>安全验证</h4>
-        <p className="small muted">修改密码或两步验证前，请验证当前密码。每次提交后会清除输入。</p>
+        <h4>验证身份</h4>
+        <p className="small muted">先输入当前密码，再选择下方的安全操作。每次提交后需重新输入。</p>
         <label className="field">当前密码（安全验证）<input type="password" autoComplete="current-password" value={password} maxLength={512} onChange={(e) => setPassword(e.target.value)} /></label>
         {account.mfaEnabled && <label className="field">当前验证码或恢复码<input autoComplete="one-time-code" value={otp} maxLength={128} onChange={(e) => setOtp(e.target.value)} /></label>}
+        <section className="security-section stack" aria-label="两步验证设置">
+        <h4>两步验证 · {account.mfaEnabled ? '已开启' : '未开启'}</h4>
+        {account.mfaEnabled ? <>
+          <p className="small muted">登录时需要密码和验证器验证码，也可以使用一次性恢复码。修改两步验证设置会退出其他设备。如果恢复码响应丢失，重新读取状态后可再次验证身份并生成新码，之前的恢复码会全部失效。</p>
+          <button className="button" disabled={!verified} onClick={() => void act<{ recoveryCodes: string[] }>('totp/recovery', proof(), (result) => {
+            setRecoveryCodes(result.recoveryCodes); setNotice('已生成新的恢复码，旧码已失效；其他设备已退出登录。');
+          })}>重新生成恢复码（旧码失效）</button>
+          <button className="button" disabled={!verified} onClick={() => void act('totp/disable', proof(), () => {
+            setNotice('两步验证已关闭，其他设备已退出登录。');
+          })}>关闭两步验证</button>
+        </> : <>
+          <p className="small muted">开启后，登录需要密码和手机验证器的验证码。设置分为添加密钥、验证六位码、保存恢复码三步。</p>
+          {!enrollment && <button className="button" disabled={!verified} onClick={() => void act<Enrollment>('totp/start', proof(), (result) => {
+            setEnrollment(result); setNotice('请在验证器中添加下方密钥，然后输入验证码完成设置。');
+          })}>设置两步验证</button>}
+          {enrollment && <div className="info-card stack">
+            <h4>1. 添加到验证器</h4><p>在验证器中手动添加账号：{account.username}，服务名称：Codex Harness；选择基于时间的验证码。</p>
+            <label className="field">验证器设置密钥<input readOnly value={enrollment.secret} autoComplete="off" spellCheck={false} /></label>
+            <p className="small muted">可使用 Microsoft Authenticator、Google Authenticator 或其他支持 TOTP 的验证器。此密钥仅用于添加验证器，请勿分享。设置将在 {date(enrollment.expiresAt)} 过期。</p>
+            <h4>2. 输入验证码</h4><label className="field">验证器生成的 6 位验证码<input inputMode="numeric" autoComplete="one-time-code" value={enrollmentCode} maxLength={6} onChange={(e) => setEnrollmentCode(e.target.value)} /></label>
+            <button className="button primary" disabled={!/^\d{6}$/.test(enrollmentCode)} onClick={() => void act<{ recoveryCodes: string[] }>('totp/confirm', { enrollmentId: enrollment.enrollmentId, code: enrollmentCode }, (result) => {
+              setEnrollment(undefined); setRecoveryCodes(result.recoveryCodes); setNotice('两步验证已开启，其他设备已退出登录。请保存恢复码。');
+            })}>验证并开启两步验证</button>
+            <button className="button" onClick={() => { setEnrollment(undefined); setEnrollmentCode(''); setNotice('未开启两步验证。未完成的设置会自动过期。'); }}>取消设置</button>
+          </div>}
+        </>}
+        </section>
+        <details className="security-section"><summary>修改登录密码</summary>
         <form className="stack" onKeyDown={(e) => { if (e.key === 'Enter' && composing(e)) e.preventDefault(); }} onSubmit={(e) => {
           e.preventDefault();
           if (!verified || (Array.from(newPassword).length < 12 || Array.from(newPassword).length > 256) || newPassword !== confirmation) return;
@@ -115,32 +143,7 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
           {confirmation && confirmation !== newPassword && <p className="error">两次输入的新密码不一致。</p>}
           <button className="button" type="submit" disabled={!verified || (Array.from(newPassword).length < 12 || Array.from(newPassword).length > 256) || newPassword !== confirmation}>{busy === 'password' ? '正在修改…' : '修改密码并退出所有设备'}</button>
         </form>
-        <hr />
-        <h4>两步验证</h4>
-        {account.mfaEnabled ? <>
-          <p className="small muted">登录时需要密码和验证器验证码，也可以使用一次性恢复码。修改两步验证设置会退出其他设备。如果恢复码响应丢失，重新读取状态后可再次验证身份并生成新码，之前的恢复码会全部失效。</p>
-          <button className="button" disabled={!verified} onClick={() => void act<{ recoveryCodes: string[] }>('totp/recovery', proof(), (result) => {
-            setRecoveryCodes(result.recoveryCodes); setNotice('已生成新的恢复码，旧码已失效；其他设备已退出登录。');
-          })}>重新生成恢复码（旧码失效）</button>
-          <button className="button" disabled={!verified} onClick={() => void act('totp/disable', proof(), () => {
-            setNotice('两步验证已关闭，其他设备已退出登录。');
-          })}>关闭两步验证</button>
-        </> : <>
-          <p className="small muted">使用支持 TOTP 的验证器。完成验证码校验后才会开启，并提供一次性恢复码。</p>
-          {!enrollment && <button className="button" disabled={!verified} onClick={() => void act<Enrollment>('totp/start', proof(), (result) => {
-            setEnrollment(result); setNotice('请在验证器中添加下方密钥，然后输入验证码完成设置。');
-          })}>设置两步验证</button>}
-          {enrollment && <div className="info-card stack">
-            <p>在验证器中手动添加账号：{account.username}，服务名称：Codex Harness；选择基于时间的验证码。</p>
-            <label className="field">验证器设置密钥<input readOnly value={enrollment.secret} autoComplete="off" spellCheck={false} /></label>
-            <p className="small muted">此密钥仅用于添加验证器，请勿分享。设置将在 {date(enrollment.expiresAt)} 过期。</p>
-            <label className="field">验证器生成的 6 位验证码<input inputMode="numeric" autoComplete="one-time-code" value={enrollmentCode} maxLength={6} onChange={(e) => setEnrollmentCode(e.target.value)} /></label>
-            <button className="button primary" disabled={!/^\d{6}$/.test(enrollmentCode)} onClick={() => void act<{ recoveryCodes: string[] }>('totp/confirm', { enrollmentId: enrollment.enrollmentId, code: enrollmentCode }, (result) => {
-              setEnrollment(undefined); setRecoveryCodes(result.recoveryCodes); setNotice('两步验证已开启，其他设备已退出登录。请保存恢复码。');
-            })}>验证并开启两步验证</button>
-            <button className="button" onClick={() => { setEnrollment(undefined); setEnrollmentCode(''); setNotice('未开启两步验证。未完成的设置会自动过期。'); }}>取消设置</button>
-          </div>}
-        </>}
+        </details>
       </fieldset>
       <hr />
       <h4>已登录设备</h4>

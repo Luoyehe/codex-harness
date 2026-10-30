@@ -2,7 +2,7 @@ import { uuid } from './lib/ids';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Api } from './lib/api';
 import { Events } from './lib/events';
-import { listOperations, reconcileOperation } from './lib/operations';
+import { consumeThreadOperations, listOperations, reconcileOperation } from './lib/operations';
 import {
   array,
   message,
@@ -24,6 +24,7 @@ import {
 import { contextPayload, parseOutputSchema } from './lib/input-context';
 import {
   executionOptions,
+  modelSettingsIssue,
   INPUT_METHODS,
   type CollaborationModeMask,
   type ReviewTarget,
@@ -35,6 +36,7 @@ import { useConversation } from './hooks/useConversation';
 import { usePrompts } from './hooks/usePrompts';
 import { useDraft } from './hooks/useDraft';
 import { useResume } from './hooks/useResume';
+import { useModelCatalogRefresh } from './hooks/useModelCatalogRefresh';
 import { Sidebar } from './components/Sidebar';
 import { Recovery, useOperations } from './components/Recovery';
 import { ProjectDialog } from './components/ProjectDialog';
@@ -45,6 +47,7 @@ import { Prompts } from './components/Prompts';
 import { Settings } from './components/Settings';
 import { Dialog } from './components/Dialog';
 import { Icon } from './components/Icon';
+import { UsagePopover } from './components/UsagePopover';
 import { RenameDialog } from './components/RenameDialog';
 import { ArchiveActions } from './components/ArchiveActions';
 import { RealtimePanel } from './components/RealtimePanel';
@@ -173,6 +176,8 @@ export function Workspace({
     [reviewTarget, setReviewTarget] = useState<ReviewTarget>();
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(new Set<string>());
+  const [draftGuard, setDraftGuard] = useState(false),
+    [discardRevision, setDiscardRevision] = useState<string>();
   const [completedHandoff, setCompletedHandoff] = useState<{
     id: string; navigation: number; message: string;
   }>();
@@ -193,6 +198,43 @@ export function Workspace({
       return 'system';
     }
   });
+  const committedUrl = useRef(location.href);
+  const changeContext = (nextProject: string, nextThread: string, apply: () => void, accepted?: () => boolean) => {
+    if (!draftState.canNavigateTo(nextThread || `new:${nextProject}`) && !accepted?.()) {
+      setDiscardRevision(undefined);
+      setDraftGuard(true);
+      return false;
+    }
+    setProjectId(nextProject);
+    setThreadId(nextThread);
+    apply();
+    return true;
+  };
+  const navigate = (id: string, settings: {
+    projectId?: string; preserveAttachments?: boolean; fromHistory?: boolean; accepted?: () => boolean;
+  } = {}) => changeContext(settings.projectId ?? projectId, id, () => {
+    navigation.current++;
+    setModal('');
+    setBranchAction(undefined);
+    setFocusTarget(undefined);
+    if (!settings.preserveAttachments && (id || `new:${settings.projectId ?? projectId}`) !== contextKey)
+      setAttachmentContext(uuid());
+    setPanel('chat');
+    setMobile(false);
+    setError('');
+    const url = new URL(location.href);
+    if (id) url.searchParams.set('thread', id);
+    else url.searchParams.delete('thread');
+    if (!settings.fromHistory) history.pushState({}, '', url);
+    committedUrl.current = url.href;
+  }, settings.accepted);
+  const latestNavigate = useRef(navigate);
+  latestNavigate.current = navigate;
+  const openThread = (id: string) => {
+    if (!navigate(id)) return false;
+    setResumeRevision((v) => v + 1);
+    return true;
+  };
   // Keep drafts and receipts mounted during reauthentication, but release native
   // modal ownership immediately. A dialog under [hidden] still makes login inert.
   useEffect(() => {
@@ -211,6 +253,8 @@ export function Workspace({
       if (event.type === 'notification') {
         const params = object(event.data.params),
           method = event.data.method;
+        if (method === 'account/updated' || method === 'account/login/completed')
+          setConfigRevision((value) => value + 1);
         if (
           params.threadId === threadId &&
           (method === 'thread/settings/updated' ||
@@ -312,9 +356,8 @@ export function Workspace({
     .filter(
       (op) =>
         op.state === 'accepted' &&
-        ((['turn/start', 'thread/resume', 'thread/settings/update'].includes(op.method) &&
-          op.threadId === threadId) ||
-          (op.method === 'conversation/start' && op.resolvedThreadId === threadId)),
+        [...INPUT_METHODS, 'thread/resume', 'thread/settings/update', 'thread/fork', 'review/startNew'].includes(op.method) &&
+        (op.resolvedThreadId || op.threadId) === threadId,
     )
     .map((op) => op.id)
     .join(',');
@@ -325,6 +368,16 @@ export function Workspace({
     conversation.refresh,
   );
   const { resumedThread, threadDefaults } = resume;
+  const composerDefaults = threadId ? threadDefaults : defaults.data;
+  const composerDefaultsLoading = threadId ? resumedThread !== threadId :
+    defaults.loading || JSON.stringify(options) !== JSON.stringify(debouncedOptions);
+  useEffect(() => {
+    if (threadId && resumedThread === threadId && threadDefaults && settingsReceipts)
+      void consumeThreadOperations(threadId, settingsReceipts.split(',')).catch((failure) => setError(message(failure)));
+  }, [threadId, resumedThread, threadDefaults, settingsReceipts]);
+  const effectiveProvider = options.modelProvider ?? (threadId ? threadDefaults?.modelProvider : defaults.data?.modelProvider);
+  const modelCatalog = useModelCatalogRefresh(api, typeof effectiveProvider === 'string' ? effectiveProvider : undefined,
+    active && network.configurationReady && network.connection === 'connected' && network.runtimeConnected);
   const isBusy = busy.has(contextKey);
   const pending = operations.operations.some(
     (op) =>
@@ -372,7 +425,7 @@ export function Workspace({
   }, [theme]);
   useEffect(() => {
     if (!projects.length || threadId) return;
-    if (!projects.some((p) => p.id === projectId)) setProjectId(projects[0]!.id);
+    if (!projects.some((p) => p.id === projectId)) changeContext(projects[0]!.id, threadId, () => {});
   }, [projectsResource.data, threadId, projectId]);
   useEffect(() => {
     if (projectId && projects.some((p) => p.id === projectId)) {
@@ -386,19 +439,14 @@ export function Workspace({
   useEffect(() => {
     if (!threadId || !conversation.thread?.cwd || !projects.length) return;
     const matching = projects.find((p) => p.cwd === conversation.thread?.cwd);
-    if (matching) setProjectId(matching.id);
+    if (matching) changeContext(matching.id, threadId, () => {});
     else setError('此会话的工作目录尚未注册。请先添加对应项目。');
   }, [conversation.thread?.cwd, projectsResource.data, threadId]);
   useEffect(() => {
     const back = () => {
-      navigation.current++;
-      setModal('');
-      setBranchAction(undefined);
-      setFocusTarget(undefined);
-      setAttachmentContext(uuid());
-      setResumeRevision((v) => v + 1);
-      setThreadId(new URL(location.href).searchParams.get('thread') ?? '');
-      setPanel('chat');
+      if (latestNavigate.current(new URL(location.href).searchParams.get('thread') ?? '', { fromHistory: true }))
+        setResumeRevision((v) => v + 1);
+      else history.pushState({}, '', committedUrl.current);
     };
     window.addEventListener('popstate', back);
     return () => window.removeEventListener('popstate', back);
@@ -427,25 +475,6 @@ export function Workspace({
       disposed = true;
     };
   }, [api, network.revision, network.connection, network.runtimeConnected]);
-  const navigate = (id: string, preserveAttachments = false) => {
-    navigation.current++;
-    setThreadId(id);
-    setModal('');
-    setBranchAction(undefined);
-    setFocusTarget(undefined);
-    if (!preserveAttachments) setAttachmentContext(uuid());
-    setPanel('chat');
-    setMobile(false);
-    setError('');
-    const url = new URL(location.href);
-    if (id) url.searchParams.set('thread', id);
-    else url.searchParams.delete('thread');
-    history.pushState({}, '', url);
-  };
-  const openThread = (id: string) => {
-    navigate(id);
-    setResumeRevision((v) => v + 1);
-  };
   const changeArchive = async (nextArchived: boolean) => {
     if (archiveBusy) return;
     const target = threadId,
@@ -484,6 +513,12 @@ export function Workspace({
       (intent === 'send' && conversation.active)
     )
       return false;
+    if (intent === 'send') {
+      const issue = modelSettingsIssue({ options, defaults: composerDefaults,
+        defaultsLoading: composerDefaultsLoading, models: models.items,
+        modelsLoading: models.loading || modelCatalog.refreshing, modes: modes.data?.data ?? [] });
+      if (issue) { setError(issue); return false; }
+    }
     setBusy((current) => new Set([...current, key]));
     setError('');
     let target = threadId;
@@ -508,7 +543,7 @@ export function Workspace({
           throw new Error('会话已受理，但响应未包含会话 ID。请查询恢复记录。');
         target = thread.id;
         if (navigation.current === nav) {
-          if (canLeaveAfterAcceptance()) navigate(target, true);
+          if (canLeaveAfterAcceptance()) navigate(target, { preserveAttachments: true, accepted: canLeaveAfterAcceptance });
           else setCompletedHandoff({
             id: target, navigation: nav, message: '新会话已创建，后续输入仍保留在这里。',
           });
@@ -615,8 +650,7 @@ export function Workspace({
     return true;
   };
   const openWorkspace = (projectId: string, path = '') => {
-    setProjectId(projectId);
-    navigate('');
+    if (!navigate('', { projectId })) return;
     setWorkspaceMounted(true);
     setPanel('files');
     setWorkspaceRequest((previous) => ({
@@ -656,8 +690,7 @@ export function Workspace({
       error={(search ? searchThreads.error : threads.error) || projectsResource.error}
       more={search ? searchThreads.hasMore : threads.hasMore}
       onProject={(id) => {
-        setProjectId(id);
-        navigate('');
+        navigate('', { projectId: id });
       }}
       onThread={(id) => void openThread(id)}
       onNew={() => navigate('')}
@@ -721,10 +754,7 @@ export function Workspace({
                   : '已离线'}
             </div>
             {conversation.usage !== undefined && (
-              <details className="token-usage">
-                <summary>用量</summary>
-                <pre className="raw">{JSON.stringify(conversation.usage, null, 2)}</pre>
-              </details>
+              <UsagePopover usage={conversation.usage} />
             )}
             <div className="header-actions">
               <button
@@ -822,7 +852,7 @@ export function Workspace({
                     >
                       实时语音与文字
                     </button>
-                    <button onClick={() => setModal('organize')}>会话组织与历史管理</button>
+                    <button onClick={() => setModal('organize')}>会话分组与历史管理</button>
                     <button
                       onClick={() => {
                         setThreadTerminalsMounted(true);
@@ -938,13 +968,23 @@ export function Workspace({
             {network.connection === 'connected' &&
               (!network.runtimeConnected || !network.activityReady) && (
                 <p className="connection-banner" role="status">
-                  后台运行时尚未就绪或任务状态待确认，暂不能提交新任务。可在设置的服务管理中查看状态。
+                  {network.restarting ? '终端已退出，正在自动刷新后台环境…' : '后台尚未就绪，正在核对任务状态。'}
+                  <button className="button small" onClick={() => setModal('settings-admin')}>查看服务与恢复</button>
                 </p>
               )}
             {draftState.error && (
               <p className="error-banner" role="alert">
                 {draftState.error}
               </p>
+            )}
+            {draftState.hasUnsaved && (
+              <div className="inline">
+                <button className="button small" onClick={() => draftState.retrySave()}>重试保存草稿</button>
+                <button className="button small" onClick={() => {
+                  setDiscardRevision(draftState.revision);
+                  setDraftGuard(true);
+                }}>放弃未保存的修改</button>
+              </div>
             )}
             {completedHandoff?.navigation === navigation.current && (
               <p className="connection-banner" role="status">
@@ -1106,8 +1146,7 @@ export function Workspace({
                   idle={active && network.configurationReady}
                   onProjectsChanged={projectsResource.refresh}
                   onSelectProject={(id) => {
-                    setProjectId(id);
-                    navigate('');
+                    navigate('', { projectId: id });
                   }}
                   api={api}
                   project={project}
@@ -1216,6 +1255,7 @@ export function Workspace({
           </div>
           <div ref={composerSlot} className="composer-slot" hidden={panel !== 'chat'}>
             <Composer
+              onProviders={() => setModal('settings-provider')}
               projectId={projectId}
               threadId={resumedThread === threadId ? threadId : ''}
               epoch={resourceEpoch}
@@ -1267,22 +1307,19 @@ export function Workspace({
               onOptions={setOptions}
               models={models.items}
               moreModels={models.hasMore}
-              modelsLoading={models.loading}
+              modelsLoading={models.loading || modelCatalog.refreshing}
+              modelsRefreshDisabled={!active || !network.configurationReady}
               onMoreModels={() => void models.more()}
               onRefreshModels={() => {
-                models.refresh();
-                defaults.refresh();
-                modes.refresh();
+                void modelCatalog.refresh().then(() => {
+                  models.refresh(); defaults.refresh(); modes.refresh();
+                }).catch(() => {});
               }}
-              defaults={threadId ? threadDefaults : defaults.data}
-              defaultsLoading={
-                threadId
-                  ? resumedThread !== threadId
-                  : defaults.loading || JSON.stringify(options) !== JSON.stringify(debouncedOptions)
-              }
+              defaults={composerDefaults}
+              defaultsLoading={composerDefaultsLoading}
               existingThread={Boolean(threadId)}
               notice={
-                draftState.error ||
+                modelCatalog.error || draftState.error ||
                 (!directInputAllowed
                   ? '此子 Agent 尚未明确允许直接输入，可以查看结果。'
                   : !project
@@ -1293,6 +1330,8 @@ export function Workspace({
                         ? `默认值读取失败：${defaults.error}`
                         : models.error
                           ? `模型目录读取失败：${models.error}`
+                          : models.warning
+                            ? models.warning
                           : modes.error
                             ? `协作模式目录读取失败：${modes.error}`
                             : '')
@@ -1314,7 +1353,6 @@ export function Workspace({
                 connected={active && network.connection === 'connected' && network.runtimeConnected}
                 enabled={active && network.activityReady}
                 onOpenThread={(id) => {
-                  setModal('');
                   openThread(id);
                 }}
                 onChanged={workflowChanged}
@@ -1328,6 +1366,7 @@ export function Workspace({
                 projects={projects}
                 projectId={projectId}
                 models={models.items}
+                modelCatalog={models}
                 modes={modes.data?.data ?? []}
                 enabled={
                   active &&
@@ -1337,7 +1376,6 @@ export function Workspace({
                 }
                 idle={active && network.configurationReady}
                 onOpenThread={(id) => {
-                  setModal('');
                   void openThread(id);
                 }}
                 onChanged={workflowChanged}
@@ -1362,12 +1400,10 @@ export function Workspace({
                 globalIdle={network.configurationReady}
                 onChanged={workflowChanged}
                 onDeleted={() => {
-                  setModal('');
                   navigate('');
                   threads.refresh();
                 }}
                 onOpenThread={(id) => {
-                  setModal('');
                   void openThread(id);
                 }}
                 onClose={() => setModal('')}
@@ -1378,6 +1414,17 @@ export function Workspace({
                 api={api}
                 onClose={() => setModal('')}
                 onAdded={projectsResource.refresh}
+                onOpen={(id) => {
+                  if (navigation.current !== modalNavigation) return;
+                  if (!draftState.canLeave()) {
+                    setError('项目已添加。当前草稿尚未安全保存，请先复制或保存草稿，再从项目列表打开新项目。');
+                    return;
+                  }
+                  if (!navigate('', { projectId: id })) return;
+                  setArchived(false);
+                  setQuery('');
+                  setSearch('');
+                }}
               />
             )}{' '}
             {modal === 'rename' && (
@@ -1392,12 +1439,11 @@ export function Workspace({
                 }}
               />
             )}{' '}
-            {(modal === 'settings' || modal === 'settings-admin') && (
+            {(modal === 'settings' || modal === 'settings-admin' || modal === 'settings-provider') && (
               <Settings
-                initialTab={modal === 'settings-admin' ? 'admin' : 'general'}
+                initialTab={modal === 'settings-admin' ? 'admin' : modal === 'settings-provider' ? 'provider' : 'general'}
                 onOpenNativeTerminal={(id) => {
-                  setProjectId(id);
-                  navigate('');
+                  if (!navigate('', { projectId: id })) return;
                   setTerminalProgram('codex');
                   setTerminalMounted(true);
                   setPanel('terminal');
@@ -1427,17 +1473,15 @@ export function Workspace({
                 onClose={() => setModal('')}
                 onChanged={() => setConfigRevision((v) => v + 1)}
                 onProjectsChanged={projectsResource.refresh}
+                onOpenThread={(id) => { void openThread(id); }}
                 onOpenDraft={(key) => {
-                  setModal('');
                   const branch = branchDraftSource(key);
                   if (branch) {
-                    openThread(branch.threadId);
-                    setRestoreBranch(branch);
+                    if (openThread(branch.threadId)) setRestoreBranch(branch);
                     return;
                   }
                   if (key.startsWith('new:')) {
-                    setProjectId(key.slice(4));
-                    navigate('');
+                    navigate('', { projectId: key.slice(4) });
                   } else openThread(key);
                 }}
                 onLogout={logout}
@@ -1553,6 +1597,30 @@ export function Workspace({
                 onFork={(id, text) => finishBranch(id, text, false)}
                 onCreatedFork={(id, text) => finishBranch(id, text, true)}
               />
+            )}
+            {draftGuard && (
+              <Dialog title="草稿尚未保存" onClose={() => { setDraftGuard(false); setDiscardRevision(undefined); }}>
+                <p>当前输入只保留在页面中。请先保存，或明确放弃未保存的修改，再切换项目或会话。</p>
+                {discardRevision ? <>
+                  <p>确认放弃这次未保存的修改，并恢复本页最近保存的版本？其他草稿不会改变。</p>
+                  {discardRevision !== draftState.revision && <p role="status">输入已变化，请重新确认当前修改。</p>}
+                  <button className="button danger" disabled={discardRevision !== draftState.revision}
+                    onClick={() => {
+                      if (draftState.discardUnsaved(discardRevision)) {
+                        setDraftGuard(false);
+                      }
+                      setDiscardRevision(undefined);
+                    }}>确认放弃未保存的修改</button>
+                  {discardRevision !== draftState.revision && <button className="button"
+                    onClick={() => setDiscardRevision(draftState.revision)}>重新确认当前修改</button>}
+                </> : <>
+                  <button className="button" onClick={() => {
+                    if (draftState.retrySave()) setDraftGuard(false);
+                  }}>重试保存草稿</button>
+                  <button className="button" onClick={() => setDiscardRevision(draftState.revision)}>放弃未保存的修改</button>
+                </>}
+                <button className="button" onClick={() => { setDraftGuard(false); setDiscardRevision(undefined); }}>返回继续编辑</button>
+              </Dialog>
             )}
           </>
         )}

@@ -10,6 +10,17 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 afterEach(cleanup);
+it('keeps successful receipts for reconciliation without displaying routine success reminders', async () => {
+  const accepted = await createOperation('system/provider/write', {});
+  await updateOperation(accepted.id, 'accepted');
+  const view = render(<Harness api={{ call: vi.fn() } as unknown as Api} />);
+  await waitFor(() => expect(view.container.textContent).toBe(''));
+  expect((await listOperations()).find((row) => row.id === accepted.id)?.state).toBe('accepted');
+  const failed = await createOperation('system/provider/write', {});
+  await act(async () => { await updateOperation(failed.id, 'not_sent'); });
+  await screen.findByText('1 笔操作未完成');
+  expect(view.container.textContent).not.toContain(accepted.id.slice(0, 8));
+});
 function Harness({
   api,
   ready = true,

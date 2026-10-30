@@ -25,6 +25,12 @@ export class CliTerminals {
   async open(params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, ['cwd', 'projectId', 'program', 'rows', 'cols']); if (params.program !== 'codex' && params.program !== 'codex-cloud') throw new DeliveryError('invalid_params', 'Fixed native CLI selection required');
     this.host.available(); if (this.active) throw new DeliveryError('native_cli_busy', 'A native CLI terminal is already open');
+    if (params.program === 'codex-cloud') {
+      const account = object(await this.host.native('account/read', { refreshToken: false })).account;
+      if (!account || object(account).type !== 'chatgpt') throw new DeliveryError('chatgpt_login_required', '官方云任务需要 ChatGPT 账号。请先在设置 → 模型供应商中登录 ChatGPT，再打开云任务。');
+      // Authentication is a read; another operation may have acquired the lease meanwhile.
+      this.host.available(); if (this.active) throw new DeliveryError('native_cli_busy', 'A native CLI terminal is already open');
+    }
     const cwd = this.host.cwd(params.cwd!), size = { rows: integer(params.rows ?? 24, 'rows', 1, 500), cols: integer(params.cols ?? 80, 'cols', 1, 500) };
     const entry: Entry = { terminalId: randomUUID(), clientId: context.clientId, channel: context.eventChannelId, revoked: false, dispatched: false }; this.entries.set(entry.terminalId, entry); this.host.changed();
     try {

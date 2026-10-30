@@ -15,6 +15,7 @@ from deploy.config_layer import apply_candidate, barriers, change_config_layer, 
 from deploy.manager import Manager
 from deploy.provider import validate_provider
 from deploy.provider_layers import verify_system_layers
+from deploy.provider_registry import change
 from deploy.units import render_units, sudo_rule
 
 
@@ -180,9 +181,9 @@ class ConfigurationLayerTests(unittest.TestCase):
     def test_old_terminal_directory_fsync_failure_preserves_verified_services(self):
         self.check_terminal_failure(published=True, recovery="old")
 
-    def advanced_provider(self, kind):
+    def advanced_provider(self, kind, *, secondary=False):
         change_config_layer(self.manager)
-        current = self.manager.providers.read()
+        current = self.settings if secondary else self.manager.providers.read()
         params = {"kind": kind, "expectedRevision": current["revision"]}
         if kind == "chatgpt-gateway":
             params.update(baseUrl="https://gateway.invalid/v1", confirmGatewayCredentials=True,
@@ -190,7 +191,7 @@ class ConfigurationLayerTests(unittest.TestCase):
                                         "clientId": "public-fixture", "cookieName": "fixture-auth"})
         else:
             params.update(region="us-east-1", apiKey="fixture-managed-bearer")
-        settings = validate_provider(params, current)
+        settings = change({**params, "providerId": "new"}, current) if secondary else validate_provider(params, current)
         self.manager.providers.select(self.manager.providers.prepare(settings, layered=True))
         return settings
 
@@ -238,6 +239,34 @@ class ConfigurationLayerTests(unittest.TestCase):
                 self.assertEqual(self.materials(), before)
                 self.assertEqual(self.system.events, [])
                 self.assertEqual(self.system.active, {"worker", "gateway"})
+
+    def test_enabled_secondary_advanced_provider_blocks_rollback_and_candidate_recovery(self):
+        for kind in ("chatgpt-gateway", "bedrock-runtime", "bedrock-mantle"):
+            for phase in ("prepared", "stopped", "selected"):
+                with self.subTest(kind=kind, phase=phase):
+                    settings = self.advanced_provider(kind, secondary=True)
+                    self.assertEqual(settings["kind"], "responses")
+                    before = self.materials()
+                    self.system.events.clear()
+                    with self.assertRaises(DeployError) as caught:
+                        change_config_layer(self.manager, layered=False)
+                    self.assertEqual(caught.exception.code, "configuration_conflict")
+                    self.assertEqual(self.materials(), before)
+                    self.assertEqual(self.system.events, [])
+                    path, journal, original = self.historical_legacy_journal(settings, phase)
+                    before, active = self.materials(), set(self.system.active)
+                    self.system.events.clear()
+                    with self.assertRaises(DeployError) as caught:
+                        recover_config_layer(self.manager, path, journal, candidate=True)
+                    self.assertEqual(caught.exception.code, "configuration_conflict")
+                    self.assertEqual(self.materials(), before)
+                    self.assertEqual(self.system.events, [])
+                    self.assertEqual(self.system.active, active)
+                    recover_config_layer(self.manager, path, journal)
+                    self.assertEqual(snapshot(self.layout), original)
+                    self.assertEqual(self.user.read_bytes(), self.user_bytes)
+                    self.assertEqual(self.system.active, {"worker", "gateway"})
+                    self.assertTrue(verify_system_layers(self.layout)["hostPolicyVerified"])
 
     def test_old_unsafe_candidates_reject_without_changes_and_old_recovery_still_works(self):
         for kind in ("chatgpt-gateway", "bedrock-runtime", "bedrock-mantle"):
@@ -429,6 +458,21 @@ class ConfigurationLayerTests(unittest.TestCase):
         self.assertTrue(change_config_layer(self.manager)["changed"])
         self.assertNotEqual(self.manager.providers.read()["revision"], old_revision)
         self.assertTrue(verify_system_layers(self.layout)["hostPolicyVerified"])
+
+    def test_existing_system_layer_migrates_legacy_provider_without_manual_rpc(self):
+        change_config_layer(self.manager)
+        legacy = {**self.settings, "revision": uuid.uuid4().hex}
+        self.manager.providers.select(self.manager.providers.prepare(legacy, layered=True))
+        self.assertTrue(verify_system_layers(self.layout)["hostPolicyVerified"])
+        result = change_config_layer(self.manager)
+        self.assertTrue(result["changed"])
+        saved = self.manager.providers.read()
+        self.assertEqual(saved["defaultProviderId"], "default")
+        self.assertEqual(saved["connections"][0]["settings"]["apiKey"], "fixture-secret")
+        self.assertTrue((self.layout.config / "providers" / saved["revision"] / "runtime.json").exists())
+        self.assertEqual(self.user.read_bytes(), self.user_bytes)
+        self.assertEqual(self.system.active, {"worker", "gateway"})
+        self.assertFalse(change_config_layer(self.manager)["changed"])
 
     def test_generated_layer_tamper_blocks_check_and_is_not_silently_refreshed(self):
         change_config_layer(self.manager)

@@ -47,6 +47,7 @@ export function Recovery({
   runtimeReady,
   recoveryEpoch,
   openWorkspace,
+  showCompleted = false,
 }: {
   api: Api;
   operations: Operation[];
@@ -56,6 +57,7 @@ export function Recovery({
   runtimeReady: boolean;
   recoveryEpoch: string;
   openWorkspace?: (projectId: string, path?: string) => void;
+  showCompleted?: boolean;
 }) {
   const [error, setError] = useState(''),
     [busy, setBusy] = useState('');
@@ -101,17 +103,22 @@ export function Recovery({
     }
   };
   const pending = operations.filter((o) => ['pending', 'unknown'].includes(o.state));
-  if (!operations.length && !storeError && !warning) return null;
+  // Successful receipts still drive draft cleanup and reconciliation, but do not
+  // need the user's attention on every page visit.
+  const attention = showCompleted ? operations : operations.filter((o) => o.state !== 'accepted');
+  const nearCapacity = operations.length >= 180;
+  if (!attention.length && !storeError && !warning && !error && !nearCapacity) return null;
   return (
-    <details className="recovery" open={Boolean(storeError) || pending.length > 0}>
+    <details className="recovery" open={showCompleted || Boolean(storeError) || pending.length > 0 || nearCapacity}>
       <summary>
-        {pending.length
+        {showCompleted ? `本地操作记录 ${operations.length} 条` : pending.length
           ? `${pending.length} 笔操作等待确认`
-          : `${operations.length} 笔操作已有回执`}
+          : attention.length ? `${attention.length} 笔操作未完成` : nearCapacity ? '本地操作记录接近上限' : '操作记录需要检查'}
       </summary>
       <p className="muted small">
         查询只读取结果。暂未收到记录不代表原请求不会到达；未知操作不会自动重发。
       </p>
+      {nearCapacity && <p role="status" className="workspace-warning">本地保留 {operations.length}/200 条操作记录。请在设置 → 操作记录中查看尚未处理的结果并清理已完成记录。</p>}
       {(error || storeError) && (
         <p role="alert" className="error">
           {storeError || error}
@@ -123,7 +130,7 @@ export function Recovery({
         catch (e) { setError(message(e)); }
       }}>重新检查恢复存储</button>}
       <div className="recovery-list">
-        {operations.map((o) => {
+        {attention.map((o) => {
           const observation = observations[o.id],
             receipt = observation?.epoch === generation ? observation.receipt : undefined;
           const canStop =

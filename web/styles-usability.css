@@ -1,0 +1,53 @@
+/* Interaction surfaces stay bounded and never change the top bar's height. */
+.topbar { flex-shrink: 0; position: relative; z-index: 8; }
+.token-usage { position: static; font-size: 12px; flex-shrink: 0; }
+.token-usage > summary { cursor: pointer; border-radius: 7px; padding: 8px; }
+.token-usage[open] > summary { background: var(--surface); color: var(--text); }
+.usage-popover {
+  position: absolute; right: 18px; top: calc(100% - 4px); z-index: 20;
+  width: min(380px, calc(100vw - 36px)); max-height: min(480px, calc(100dvh - 100px));
+  overflow: auto; padding: 18px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--bg); color: var(--text); box-shadow: var(--shadow);
+}
+.usage-popover h3 { margin: 0 0 14px; font-size: 14px; }
+.usage-popover table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.usage-popover th, .usage-popover td { padding: 7px 4px; text-align: right; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.usage-popover th:first-child { text-align: left; font-weight: 500; }
+.usage-popover p { margin: 12px 0 0; line-height: 1.6; }
+.composer { padding: 12px; border-radius: 15px; }
+.composer textarea { min-height: 90px; padding: 8px 5px 14px; font-size: 14px; }
+.composer-toolbar { gap: 8px; flex-wrap: wrap; }
+.composer-toolbar .spacer { min-width: 0; }
+.model-picker { position: relative; min-width: 0; flex: 1; }
+.model-picker > summary { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 7px 4px; font-size: 12px; list-style: none; }
+.model-picker > summary::-webkit-details-marker { display: none; }
+.model-picker > summary > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-picker > summary small { color: var(--muted); white-space: nowrap; font-size: 11px; }
+.model-picker-panel { position: absolute; bottom: calc(100% + 12px); left: -40px; z-index: 15; width: min(380px, calc(100vw - 48px)); max-height: min(460px, calc(100dvh - 200px)); overflow: auto; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.model-picker-panel select { width: 100%; min-width: 0; }
+.composer-toolbar .options-trigger { font-size: 12px !important; white-space: nowrap; }
+.composer-toolbar .mode-select select { font-size: 12px; max-width: 110px; }
+.composer-extras { max-height: min(420px, 42dvh); overflow: auto; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 10px; }
+.composer-extras[hidden] { display: none; }
+.composer-extras .composer-options { margin-top: 0; border: 0; padding-top: 4px; }
+.composer-options > p { grid-column: 1 / -1; }
+.composer-extras .input-context { margin-top: 10px; }
+.composer-context-summary { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
+.composer-context-summary button { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 4px 8px; font: inherit; color: inherit; }
+.composer-note { text-align: right; font-size: 11px; min-height: 0; margin-top: 6px; }
+.security-section { border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.security-section summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.security-section > .stack { padding-top: 15px; }
+.security-section h4 { margin: 0; }
+.security-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.provider-account { border-top: 1px solid var(--line); padding-top: 16px; }
+@media (max-width: 640px) {
+  .composer { position: relative; }
+  .model-picker { position: static; }
+  .model-picker-panel { left: 8px; right: 8px; width: auto; bottom: 54px; }
+  .usage-popover { right: 8px; width: calc(100vw - 32px); }
+  .composer-toolbar { gap: 5px; }
+  .composer-toolbar .options-trigger { padding: 6px !important; }
+  .composer-extras .composer-options { max-height: none; overflow: visible; }
+  .composer-note { font-size: 10px; }
+}
