@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "scoped-test-fixture-repair",
+  "author": "/root/v220_round4_web",
+  "completedAt": "2026-10-30T13:10:58.1812182Z",
+  "reviewedHead": "37881beb7234fc257889f62184f6b88d6f0df24d",
+  "file": "web/tests/automations.test.tsx",
+  "sha256": "5a53610ecb7786323c769bc1b80e25fd159b6a95dfb9dc531c03af605e74efce",
+  "failureLog": ".work/v220-ci5-linux-raw.txt",
+  "failureLogSha256": "874be40d250875e55fdf856ab1dfed33f33d991cfa38e4882c9aee25509210c0",
+  "originalFailure": {
+    "test": "keeps an edited-then-restored draft after update recovery and requires explicit rebase for a newer record",
+    "assertion": "onSaved expected once, observed zero",
+    "sourceLineBeforeRepair": 535,
+    "logLine": 1271,
+    "observedDom": "Valid future schedule preview and retained-draft notice remain; save button is enabled by the time the timeout DOM is captured. The CI log does not record whether the earlier click was enabled."
+  },
+  "diagnosis": [
+    "AutomationForm.recover waits for reconcileOperation to persist accepted state, then accepted() publishes the retained-draft notice/baseline and finally clears busy.",
+    "useOperations reacts to the storage event with a separate asynchronous listOperations transaction. That view can still contain the original unknown record after the form notice is visible. The global unresolved flag correctly keeps new saves disabled until that read publishes.",
+    "The original test immediately clicked save after rebase and confirmation. Waiting for a retained-draft notice or future schedule preview does not establish completion of the independent operation-state read.",
+    "The original CI nondeterminism did not reproduce in the single pre-fix local run. A controlled real-read-result gate now deterministically reproduces the relevant ordering and demonstrates that the old early click dispatches nothing.",
+    "Model defaults are not the cause established here: project/provider/model keys do not change in this particular recovery/rebase scenario."
+  ],
+  "controlledProof": [
+    "Spy delegates to the real listOperations implementation, preserving actual IndexedDB reads and transactions.",
+    "First observes an original-ID unknown record; only delays publication of real accepted records, without fabricating their contents or replacing mutation/reconciliation.",
+    "While that publication is held, the original saved notice appears, draft edits survive, a newer external version requires explicit rebase, and rebase clears consent.",
+    "After fresh consent the save remains disabled; a click produces no extra update and no onSaved callback.",
+    "Release the read-result gate within act, then await the actual enabled button and click once. Exactly two total update attempts exist (original uncertain request and explicit new update), the original receipt was queried, and the new update uses revision 6 with the preserved text."
+  ],
+  "relatedReview": [
+    "Inspected analogous positive create/update sequences in the same automation test file.",
+    "Twelve formerly immediate successful create/update clicks now await the existing enabledButton helper. The helper only waits for readiness and clicks once; no retry of actions occurs.",
+    "All negative disabled, missing-preview, confirmation-reset, conflict, unknown-receipt, foreign/malformed-receipt and draft-preservation assertions remain."
+  ],
+  "productionFilesChanged": [],
+  "tests": [
+    {
+      "path": ".work/test-results/run-KuYJzr/vitest.json",
+      "phase": "before fix",
+      "node": "24.22.1",
+      "passed": 29,
+      "failed": 0
+    },
+    {
+      "path": ".work/test-results/run-dY7MKW/vitest.json",
+      "phase": "after fix including deterministic read-publication gate",
+      "node": "24.22.1",
+      "passed": 29,
+      "failed": 0
+    }
+  ],
+  "checks": [
+    "web TypeScript noEmit passed",
+    "git diff --check passed"
+  ],
+  "independentReview": {
+    "owner": "/root/v220_final_runtime",
+    "path": ".work/v220-ci5-automations-review.json",
+    "status": "Requested against frozen test hash; reviewer writes final result separately"
+  },
+  "limitations": [
+    "No business source change, timeout increase, test skip, runner retry, broad test suite, deployment or live external service call.",
+    "The actual Linux CI event timing was not traced; the controlled gate establishes a concrete permitted ordering that matches the failing fixture assumptions.",
+    "This scoped repair and review do not constitute another full repository audit round."
+  ],
+  "findings": []
+}

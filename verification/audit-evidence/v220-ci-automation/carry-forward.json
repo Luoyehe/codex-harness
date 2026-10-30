@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "automation-fixture-review-carry-forward",
+  "completedAt": "2026-10-30T13:12:51.413Z",
+  "priorSourceDigest": "8e863b046390e60bef6e60b41082e4298909370aa0da75beac03737f8afed4b6",
+  "sourceDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
+  "sourceFiles": 1941,
+  "changedFiles": [
+    "web/tests/automations.test.tsx"
+  ],
+  "cumulativeChangesSinceCleanAudit": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "previousSha256": "24b110974140c14c7c3879f503615a8262f9d379762ab1f2c999529a2ca7eb3f",
+      "sha256": "629e24da3d7c7ae11a9feaa2806c711144906e128a7c9eb0df94641e56b66c15"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "previousSha256": "3501001e25301d953bb0cc2924b97724675539b8e3282e8cf546b5c8572b29da",
+      "sha256": "5a53610ecb7786323c769bc1b80e25fd159b6a95dfb9dc531c03af605e74efce"
+    },
+    {
+      "path": "web/tests/credit-nudge.test.tsx",
+      "previousSha256": "b978ea00088656954c14a81dcecca0b383ee28ef43e57f6b5075739355c05bec",
+      "sha256": "29fb51ea1e137eb9e70a63a370c8ef2adba6231e187b218b33fea1bbfb48e112"
+    }
+  ],
+  "unchangedFilesSinceCleanAudit": 1938,
+  "originalFullAudit": "verification/audit-evidence/v220-round5/team.json",
+  "priorScopedReview": "verification/audit-evidence/v220-ci-runtime/carry-forward.json",
+  "method": "Complete source inventory rehashed against the actual clean round5 snapshot. This follow-up changes only automation UI tests, retaining all production, deployment and protocol bytes. The test controls the real operation-list result publication boundary, observes that save remains disabled during recovery, then waits for enabled controls before deliberate user actions. Independent review checks confirmation, revision rebase, original receipt and exactly-once write assertions. No new complete audit round is claimed.",
+  "newFullAuditRounds": 0,
+  "findings": [],
+  "reviewArtifacts": [
+    {
+      "path": "verification/audit-evidence/v220-ci-automation/repair.json",
+      "sha256": "75d3a6ca494754cda89b0a2834f4306889bd844f5a47b7ab0cc5829678309516"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-automation/independent-review.json",
+      "sha256": "d358fd4342fb154ac84bbf81ce776bc119c75f82fb1c0bef403ba975b79a3092"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-automation/ci5-failure.json",
+      "sha256": "afe6da77ab330a79bec5bd0f34b8b8e6380b6861828148424e073e9566ee04b1"
+    }
+  ],
+  "fullTestsPassed": false,
+  "deployed": false
+}

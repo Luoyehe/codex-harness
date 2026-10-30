@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-runtime",
+  "reviewType": "independent-targeted-test-fix-review-and-complete-source-hash-carryforward",
+  "completedAt": "2026-10-30T13:12:28.845Z",
+  "candidate": "37881beb7234fc257889f62184f6b88d6f0df24d",
+  "complete": true,
+  "findings": [],
+  "scope": {
+    "changed": [
+      "web/tests/automations.test.tsx"
+    ],
+    "productionRelationship": [
+      "AutomationForm accepted/recover/save, conflict/rebase and disabled gates",
+      "Recovery.useOperations asynchronous subscription read publication and revision fencing",
+      "operations real create/update/reconcile storage transactions and post-commit changed event",
+      "Api.beginMutation durable intent, unknown transport outcome and acceptance",
+      "AutomationsPanel create/edit/reopen draft ownership and callbacks"
+    ],
+    "testChanges": "All changed positive create/update clicks and full affected recovery case were inspected. Existing negative admission, consent and draft-retention assertions were retained."
+  },
+  "method": {
+    "manual": "Read full git diff against exact CI5 candidate, all affected test contexts, existing enabledButton helper, storage setup, useOperations, operation-store, operations, useResource, and relevant AutomationForm/AutomationsPanel/Api mutation paths. Reviewed raw hosted failure and author targeted JSON results. No source edits or test rerun by reviewer.",
+    "coverageBoundary": "This is not a new full-repository semantic audit. The complete 1941-file SHA pass proves unchanged bytes outside three cumulative CI/test files relative to audit5; no broader new semantic review is claimed."
+  },
+  "conclusions": [
+    "The raw CI assertion was onSaved callback expected once/actual zero at original test line 535. It did not directly measure a zero total update-call count.",
+    "Recovery persists accepted via reconcileOperation, which emits a changed event after the storage transaction. useOperations separately awaits listOperations before publishing its React snapshot. The form may display the retained-draft notice while its older unknown operation still disables saving.",
+    "The new spy calls the original listOperations and only delays returning real accepted records for the same original operation ID. It neither fabricates receipt success nor bypasses the IndexedDB transaction or production admission gate. Observing the real unknown read and holding the accepted read makes the conservative UI transition explicit.",
+    "Before release the test requires save disabled, a click leaves exactly the first automation/update call, and onSaved remains uncalled. The explicit newer-record conflict and rebase are preserved; rebase still clears confirmation and the user confirms again.",
+    "After releasing the read, the existing enabledButton helper waits for the visible control to become enabled without retrying mutation. The test requires exactly two total update calls, one onSaved callback, original receipt operation ID, expectedRevision 6 and the retained Review my project text.",
+    "Other positive save clicks use the existing readiness helper. No skip, retry, arbitrary sleep, timeout increase, removed behavioral assertion, production change or synthetic accepted receipt was introduced by this patch."
+  ],
+  "reviewedFileHashes": [
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "5a53610ecb7786323c769bc1b80e25fd159b6a95dfb9dc531c03af605e74efce"
+    },
+    {
+      "path": "web/tests/enabled-button.ts",
+      "sha256": "3fa4bf77f2408757a5d7597d30a66e6a7dc564f9c27cfeeb58bef6c2ed6256f2"
+    },
+    {
+      "path": "web/tests/operation-setup.ts",
+      "sha256": "d56c6e080984401c2178a3d4aa059353828fb135de0cb2cc9235c5eeba8e0317"
+    },
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "sha256": "ac289a45dc8c7cb5e35c336ba1d997ebdaffea415c61badf04d99a307f444698"
+    },
+    {
+      "path": "web/components/AutomationsPanel.tsx",
+      "sha256": "e1b47ef46bc15176c6d824ced262dbfc979ade2772081c1a1792b2c5707a8718"
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "d52cb6b5e7de07f8f3a5eddb177b72899148a20308735626d7c8916a6e16f0fa"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "370b4300fe3e7966ccb62a365eb13d6a3e4fea3a15ddfbf5ea022cbfa5ed8038"
+    },
+    {
+      "path": "web/lib/operation-store.ts",
+      "sha256": "84471c85a2af28b1ae571fe5c4a1d2ca02d03c5206137e98aa58f6ecaf576e45"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "fac6e251c9f1567110a1901bb815c192660c5fb3b5585a264ec59a0deb5bc639"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "31c85d49d547840df538d032953a2cabd13271d768cefb8fbcc8d7687082037f"
+    }
+  ],
+  "authorValidation": {
+    "path": ".work/test-results/run-dY7MKW/vitest.json",
+    "sha256": "12e6b8b38e922296ffba7dbc9584843f107d5eebc418c3e9ccb012811af723e7",
+    "testsTotal": 29,
+    "testsPassed": 29,
+    "testsFailed": 0,
+    "testsPending": 0,
+    "success": true,
+    "reviewerExecuted": false
+  },
+  "hostedEvidence": {
+    "path": ".work/v220-ci5-linux-raw.txt",
+    "sha256": "874be40d250875e55fdf856ab1dfed33f33d991cfa38e4882c9aee25509210c0",
+    "case": "keeps an edited-then-restored draft after update recovery and requires explicit rebase for a newer record",
+    "originalLine": 535
+  },
+  "carryforward": {
+    "path": ".work/v220-ci5-automations-carryforward-hashes.json",
+    "sha256": "de7d3831642baef488050287432a10901d65da9923cc0a636073d80a6caeabbd",
+    "baselineDigest": "468803191f18e3950286f76348a8538a65ce5a90cb5538a7d0fafa56e3126cbe",
+    "currentDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
+    "files": 1941,
+    "unchanged": 1938,
+    "changed": [
+      {
+        "path": ".github/workflows/affected.yml",
+        "previousSha256": "24b110974140c14c7c3879f503615a8262f9d379762ab1f2c999529a2ca7eb3f",
+        "currentSha256": "629e24da3d7c7ae11a9feaa2806c711144906e128a7c9eb0df94641e56b66c15"
+      },
+      {
+        "path": "web/tests/automations.test.tsx",
+        "previousSha256": "3501001e25301d953bb0cc2924b97724675539b8e3282e8cf546b5c8572b29da",
+        "currentSha256": "5a53610ecb7786323c769bc1b80e25fd159b6a95dfb9dc531c03af605e74efce"
+      },
+      {
+        "path": "web/tests/credit-nudge.test.tsx",
+        "previousSha256": "b978ea00088656954c14a81dcecca0b383ee28ef43e57f6b5075739355c05bec",
+        "currentSha256": "29fb51ea1e137eb9e70a63a370c8ef2adba6231e187b218b33fea1bbfb48e112"
+      }
+    ],
+    "added": [],
+    "removed": [],
+    "git": {
+      "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+      "allChangedSinceCandidate": [
+        "web/tests/automations.test.tsx"
+      ],
+      "sourceChangedSinceCandidate": [
+        "web/tests/automations.test.tsx"
+      ],
+      "diffSha256": "040fd4be68df3289eaf3c107d55013c8609d6400af169bff1be4870b67c3902a"
+    },
+    "snapshotUnchangedDuringHash": true
+  },
+  "limitations": [
+    "The original hosted scheduling interleaving was not traced and its exact cause was not reproduced locally. The controlled delay deterministically exercises an allowed read-publication ordering; it is not a claim of an exact hosted trace.",
+    "Author reports the unmodified file also passed locally. The reviewer relied on the recorded 29/29 targeted result and did not repeat tests.",
+    "The original audit5 semantic findings remain separate. Carryforward hashes and this targeted review do not manufacture a fresh full audit round.",
+    "No verification files, source files, hosted workflow actions, deployments, sessions or external model requests were modified or executed by this review."
+  ]
+}

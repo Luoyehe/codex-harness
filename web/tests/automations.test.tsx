@@ -15,6 +15,7 @@ import { Api } from '../lib/api';
 import { AutomationForm } from '../components/AutomationForm';
 import { AutomationDetail, AutomationsPanel } from '../components/AutomationsPanel';
 import { reconcileOperation } from '../lib/operations';
+import * as operationStorage from '../lib/operations';
 import { useAutomationRuns } from '../hooks/useAutomationRuns';
 import { localTime, zonedTime, type Automation, type Run } from '../lib/automations';
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
@@ -174,7 +175,7 @@ it('requires preview and consent, creates explicitly paused with registered proj
   ).toBe(true);
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '创建暂停的计划' }));
+  fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
   await waitFor(() => expect(props.onSaved).toHaveBeenCalledWith(job.id));
   const params = calls.find((call) => call.method === 'automation/create')!.params;
   expect(params.enabled).toBe(false);
@@ -360,7 +361,7 @@ it('preserves unedited native options and requires explicit rebase after a confl
   const view = render(<AutomationForm {...props} record={job} />);
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存计划修改' }));
+  fireEvent.click(await enabledButton({ name: '保存计划修改' }));
   await screen.findByText('计划版本冲突');
   expect(calls.find((call) => call.method === 'automation/update')?.params).toMatchObject({
     id: job.id,
@@ -402,7 +403,7 @@ it('recovers accepted creation from its original receipt without creating a seco
   render(<AutomationForm {...props} />);
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '创建暂停的计划' }));
+  fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
   fireEvent.click(await enabledButton({ name: '查询原自动化操作回执' }));
   await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
   expect(calls.filter((call) => call.method === 'automation/create')).toHaveLength(1);
@@ -451,7 +452,7 @@ it('retains edits made after an unknown create as edits of the accepted plan, in
   fireEvent.click(screen.getByRole('button', { name: '新建自动化' }));
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '创建暂停的计划' }));
+  fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
   await enabledButton({ name: '查询原自动化操作回执' });
   fireEvent.change(screen.getByRole('textbox', { name: '自动执行的指令' }), {
     target: { value: 'New unsent instruction' },
@@ -470,7 +471,7 @@ it('retains edits made after an unknown create as edits of the accepted plan, in
   fireEvent.click(screen.getByRole('button', { name: '预览接下来五次执行时间' }));
   await screen.findByText(/执行时间 ·/);
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存计划修改' }));
+  fireEvent.click(await enabledButton({ name: '保存计划修改' }));
   await screen.findByRole('button', { name: '新建自动化' });
   expect(calls.filter((call) => call.method === 'automation/create')).toHaveLength(1);
   expect(calls.find((call) => call.method === 'automation/update')?.params).toMatchObject({
@@ -486,6 +487,20 @@ it('retains edits made after an unknown create as edits of the accepted plan, in
 it('keeps an edited-then-restored draft after update recovery and requires explicit rebase for a newer record', async () => {
   let originalId = '',
     submitted = false;
+  let releaseOperationRead!: () => void;
+  const operationReadGate = new Promise<void>((resolve) => { releaseOperationRead = resolve; });
+  const readOperations = operationStorage.listOperations;
+  let observedUnknown = false, heldAcceptedReads = 0;
+  const reads = vi.spyOn(operationStorage, 'listOperations').mockImplementation(async () => {
+    const records = await readOperations();
+    if (records.some((operation) => operation.id === originalId && operation.state === 'unknown'))
+      observedUnknown = true;
+    if (records.some((operation) => operation.id === originalId && operation.state === 'accepted')) {
+      heldAcceptedReads++;
+      await operationReadGate;
+    }
+    return records;
+  });
   const { api, calls } = setup((call) => {
       if (call.method === 'automation/update') {
         if (!submitted) {
@@ -507,8 +522,9 @@ it('keeps an edited-then-restored draft after update recovery and requires expli
     view = render(<AutomationForm {...props} record={job} />);
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存计划修改' }));
+  fireEvent.click(await enabledButton({ name: '保存计划修改' }));
   await enabledButton({ name: '查询原自动化操作回执' });
+  await waitFor(() => expect(observedUnknown).toBe(true));
   fireEvent.change(screen.getByRole('textbox', { name: '自动执行的指令' }), {
     target: { value: 'Temporary newer edit' },
   });
@@ -517,6 +533,7 @@ it('keeps an edited-then-restored draft after update recovery and requires expli
   });
   fireEvent.click(await enabledButton({ name: '查询原自动化操作回执' }));
   await screen.findByText(/原版本已保存.*新草稿尚未提交/);
+  await waitFor(() => expect(heldAcceptedReads).toBeGreaterThan(0));
   expect(props.onSaved).not.toHaveBeenCalled();
   view.rerender(
     <AutomationForm {...props} record={{ ...job, revision: 6, text: 'External newer content' }} />,
@@ -531,8 +548,19 @@ it('keeps an edited-then-restored draft after update recovery and requires expli
     false,
   );
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存计划修改' }));
+  const save = screen.getByRole('button', { name: '保存计划修改' }) as HTMLButtonElement;
+  // Recovery commits before useOperations finishes its separate IndexedDB read.
+  // A visible success notice must not be mistaken for a newly enabled save.
+  expect(save.disabled).toBe(true);
+  fireEvent.click(save);
+  expect(calls.filter((call) => call.method === 'automation/update')).toHaveLength(1);
+  expect(props.onSaved).not.toHaveBeenCalled();
+  await act(async () => { releaseOperationRead(); await operationReadGate; });
+  reads.mockRestore();
+  fireEvent.click(await enabledButton({ name: '保存计划修改' }));
   await waitFor(() => expect(props.onSaved).toHaveBeenCalledTimes(1));
+  expect(calls.filter((call) => call.method === 'automation/update')).toHaveLength(2);
+  expect(calls.find((call) => call.method === 'operation/read')?.params.operationId).toBe(originalId);
   expect(calls.filter((call) => call.method === 'automation/update')[1]?.params).toMatchObject({
     id: job.id,
     expectedRevision: 6,
@@ -561,7 +589,7 @@ it('retains the original create intent across reopen and ignores its late succes
   let view = render(<AutomationForm {...props} />);
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '创建暂停的计划' }));
+  fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
   await waitFor(() => expect(finish).toBeTypeOf('function'));
   view.unmount();
   view = render(<AutomationForm {...props} />);
@@ -600,7 +628,7 @@ it.each(['api', 'epoch', 'record'] as const)(
     const view = render(<AutomationForm {...props} />);
     await prepareForm();
     fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-    fireEvent.click(screen.getByRole('button', { name: '保存计划修改' }));
+    fireEvent.click(await enabledButton({ name: '保存计划修改' }));
     fireEvent.click(await enabledButton({ name: '查询原自动化操作回执' }));
     await waitFor(() => expect(finish).toBeTypeOf('function'));
     view.rerender(
@@ -655,7 +683,7 @@ it.each([{}, { id: job.id }, { id: job.id, revision: 99 }])(
     render(<AutomationForm {...props} />);
     await prepareForm();
     fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-    fireEvent.click(screen.getByRole('button', { name: '创建暂停的计划' }));
+    fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
     fireEvent.click(await enabledButton({ name: '查询原自动化操作回执' }));
     await screen.findByText(/回执缺少有效.*标识或版本/);
     expect(props.onSaved).not.toHaveBeenCalled();
@@ -689,7 +717,7 @@ it('preserves both drafts if a recovered creation already has a separately edite
   const view = render(<AutomationForm {...props} />);
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '创建暂停的计划' }));
+  fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
   await enabledButton({ name: '查询原自动化操作回执' });
   fireEvent.change(screen.getByRole('textbox', { name: '自动执行的指令' }), {
     target: { value: 'Original form newer draft' },
@@ -724,7 +752,7 @@ it('rejects foreign update receipts and only releases an intent on explicit not_
   render(<AutomationForm {...props} record={job} />);
   await prepareForm();
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存计划修改' }));
+  fireEvent.click(await enabledButton({ name: '保存计划修改' }));
   await enabledButton({ name: '查询原自动化操作回执' });
   response = {
     operationId: originalId,

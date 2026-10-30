@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "8e863b046390e60bef6e60b41082e4298909370aa0da75beac03737f8afed4b6",
+  "sourceDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
   "sourceFiles": 1941,
   "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
   "version": "2.2.0",
-  "approvedAt": "2026-10-30T12:53:11.302Z",
+  "approvedAt": "2026-10-30T13:12:51.415Z",
   "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。最新指示将审计门槛改为一轮无新增问题，版本选择 v2.2.0。",
   "auditWaiverInstruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
   "repairsReviewed": true,
@@ -36,9 +36,9 @@
       ]
     }
   ],
-  "note": "Actual clean full audit remains round5 on its recorded original digest. One CI workflow and one UI test fixture were subsequently reviewed against complete file hashes; all application, deployment and protocol bytes are unchanged. Tests still require explicit confirmation and original-receipt recovery without resend. No extra full audit is invented. The user authorized this source-bound complete release validation; previous failures remain recorded.",
+  "note": "Actual clean complete audit remains round5. Subsequent CI runtime and UI test-only repairs have independent scoped reviews and complete source inventory hash comparisons. All production, deployment and protocol bytes remain unchanged. No new full audit is invented, and failed full attempts remain recorded. The latest user instruction authorizes one clean audit followed by complete release validation.",
   "scopedRepairReview": {
-    "path": "verification/audit-evidence/v220-ci-runtime/carry-forward.json",
-    "sha256": "176490b0664a0c7bf7e82655255ab66e6d41700579ffca0affb52f198b59b6e8"
+    "path": "verification/audit-evidence/v220-ci-automation/carry-forward.json",
+    "sha256": "df6b73576a037561c7ac3f8d0dedaacb5ff957c04b68fd8c17a577f5aa63586b"
   }
 }

@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "actualFullPlans": [
+    {
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41058861511/job/124073200807",
+      "sourceDigestPrintedInPlan": false,
+      "runId": 41058861511,
+      "event": "pull_request",
+      "actualPlan": {
+        "mode": "authorized-full",
+        "base": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+        "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+        "files": 227,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ]
+      },
+      "jobId": 124073200807,
+      "evidence": ".work/v220-ci5-plan-ui.txt",
+      "evidenceSha256": "d33e6b600dcc7c690545cc495deee605dd96750b3316162643093a5e7ded5fe5"
+    }
+  ],
+  "monitoring": {
+    "rateLimitResetUtc": "2026-10-30T13:35:56Z",
+    "status": "completed-from-authenticated-browser-evidence; public-api-limited",
+    "remaining": 0,
+    "httpStatus": 403,
+    "noBypass": true,
+    "fallback": "Root authenticated browser for actual plans, job outcomes and final logs; no public API polling before reset.",
+    "currentOwner": "root authenticated CUA browser; reviewer consumes saved evidence"
+  },
+  "distinctCaseCount": null,
+  "limitations": [
+    "Public API discovery succeeded, then rate limit 403 prevented subsequent job/check metadata reads. Monitoring uses root authenticated browser evidence; no bypass.",
+    "No workflow cancellation or retry was performed. The push plan is selected 64, so no supersession occurred.",
+    "Required PR full run failed. Actual Linux raw counts are recorded; Windows, root and Go exact counts and global distinct reconciliation remain unverified until their own logs/artifacts are supplied.",
+    "Security workflow success is separate from the CodeQL aggregate result, which has not yet been observed for this candidate.",
+    "The automations failure is an onSaved callback assertion. No production or test root cause is inferred from the assertion alone."
+  ],
+  "expectedFullTestFiles": 227,
+  "sourceFiles": 1941,
+  "observedAt": "2026-10-30T13:06:54.5157667Z",
+  "runs": [
+    {
+      "id": 41058861511,
+      "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+      "runAttempt": 1,
+      "jobs": [
+        {
+          "conclusion": "success",
+          "status": "completed",
+          "id": 124073200807,
+          "evidence": ".work/v220-ci5-plan-ui.txt",
+          "name": "plan"
+        },
+        {
+          "conclusion": "success",
+          "status": "completed",
+          "id": 124073420531,
+          "evidence": "root browser observation relayed in collaboration; exact case counts not yet available",
+          "name": "root_deploy"
+        },
+        {
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "evidenceSha256": "df7c2654ab9299de06d8b31b1e907a22f3e5105bb21cde171278945755450f5e",
+          "conclusion": "success",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41058861511/job/124073420543",
+          "distinctCaseCount": null,
+          "evidence": ".work/v220-ci5-windows-ui.txt",
+          "duration": "7m 31s",
+          "id": 124073420543,
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "event": "pull_request",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41058861511",
+      "name": "Reviewed checks",
+      "conclusion": "failure",
+      "platformEvidence": [
+        {
+          "python": {
+            "testsRun": 460,
+            "result": "OK",
+            "rawLogLines": [
+              1753,
+              1755
+            ]
+          },
+          "evidence": ".work/v220-ci5-linux-raw.txt",
+          "relatedCases": [
+            {
+              "file": "tests/runtime/automation-native.test.ts",
+              "tests": 1,
+              "result": "pass",
+              "rawLogLines": [
+                785,
+                786
+              ]
+            },
+            {
+              "file": "web/tests/credit-nudge.test.tsx",
+              "tests": 2,
+              "result": "pass",
+              "rawLogLine": 813
+            }
+          ],
+          "javascript": {
+            "filesPassed": 165,
+            "filesTotal": 168,
+            "testsFailed": 1,
+            "testsTotal": 1651,
+            "testsPassed": 1635,
+            "filesFailed": 1,
+            "rawLogLines": [
+              1282,
+              1283
+            ],
+            "testsSkipped": 15,
+            "filesSkipped": 2
+          },
+          "go": {
+            "result": "not independently established from a case artifact",
+            "distinctCaseCount": null
+          },
+          "target": "linux",
+          "failure": {
+            "sourceLine": 535,
+            "testFile": "web/tests/automations.test.tsx",
+            "expected": 1,
+            "diagnosticBoundary": "The failed assertion observes onSaved, not the total count of automation/update requests. The precise timing and root cause remain under investigation.",
+            "rawLogLines": [
+              876,
+              877,
+              1268,
+              1271
+            ],
+            "actual": 0,
+            "testName": "keeps an edited-then-restored draft after update recovery and requires explicit rebase for a newer record",
+            "assertion": "expect(props.onSaved).toHaveBeenCalledTimes(1)"
+          },
+          "conclusion": "failure",
+          "evidenceSha256": "874be40d250875e55fdf856ab1dfed33f33d991cfa38e4882c9aee25509210c0",
+          "negativeFixtureBoundary": "The earlier tooling tests intentionally exercise empty tests and a broken fixture. Their nested error output is not counted as an additional product failure."
+        }
+      ],
+      "artifacts": [
+        {
+          "sizeBytes": 9602,
+          "contentsReadByReviewer": false,
+          "id": 12978670606,
+          "name": "ci-plan",
+          "source": "authenticated browser saved reconciliation raw log",
+          "expectedSha256": "786cf2e1c4d60c3b8ad8e4229f3c4225fd240dd048047fb2572cd26a53f6017a"
+        },
+        {
+          "sizeBytes": 12094,
+          "contentsReadByReviewer": false,
+          "id": 12978417249,
+          "name": "cases-linux-root",
+          "source": "authenticated browser saved reconciliation raw log",
+          "expectedSha256": "e86681db06c6895c9d5f0d12709e00ded60184e060379353baf6a0085d80bd04"
+        },
+        {
+          "sizeBytes": 29357,
+          "contentsReadByReviewer": false,
+          "id": 12978013279,
+          "name": "cases-linux",
+          "source": "authenticated browser saved reconciliation raw log",
+          "expectedSha256": "9508e36b8180c1b64fd3034db1591d73f0f2db7b5fb53fa663629f3e82ca8669"
+        },
+        {
+          "sizeBytes": 128494,
+          "contentsReadByReviewer": false,
+          "id": 12977958808,
+          "name": "cases-windows",
+          "source": "authenticated browser saved reconciliation raw log",
+          "expectedSha256": "ec3c507f967bcd4da3f253d8a69e05c9afc5e38919eb381fada82f6121c93708"
+        },
+        {
+          "sizeBytes": 2631,
+          "contentsReadByReviewer": false,
+          "id": 12977728693,
+          "name": "source-security",
+          "source": "authenticated browser saved reconciliation raw log",
+          "expectedSha256": "87ebd60f8c1ac76f00b12354f0fec7b4929363720bd58a1359ca9f6474efcc55"
+        },
+        {
+          "sizeBytes": 1950,
+          "contentsReadByReviewer": false,
+          "id": 12977638482,
+          "name": "windows-controller-preflight",
+          "source": "authenticated browser saved reconciliation raw log",
+          "expectedSha256": "32e10c2ddb98ea4a4e2b6dfaad45af4f943f4916478a561255167c08096ddb3f"
+        }
+      ],
+      "reconciliation": {
+        "distinctCaseCount": null,
+        "status": "failure",
+        "evidence": ".work/v220-ci5-reconcile-raw.txt",
+        "note": "The log confirms all six artifact downloads and SHA checks inside the hosted job. It does not print distinct case counts.",
+        "artifactDownloadsReported": 6,
+        "evidenceSha256": "cdcdeefbad44ee0a4849f92a18d9eb4ff08d04fc31a5e34df52dc99cdc42ca60",
+        "message": "CI validation refused: Incomplete or failed evidence for linux"
+      },
+      "otherPlatformStatus": {
+        "windows": {
+          "source": ".work/v220-ci5-windows-ui.txt",
+          "cases": null,
+          "conclusion": "success",
+          "jobId": 124073420543,
+          "status": "completed",
+          "evidenceSha256": "df7c2654ab9299de06d8b31b1e907a22f3e5105bb21cde171278945755450f5e"
+        },
+        "linux-root": {
+          "source": "root browser observation relayed earlier",
+          "cases": null,
+          "jobId": 124073420531,
+          "conclusion": "success",
+          "status": "completed"
+        }
+      }
+    },
+    {
+      "id": 41058854659,
+      "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+      "runAttempt": 1,
+      "jobs": [
+        {
+          "conclusion": "success",
+          "status": "completed",
+          "id": 124073178211,
+          "evidence": ".work/v220-ci5-push-plan-ui.txt",
+          "name": "plan"
+        },
+        {
+          "conclusion": "success",
+          "status": "completed",
+          "id": 124073401955,
+          "evidence": "root browser observation relayed in collaboration; exact case counts not yet available",
+          "name": "root_deploy"
+        },
+        {
+          "distinctCaseCount": null,
+          "status": "completed",
+          "id": 124076208990,
+          "name": "Verified case coverage",
+          "conclusion": "success",
+          "evidence": ".work/v220-ci5-push-final-ui.txt"
+        }
+      ],
+      "status": "completed",
+      "event": "push",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41058854659",
+      "name": "Reviewed checks",
+      "conclusion": "success",
+      "evidence": ".work/v220-ci5-push-final-ui.txt",
+      "evidenceSha256": "36643acce9599077f318d9ffeea8c647ac3f6d00a28004bb75bf395cf8e7af00",
+      "standardMatrix": {
+        "source": ".work/v220-ci5-push-final-ui.txt",
+        "jobsCompleted": 2,
+        "distinctCaseCounts": null,
+        "exactJobIds": null,
+        "conclusion": "success"
+      }
+    },
+    {
+      "id": 41058861408,
+      "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+      "runAttempt": 1,
+      "jobs": [],
+      "status": "completed",
+      "event": "pull_request",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41058861408",
+      "name": "Security checks",
+      "conclusion": "success",
+      "evidence": ".work/v220-ci5-security-ui.txt",
+      "evidenceSha256": "4a960fc61b2b4df65039daefbebf77607e9740df702e97ff26dafbb67f72f93f",
+      "observedGroups": [
+        "dependencies",
+        "codeql (javascript-typescript)",
+        "codeql (python)"
+      ],
+      "codeqlAggregate": {
+        "conclusion": null,
+        "status": "not-yet-observed-for-this-head",
+        "note": "Security analysis workflow success does not establish CodeQL aggregate success."
+      }
+    }
+  ],
+  "authorizationSha256": "2363ffb3e0230226749cd6a7e45046ca921cb67815cfb0e81e2300dc749808cd",
+  "sourceDigest": "8e863b046390e60bef6e60b41082e4298909370aa0da75beac03737f8afed4b6",
+  "candidate": "37881beb7234fc257889f62184f6b88d6f0df24d",
+  "samples": [
+    {
+      "securityWorkflow": "success",
+      "pushPlan": "selected 64",
+      "source": "saved authenticated browser DOM plus root relayed root job outcomes",
+      "observedAt": "2026-10-30T12:59:21.866898Z",
+      "cancellationPerformed": false,
+      "prPlan": "authorized-full 227"
+    },
+    {
+      "requiredFullPrConclusion": "failure",
+      "linuxPython": "460 tests, OK",
+      "creditNudge": "2 passed",
+      "linuxJs": "1 failed, 1635 passed, 15 skipped",
+      "evidenceSha256": "874be40d250875e55fdf856ab1dfed33f33d991cfa38e4882c9aee25509210c0",
+      "nativeAutomation": "pass",
+      "source": ".work/v220-ci5-linux-raw.txt",
+      "observedAt": "2026-10-30T13:05:32.7932509Z"
+    },
+    {
+      "observedAt": "2026-10-30T13:06:38.3690121Z",
+      "distinctCaseCount": null,
+      "fullPrReconciliation": "failure: Incomplete or failed evidence for linux",
+      "source": [
+        ".work/v220-ci5-push-final-ui.txt",
+        ".work/v220-ci5-reconcile-raw.txt"
+      ],
+      "pushConclusion": "success"
+    }
+  ],
+  "actualPlans": [
+    {
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41058861511/job/124073200807",
+      "sourceDigestPrintedInPlan": false,
+      "runId": 41058861511,
+      "event": "pull_request",
+      "actualPlan": {
+        "mode": "authorized-full",
+        "base": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+        "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+        "files": 227,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ]
+      },
+      "jobId": 124073200807,
+      "evidence": ".work/v220-ci5-plan-ui.txt",
+      "evidenceSha256": "d33e6b600dcc7c690545cc495deee605dd96750b3316162643093a5e7ded5fe5"
+    },
+    {
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41058854659/job/124073178211",
+      "sourceDigestPrintedInPlan": false,
+      "runId": 41058854659,
+      "event": "push",
+      "actualPlan": {
+        "mode": "selected",
+        "base": "6052085f095bdb0f7a0681501febfce8362a57c9",
+        "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+        "files": 64,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ]
+      },
+      "jobId": 124073178211,
+      "evidence": ".work/v220-ci5-push-plan-ui.txt",
+      "evidenceSha256": "22e82c3e40794f9b4773bd4ccae69f8438aa9b3cf7731080963f28497784f200"
+    }
+  ],
+  "workflowCancellation": {
+    "supersession": false,
+    "performed": false,
+    "reason": "Actual browser plans show PR authorized-full 227 files and push selected 64 files; the contemplated redundant-full cancellation was withdrawn before any action."
+  },
+  "status": "completed-failure-for-required-full-pr-gate",
+  "requiredFullPrGate": {
+    "runId": 41058861511,
+    "conclusion": "failure",
+    "source": "root authenticated browser observation with saved Linux raw log",
+    "distinctCaseCount": null,
+    "status": "completed"
+  }
+}
