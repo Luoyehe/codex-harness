@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "ci-runtime-and-fixture-review-carry-forward",
+  "completedAt": "2026-10-30T12:53:11.300Z",
+  "priorSourceDigest": "468803191f18e3950286f76348a8538a65ce5a90cb5538a7d0fafa56e3126cbe",
+  "sourceDigest": "8e863b046390e60bef6e60b41082e4298909370aa0da75beac03737f8afed4b6",
+  "sourceFiles": 1941,
+  "originalFullAudit": "verification/audit-evidence/v220-round5/team.json",
+  "changedFiles": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "previousSha256": "24b110974140c14c7c3879f503615a8262f9d379762ab1f2c999529a2ca7eb3f",
+      "sha256": "629e24da3d7c7ae11a9feaa2806c711144906e128a7c9eb0df94641e56b66c15"
+    },
+    {
+      "path": "web/tests/credit-nudge.test.tsx",
+      "previousSha256": "b978ea00088656954c14a81dcecca0b383ee28ef43e57f6b5075739355c05bec",
+      "sha256": "29fb51ea1e137eb9e70a63a370c8ef2adba6231e187b218b33fea1bbfb48e112"
+    }
+  ],
+  "unchangedFiles": 1939,
+  "method": "Rehashed the complete source inventory against actual clean round5. Exactly two files changed: four CI runtime pins now match existing production Node24.22.1, and one notification UI fixture explicitly waits for its controlled preview before confirming a send. Independent reviews preserve complete selection, assertions, identity, once-only send, exact original receipt recovery, concurrency, skips and failure gates. All application, deployment and protocol files are byte-identical. No new complete audit round is claimed. Official upstream Windows TCP defects are fixed by the CI runtime update; the exact historical native crash stacks were not obtained.",
+  "newFullAuditRounds": 0,
+  "findings": [],
+  "reviewArtifacts": [
+    {
+      "path": "verification/audit-evidence/v220-ci-runtime/independent-review.json",
+      "sha256": "7616ac6031fcb10767f6f040d9aa23bfd529d154a141bb7cd4af00163eb14abc"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-runtime/credit-fixture-review.json",
+      "sha256": "bbb0a91d44554a9117e1d9d5b945fcce00b788bf9a9d461537e9d7935fbe56a0"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-runtime/credit-fixture-repair.json",
+      "sha256": "f0c15cfb3c1334528bfc421abe42b52d80b37c66617b30f79e68d91d0e08f874"
+    }
+  ],
+  "directed": {
+    "files": [
+      "tests/tooling/ci-checks.test.ts",
+      "tests/tooling/test-environment.test.ts"
+    ],
+    "node": "24.22.1",
+    "passed": 12,
+    "skipped": 1,
+    "skip": "Linux-only traversable root-fixture temporary path case; must pass on Linux in full CI",
+    "reportSha256": "b51565e52e320a56e400443b0a56d2ecea5d2ef8d974a6a8001c8eb16d56676b"
+  },
+  "priorFailure": {
+    "run": "https://github.com/Luoyehe/codex-harness/actions/runs/41056493419",
+    "head": "6052085f095bdb0f7a0681501febfce8362a57c9",
+    "target": "Windows affected",
+    "observed": "Vitest worker exited 3221226505 during tests/gateway/http.test.ts; no business assertion failure reported",
+    "rawLogSha256": "be3cdfa1d432b8f3f2fcb5227470b3a2651fb5db550abada170d3808879dba6a",
+    "causality": "Unconfirmed without a native stack. A same-version local exact-file run passed25/25; this does not erase the hosted failure."
+  },
+  "fullTestsPassed": false,
+  "deployed": false,
+  "unchangedApplicationDeploymentAndProtocol": true,
+  "additionalDirected": [
+    {
+      "files": [
+        "tests/gateway/http.test.ts",
+        "web/tests/preview-server.test.ts"
+      ],
+      "node": "24.22.1",
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0,
+      "reportSha256": "5fd0d003d092922f19883dd49e2f1902d0e7a9ba279e92995e615b11d1d1eb12"
+    },
+    {
+      "files": [
+        "web/tests/credit-nudge.test.tsx"
+      ],
+      "node": "24.22.1",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "reportSha256": "21915f521fc64a7c72ce697c0e42e1307ed2a1ac8c10cb132260cf3e202e7549"
+    }
+  ],
+  "previousFullAttempt": {
+    "run": "https://github.com/Luoyehe/codex-harness/actions/runs/41056500121",
+    "head": "6052085f095bdb0f7a0681501febfce8362a57c9",
+    "status": "failed",
+    "windows": "passed",
+    "linuxRoot": "passed",
+    "linux": "failed",
+    "failedCase": "web/tests/credit-nudge.test.tsx::uncertain email delivery queries its original receipt and never resends",
+    "nativeAutomation": "passed",
+    "javascript": {
+      "files": 168,
+      "passed": 1635,
+      "failed": 1,
+      "skipped": 15
+    },
+    "python": {
+      "executed": 460,
+      "status": "OK"
+    },
+    "rawLinuxLogSha256": "e4440cbd252764f2ef6860b3f3682791a352a84bea20884b78d2f1a4b9d33043",
+    "distinctCaseCount": null
+  }
+}

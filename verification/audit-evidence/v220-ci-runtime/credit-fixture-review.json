@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-runtime",
+  "kind": "independent-read-only-targeted-fixture-review",
+  "completedAt": "2026-10-30T12:51:49.289595+00:00",
+  "scope": [
+    "web/tests/credit-nudge.test.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/hooks/useResource.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/lib/api.ts",
+    "src/runtime/account-tools.ts"
+  ],
+  "method": "Read the final test diff and complete CreditNudge, ExtensionControls, useResource and useWorkflow; traced Api beginMutation persistent intent/error mapping and native AccountTools nudge preview/confirmation/unknown handling. Cross-checked the actual CI4 Linux failed DOM and exact failing assertion. No source changes or test reruns by this reviewer. Author targeted report was read; prior passing baseline and final targeted pass do not reproduce hosted timing.",
+  "reviewedFileHashes": [
+    {
+      "path": "web/tests/credit-nudge.test.tsx",
+      "sha256": "29fb51ea1e137eb9e70a63a370c8ef2adba6231e187b218b33fea1bbfb48e112"
+    },
+    {
+      "path": "web/components/CreditNudge.tsx",
+      "sha256": "0582f6d8f01a13d245a1885ce795b697ed3e33c86145c9ca264b5efcae7dc11e"
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "sha256": "9bffd195afa540308d09af1c86875697aae765f62ee274739baa619b201f6c9a"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "sha256": "ac8b2d891088f9eeb49a607c4c90c0fac11204698c3f701d2773d1714eeaa156"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "fac6e251c9f1567110a1901bb815c192660c5fb3b5585a264ec59a0deb5bc639"
+    },
+    {
+      "path": "src/runtime/account-tools.ts",
+      "sha256": "002ba18612e76cfd53b667e7a09ca5747bca5bd9b7ee8d4657f9ec06355f85ec"
+    }
+  ],
+  "findings": [],
+  "testReadinessFinding": {
+    "original": "findByRole waited for a send button rendered even while the preview was pending; checkbox snapshots empty preview hash if clicked then, so disabled button correctly dispatches nothing.",
+    "hostedEvidence": ".work/v220-ci4-linux-raw.txt:849",
+    "boundary": "Static execution-order defect identified; original CI exact timing was not instrumented or locally reproduced."
+  },
+  "preservedAndStrengthenedAssertions": [
+    "Explicit controlled pending preview verifies checkbox cannot bind empty hash and disabled send dispatches nothing.",
+    "Resolving the exact preview through act flushes React before assertions; checkbox remains unchecked and send remains disabled until new user confirmation.",
+    "Reason change clears confirmation; subsequent explicit confirmation enables one send and duplicate click does not create another send.",
+    "Cooldown message still distinguishes no new email from confirmed sent.",
+    "Uncertain delivery still yields a recovery action, one nonempty original operation identity, no read before recovery click, exactly one send, only reads of original identity, and positive sent result.",
+    "Production keeps durable pre-dispatch intent, unknown receipt and no automatic resend; test does not mock away that chain."
+  ],
+  "notWeakened": [
+    "No assertion removed for once-only delivery, reason-specific params or cooldown.",
+    "No timeout increase, sleep, retry, skip, product-source change, or falsely accepted unknown result."
+  ],
+  "authorValidation": {
+    "report": ".work/test-results/run-ZAjeN3/vitest.json",
+    "reportedPassed": 2,
+    "reportedFailed": 0,
+    "reviewerReran": false,
+    "actualReportCounts": {
+      "numTotalTests": 2,
+      "numPassedTests": 2,
+      "numFailedTests": 0,
+      "success": true
+    }
+  }
+}

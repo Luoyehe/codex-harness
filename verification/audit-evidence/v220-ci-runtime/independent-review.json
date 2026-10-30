@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "/root/v220_round4_web",
+  "kind": "scoped-read-only-Windows-crash-and-CI-environment-review",
+  "completedAt": "2026-10-30T12:48:28.1817590Z",
+  "reviewedHead": "6052085f095bdb0f7a0681501febfce8362a57c9",
+  "baselineAudit": {
+    "path": ".work/v220-audit5-web.json",
+    "sourceDigest": "468803191f18e3950286f76348a8538a65ce5a90cb5538a7d0fafa56e3126cbe",
+    "note": "This is a subsequent scoped CI environment review, not another full audit round. Parent is responsible for complete source-hash carryforward and new full CI."
+  },
+  "observedFailure": {
+    "log": ".work/v220-ci4-push-windows-raw.txt",
+    "logSha256": "be3cdfa1d432b8f3f2fcb5227470b3a2651fb5db550abada170d3808879dba6a",
+    "line": 565,
+    "file": "tests/gateway/http.test.ts",
+    "exitCode": 3221226505,
+    "hexExitCode": "0xc0000409",
+    "workerState": "started",
+    "os": "Windows Server 2025 10.0.26100, Azure hosted image windows-2025-vs2026 20261021.278.1",
+    "nativeStackAvailable": false,
+    "nativeAssertionAvailable": false,
+    "individualFailedTestKnown": false,
+    "earlierRelatedObservation": "CI1 reported the same worker exit code while running web/tests/preview-server.test.ts. Identical exit codes alone do not prove an identical cause."
+  },
+  "repositoryReview": {
+    "methods": [
+      "Read relevant raw CI error and runner-environment records.",
+      "Read HTTP test fixture and connection/response/cleanup cases; inspected remaining test cleanup/process-call inventory.",
+      "Read complete current preview-server.test.ts and preview-server.mjs.",
+      "Read relevant GatewayServer request, socket tracking and close paths, auth/ledger imports and close calls, auth crypto derivation, WorkerClient construction, shared test setup and runner spawn/result checks.",
+      "Searched process termination calls across current tests/scripts/src/web tests; reviewed Windows job/process assignment and termination targets plus test cleanup sources and preflight sequencing.",
+      "Read complete affected.yml after the initial three-line change, then reviewed exact final four-line diff; read selectCiPlan, runCi and reconcileCi guards and runVitest exact-file/failure checks.",
+      "Read official upstream release records, merged PRs, and downloaded exact v24.15.0/v24.22.1 TCP/platform source for physical-line comparison."
+    ],
+    "facts": [
+      "Both failing files exercise local plain HTTP, TCP sockets and ws. Preview has no SQLite/authentication dependency and neither fixture performs HTTPS/TLS handshakes, so a common SQLite or TLS execution cause was not established.",
+      "Neither failing test directly spawns or kills a process. Gateway HTTP tests inject an in-memory backend. Gateway close operates on its own HTTP/WebSocket server and clients; preview close operates on its tracked sockets. Imported preview does not register process signal handlers.",
+      "The test runner spawns Vitest with shell:false and inherits output; native-process preflight is a completed separate workflow step before Vitest starts. Windows controllers assign only their newly created suspended child to a new job; parent process handles are opened for synchronization, not termination. Job cleanup requests exit code 1. No observed path targets the unrelated HTTP/preview worker.",
+      "Other Windows tests do retain owned fixture PIDs for fallback cleanup. Static inspection cannot prove runtime PID reuse never occurs, but no evidence connects that fallback to the current 0xc0000409 failure.",
+      "The lockfile installs ws 8.22.0 without bufferutil/utf-8-validate dependencies. This is not proof that every loaded native component is uninvolved.",
+      "The common TCP connect path reaches a confirmed upstream defect in the old CI Node version. This supports updating the CI runtime without altering production HTTP logic or test assertions."
+    ]
+  },
+  "upstreamEvidence": [
+    {
+      "issue": "Uninitialized Windows OSVERSIONINFOW in libuv TCP version check",
+      "pr": "https://github.com/nodejs/node/pull/62561",
+      "upstreamCommit": "libuv/libuv aabb7651de",
+      "node24BackportCommit": "7ce95afe96",
+      "release": "https://nodejs.org/en/blog/release/v24.16.0",
+      "oldSource": {
+        "url": "https://raw.githubusercontent.com/nodejs/node/v24.15.0/deps/uv/src/win/tcp.c",
+        "local": ".work/v220-upstream-v24.15.0-tcp.txt",
+        "sha256": "858d50be27eababdb8c17388b3b25d05da0bc8d0c390b8be76f1e8814705ea1d",
+        "physicalLines": "753-757 and 812",
+        "finding": "uv__is_fast_loopback_fail_supported declares OSVERSIONINFOW then calls RtlGetVersion without setting the size field. uv__tcp_try_connect calls this helper."
+      },
+      "updatedSource": {
+        "url": "https://raw.githubusercontent.com/nodejs/node/v24.22.1/deps/uv/src/win/tcp.c",
+        "local": ".work/v220-upstream-v24.22.1-tcp.txt",
+        "sha256": "0977304c15a7fa53570ca9baf59ded72af1352f8ca623b48fcca9becd1eecd81",
+        "physicalLines": "55-61 and 870",
+        "finding": "The renamed helper initializes dwOSVersionInfoSize and szCSDVersion before RtlGetVersion; the TCP connect path uses that fixed helper."
+      },
+      "relevance": "The merged upstream PR documents random native test-suite failures in TCP code with __report_gsfailure. The project fixtures repeatedly establish loopback TCP connections and therefore use the affected API path. This is a concrete applicable upstream defect, but our exact two crash stacks are unavailable."
+    },
+    {
+      "issue": "Posting delayed platform work after shutdown can trigger Windows libuv assertion",
+      "pr": "https://github.com/nodejs/node/pull/61999",
+      "node24BackportCommit": "05ec9c4771",
+      "release": "https://nodejs.org/en/blog/release/v24.20.0",
+      "oldSource": {
+        "url": "https://raw.githubusercontent.com/nodejs/node/v24.15.0/src/node_platform.cc",
+        "local": ".work/v220-upstream-v24.15.0-platform.txt",
+        "sha256": "da453e71391a46a6a91ecaeb1f2e809d4ad2570004050974b642585cde4e4497",
+        "physicalLines": "115-137",
+        "finding": "DelayedTaskScheduler PostDelayedTask and Stop lack the new shutdown guard."
+      },
+      "updatedSource": {
+        "url": "https://raw.githubusercontent.com/nodejs/node/v24.22.1/src/node_platform.cc",
+        "local": ".work/v220-upstream-v24.22.1-platform.txt",
+        "sha256": "75bc7156c7847fae1b157b6f2be3f2e36112a94fa65a56a9706c39bf65b73c84",
+        "physicalLines": "115-140 and 247",
+        "finding": "PostDelayedTask returns when has_shut_down_ is set; Stop sets the flag under the same tasks lock, preventing a later enqueue/send through that path."
+      },
+      "relevance": "A second independently verified Windows native failure fix included in 24.22.1. The current log says worker started, not normal shutdown, and contains no matching assertion, so this cannot be identified as the actual failure."
+    }
+  ],
+  "workflowReview": {
+    "file": ".github/workflows/affected.yml",
+    "sha256": "629e24da3d7c7ae11a9feaa2806c711144906e128a7c9eb0df94641e56b66c15",
+    "physicalLines": [
+      46,
+      96,
+      173,
+      233
+    ],
+    "change": "All four setup-node pins change from 24.15.0 to 24.22.1: plan, standard Linux/Windows matrix, root_deploy and coverage.",
+    "scopeConfirmedByGitDiff": "Exactly one tracked file, four insertions and four deletions. No application or test source modification in this diff.",
+    "deploymentAlignment": "deploy/common.py:14 already pins NODE_VERSION=24.22.1.",
+    "testSemantics": "No changes to selected file inventories, source-bound full authorization, matrix platforms, maxWorkers, fail-fast setting, test commands, skips, report retention, failure acceptance or final case reconciliation. runVitest still rejects nonzero process exit; reconcileCi requires all expected reports, exact head/source/file identities and at least one passed result per observed case. Worker crashes remain failures.",
+    "findings": []
+  },
+  "verificationEvidence": {
+    "testsRunByThisReviewer": [],
+    "parentTargetedReportInspected": ".work/test-results/run-YkDFS6/vitest.json",
+    "parentTargetedResult": {
+      "total": 13,
+      "passed": 12,
+      "failed": 0,
+      "pending": 1
+    },
+    "parentTargetedFiles": [
+      "tests/tooling/ci-checks.test.ts",
+      "tests/tooling/test-environment.test.ts"
+    ],
+    "parentReportedOtherEvidence": [
+      "One local exact HTTP file run on Node 24.15.0 passed 25/25; .work/v220-ci4-http-node2415.log and .work/test-results/run-GGHFH5/vitest.json.",
+      "The same-head full PR Windows CI passed on old Node. This status was reported by parent, not independently downloaded during this review. A passing run does not disprove an intermittent upstream defect."
+    ]
+  },
+  "conclusion": "Approve the narrow CI Node alignment to the already pinned deployment runtime. Exact official source confirms the candidate runtime includes both cited fixes. No actionable application or test-cleanup defect was confirmed by this scoped review. Preserve failed-run evidence and require new complete CI; do not claim the historical crash cause is proven or classify the failure as resource exhaustion.",
+  "limitations": [
+    "No crash dump, native stack or assertion identifies the exact historical failure site.",
+    "No tests, reproductions, deployed changes or production network calls were performed by this reviewer in this task.",
+    "This is not a new full repository audit and does not itself establish new full-test success.",
+    "Physical upstream source line numbers come from the downloaded raw files; browser text extraction collapses whitespace and can show different line offsets."
+  ],
+  "findings": []
+}
