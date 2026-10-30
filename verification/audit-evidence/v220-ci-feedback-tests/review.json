@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-scoped-test-fixture-review",
+  "reviewerId": "v220-final-deploy",
+  "complete": true,
+  "completedAt": "2026-10-30T19:01:43.147309+00:00",
+  "baselineSourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+  "sourceFiles": 1947,
+  "authorEvidence": {
+    "path": ".work/v220-ci10-web-fixture-fix.json",
+    "sha256": "074bfe7e5e5350dd603734afa48f0bf2def2b26226d5a901438c698bd7be2c1f"
+  },
+  "inspectedFiles": [
+    "web/tests/process-remote.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/project-handoff.test.tsx"
+  ],
+  "reviewedFileHashes": {
+    "web/tests/process-remote.test.tsx": "3c5208222a9d0b30a8cbdbc493b4262d4c00432a4fc2a85eb42354357ec2d48b",
+    "web/tests/app-lifecycle.test.tsx": "086790117a0db9b8a1fe0ff0cd44fc2d5cdf83d5fbaf88a941f1caf8aa987e4d",
+    "web/tests/project-handoff.test.tsx": "792112c42e51987044f25756f7cd96b1fc7f60b06e9696de0ee8bf727d7a2617"
+  },
+  "method": "Independent read-only review of all three exact final test diffs plus fixture setup/settling helpers and relevant production identity, confirmation, mutation, receipt and navigation paths. Verified current file hashes against the sealed author record and parsed both supplied three-file test-result JSONs with their hashes. No tests rerun, no source edit, no remote operation. Full1947-file carry-forward/hash audit is separately assigned to runtime reviewer; this report does not claim a new full repository audit.",
+  "semanticChecks": [
+    {
+      "file": "web/tests/process-remote.test.tsx",
+      "result": "The routed helper spies on the real instance Api.mutate without replacing it; HTTP fixture responses remain at the existing fetch boundary. Deferred initial status proves early confirmation cannot enable/start pairing, act commits environment identity and its reset effect, and a second explicit confirmation precedes the enabled click. Real mutation settling includes durable admission, accepted proof and acknowledgement. Original code visibility, status refresh, localStorage secrecy, single start and disconnect clearing assertions remain; new exact pairing/read ID assertion and held-refresh checks strengthen coverage."
+    },
+    {
+      "file": "web/tests/app-lifecycle.test.tsx",
+      "result": "The initial gateway read is deferred at the existing HTTP override boundary, not by mocking production hooks or a mutation result. Before identity is known, login stays disabled and count0; after read completion the old confirmation is visibly invalid and a new explicit confirmation names the current provider. Existing real beginMutation.result observer is awaited inside act; same-link-after-configuration-refresh and exactly one login remain, with an added original handoff-ID check. Successful displayed link still requires the actual handoff read path."
+    },
+    {
+      "file": "web/tests/project-handoff.test.tsx",
+      "result": "Api.prototype.mutate spy calls through to the production implementation. The test now checks one correct create/add mutation, awaits that real promise and checks one actual project RPC before existing navigation assertions. All new/existing/draft-save-failure branches retain selected destination, prior draft preservation, failed-storage stay-on-old-project/no conversation start, and subsequent conversation projectId assertions. Teardown drains real outstanding promises before global restoration; it neither fabricates acceptance nor retries operations."
+    },
+    {
+      "area": "Assertions and timing policy",
+      "result": "No removed business assertion, test skip/only, retry, sleep, global or per-test timeout change appears in the three diffs. Existing enabledButton still uses normal Testing Library waitFor and does not mutate disabled state. Promise.allSettled is used to drain observed work; visible success/single-write assertions remain independent and fail if the intended workflow does not complete."
+    },
+    {
+      "area": "Production boundary",
+      "result": "Reviewed Api.mutate/beginMutation, create/update/acknowledge operation transactions, ProjectDialog/useWorkflow, AccountToolsPanel provider confirmation, RemoteSettings environment reset/owner reads and fixture setup. Initialization already awaited in the prior tests; the repair makes subsequent prerequisite reads and actual durable mutation completion explicit, without weakening production authorization or unknown-result handling."
+    }
+  ],
+  "supportingFilesRead": [
+    "web/lib/api.ts",
+    "web/lib/operations.ts",
+    "web/lib/operation-store.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useResource.ts",
+    "web/components/ProjectDialog.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/Recovery.tsx",
+    "web/Workspace.tsx",
+    "web/tests/enabled-button.ts",
+    "web/tests/operation-setup.ts",
+    "vitest.config.ts"
+  ],
+  "existingValidationEvidence": [
+    {
+      "path": ".work/test-results/run-jeMuwR/vitest.json",
+      "sha256": "bed8bcbaddd84d69e8683f1a69d059a76f03604779a80ecb27d59e8821fdcde3",
+      "scope": "single local diagnostic run before repair; hosted failure not reproduced",
+      "files": 3,
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0,
+      "independentlyExecuted": false
+    },
+    {
+      "path": ".work/test-results/run-uKPwxx/vitest.json",
+      "sha256": "477859978c33efa00ea43fdbc762e5efdd4dfcede68f1236f93d78985dbb0e19",
+      "scope": "targeted verification after repair, including controlled prerequisite reads",
+      "files": 3,
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0,
+      "independentlyExecuted": false
+    }
+  ],
+  "authorReportedChecksNotRerun": [
+    "web TypeScript noEmit exit0",
+    "three-file source scan clean"
+  ],
+  "findings": [],
+  "skipped": [],
+  "limitations": [
+    "CI10 original hosted scheduling was not reproduced or phase-traced. Truncated Windows DOM does not establish whether admission, HTTP, receipt persistence or React navigation had completed; the exact cause of each hosted failure remains unproven.",
+    "The unchanged baseline and repaired targeted76-case runs are existing author evidence, not reviewer executions. Their success does not replace the next exact-source full hosted CI.",
+    "These are test synchronization repairs with controlled legitimate orderings, not proof that a production defect was fixed and not a retrospective pass for failed CI10.",
+    "No deployment/online checks, commercial account/provider calls or complete repository audit were performed by this scoped review."
+  ],
+  "endSnapshot": {
+    "files": 1947,
+    "digest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+    "unchangedSinceAuthorFreeze": true
+  }
+}

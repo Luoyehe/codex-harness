@@ -2,10 +2,16 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 import { App } from '../App';
+import { Api } from '../lib/api';
 vi.mock('@xterm/xterm', () => ({ Terminal: class {} }));
 vi.mock('@xterm/addon-fit', () => ({ FitAddon: class {} }));
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+let settleMutations = async () => {};
+afterEach(async () => { await act(settleMutations); cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 test.each(['new', 'existing', 'draft-save-failure'])('adding a project respects its destination and the prior draft (%s)', async kind => {
+  const mutations = vi.spyOn(Api.prototype, 'mutate');
+  settleMutations = async () => {
+    await Promise.allSettled(mutations.mock.results.flatMap(result => result.type === 'return' ? [result.value] : []));
+  };
   localStorage.clear(); sessionStorage.clear(); history.replaceState({}, '', '/');
   sessionStorage.setItem('harness.project', 'old');
   HTMLDialogElement.prototype.showModal = function() { this.open=true; };
@@ -54,6 +60,12 @@ test.each(['new', 'existing', 'draft-save-failure'])('adding a project respects 
   const save=within(screen.getByRole('dialog',{name:'添加项目'})).getByRole('button',{name:kind === 'existing' ? '添加项目' : '创建项目'});
   await waitFor(()=>expect(save.matches(':disabled')).toBe(false));
   fireEvent.click(save);
+  expect(mutations).toHaveBeenCalledTimes(1);
+  expect(mutations.mock.calls[0]![0]).toBe(kind === 'existing' ? 'project/add' : 'project/create');
+  // The new row follows real IndexedDB admission, accepted receipt and acknowledgement.
+  // Wait for that transaction explicitly before inspecting the resulting navigation.
+  await act(async () => { await mutations.mock.results[0]!.value; });
+  expect(requests.filter(row => row.method === 'project/create' || row.method === 'project/add')).toHaveLength(1);
   await screen.findByRole('button',{name:'New Project'});
   await waitFor(()=>expect(screen.queryByRole('dialog',{name:'添加项目'})).toBeNull());
   if(kind === 'draft-save-failure') {
