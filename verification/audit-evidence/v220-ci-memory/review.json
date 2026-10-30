@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-runtime",
+  "scope": {
+    "changedFiles": [
+      "web/tests/memory-settings.test.tsx"
+    ],
+    "productionAssociation": [
+      "web/components/MemorySettings.tsx",
+      "web/hooks/useResource.ts",
+      "web/hooks/useWorkflow.ts",
+      "web/components/ExtensionControls.tsx"
+    ],
+    "testHelper": [
+      "web/tests/enabled-button.ts"
+    ],
+    "authorEvidence": ".work/v220-ci2-memory-fix.json",
+    "failureEvidence": ".work/v220-ci2-linux-raw.txt"
+  },
+  "method": {
+    "freshReading": "Read the complete changed test file and diff, complete MemorySettings component, author evidence JSON and matching CI2 Linux failure excerpts. Checked the submitted test SHA256 against the exact requested value.",
+    "retainedContext": "Related useResource/useWorkflow/ExtensionControls and enabled-button paths were read during the preceding independent fixture review in this same session; current hashes were recorded again. This is a targeted fixture review, not a new complete repository audit.",
+    "checks": [
+      "git diff --check for web/tests/memory-settings.test.tsx passed"
+    ],
+    "notExecuted": [
+      "No tests repeated by this reviewer",
+      "No production edits",
+      "No network acceptance, workflow mutation or deployment"
+    ],
+    "authorTestEvidenceBoundary": "Author reports targeted local passes and typecheck; this reviewer did not rerun those checks and does not claim the original hosted Linux scheduling failure was locally reproduced."
+  },
+  "findings": [],
+  "conclusion": "No actionable issue found. The fix preserves and strengthens explicit compare/adopt/reconfirm gates and the exact single v2 write; it does not mock production guards, relax assertions or automatically retry a write.",
+  "evidence": [
+    {
+      "locations": [
+        "web/tests/memory-settings.test.tsx:78",
+        "web/tests/memory-settings.test.tsx:89",
+        "web/tests/memory-settings.test.tsx:95",
+        "web/components/MemorySettings.tsx:60"
+      ],
+      "assessment": "Only the second settings/read response is controlled with a deferred promise. The test now explicitly observes disabled save and preserved false choice while the read is pending, clicks the disabled save, and requires no settings/write. Resolving v2 inside awaited act settles the normal fetched-data confirm/compared reset before user review; the production effect is not bypassed or stubbed."
+    },
+    {
+      "locations": [
+        "web/tests/memory-settings.test.tsx:97",
+        "web/tests/memory-settings.test.tsx:105",
+        "web/components/MemorySettings.tsx:154",
+        "web/components/MemorySettings.tsx:167"
+      ],
+      "assessment": "Before comparison, adoption must be disabled and clicking it must leave the conflict visible. Saving still cannot write and the selected value remains false. The test then explicitly checks comparison, waits for the actual enabled adoption button, clicks it, and requires the conflict to disappear. This directly observes successful adoption instead of assuming it from a click."
+    },
+    {
+      "locations": [
+        "web/tests/memory-settings.test.tsx:107",
+        "web/tests/memory-settings.test.tsx:115",
+        "web/tests/memory-settings.test.tsx:119",
+        "web/components/MemorySettings.tsx:66",
+        "web/components/MemorySettings.tsx:170"
+      ],
+      "assessment": "Adopting v2 must leave fresh confirmation unchecked and save disabled. A disabled save click still produces no write. Only a new explicit confirmation followed by an enabled save may dispatch, with exact expectedVersion v2 and the single memories.use_memories=false leaf change. The added exact-one settings/write assertion retains the original no-replay requirement. Existing unique-layer and unknown-receipt tests remain unchanged."
+    }
+  ],
+  "limitations": [
+    "The test covers a fetched user-version change, not a real upstream rejection response or live configuration write.",
+    "CI2 remains a failed complete PR run; local targeted passes and this review do not constitute a complete hosted pass. CI3 must verify the new candidate."
+  ],
+  "reviewedFileHashes": [
+    {
+      "path": "web/tests/memory-settings.test.tsx",
+      "sha256": "753a7e645604bbbc8366c77407d8eabdabbd4d13b0ac302583742e6aca1023ae"
+    },
+    {
+      "path": "web/components/MemorySettings.tsx",
+      "sha256": "0663dff1622ed5e001b40cbc353ca81eacc6dff41e8d236ebcf7e2b71df3ff12"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "sha256": "ac8b2d891088f9eeb49a607c4c90c0fac11204698c3f701d2773d1714eeaa156"
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "sha256": "9bffd195afa540308d09af1c86875697aae765f62ee274739baa619b201f6c9a"
+    },
+    {
+      "path": "web/tests/enabled-button.ts",
+      "sha256": "3fa4bf77f2408757a5d7597d30a66e6a7dc564f9c27cfeeb58bef6c2ed6256f2"
+    }
+  ],
+  "completedAt": "2026-10-30T11:46:10.1126936Z"
+}

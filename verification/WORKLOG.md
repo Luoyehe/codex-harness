@@ -466,3 +466,8 @@ The user explicitly reduced the complete-audit gate to one clean round and chose
 ## v2.2.0 complete CI fixture follow-up
 
 The first complete push and PR checks on 8f5f966 failed. Nine test-only repairs correct privileged fixture substitutions, valid saved-provider fixtures, collapsed controls, asynchronous completion boundaries and random loopback HTTP ports. Linux nonroot/root and both pinned local Node versions passed the affected checks; independent repair reviews found no new issue. Production, deployment and configuration files are unchanged from clean round 4. Exact source `877ff9803635717ffae9a90ed318d901e281be1d40c00ac5e62461f2b22601a6` is authorized for another complete CI attempt; no final pass or deployment is claimed. See verification/audit-evidence/v220-ci-repair.
+
+
+## v2.2.0 memory fixture follow-up
+
+Complete CI2 failed its Linux memory-settings revision-conflict test, while Windows and root passed. The single additional test-only repair controls the second asynchronous read and checks compare/adopt/fresh-confirm/one-v2-write in order. Both pinned Node versions passed affected checks; independent review found no new issue. All other 1,940 source files are unchanged from CI2. Source `14158d3f46a6728c06fb33d7d7f0f2c5d628b8259178d2992f35d0bcc750965f` is authorized for a fresh complete attempt; publication/deployment remain pending.
