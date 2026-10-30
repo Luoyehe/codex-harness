@@ -252,7 +252,7 @@ class CandidateArchiveBoundaryTests(unittest.TestCase):
             events.append("exit " + name)
         with patch.object(archive, "require_initialization_complete"), \
              patch.object(archive, "initialization_lock", side_effect=lambda _: lock("initialization")), \
-             patch.object(archive, "root_lock", side_effect=lambda _: lock("management")), \
+             patch.object(archive, "management_lock", side_effect=lambda _: lock("management")), \
              patch.object(archive, "Manager"), patch.object(archive, "archive_locked", side_effect=lambda *_: events.append("archive")):
             archive.archive_candidate(Layout("fixture"), "a" * 32, confirm_stop=True)
         self.assertEqual(events, ["enter initialization", "enter management", "archive", "exit management", "exit initialization"])

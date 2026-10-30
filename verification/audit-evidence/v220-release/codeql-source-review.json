@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-runtime",
+  "kind": "independent-current-source-codeql-helper-delta-review",
+  "complete": true,
+  "completedAt": "2026-10-30T14:11:41.277Z",
+  "source": {
+    "files": 1941,
+    "digest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01"
+  },
+  "ci7CandidateHead": null,
+  "findings": [],
+  "conclusion": "No new actionable disclosure found in the reviewed fixed Bedrock credential-return path. The sole change among the 16 originally reviewed source files is an explicit legacy sudo renderer option; its default emitted policy and the native private-pipe bearer consumer remain unchanged. This source assessment does not claim a CI7 automated result or resolve the historical aggregate failure.",
+  "method": "Read-only independent source review: rehashed every one of 16 source and nine reference/evidence files from the original focused review; manually reviewed the complete units.py delta, native credential-helper entry/identity/file/provider checks, stdout return and generic error handling, saved official external-bearer private-pipe/trim/cache consumer, native launch allowlist and diagnostic redaction. Retains unchanged prior semantic reasoning for other reviewed regions and reads the current recovery/migration use of the legacy renderer option. No network fetch/search, browser, tests, helper invocation, provider call or deployment.",
+  "priorReview": {
+    "path": ".work/v220-codeql-native-helper-review.json",
+    "sha256": "27dbcd0d6c0db1137d02e803102ab284f22056eef412a31d8fdcdd525d461419",
+    "head": "adfefc0cd53e9e49c0056afe0c0208dc4992dd63",
+    "conclusion": "No actionable credential disclosure found in the reviewed managed Bedrock helper path. The stdout sink is the intentional bearer-return protocol consumed through a private CLI child pipe, not a Harness logging call. The multi-provider extension selects an enabled saved Bedrock identity without adding an identity allowed to read these credentials."
+  },
+  "historicalCi6": {
+    "evidence": ".work/v220-ci6-codeql-review-carryforward.json",
+    "sha256": "1431b0976ef29ad7fe639b951d34fc47de914e9466814f9975ea71d846447843",
+    "candidate": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+    "automatedAggregate": {
+      "id": 124082389182,
+      "conclusion": "failure",
+      "configurationWarning": ".github/workflows/ci.yml:codeql was present on refs/heads/main but not found for this analysis",
+      "annotation": {
+        "path": "deploy/native_launcher.py",
+        "line": 244,
+        "severity": "high",
+        "title": "Clear-text logging of sensitive information",
+        "alertId": 5
+      }
+    },
+    "boundary": "Historical observation only. CI6 Security workflow success was distinct from its failed aggregate. The missing legacy configuration warning and sensitive-stdout annotation were not dismissed or converted to green."
+  },
+  "ci7AutomatedObservation": {
+    "observed": false,
+    "runId": null,
+    "aggregateCheckId": null,
+    "conclusion": null,
+    "note": "CI7 has not been observed for a new committed head. Future monitoring must record actual Security workflow and aggregate results independently."
+  },
+  "sourceFiles": [
+    {
+      "path": "deploy/native_launcher.py",
+      "previouslyReviewedSha256": "824a742b54de568569305df6023f964f0d7fb07a54f85798f3c714f9452725a8",
+      "currentSha256": "824a742b54de568569305df6023f964f0d7fb07a54f85798f3c714f9452725a8",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/provider_bedrock.py",
+      "previouslyReviewedSha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+      "currentSha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "previouslyReviewedSha256": "26d9adb18c915a57a2fd38577002b0ed4c97ef7a1834fcb639cf60b4d6223bf6",
+      "currentSha256": "26d9adb18c915a57a2fd38577002b0ed4c97ef7a1834fcb639cf60b4d6223bf6",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/provider.py",
+      "previouslyReviewedSha256": "0add7de50dea5c6fe09aaec33a31e117e722253e9c2b8a79f34392417c1bac2f",
+      "currentSha256": "0add7de50dea5c6fe09aaec33a31e117e722253e9c2b8a79f34392417c1bac2f",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "previouslyReviewedSha256": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+      "currentSha256": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/install.py",
+      "previouslyReviewedSha256": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+      "currentSha256": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/install_recovery.py",
+      "previouslyReviewedSha256": "7195b20796ac0c301415c5c931292e131a5392d26e6b34a335f9c70355b85306",
+      "currentSha256": "7195b20796ac0c301415c5c931292e131a5392d26e6b34a335f9c70355b85306",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/common.py",
+      "previouslyReviewedSha256": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+      "currentSha256": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+      "unchanged": true
+    },
+    {
+      "path": "deploy/units.py",
+      "previouslyReviewedSha256": "e77d031d2bcc97c42528c8540efd184a1a4adc14389fd4b3abac83fdbfba951e",
+      "currentSha256": "31d6340ddf1ab0f054b669d6c80507fb6cda60e814835f44e52a3dd6c8304b4a",
+      "unchanged": false
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "previouslyReviewedSha256": "f1bcede3e6ba8ad43558998f887665fd73e5e7475d2d15bd2e27bbb30657a26c",
+      "currentSha256": "f1bcede3e6ba8ad43558998f887665fd73e5e7475d2d15bd2e27bbb30657a26c",
+      "unchanged": true
+    },
+    {
+      "path": "src/runtime/native.ts",
+      "previouslyReviewedSha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+      "currentSha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+      "unchanged": true
+    },
+    {
+      "path": "src/runtime/main.ts",
+      "previouslyReviewedSha256": "15e78d8ff90d444370a6f4f6f5f889e670de348667bd3846aa3260ea814b6a32",
+      "currentSha256": "15e78d8ff90d444370a6f4f6f5f889e670de348667bd3846aa3260ea814b6a32",
+      "unchanged": true
+    },
+    {
+      "path": "src/runtime/redaction.ts",
+      "previouslyReviewedSha256": "38342ce9b58efce9ca36b64ab107944cdfb02d7ce8f9ea444432109c789a195a",
+      "currentSha256": "38342ce9b58efce9ca36b64ab107944cdfb02d7ce8f9ea444432109c789a195a",
+      "unchanged": true
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "previouslyReviewedSha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+      "currentSha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+      "unchanged": true
+    },
+    {
+      "path": "tests/deploy/test_provider_bedrock.py",
+      "previouslyReviewedSha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+      "currentSha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+      "unchanged": true
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "previouslyReviewedSha256": "bf215c0993cec33817e53a696a1c13c2478fc74661080aa56106e1023d2f90ea",
+      "currentSha256": "bf215c0993cec33817e53a696a1c13c2478fc74661080aa56106e1023d2f90ea",
+      "unchanged": true
+    }
+  ],
+  "referenceFiles": [
+    {
+      "path": ".work/v220-codeql-official-external-bearer.rs",
+      "previouslyReviewedSha256": "042f90f639dd6b4524fa678540a8d2c68667381d2d8082ed5a097513453c5688",
+      "currentSha256": "042f90f639dd6b4524fa678540a8d2c68667381d2d8082ed5a097513453c5688",
+      "unchanged": true
+    },
+    {
+      "path": ".work/official-provider-auth-0.164.rs",
+      "previouslyReviewedSha256": "fcb210f36cc01f88b511305952aa36820bfa15d0afd0186fd49ac72e98c20153",
+      "currentSha256": "fcb210f36cc01f88b511305952aa36820bfa15d0afd0186fd49ac72e98c20153",
+      "unchanged": true
+    },
+    {
+      "path": ".work/official-provider-info-0.164.rs",
+      "previouslyReviewedSha256": "950c8fb26dcdfa3047b91ac2e0f336072d11067b5d979fb62e9425d7b731a410",
+      "currentSha256": "950c8fb26dcdfa3047b91ac2e0f336072d11067b5d979fb62e9425d7b731a410",
+      "unchanged": true
+    },
+    {
+      "path": ".work/official-bedrock-auth-0.164.rs",
+      "previouslyReviewedSha256": "6c88e013450d05986b6829ce2d66891884447a5298851b0f48f34b74db0d0129",
+      "currentSha256": "6c88e013450d05986b6829ce2d66891884447a5298851b0f48f34b74db0d0129",
+      "unchanged": true
+    },
+    {
+      "path": ".work/official-bedrock-mod-0.164.rs",
+      "previouslyReviewedSha256": "8cdd68cfb1246b062bfdda00f048884af54f27c7e54ebeb39270139c0de0b566",
+      "currentSha256": "8cdd68cfb1246b062bfdda00f048884af54f27c7e54ebeb39270139c0de0b566",
+      "unchanged": true
+    },
+    {
+      "path": ".work/official-config-schema-0.164.json",
+      "previouslyReviewedSha256": "ea611ee3f12a6df314b3e49585015ec6e2ebc7c3f072ccbf63c21306a4cdb5dc",
+      "currentSha256": "ea611ee3f12a6df314b3e49585015ec6e2ebc7c3f072ccbf63c21306a4cdb5dc",
+      "unchanged": true
+    },
+    {
+      "path": ".work/bedrock-bearer-probe.mjs",
+      "previouslyReviewedSha256": "b5460fd59a1bc7aa0df1f08abe53bf54ac89936c32e0ba87652e10bd6c60c8b6",
+      "currentSha256": "b5460fd59a1bc7aa0df1f08abe53bf54ac89936c32e0ba87652e10bd6c60c8b6",
+      "unchanged": true
+    },
+    {
+      "path": ".work/bedrock-bearer-probe-result.json",
+      "previouslyReviewedSha256": "88db05ce53eea0e7ccbacbf4b4add315431b8682fe69b5d55c5858304f8b296a",
+      "currentSha256": "88db05ce53eea0e7ccbacbf4b4add315431b8682fe69b5d55c5858304f8b296a",
+      "unchanged": true
+    },
+    {
+      "path": "verification/audit-evidence/round3-fixes/provider-extended.json",
+      "previouslyReviewedSha256": "9bcc4b08f9d1fc3fae3733bd02f4e2995e950915b0a08fe90101df7cedbdf19f",
+      "currentSha256": "9bcc4b08f9d1fc3fae3733bd02f4e2995e950915b0a08fe90101df7cedbdf19f",
+      "unchanged": true
+    }
+  ],
+  "counts": {
+    "sourceFiles": 16,
+    "unchangedSourceFiles": 15,
+    "changedSourceFiles": 1,
+    "referenceAndEvidenceFiles": 9,
+    "unchangedReferenceAndEvidenceFiles": 9
+  },
+  "allReviewedBytesUnchanged": false,
+  "deltaReview": {
+    "path": "deploy/units.py",
+    "previousSha256": "e77d031d2bcc97c42528c8540efd184a1a4adc14389fd4b3abac83fdbfba951e",
+    "currentSha256": "31d6340ddf1ab0f054b669d6c80507fb6cda60e814835f44e52a3dd6c8304b4a",
+    "changes": [
+      "sudo_rule adds keyword-only legacy_catalog_server=False.",
+      "The default false branch emits the same catalog-server wildcard entry at the same position; legacy true omits only that exact entry.",
+      "Neither branch permits bedrock-token or zai-server via supervisor sudo; gateway manage-rpc and fixed non-token native verbs remain unchanged.",
+      "Legacy true is used only by ownership recognition and journal-bound retained restoration, each comparing finite exact managed strings; publication/migration calls retain the default current renderer."
+    ],
+    "noCredentialBoundaryExpansion": "Worker/gateway service environment, native UID/GID and supplementary-group restrictions, helper fixed identity/provider validation, credential file checks, stdout consumer and stderr handling are byte-identical to the original review."
+  },
+  "additionalRelatedSourceFiles": [
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "2e8b509d66846ad947f733b0ebdb0720424013b32f9bd7caeaaf05fc84a57cbe"
+    },
+    {
+      "path": "deploy/service_lifecycle.py",
+      "sha256": "e0d7a1c405d30f584e8d0a9c1d18fb6faf0b7c60d441e6b86efa6a040e6e78b5"
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "sha256": "d2119f00f1de4ef8d5ff9ca12fdb503140ef0e3e88436e23a0550f6c4d59b5a9"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "181f776c71d4f679765501ee1ac7ae30da64b6775801848a0dc6b4a679173e60"
+    }
+  ],
+  "relatedIndependentReviews": [
+    {
+      "path": ".work/v220-sudo-compat-review.json",
+      "sha256": "5a1a8a6cae44bbd87a36ee73db3f60ac62948f0d0dcc3468f9b64a388dae777a"
+    },
+    {
+      "path": ".work/v220-lifecycle-compat-review.json",
+      "sha256": "992efcee74d786e2ac30b5ca03ae2a816749c15bceed1e319f17ac52fc43f881"
+    },
+    {
+      "path": ".work/v220-audit7-runtime.json",
+      "sha256": "0e970668ee9b01a58558aaf3d4f60758fdacf02e497f08d314758845872a8f6b"
+    }
+  ],
+  "freshEvidence": [
+    {
+      "path": "deploy/native_launcher.py",
+      "lines": "201-245,271-273",
+      "observation": "Only fixed bounded helper invocation, configured nonzero native UID/GID, restricted supplementary groups and protected native-env; selected provider must be enabled and Bedrock kind; stdout contains only the validated token, exception stderr is fixed generic text."
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "lines": "171-181",
+      "observation": "Generated auth args select saved connection ID with fixed launcher; no token value appears in arguments."
+    },
+    {
+      "path": ".work/v220-codeql-official-external-bearer.rs",
+      "lines": "32-61,101-159",
+      "observation": "Saved official v0.164.0 source invokes the configured command directly with null stdin and piped stdout/stderr, timeout, trimmed successful stdout returned/cached as CodexAuth; successful token is not logged by this consumer."
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "lines": "16-22",
+      "observation": "Supervisor launches only fixed mode or validated catalog-server selection. No token-helper mode is offered."
+    }
+  ],
+  "limits": [
+    "Read-only focused review, not a fresh full-repository audit. No tests, native helper, provider calls, deployment, or CodeQL dismissal executed.",
+    "No live 120 ownership, ACL, service journal, process descriptor or network capture checked. Assessment assumes the reviewed installation ownership and trusted root administration are intact.",
+    "Native identity and control supervisor are existing credential-trusted identities. Commands deliberately executed as native can read its credentials; per-provider isolation from that same identity or root is not claimed.",
+    "Direct manual native invocation intentionally returns the credential on its caller-selected stdout. Logging that invocation or redirecting its output would expose it to that destination; the generated CLI auth path uses the pinned consumer private pipe.",
+    "This review verifies the specific auth command consumer and Harness transport; it does not prove all upstream CLI code, third-party tools, operating-system diagnostics or externally configured telemetry can never expose credentials.",
+    "Root tests were inspected, not executed here. Historical loopback acceptance has its own earlier snapshot and does not establish AWS business acceptance or newly rerun multi-provider end-to-end results.",
+    "No conclusion is drawn about CodeQL alert identity/history or whether GitHub should dismiss it; this report only records technical evidence for review.",
+    "No new upstream source was fetched: all nine original reference/evidence hashes match. Saved official sources are six of these nine; historical local probe/script/report evidence remains historical and was not rerun.",
+    "This is a focused source-delta review, not another full audit and not a CI7 scan. It preserves the original trust assumptions and does not prove live ACLs, descriptors, service journals or all upstream telemetry."
+  ],
+  "finalSnapshotVerification": {
+    "files": 1941,
+    "digest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+    "matchesAudit7Freeze": true
+  }
+}

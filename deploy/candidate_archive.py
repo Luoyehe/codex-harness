@@ -12,7 +12,7 @@ from pathlib import Path
 from .common import DeployError, digest, fsync_directory, mkdir, require, write_json
 from .control_update import ControlSystem
 from .install import trusted_ancestors
-from .install_recovery import initialization_lock, root_lock
+from .install_recovery import initialization_lock, management_lock
 from .manager import Manager
 from .ownership import ROLES, present
 from .service_lifecycle import (read_private, read_record, require_only_transaction,
@@ -240,7 +240,7 @@ def archive_candidate(layout, candidate: str, *, confirm_stop: bool) -> dict:
     identity(candidate)
     require(confirm_stop, "Archival briefly stops this instance; pass --confirm-stop after reviewing candidate-list")
     require_initialization_complete(layout)
-    with initialization_lock(layout), root_lock(layout.config / "management.lock"):
+    with initialization_lock(layout), management_lock(layout):
         manager = Manager(layout, ControlSystem())
         try:
             return archive_locked(manager, candidate)

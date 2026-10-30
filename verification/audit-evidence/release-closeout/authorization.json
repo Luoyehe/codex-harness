@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+  "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
   "sourceFiles": 1941,
   "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
   "version": "2.2.0",
-  "approvedAt": "2026-10-30T14:11:07.518Z",
+  "approvedAt": "2026-10-30T14:40:15.415Z",
   "userInstruction": "完成修改后进行完整审计，连续两轮都无问题视作通过，然后进行全量测试和收尾以及发布和部署。最新指示将审计门槛改为一轮无新增问题，版本选择 v2.2.0。",
   "auditWaiverInstruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
   "repairsReviewed": true,
@@ -17,28 +17,28 @@
   "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "v220-round7",
-      "sourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
-      "completedAt": "2026-10-30T14:11:07.030Z",
+      "roundId": "v220-round8",
+      "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+      "completedAt": "2026-10-30T14:40:14.954Z",
       "files": 1941,
       "reviewers": [
         {
-          "id": "v220-round7-team",
+          "id": "v220-round8-team",
           "scopes": [
             "gateway-core",
             "runtime-protocol",
             "web-ux",
             "deployment-release"
           ],
-          "evidence": "verification/audit-evidence/v220-round7/team.json",
-          "sha256": "e6047273cfd620e11acf38c456235b3d0b6f794d52dba059e7bbd43bda51c9ee"
+          "evidence": "verification/audit-evidence/v220-round8/team.json",
+          "sha256": "87d39b91a04eed48ecf19ebc1b9834757cee3876c91145ca448d6b3e3a158de8"
         }
       ]
     }
   ],
-  "note": "Complete round7 on the exact repaired source meets the latest user one-clean-audit instruction. Round6 remains nonclean and CI6 remains a prior-source pass. Full CI is required again for the new production upgrade/restoration fixes.",
+  "note": "Actual complete clean audit8 meets the latest user one-round gate after a real deployment-discovered shared management lock repair. CI7 remains prior-source evidence. This authorization allows new exact-source complete validation, not fabricated audit rounds.",
   "scopedRepairReview": {
-    "path": "verification/audit-evidence/v220-upgrade-compat/summary.json",
-    "sha256": "3479b068073c3ad13523237aadc5b09408ab63b33f74c5fd78261526d340f1be"
+    "path": "verification/audit-evidence/v220-management-lock/summary.json",
+    "sha256": "135596830725a405d75adb1021073ad8b9a10053820de406f67c67a63746e9fe"
   }
 }

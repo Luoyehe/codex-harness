@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T14:27:38.5333963Z",
+  "candidate": "bb7b40feff78ba488f6be1d543a23f79e6cf9293",
+  "sourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+  "fullCiPassed": true,
+  "onlineApplicationUpgradeCompleted": false,
+  "completedSteps": [
+    "control-update",
+    "config-layer-migrate"
+  ],
+  "failedStep": "candidate-archive",
+  "beforeServiceStop": true,
+  "cause": "Ordinary management operations create a root-owned empty 0644 management.lock under the configured umask; candidate archival incorrectly applies the separate initialization lock strict 0600 policy to that same file.",
+  "action": "Fix the shared lock contract in source and add regressions from a real ordinary management lock; no online chmod or inode replacement to bypass validation.",
+  "separateOperatorArtifact": "A private legacy manual archival record from the previous operator helper occupies the current inventory namespace. Preserve it and relocate the metadata with recorded rollback after source validation; do not fabricate current recovery schema.",
+  "serviceState": "Existing application services remain running. The successful control update cleared the old unknown runtime state.",
+  "next": "Targeted repair tests, independent review, one complete clean audit, then new exact-source full CI before continuing."
+}

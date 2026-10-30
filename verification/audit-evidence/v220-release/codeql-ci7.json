@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T14:22:01.9150396Z",
+  "candidate": "bb7b40feff78ba488f6be1d543a23f79e6cf9293",
+  "sourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+  "automated": {
+    "observed": true,
+    "id": 124110631972,
+    "head_sha": "bb7b40feff78ba488f6be1d543a23f79e6cf9293",
+    "conclusion": "failure",
+    "url": "https://github.com/Luoyehe/codex-harness/runs/124110631972",
+    "title": "1 configuration not found",
+    "summary": "**Warning**: Code scanning may not have found all the alerts introduced by this pull request, because 1 configuration present on `refs/heads/main` was not found:\n\n### Actions workflow (`ci.yml`)\n\n* :question:&nbsp;&nbsp;`.github/workflows/ci.yml:codeql`\n\n\n### New alerts in code changed by this pull request\n\nSecurity Alerts:\n * 1 high\n\n\n_Alerts not introduced by this pull request might have been detected because the code changes were too large._\n\nSee annotations below for details.\n\n[View all branch alerts](/Luoyehe/codex-harness/security/code-scanning?query=pr%3A8+tool%3ACodeQL+is%3Aopen).",
+    "annotationsCount": 1,
+    "evidence": ".work/v220-ci7-api-check-runs.json",
+    "sha256": "5ba4b6e22bef84c5ec164dcfcf528d96df2c0ef4ede0de84431c3a95e21b6d70",
+    "annotations": [
+      {
+        "path": "deploy/native_launcher.py",
+        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/bb7b40feff78ba488f6be1d543a23f79e6cf9293/deploy/native_launcher.py",
+        "start_line": 244,
+        "start_column": 30,
+        "end_line": 244,
+        "end_column": 42,
+        "annotation_level": "failure",
+        "title": "Clear-text logging of sensitive information",
+        "message": "This expression logs [sensitive data (secret)](1) as clear text.",
+        "raw_details": null
+      }
+    ],
+    "annotationEvidenceSha256": "eff25b09282611e0d695f0d07f295cc6ec8d59e9253fe45a93b8664a444e83b9",
+    "manualAssessment": "Current-source required private credential-return channel reviewed; automated failure and missing legacy configuration warning remain unchanged. No dismissal or configuration/gate change."
+  },
+  "manualReview": {
+    "evidence": "verification/audit-evidence/v220-release/codeql-source-review.json",
+    "sha256": "09c15f69d945bcd636e3d208423d165c7bbfa860453e66cd48241a36c917db5a",
+    "findings": [],
+    "conclusion": "The managed bearer-return helper uses an intentional private CLI child pipe. The current legacy sudo delta does not broaden helper access. The automated failure is retained, not dismissed or claimed green."
+  }
+}

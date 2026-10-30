@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-30T14:40:15.412Z",
+  "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+  "sourceFiles": 1941,
+  "changedFiles": [
+    {
+      "path": "deploy/install_recovery.py",
+      "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+    },
+    {
+      "path": "deploy/candidate_archive.py",
+      "sha256": "26f6275e410050020bb65250b49b46ed51bfb846a9a5abe7d424fe0992f299a9"
+    },
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "sha256": "ce6f68ea4dab05554eed9d760d670161b7fe52b69fbb8867ce62d7cd1828ddbc"
+    },
+    {
+      "path": "tests/deploy/test_candidate_archive.py",
+      "sha256": "2c226e6222aff645d2ba37564261a8b5d9daad5625332943c9b833731229b9fc"
+    }
+  ],
+  "problem": "Ordinary management operations legitimately create an empty root-owned 0644 lock; archival incorrectly reused initialization-specific 0600 validation and rejected it before any stop or movement.",
+  "repair": "Dedicated management_lock binds only the shared management path and accepts 0600/0640/0644. Initialization and reservation locks remain strictly0600. Same descriptor/inode flock, root ownership, empty regular single-link file, no-follow/nonblocking open and trusted parent checks retained. No chmod or lock replacement.",
+  "regressions": [
+    "Real common.exclusive with umask022 creates0644, real archive and Manager.verify restoration succeed without changing inode/mode.",
+    "An existing owner of the same lock produces busy without service actions; release allows success.",
+    "Foreign owner, writable modes, unsupported mode, content, links, FIFO, directory and path replacement are refused.",
+    "Initialization0644 remains refused."
+  ],
+  "targeted": {
+    "linuxRoot": {
+      "run": 37,
+      "passed": 37,
+      "skipped": 0
+    },
+    "linuxNonroot": {
+      "run": 110,
+      "passed": 110,
+      "skipped": 0
+    },
+    "windows": {
+      "run": 110,
+      "passed": 103,
+      "skipped": 7,
+      "reason": "Linux-only cases passed on Linux"
+    }
+  },
+  "independentReview": {
+    "sha256": "984261ada649f1779fcc7bdce13edbca3928f4d7236a2f616a520a0464bf7960",
+    "findings": []
+  },
+  "limits": [
+    "Fixtures substitute host services/accounts/HTTPS network; actual upgrade remains required.",
+    "CI7 passed only its earlier source.",
+    "Existing online control/config transactions remain committed; no live lock chmod or replacement used as a workaround."
+  ]
+}

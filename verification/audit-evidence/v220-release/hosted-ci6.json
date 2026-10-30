@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 1,
+  "candidate": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+  "sourceDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
+  "sourceFiles": 1941,
+  "authorizationSha256": "13cebe4b01d7b9c7ea4aba03ed8c722fb2a1b3c8c781b5de2b98ec433af3be8e",
+  "status": "completed-success-for-required-full-pr-gate",
+  "observedAt": "2026-10-30T13:27:04.265Z",
+  "expectedFullTestFiles": 227,
+  "actualPlans": [
+    {
+      "runId": 41061463665,
+      "jobId": 124081988153,
+      "event": "pull_request",
+      "plan": {
+        "mode": "authorized-full",
+        "base": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+        "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+        "files": 227,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ]
+      },
+      "evidence": ".work/v220-ci6-plan-ui.txt",
+      "sha256": "6dfa06c7177dd6d33de91060cac3cf85f5be8ca5f86789564d0fe9f7d2071dc2",
+      "sourceDigestPrinted": false
+    },
+    {
+      "runId": 41061456502,
+      "jobId": 124081963650,
+      "event": "push",
+      "plan": {
+        "mode": "selected",
+        "base": "37881beb7234fc257889f62184f6b88d6f0df24d",
+        "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+        "files": 1,
+        "targets": [
+          "linux",
+          "windows"
+        ]
+      },
+      "evidence": ".work/v220-ci6-push-plan-ui.txt",
+      "sha256": "75b25c479d6824ac888476240d5f7611fe4f6d176699da5f05384281f90a2dd1",
+      "sourceDigestPrinted": false
+    }
+  ],
+  "distinctCaseCount": 2362,
+  "monitoring": {
+    "status": "completed-from-root-authenticated-browser-evidence",
+    "publicApiPausedUntilUtc": "2026-10-30T13:35:56Z",
+    "reviewerApiRequests": 0,
+    "noBrowserCompetition": true,
+    "noCancellation": true,
+    "noRetry": true,
+    "publicApiRequests": 0
+  },
+  "localReadOnlyPlanCheck": {
+    "method": "Called buildCiPlan only with exact local head/base/auth; no test runner, build or deployment executed. Hosted plans still require their actual browser log.",
+    "source": {
+      "files": 1941,
+      "digest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4"
+    },
+    "inventoryFiles": 227,
+    "fullExpectation": {
+      "mode": "authorized-full",
+      "base": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+      "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+      "sourceDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
+      "files": 227,
+      "standardFiles": 208,
+      "rootFiles": 19,
+      "targets": [
+        "linux",
+        "windows",
+        "linux-root"
+      ]
+    },
+    "pushExpectation": {
+      "mode": "selected",
+      "base": "37881beb7234fc257889f62184f6b88d6f0df24d",
+      "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+      "sourceDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
+      "files": 1,
+      "standardFiles": 1,
+      "rootFiles": 0,
+      "targets": [
+        "linux",
+        "windows"
+      ]
+    },
+    "reconciliationFormat": {
+      "status": "passed",
+      "sourceDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
+      "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+      "files": 227,
+      "cases": "distinct case ID Map size; must be read from successful actual reconciliation log",
+      "coverageGaps": []
+    },
+    "checks": [
+      "Exact head and sourceDigest/sourceDigestAfter on each expected target",
+      "Exactly one report per target, exact selected file list and nonempty per-case data",
+      "No failed/invalid/duplicate cases; every selected file must have at least one case",
+      "At least one passed target for every distinct case ID, so individual skips must be complemented",
+      "Required Go runtime and case evidence validated against selected platform"
+    ]
+  },
+  "runs": [
+    {
+      "id": 41061463665,
+      "name": "Reviewed checks",
+      "event": "pull_request",
+      "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41061463665",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 124081988153,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "evidence": ".work/v220-ci6-progress-ui.txt"
+        },
+        {
+          "id": 124082220292,
+          "target": "linux",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41061463665/job/124082220292",
+          "evidence": ".work/v220-ci6-progress-ui.txt"
+        },
+        {
+          "id": 124082220299,
+          "target": "windows",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41061463665/job/124082220299",
+          "evidence": ".work/v220-ci6-progress-ui.txt"
+        },
+        {
+          "id": 124082220419,
+          "target": "linux-root",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41061463665/job/124082220419",
+          "evidence": ".work/v220-ci6-progress-ui.txt",
+          "duration": "50s"
+        },
+        {
+          "id": 124086725401,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41061463665/job/124086725401",
+          "evidence": ".work/v220-ci6-reconcile-raw.txt",
+          "distinctCaseCount": 2362
+        }
+      ],
+      "duration": "10m 22s",
+      "reconciliation": {
+        "summary": {
+          "status": "passed",
+          "sourceDigest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4",
+          "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+          "files": 227,
+          "cases": 2362,
+          "coverageGaps": [],
+          "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+        },
+        "evidence": ".work/v220-ci6-reconcile-raw.txt",
+        "sha256": "4ab4d19590880e3a456e4a5a897ad8b89ca250f02b6b329795167af5037b5fe7",
+        "rawLogLine": 241,
+        "artifacts": [
+          {
+            "name": "cases-windows",
+            "id": 12981440269,
+            "sizeBytes": 128448,
+            "sha256": "84a44013316da7f0f4a1d007951e3d041785799c49a6dd388d1849986ac08be7",
+            "hostedDownloadHashVerified": true,
+            "contentsReadByReviewer": false
+          },
+          {
+            "name": "cases-linux-root",
+            "id": 12980750126,
+            "sizeBytes": 12090,
+            "sha256": "faea51a1565943cf151be49784bd565f108f4e99234c94d3d54bff7db473b4f6",
+            "hostedDownloadHashVerified": true,
+            "contentsReadByReviewer": false
+          },
+          {
+            "name": "ci-plan",
+            "id": 12980595095,
+            "sizeBytes": 9667,
+            "sha256": "10be3e9fdc988529d01aa668eae509287c2f8789eb2a3d25fee972edf45301bd",
+            "hostedDownloadHashVerified": true,
+            "contentsReadByReviewer": false
+          },
+          {
+            "name": "source-security",
+            "id": 12979700700,
+            "sizeBytes": 2631,
+            "sha256": "c08ce3a9d9d4acb007ffac743f593e2c41a183535d50d65a30c22af4399c06de",
+            "hostedDownloadHashVerified": true,
+            "contentsReadByReviewer": false
+          },
+          {
+            "name": "windows-controller-preflight",
+            "id": 12979371860,
+            "sizeBytes": 1953,
+            "sha256": "a2bb4dc5477fdb5c39a02a77233a1e43a06ec506578d7b4b7ce3f9e083220a62",
+            "hostedDownloadHashVerified": true,
+            "contentsReadByReviewer": false
+          },
+          {
+            "name": "cases-linux",
+            "id": 12978629924,
+            "sizeBytes": 127592,
+            "sha256": "e288fe64706930ced2f39686c61ab64bfe7b62f5e9a85d7c3eb0f9cd3eb4f41c",
+            "hostedDownloadHashVerified": true,
+            "contentsReadByReviewer": false
+          }
+        ],
+        "identityAndSkipChecks": "Actual successful current orchestration reconciliation verified exact head/source/file lists and at least one passing platform for every distinct case ID."
+      },
+      "platformCaseCounts": {
+        "linux": null,
+        "windows": null,
+        "linux-root": null,
+        "note": "Per-platform counts were not reconstructed from raw case artifacts. The authoritative cross-platform distinct count is 2362 in the actual reconciliation log."
+      }
+    },
+    {
+      "id": 41061456502,
+      "name": "Reviewed checks",
+      "event": "push",
+      "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41061456502",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 124081963650,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 124082195193,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 124082983145,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "distinctCaseCount": null
+        },
+        {
+          "id": 124082191545,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 124082191523,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "evidence": ".work/v220-ci6-push-final-ui.txt",
+      "standardMatrix": {
+        "status": "completed",
+        "conclusion": "success",
+        "jobsCompleted": 2,
+        "caseCount": null
+      }
+    },
+    {
+      "id": 41061463670,
+      "name": "Security checks",
+      "event": "pull_request",
+      "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41061463670",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 124081988151,
+          "name": "dependencies",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 124081988098,
+          "name": "codeql (javascript-typescript)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 124081987683,
+          "name": "codeql (python)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "evidence": ".work/v220-ci6-security-ui.txt",
+      "analysisMatrix": {
+        "status": "completed",
+        "conclusion": "success",
+        "jobsCompleted": 2,
+        "groups": [
+          "javascript-typescript",
+          "python"
+        ]
+      }
+    }
+  ],
+  "codeqlAggregate": {
+    "status": "completed",
+    "conclusion": "failure",
+    "id": 124082389182,
+    "url": "https://github.com/Luoyehe/codex-harness/runs/124082389182",
+    "evidence": ".work/v220-ci6-codeql-aggregate-ui.txt",
+    "sha256": "b26b7ad81fd0dd0c3c91b3141f27652962311e956fe0cdbea8e8051ed75a3502",
+    "configurationWarnings": [
+      ".github/workflows/ci.yml:codeql was present on refs/heads/main but not found for this analysis"
+    ],
+    "annotations": [
+      {
+        "path": "deploy/native_launcher.py",
+        "line": 244,
+        "severity": "high",
+        "title": "Clear-text logging of sensitive information",
+        "alertId": 5
+      }
+    ],
+    "manualReview": {
+      "status": "manual-reviewed-required-credential-channel",
+      "priorReview": {
+        "path": ".work/v220-codeql-native-helper-review.json",
+        "sha256": "27dbcd0d6c0db1137d02e803102ab284f22056eef412a31d8fdcdd525d461419",
+        "head": "adfefc0cd53e9e49c0056afe0c0208dc4992dd63",
+        "conclusion": "No actionable credential disclosure found in the reviewed managed Bedrock helper path. The stdout sink is the intentional bearer-return protocol consumed through a private CLI child pipe, not a Harness logging call. The multi-provider extension selects an enabled saved Bedrock identity without adding an identity allowed to read these credentials.",
+        "findings": []
+      },
+      "carryforwardPath": ".work/v220-ci6-codeql-review-carryforward.json",
+      "carryforwardSha256": "1431b0976ef29ad7fe639b951d34fc47de914e9466814f9975ea71d846447843",
+      "sourceHashesMatched": 16,
+      "referenceHashesMatched": 9,
+      "noDismissal": true,
+      "note": "The retained focused review found no actionable credential disclosure in the required private auth-command stdout channel. It neither dismisses alert 5 nor changes the failed aggregate or missing legacy configuration warning."
+    }
+  },
+  "evidence": [
+    {
+      "path": ".work/v220-ci6-discovery-ui.txt",
+      "sha256": "e8287f9606a522fad892e07c2cd237fbf76abc32b59042dbb5d45dc003d4283d"
+    },
+    {
+      "path": ".work/v220-ci6-plan-ui.txt",
+      "sha256": "6dfa06c7177dd6d33de91060cac3cf85f5be8ca5f86789564d0fe9f7d2071dc2"
+    },
+    {
+      "path": ".work/v220-ci6-push-ui.txt",
+      "sha256": "6cfa48ff5735524194836bea09ccb2b96eaad6da8a90fd669b74240bf7b03a21"
+    },
+    {
+      "path": ".work/v220-ci6-push-plan-ui.txt",
+      "sha256": "75b25c479d6824ac888476240d5f7611fe4f6d176699da5f05384281f90a2dd1",
+      "observedAt": "2026-10-30T13:17:00.349Z"
+    },
+    {
+      "path": ".work/v220-ci6-push-final-ui.txt",
+      "sha256": "01272466a7447c50a182445f7594d6aff758b54071246a46d879b87ea2b31456",
+      "observedAt": "2026-10-30T13:18:31.835Z"
+    },
+    {
+      "path": ".work/v220-ci6-security-ui.txt",
+      "sha256": "c00949d7b53b62ae185fa755129c3bc700597f1621a7d0aa144fac939c225c6a",
+      "observedAt": "2026-10-30T13:18:31.835Z"
+    },
+    {
+      "path": ".work/v220-ci6-progress-ui.txt",
+      "sha256": "c7d151ad7a235ffbcfef5fa1a46f1ee05c2abe0bb5b049d875a6ac00db7345bc",
+      "observedAt": "2026-10-30T13:26:08.308Z"
+    },
+    {
+      "path": ".work/v220-ci6-reconcile-raw.txt",
+      "sha256": "4ab4d19590880e3a456e4a5a897ad8b89ca250f02b6b329795167af5037b5fe7",
+      "observedAt": "2026-10-30T13:26:08.308Z"
+    },
+    {
+      "path": ".work/v220-ci6-codeql-aggregate-ui.txt",
+      "sha256": "b26b7ad81fd0dd0c3c91b3141f27652962311e956fe0cdbea8e8051ed75a3502",
+      "observedAt": "2026-10-30T13:27:04.265Z"
+    },
+    {
+      "path": ".work/v220-ci6-checks-ui.txt",
+      "sha256": "07152a5e7045fff36f009b377d2dc598c19bfa0d6a7df66c22a93d87179fced0",
+      "observedAt": "2026-10-30T13:27:04.265Z"
+    },
+    {
+      "path": ".work/v220-ci6-codeql-review-carryforward.json",
+      "sha256": "1431b0976ef29ad7fe639b951d34fc47de914e9466814f9975ea71d846447843",
+      "observedAt": "2026-10-30T13:27:04.265Z"
+    }
+  ],
+  "samples": [
+    {
+      "observedAt": "2026-10-30T13:15:35.719Z",
+      "source": "root saved authenticated browser DOM",
+      "fullPrPlan": "authorized-full 227",
+      "fullTargets": [
+        "linux",
+        "windows",
+        "linux-root"
+      ],
+      "securityDependencies": "success",
+      "pushRoot": "skipped"
+    },
+    {
+      "observedAt": "2026-10-30T13:17:00.349Z",
+      "pushActualPlan": "selected 1",
+      "fullPrRoot": "success",
+      "source": "root saved authenticated browser DOM"
+    },
+    {
+      "observedAt": "2026-10-30T13:18:31.835Z",
+      "push": "success",
+      "securityWorkflow": "success",
+      "fullPr": "in_progress",
+      "aggregateCodeQL": "not observed"
+    },
+    {
+      "observedAt": "2026-10-30T13:26:08.308Z",
+      "fullPr": "success",
+      "reconciliation": "passed",
+      "files": 227,
+      "distinctCases": 2362,
+      "coverageGaps": [],
+      "currentSource": "unchanged exact candidate"
+    },
+    {
+      "observedAt": "2026-10-30T13:27:04.265Z",
+      "source": ".work/v220-ci6-checks-ui.txt",
+      "successfulChecks": 12,
+      "skippedChecks": 1,
+      "failingChecks": 1,
+      "codeqlAggregate": "failure",
+      "manualReview": "prior focused review carried forward after all hashes matched"
+    }
+  ],
+  "limitations": [
+    "The exact-head required full PR workflow passed all three targets and actual reconciliation. Per-platform language/case totals were not reconstructed; the 2362 distinct total is directly from the successful hosted reconciliation JSON.",
+    "Push selected one test file and passed; this is separate from the required full PR gate.",
+    "Security analysis/dependency workflow passed, but the current exact-head CodeQL aggregate remains failed: one high credential stdout annotation and a missing legacy main-branch configuration warning. The prior focused manual review is carried forward only after all 16 reviewed source and 9 reference hashes matched. No dismissal or gate/configuration change was made.",
+    "The reviewer consumed root authenticated browser DOM/raw logs; no public API requests, CUA operation, workflow cancellation/retry, test execution, source edit or deployment occurred in this monitoring task.",
+    "Prior failed CI attempts remain separately recorded and were not replaced or reclassified by this success."
+  ],
+  "completedAt": "2026-10-30T13:26:08.308Z",
+  "coverageGaps": [],
+  "finalSourceVerification": {
+    "verifiedAt": "2026-10-30T13:26:08.308Z",
+    "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+    "cleanGitWorkingTree": true,
+    "source": {
+      "files": 1941,
+      "digest": "9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4"
+    },
+    "authorizationSha256": "13cebe4b01d7b9c7ea4aba03ed8c722fb2a1b3c8c781b5de2b98ec433af3be8e",
+    "exactFileHashComparison": {
+      "baseline": ".work/v220-ci5-automations-carryforward-hashes.json",
+      "baselineSha256": "de7d3831642baef488050287432a10901d65da9923cc0a636073d80a6caeabbd",
+      "compared": 1941,
+      "differences": [],
+      "sourceDigestStableDuringHash": true
+    }
+  },
+  "aggregateCheckSummary": {
+    "successful": 12,
+    "skipped": 1,
+    "failing": 1,
+    "evidence": ".work/v220-ci6-checks-ui.txt",
+    "sha256": "07152a5e7045fff36f009b377d2dc598c19bfa0d6a7df66c22a93d87179fced0",
+    "skip": "push root_deploy not selected",
+    "failure": "Code scanning results / CodeQL"
+  }
+}
