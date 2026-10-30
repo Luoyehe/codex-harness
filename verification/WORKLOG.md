@@ -2,9 +2,13 @@
 
 > Public copy. Private deployment details have been omitted.
 
+## 2026-10-31 — 公网操作验收与默认设置恢复入口
+
+用户登录后，公网创建空项目、执行账号目录权限和普通 Shell 退出均验证成功；模型目录、推理强度和两步验证入口可用。旧脚本登录 401 原样保留。实测出现一次默认设置并发占用提示，切换项目后恢复，普通文本发送并未因此卡死；现补上直接只读重试入口，保留草稿、选择和状态门禁。16 项定向测试、网页类型检查及独立复核通过，完整第九轮覆盖 1,941 文件无新增问题。新精确源码的完整 CI、最终应用更新及正式发行尚待完成。详见[网页验收](audit-evidence/v220-release/browser-acceptance-ci8.json)、[修复](audit-evidence/v220-defaults-retry/summary.json)与[第九轮](audit-evidence/v220-round9/team.json)。
+
 ## 2026-10-30 — 管理锁衔接修复与第八轮检查
 
-实际归档在停止服务前发现普通管理锁与初始化锁的契约不一致，已修复专用管理锁入口并保留原 inode/权限。真实普通入口创建0644锁的回归、竞争与拒绝测试通过，独立复核通过；完整第八轮覆盖1,941文件无新增问题。新精确源码等待完整CI8及继续线上升级，不以CI7通过替代。详见[修复](audit-evidence/v220-management-lock/summary.json)和[第八轮](audit-evidence/v220-round8/team.json)。
+
 
 ## 2026-10-30 — 升级与恢复修复收口
 

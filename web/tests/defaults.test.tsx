@@ -284,3 +284,99 @@ it('waits for fresh defaults after resetting an explicit provider before submitt
   expect((input as HTMLTextAreaElement).value).toBe('keep this input');
   await screen.findByText('fixture finished');
 });
+it('retries failed defaults directly without refreshing the catalog, changing the draft, or bypassing readiness', async () => {
+  sessionStorage.setItem('harness.project', 'p');
+  Element.prototype.scrollIntoView = vi.fn();
+  let socket!: { onopen: () => void; onmessage: (e: { data: string }) => void };
+  vi.stubGlobal('WebSocket', class {
+    onopen = () => {};
+    onmessage = (_e: { data: string }) => {};
+    close() {}
+    constructor() { socket = this; }
+  });
+  const requests: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
+  let holdRetry = false;
+  let finishRetry: ((succeed: boolean) => void) | undefined;
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+    const ok = (result: unknown) => ({ ok: true, json: async () => url === '/api/session' ? result : { ok: true, result } });
+    const capacity = () => ({ ok: true, json: async () => ({ ok: false, error: {
+      code: 'capacity', message: 'Too many concurrent calls', delivery: 'not_sent',
+    } }) });
+    if (url === '/api/session') return ok({ authenticated: true, operationRecoveryProtocol: 2, csrf: 'fixture-only' });
+    const request = JSON.parse(String(init?.body));
+    requests.push(request);
+    switch (request.method) {
+      case 'project/list': return ok({ data: [{ id: 'p', name: 'Project', path: '/p' }] });
+      case 'thread/list': return ok({ data: [], nextCursor: null });
+      case 'prompt/list': return ok({ prompts: [] });
+      case 'model/list': return ok({ data: [
+        { id: 'default-model', modelProvider: 'first', supportedReasoningEfforts: [{ reasoningEffort: 'low' }] },
+        { id: 'chosen-model', modelProvider: 'second', supportedReasoningEfforts: [{ reasoningEffort: 'high' }] },
+      ], nextCursor: null });
+      case 'collaborationMode/list': return ok({ data: [] });
+      case 'defaults/read':
+        if (!request.params.options.model) return ok({ model: 'default-model', modelProvider: 'first', reasoningEffort: 'low' });
+        if (!holdRetry) return capacity();
+        return new Promise(resolve => {
+          finishRetry = (succeed) => resolve(succeed
+            ? ok({ model: 'chosen-model', modelProvider: 'second', reasoningEffort: 'high' })
+            : capacity());
+        });
+      default: throw new Error(`Unexpected fixture RPC ${request.method}`);
+    }
+  }));
+  const state = (unknown = false) => socket.onmessage({ data: JSON.stringify({
+    type: 'state', data: { connected: true, epoch: 'stable',
+      activity: { unknown, activeThreads: [], pendingStarts: 0, terminals: 0 }, activityUncertain: unknown },
+  }) });
+  render(<App />);
+  await waitFor(() => expect(socket).toBeTruthy());
+  act(() => { socket.onopen(); state(); });
+  await waitFor(() => expect(screen.getByLabelText('选择模型与思考强度').textContent).toContain('default-model'));
+  expect(screen.queryByRole('button', { name: '重新读取模型设置' })).toBeNull();
+  fireEvent.click(screen.getByLabelText('选择模型与思考强度'));
+  const model = screen.getByRole('combobox', { name: '模型' }) as HTMLSelectElement;
+  const choice = JSON.stringify(['second', 'chosen-model']);
+  fireEvent.change(model, { target: { value: choice } });
+  const effort = screen.getByRole('combobox', { name: '思考强度' }) as HTMLSelectElement;
+  fireEvent.change(effort, { target: { value: 'high' } });
+  const input = screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value: 'keep my unsent draft' } });
+  await screen.findByText('默认值读取失败：Too many concurrent calls');
+  // This error alone does not block ordinary input with explicit valid settings.
+  expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(false);
+  const beforeRetry = requests.length;
+  holdRetry = true;
+  fireEvent.click(screen.getByRole('button', { name: '重新读取模型设置' }));
+  const busyRetry = screen.getByRole('button', { name: '正在读取模型设置…' });
+  expect(busyRetry.matches(':disabled')).toBe(true);
+  fireEvent.click(busyRetry);
+  await waitFor(() => expect(finishRetry).toBeTypeOf('function'));
+  expect(requests.slice(beforeRetry).map(request => request.method)).toEqual(['defaults/read']);
+  expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(true);
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await act(async () => finishRetry!(false));
+  const retryAgain = await screen.findByRole('button', { name: '重新读取模型设置' });
+  expect(retryAgain.matches(':disabled')).toBe(false);
+  // A successful settings read cannot acknowledge uncertain runtime activity.
+  act(() => state(true));
+  finishRetry = undefined;
+  fireEvent.click(retryAgain);
+  await waitFor(() => expect(finishRetry).toBeTypeOf('function'));
+  await act(async () => finishRetry!(true));
+  await waitFor(() => expect(screen.queryByRole('button', { name: /读取模型设置/ })).toBeNull());
+  expect(screen.queryByText('默认值读取失败：Too many concurrent calls')).toBeNull();
+  expect(input.value).toBe('keep my unsent draft');
+  expect(model.value).toBe(choice);
+  expect(effort.value).toBe('high');
+  expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(true);
+  fireEvent.keyDown(input, { key: 'Enter' });
+  act(() => state());
+  await waitFor(() => expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(false));
+  // Exactly two user-requested reads: no catalog/provider refresh, operation, or task submission.
+  expect(requests.slice(beforeRetry)).toEqual([
+    { method: 'defaults/read', params: { projectId: 'p', options: { model: 'chosen-model', modelProvider: 'second', effort: 'high' } } },
+    { method: 'defaults/read', params: { projectId: 'p', options: { model: 'chosen-model', modelProvider: 'second', effort: 'high' } } },
+  ]);
+  expect(requests.every(request => !request.operationId)).toBe(true);
+});

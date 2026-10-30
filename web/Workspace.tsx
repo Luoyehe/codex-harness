@@ -349,6 +349,10 @@ export function Workspace({
       ),
     Boolean(projectId) && !threadId,
   );
+  const [retryingDefaults, setRetryingDefaults] = useState(false);
+  useEffect(() => {
+    if (!defaults.loading) setRetryingDefaults(false);
+  }, [defaults.loading]);
   const conversation = useConversation(api, events, threadId, resourceEpoch),
     prompts = usePrompts(api, events, resourceEpoch);
   const operations = useOperations();
@@ -1337,6 +1341,20 @@ export function Workspace({
                             : '')
               }
             />
+            {Boolean(projectId) && !threadId && (defaults.error || retryingDefaults) && (
+              <button
+                type="button"
+                className="button small"
+                disabled={defaults.loading}
+                onClick={() => {
+                  if (defaults.loading) return;
+                  setRetryingDefaults(true);
+                  defaults.refresh();
+                }}
+              >
+                {defaults.loading ? '正在读取模型设置…' : '重新读取模型设置'}
+              </button>
+            )}
           </div>
         </main>
         {active && (

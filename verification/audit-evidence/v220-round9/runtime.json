@@ -1,0 +1,1398 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v220-round9",
+  "reviewerId": "v220-final-runtime",
+  "digest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+  "complete": true,
+  "startedAt": "2026-10-30T17:22:18.158Z",
+  "completedAt": "2026-10-30T17:27:40.870Z",
+  "scopes": [
+    "src/**",
+    "tests/core/**",
+    "tests/gateway/**",
+    "tests/runtime/**"
+  ],
+  "method": "Complete current-snapshot static audit of all assigned 173 files. Every current file was reloaded and independently raw-byte SHA256/executable-bit checked against the audit9 manifest and audit8 report. All 171 TS/MJS files were freshly parsed with OXC; declarations, imports, guards, routes, schemas, test definitions and assertions were extracted. Literal schema/import existence, focused/todo markers and asynchronous assertion observation were checked across the complete assigned inventory. All 173 files are byte-identical to audit8, so prior same-checkout semantic review of their production/test/documentation content is explicitly retained, supplemented by the fresh manual reviews below. This is not a claim that all unchanged lines were manually reread. Fresh review covers provider/account/model selection, project creation, history/turn lifecycle, CLI exit and restart, terminal and connection ownership, receipts and authentication. It especially traces the newly changed web defaults retry through resource cancellation/generation, project routing, authenticated worker ownership, the single native defaults probe, cache key, timeout and confirmed cleanup. The new two-file web change also has a separate independent diff and regression-evidence review. No tests, source edits, network, browser, SSH, live requests or service actions were performed for this audit. Finally recomputed the full 1941-file snapshot and every frozen manifest hash/executable-bit entry; all still match audit9.",
+  "inspectedFiles": [
+    "src/core/automations.ts",
+    "src/core/budget.ts",
+    "src/core/contracts.ts",
+    "src/core/errors.ts",
+    "src/core/extension-methods.ts",
+    "src/core/feature-methods.ts",
+    "src/core/ledger.ts",
+    "src/core/mcp-oauth-receipt.ts",
+    "src/core/operation-retention.ts",
+    "src/core/organization-methods.ts",
+    "src/core/process-methods.ts",
+    "src/core/realtime-methods.ts",
+    "src/core/remote-methods.ts",
+    "src/core/schedule.ts",
+    "src/core/validation.ts",
+    "src/core/worktrees.ts",
+    "src/gateway/auth-crypto.ts",
+    "src/gateway/auth.ts",
+    "src/gateway/automation-scheduler.ts",
+    "src/gateway/dispatch.ts",
+    "src/gateway/main.ts",
+    "src/gateway/manager-client.ts",
+    "src/gateway/organization-receipt.ts",
+    "src/gateway/receipt-maintenance.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/recovery-protocol.ts",
+    "src/gateway/server.ts",
+    "src/gateway/worker-client.ts",
+    "src/gateway/workspace-ack.ts",
+    "src/runtime/account-tools.ts",
+    "src/runtime/attachments.ts",
+    "src/runtime/cli-diagnostics.ts",
+    "src/runtime/cli-terminals.ts",
+    "src/runtime/dev-resources.ts",
+    "src/runtime/device-login.ts",
+    "src/runtime/environments.ts",
+    "src/runtime/extensions.ts",
+    "src/runtime/feedback.ts",
+    "src/runtime/guardian.ts",
+    "src/runtime/history.ts",
+    "src/runtime/imports.ts",
+    "src/runtime/input-context.ts",
+    "src/runtime/input-modalities.ts",
+    "src/runtime/linux-process.ts",
+    "src/runtime/main.ts",
+    "src/runtime/mcp-configuration.ts",
+    "src/runtime/mcp-oauth.ts",
+    "src/runtime/mcp-schema.ts",
+    "src/runtime/mcp.ts",
+    "src/runtime/metadata.ts",
+    "src/runtime/native-launch.ts",
+    "src/runtime/native.ts",
+    "src/runtime/organization.ts",
+    "src/runtime/permission-grants.ts",
+    "src/runtime/plugin-sharing.ts",
+    "src/runtime/predictions.ts",
+    "src/runtime/processes.ts",
+    "src/runtime/project-trust.ts",
+    "src/runtime/projects.ts",
+    "src/runtime/providers.ts",
+    "src/runtime/realtime.ts",
+    "src/runtime/redaction.ts",
+    "src/runtime/remote-control.ts",
+    "src/runtime/service.ts",
+    "src/runtime/session-snapshots.ts",
+    "src/runtime/skill-resources.ts",
+    "src/runtime/structured-output.ts",
+    "src/runtime/thread-activity.ts",
+    "src/runtime/thread-terminals.ts",
+    "src/runtime/timeline-contract.ts",
+    "src/runtime/types.ts",
+    "src/runtime/validation.ts",
+    "src/runtime/windows-job.ts",
+    "src/runtime/windows-process.ts",
+    "src/runtime/workflow-methods.ts",
+    "src/runtime/workflows.ts",
+    "src/runtime/workspace-index.ts",
+    "src/runtime/workspace-service.ts",
+    "src/runtime/workspace-witness.ts",
+    "src/runtime/workspace.ts",
+    "src/runtime/worktree-bindings.ts",
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/operation-retention.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/authorization-dispatch.test.ts",
+    "tests/gateway/automation-scheduler.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-maintenance.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "tests/runtime/README.md",
+    "tests/runtime/account-tools.test.ts",
+    "tests/runtime/approval-native.test.ts",
+    "tests/runtime/attachments.test.ts",
+    "tests/runtime/automation-native.test.ts",
+    "tests/runtime/cli-diagnostics-native.test.ts",
+    "tests/runtime/cli-diagnostics.test.ts",
+    "tests/runtime/cli-terminals.test.ts",
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/dev-resources-special-file-fixture.mjs",
+    "tests/runtime/dev-resources.test.ts",
+    "tests/runtime/device-login.test.ts",
+    "tests/runtime/entrypoint.test.ts",
+    "tests/runtime/extensions-native.test.ts",
+    "tests/runtime/extensions.test.ts",
+    "tests/runtime/fixture-cleanup.test.ts",
+    "tests/runtime/fixture-cleanup.ts",
+    "tests/runtime/fixture-model-catalog.json",
+    "tests/runtime/fixture-values.ts",
+    "tests/runtime/gateway-native.test.ts",
+    "tests/runtime/gateway-oauth-native.test.ts",
+    "tests/runtime/guardian-native.test.ts",
+    "tests/runtime/guardian.test.ts",
+    "tests/runtime/imports.test.ts",
+    "tests/runtime/input-context.test.ts",
+    "tests/runtime/input-modalities.test.ts",
+    "tests/runtime/input-native.test.ts",
+    "tests/runtime/loopback-provider.ts",
+    "tests/runtime/mcp-configuration.test.ts",
+    "tests/runtime/mcp-fixture.mjs",
+    "tests/runtime/mcp-native.test.ts",
+    "tests/runtime/mcp-oauth-fixture.mjs",
+    "tests/runtime/mcp-oauth.test.ts",
+    "tests/runtime/mcp-schema.test.ts",
+    "tests/runtime/mcp.test.ts",
+    "tests/runtime/native-env.test.ts",
+    "tests/runtime/native-fixture.mjs",
+    "tests/runtime/native-smoke.test.ts",
+    "tests/runtime/native.test.ts",
+    "tests/runtime/organization-native.test.ts",
+    "tests/runtime/organization.test.ts",
+    "tests/runtime/permission-validation.test.ts",
+    "tests/runtime/predictions.test.ts",
+    "tests/runtime/process-native.test.ts",
+    "tests/runtime/processes.test.ts",
+    "tests/runtime/project-trust.test.ts",
+    "tests/runtime/projects.test.ts",
+    "tests/runtime/providers.test.ts",
+    "tests/runtime/pty-transcript.test.ts",
+    "tests/runtime/pty-transcript.ts",
+    "tests/runtime/realtime.test.ts",
+    "tests/runtime/redaction.test.ts",
+    "tests/runtime/remote-native.test.ts",
+    "tests/runtime/remote.test.ts",
+    "tests/runtime/server.test.ts",
+    "tests/runtime/service.test.ts",
+    "tests/runtime/sharing-feedback.test.ts",
+    "tests/runtime/skill-resources.test.ts",
+    "tests/runtime/terminal-cleanup-fixture.mjs",
+    "tests/runtime/terminal-cleanup.test.ts",
+    "tests/runtime/thread-activity.test.ts",
+    "tests/runtime/thread-terminals.test.ts",
+    "tests/runtime/timeline-contract.test.ts",
+    "tests/runtime/windows-job-fixture.mjs",
+    "tests/runtime/windows-job-owner.mjs",
+    "tests/runtime/windows-job.test.ts",
+    "tests/runtime/windows-module-bootstrap.test.ts",
+    "tests/runtime/windows-process.test.ts",
+    "tests/runtime/workflows-native.test.ts",
+    "tests/runtime/workflows.test.ts",
+    "tests/runtime/workspace-index.test.ts",
+    "tests/runtime/workspace-service.test.ts",
+    "tests/runtime/workspace-witness-durability.test.ts",
+    "tests/runtime/workspace-witness.test.ts",
+    "tests/runtime/workspace.test.ts",
+    "tests/runtime/worktree-witness.test.ts"
+  ],
+  "fileHashes": [
+    {
+      "path": "src/core/automations.ts",
+      "bytes": 15964,
+      "executableBits": 0,
+      "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a"
+    },
+    {
+      "path": "src/core/budget.ts",
+      "bytes": 1146,
+      "executableBits": 0,
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b"
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "bytes": 1712,
+      "executableBits": 0,
+      "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5"
+    },
+    {
+      "path": "src/core/errors.ts",
+      "bytes": 772,
+      "executableBits": 0,
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a"
+    },
+    {
+      "path": "src/core/extension-methods.ts",
+      "bytes": 2413,
+      "executableBits": 0,
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a"
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "bytes": 5219,
+      "executableBits": 0,
+      "sha256": "fe23d36edf07ae235fad8ca695d0b58f1e3f96dcd3fa203fe05f78432ac638b9"
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "bytes": 17900,
+      "executableBits": 0,
+      "sha256": "8cc405820a94cc53c6518bef0db5ae9e3ded6fab13d4e3b54c07238e1950fa49"
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "bytes": 1379,
+      "executableBits": 0,
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad"
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "bytes": 8822,
+      "executableBits": 0,
+      "sha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b"
+    },
+    {
+      "path": "src/core/organization-methods.ts",
+      "bytes": 969,
+      "executableBits": 0,
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4"
+    },
+    {
+      "path": "src/core/process-methods.ts",
+      "bytes": 464,
+      "executableBits": 0,
+      "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f"
+    },
+    {
+      "path": "src/core/realtime-methods.ts",
+      "bytes": 560,
+      "executableBits": 0,
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41"
+    },
+    {
+      "path": "src/core/remote-methods.ts",
+      "bytes": 921,
+      "executableBits": 0,
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43"
+    },
+    {
+      "path": "src/core/schedule.ts",
+      "bytes": 4577,
+      "executableBits": 0,
+      "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a"
+    },
+    {
+      "path": "src/core/validation.ts",
+      "bytes": 3162,
+      "executableBits": 0,
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+    },
+    {
+      "path": "src/core/worktrees.ts",
+      "bytes": 5380,
+      "executableBits": 0,
+      "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089"
+    },
+    {
+      "path": "src/gateway/auth-crypto.ts",
+      "bytes": 4054,
+      "executableBits": 0,
+      "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea"
+    },
+    {
+      "path": "src/gateway/auth.ts",
+      "bytes": 21527,
+      "executableBits": 0,
+      "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3"
+    },
+    {
+      "path": "src/gateway/automation-scheduler.ts",
+      "bytes": 10936,
+      "executableBits": 0,
+      "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9"
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "bytes": 23100,
+      "executableBits": 0,
+      "sha256": "3fe5901539d707859bb2fda6af0c83e9432ad5bfa8d178798af7c172bbed9525"
+    },
+    {
+      "path": "src/gateway/main.ts",
+      "bytes": 3119,
+      "executableBits": 0,
+      "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd"
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "bytes": 3701,
+      "executableBits": 0,
+      "sha256": "d786a1ab12e4c015a9cb7636a82c1015b483040e849abe97e59a2598ca22fe42"
+    },
+    {
+      "path": "src/gateway/organization-receipt.ts",
+      "bytes": 1608,
+      "executableBits": 0,
+      "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d"
+    },
+    {
+      "path": "src/gateway/receipt-maintenance.ts",
+      "bytes": 3294,
+      "executableBits": 0,
+      "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6"
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "bytes": 33795,
+      "executableBits": 0,
+      "sha256": "b694173e3d8dc2799c9d419137abbcf316fc86fc6c20c5d455c17ff5aa8ba596"
+    },
+    {
+      "path": "src/gateway/recovery-protocol.ts",
+      "bytes": 1087,
+      "executableBits": 0,
+      "sha256": "a11bfc056861be1b8672e72f260f3516e6d0b364ff0be50cf01f7257c7878e8d"
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "bytes": 24046,
+      "executableBits": 0,
+      "sha256": "6f88bc5217e1aadb303a05f6bdecad1bda8381874575ab12929e9ccfb4f72b61"
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "bytes": 10063,
+      "executableBits": 0,
+      "sha256": "2720fdd6660b9d26aa6f9a321615ef5f20dc84d1302fe56a8fe2c00a0d036417"
+    },
+    {
+      "path": "src/gateway/workspace-ack.ts",
+      "bytes": 6230,
+      "executableBits": 0,
+      "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade"
+    },
+    {
+      "path": "src/runtime/account-tools.ts",
+      "bytes": 11204,
+      "executableBits": 0,
+      "sha256": "002ba18612e76cfd53b667e7a09ca5747bca5bd9b7ee8d4657f9ec06355f85ec"
+    },
+    {
+      "path": "src/runtime/attachments.ts",
+      "bytes": 21475,
+      "executableBits": 0,
+      "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+    },
+    {
+      "path": "src/runtime/cli-diagnostics.ts",
+      "bytes": 7816,
+      "executableBits": 0,
+      "sha256": "79f421a39df3de5468b6e6ad662ee76c1cb70160b5621f46380fb2ee0a33f5ba"
+    },
+    {
+      "path": "src/runtime/cli-terminals.ts",
+      "bytes": 6415,
+      "executableBits": 0,
+      "sha256": "1d7bb6b9479e5b3e5e38735860a05d2083c6b344cf00b4812124e266a69ae373"
+    },
+    {
+      "path": "src/runtime/dev-resources.ts",
+      "bytes": 6454,
+      "executableBits": 0,
+      "sha256": "c53d5f7d4d81aa6c944974e9bd15941e7f56c7e72a1191a61c7112d7603d0a59"
+    },
+    {
+      "path": "src/runtime/device-login.ts",
+      "bytes": 7177,
+      "executableBits": 0,
+      "sha256": "9de0debd83ead4ec67fba35b8c00fd244f45493bac03d27f1a710995d69d0308"
+    },
+    {
+      "path": "src/runtime/environments.ts",
+      "bytes": 7633,
+      "executableBits": 0,
+      "sha256": "e0a9a6a38b84695d12e49e1fc9cd3ead8eea92d119cd12fdf2eedaf2eda49cd1"
+    },
+    {
+      "path": "src/runtime/extensions.ts",
+      "bytes": 25998,
+      "executableBits": 0,
+      "sha256": "ced7c804ccb2f9061d1d2fa34bfcb605a4f5b50d422f0187d90359da4a5ce3c5"
+    },
+    {
+      "path": "src/runtime/feedback.ts",
+      "bytes": 2815,
+      "executableBits": 0,
+      "sha256": "aac1bed56ed149bd025cf2bb0de13aa5b6ac34884fb9e546aa37e6b5fd725135"
+    },
+    {
+      "path": "src/runtime/guardian.ts",
+      "bytes": 9996,
+      "executableBits": 0,
+      "sha256": "d11a731bbfb91eec51aa1edcbaa0182eae444108971940b98e003756cc95da4e"
+    },
+    {
+      "path": "src/runtime/history.ts",
+      "bytes": 10377,
+      "executableBits": 0,
+      "sha256": "48c57ac313c4b7c5d060c1f76c45f5a5bbac844954a1cc7ed166fe744e419c44"
+    },
+    {
+      "path": "src/runtime/imports.ts",
+      "bytes": 7724,
+      "executableBits": 0,
+      "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+    },
+    {
+      "path": "src/runtime/input-context.ts",
+      "bytes": 7323,
+      "executableBits": 0,
+      "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+    },
+    {
+      "path": "src/runtime/input-modalities.ts",
+      "bytes": 2969,
+      "executableBits": 0,
+      "sha256": "baa8dcba1e9107d4a112f413c54b00b5fffde7aeb301897eb083a9126fbf3360"
+    },
+    {
+      "path": "src/runtime/linux-process.ts",
+      "bytes": 8022,
+      "executableBits": 0,
+      "sha256": "7fd8e590412340772610ee3687ae3641a3ecd7f46e1df4d5e71817783fabe3ce"
+    },
+    {
+      "path": "src/runtime/main.ts",
+      "bytes": 16699,
+      "executableBits": 0,
+      "sha256": "15e78d8ff90d444370a6f4f6f5f889e670de348667bd3846aa3260ea814b6a32"
+    },
+    {
+      "path": "src/runtime/mcp-configuration.ts",
+      "bytes": 9135,
+      "executableBits": 0,
+      "sha256": "966a533fc21d8a1f0925568924f1a7c14f9f40821131bc4705744909d87e6e85"
+    },
+    {
+      "path": "src/runtime/mcp-oauth.ts",
+      "bytes": 8236,
+      "executableBits": 0,
+      "sha256": "c2f36b1fce17f526e96783d56dedd6852f00f7e4d4c01d94e8b23119baaf5de3"
+    },
+    {
+      "path": "src/runtime/mcp-schema.ts",
+      "bytes": 3804,
+      "executableBits": 0,
+      "sha256": "f796b23409cd21f607e82a7c04cd4595a4a24f60c2f335f9978b38b17a78999c"
+    },
+    {
+      "path": "src/runtime/mcp.ts",
+      "bytes": 16257,
+      "executableBits": 0,
+      "sha256": "a123f2b84aab63c509940f2c9b65ff5297bc8240ff52c96ea6d446e7c505989f"
+    },
+    {
+      "path": "src/runtime/metadata.ts",
+      "bytes": 564,
+      "executableBits": 0,
+      "sha256": "51e1d02cbe02ea1a436cadfe818e302a83c1fb608b537421716dff36f5001c5c"
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "bytes": 4811,
+      "executableBits": 0,
+      "sha256": "f1bcede3e6ba8ad43558998f887665fd73e5e7475d2d15bd2e27bbb30657a26c"
+    },
+    {
+      "path": "src/runtime/native.ts",
+      "bytes": 14570,
+      "executableBits": 0,
+      "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37"
+    },
+    {
+      "path": "src/runtime/organization.ts",
+      "bytes": 13660,
+      "executableBits": 0,
+      "sha256": "0744df619c14ea25c1afc874d5647a068db0fa96703a22e99e9a16defd078dba"
+    },
+    {
+      "path": "src/runtime/permission-grants.ts",
+      "bytes": 4332,
+      "executableBits": 0,
+      "sha256": "98fb19a78cd3c0255c8a11268e8267fa2dab93b57a4d55ff315e1b741f13d8c6"
+    },
+    {
+      "path": "src/runtime/plugin-sharing.ts",
+      "bytes": 6692,
+      "executableBits": 0,
+      "sha256": "3d2e6f5e7d33ba05bf522b74803935ec359abc4da00e3f419a5b5325c86979b8"
+    },
+    {
+      "path": "src/runtime/predictions.ts",
+      "bytes": 8267,
+      "executableBits": 0,
+      "sha256": "017b6a449adc97efa67f5f696407e4d929e697fdde5a813459e87e0e3ab833c6"
+    },
+    {
+      "path": "src/runtime/processes.ts",
+      "bytes": 15005,
+      "executableBits": 0,
+      "sha256": "c063b69fa769ba90562a1b587856fd618da794a830a21a7302060fe2fe777db2"
+    },
+    {
+      "path": "src/runtime/project-trust.ts",
+      "bytes": 3303,
+      "executableBits": 0,
+      "sha256": "2fbf7cc2f754054815fb74ec9e3afcca49fa053ff893db90af835190f5013a16"
+    },
+    {
+      "path": "src/runtime/projects.ts",
+      "bytes": 3626,
+      "executableBits": 0,
+      "sha256": "4d8de2c388fa4708b6d6732c5426e1e451bcec47c749f5c8cf666bc42daa6f0a"
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "bytes": 9361,
+      "executableBits": 0,
+      "sha256": "e7802d9c4af089913646deddb84ec7b2ff31ee5a7fac5d4f9884a6847b678018"
+    },
+    {
+      "path": "src/runtime/realtime.ts",
+      "bytes": 17906,
+      "executableBits": 0,
+      "sha256": "b8074f724c585636717fbb1905184be2c4339cd8b3f71474057560214ab91e4b"
+    },
+    {
+      "path": "src/runtime/redaction.ts",
+      "bytes": 2032,
+      "executableBits": 0,
+      "sha256": "38342ce9b58efce9ca36b64ab107944cdfb02d7ce8f9ea444432109c789a195a"
+    },
+    {
+      "path": "src/runtime/remote-control.ts",
+      "bytes": 6761,
+      "executableBits": 0,
+      "sha256": "9cd520e0b2062c6b920b917932b94e31e36492caef17c265422e4efb262f97ac"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "bytes": 80922,
+      "executableBits": 0,
+      "sha256": "06253a32bfa444f5173b2b531347aba2e407d65fe78ae6433943516347afcbf8"
+    },
+    {
+      "path": "src/runtime/session-snapshots.ts",
+      "bytes": 3299,
+      "executableBits": 0,
+      "sha256": "0d4ae99c3eacd6849e9a2bbc660d02a497e19c15401e2624ac18105034c8cbe6"
+    },
+    {
+      "path": "src/runtime/skill-resources.ts",
+      "bytes": 3530,
+      "executableBits": 0,
+      "sha256": "b958998f32d0f07507e66627f88d8fdba5d9ccd43b7ade9f91e6900966f0c178"
+    },
+    {
+      "path": "src/runtime/structured-output.ts",
+      "bytes": 950,
+      "executableBits": 0,
+      "sha256": "324537dca6387f89679896ad85955d8f8aa63f1171d82481c0a28737b75892de"
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "bytes": 3646,
+      "executableBits": 0,
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6"
+    },
+    {
+      "path": "src/runtime/thread-terminals.ts",
+      "bytes": 4841,
+      "executableBits": 0,
+      "sha256": "7c52526e01de582b3881f9aabe7470d7da3e8eb1bcd7b31c09845dad0a4645e6"
+    },
+    {
+      "path": "src/runtime/timeline-contract.ts",
+      "bytes": 3349,
+      "executableBits": 0,
+      "sha256": "5abcc19fc9cc8697601fd56c9db86d81d5073b00c78442adb7b8aa65252ae5c4"
+    },
+    {
+      "path": "src/runtime/types.ts",
+      "bytes": 3544,
+      "executableBits": 0,
+      "sha256": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0"
+    },
+    {
+      "path": "src/runtime/validation.ts",
+      "bytes": 9999,
+      "executableBits": 0,
+      "sha256": "8c8670e9871a13a93a73654c114cff7f8982916a9bbb72141e19420a3f64d246"
+    },
+    {
+      "path": "src/runtime/windows-job.ts",
+      "bytes": 12947,
+      "executableBits": 0,
+      "sha256": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0"
+    },
+    {
+      "path": "src/runtime/windows-process.ts",
+      "bytes": 9397,
+      "executableBits": 0,
+      "sha256": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2"
+    },
+    {
+      "path": "src/runtime/workflow-methods.ts",
+      "bytes": 1018,
+      "executableBits": 0,
+      "sha256": "40bfbf562c8d51e538256510772087a58962ae1ceb7482ca066f726b36a2c6d8"
+    },
+    {
+      "path": "src/runtime/workflows.ts",
+      "bytes": 22207,
+      "executableBits": 0,
+      "sha256": "3330e7962ee3ae65f47bea86c681c6c29367fe424ad34cf02ccece87cccae190"
+    },
+    {
+      "path": "src/runtime/workspace-index.ts",
+      "bytes": 3955,
+      "executableBits": 0,
+      "sha256": "94108d13acc49982d652a73cfba577f78b8c6bc87bcfab4336e67e8e50540670"
+    },
+    {
+      "path": "src/runtime/workspace-service.ts",
+      "bytes": 5125,
+      "executableBits": 0,
+      "sha256": "d58c12fca3b67a88ee47175ec1ed34447562dea1877d84ff7a55c07f55b630cf"
+    },
+    {
+      "path": "src/runtime/workspace-witness.ts",
+      "bytes": 15407,
+      "executableBits": 0,
+      "sha256": "9794a2c3460d83ca6a9b437d3898174f8e71f4dfdb4f60bae42c4a92d922fd13"
+    },
+    {
+      "path": "src/runtime/workspace.ts",
+      "bytes": 12919,
+      "executableBits": 0,
+      "sha256": "4c9e1a677cbf79d610f5de6171e34a622ef7122b71886e2e33a60fad1c50534c"
+    },
+    {
+      "path": "src/runtime/worktree-bindings.ts",
+      "bytes": 4216,
+      "executableBits": 0,
+      "sha256": "3e02f04121fb36220962518bd8d7b198776ced6f1559554c9fd2859c5031c1b6"
+    },
+    {
+      "path": "tests/core/automation-retention.test.ts",
+      "bytes": 3142,
+      "executableBits": 0,
+      "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3"
+    },
+    {
+      "path": "tests/core/ledger-capacity.test.ts",
+      "bytes": 17691,
+      "executableBits": 0,
+      "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d"
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "bytes": 5755,
+      "executableBits": 0,
+      "sha256": "42896338d81019729da40dd1e3269ff5977d643449940f99f9ea13e67e34f9f2"
+    },
+    {
+      "path": "tests/core/operation-retention.test.ts",
+      "bytes": 6572,
+      "executableBits": 0,
+      "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9"
+    },
+    {
+      "path": "tests/core/schedule.test.ts",
+      "bytes": 3301,
+      "executableBits": 0,
+      "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328"
+    },
+    {
+      "path": "tests/gateway/auth.test.ts",
+      "bytes": 17981,
+      "executableBits": 0,
+      "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679"
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "bytes": 10567,
+      "executableBits": 0,
+      "sha256": "ef20720e0146164fa58c3bdd44238be7686b4ec7f4b311a1c06526ca13285d2d"
+    },
+    {
+      "path": "tests/gateway/automation-scheduler.test.ts",
+      "bytes": 12425,
+      "executableBits": 0,
+      "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5"
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "bytes": 26543,
+      "executableBits": 0,
+      "sha256": "537443abd58479ee2ccb72bfbd2745261f979f9ffcf0a12721b4690fddb20698"
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "bytes": 35312,
+      "executableBits": 0,
+      "sha256": "3d0738545643c9d5670f9e7d856b65007ff78a5e4d17b577c5fef17518cdd616"
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "bytes": 9955,
+      "executableBits": 0,
+      "sha256": "83c0d7951907e9676dd4c89dacff63a691cb7770e31767bc66bdb113fa942a34"
+    },
+    {
+      "path": "tests/gateway/receipt-maintenance.test.ts",
+      "bytes": 4639,
+      "executableBits": 0,
+      "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f"
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "bytes": 13806,
+      "executableBits": 0,
+      "sha256": "ad79681d8b7aa03d955d28979fd94baa272cb1dc264523463a54fd39818e602a"
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "bytes": 11543,
+      "executableBits": 0,
+      "sha256": "c28e54e7593375379dd4176fe792198be714dd94657e1b220c381ebd86cd4bfa"
+    },
+    {
+      "path": "tests/gateway/workspace-ack.test.ts",
+      "bytes": 7434,
+      "executableBits": 0,
+      "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b"
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "bytes": 6248,
+      "executableBits": 0,
+      "sha256": "20af6f36cc5a90d277a28922830bba7efadd3118aebd2500b2265f8ec0130cb4"
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "bytes": 36516,
+      "executableBits": 0,
+      "sha256": "8308c87eb08ebf9e525269617f15f87e13640c13f5056084a8e27578dc3900fa"
+    },
+    {
+      "path": "tests/runtime/account-tools.test.ts",
+      "bytes": 11004,
+      "executableBits": 0,
+      "sha256": "0ce398d1cf2a8470a7ece04779abe39a2ecd09bc9a9e86903a4293b2e323de35"
+    },
+    {
+      "path": "tests/runtime/approval-native.test.ts",
+      "bytes": 7503,
+      "executableBits": 0,
+      "sha256": "a1856582e532e55d69a89d81d45aff4e022f8c5ecf0d6645cbfd3d8c21990337"
+    },
+    {
+      "path": "tests/runtime/attachments.test.ts",
+      "bytes": 14180,
+      "executableBits": 0,
+      "sha256": "96af9b29a2a6cfe2b468f67d3226c56d018dab52b19656d1089425072f4ae5c3"
+    },
+    {
+      "path": "tests/runtime/automation-native.test.ts",
+      "bytes": 6132,
+      "executableBits": 0,
+      "sha256": "f45f4608a0afcf5af4de02fd38db4b2d10486f2d47759b6162d3dcd05494701c"
+    },
+    {
+      "path": "tests/runtime/cli-diagnostics-native.test.ts",
+      "bytes": 2817,
+      "executableBits": 0,
+      "sha256": "89668d8f3331417b05d48c32dfaf806eef420f9a33d74ae7d059e0e99d44d593"
+    },
+    {
+      "path": "tests/runtime/cli-diagnostics.test.ts",
+      "bytes": 9766,
+      "executableBits": 0,
+      "sha256": "586c12963edd552b1799f72082b16d02cf148608e96412f2b4d70dc092265e4a"
+    },
+    {
+      "path": "tests/runtime/cli-terminals.test.ts",
+      "bytes": 11540,
+      "executableBits": 0,
+      "sha256": "b0247ad957568fa7a86cadbdb657ae0fd52413b325d1b02a13884b64245c64e6"
+    },
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "bytes": 4842,
+      "executableBits": 0,
+      "sha256": "c5dcc0a9b761d48b094f8b0c642f1e28ed3d2fc7e6ff0a6ee96e46d333a8d30c"
+    },
+    {
+      "path": "tests/runtime/dev-resources-special-file-fixture.mjs",
+      "bytes": 1058,
+      "executableBits": 0,
+      "sha256": "16c2b8a6d6b9c850ff7cedf0c12fa371e7c6c1b72757e0e927a12a234cfb34b3"
+    },
+    {
+      "path": "tests/runtime/dev-resources.test.ts",
+      "bytes": 7866,
+      "executableBits": 0,
+      "sha256": "bb3e69200e92d0202921d6a688be9e818b1884c47fe2063d5e57ec2a5719d042"
+    },
+    {
+      "path": "tests/runtime/device-login.test.ts",
+      "bytes": 6254,
+      "executableBits": 0,
+      "sha256": "e65865e0c83a015dff54a8329d68c37ab89f6965720a45917bf9c201eea92919"
+    },
+    {
+      "path": "tests/runtime/entrypoint.test.ts",
+      "bytes": 2033,
+      "executableBits": 0,
+      "sha256": "c0b443ba727b0e9b0f564c485a7a117c2c6971802aae38ea8216674e930402c3"
+    },
+    {
+      "path": "tests/runtime/extensions-native.test.ts",
+      "bytes": 14216,
+      "executableBits": 0,
+      "sha256": "31764abbfeeaab924ab52190fb508de720aa64e2ef7eec9992f6d6bb9d60a764"
+    },
+    {
+      "path": "tests/runtime/extensions.test.ts",
+      "bytes": 11158,
+      "executableBits": 0,
+      "sha256": "36c48b99cd9ea9b16ae739dee451fcffc399a41db0ee5d65991e9f0a9df87d08"
+    },
+    {
+      "path": "tests/runtime/fixture-cleanup.test.ts",
+      "bytes": 6941,
+      "executableBits": 0,
+      "sha256": "ed28287d9ca737d95066747cc6eb7b8a25f5ff02df6448034ccffdd422ea72db"
+    },
+    {
+      "path": "tests/runtime/fixture-cleanup.ts",
+      "bytes": 849,
+      "executableBits": 0,
+      "sha256": "6ce7341e14b69cd2e0fb05891b12843e5bfdd5b4323c2410c1ad5466e5ab9cce"
+    },
+    {
+      "path": "tests/runtime/fixture-model-catalog.json",
+      "bytes": 908,
+      "executableBits": 0,
+      "sha256": "a5cf6d8bf59a93bc16ae99dd83a4f8a18bb0ee8baeb4b864fe8212a6ddd5bcf1"
+    },
+    {
+      "path": "tests/runtime/fixture-values.ts",
+      "bytes": 761,
+      "executableBits": 0,
+      "sha256": "64f3abe0d3bda2a849d38acb5db535e579bb1be4ff91f7ae81796428e4d5af13"
+    },
+    {
+      "path": "tests/runtime/gateway-native.test.ts",
+      "bytes": 15685,
+      "executableBits": 0,
+      "sha256": "0f7daf618891f1b80fcd0347476ebf4c8d6f9527827c921b1417e38edd69efc4"
+    },
+    {
+      "path": "tests/runtime/gateway-oauth-native.test.ts",
+      "bytes": 4010,
+      "executableBits": 0,
+      "sha256": "77ac32a081458138aa9b04b00d5c7a7c445d2df5b31e35bc113f45e8f53b560f"
+    },
+    {
+      "path": "tests/runtime/guardian-native.test.ts",
+      "bytes": 15642,
+      "executableBits": 0,
+      "sha256": "51ea412a29765fc37170a0e56b2ee1fcc122746de3ef5d00b16364e14d245d02"
+    },
+    {
+      "path": "tests/runtime/guardian.test.ts",
+      "bytes": 7382,
+      "executableBits": 0,
+      "sha256": "8f791842a3ec0ab6c8a610ca66a8b1b2fa8b88aeac010b79cc87f7fc0cb34a64"
+    },
+    {
+      "path": "tests/runtime/imports.test.ts",
+      "bytes": 5214,
+      "executableBits": 0,
+      "sha256": "cd5b2afb60f6924ca39d2a15edeea94c97329e7050e8d768c19c1feff7b34173"
+    },
+    {
+      "path": "tests/runtime/input-context.test.ts",
+      "bytes": 5307,
+      "executableBits": 0,
+      "sha256": "a85505a2e83cdc8c2a298b4079b943d295d6860742e4ea237437dbd74d086e4e"
+    },
+    {
+      "path": "tests/runtime/input-modalities.test.ts",
+      "bytes": 2630,
+      "executableBits": 0,
+      "sha256": "aaa51816ef17f6962ab6a5f2b1bc36f1f3c6564237ad8540c2404589dfc7d502"
+    },
+    {
+      "path": "tests/runtime/input-native.test.ts",
+      "bytes": 8266,
+      "executableBits": 0,
+      "sha256": "7e59d489fbcd77b34b8fddef3cf6b81130b21fe7e29881b5c94ee039e5c30eaf"
+    },
+    {
+      "path": "tests/runtime/loopback-provider.ts",
+      "bytes": 2210,
+      "executableBits": 0,
+      "sha256": "12de7c4fcf457345dc2e9c92207c56846d86c13faea27b051e81a38e6048d87e"
+    },
+    {
+      "path": "tests/runtime/mcp-configuration.test.ts",
+      "bytes": 4299,
+      "executableBits": 0,
+      "sha256": "0f6180356e6499194b085c8bf7ef7705b1d7a94f8186c4275cc66b131f6ba2be"
+    },
+    {
+      "path": "tests/runtime/mcp-fixture.mjs",
+      "bytes": 1948,
+      "executableBits": 0,
+      "sha256": "c9fd3598be8ba7dcd03c26894cf6c79a51e6be215f1448a9930f6f713c6abb91"
+    },
+    {
+      "path": "tests/runtime/mcp-native.test.ts",
+      "bytes": 3900,
+      "executableBits": 0,
+      "sha256": "5f20fbc808ff46d6a5294ef50d6b6ab509569209b5e8162cf0b3fa2efce9faf9"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth-fixture.mjs",
+      "bytes": 788,
+      "executableBits": 0,
+      "sha256": "17f5857d8ca6ac0495150aab3a74e1d34363e6b76594a763126f20abe84910bb"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth.test.ts",
+      "bytes": 8668,
+      "executableBits": 0,
+      "sha256": "9ff0ed81c51085386037478dd268c9776f72f350374a83f8b24d3215c096bdfd"
+    },
+    {
+      "path": "tests/runtime/mcp-schema.test.ts",
+      "bytes": 1787,
+      "executableBits": 0,
+      "sha256": "7315e9db67297119fc093f035ad81c063feead6332afcab2f51b3360462312b3"
+    },
+    {
+      "path": "tests/runtime/mcp.test.ts",
+      "bytes": 13015,
+      "executableBits": 0,
+      "sha256": "43b2e0ca39de327da5d089e41752f80fa20e69bdc5ccd2128e027331509137a9"
+    },
+    {
+      "path": "tests/runtime/native-env.test.ts",
+      "bytes": 2834,
+      "executableBits": 0,
+      "sha256": "d9ac65de937c7e4afe9b223e849d9989d5f43a53ed46db89fb65f59c9a1249e7"
+    },
+    {
+      "path": "tests/runtime/native-fixture.mjs",
+      "bytes": 1424,
+      "executableBits": 0,
+      "sha256": "d34e23f65716ad112ac9f6847bb93ebf203197da0caa2e91abd49c3be757251a"
+    },
+    {
+      "path": "tests/runtime/native-smoke.test.ts",
+      "bytes": 16370,
+      "executableBits": 0,
+      "sha256": "100f5cf4ad78866fd5185768fe9780e7ac25307c2539531edceacddec04c53ba"
+    },
+    {
+      "path": "tests/runtime/native.test.ts",
+      "bytes": 7287,
+      "executableBits": 0,
+      "sha256": "f6407192c3e211346b59574a927a23eeb62cff9a02913f66aa81e4dd0420fc3e"
+    },
+    {
+      "path": "tests/runtime/organization-native.test.ts",
+      "bytes": 8101,
+      "executableBits": 0,
+      "sha256": "33451ca99f320a22a4c5c259cd3c77fcc0fb657d20c7116728f34f8835f3133a"
+    },
+    {
+      "path": "tests/runtime/organization.test.ts",
+      "bytes": 9253,
+      "executableBits": 0,
+      "sha256": "062321809e82354e8e21e9e7fb1c727e9ddb08bb7a323564709a1e4f316a9f88"
+    },
+    {
+      "path": "tests/runtime/permission-validation.test.ts",
+      "bytes": 13020,
+      "executableBits": 0,
+      "sha256": "56bf986c78e7d79d817db9ffee6054bafee587fd9539ae77cc6c5ee39407abc2"
+    },
+    {
+      "path": "tests/runtime/predictions.test.ts",
+      "bytes": 9172,
+      "executableBits": 0,
+      "sha256": "373f664687e5b7c9f753fd596bc442e24fa243e76a64a595a8da904850ae442e"
+    },
+    {
+      "path": "tests/runtime/process-native.test.ts",
+      "bytes": 5354,
+      "executableBits": 0,
+      "sha256": "a9f92e81d23140fe42927d2436ecba5cba703bc98b7d34ce50792720129b0599"
+    },
+    {
+      "path": "tests/runtime/processes.test.ts",
+      "bytes": 8732,
+      "executableBits": 0,
+      "sha256": "10aab7225568135629e99d18733382d4e411530f0d07b68b8aaf13fa296cace7"
+    },
+    {
+      "path": "tests/runtime/project-trust.test.ts",
+      "bytes": 1832,
+      "executableBits": 0,
+      "sha256": "8c99e30d5de5571d827e8894351db923742e7e41c3ff1cc8435c4088bf820e67"
+    },
+    {
+      "path": "tests/runtime/projects.test.ts",
+      "bytes": 3291,
+      "executableBits": 0,
+      "sha256": "c978bdbfbe8872b10b53edd2be30f787552677624a1665b1affaffb5267e521a"
+    },
+    {
+      "path": "tests/runtime/providers.test.ts",
+      "bytes": 5897,
+      "executableBits": 0,
+      "sha256": "1e1bcc20038c58173955584fa7d6281431a68ce77e067c37aacf77597a1b39f2"
+    },
+    {
+      "path": "tests/runtime/pty-transcript.test.ts",
+      "bytes": 1867,
+      "executableBits": 0,
+      "sha256": "7ed732610e90cf6f47a9f809a2a856ccf88f7f6fb9df2c87e0ae63eb86ca609d"
+    },
+    {
+      "path": "tests/runtime/pty-transcript.ts",
+      "bytes": 1451,
+      "executableBits": 0,
+      "sha256": "9f63572096722063c78773a2c07f9719bf587a97f7558196128e7376b25754a4"
+    },
+    {
+      "path": "tests/runtime/realtime.test.ts",
+      "bytes": 23275,
+      "executableBits": 0,
+      "sha256": "facf511de1e796e1c4b608104ca0050347a6d6be239f55a945f0381925226adf"
+    },
+    {
+      "path": "tests/runtime/redaction.test.ts",
+      "bytes": 1037,
+      "executableBits": 0,
+      "sha256": "d181f2d37dfbea3a700d01cdc24178aa4e6d66ce14937df76f96a44011b7464e"
+    },
+    {
+      "path": "tests/runtime/remote-native.test.ts",
+      "bytes": 6694,
+      "executableBits": 0,
+      "sha256": "62ae74c0359003e166fa4550ea5fc696400fdc30c1554783043239a328beeb76"
+    },
+    {
+      "path": "tests/runtime/remote.test.ts",
+      "bytes": 8939,
+      "executableBits": 0,
+      "sha256": "05e3b2b9fb008d9293f0647a895530007520bfca88bd28fd22ed8850b2a6642e"
+    },
+    {
+      "path": "tests/runtime/server.test.ts",
+      "bytes": 15614,
+      "executableBits": 0,
+      "sha256": "285a9285eeefdb584f7018dc1e9211a607f4b0eafd350a4d1366948b5403186e"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "bytes": 54525,
+      "executableBits": 0,
+      "sha256": "e9365fbff942aecb8db21a1a5228b1b50412a6ab86c7b5ec0780103c9cba2e13"
+    },
+    {
+      "path": "tests/runtime/sharing-feedback.test.ts",
+      "bytes": 5259,
+      "executableBits": 0,
+      "sha256": "7bbac66d7bff456af2d30f1220cb6dc964a3c2bf5b0afc8028a43e25f9aa0bf9"
+    },
+    {
+      "path": "tests/runtime/skill-resources.test.ts",
+      "bytes": 3853,
+      "executableBits": 0,
+      "sha256": "05bb53c6f9cce82efd8f2d2698e94ecf619dd0f721117eb2bf44dba13d5e61fb"
+    },
+    {
+      "path": "tests/runtime/terminal-cleanup-fixture.mjs",
+      "bytes": 1304,
+      "executableBits": 0,
+      "sha256": "969e1349ffd8defee0e2aec9e8a1e5c4a8e5dd1bbbef363f11d076654a15b8f7"
+    },
+    {
+      "path": "tests/runtime/terminal-cleanup.test.ts",
+      "bytes": 6213,
+      "executableBits": 0,
+      "sha256": "92c0bd1c1713bd31d4b1b01b1f94c18f11f9fcd83495144e5fd01d5d5fc2b1d5"
+    },
+    {
+      "path": "tests/runtime/thread-activity.test.ts",
+      "bytes": 3714,
+      "executableBits": 0,
+      "sha256": "26b02cb2cd2fac8b7fe91b54d44a1c58cbfe508e2ebc35f5965466e80fde9dbd"
+    },
+    {
+      "path": "tests/runtime/thread-terminals.test.ts",
+      "bytes": 5294,
+      "executableBits": 0,
+      "sha256": "5dab3f19b3edc43be5592c7f06949af75eb7edd28277a8899bd42292240f8d98"
+    },
+    {
+      "path": "tests/runtime/timeline-contract.test.ts",
+      "bytes": 1597,
+      "executableBits": 0,
+      "sha256": "07be160f3150a6b791d392fb8154566e7c2c014405daa6a3c7bc82caf1e895e1"
+    },
+    {
+      "path": "tests/runtime/windows-job-fixture.mjs",
+      "bytes": 1181,
+      "executableBits": 0,
+      "sha256": "c95b3d6482fb8136e8b3f30597d0f4295b43ee2f092d80bb085c1066161a7b2b"
+    },
+    {
+      "path": "tests/runtime/windows-job-owner.mjs",
+      "bytes": 714,
+      "executableBits": 0,
+      "sha256": "7c5c655a227dbf9dad77c0609d5aac0045918753a4e2b20bdd2d9fb486dcffef"
+    },
+    {
+      "path": "tests/runtime/windows-job.test.ts",
+      "bytes": 7250,
+      "executableBits": 0,
+      "sha256": "3ef9571ded8feff983fd5b51930eec47e438e1ae3e815ceb69e93b7601cc12ae"
+    },
+    {
+      "path": "tests/runtime/windows-module-bootstrap.test.ts",
+      "bytes": 4815,
+      "executableBits": 0,
+      "sha256": "1395a5d73cc88f2ba1af87e28b44445eba07315b9d68b5ae42f08c26766ca03a"
+    },
+    {
+      "path": "tests/runtime/windows-process.test.ts",
+      "bytes": 5920,
+      "executableBits": 0,
+      "sha256": "1a0e90ac1f50f6066dea1015812bccb4efdf9c4712d64471b084839b0f61e970"
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "bytes": 14322,
+      "executableBits": 0,
+      "sha256": "ab76bcc45cb22c4882907237db70338efb383c61c9716928fe15046871773a77"
+    },
+    {
+      "path": "tests/runtime/workflows.test.ts",
+      "bytes": 36124,
+      "executableBits": 0,
+      "sha256": "a1ae649c9f799000823b5625117ec68df893bbd46d9b247b6c61eac1034732d9"
+    },
+    {
+      "path": "tests/runtime/workspace-index.test.ts",
+      "bytes": 2716,
+      "executableBits": 0,
+      "sha256": "c739b6ed90add83bce62f92dc054d4fd575dbb844d29d5c074a5d6a4d7676ec9"
+    },
+    {
+      "path": "tests/runtime/workspace-service.test.ts",
+      "bytes": 9640,
+      "executableBits": 0,
+      "sha256": "5e2bc27ad6f0d32cabee491f4d54dd260aaf35f49711076d11d556557aa0d5c9"
+    },
+    {
+      "path": "tests/runtime/workspace-witness-durability.test.ts",
+      "bytes": 6963,
+      "executableBits": 0,
+      "sha256": "40f4c40b44faafb36f548418513b891a2bc189956f03b8dfecc506f37259ce40"
+    },
+    {
+      "path": "tests/runtime/workspace-witness.test.ts",
+      "bytes": 16536,
+      "executableBits": 0,
+      "sha256": "9d0ea30aa601106f9fcc817d3a27b0512563a78e92ef88d5b1c2e1c24f2445ff"
+    },
+    {
+      "path": "tests/runtime/workspace.test.ts",
+      "bytes": 11084,
+      "executableBits": 0,
+      "sha256": "06e4dd335f7aa815b047ac63a8c3d969ca9ffd3e13086f4eff543976e2dc3c60"
+    },
+    {
+      "path": "tests/runtime/worktree-witness.test.ts",
+      "bytes": 4128,
+      "executableBits": 0,
+      "sha256": "be921f1866ab4515eb753e3b9993ee3e1fa10b9ff098acc80f3e40074f75ba50"
+    }
+  ],
+  "hashAlgorithm": "SHA256 of raw file bytes; executable bits recorded separately",
+  "scopeDigest": "c3e11d35cb205f6f6cf02bbdb0b487d9ac1e59da5380edc510e13d6fdde4bc60",
+  "additionalInspectedFiles": [
+    "AGENTS.md",
+    "scripts/snapshot.mjs",
+    "web/Workspace.tsx",
+    "web/hooks/useResource.ts",
+    "web/tests/defaults.test.tsx"
+  ],
+  "additionalFileHashes": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700"
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "e5807925de21b6b1ec558595c2d3274d9a7ad3f0fc4340d288509e826c7cb4b3"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "15e00539844947c2238642f1e9a48bdcf4fcdaee7d768864eef228cdea9b44ee"
+    }
+  ],
+  "coverage": {
+    "assignedFiles": 173,
+    "sourceFiles": 81,
+    "codeFilesParsed": 171,
+    "parseErrors": 0,
+    "testCodeFilesStructurallyReviewed": 90,
+    "extractedTestAndSuiteDefinitions": 558,
+    "assertionChains": 2504,
+    "asynchronousAssertionChains": 566,
+    "observedAsyncAssertions": 566,
+    "testTryFinally": 150,
+    "testConditionals": 374,
+    "missingLiteralSchemas": [],
+    "missingRelativeImports": [],
+    "focusedOrTodoTests": [],
+    "unobservedAsyncAssertionCandidates": [],
+    "priorEvidence": ".work/v220-audit8-runtime.json",
+    "priorEvidenceSha256": "80a4decd7a830ee8cc91a8a79b7c4c53c701a29b699c975a5b8491ad2200655e",
+    "priorDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+    "unchangedByPerFileSHA256": 173,
+    "changedFiles": [],
+    "retainedPriorSemanticCoverage": "All 173 unchanged files retain audit8 and earlier same-checkout production/test/documentation semantic analysis, including native fixture boundaries, platform ownership and recovery regression bodies. Current AST, route/schema/import/guard/assertion analysis and hashes cover every file again. This is substantive unchanged-analysis carryforward, not a claim of a new manual line-by-line read of every file or a new test execution.",
+    "freshManualFullBodies": [
+      "src/runtime/history.ts",
+      "src/runtime/thread-activity.ts",
+      "src/runtime/providers.ts",
+      "src/runtime/projects.ts",
+      "src/runtime/cli-terminals.ts",
+      "src/gateway/worker-client.ts",
+      "tests/runtime/defaults-lifecycle.test.ts"
+    ],
+    "freshManualFocusedReviews": [
+      {
+        "paths": [
+          "src/runtime/service.ts",
+          "src/runtime/native.ts",
+          "tests/runtime/native-smoke.test.ts",
+          "tests/runtime/README.md"
+        ],
+        "focus": "Defaults request validation and native-UID project resolution; canonical config/options/cwd cache identity, exactly one uncached probe, ephemeral thread/start without turn/inference, bounded timeout, owned process close before caching and finally cleanup; shutdown/read race and no reopening after close; cache-capacity/native process-exit assertions and documentation evidence limits. Cleanup failure keeps unknown/fatal. Re-reading defaults never clears unknown or starts a user turn."
+      },
+      {
+        "paths": [
+          "src/runtime/service.ts",
+          "src/runtime/history.ts",
+          "src/runtime/thread-activity.ts",
+          "src/gateway/automation-scheduler.ts"
+        ],
+        "focus": "Same-ID known-live status projection, legal terminal evidence priority, lifecycle fence across pagination, streaming revisions separated from turnRevision, cold interrupted retained, accepted-response revision guard and early completion before scheduler accept. Close/delete/revert invalidate terminal cache. Scheduler reads history and releases owned leases only after matching terminal evidence; no uncertain replay."
+      },
+      {
+        "paths": [
+          "src/gateway/dispatch.ts",
+          "src/gateway/worker-client.ts",
+          "src/runtime/main.ts"
+        ],
+        "focus": "defaults/read remains a read without durable operation ID, projectId maps only to a registered cwd, worker requests bind authenticated live owner/channel and recheck before dispatch. Project creation positive acknowledgment persists registration even after disconnect; project/add read-only resolution requires the live owner before mutation. CLI exit drains definitive RPC replies before restart-ready exit75, and disconnected owners cannot submit late work."
+      },
+      {
+        "paths": [
+          "src/gateway/auth.ts",
+          "src/core/ledger.ts",
+          "src/gateway/dispatch.ts"
+        ],
+        "focus": "Administrator login rechecks account version after password derivation; session/CSRF/client binding and logout revocation remain intact. Durable pending-to-dispatched-to-accepted/unknown transitions, positive acknowledgment handling, uncertain outcome preservation, bounded retained result capacity and exact original-operation recovery remain unchanged."
+      },
+      {
+        "paths": [
+          "web/Workspace.tsx",
+          "web/hooks/useResource.ts",
+          "web/tests/defaults.test.tsx"
+        ],
+        "focus": "New error-local retry calls only defaults.refresh, keeps the button visible while pending, disables repeat clicks and uses the existing keyed/generation-fenced resource hook. Draft/provider/model/effort and permissions are unchanged. Separate independent review read the full new deterministic regression and author results, not rerun here. A defaults error alone is not asserted to universally block basic text; valid explicit choices can remain sendable, and unknown activity still blocks sends."
+      }
+    ],
+    "structuralEvidence": ".work/v220-audit9-runtime-structure.json",
+    "contractEvidence": ".work/v220-audit9-runtime-contracts.json",
+    "evidenceHashes": [
+      {
+        "path": ".work/v220-audit9-runtime-structure.json",
+        "sha256": "43d802ee8e64da8c0ab39eac01473da0e5e2e4907ebe8baf3be0041987c88b44"
+      },
+      {
+        "path": ".work/v220-audit9-runtime-contracts.json",
+        "sha256": "a1654cf2414b622c28b8bac57c7fcd2eb2a6fc124be9460bf3940d9a52d3a4de"
+      }
+    ]
+  },
+  "findings": [],
+  "skipped": [],
+  "crossScopeFindings": [],
+  "crossScopeReviews": [
+    {
+      "id": "V220-DIRECT-DEFAULTS-RETRY",
+      "independentReview": ".work/v220-defaults-retry-review.json",
+      "sha256": "8190409433ae7bda4846882a5f7cceb4745bfbe8e3d1484db6fb8b7c1bf3e151",
+      "reviewedFileHashes": [
+        {
+          "path": "web/Workspace.tsx",
+          "sha256": "e5807925de21b6b1ec558595c2d3274d9a7ad3f0fc4340d288509e826c7cb4b3"
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "sha256": "15e00539844947c2238642f1e9a48bdcf4fcdaee7d768864eef228cdea9b44ee"
+        }
+      ],
+      "reviewedFileHashesStillMatch": true,
+      "resolution": "A direct readonly defaults retry entry is now visible next to the defaults error for a new conversation. It does not refresh the provider model catalog, alter the shared hook/backend, clear draft or selected options, or bypass unknown/connection/activity admission. Author targeted 16-case evidence and typecheck are separately recorded; this reviewer did not rerun tests.",
+      "observationBoundary": "The prior live initial concurrent-probe error recovered after project navigation and explicit settings were sendable. The exact initial overlap was not reproduced; this repair improves discoverable recovery and does not claim a backend deadlock or universal inability to send text."
+    }
+  ],
+  "upgradeContract": {
+    "normalOperatorSequence": [
+      "control-update",
+      "config-layer-migrate",
+      "update --source"
+    ],
+    "failure": "Stop at the first failed step and use its recorded recovery before proceeding.",
+    "retainedCrossScopeEvidence": "Deployment compatibility and management-lock independent reviews from audit7/audit8 are retained for unchanged deployment code. This web-only change does not alter strict final verify, retained legacy recovery context, initialization/management lock policies or provider migration order.",
+    "finalAcceptance": "The exact new candidate requires its separately authorized full CI and deployment/acceptance. Earlier CI8 and live observations refer to the previous 49f6 snapshot, not this e017 snapshot."
+  },
+  "unexecutedIntegrations": [
+    "No full or targeted test execution in audit9. CI8 passed the previous 49f6 source digest with 2388 distinct cases; these counts are not reused as validation of audit9.",
+    "No live administrator/provider login, browser, model inference, external MCP, SSH, deployment or main-service action in this audit.",
+    "Original hosted CI3 interruption cause was not reconstructed from its exact runner trace; the independently established history/live-state consistency defect and deterministic regression evidence remain separately documented.",
+    "The original live concurrent-defaults error was not deterministically reproduced from captured overlapping requests. Separate frontend regression controls capacity failures and recovery without asserting that original trigger."
+  ],
+  "snapshotVerification": {
+    "command": "snapshot(undefined,true) from scripts/snapshot.mjs plus raw-byte SHA256 and executable-bit comparison of every audit9 manifest entry",
+    "files": 1941,
+    "digest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+    "verifiedAt": "2026-10-30T17:27:40.870Z",
+    "unchanged": true,
+    "manifestFilesChecked": 1941,
+    "mismatchPaths": []
+  }
+}

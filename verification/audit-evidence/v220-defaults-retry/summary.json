@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-30T17:27:58.144Z",
+  "sourceDigest": "e017b0d951d77b64eb7c6b9faeb6fb0fb347961e051498c88552585a13cd94ed",
+  "sourceFiles": 1941,
+  "classification": "User-experience recovery gap, not evidence that defaults failure alone blocks ordinary text submission.",
+  "cause": "Workspace displayed a defaults/read error without a direct same-context defaults.refresh action. Catalog refresh or context navigation could reread defaults, but catalog refresh may invoke a provider mutation.",
+  "changes": [
+    "A new-conversation defaults failure exposes 重新读取模型设置 next to the composer. The handler only calls defaults.refresh.",
+    "Local retry display state keeps a disabled reading button while the request is pending; repeat failure makes retry available and success removes it.",
+    "No changes to useResource, API/backend, provider refresh, draft/options, or existing send/admission/recovery/permission gates."
+  ],
+  "changedFiles": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "e5807925de21b6b1ec558595c2d3274d9a7ad3f0fc4340d288509e826c7cb4b3"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "15e00539844947c2238642f1e9a48bdcf4fcdaee7d768864eef228cdea9b44ee"
+    }
+  ],
+  "regressionCoverage": [
+    "Uses the real App, Api, useResource, Composer, and ModelPicker with local mock fetch/WebSocket boundaries.",
+    "A selected provider/model/effort defaults read fails with a capacity RPC response. Explicit valid ordinary text remains sendable before retry.",
+    "An explicit retry stays disabled pending; clicking the disabled action produces no duplicate request.",
+    "The first retry fails again and re-enables retry; a second explicit retry succeeds.",
+    "Exact post-error request list is two defaults/read calls with the original project and selected provider/model/effort. No model/list or provider refresh, mutation, operation ID, or task submission.",
+    "Draft text and explicit provider/model/reasoning selection stay unchanged; Enter during defaults loading does not send.",
+    "Success does not clear unknown activity state or unlock send. Only an independently confirmed runtime state restores admission."
+  ],
+  "validation": {
+    "nodeVersion": "v24.22.1",
+    "targetedTests": [
+      {
+        "path": ".work/test-results/run-8eAtUu/vitest.json",
+        "sha256": "88828dd6358376697097a2dade922907cfa679c443be845136bb0e26cb893161",
+        "success": true,
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          "web/tests/defaults.test.tsx"
+        ]
+      },
+      {
+        "path": ".work/test-results/run-NAFbZv/vitest.json",
+        "sha256": "2665946009b54b20b7ee54376d3a7372d60c536ccafed75755164f2fba6eaf8b",
+        "success": true,
+        "total": 12,
+        "passed": 12,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          "web/tests/composer.test.tsx",
+          "web/tests/model-picker.test.tsx"
+        ]
+      }
+    ],
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "executionEvidence": "exec chunk 0cb415, no diagnostic output"
+    },
+    "diffCheck": {
+      "command": "git diff --check -- web/Workspace.tsx web/tests/defaults.test.tsx",
+      "exitCode": 0
+    },
+    "sensitiveContentScan": {
+      "mode": "source",
+      "status": "clean",
+      "scannedFiles": 2,
+      "scannedBytes": 84785,
+      "findings": [],
+      "artifacts": [],
+      "unreadable": [],
+      "skipped": []
+    }
+  },
+  "independentReview": {
+    "path": "verification/audit-evidence/v220-defaults-retry/review.json",
+    "sha256": "8190409433ae7bda4846882a5f7cceb4745bfbe8e3d1484db6fb8b7c1bf3e151"
+  },
+  "limitations": [
+    "No full suite, browser rerun, deployment, paid inference, external MCP, or provider call was performed for this repair.",
+    "The original transient defaults capacity response is modeled at the API boundary; its original concurrent request source was not reproduced or diagnosed here.",
+    "Earlier audit8 and CI8 evidence covers the baseline snapshot, not this changed source. Parent owns fresh audit/full-test/release gates.",
+    "These are author checks; an independent review is separately assigned to v220_final_runtime."
+  ]
+}

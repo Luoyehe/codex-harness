@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-runtime",
+  "complete": true,
+  "completedAt": "2026-10-30T17:21:29.564Z",
+  "findings": [],
+  "scope": {
+    "kind": "Independent targeted UX repair design/diff/test-evidence review; not full audit9",
+    "changedFiles": [
+      "web/Workspace.tsx",
+      "web/tests/defaults.test.tsx"
+    ],
+    "supportingFiles": [
+      "web/hooks/useResource.ts",
+      "web/lib/workflows.ts",
+      "web/lib/input-modalities.ts",
+      "web/components/Composer.tsx",
+      "web/components/ComposerOptions.tsx",
+      "web/components/ModelPicker.tsx",
+      "web/hooks/useModelCatalogRefresh.ts",
+      "web/hooks/useEvents.ts",
+      "src/runtime/service.ts"
+    ]
+  },
+  "method": [
+    "Fresh complete two-file diff and new 96-line App regression read; fresh read of surrounding Workspace defaults loader/resource key, new retry-state effect, composer render and send guards.",
+    "Fresh related resource hook, settings validation, media admission, model refresh and composer settings review. Retained current backend single-probe contract: no backend or shared hook change.",
+    "Read author test JSON case results directly: defaults4 and composer/model-picker12 passed. No reviewer test execution. Matched current source SHA256 to author-final values and verified git diff --check for both paths.",
+    "Reviewed author report binding these exact source hashes to targeted checks; typecheck and source-scan success are author evidence, not independently rerun."
+  ],
+  "reviewedFileHashes": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "e5807925de21b6b1ec558595c2d3274d9a7ad3f0fc4340d288509e826c7cb4b3"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "15e00539844947c2238642f1e9a48bdcf4fcdaee7d768864eef228cdea9b44ee"
+    }
+  ],
+  "supportingFileHashes": [
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "sha256": "fc108afbc6110b44daa292b6762efc21d9651d80bd8af3073890fcd34f1e43b5"
+    },
+    {
+      "path": "web/lib/input-modalities.ts",
+      "sha256": "739948eb338ead84a879038dfeabf20932a60ef8972da9ae01007425c9bf9faa"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "2fa7fa9d6654e3652161808e51f693398ef1caafcc3ab0d667fd54f09a7a5a09"
+    },
+    {
+      "path": "web/components/ComposerOptions.tsx",
+      "sha256": "32ea5edfb600418e79977bfae22a81fb78993c1699dc978bd62e0cae3662d097"
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "sha256": "66f6ada16315e611bebdcd9c0f18f91d640789ea737c7e565965358405133180"
+    },
+    {
+      "path": "web/hooks/useModelCatalogRefresh.ts",
+      "sha256": "20d8357cca7235cbba62f11cb0f988f8cc765a7d36820b09af87313a543a5db6"
+    },
+    {
+      "path": "web/hooks/useEvents.ts",
+      "sha256": "9892a44bfecae50b2f2f80d5a886e8814030f32b75e6712b87c46eb42e3b2c11"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "06253a32bfa444f5173b2b531347aba2e407d65fe78ae6433943516347afcbf8"
+    }
+  ],
+  "authorEvidence": {
+    "path": ".work/v220-defaults-retry-fix.json",
+    "sha256": "269b8c441eee4fb38e3e10128c8606a4af490a014c874e354a15e6f8da8954b4"
+  },
+  "testEvidence": [
+    {
+      "path": ".work/test-results/run-8eAtUu/vitest.json",
+      "sha256": "88828dd6358376697097a2dade922907cfa679c443be845136bb0e26cb893161",
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "status": "passed",
+          "cases": [
+            {
+              "title": "refreshes inherited thread settings after an accepted override and hides old values during that read",
+              "status": "passed"
+            },
+            {
+              "title": "labels new-thread fallback as project defaults and hides stale values while loading",
+              "status": "passed"
+            },
+            {
+              "title": "waits for fresh defaults after resetting an explicit provider before submitting a collaboration mode",
+              "status": "passed"
+            },
+            {
+              "title": "retries failed defaults directly without refreshing the catalog, changing the draft, or bypassing readiness",
+              "status": "passed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": ".work/test-results/run-NAFbZv/vitest.json",
+      "sha256": "2665946009b54b20b7ee54376d3a7372d60c536ccafed75755164f2fba6eaf8b",
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "web/tests/composer.test.tsx",
+          "status": "passed",
+          "cases": [
+            {
+              "title": "composer keyboard ownership keeps only current environment controls and draft callbacks across repeated navigation",
+              "status": "passed"
+            },
+            {
+              "title": "composer keyboard ownership applies a late attachment deletion to its original draft without replacing either draft text",
+              "status": "passed"
+            },
+            {
+              "title": "composer keyboard ownership leaves IME confirmation and keyCode 229 to the input method",
+              "status": "passed"
+            },
+            {
+              "title": "composer keyboard ownership never sends when recovery or history synchronization has disabled admission",
+              "status": "passed"
+            },
+            {
+              "title": "composer keyboard ownership announces the first upload before any attachment exists and retains a failed draft",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "path": "web/tests/model-picker.test.tsx",
+          "status": "passed",
+          "cases": [
+            {
+              "title": "changes provider and model together, clearing a previous incompatible effort",
+              "status": "passed"
+            },
+            {
+              "title": "does not present a bundled or inherited default as an available model with an empty catalog",
+              "status": "passed"
+            },
+            {
+              "title": "limits an existing conversation to its own provider and shows unsupported effort explicitly",
+              "status": "passed"
+            },
+            {
+              "title": "checks media and collaboration defaults against the selected provider rather than a same-name model",
+              "status": "passed"
+            },
+            {
+              "title": "blocks a stale reasoning override after the default model changes and lets it return to default",
+              "status": "passed"
+            },
+            {
+              "title": "validates reasoning against the exact provider and permits legacy provider aliases",
+              "status": "passed"
+            },
+            {
+              "title": "does not apply unused model overrides to queue admission",
+              "status": "passed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "conclusions": [
+    "Only a new-conversation project with a defaults error or its pending explicit retry renders the new button. Clicking calls defaults.refresh() directly; no catalog sync, provider write, mutation operation ID, model call or task submission is added.",
+    "The local retryingDefaults flag keeps the read-in-progress button visible while useResource clears the error; defaults.loading disables the control and its callback also rejects a second click. Failure restores a usable retry; success hides it.",
+    "No draft, attachment, provider, model, effort or permission state is modified by retry. Existing useResource request-key/generation/AbortController handling continues to discard obsolete results.",
+    "Existing composer loading, connection, runtime unknown, history and operation guards remain unchanged. A successful settings read cannot acknowledge uncertain activity or make it sendable.",
+    "The added regression verifies normal send admission before retry with valid explicit settings, one read despite a busy click, retry failure then success, exact unchanged draft/model/provider/effort, readiness remaining blocked under unknown and becoming enabled only after a known state. Exact post-click request equality proves only the two user-requested defaults/read calls and no operationId.",
+    "Existing tests and assertions are preserved; no retry loops, sleeps, timeout increases, skipped tests or production-capacity relaxation are introduced."
+  ],
+  "originalObservationBoundary": {
+    "confirmedSource": "Runtime service deliberately permits only one uncached effective-defaults probe. useResource stores an error until key or explicit refresh changes; previous model-directory refresh and project switching already provided indirect recovery.",
+    "rootLiveObservation": "Root reported that selecting the new project and returning to the original project restored defaults and that sendEnabled=true with an unsent test draft. This reviewer did not perform browser interaction or commercial inference.",
+    "classification": "Explicitly authorized UX recovery improvement. Not evidence of a permanently stuck runtime, universally blocked text sending, or a reproduced exact pair of initial concurrent requests."
+  },
+  "skipped": [],
+  "unexecutedIntegrations": [
+    "No tests, browser, network, SSH, model request or live-service action by this reviewer.",
+    "The test substitutes API/WS responses and establishes UI behavior; it does not reproduce the original live concurrency timing or establish deployment acceptance of this new code.",
+    "The preceding full CI8 validates the prior source. This two-file implementation change remains subject to the next authorized complete current-source audit and full CI."
+  ]
+}
