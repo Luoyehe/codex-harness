@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T15:10:44.343Z",
+  "status": "deployed-and-host-verified; authenticated-public-acceptance-pending",
+  "applicationVersion": "2.2.0",
+  "candidate": "17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2",
+  "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+  "auditedSourceFiles": 1941,
+  "applicationArchiveSha256": "06d9f405938b7b4d13eca586e3609b9f229df7114739d0e4ae9a944ab4384518",
+  "deployedRelease": "641ccf9ef66a684d496986374013362d538624ac0e5d48d8cd3962d10c3cdb12",
+  "previousReleaseRetained": "85119ba738ae34e0ad55d735ba1583a15c0b914ac63a6ebffb912a457200e024",
+  "deploymentCompletedAt": "2026-10-30T15:05:11.090092+00:00",
+  "evidenceDigests": {
+    "privateDeploymentRecord": "a1b8de296961327ce8062409f099d166971f799bf077593427c286cc11cf1bd4",
+    "completeCiRecord": "34041122a3b0f925049e238378ca421aa51997370b8fe0dc76d9dfc7cc81e88c",
+    "publicReadOnlyProbe": "07ca05e2f23d1bc85113f8477758e646b25d57f773cd42bcaea4d56a4733899b"
+  },
+  "fullCi": {
+    "status": "passed",
+    "candidate": "17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2",
+    "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+    "testFiles": 227,
+    "distinctCases": 2388,
+    "coverageGaps": 0,
+    "completedAt": "2026-10-30T14:52:27.467Z",
+    "scope": "Exact-head complete Windows, Linux and Linux-root test reconciliation; individual platform skips remain in the original reports. CodeQL aggregate disposition is separate."
+  },
+  "completedSteps": [
+    {
+      "step": "control-update",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T14:53:49.933231+00:00"
+    },
+    {
+      "step": "config-layer-migrate",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T14:53:56.233988+00:00"
+    },
+    {
+      "step": "candidate-list",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T14:59:04.592513+00:00"
+    },
+    {
+      "step": "candidate-archive",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T14:59:27.237656+00:00"
+    },
+    {
+      "step": "application-update",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T15:02:06.950376+00:00"
+    },
+    {
+      "step": "strict-verify",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T15:02:15.862408+00:00"
+    },
+    {
+      "step": "final-status",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T15:02:32.950877+00:00"
+    },
+    {
+      "step": "final-candidate-list",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T15:04:22.968865+00:00"
+    }
+  ],
+  "upgrade": {
+    "controlUpdated": true,
+    "controlTransactionCommitted": true,
+    "controlDigest": "d6f94e694da8e070527f5d849f15a5dcacb29397c2f6296d6d4724d97dc7c0c8",
+    "installedDeploymentModulesMatchingStage": 54,
+    "exactApplicationArchiveVerified": true,
+    "stagedFilesVerified": 2514,
+    "stagedFileCountScope": "The staged checkout inventory includes documentation and verification artifacts; it is distinct from the audited executable-source count.",
+    "configurationMigrationCommandSucceeded": true,
+    "configurationMigrationChanged": false,
+    "applicationChanged": true,
+    "pendingManagementTransactions": 0
+  },
+  "archival": {
+    "archived": true,
+    "dataPreserved": true,
+    "originalServicesRestored": true,
+    "phase": "complete",
+    "lifecyclePhase": "recovered",
+    "otherCandidatesRetained": true,
+    "currentCandidateCount": 8,
+    "candidateLimit": 8,
+    "legacyOperatorMetadata": {
+      "operationPhase": "complete",
+      "recordSha256": "104953807a6b8795190028a18d02a3d8de5815297f57405d86970fd14f548663",
+      "preparedRecordSha256": "3a18d4f7696bb1c10bea7f38c03dd70d7be6abe8d6ec8ad9942e134e39b8ac25",
+      "sameInodeAndBytes": true,
+      "candidateDirectoryUnchanged": true,
+      "rollbackMappingRecorded": true,
+      "note": "A legacy operator metadata record was preserved and relocated with a recorded reverse mapping. It was not rewritten to imitate the current archival schema; no live rollback is claimed."
+    }
+  },
+  "strictHostVerification": {
+    "release": "641ccf9ef66a684d496986374013362d538624ac0e5d48d8cd3962d10c3cdb12",
+    "installedFilesVerified": 20360,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "unitPolicyCurrent": true,
+    "sudoPolicyCurrent": true,
+    "accountBootstrap": true,
+    "workerConnected": true,
+    "workerRestarting": false,
+    "https": {
+      "configured": true,
+      "ready": true,
+      "tlsVerified": true,
+      "instanceVerified": true,
+      "trust": "system-ca",
+      "vantage": "server-side verifier",
+      "browserVerification": false,
+      "forcedCertificateRenewal": false
+    }
+  },
+  "services": {
+    "gateway": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "worker": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "caddy": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "proxy": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    }
+  },
+  "preservation": {
+    "selectedProtectedFileMetadataCompared": 14,
+    "selectedProtectedFileMetadataUnchanged": true,
+    "credentialContentReadByMetadataCheck": false,
+    "credentialValuesCompared": false,
+    "credentialValuesPublished": false,
+    "httpsAndDnsSelectionsUnchanged": true,
+    "providerSelectionUnchanged": true,
+    "proxyServiceAndProcessUnchanged": true,
+    "proxyGuardStillRestrictedToNativeServiceIdentity": true,
+    "managementLockOriginalInodeAndModePreserved": true,
+    "initializationLockOriginalInodeAndModePreserved": true,
+    "noCredentialResetOrCertificateReplacementPerformed": true,
+    "basis": "Supported control, migration, archive and application-update transactions retained original data/release directories. Selected protected-file metadata was compared; active application data was not byte-compared. This is not a backup/restore drill or proof that all data bytes were unchanged."
+  },
+  "publicReadOnlyProbe": {
+    "completedAt": "2026-10-30T15:03:08.101Z",
+    "status": "authentication-blocked",
+    "trust": "Node bundled public root certificates only",
+    "anonymousSessionRead": {
+      "method": "GET",
+      "path": "/api/session",
+      "status": 200
+    },
+    "previousAcceptanceCredentialAttempt": {
+      "method": "POST",
+      "path": "/api/session",
+      "status": 401
+    },
+    "authenticatedApiAcceptancePassed": false,
+    "authenticatedWebSocketAcceptancePassed": false,
+    "browserAcceptancePassed": false,
+    "next": "Current administrator login is required before authenticated API, WebSocket and browser checks; no account reset was performed for this probe."
+  },
+  "retainedEarlierFailures": [
+    {
+      "attempt": "post-CI6",
+      "outcome": "failed-preflight",
+      "step": "control-update",
+      "applicationUpgradeCompleted": false,
+      "servicesStopped": false,
+      "mainInstanceMutationPerformed": false,
+      "cause": "Exact legitimate legacy sudo definitions were rejected before control preparation.",
+      "repairEvidence": "../v220-upgrade-compat/summary.json"
+    },
+    {
+      "attempt": "post-CI7",
+      "outcome": "partial-upgrade-blocked",
+      "completedSteps": [
+        "control-update",
+        "config-layer-migrate"
+      ],
+      "step": "candidate-archive",
+      "applicationUpgradeCompleted": false,
+      "beforeServiceStop": true,
+      "cause": "Archival applied the initialization-lock mode contract to the ordinary management lock.",
+      "evidence": "deployment-ci7-blocker.json",
+      "repairEvidence": "../v220-management-lock/summary.json"
+    }
+  ],
+  "limitations": [
+    "No authenticated browser, API or WebSocket success is established by this report. The retained login attempt returned 401.",
+    "Current cached TLS passed the server system-CA verifier; no forced ACME renewal, new DNS permission check or future renewal execution was performed.",
+    "No paid model inference, real external MCP, model-provider login or other external commercial acceptance was performed during deployment.",
+    "Historical failed deployment attempts remain failed records; the final successful steps do not erase them.",
+    "Private paths, service account names, credential values, certificate contents, proxy destinations and detailed host settings are intentionally excluded."
+  ]
+}

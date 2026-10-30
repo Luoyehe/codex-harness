@@ -1,23 +1,24 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-10-30T14:22:01.9150396Z",
-  "candidate": "bb7b40feff78ba488f6be1d543a23f79e6cf9293",
-  "sourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+  "recordedAt": "2026-10-30T14:53:28.0214282Z",
+  "candidate": "17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2",
+  "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
   "automated": {
     "observed": true,
-    "id": 124110631972,
-    "head_sha": "bb7b40feff78ba488f6be1d543a23f79e6cf9293",
+    "id": 124124830075,
+    "head_sha": "17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2",
+    "status": "completed",
     "conclusion": "failure",
-    "url": "https://github.com/Luoyehe/codex-harness/runs/124110631972",
+    "url": "https://github.com/Luoyehe/codex-harness/runs/124124830075",
     "title": "1 configuration not found",
     "summary": "**Warning**: Code scanning may not have found all the alerts introduced by this pull request, because 1 configuration present on `refs/heads/main` was not found:\n\n### Actions workflow (`ci.yml`)\n\n* :question:&nbsp;&nbsp;`.github/workflows/ci.yml:codeql`\n\n\n### New alerts in code changed by this pull request\n\nSecurity Alerts:\n * 1 high\n\n\n_Alerts not introduced by this pull request might have been detected because the code changes were too large._\n\nSee annotations below for details.\n\n[View all branch alerts](/Luoyehe/codex-harness/security/code-scanning?query=pr%3A8+tool%3ACodeQL+is%3Aopen).",
     "annotationsCount": 1,
-    "evidence": ".work/v220-ci7-api-check-runs.json",
-    "sha256": "5ba4b6e22bef84c5ec164dcfcf528d96df2c0ef4ede0de84431c3a95e21b6d70",
+    "evidence": ".work/v220-ci8-api-check-runs.json",
+    "sha256": "e1bca0b1171893cff4d0e91111817cb3eb1aec238808acb167e6ebc6a5391d7a",
     "annotations": [
       {
         "path": "deploy/native_launcher.py",
-        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/bb7b40feff78ba488f6be1d543a23f79e6cf9293/deploy/native_launcher.py",
+        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2/deploy/native_launcher.py",
         "start_line": 244,
         "start_column": 30,
         "end_line": 244,
@@ -28,13 +29,14 @@
         "raw_details": null
       }
     ],
-    "annotationEvidenceSha256": "eff25b09282611e0d695f0d07f295cc6ec8d59e9253fe45a93b8664a444e83b9",
-    "manualAssessment": "Current-source required private credential-return channel reviewed; automated failure and missing legacy configuration warning remain unchanged. No dismissal or configuration/gate change."
+    "annotationEvidence": ".work/v220-ci8-api-codeql-annotations.json",
+    "annotationEvidenceSha256": "dd7be24982d946d217ff98ec6357ae72b8aaab9eaa4df92eaa058e0ef040f4bd",
+    "manualAssessment": "Reviewed required private credential-return path; retain actual aggregate status and legacy configuration warnings. No dismissal or configuration/gate change."
   },
   "manualReview": {
-    "evidence": "verification/audit-evidence/v220-release/codeql-source-review.json",
-    "sha256": "09c15f69d945bcd636e3d208423d165c7bbfa860453e66cd48241a36c917db5a",
+    "evidence": "verification/audit-evidence/v220-release/codeql-source-review-ci8.json",
+    "sha256": "8a80c04a2648db0d406bcb5356dcdbbfd89bad7044025996c63522d0267fa552",
     "findings": [],
-    "conclusion": "The managed bearer-return helper uses an intentional private CLI child pipe. The current legacy sudo delta does not broaden helper access. The automated failure is retained, not dismissed or claimed green."
+    "conclusion": "The intentional private CLI bearer pipe and both current deployment deltas were reviewed without finding an actionable disclosure. The automated aggregate failure remains recorded and has not been dismissed."
   }
 }

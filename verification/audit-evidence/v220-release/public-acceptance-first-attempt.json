@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "runId": "c91fd14e-57ac-42aa-a796-d0e58ac1301c",
+  "startedAt": "2026-10-30T15:03:07.888Z",
+  "origin": "https://cloudark.org.cn:10000",
+  "route": "explicit loopback HTTP CONNECT proxy; external exit requires separate route evidence",
+  "trust": "Node bundled public root certificates only",
+  "status": "failed",
+  "phase": "login",
+  "certificates": [
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "endpoint": "/api/session",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/session",
+      "status": 401
+    }
+  ],
+  "checks": {
+    "existingAccountRequired": true
+  },
+  "cleanup": {
+    "attempted": false,
+    "sessionRevoked": false,
+    "cookieCapture": "unavailable",
+    "error": "SESSION_CLEANUP_UNCONFIRMED"
+  },
+  "error": "ACCEPTANCE_CHECK_FAILED",
+  "completedAt": "2026-10-30T15:03:08.101Z"
+}

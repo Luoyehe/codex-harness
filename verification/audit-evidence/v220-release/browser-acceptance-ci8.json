@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "version": "2.2.0",
+  "observedAt": "2026-10-30T17:14:25.746Z",
+  "sourceCommit": "17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2",
+  "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+  "release": "641ccf9ef66a684d496986374013362d538624ac0e5d48d8cd3962d10c3cdb12",
+  "origin": "https://cloudark.org.cn:10000",
+  "authentication": {
+    "method": "user manually signed into existing browser tab",
+    "sessionPreserved": true,
+    "credentialsOrCookiesRead": false
+  },
+  "checks": {
+    "liveConnected": true,
+    "providerAndAccountSettingsMerged": true,
+    "zhipuActualConfiguredCatalogVisible": true,
+    "modelAndReasoningMenuTogether": true,
+    "defaultModelAndReasoningResolved": true,
+    "mfaSetupEntryVisible": true,
+    "mfaConfigurationUnchanged": true,
+    "uniqueEmptyManagedProjectCreatedAndSelected": true,
+    "projectCountIncreasedByOne": true,
+    "shellOpenedOnce": true,
+    "shellUid990": true,
+    "physicalWorkingDirectoryMatched": true,
+    "directoryOwnedByExecutionUid": true,
+    "directoryReadWriteExecute": true,
+    "independentPermissionMarkerObserved": true,
+    "shellExited": true,
+    "workspaceUsableAfterExit": true,
+    "temporaryDraftMadeSendButtonEnabled": true,
+    "draftClearedWithoutSending": true,
+    "successfulOperationAlertsNotPersistent": true
+  },
+  "receipts": {
+    "projectAndTerminalOpen": "UI resource success confirmed; local successful records already auto-cleared, raw durable receipt not observed",
+    "terminalWriteAndExit": "volatile operations, no durable receipt claimed"
+  },
+  "observation": {
+    "defaultsCapacity": "A transient capacity refusal stayed visible until project selection changed; original project subsequently recovered and ordinary send was enabled with a test draft. Direct default-settings-only retry is being added as a usability improvement, not proof of a stuck runtime.",
+    "followupRequired": "Revalidate changed retry control after its own review, tests and deployment."
+  },
+  "limits": [
+    "No paid model inference or real external MCP tasks were executed.",
+    "MFA configuration and credentials were not changed.",
+    "No external-provider discovery or multiple-provider reconfiguration was performed in this browser smoke check.",
+    "Existing historical conversation was read only and not resumed; no queued work was triggered.",
+    "Usage popup was not present in the unloaded historical conversation and was not re-exercised here.",
+    "WebSocket functionality is evidenced by real UI project and terminal operations, not a captured raw protocol exchange.",
+    "Earlier scripted API login 401 remains an independent failed attempt."
+  ],
+  "evidence": {
+    "localOperationsLog": "v220-accept-20261030T170928-a7f2.operations.jsonl",
+    "screenshots": [
+      "v220-live-shell-permission.png",
+      "v220-live-workspace-final.png"
+    ]
+  }
+}

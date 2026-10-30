@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T14:53:28.0214282Z",
+  "candidate": "17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2",
+  "sourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+  "automated": {
+    "observed": true,
+    "id": 124124830075,
+    "head_sha": "17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/Luoyehe/codex-harness/runs/124124830075",
+    "title": "1 configuration not found",
+    "summary": "**Warning**: Code scanning may not have found all the alerts introduced by this pull request, because 1 configuration present on `refs/heads/main` was not found:\n\n### Actions workflow (`ci.yml`)\n\n* :question:&nbsp;&nbsp;`.github/workflows/ci.yml:codeql`\n\n\n### New alerts in code changed by this pull request\n\nSecurity Alerts:\n * 1 high\n\n\n_Alerts not introduced by this pull request might have been detected because the code changes were too large._\n\nSee annotations below for details.\n\n[View all branch alerts](/Luoyehe/codex-harness/security/code-scanning?query=pr%3A8+tool%3ACodeQL+is%3Aopen).",
+    "annotationsCount": 1,
+    "evidence": ".work/v220-ci8-api-check-runs.json",
+    "sha256": "e1bca0b1171893cff4d0e91111817cb3eb1aec238808acb167e6ebc6a5391d7a",
+    "annotations": [
+      {
+        "path": "deploy/native_launcher.py",
+        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/17dcdd215891ab5dc4a83d63d8e3c0ba74b041a2/deploy/native_launcher.py",
+        "start_line": 244,
+        "start_column": 30,
+        "end_line": 244,
+        "end_column": 42,
+        "annotation_level": "failure",
+        "title": "Clear-text logging of sensitive information",
+        "message": "This expression logs [sensitive data (secret)](1) as clear text.",
+        "raw_details": null
+      }
+    ],
+    "annotationEvidence": ".work/v220-ci8-api-codeql-annotations.json",
+    "annotationEvidenceSha256": "dd7be24982d946d217ff98ec6357ae72b8aaab9eaa4df92eaa058e0ef040f4bd",
+    "manualAssessment": "Reviewed required private credential-return path; retain actual aggregate status and legacy configuration warnings. No dismissal or configuration/gate change."
+  },
+  "manualReview": {
+    "evidence": "verification/audit-evidence/v220-release/codeql-source-review-ci8.json",
+    "sha256": "8a80c04a2648db0d406bcb5356dcdbbfd89bad7044025996c63522d0267fa552",
+    "findings": [],
+    "conclusion": "The intentional private CLI bearer pipe and both current deployment deltas were reviewed without finding an actionable disclosure. The automated aggregate failure remains recorded and has not been dismissed."
+  }
+}
