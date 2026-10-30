@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { canonical, DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
 import { validateTimelineContract } from './timeline-contract.js';
-interface State { fresh?: boolean; historyMode?: string; status: string; pending: boolean; unknown: boolean; revision: number; historyRevision?: number }
+import type { Activity } from './thread-activity.js';
+type State = Activity;
 interface Host { native(method: string, params: JsonValue): Promise<JsonValue>; state(id: string): State; observe(value: JsonValue, revision: number): void; checkTurns(turns: JsonValue[]): void; closed(): boolean }
-interface Traversal { threadId: string; clientId: string; channel: string | undefined; next: string | null | undefined; complete: boolean; loading: boolean; turnCursor: string | null; timelineCursor: string | null; turnsComplete: boolean; timelineComplete: boolean; turnSeen: Set<string>; timelineSeen: Set<string>; pages: number; bytes: number; items: number; legacy: boolean }
+interface Traversal { threadId: string; clientId: string; channel: string | undefined; next: string | null | undefined; complete: boolean; loading: boolean; turnCursor: string | null; timelineCursor: string | null; turnsComplete: boolean; timelineComplete: boolean; turnSeen: Set<string>; timelineSeen: Set<string>; pages: number; bytes: number; items: number; legacy: boolean; state: State; turnRevision: number; unknown: boolean }
 const key = (threadId: string, context: CallContext) => canonical([context.eventChannelId ?? null, context.clientId, threadId]);
 /** Both native history streams must finish before a connection may use the thread context. */
 export class UnifiedHistory {
@@ -33,11 +34,25 @@ export class UnifiedHistory {
         }
       }
       if (!entry && this.traversals.size >= 256) throw new DeliveryError('capacity', 'History traversal capacity exhausted');
-      entry = { threadId, clientId: context.clientId, channel: context.eventChannelId, next: undefined, complete: false, loading: false, turnCursor: null, timelineCursor: null, turnsComplete: false, timelineComplete: false, turnSeen: new Set(), timelineSeen: new Set(), pages: 0, bytes: 0, items: 0, legacy: false }; this.traversals.set(id, entry);
+      const state = this.host.state(threadId);
+      entry = { threadId, clientId: context.clientId, channel: context.eventChannelId, next: undefined, complete: false, loading: false, turnCursor: null, timelineCursor: null, turnsComplete: false, timelineComplete: false, turnSeen: new Set(), timelineSeen: new Set(), pages: 0, bytes: 0, items: 0, legacy: false, state, turnRevision: state.turnRevision ?? 0, unknown: state.unknown }; this.traversals.set(id, entry);
     } else if (!entry || entry.complete || entry.next !== params.cursor) throw new DeliveryError('invalid_cursor', 'History cursor does not continue this connection\'s combined traversal');
     if (entry.loading) throw new DeliveryError('history_busy', 'History page is still loading'); const current = entry; current.loading = true;
+    const assertCurrent = (): void => {
+      const state = this.host.state(threadId);
+      if (this.host.closed() || this.traversals.get(id) !== current || state !== current.state || (state.turnRevision ?? 0) !== current.turnRevision || state.unknown !== current.unknown) throw new DeliveryError('history_stale', 'History or its live turn changed during loading; read it again');
+    };
     const publish = (turns: JsonValue[], timeline: JsonValue[], active: JsonValue): JsonObject => {
-      if (this.host.closed() || this.traversals.get(id) !== current) throw new DeliveryError('history_stale', 'History changed or its owner disconnected during loading');
+      assertCurrent();
+      // Native history and agent status are read separately. A synthesized
+      // interrupted row must not override an exact live/terminal notification.
+      // Keep native items and pagination: this cache is not history completeness.
+      turns = turns.map(value => {
+        const turn = object(value), state = current.state, terminal = state.lastTerminalTurn;
+        const status = terminal && terminal.id === turn.id ? terminal.status
+          : !state.unknown && state.turnId !== null && state.turnId === turn.id ? 'inProgress' : turn.status;
+        return status === turn.status ? value : { ...turn, status: status! };
+      });
       const bytes = Buffer.byteLength(jsonBytes({ turns, timeline }, LIMITS.historyBytes)); current.bytes += bytes;
       current.items += timeline.length + turns.reduce<number>((count, value) => count + (object(value).items as JsonValue[]).length, 0);
       if (current.bytes > LIMITS.historyBytes || current.items > LIMITS.historyItems) { this.traversals.delete(id); throw new DeliveryError('capacity', 'Combined turn and voice history exceeded its traversal budget; context remains incomplete'); }
@@ -45,9 +60,17 @@ export class UnifiedHistory {
       return { turns, timeline, nextCursor: current.next, backwardsCursor: null, complete: current.complete, turnsComplete: current.turnsComplete, timelineComplete: current.timelineComplete, activeRealtimeSessionAtPageStart: active, legacy: current.legacy, historyVersion: this.host.state(threadId).historyRevision ?? 0 };
     };
     try {
+      assertCurrent();
       const state = this.host.state(threadId);
       if (state.fresh && state.status !== 'active' && !state.pending && !state.unknown) { current.turnsComplete = current.timelineComplete = true; return publish([], [], null); }
-      if (!state.historyMode) { const revision = state.revision, metadata = await this.host.native('thread/read', { threadId }); if (object(object(metadata).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.host.observe(metadata, revision); }
+      if (!state.historyMode) {
+        const revision = state.revision, metadata = await this.host.native('thread/read', { threadId });
+        if (object(object(metadata).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch');
+        assertCurrent(); this.host.observe(metadata, revision);
+        // Initial metadata may establish an already running turn. All following
+        // pages remain fenced to that lifecycle, including between requests.
+        current.turnRevision = state.turnRevision ?? 0;
+      }
       const requested = Number(!current.turnsComplete) + Number(!current.timelineComplete); if (current.pages + requested > 128) throw new DeliveryError('capacity', 'Combined native history exceeded 128 pages; context remains incomplete'); current.pages += requested;
       let turns: JsonValue[] = [], timeline: JsonValue[] = [], active: JsonValue = null;
       if (!current.turnsComplete) {

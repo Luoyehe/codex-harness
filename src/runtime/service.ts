@@ -199,7 +199,7 @@ export class RuntimeService extends EventEmitter {
     if (revision !== undefined && revision !== state.revision) return;
     this.sessions.thread(thread);
     if (thread.status && typeof thread.status === 'object' && !Array.isArray(thread.status)) state.status = String(thread.status.type);
-    if (Array.isArray(thread.turns)) { const active = thread.turns.map(turn => object(turn)).find(turn => turn.status === 'inProgress'); if (active) { state.status = 'active'; state.turnId = string(active.id, 'turn id'); } }
+    if (Array.isArray(thread.turns)) { const active = thread.turns.map(turn => object(turn)).find(turn => turn.status === 'inProgress' && turn.id !== state.lastTerminalTurn?.id); if (active) { const turnId = string(active.id, 'turn id'); if (state.turnId !== turnId) state.turnRevision = (state.turnRevision ?? 0) + 1; state.status = 'active'; state.turnId = turnId; } }
     this.emitState();
   }
   private notification(message: JsonObject): void {
@@ -225,14 +225,18 @@ export class RuntimeService extends EventEmitter {
         const turnId = string(object(params.turn).id, 'turn id');
         if (!state.pending || (state.turnId !== null && state.turnId !== turnId)) delete state.activeModel;
         if (state.turnId !== turnId) { state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
+        state.turnRevision = (state.turnRevision ?? 0) + 1;
         state.fresh = false; state.status = 'active'; state.turnId = turnId;
       }
       if (method === 'turn/completed') {
-        const turnId = string(object(params.turn).id, 'turn id'); if (state.turnId === turnId) { state.status = 'idle'; state.turnId = null; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
+        const turn = object(params.turn), turnId = string(turn.id, 'turn id');
+        state.turnRevision = (state.turnRevision ?? 0) + 1;
+        if (turn.status === 'completed' || turn.status === 'failed' || turn.status === 'interrupted') state.lastTerminalTurn = { id: turnId, status: turn.status };
+        if (state.turnId === turnId) { state.status = 'idle'; state.turnId = null; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
         for (const prompt of [...this.prompts.values()]) if (prompt.threadId === params.threadId && prompt.turnId === turnId) this.closePrompt(prompt, 'turn_ended');
       }
-      if (method === 'thread/reverted') this.invalidateHistory(params.threadId);
-      if (method === 'thread/closed' || method === 'thread/deleted') { state.status = 'notLoaded'; state.subscribed = false; state.turnId = null; state.goalActive = false; state.goalRevision = (state.goalRevision ?? 0) + 1; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; state.queued = false; this.invalidateHistory(params.threadId); this.emitState(); }
+      if (method === 'thread/reverted') { delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; this.invalidateHistory(params.threadId); }
+      if (method === 'thread/closed' || method === 'thread/deleted') { state.status = 'notLoaded'; state.subscribed = false; state.turnId = null; delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; state.goalActive = false; state.goalRevision = (state.goalRevision ?? 0) + 1; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; state.queued = false; this.invalidateHistory(params.threadId); this.emitState(); }
       if (method === 'thread/closed' || method === 'thread/deleted' || (method === 'thread/status/changed' && state.status === 'notLoaded')) this.sessions.invalidate(params.threadId);
       if (method === 'thread/settings/updated') { state.settingsRevision = (state.settingsRevision ?? 0) + 1; validateOfficial('ThreadSettings', params.threadSettings!); if (state.status !== 'notLoaded') this.sessions.settings(params.threadId, object(params.threadSettings)); }
       if (method === 'model/rerouted') { validateOfficial('ModelReroutedNotification', params); if (state.turnId === params.turnId) { state.activeModel = string(params.toModel, 'rerouted model'); state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; } }
@@ -603,6 +607,7 @@ export class RuntimeService extends EventEmitter {
         if (goalRevision === (state.goalRevision ?? 0)) { state.goalActive = operation.method !== 'thread/goal/clear' && object(value.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; }
       }
       if (operation.method === 'thread/delete' || operation.method === 'thread/unsubscribe') { this.sessions.invalidate(threadId); state.subscribed = false; }
+      if (['thread/delete', 'thread/unsubscribe', 'thread/revert'].includes(operation.method)) { delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; }
       if (operation.method === 'turn/settings/update' && value.status === 'applied' && typeof operation.params.model === 'string' && modelRevision === (state.modelRevision ?? 0) && modelTurnId === state.turnId) { state.activeModel = operation.params.model; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
       if (['thread/delete', 'thread/unsubscribe', 'thread/revert', 'thread/settings/update', 'turn/settings/update'].includes(operation.method)) this.guardian.invalidate(threadId);
       if (operation.method === 'turn/steer' && value.turnId !== operation.expectedTurnId) throw new Error('Native steering target mismatch');
@@ -611,7 +616,7 @@ export class RuntimeService extends EventEmitter {
       if (operation.newThread) {
         const fork = object(value.thread); const forkId = string(fork.id, 'forked thread id'); if (forkId === threadId || fork.cwd !== object(object(current).thread).cwd) throw new Error('Native fork identity or project mismatch'); this.observeThread(result); this.sessions.capture(result); this.track(forkId).fresh = false; this.track(forkId).subscribed = true;
       } else if (value.thread !== undefined) { if (object(value.thread).id !== threadId) throw new Error('Native mutation returned a different thread'); this.observeThread(result, writeRevision); }
-      if (state.revision === writeRevision && operation.workResult === 'turn') { const turn = object(value.turn); if (turn.status === 'inProgress') { state.status = 'active'; state.turnId = string(turn.id, 'turn id'); } state.fresh = false; }
+      if (state.revision === writeRevision && operation.workResult === 'turn') { const turn = object(value.turn); if (turn.status === 'inProgress') { state.status = 'active'; state.turnId = string(turn.id, 'turn id'); state.turnRevision = (state.turnRevision ?? 0) + 1; } state.fresh = false; }
       if (state.revision === writeRevision && operation.workResult === 'shell') { state.status = 'active'; state.fresh = false; }
       return operation.project ? operation.project(result) : result;
     } catch (error) {
@@ -653,7 +658,7 @@ export class RuntimeService extends EventEmitter {
       const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, context); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
       accepted = true; prepared?.settle(true);
       if (activity.revision === writeRevision) {
-        if (method === 'turn/start') { const turn = object(object(result).turn); if (turn.status === 'inProgress') { activity.status = 'active'; activity.turnId = string(turn.id, 'turn id'); } }
+        if (method === 'turn/start') { const turn = object(object(result).turn); if (turn.status === 'inProgress') { activity.status = 'active'; activity.turnId = string(turn.id, 'turn id'); activity.turnRevision = (activity.turnRevision ?? 0) + 1; } }
         else activity.status = 'active';
       }
       return result;

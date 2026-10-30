@@ -1,0 +1,50 @@
+{
+  "kind": "read-only-targeted-web-recovery-review",
+  "head": "adfefc0cd53e9e49c0056afe0c0208dc4992dd63",
+  "scope": "New UnifiedHistory lifecycle fence compatibility with existing browser error, completion-event, retry and voice paths",
+  "source": [
+    {
+      "path": "web/hooks/useConversation.ts",
+      "sha256": "8b251b4d4513d6511d9db6780c9dba47ad07bcbe08cfd371723f3f2fbd4d7ff2"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "ad7bfe7e9fed11b5bf1e41a143e2b3224ab3fedf797a3bbcd0f02ec0cafe80f5"
+    },
+    {
+      "path": "web/lib/history.ts",
+      "sha256": "0a48a2aacc2dce9e239f6dfa0fad4cd3ab8fafe42c7fbda1a1dd6163e5f80d0f"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "fac6e251c9f1567110a1901bb815c192660c5fb3b5585a264ec59a0deb5bc639"
+    },
+    {
+      "path": "web/hooks/useResume.ts",
+      "sha256": "6a56e7afe50f82279617831b9d92ae2ad5ed7b542c29b2ec5e02c0111fa40031"
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "sha256": "91240cd9c0b720bd3dec121e4f2ddfc0d8dd25d4f8a883dcbec1f8586cd57c9d"
+    }
+  ],
+  "findings": [],
+  "reviewedPaths": [
+    "An initial or later thread/history rejection becomes conversation.error and clears loading without mutating or replaying a turn.",
+    "The error-banner retry button has no ready/activity/busy disable gate and starts history again without an old cursor while refreshing thread/session.",
+    "A matching turn/completed notification refreshes history automatically; generation and abort ownership reject late callbacks from the preceding traversal.",
+    "During voice, ordinary refresh intentionally does nothing, while the explicit recheck control remains available and voice close triggers refresh."
+  ],
+  "evidence": [
+    "web/hooks/useConversation.ts:184-190 catch/finally",
+    "web/hooks/useConversation.ts:124-158 effect resets traversal and cursor",
+    "web/hooks/useConversation.ts:248 completion refresh",
+    "web/Workspace.tsx:1011-1023 error retry",
+    "web/Workspace.tsx:902-926 independent voice/history recheck"
+  ],
+  "limitations": [
+    "Static code review only; no test or browser execution in this task.",
+    "No claim of a fresh complete web audit; this verifies only compatibility with the proposed lifecycle fence.",
+    "Runtime source fix and its regression tests remain owned by runtime agent and will receive a separate independent diff review."
+  ]
+}

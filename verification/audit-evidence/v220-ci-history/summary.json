@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T12:29:07.584773+00:00",
+  "kind": "failed-hosted-check-and-confirmed-contract-repair",
+  "failedHead": "adfefc0cd53e9e49c0056afe0c0208dc4992dd63",
+  "failedRun": "https://github.com/Luoyehe/codex-harness/actions/runs/41050526424",
+  "failedTest": "tests/runtime/automation-native.test.ts",
+  "observed": "Expected completed, received interrupted. Other platform and root jobs passed; aggregate reconciliation failed.",
+  "rawLinuxLogSha256": "fcf3fa2c561872c871d247a778603bf78c18b9cf39828cb33be6f6861cd20942",
+  "causality": "The exact hosted execution was not reproduced. Independent official source review plus a controlled current-module probe confirmed a separate history/live lifecycle consistency gap. The production repair addresses that confirmed contract defect; it is not proof of the sole cause of the historical hosted failure.",
+  "repair": "Fence combined traversal to Activity identity, turn lifecycle and unknown state. Reconcile only an exact known live turn or the bounded last explicit terminal notification; retain native items/cursors and cold interrupted state.",
+  "tests": "Directed regression results and the new complete audit are recorded separately. This record does not claim a successful full suite or deployment.",
+  "security": "CodeQL helper stdout annotation is manually reviewed as the intentional private CLI credential protocol, not dismissed. Analysis workflow success is not described as a clean aggregate alert check.",
+  "evidence": [
+    {
+      "path": "verification/audit-evidence/v220-ci-history/upstream-review.json",
+      "sha256": "05fd53db50b99141844ab3c83a635758124a05fc0e65dec230a6e1f62ed87743"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-history/production-review.json",
+      "sha256": "23fd58d3252386b38903a7ec16b2614bfe4674879c532da2ff8e534787e69273"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-history/web-recovery.json",
+      "sha256": "05bd1fdd27f0872f72a196cd591dc581cc44e1aaf84bf10c144fe8114077c2e4"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-history/codeql-helper-review.json",
+      "sha256": "27dbcd0d6c0db1137d02e803102ab284f22056eef412a31d8fdcdd525d461419"
+    }
+  ]
+}

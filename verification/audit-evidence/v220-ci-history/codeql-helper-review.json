@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "/root/v220_round4_web",
+  "kind": "independent-read-only-codeql-credential-helper-review",
+  "completedAt": "2026-10-30T11:53:36.777Z",
+  "head": "adfefc0cd53e9e49c0056afe0c0208dc4992dd63",
+  "source": {
+    "files": 1941,
+    "digest": "14158d3f46a6728c06fb33d7d7f0f2c5d628b8259178d2992f35d0bcc750965f"
+  },
+  "codeqlCheck": 124045438919,
+  "sink": {
+    "path": "deploy/native_launcher.py",
+    "line": 244
+  },
+  "conclusion": "No actionable credential disclosure found in the reviewed managed Bedrock helper path. The stdout sink is the intentional bearer-return protocol consumed through a private CLI child pipe, not a Harness logging call. The multi-provider extension selects an enabled saved Bedrock identity without adding an identity allowed to read these credentials.",
+  "findings": [],
+  "reasoning": [
+    {
+      "boundary": "entry and identity",
+      "evidence": "deploy/install.py:117-125; deploy/native_launcher.py:201-216",
+      "observation": "Installed launcher uses Python -I and a root-managed fixed package/instance path. Native entry accepts only fixed verbs and bounded IDs; before reading provider secrets it requires real/effective UID equal the configured nonzero native UID, exact GID and no supplementary groups outside that GID. It drops inherited descriptors, applies umask 077, verifies zero capability sets and enables no_new_privs."
+    },
+    {
+      "boundary": "credential storage",
+      "evidence": "deploy/provider.py:297-330; deploy/install_recovery.py:305-335; deploy/native_launcher.py:228-234",
+      "observation": "Provider generations and selectors are root-owned; native-env/runtime files are generated root:native-GID 0640, private settings/provider.env are 0600. Native helper checks native-env regular file, root owner, configured GID and exact 0640 mode, and accepts only bounded named credential variables. Native config/TOML and public runtime registry omit apiKey values."
+    },
+    {
+      "boundary": "provider selection",
+      "evidence": "deploy/provider_registry.py:15-61, 147-205; deploy/native_launcher.py:235-244",
+      "observation": "Registry IDs are default or 32 lowercase hex digits. Generated Bedrock auth command is the fixed absolute launcher plus bedrock-token and saved ID. Helper resolves only an enabled row of Bedrock kind before reading its HARNESS_PROVIDER_KEY_ID; unknown/disabled/wrong-kind rows reject. Token validation limits 8192 UTF-8 bytes and forbids surrounding whitespace and control characters. Legacy unscoped bearer support remains inside the same native identity."
+    },
+    {
+      "boundary": "actual stdout consumer",
+      "evidence": ".work/v220-codeql-official-external-bearer.rs:108-161; .work/official-provider-auth-0.164.rs:230-244; .work/official-bedrock-auth-0.164.rs:52-61; .work/official-bedrock-mod-0.164.rs:167-174,232-236",
+      "observation": "Freshly retrieved official rust-v0.164.0 external_bearer.rs starts the configured command directly with stdin null, stdout/stderr piped and timeout; successful stdout is trimmed and converted to cached CodexAuth. It does not print successful stdout. Its failed-command error can include stderr, but this helper emits only a fixed generic error string on exceptions. Bedrock command auth is selected before cached/native/environment auth, and provider-scoped external_bearer_only supplies the consumer."
+    },
+    {
+      "boundary": "logging and identities",
+      "evidence": "deploy/units.py:93-117,151-157; src/runtime/native-launch.ts:18-25; src/runtime/native.ts:35-47; src/runtime/main.ts:128-131; src/runtime/redaction.ts",
+      "observation": "Control supervisor can sudo only fixed non-token launcher verbs; bedrock-token/zai-server are absent from its sudo allowlist. Native app-server stdout is a captured protocol stream and stderr is discarded by Harness. The worker supervisor already receives provider.env keys for the managed runtime/redactor; gateway service does not receive that EnvironmentFile. Multi-provider adds more keys to these existing trusted processes, not a new OS identity. Zai child construction removes all other secret variables before setting its selected Coding Plan key."
+    }
+  ],
+  "testCodeReviewed": [
+    "root test fixed native token exact stdout, root denied and unsupported invocation denied",
+    "root test native-owned environment rejected before token output",
+    "root test default/Mantle IDs select distinct expected tokens; unknown and disabled IDs produce empty stdout",
+    "root test registry/native-env root:native 0640 and provider.env root 0600; public registry omits token",
+    "root test selected Zhipu MCP receives its key and not another provider variable",
+    "unit tests fixed regional AWS endpoint/auth command, helper absent from sudo allowlist, command/profile overrides rejected, no secret in TOML/public response"
+  ],
+  "historicalEvidence": {
+    "artifact": ".work/bedrock-bearer-probe-result.json",
+    "observation": "Existing isolated pinned-CLI loopback proof reports command bearer used instead of deliberately cached/environment fixture credentials for both Bedrock provider kinds.",
+    "currentExecution": false,
+    "provenance": "Referenced existing evidence hash matches the recorded provider-extended verification artifact; this review did not rerun it and does not use it as current source runtime proof.",
+    "recordedHashMatches": true
+  },
+  "inspectedFiles": [
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "824a742b54de568569305df6023f964f0d7fb07a54f85798f3c714f9452725a8",
+      "scope": "native_main, security_process, supervise; full file"
+    },
+    {
+      "path": "deploy/provider_bedrock.py",
+      "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+      "scope": "full file"
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "26d9adb18c915a57a2fd38577002b0ed4c97ef7a1834fcb639cf60b4d6223bf6",
+      "scope": "full file"
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "0add7de50dea5c6fe09aaec33a31e117e722253e9c2b8a79f34392417c1bac2f",
+      "scope": "redacted; ProviderStore.prepare/select; fixed single-provider configuration call sites"
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "sha256": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+      "scope": "provider_documents, generation_layers, prepare_host_targets, verify_system_layers"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+      "scope": "trusted_ancestors, ensure_reserved_account, control_material/control_launchers, initialize"
+    },
+    {
+      "path": "deploy/install_recovery.py",
+      "sha256": "7195b20796ac0c301415c5c931292e131a5392d26e6b34a335f9c70355b85306",
+      "scope": "initial ownership and native.json/provider generation publication, lines 305-342"
+    },
+    {
+      "path": "deploy/common.py",
+      "sha256": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+      "scope": "read_json, atomic_write, write_json, durable_directory, mkdir, Layout"
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "e77d031d2bcc97c42528c8540efd184a1a4adc14389fd4b3abac83fdbfba951e",
+      "scope": "worker/gateway service environment, native identity and sudo_rule"
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "f1bcede3e6ba8ad43558998f887665fd73e5e7475d2d15bd2e27bbb30657a26c",
+      "scope": "full file"
+    },
+    {
+      "path": "src/runtime/native.ts",
+      "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+      "scope": "NativeRpc constructor stream ownership and stderr discard"
+    },
+    {
+      "path": "src/runtime/main.ts",
+      "sha256": "15e78d8ff90d444370a6f4f6f5f889e670de348667bd3846aa3260ea814b6a32",
+      "scope": "configFromEnvironment provider-key allowlist and registry handling"
+    },
+    {
+      "path": "src/runtime/redaction.ts",
+      "sha256": "38342ce9b58efce9ca36b64ab107944cdfb02d7ce8f9ea444432109c789a195a",
+      "scope": "full file"
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+      "scope": "full file, read only"
+    },
+    {
+      "path": "tests/deploy/test_provider_bedrock.py",
+      "sha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+      "scope": "full file, read only"
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "sha256": "bf215c0993cec33817e53a696a1c13c2478fc74661080aa56106e1023d2f90ea",
+      "scope": "MCP scoped key binding and scoped Bedrock helper tests, read only"
+    }
+  ],
+  "referenceFiles": [
+    {
+      "path": ".work/v220-codeql-official-external-bearer.rs",
+      "sha256": "042f90f639dd6b4524fa678540a8d2c68667381d2d8082ed5a097513453c5688"
+    },
+    {
+      "path": ".work/official-provider-auth-0.164.rs",
+      "sha256": "fcb210f36cc01f88b511305952aa36820bfa15d0afd0186fd49ac72e98c20153"
+    },
+    {
+      "path": ".work/official-provider-info-0.164.rs",
+      "sha256": "950c8fb26dcdfa3047b91ac2e0f336072d11067b5d979fb62e9425d7b731a410"
+    },
+    {
+      "path": ".work/official-bedrock-auth-0.164.rs",
+      "sha256": "6c88e013450d05986b6829ce2d66891884447a5298851b0f48f34b74db0d0129"
+    },
+    {
+      "path": ".work/official-bedrock-mod-0.164.rs",
+      "sha256": "8cdd68cfb1246b062bfdda00f048884af54f27c7e54ebeb39270139c0de0b566"
+    },
+    {
+      "path": ".work/official-config-schema-0.164.json",
+      "sha256": "ea611ee3f12a6df314b3e49585015ec6e2ebc7c3f072ccbf63c21306a4cdb5dc"
+    },
+    {
+      "path": ".work/bedrock-bearer-probe.mjs",
+      "sha256": "b5460fd59a1bc7aa0df1f08abe53bf54ac89936c32e0ba87652e10bd6c60c8b6"
+    },
+    {
+      "path": ".work/bedrock-bearer-probe-result.json",
+      "sha256": "88db05ce53eea0e7ccbacbf4b4add315431b8682fe69b5d55c5858304f8b296a"
+    },
+    {
+      "path": "verification/audit-evidence/round3-fixes/provider-extended.json",
+      "sha256": "9bcc4b08f9d1fc3fae3733bd02f4e2995e950915b0a08fe90101df7cedbdf19f"
+    }
+  ],
+  "primarySource": {
+    "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/login/src/auth/external_bearer.rs",
+    "localCopy": ".work/v220-codeql-official-external-bearer.rs",
+    "retrievedThisReview": true
+  },
+  "limits": [
+    "Read-only focused review, not a fresh full-repository audit. No tests, native helper, provider calls, deployment, or CodeQL dismissal executed.",
+    "No live 120 ownership, ACL, service journal, process descriptor or network capture checked. Assessment assumes the reviewed installation ownership and trusted root administration are intact.",
+    "Native identity and control supervisor are existing credential-trusted identities. Commands deliberately executed as native can read its credentials; per-provider isolation from that same identity or root is not claimed.",
+    "Direct manual native invocation intentionally returns the credential on its caller-selected stdout. Logging that invocation or redirecting its output would expose it to that destination; the generated CLI auth path uses the pinned consumer private pipe.",
+    "This review verifies the specific auth command consumer and Harness transport; it does not prove all upstream CLI code, third-party tools, operating-system diagnostics or externally configured telemetry can never expose credentials.",
+    "Root tests were inspected, not executed here. Historical loopback acceptance has its own earlier snapshot and does not establish AWS business acceptance or newly rerun multi-provider end-to-end results.",
+    "No conclusion is drawn about CodeQL alert identity/history or whether GitHub should dismiss it; this report only records technical evidence for review."
+  ],
+  "worktreeChanged": false
+}

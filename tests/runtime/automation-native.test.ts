@@ -22,6 +22,11 @@ test('scheduled runs use actual worker leases and official CLI after the browser
   const catalog = path.join(root, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
   writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup = false', 'model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = ${JSON.stringify(provider.url)}`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
   const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: project, env, dev: true }); const pid = runtime.native.processId;
+  const turnEvents: { method: string; id: unknown; status: unknown }[] = [];
+  runtime.native.on('notification', message => {
+    const event = object(message); if (event.method !== 'turn/started' && event.method !== 'turn/completed') return;
+    const turn = object(object(event.params).turn); if (turnEvents.length < 32) turnEvents.push({ method: event.method, id: turn.id, status: turn.status });
+  });
   let handle: Awaited<ReturnType<typeof startWorkerServer>> | undefined, worker: WorkerClient | undefined, ledger: Ledger | undefined, scheduler: AutomationScheduler | undefined;
   defer(() => { if (pid) expect(() => process.kill(pid, 0)).toThrow(); });
   defer(() => ledger?.close()); defer(() => runtime.close()); defer(() => handle?.close()); defer(() => worker?.close()); defer(() => scheduler?.close());
@@ -33,7 +38,11 @@ test('scheduled runs use actual worker leases and official CLI after the browser
     const created = object(await dispatcher.call({ method: 'automation/create', operationId, params: { spec: { name: 'Local run', projectId, text: 'Reply with the fixture message.', options: { model: 'harness-loopback-fixture', effort: 'low', approvalPolicy: 'never', sandbox: 'read-only' }, schedule: { kind: 'once', at: now + 60_000, timeZone: 'UTC' }, maxRunMinutes: 1 } } }, context));
     expect(provider.calls()).toBe(0); await worker.clientDisconnected(browserClient);
     scheduler = new AutomationScheduler(ledger, dispatcher, worker, () => now); scheduler.start(); await scheduler.tick(); now += 60_000; await scheduler.tick();
-    await expect.poll(async () => { await scheduler!.tick(); const result = object(ledger!.automations.read('automation/runs', { id: created.id! })); return object((result.data as unknown[])[0]).state; }, { timeout: 15000 }).toBe('completed');
+    await expect.poll(async () => { await scheduler!.tick(); const result = object(ledger!.automations.read('automation/runs', { id: created.id! })); return object((result.data as unknown[])[0]).state; }, { timeout: 15000 }).toBe('completed').catch(error => {
+      const runs = object(ledger!.automations.read('automation/runs', { id: created.id! }));
+      const run = object((runs.data as unknown[])[0]);
+      throw new Error('Native automation did not complete: ' + JSON.stringify({ turnEvents, state: run.state, threadId: run.threadId, turnId: run.turnId, stopRequested: run.stopRequested, stopSent: run.stopSent, code: run.code, activity: object(runtime.status()).activity, providerCalls: provider.calls() }), { cause: error });
+    });
     const runs = object(ledger.automations.read('automation/runs', { id: created.id! })); const run = object((runs.data as unknown[])[0]);
     expect(ledger.read(String(run.operationId))).toMatchObject({ state: 'accepted', result: { thread: { id: run.threadId }, turn: { id: run.turnId } } });
     await scheduler.close(); scheduler = new AutomationScheduler(ledger, dispatcher, worker, () => now); scheduler.start(); await scheduler.tick(); expect(provider.calls()).toBe(1);

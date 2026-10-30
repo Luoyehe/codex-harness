@@ -6,6 +6,9 @@ export interface Activity {
   pending: boolean;
   unknown: boolean;
   revision: number;
+  /** Changes only when turn identity/lifecycle changes, never on streamed items. */
+  turnRevision?: number;
+  lastTerminalTurn?: { id: string; status: 'completed' | 'failed' | 'interrupted' };
   historyMode?: string;
   historyRevision?: number;
   fresh?: boolean;
@@ -71,7 +74,7 @@ export class ThreadActivity {
       // Capacity is not evidence that already tracked work became unknown.
       throw new DeliveryError('activity_capacity', 'Close an inactive loaded thread before opening another thread');
     }
-    const state: Activity = { status: 'notLoaded', turnId: null, pending: false, unknown: false, revision: 0 };
+    const state: Activity = { status: 'notLoaded', turnId: null, pending: false, unknown: false, revision: 0, turnRevision: 0 };
     this.entries.set(id, state);
     return state;
   }

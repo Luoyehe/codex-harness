@@ -1,0 +1,40 @@
+{
+  "kind": "independent-read-only-targeted-production-diff-review",
+  "head": "adfefc0cd53e9e49c0056afe0c0208dc4992dd63",
+  "source": [
+    {
+      "path": "src/runtime/history.ts",
+      "sha256": "48c57ac313c4b7c5d060c1f76c45f5a5bbac844954a1cc7ed166fe744e419c44"
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "06253a32bfa444f5173b2b531347aba2e407d65fe78ae6433943516347afcbf8"
+    }
+  ],
+  "findings": [],
+  "conclusion": "No confirmed new bug found in the three-file lifecycle fence and exact-turn status projection patch.",
+  "reviewed": [
+    "Entire production diff and surrounding UnifiedHistory read/publish/error paths, Activity retention/eviction, service lifecycle notifications, metadata observation, accepted start/workflow responses, failure and cleanup branches.",
+    "Exact live turn identity projects status without adding absent turns/items or replacing pagination. Unknown state blocks live projection and is never cleared. Stable cold interrupted rows with no live/terminal evidence remain unchanged.",
+    "Terminal cache is per Activity and exact turn ID, bounded to one terminal per retained thread. It is cleared for revert/delete/unsubscribe/closed paths and disappears with Activity/runtime lifetime.",
+    "Lifecycle revision advances for start/completed notifications, metadata establishing a different active ID, and accepted turn/start or queue/review responses even without notifications. Streaming items and status-only idle updates do not force repeated stale reads.",
+    "Traversal binds Activity identity, lifecycle revision, and unknown flag. Changes before publish or between pages reject and delete the old traversal; a fresh no-cursor read can proceed. Initial metadata can establish the first active identity before turn/timeline pages.",
+    "Existing channel disconnect, superseding traversal, history invalidation, cursor-loop, item/byte/page limits and incomplete-context barriers remain in place.",
+    "Previously reviewed web retry and turn/completed refresh paths remain compatible; no web change is required by this patch."
+  ],
+  "limitations": [
+    "No code edits, tests, remote probes, or paid calls performed in this review.",
+    "This is a targeted independent diff review, not a new complete repository audit.",
+    "Runtime agent owns the deterministic service regression tests; this report does not claim their results.",
+    "The original hosted CI failure cause still requires the parent evidence chain; source reasoning and controlled snapshot probes alone do not prove that exact historical execution.",
+    "The cache does not synthesize history contents or claim durable item freshness beyond the existing native history contract. Status-only activity without a known turn ID does not revive arbitrary historical turns."
+  ],
+  "supportingWebReview": {
+    "path": ".work/v220-history-web-recovery-review.json",
+    "sha256": "f206d6ef5b5cf429c537e63d7e175fd0aa6eea9316df1d0f272233f577186aa5"
+  }
+}

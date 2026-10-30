@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "kind": "native-history-lifecycle-regression",
+  "completedAt": "2026-10-30T12:30:12.749057+00:00",
+  "sourceDigest": "468803191f18e3950286f76348a8538a65ce5a90cb5538a7d0fafa56e3126cbe",
+  "files": [
+    {
+      "path": "src/runtime/history.ts",
+      "sha256": "48c57ac313c4b7c5d060c1f76c45f5a5bbac844954a1cc7ed166fe744e419c44"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "06253a32bfa444f5173b2b531347aba2e407d65fe78ae6433943516347afcbf8"
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "e9365fbff942aecb8db21a1a5228b1b50412a6ab86c7b5ec0780103c9cba2e13"
+    },
+    {
+      "path": "tests/runtime/automation-native.test.ts",
+      "sha256": "f45f4608a0afcf5af4de02fd38db4b2d10486f2d47759b6162d3dcd05494701c"
+    }
+  ],
+  "productionAuthor": "root",
+  "testAuthor": "v220-final-runtime",
+  "finding": {
+    "confirmed": "Non-atomic native history may publish synthetic interrupted despite the exact known live turn. History read across a lifecycle transition can publish a mixed snapshot and grant completeness. Early completion before scheduler acceptance needs exact terminal evidence when history remains stale.",
+    "originalHostedFailureCausality": "Not reproduced. Baseline Windows and Linux bounded sequential probes passed. One parallel stress probe failed at native startup before scheduler; this is separate and its cause is unconfirmed."
+  },
+  "solution": [
+    "Per-activity turn lifecycle counter independent of streaming revisions; per-traversal identity/lifecycle/unknown fence.",
+    "Only exact same-thread same-turn known live status or last explicit terminal notification projects existing history rows. No inferred or fabricated turns/items; stable cold interrupted remains.",
+    "Terminal evidence cache bounded to one per retained activity; cleared on close/delete/unsubscribe/revert. Unknown stays unknown."
+  ],
+  "tests": [
+    {
+      "scope": [
+        "tests/runtime/service.test.ts"
+      ],
+      "report": ".work/test-results/run-O4bepM/vitest.json",
+      "passed": 56,
+      "newDeterministicCases": 17
+    },
+    {
+      "scope": [
+        "tests/runtime/automation-native.test.ts"
+      ],
+      "platform": "Windows",
+      "report": ".work/test-results/run-p3z6sr/vitest.json",
+      "passed": 1,
+      "runs": 1
+    },
+    {
+      "scope": [
+        "tests/runtime/automation-native.test.ts"
+      ],
+      "platform": "Linux isolated UID65534 PrivateNetwork",
+      "report": ".work/v220-automation-native-linux-1638f5429ce8490fa8523f926da9507b.json",
+      "rawLog": ".work/v220-history-native-linux-final.log",
+      "passed": 1,
+      "runs": 1,
+      "ownedUnitStoppedAndCgroupAbsent": true
+    }
+  ],
+  "testContracts": [
+    "Paginated/legacy known live exact-ID projection; unrelated old IDs untouched.",
+    "Cold completed/failed/interrupted and status-only active remain native.",
+    "Streaming item delta does not stale history.",
+    "Completion between turn/timeline reads rejects and revokes write proof.",
+    "Lifecycle between cursor requests rejects before another native request, deletes traversal.",
+    "Accepted turn/start without notification changes lifecycle and fences concurrent history.",
+    "Unknown does not project live status or become certain after history/terminal read.",
+    "Only most-recent exact terminal notification, same thread, overrides; missing turns are never fabricated.",
+    "Close/delete/revert invalidate terminal evidence and inflight traversal.",
+    "Actual RuntimeService+Dispatcher+AutomationScheduler+Ledger deterministic early completion before accept, stale interrupted history and stale inProgress metadata: completed once, accepted original receipt, one start, zero interrupt, zero lease, no resurrection."
+  ],
+  "boundaries": [
+    "No full suite, deployment, online login, paid inference or external MCP calls.",
+    "Official CLI tests only loopback substitute and isolated homes.",
+    "Native failure diagnostic retains at most32 ID/status notification summaries and failure-only run/activity metadata; no request spy, delay, extra retry or weakened completion assertion."
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "task": "CI3 automation-native interrupted upstream history semantics",
+  "completedAt": "2026-10-30T12:02:59.856Z",
+  "mode": "read-only official pinned 0.164.0 source and documentation review; no tests or production edits",
+  "confirmedFacts": [
+    {
+      "location": "thread_processor.rs:6246-6258",
+      "fact": "normalize_thread_turns_status resolves runtime status, returns unchanged only for Active, otherwise assigns Interrupted to every historical InProgress turn. It does not require a TurnAborted/turn-completed event and adds no completedAt/duration/error."
+    },
+    {
+      "location": "thread_processor.rs:3396-3471",
+      "fact": "Paginated thread/turns/list awaits persisted turn page, hydrates full items through more awaits, then gets loaded thread AgentStatus::Running and watch loaded status separately, and normalizes the already-read turns. No ThreadState.active_turn_snapshot merge occurs in this function. The history and runtime statuses are not an atomic snapshot."
+    },
+    {
+      "location": "thread_processor.rs:3297-3327,6228-6242",
+      "fact": "Legacy turns/list obtains history, current agent Running flag, plus ThreadState.active_turn_snapshot. Its reconstruction treats either Running or active-turn InProgress as active and merges the active snapshot after normalization."
+    },
+    {
+      "location": "thread_processor_tests.rs:322-361",
+      "fact": "Upstream explicitly tests thread_turns_list_merges_in_progress_active_turn_before_agent_status_running: persisted items, loaded status Idle and live-running flag false, with an InProgress active snapshot. Legacy reconstruction must retain that snapshot."
+    },
+    {
+      "location": "thread_processor.rs:3022-3108,3217-3245,3506-3539; thread_lifecycle.rs:1074-1088",
+      "fact": "thread/read includeTurns uses live/persisted history (paginated full history reuses the paginated turns path), then separately reads AgentStatus and watch status, and changes InProgress to Interrupted if resolved status is not Active. It is not an authoritative terminal-event channel either."
+    },
+    {
+      "location": "thread_status.rs:290-304",
+      "fact": "resolve_thread_status upgrades Idle or NotLoaded to Active when has_in_progress_turn is true; otherwise returns status unchanged."
+    },
+    {
+      "location": "session-mod.rs:2692-2749,4827-4836",
+      "fact": "Core sends an event by first awaiting persistence through live_thread.append_items, then deliver_event_raw updates agent_status from the event and enqueues it to the app-server listener. Append and current status observation are distinct steps; this is not a single atomic history/status update. This review did not inspect append_items durability internals."
+    },
+    {
+      "location": "turn_processor.rs:680-735",
+      "fact": "After submit_turn_input returns Started/Steered, turn/start constructs its response with status InProgress. That response does not await every separate history reader or listener status projection."
+    },
+    {
+      "location": "thread_lifecycle.rs:340-387; thread_read_state.rs:134-145",
+      "fact": "Listener first projects live events, and terminal-read-state publisher may flush rollout before sending terminal notifications. Terminal notifications and separately requested history responses therefore have distinct processing paths."
+    }
+  ],
+  "implications": [
+    "A historical Interrupted value alone does not prove a real abort. It can be synthesized from an unfinished stored turn and a separately observed non-Active runtime state.",
+    "Possible timing windows from the source include startup persistence before Running becomes observable, and reading an old InProgress page before a completion/status transition. Source analysis establishes the mechanisms, not that either caused this CI failure.",
+    "An Interrupted row with null completedAt can help diagnostics because normalization does not add terminal metadata, but missing metadata alone is not a reliable proof that interruption is false; older/incomplete histories can also lack it.",
+    "This review did not read or mutate the current scheduler implementation and does not confirm the hypothesis that lease release caused true cancellation. Runtime agent owns actual reproduction and implementation decisions."
+  ],
+  "documents": [
+    {
+      "path": "reference/PROTOCOL-CONTRACT.md",
+      "sha256": "2671d5fd4e22b78efc869d299bc3cc24420c927b863ae0845f850e9dcbd5175d",
+      "relevantLines": "48-59: history pagination/legacy fallback and completion event authority"
+    },
+    {
+      "path": "reference/app-server.official.md",
+      "sha256": "f879715bb0d440db60b71e7a5bfe1258d045520feabe3fc6b11847100c8d064b",
+      "relevantLines": "645-688: stored thread read/pagination; 1361: turn/completed notification"
+    }
+  ],
+  "upstreamSources": [
+    {
+      "file": ".work/v220-history-official-thread_processor.rs",
+      "sha256": "0c806ff3aaf348f7373032171d55ff110dfd30bcbb5cfabded89330b5b4375b6",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors/thread_processor.rs",
+      "retrievedThisTask": true
+    },
+    {
+      "file": ".work/v220-history-official-thread_processor_tests.rs",
+      "sha256": "22469762116463e7b03ca57ae11ce3d47fdf62be1515d26892a1ab3065e6fcf4",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors/thread_processor_tests.rs",
+      "retrievedThisTask": true
+    },
+    {
+      "file": ".work/v220-history-official-thread_lifecycle.rs",
+      "sha256": "0c32665d1d988756517051df3e587eebce27d1ba962f1940b9c9d074520f1e7d",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors/thread_lifecycle.rs",
+      "retrievedThisTask": true
+    },
+    {
+      "file": ".work/v220-history-official-thread_status.rs",
+      "sha256": "7948ede1c98af3467d8a1b1ec4cd3fe5487574b0789dfc4fac10987e6f1238f1",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/thread_status.rs",
+      "retrievedThisTask": true
+    },
+    {
+      "file": ".work/v220-history-official-turn_processor.rs",
+      "sha256": "829219be3231b5a4f8bfae26b95dba1d58fae2a93a9d32b0de2d2b22fb01931d",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors/turn_processor.rs",
+      "retrievedThisTask": true
+    },
+    {
+      "file": ".work/v220-history-official-session-mod.rs",
+      "sha256": "031196de880ed7a86b9bd0a1741113fd004ed54fd4ca272ee6873df00e8d4430",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/core/src/session/mod.rs",
+      "retrievedThisTask": true
+    },
+    {
+      "file": ".work/v220-history-official-codex_thread.rs",
+      "sha256": "48084c2720a93cfabc314ded0d491f34a573ec793007144fc9f203955902420f",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/core/src/codex_thread.rs",
+      "retrievedThisTask": true
+    },
+    {
+      "file": ".work/v220-history-official-thread_read_state.rs",
+      "sha256": "21084850835d150596ef4652c267161d75bc2ed1d825714f19393a9d060f7a2e",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors/thread_read_state.rs",
+      "retrievedThisTask": true
+    }
+  ],
+  "scopeLimits": [
+    "No native/model calls, tests, deployment, code modifications or old implementation reading.",
+    "Only relevant sections were manually read; complete upstream files were downloaded as read-only evidence, not audited line by line.",
+    "No upstream race has been reproduced by this reviewer."
+  ]
+}
