@@ -1,0 +1,813 @@
+{
+  "schemaVersion": 1,
+  "candidate": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+  "sourceFiles": 1947,
+  "authorizationSha256": "f6aeefabedf0fdfbaa8302e0dc76b6d446e3ec42277344397bfc5a2162f3442b",
+  "status": "passed",
+  "releaseGatePassed": true,
+  "fullGatePassed": true,
+  "observedAt": "2026-10-30T19:18:25.922Z",
+  "expectedFullTestFiles": 232,
+  "actualPlans": [
+    {
+      "runId": 41111953956,
+      "jobId": 124256001295,
+      "event": "pull_request",
+      "plan": {
+        "mode": "authorized-full",
+        "base": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+        "head": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+        "files": 232,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ]
+      },
+      "evidence": ".work/v220-ci11-plan-raw.txt",
+      "sha256": "c50c98619fb240cb69513e2c46edea9978ad53794f2574ac93e0da7ee01a0745",
+      "summaryLine": 240,
+      "sourceDigestPrinted": false
+    },
+    {
+      "runId": 41111944101,
+      "jobId": 124255962637,
+      "event": "push",
+      "plan": {
+        "mode": "selected",
+        "base": "610f929e190e0a95f7791ee3d0833006cdc46da7",
+        "head": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+        "files": 3,
+        "targets": [
+          "linux",
+          "windows"
+        ]
+      },
+      "evidence": ".work/v220-ci11-push-plan-raw.txt",
+      "sha256": "899b455ff22088352b46f72d988170a0d56f53dfd59a26eef03930b84663b8cc",
+      "summaryLine": 240,
+      "sourceDigestPrinted": false
+    }
+  ],
+  "distinctCaseCount": 2468,
+  "coverageGaps": [],
+  "runs": [
+    {
+      "id": 41111953893,
+      "name": "Security checks",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953893",
+      "jobsObservedAt": "2026-10-30T19:17:16.6234647Z",
+      "jobsEvidence": ".work/v220-ci11-api-jobs-41111953893.json",
+      "jobsEvidenceSha256": "5433abe89d181335d2937dad1984c70ae25b1209569f380e21e5830b5f3d4e16",
+      "jobs": [
+        {
+          "id": 124255999659,
+          "name": "codeql (javascript-typescript)",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953893/job/124255999659",
+          "started_at": "2026-10-30T19:03:02Z",
+          "completed_at": "2026-10-30T19:04:34Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124255999794,
+          "name": "dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953893/job/124255999794",
+          "started_at": "2026-10-30T19:03:02Z",
+          "completed_at": "2026-10-30T19:03:15Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [
+            {
+              "name": "Set up job",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "name": "Run pnpm audit --audit-level high --json > dependency-audit.json",
+              "status": "in_progress",
+              "conclusion": null
+            }
+          ],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124255999872,
+          "name": "codeql (python)",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953893/job/124255999872",
+          "started_at": "2026-10-30T19:03:02Z",
+          "completed_at": "2026-10-30T19:04:05Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        }
+      ]
+    },
+    {
+      "id": 41111953956,
+      "name": "Reviewed checks",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953956",
+      "jobsObservedAt": "2026-10-30T19:17:14.5859343Z",
+      "jobsEvidence": ".work/v220-ci11-api-jobs-41111953956.json",
+      "jobsEvidenceSha256": "60afc05282e3b847071ea7734764578433c0ea6115d698592388ed13fde0d52a",
+      "jobs": [
+        {
+          "id": 124256001295,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953956/job/124256001295",
+          "started_at": "2026-10-30T19:03:02Z",
+          "completed_at": "2026-10-30T19:03:35Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124256335521,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953956/job/124256335521",
+          "started_at": "2026-10-30T19:03:38Z",
+          "completed_at": "2026-10-30T19:04:06Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124256335609,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953956/job/124256335609",
+          "started_at": "2026-10-30T19:03:38Z",
+          "completed_at": "2026-10-30T19:10:14Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124256335649,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953956/job/124256335649",
+          "started_at": "2026-10-30T19:03:39Z",
+          "completed_at": "2026-10-30T19:13:14Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [
+            {
+              "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "name": "Install pinned dependencies and build the actual modules",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+              "status": "pending",
+              "conclusion": null
+            }
+          ],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124261432739,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953956/job/124261432739",
+          "started_at": "2026-10-30T19:13:17Z",
+          "completed_at": "2026-10-30T19:16:33Z",
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-job-124261432739.json",
+            "sha256": "684efda00777af71d66784c30f675af420c72439c7d651f0b0b639baa50f2be2",
+            "observedAt": "2026-10-30T19:16:51.6688916Z"
+          },
+          "activeOrFailedSteps": []
+        }
+      ]
+    },
+    {
+      "id": 41111944101,
+      "name": "Reviewed checks",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111944101",
+      "jobsObservedAt": "2026-10-30T19:17:15.6689934Z",
+      "jobsEvidence": ".work/v220-ci11-api-jobs-41111944101.json",
+      "jobsEvidenceSha256": "a7f5e2e2dffdffd30a8624a8bf32bc424d455e3f0ccafdd899749f2e170c1b92",
+      "jobs": [
+        {
+          "id": 124255962637,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111944101/job/124255962637",
+          "started_at": "2026-10-30T19:02:58Z",
+          "completed_at": "2026-10-30T19:03:52Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124256496391,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111944101/job/124256496391",
+          "started_at": "2026-10-30T19:03:58Z",
+          "completed_at": "2026-10-30T19:04:47Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124256496505,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111944101/job/124256496505",
+          "started_at": "2026-10-30T19:03:56Z",
+          "completed_at": "2026-10-30T19:05:33Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124257467405,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111944101/job/124257467405",
+          "started_at": "2026-10-30T19:05:36Z",
+          "completed_at": "2026-10-30T19:05:47Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [
+            {
+              "name": "Set up job",
+              "status": "in_progress",
+              "conclusion": null
+            }
+          ],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        },
+        {
+          "id": 124257551971,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "skipped",
+          "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+          "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111944101/job/124257551971",
+          "started_at": "2026-10-30T19:05:42Z",
+          "completed_at": "2026-10-30T19:03:52Z",
+          "activeOrFailedSteps": [],
+          "reportedUnsettledStepsAfterJobCompletion": [],
+          "stateEvidence": {
+            "path": ".work/v220-ci11-api-check-runs.json",
+            "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+            "observedAt": "2026-10-30T19:17:17.5530204Z"
+          },
+          "latestStateDoesNotSupplyStepDetails": true
+        }
+      ]
+    }
+  ],
+  "runsEvidence": {
+    "path": ".work/v220-ci11-api-runs.json",
+    "sha256": "752e4d1941d37e7c0d9b2d37265e22516becb1ee59094a699dede34c48948f46"
+  },
+  "latestCheckRunEvidence": {
+    "path": ".work/v220-ci11-api-check-runs.json",
+    "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+    "observedAt": "2026-10-30T19:17:17.5530204Z"
+  },
+  "codeqlSourceReview": {
+    "path": ".work/v220-ci11-codeql-source-review.json",
+    "sha256": "72d4bc43faa3b57a91efbfcd601a03b90814331665809fe8493500edaaf72666",
+    "result": "Root freshly rehashed all 16 credential-path sources and 9 reference/evidence files against CI10: unchanged. Retained independent CI10 private credential-channel assessment; actual CI11 scan is recorded separately."
+  },
+  "codeqlAggregate": {
+    "observed": true,
+    "id": 124256532658,
+    "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/Luoyehe/codex-harness/runs/124256532658",
+    "title": "1 configuration not found",
+    "summary": "**Warning**: Code scanning may not have found all the alerts introduced by this pull request, because 1 configuration present on `refs/heads/main` was not found:\n\n### Actions workflow (`ci.yml`)\n\n* :question:&nbsp;&nbsp;`.github/workflows/ci.yml:codeql`\n\n\n### New alerts in code changed by this pull request\n\nSecurity Alerts:\n * 1 high\n\n\n_Alerts not introduced by this pull request might have been detected because the code changes were too large._\n\nSee annotations below for details.\n\n[View all branch alerts](/Luoyehe/codex-harness/security/code-scanning?query=pr%3A8+tool%3ACodeQL+is%3Aopen).",
+    "annotationsCount": 1,
+    "evidence": ".work/v220-ci11-api-check-runs.json",
+    "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
+    "annotations": [
+      {
+        "path": "deploy/native_launcher.py",
+        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/363e2fd9f8961b45a806bbde5307d36dad80dd19/deploy/native_launcher.py",
+        "start_line": 244,
+        "start_column": 30,
+        "end_line": 244,
+        "end_column": 42,
+        "annotation_level": "failure",
+        "title": "Clear-text logging of sensitive information",
+        "message": "This expression logs [sensitive data (secret)](1) as clear text.",
+        "raw_details": null
+      }
+    ],
+    "annotationEvidence": ".work/v220-ci11-api-annotations-124256532658.json",
+    "annotationEvidenceSha256": "8e01b01505e59fab37c0974b7829729df352da628cdb437b39f85a013efa5996",
+    "manualAssessment": "Reviewed required private credential-return path; retain actual aggregate status and legacy configuration warnings. No dismissal or configuration/gate change."
+  },
+  "monitoring": {
+    "transport": "Unauthenticated GitHub public API; root owns authenticated CUA plan/reconcile logs",
+    "boundedPollingIntervalSeconds": "45-60",
+    "noCancellation": true,
+    "noRetry": true,
+    "noBrowserCompetition": true,
+    "noSourceEdits": true,
+    "noTests": true,
+    "observationsEvidence": ".work/v220-ci11-api-observations.jsonl",
+    "status": "complete"
+  },
+  "limitations": [
+    "Actual full PR plan/reconciliation establish 232 files and 2468 distinct cases with no coverage gaps; platform skips remain recorded. Reviewer did not download/recount individual result artifacts or infer per-platform counts.",
+    "Push selection is distinct and uses only its own actual reconciliation when supplied.",
+    "Successful Security analysis/dependency jobs do not erase an actual failed CodeQL aggregate. Root current-source binding confirms all 16 reviewed sources and 9 references match CI10; no alert dismissal or gate change.",
+    "Only public read-only API and root-provided browser logs were consumed. No cancellation, retry, browser competition, tests, source change or deployment."
+  ],
+  "metadataConsistency": {
+    "completedJobsWithLaggingStepMetadata": [
+      {
+        "runId": 41111953893,
+        "jobId": 124255999794,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "name": "Run pnpm audit --audit-level high --json > dependency-audit.json",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ]
+      },
+      {
+        "runId": 41111953956,
+        "jobId": 124256335649,
+        "steps": [
+          {
+            "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "name": "Install pinned dependencies and build the actual modules",
+            "status": "pending",
+            "conclusion": null
+          },
+          {
+            "name": "Run exact selection and retain platform skips for reconciliation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+            "status": "pending",
+            "conclusion": null
+          }
+        ]
+      },
+      {
+        "runId": 41111944101,
+        "jobId": 124257467405,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ]
+      }
+    ],
+    "boundary": "Some public job responses report completed/success alongside nonterminal step metadata. Raw responses are preserved. Final run/check/job conclusions and actual completed-workflow logs are used; lagging step fields are not presented as still-running work or as test failures."
+  },
+  "platformRawEvidence": [
+    {
+      "runId": 41111944101,
+      "jobId": 124256496391,
+      "evidence": ".work/v220-ci11-push-linux-raw.txt",
+      "sha256": "c642bcb0a28bb209b565b709789be8dd3e498326ce70b6918ec701a9dae3aecf",
+      "failures": [],
+      "summaries": [
+        {
+          "line": 397,
+          "text": "Test Files  3 passed (3)"
+        },
+        {
+          "line": 398,
+          "text": "Tests  76 passed (76)"
+        }
+      ],
+      "finalGroupSummary": {
+        "javascript": {
+          "files": "Test Files  3 passed (3)",
+          "cases": "Tests  76 passed (76)"
+        },
+        "python": null
+      },
+      "summaryBoundary": "Earlier zero-test/skip/error output can belong to expected negative tooling fixtures; final language-group summaries are not added to infer distinct coverage.",
+      "rootCauseAssessment": "Test assertions are observed; product-versus-fixture cause is not established by this monitoring report."
+    },
+    {
+      "runId": 41111944101,
+      "jobId": 124256496505,
+      "evidence": ".work/v220-ci11-push-windows-raw.txt",
+      "sha256": "fab84e24703d01101c9faaa691f3aef9021090c34432f7e8f0401f31004bfa04",
+      "failures": [],
+      "summaries": [
+        {
+          "line": 409,
+          "text": "Test Files  3 passed (3)"
+        },
+        {
+          "line": 410,
+          "text": "Tests  76 passed (76)"
+        }
+      ],
+      "finalGroupSummary": {
+        "javascript": {
+          "files": "Test Files  3 passed (3)",
+          "cases": "Tests  76 passed (76)"
+        },
+        "python": null
+      },
+      "summaryBoundary": "Earlier zero-test/skip/error output can belong to expected negative tooling fixtures; final language-group summaries are not added to infer distinct coverage.",
+      "rootCauseAssessment": "Test assertions are observed; product-versus-fixture cause is not established by this monitoring report."
+    },
+    {
+      "runId": 41111953956,
+      "jobId": 124256335609,
+      "evidence": ".work/v220-ci11-full-linux-raw.txt",
+      "sha256": "86ef2c547fb079ad64c3328ad9fe905f7830c778e7b7299e51dda3f94f9c30ea",
+      "failures": [],
+      "summaries": [
+        {
+          "line": 623,
+          "text": "OK (skipped=1)"
+        },
+        {
+          "line": 638,
+          "text": "Ran 0 tests in 0.001s"
+        },
+        {
+          "line": 644,
+          "text": "Ran 0 tests in 0.001s"
+        },
+        {
+          "line": 646,
+          "text": "OK (skipped=1)"
+        },
+        {
+          "line": 824,
+          "text": "Test Files  171 passed | 2 skipped (173)"
+        },
+        {
+          "line": 825,
+          "text": "Tests  1716 passed | 15 skipped (1731)"
+        },
+        {
+          "line": 1296,
+          "text": "Ran 461 tests in 39.011s"
+        },
+        {
+          "line": 1298,
+          "text": "OK"
+        }
+      ],
+      "finalGroupSummary": {
+        "javascript": {
+          "files": "Test Files  171 passed | 2 skipped (173)",
+          "cases": "Tests  1716 passed | 15 skipped (1731)"
+        },
+        "python": {
+          "cases": "Ran 461 tests in 39.011s",
+          "result": "OK"
+        }
+      },
+      "summaryBoundary": "Earlier zero-test/skip/error output can belong to expected negative tooling fixtures; final language-group summaries are not added to infer distinct coverage.",
+      "rootCauseAssessment": "Test assertions are observed; product-versus-fixture cause is not established by this monitoring report."
+    },
+    {
+      "runId": 41111953956,
+      "jobId": 124256335649,
+      "evidence": ".work/v220-ci11-full-windows-raw.txt",
+      "sha256": "1ea35cba15c735619f5a12703edcc7683472a48b523e1084cfd4f7e92ac01085",
+      "failures": [],
+      "summaries": [
+        {
+          "line": 730,
+          "text": "OK (skipped=1)"
+        },
+        {
+          "line": 743,
+          "text": "Ran 0 tests in 0.001s"
+        },
+        {
+          "line": 749,
+          "text": "Ran 0 tests in 0.001s"
+        },
+        {
+          "line": 751,
+          "text": "OK (skipped=1)"
+        },
+        {
+          "line": 957,
+          "text": "Test Files  173 passed (173)"
+        },
+        {
+          "line": 958,
+          "text": "Tests  1726 passed | 5 skipped (1731)"
+        },
+        {
+          "line": 1429,
+          "text": "Ran 461 tests in 19.792s"
+        },
+        {
+          "line": 1431,
+          "text": "OK (skipped=96)"
+        }
+      ],
+      "finalGroupSummary": {
+        "javascript": {
+          "files": "Test Files  173 passed (173)",
+          "cases": "Tests  1726 passed | 5 skipped (1731)"
+        },
+        "python": {
+          "cases": "Ran 461 tests in 19.792s",
+          "result": "OK (skipped=96)"
+        }
+      },
+      "summaryBoundary": "Earlier zero-test/skip/error output can belong to expected negative tooling fixtures; final language-group summaries are not added to infer distinct coverage.",
+      "rootCauseAssessment": "Test assertions are observed; product-versus-fixture cause is not established by this monitoring report."
+    },
+    {
+      "runId": 41111953956,
+      "jobId": 124256335521,
+      "evidence": ".work/v220-ci11-full-root-raw.txt",
+      "sha256": "0304cdf02f78e3b15a8de5c946a1bdefad84c1f42046876e74628e8807d856ab",
+      "failures": [],
+      "summaries": [
+        {
+          "line": 563,
+          "text": "Ran 256 tests in 12.340s"
+        },
+        {
+          "line": 565,
+          "text": "OK"
+        }
+      ],
+      "finalGroupSummary": {
+        "javascript": null,
+        "python": {
+          "cases": "Ran 256 tests in 12.340s",
+          "result": "OK"
+        }
+      },
+      "summaryBoundary": "Earlier zero-test/skip/error output can belong to expected negative tooling fixtures; final language-group summaries are not added to infer distinct coverage.",
+      "rootCauseAssessment": "Test assertions are observed; product-versus-fixture cause is not established by this monitoring report."
+    }
+  ],
+  "rootProvidedArchives": [
+    {
+      "path": ".work/v220-ci11-full-logs.zip",
+      "sha256": "d7cd1b7ef7e55c7a5d14e5bc224ebacf654c2538ae68596f5a011efcf4ab5cc3",
+      "method": "Root-provided completed-workflow log archive obtained through the already authenticated browser; this reviewer did not read cookies or fetch authenticated log URLs."
+    },
+    {
+      "path": ".work/v220-ci11-push-logs.zip",
+      "sha256": "ae6ba750ec16d2e2a646d2e301e5e37eac0294b54c142ca84cce12f1ef5c7004",
+      "method": "Root-provided completed-workflow log archive obtained through the already authenticated browser; this reviewer did not read cookies or fetch authenticated log URLs."
+    }
+  ],
+  "fixtureOnlyAuditCarryForward": {
+    "path": ".work/v220-ci10-fixture-carry-forward-review.json",
+    "sha256": "2a63b71f86d23e756617e040228ff6fbc2e372fd5839aaf19135d1828028673e",
+    "baselineAudit": "v220-round10",
+    "newFullAuditClaimed": false,
+    "unchangedFiles": 1944,
+    "changedFiles": [
+      "web/tests/app-lifecycle.test.tsx",
+      "web/tests/process-remote.test.tsx",
+      "web/tests/project-handoff.test.tsx"
+    ],
+    "historicalCI10NotRewritten": true
+  },
+  "failures": [],
+  "pushReconciliation": {
+    "runId": 41111944101,
+    "jobId": 124257467405,
+    "summary": {
+      "status": "passed",
+      "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+      "head": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+      "files": 3,
+      "cases": 76,
+      "coverageGaps": [],
+      "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+    },
+    "evidence": ".work/v220-ci11-push-reconcile-raw.txt",
+    "sha256": "dacfa36d230478603677779ed728ac8a4ac79e507adde76ffffe5e66a1578a02",
+    "boundary": "Push selection only; failure refusal propagates platform evidence failure and is not another root cause. No distinct-case count is inferred."
+  },
+  "fullReconciliation": {
+    "runId": 41111953956,
+    "jobId": 124261432739,
+    "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41111953956/job/124261432739",
+    "evidence": ".work/v220-ci11-reconcile-raw.txt",
+    "sha256": "f8adad3827ced4c4333cec975f6750ec685dbcd67087d07a70f987e6c12109f2",
+    "summaryLine": 241,
+    "summary": {
+      "status": "passed",
+      "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+      "head": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+      "files": 232,
+      "cases": 2468,
+      "coverageGaps": [],
+      "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+    },
+    "artifactDownloadEvidence": {
+      "expected": [
+        {
+          "name": "cases-linux",
+          "id": 13004771208,
+          "bytes": 132531,
+          "sha256": "2e834da1d856238c8f17a9703bd9a206ddd25930434a41664067eb6f8baa6552"
+        },
+        {
+          "name": "cases-linux-root",
+          "id": 13004615603,
+          "bytes": 13169,
+          "sha256": "77e3fd62b4740c2eb2662f760512c64f68442193f2f0b705ffb1699ecb6bd18a"
+        },
+        {
+          "name": "ci-plan",
+          "id": 13004252164,
+          "bytes": 11661,
+          "sha256": "fbc4be21add93b63550ac5a357a4d9b16d36ebecf6626adef671d6f3a446ace3"
+        },
+        {
+          "name": "windows-controller-preflight",
+          "id": 13003822519,
+          "bytes": 1947,
+          "sha256": "cc83c654b09244a1fb21802e5a587f270991cf30d2f0691fa038ad9f95ece03d"
+        },
+        {
+          "name": "source-security",
+          "id": 13003762313,
+          "bytes": 2633,
+          "sha256": "1a2df9b66836e4993646559b1349046cf9d13455af2aab8f22ff83551db944fa"
+        },
+        {
+          "name": "cases-windows",
+          "id": 13002999886,
+          "bytes": 133384,
+          "sha256": "7ed8dc3eb9b55effefd133463ba0bcbe38ee646a2020cba985897cd3d1c22a6d"
+        }
+      ],
+      "downloadedSha256": [
+        "fbc4be21add93b63550ac5a357a4d9b16d36ebecf6626adef671d6f3a446ace3",
+        "1a2df9b66836e4993646559b1349046cf9d13455af2aab8f22ff83551db944fa",
+        "cc83c654b09244a1fb21802e5a587f270991cf30d2f0691fa038ad9f95ece03d",
+        "77e3fd62b4740c2eb2662f760512c64f68442193f2f0b705ffb1699ecb6bd18a",
+        "7ed8dc3eb9b55effefd133463ba0bcbe38ee646a2020cba985897cd3d1c22a6d",
+        "2e834da1d856238c8f17a9703bd9a206ddd25930434a41664067eb6f8baa6552"
+      ],
+      "allSixExpectedDigestsMatched": true
+    },
+    "individualResultArtifactsDownloadedByReviewer": false
+  },
+  "perPlatformLanguageAndCaseCounts": null,
+  "statusScope": "Exact-head full PR and selected push test gates passed; actual CodeQL aggregate status remains separate",
+  "completedAt": "2026-10-30T19:18:26.542Z",
+  "finalSourceVerification": {
+    "verifiedAt": "2026-10-30T19:18:26.542Z",
+    "head": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+    "source": {
+      "files": 1947,
+      "digest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2"
+    },
+    "authorizationPath": "verification/audit-evidence/release-closeout/authorization.json",
+    "authorizationSha256": "f6aeefabedf0fdfbaa8302e0dc76b6d446e3ec42277344397bfc5a2162f3442b",
+    "committedAuthorizationSha256": "f6aeefabedf0fdfbaa8302e0dc76b6d446e3ec42277344397bfc5a2162f3442b",
+    "manifest": ".work/v220-ci11-file-hashes.json",
+    "manifestSha256": "132f7bbcb4007526875b75aba9c0e897a07325c0b76244a43de39181ae788c69",
+    "comparedFiles": 1947,
+    "differences": [],
+    "gitWorkingTreePorcelain": "",
+    "boundary": "Root may update declared nonexecutable verification evidence; frozen product/source bytes are independently checked."
+  }
+}

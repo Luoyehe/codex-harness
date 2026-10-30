@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-10-30T18:55:45.823Z",
-  "candidate": "610f929e190e0a95f7791ee3d0833006cdc46da7",
-  "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "recordedAt": "2026-10-30T19:20:55.665Z",
+  "candidate": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
   "automated": {
     "observed": true,
-    "id": 124247435581,
-    "head_sha": "610f929e190e0a95f7791ee3d0833006cdc46da7",
+    "id": 124256532658,
+    "head_sha": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
     "status": "completed",
     "conclusion": "failure",
-    "url": "https://github.com/Luoyehe/codex-harness/runs/124247435581",
+    "url": "https://github.com/Luoyehe/codex-harness/runs/124256532658",
     "title": "1 configuration not found",
     "summary": "**Warning**: Code scanning may not have found all the alerts introduced by this pull request, because 1 configuration present on `refs/heads/main` was not found:\n\n### Actions workflow (`ci.yml`)\n\n* :question:&nbsp;&nbsp;`.github/workflows/ci.yml:codeql`\n\n\n### New alerts in code changed by this pull request\n\nSecurity Alerts:\n * 1 high\n\n\n_Alerts not introduced by this pull request might have been detected because the code changes were too large._\n\nSee annotations below for details.\n\n[View all branch alerts](/Luoyehe/codex-harness/security/code-scanning?query=pr%3A8+tool%3ACodeQL+is%3Aopen).",
     "annotationsCount": 1,
-    "evidence": ".work/v220-ci10-api-check-runs.json",
-    "sha256": "e204663bdf5efb80bab000b1241de1cb0ad2ea0857ba3f41a7d03072cf211ce1",
+    "evidence": ".work/v220-ci11-api-check-runs.json",
+    "sha256": "ad147c86e461557cc734248fe5739454e42730dd7ac1b9cc45b3085afa2f718c",
     "annotations": [
       {
         "path": "deploy/native_launcher.py",
-        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/610f929e190e0a95f7791ee3d0833006cdc46da7/deploy/native_launcher.py",
+        "blob_href": "https://github.com/Luoyehe/codex-harness/blob/363e2fd9f8961b45a806bbde5307d36dad80dd19/deploy/native_launcher.py",
         "start_line": 244,
         "start_column": 30,
         "end_line": 244,
@@ -29,13 +29,13 @@
         "raw_details": null
       }
     ],
-    "annotationEvidence": ".work/v220-ci10-api-annotations-124247435581.json",
-    "annotationEvidenceSha256": "8d1c43699fb1308f7ee7a17f2ada7141b4247accbe739fb18bf8d1a157b5ad17",
+    "annotationEvidence": ".work/v220-ci11-api-annotations-124256532658.json",
+    "annotationEvidenceSha256": "8e01b01505e59fab37c0974b7829729df352da628cdb437b39f85a013efa5996",
     "manualAssessment": "Reviewed required private credential-return path; retain actual aggregate status and legacy configuration warnings. No dismissal or configuration/gate change."
   },
   "sourceReview": {
-    "path": "codeql-source-review-ci10.json",
-    "sha256": "fb46fe4e5734472efc5387c01f0ada0add51b132348233b3607ce47413cc7881"
+    "path": "codeql-source-review-ci11.json",
+    "sha256": "72d4bc43faa3b57a91efbfcd601a03b90814331665809fe8493500edaaf72666"
   },
-  "assessment": "Actual CodeQL aggregate remains failed with the reviewed private credential-helper stdout channel and legacy configuration warning. All 16 reviewed source files and nine reference files still match CI9; no dismissal, scanner weakening, zero-alert or all-green claim."
+  "assessment": "Actual aggregate result is retained separately from test success. All 16 reviewed credential-path sources and nine original references match CI10; the prior private CLI helper stdout analysis remains applicable. No alert dismissal or scanner weakening, and no zero-alert or all-green claim."
 }

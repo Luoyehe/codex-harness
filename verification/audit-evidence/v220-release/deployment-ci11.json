@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-30T19:26:21.492973+00:00",
+  "complete": true,
+  "status": "CI11-deployed-host-and-anonymous-public-verified; authenticated acceptance recorded separately",
+  "applicationVersion": "2.2.0",
+  "candidate": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+  "auditedSourceFiles": 1947,
+  "applicationArchiveSha256": "1bb3640748f84fe65325d9ffce24c5bd9d7b8c965df8299707a4b0a8da2104e1",
+  "deployedRelease": "4ea12107e774e9c5a4f525d73b9a23ad56dc2782e39f1de438909d2e128e3a7b",
+  "previousReleaseRetained": "a0759efc0c0a8c18a3b42a53ee08bb18395d1531f3c9c5037cd6a820f44e1a6a",
+  "deploymentCompletedAt": "2026-10-30T19:26:21.492973+00:00",
+  "evidenceDigests": {
+    "privateDeploymentRecord": "2c0ffbd23bbafeadf1e2c77f2676af4db60473ed81286ee440da88d0ea1cd9e7",
+    "completeCiRecord": "a206a428ddee035a943652c9f9c1c7733bbc6591a4e1b4c55df5ebe34e5e1a59",
+    "anonymousPublicProbe": "e1d9da5234b098a6ff32bed836c005117213b6fd69fd49b2403bfaf7d918d320"
+  },
+  "fullCi": {
+    "status": "passed",
+    "candidate": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+    "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+    "testFiles": 232,
+    "distinctCases": 2468,
+    "coverageGaps": 0,
+    "scope": "Exact CI11 full Windows, Linux and Linux-root reconciliation; all six artifacts agree."
+  },
+  "completedSteps": [
+    {
+      "step": "candidate-archive",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T19:23:19.550745+00:00"
+    },
+    {
+      "step": "application-update",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T19:24:31.594649+00:00"
+    },
+    {
+      "step": "strict-verify",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T19:24:39.168274+00:00"
+    },
+    {
+      "step": "final-status",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T19:24:53.907330+00:00"
+    },
+    {
+      "step": "final-candidate-list",
+      "exitCode": 0,
+      "completedAt": "2026-10-30T19:24:59.930670+00:00"
+    }
+  ],
+  "upgrade": {
+    "controlUpdated": false,
+    "configurationMigrated": false,
+    "exactApplicationArchiveVerified": true,
+    "stagedFilesVerified": 2554,
+    "stagedFileCountScope": "Includes documentation and evidence; executable source inventory is1947 files.",
+    "applicationChanged": true,
+    "pendingManagementTransactions": 0
+  },
+  "archival": {
+    "archived": true,
+    "dataPreserved": true,
+    "originalServicesRestored": true,
+    "phase": "complete",
+    "lifecyclePhase": "recovered",
+    "originalDirectoryIdentityPreserved": true,
+    "otherCandidatesRetained": true,
+    "currentCandidateCount": 8,
+    "candidateLimit": 8
+  },
+  "strictHostVerification": {
+    "release": "4ea12107e774e9c5a4f525d73b9a23ad56dc2782e39f1de438909d2e128e3a7b",
+    "installedFilesVerified": 20364,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "unitPolicyCurrent": true,
+    "sudoPolicyCurrent": true,
+    "accountBootstrap": true,
+    "workerConnected": true,
+    "workerRestarting": false,
+    "https": {
+      "configured": true,
+      "ready": true,
+      "tlsVerified": true,
+      "instanceVerified": true,
+      "trust": "system-ca",
+      "vantage": "server-side verifier",
+      "browserVerification": false,
+      "forcedCertificateRenewal": false
+    }
+  },
+  "services": {
+    "gateway": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "worker": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "caddy": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    },
+    "proxy": {
+      "active": true,
+      "enabled": true,
+      "running": true
+    }
+  },
+  "preservation": {
+    "selectedProtectedFileMetadataCompared": 14,
+    "selectedProtectedFileMetadataUnchanged": true,
+    "credentialContentReadByMetadataCheck": false,
+    "credentialValuesCompared": false,
+    "credentialValuesPublished": false,
+    "httpsAndDnsSelectionsUnchanged": true,
+    "providerSelectionUnchanged": true,
+    "accountAndProjectIdentitiesPreserved": true,
+    "accountAndJournalIntegrityCheckPassed": true,
+    "projectDirectoryIdentitiesPreserved": true,
+    "proxyServiceAndProcessUnchanged": true,
+    "proxyGuardStillRestrictedToNativeServiceIdentity": true,
+    "managementLockOriginalInodeAndModePreserved": true,
+    "initializationLockOriginalInodeAndModePreserved": true,
+    "noCredentialResetOrCertificateReplacementPerformed": true,
+    "basis": "Supported interfaces retain data and original directories. Protected metadata and nonsecret account/project identity digests were compared; database integrity passed. No full live-data equality or backup/restore drill is claimed."
+  },
+  "publicReadOnlyAcceptance": {
+    "vantage": "operator workstation via existing CONNECT proxy",
+    "tlsVerified": true,
+    "requests": [
+      {
+        "method": "GET",
+        "endpoint": "/health",
+        "status": 200,
+        "contentType": "application/json",
+        "tlsVerified": true,
+        "healthy": true
+      },
+      {
+        "method": "GET",
+        "endpoint": "/api/session",
+        "status": 200,
+        "contentType": "application/json",
+        "tlsVerified": true,
+        "authenticated": false,
+        "authenticationMode": "account"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/",
+        "status": 200,
+        "contentType": "text/html",
+        "tlsVerified": true,
+        "htmlBytes": 409,
+        "htmlSha256": "79f3c4bc8a5f7f00b322ed7b3eac7b2dd2b3ec7a517b162d7f4f4623d68695d3"
+      }
+    ],
+    "authenticatedAcceptance": false,
+    "browserAcceptance": false
+  },
+  "limitations": [
+    "Authenticated public API, WebSocket and browser acceptance are separately owned by root.",
+    "Current cached TLS certificate verified using system CA; no forced certificate renewal or DNS API validation performed.",
+    "No paid model inference or external MCP call performed.",
+    "Data preservation checks are identity/metadata/SQLite integrity checks, not full content equality or a restore drill.",
+    "Earlier CI8/CI9 deployment and failed attempts remain separate historical records.",
+    "No private paths, host identifiers, service identities, credential values, certificate contents or proxy destinations are included."
+  ]
+}

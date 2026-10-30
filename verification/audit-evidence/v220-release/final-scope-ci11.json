@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "recordedAt": "2026-10-30T19:28:12.181Z",
+  "status": "validated-deployed-and-ready-for-publication",
+  "version": "2.2.0",
+  "testedCandidate": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+  "sourceFiles": 1947,
+  "testFiles": 232,
+  "distinctCases": 2468,
+  "coverageGaps": [],
+  "audit": "The real complete round10 found no new actionable issue; subsequent changes were confined to three test synchronization fixtures with independent review and complete file comparison. No additional complete audit round is invented.",
+  "evidence": [
+    {
+      "path": "hosted-ci11.json",
+      "sha256": "a206a428ddee035a943652c9f9c1c7733bbc6591a4e1b4c55df5ebe34e5e1a59"
+    },
+    {
+      "path": "codeql-ci11.json",
+      "sha256": "0763284acb760efb0c7a72524a2c51188d67d7ec467fb958dadaec3df652653d"
+    },
+    {
+      "path": "deployment-ci11.json",
+      "sha256": "7eb7ac31e71f6d50c86b0216074ae53bc4d8dbd1799c28cc7134d06786025fec"
+    },
+    {
+      "path": "browser-acceptance-ci11.json",
+      "sha256": "4d677bd3231566280444dccfd62ddce0e25f029b8dcdca412fcb66608c645f85"
+    }
+  ],
+  "publicationBoundary": "The final commit adds only non-executable verification records. The release and default branch must retain this exact tested source digest. Git publication and the formal Release are verified separately after their actions.",
+  "noNewCommercialCalls": true
+}

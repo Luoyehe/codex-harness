@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "recordedAt": "2026-10-30T19:28:12.179Z",
+  "status": "passed-with-explicit-scope",
+  "candidate": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+  "deployedRelease": "4ea12107e774e9c5a4f525d73b9a23ad56dc2782e39f1de438909d2e128e3a7b",
+  "method": "Fresh in-app browser tab on the public HTTPS endpoint using the existing administrator session. No credential reset, certificate bypass or browser storage inspection.",
+  "observations": [
+    "Authenticated workbench opened and displayed connected status after deployment.",
+    "Project expansion displayed its own thread list; project and thread row menus were visible. Thread menu exposed rename/archive/delete.",
+    "The add-project segmented control matched the shared visual style. Created a separate empty acceptance project and renamed it through its row menu; the new name appeared in sidebar and header.",
+    "Footer identity text had no button ancestor or interactive parent role. The independent custom gear opened settings.",
+    "Existing provider registry and model capabilities loaded. Saving the unchanged domestic Coding Plan configuration displayed the actual saved confirmation and returned enabled controls; no credentials were entered or replaced.",
+    "The combined model and effort menu used the themed picker, grouped the two configured providers and displayed the catalog options. Selecting glm-5.3 showed its declared effort options. Restored the default model selection without submitting a turn.",
+    "Read the originally reported conversation by its exact link; its saved user message and final answer loaded without history_stale. Explicit load-and-continue remained enabled; no resume or replay was submitted."
+  ],
+  "changesPerformed": [
+    "Created and renamed one empty acceptance project; retained its directory and registration.",
+    "Saved an unchanged existing provider configuration through the normal UI.",
+    "Temporarily selected a catalog model in the acceptance project and restored the default."
+  ],
+  "evidence": [
+    {
+      "path": ".work/v220-public-model-menu.png",
+      "sha256": "cf4feeb6f0ee3adf7591d305b184cf8099c7ea1c4fc82031281073a29cc05447",
+      "publication": "Local screenshot retained; image bytes not committed."
+    },
+    {
+      "path": ".work/v220-public-provider-saved.png",
+      "sha256": "d7b90e8db57714794c3e563b0f5b1ae30e263891b16b98be41bca259ed40709f",
+      "publication": "Local screenshot retained; image bytes not committed."
+    },
+    {
+      "path": ".work/v220-public-history.png",
+      "sha256": "ced750a7e8d05d393e0bc1d3b5a24e2db7b0ea4f4f2af0f85837e4bccc159afb",
+      "publication": "Local screenshot retained; image bytes not committed."
+    },
+    {
+      "path": ".work/v220-public-model-effort.png",
+      "sha256": "e1fff1cae9a836351e500b8f4593eefe4c04c8b7968b3b085aa4c318200cf034",
+      "publication": "Local screenshot retained; image bytes not committed."
+    }
+  ],
+  "limitations": [
+    "No paid inference, voice or real external MCP call was made.",
+    "The existing inspected short history contained no public reasoning summary; summary rendering and exclusion of raw content were verified by the directed/full tests and separate local visual preview, not by inventing a live provider response.",
+    "User conversations were not renamed, archived, deleted or resumed. The visible controls and automated regression coverage are distinct from a destructive live acceptance test.",
+    "Connected UI status was observed; this browser record does not claim a separately instrumented WebSocket protocol test.",
+    "Deployment preservation metadata was captured before these explicit acceptance changes; the new empty project is additional."
+  ]
+}
