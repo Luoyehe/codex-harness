@@ -77,7 +77,8 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
                 regular(item, {allowed_dropins[item.name]})
     sudo = layout.root / "etc/sudoers.d" / ("codex-harness-" + layout.instance)
     if present(sudo):
-        regular(sudo, {sudo_rule(layout).encode(), sudo_rule(layout, workspace=False).encode()})
+        regular(sudo, {sudo_rule(layout, workspace=workspace, legacy_catalog_server=legacy).encode()
+                       for workspace in (False, True) for legacy in (False, True)})
     else:
         require(allow_absent, "Managed sudo policy is missing", "ownership_conflict")
 

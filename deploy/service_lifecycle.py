@@ -182,6 +182,33 @@ def verify_retained(manager, value):
             regular(path, {base64.b64decode(saved["data"], validate=True)})
 
 
+def verify_retained_definition(manager, journal, role):
+    """Recognize supported old definitions only while restoring their bound snapshot."""
+    from .units import render_units, sudo_rule
+    require(role in ("worker", "sudo"), "Unsupported retained service compatibility", "integrity")
+    path, value = read_record(manager.layout)
+    require(path == journal and value["phase"] == "restoring",
+            "Legacy verification requires the active restoration record", "recovery_required")
+    require_only_transaction(manager.layout, path)
+    verify_retained(manager, value)
+    manager.require_service_ownership()
+    saved = value["before"][role]
+    require(saved is not None, "Retained service definition is missing", "corrupt_state")
+    data = base64.b64decode(saved["data"], validate=True)
+    if role == "sudo":
+        allowed = {sudo_rule(manager.layout, workspace=workspace, legacy_catalog_server=True).encode()
+                   for workspace in (False, True)}
+    else:
+        allowed = {render_units(manager.layout, manager.config, manager.config["codexRelative"],
+                                legacy_runtime_directory=runtime, legacy_native_home=home)[manager.layout.unit("worker")].encode()
+                   for runtime in (False, True) for home in (False, True)}
+    require(data in allowed, "Retained service is not an exact supported definition", "integrity")
+    target = service_paths(manager.layout)[role]
+    regular(target, {data})
+    require(type(saved["mode"]) is int and stat.S_IMODE(target.lstat().st_mode) == saved["mode"],
+            "Retained service permissions changed", "integrity")
+
+
 def uninstall_services(manager):
     layout = manager.layout
     marker = layout.config / "uninstalled.json"
@@ -267,6 +294,7 @@ def restore_services(manager):
     available = [layout.unit(role) for role in ROLES if value["before"][role] is not None]
     if available: run(["/usr/bin/systemctl", "disable", *available])
     if value["enabled"]: manager.system.enable([layout.unit(role) for role in value["enabled"]])
+    sudo_policy = unit_policy = None
     try:
         allowed = set(value["active"]) | {"config-check"}
         barriers(manager, allowed)
@@ -276,7 +304,9 @@ def restore_services(manager):
                 "Original service activity or enablement was not restored", "recovery_required")
         if {"gateway", "worker"} <= set(value["active"]): manager.healthy()
         if value["bindings"]["release"] is not None:
-            manager.verify(https_probe={"caddy", "gateway"} <= set(value["active"]))
+            verification = manager.verify(https_probe={"caddy", "gateway"} <= set(value["active"]), service_recovery=journal)
+            sudo_policy = verification.get("sudoPolicy")
+            unit_policy = verification.get("unitPolicy")
         else:
             require(not value["active"], "An uninstalled instance without a release cannot restore active services", "integrity")
             manager.require_service_ownership()
@@ -294,5 +324,6 @@ def restore_services(manager):
     # case services have passed verification; a retry inspects the saved phase.
     value["phase"] = "recovered"
     write_json(journal, value)
-    return {"servicesRestored": True, "dataPreserved": True, "activeServices": value["active"],
+    return {"servicesRestored": True, "dataPreserved": True, "sudoPolicy": sudo_policy, "unitPolicy": unit_policy,
+            "activeServices": value["active"],
             "enabledServices": value["enabled"], "transaction": journal.parent.name, "origin": manager.config["origin"]}

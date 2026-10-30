@@ -16,6 +16,7 @@ from deploy.control_update import BLOCKER, ControlSystem, ControlUpdater, ROLES,
 from deploy.install import stage_control, write_control_launchers
 from deploy.safe_fs import inspect_tree
 from deploy.units import render_units, render_edge_units, sudo_rule
+from tests.deploy.test_control_update import previous_sudo_policy
 
 
 class PowerLoss(BaseException):
@@ -135,6 +136,79 @@ class ControlUpdateTests(unittest.TestCase):
 
     def current(self):
         return (self.layout.control / "manage").read_bytes()
+
+    def previous_policy(self, *, workspace=True):
+        path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
+        data = previous_sudo_policy(self.layout, workspace=workspace)
+        atomic_write(path, data, 0o440)
+        return path, data
+
+    def test_previous_sudo_is_accepted_without_control_update_or_rollback_rewriting_it(self):
+        for workspace in (False, True):
+            with self.subTest(workspace=workspace):
+                path, original = self.previous_policy(workspace=workspace)
+                active, enabled = set(self.system.active), dict(self.system.enabled)
+                result = self.updater.update()
+                self.assertEqual(self.current(), b"new manage")
+                self.assertEqual(path.read_bytes(), original)
+                self.assertEqual(path.stat().st_mode & 0o777, 0o440)
+                self.updater.update(result["transaction"])
+                self.assertEqual(path.read_bytes(), original)
+                self.assertEqual(self.system.active, active)
+                self.assertEqual(self.system.enabled, enabled)
+                self.assertEqual(self.updater.pending(), [])
+                self.assert_secrets_preserved()
+
+    def test_interrupted_control_update_recovers_with_exact_previous_sudo_unchanged(self):
+        path, original = self.previous_policy()
+        save = self.updater.save
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "installed":
+                raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss):
+            self.updater.update()
+        self.assertEqual(path.read_bytes(), original)
+        self.updater.recover()
+        self.assertEqual(path.read_bytes(), original)
+        self.assertEqual(self.current(), b"old manage")
+        self.assertEqual(self.updater.pending(), [])
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_changed_sudo_commands_fail_before_control_preparation(self):
+        path, original = self.previous_policy()
+        for value in (original + b"root ALL=(ALL) NOPASSWD: ALL\n", original.replace(b" app-server", b" shell"),
+                      original.replace(b" resolve-project", b" resolve-project *"), original + b"\n"):
+            with self.subTest(policy=value):
+                atomic_write(path, value, 0o440)
+                with self.assertRaises(DeployError) as raised:
+                    self.updater.update()
+                self.assertEqual(raised.exception.code, "ownership_conflict")
+                self.assertEqual(self.system.events, [])
+                self.assertFalse(self.updater.records.exists())
+                self.assertEqual(path.read_bytes(), value)
+
+    def test_previous_sudo_still_rejects_foreign_owner_writable_mode_and_hardlinks(self):
+        path, original = self.previous_policy()
+        for kind in ("foreign-owner", "writable", "hardlink"):
+            with self.subTest(kind=kind):
+                atomic_write(path, original, 0o440, uid=0, gid=0)
+                link = path.with_name("retained-fixture-link")
+                if kind == "foreign-owner":
+                    os.chown(path, 65534, 65534)
+                elif kind == "writable":
+                    path.chmod(0o660)
+                else:
+                    os.link(path, link)
+                try:
+                    with self.assertRaises(DeployError) as raised:
+                        self.updater.update()
+                    self.assertEqual(raised.exception.code, "ownership_conflict")
+                    self.assertEqual(self.system.events, [])
+                    self.assertFalse(self.updater.records.exists())
+                finally:
+                    if link.exists():
+                        link.unlink()
 
     def test_initial_staging_accepts_user_owned_exact_recipe_and_rejects_tampering(self):
         from deploy.dns_caddy_build import source_material

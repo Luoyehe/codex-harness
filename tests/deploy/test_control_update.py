@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy.cli import parser
-from deploy.common import DeployError, Layout, canonical, read_json, write_json
+from deploy.common import DeployError, Layout, canonical, read_json, require, write_json
 from deploy.control_update import ControlSystem, ControlUpdater
 from deploy.install import stage_control
 from deploy.dns_providers import PROVIDERS
@@ -20,6 +20,47 @@ def dns_selection(provider):
 
 
 DNS_CAPABILITIES = {"dnsChallenge": "caddy-dns-v1", "dnsProviders": list(PROVIDERS)}
+
+
+def previous_sudo_policy(layout, *, workspace=True):
+    """Recorded pre-registry grammar, independent of the current renderer."""
+    native = f"{layout.control}/native-launch"
+    commands = [native + " version", native + " app-server", native + " resolve-project"]
+    if workspace:
+        commands.append(native + " workspace")
+    return (f"Defaults:{layout.prefix}-gateway env_reset,!setenv\n"
+            f"{layout.prefix}-gateway ALL=(root) NOPASSWD: {layout.control}/manage rpc\n"
+            f"Defaults:{layout.prefix}-control env_reset,!setenv,!use_pty\n"
+            f"{layout.prefix}-control ALL=({layout.prefix}-worker) NOPASSWD: {', '.join(commands)}\n").encode()
+
+
+class SudoCompatibilityTests(unittest.TestCase):
+    def test_only_exact_previous_or_current_policies_are_recognized(self):
+        from deploy.ownership import require_owned
+        from deploy.units import sudo_rule
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder))
+            policy = layout.root / "etc/sudoers.d/codex-harness-fixture"
+            policy.parent.mkdir(parents=True)
+            config = {"origin": "http://127.0.0.1:3300", "port": 3300, "workerGid": 102, "codexRelative": "vendor/fixture/codex"}
+            # This portable test substitutes only the root-owned file boundary;
+            # real owner/mode/hardlink rejection is covered by the root fixture.
+            def boundary(path, expected):
+                self.assertEqual(path, policy)
+                require(path.read_bytes() in expected, "Unrecognized sudo policy", "ownership_conflict")
+            with patch("deploy.ownership.regular", side_effect=boundary):
+                for workspace in (False, True):
+                    old = previous_sudo_policy(layout, workspace=workspace)
+                    for value in (old, sudo_rule(layout, workspace=workspace).encode()):
+                        policy.write_bytes(value)
+                        require_owned(layout, config, allow_absent=True)
+                    for value in (old + b"root ALL=(ALL) NOPASSWD: ALL\n", old.replace(b" app-server", b" shell"),
+                                  old.replace(b" resolve-project", b" resolve-project *"), old + b"\n"):
+                        with self.subTest(workspace=workspace, policy=value):
+                            policy.write_bytes(value)
+                            with self.assertRaises(DeployError) as raised:
+                                require_owned(layout, config, allow_absent=True)
+                            self.assertEqual(raised.exception.code, "ownership_conflict")
 
 
 class ControlBoundaryTests(unittest.TestCase):

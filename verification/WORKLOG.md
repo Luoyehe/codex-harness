@@ -2,6 +2,18 @@
 
 > Public copy. Private deployment details have been omitted.
 
+## 2026-10-30 — 升级与恢复修复收口
+
+第七轮完整检查覆盖 1,941 文件，无新增可修复问题，满足最新的一轮门槛。旧 sudo 规则通过精确匹配识别并经配置事务迁移；记录式服务恢复仅在身份绑定的恢复日志下接受原有合法定义，普通验证保持严格。Linux root 113 项、非 root 86 项全部通过；Windows 79 项通过，7 项由 Linux 覆盖的平台跳过。独立复核通过，等待此精确源码的新全量 CI 和实际部署；先前 CI6 结果和第六轮失败原样保留。详见[第七轮报告](audit-evidence/v220-round7/team.json)和[修复记录](audit-evidence/v220-upgrade-compat/summary.json)。
+
+## 2026-10-30 — 升级兼容性阻断与第六轮检查
+
+
+
+## 2026-10-30 — v2.2.0 全量验证通过
+
+
+
 ## 2026-10-30 — 自动化恢复测试时序收尾
 
 CI5 完整 Linux 作业有一个自动化草稿恢复用例失败，Windows、Linux root 和另一个定向作业通过；完整结果仍记失败。已用真实 IndexedDB 读取结果的受控发布验证“回执已保存，但操作列表尚未刷新”的窗口，保留此时禁止提交的断言，再等待按钮可用后明确保存。29/29 定向测试、网页类型检查和独立复核通过；仅修改测试文件，完整 1,941 文件哈希核对确认业务、部署及协议源码未改，不虚增完整审计轮次。当前源码 `9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4` 等待新的完整验证、发布和部署。详见[复核证据](audit-evidence/v220-ci-automation/carry-forward.json)。

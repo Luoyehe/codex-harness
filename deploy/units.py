@@ -148,12 +148,15 @@ NoNewPrivileges=no
     return result
 
 
-def sudo_rule(layout: Layout, *, workspace: bool = True) -> str:
+def sudo_rule(layout: Layout, *, workspace: bool = True, legacy_catalog_server: bool = False) -> str:
+    # Exact pre-registry policy is recognized only for upgrade/recovery. New
+    # publication always uses the default, including the fixed catalog helper.
+    catalog = "" if legacy_catalog_server else f"{layout.control}/native-launch catalog-server *, "
     return (f"Defaults:{layout.prefix}-gateway env_reset,!setenv\n"
             f"{layout.prefix}-gateway ALL=(root) NOPASSWD: {layout.control}/manage rpc\n"
             f"Defaults:{layout.prefix}-control env_reset,!setenv,!use_pty\n"
             f"{layout.prefix}-control ALL=({layout.prefix}-worker) NOPASSWD: {layout.control}/native-launch version, "
-            f"{layout.control}/native-launch app-server, {layout.control}/native-launch catalog-server *, {layout.control}/native-launch resolve-project" +
+            f"{layout.control}/native-launch app-server, {catalog}{layout.control}/native-launch resolve-project" +
             (f", {layout.control}/native-launch workspace" if workspace else "") + "\n")
 
 
