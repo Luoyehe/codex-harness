@@ -17,6 +17,7 @@ from deploy.provider import validate_provider
 from deploy.provider_layers import verify_system_layers
 from deploy.provider_registry import change
 from deploy.units import render_units, sudo_rule
+from tests.deploy.test_control_update import previous_sudo_policy
 
 
 class PowerLoss(BaseException):
@@ -104,6 +105,71 @@ class ConfigurationLayerTests(unittest.TestCase):
 
     def transaction(self):
         return next((self.layout.state / "transactions").glob("*/state.json"))
+
+    def install_previous_sudo(self, *, workspace=True):
+        data = previous_sudo_policy(self.layout, workspace=workspace)
+        atomic_write(paths(self.layout)["sudo"], data, 0o440)
+        return data
+
+    def test_previous_single_provider_migration_installs_current_catalog_policy(self):
+        old = self.install_previous_sudo(workspace=False)
+        result = change_config_layer(self.manager)
+        self.assertTrue(result["changed"])
+        self.assertIn("connections", self.manager.providers.read())
+        self.assertEqual(paths(self.layout)["sudo"].read_bytes(), sudo_rule(self.layout).encode())
+        self.assertIn(b" catalog-server *", paths(self.layout)["sudo"].read_bytes())
+        self.assertNotIn(b" catalog-server *", old)
+        self.assertEqual(self.user.read_bytes(), self.user_bytes)
+
+    def test_existing_registry_with_previous_sudo_uses_transaction_then_becomes_noop(self):
+        change_config_layer(self.manager)
+        self.install_previous_sudo()
+        current = self.manager.providers.read()
+        before = set((self.layout.state / "transactions").iterdir())
+        result = change_config_layer(self.manager)
+        self.assertTrue(result["changed"])
+        self.assertEqual(len(set((self.layout.state / "transactions").iterdir()) - before), 1)
+        self.assertEqual(self.manager.providers.read()["connections"], current["connections"])
+        self.assertEqual(paths(self.layout)["sudo"].read_bytes(), sudo_rule(self.layout).encode())
+        self.assertEqual(read_json(self.layout.state / "transactions" / result["transaction"] / "state.json")["phase"], "committed")
+        self.assertFalse(change_config_layer(self.manager)["changed"])
+        self.assertEqual(self.user.read_bytes(), self.user_bytes)
+
+    def test_existing_registry_policy_migration_failure_restores_exact_previous_sudo(self):
+        change_config_layer(self.manager)
+        old = self.install_previous_sudo()
+        revision = self.manager.providers.read()["revision"]
+        self.system.fail_start = True
+        with self.assertRaisesRegex(DeployError, "One-time start failure"):
+            change_config_layer(self.manager)
+        self.assertEqual(paths(self.layout)["sudo"].read_bytes(), old)
+        self.assertEqual(paths(self.layout)["sudo"].stat().st_mode & 0o777, 0o440)
+        self.assertEqual(self.manager.providers.read()["revision"], revision)
+        self.assertEqual(self.system.active, {"worker", "gateway"})
+        self.manager.require_recovered_transactions(None)
+        self.assertTrue(change_config_layer(self.manager)["changed"])
+        self.assertEqual(paths(self.layout)["sudo"].read_bytes(), sudo_rule(self.layout).encode())
+
+    def test_interrupted_registry_policy_migration_explicit_old_recovery_restores_original(self):
+        change_config_layer(self.manager)
+        old = self.install_previous_sudo()
+        revision = self.manager.providers.read()["revision"]
+        observed = []
+        def crash(path, value, **kwargs):
+            write_json(path, value, **kwargs)
+            if path.name == "state.json" and value.get("kind") == "config-layer" and value.get("phase") == "selected":
+                observed.append(path)
+                raise PowerLoss()
+        with patch("deploy.config_layer.write_json", side_effect=crash), self.assertRaises(PowerLoss):
+            change_config_layer(self.manager)
+        self.assertEqual(paths(self.layout)["sudo"].read_bytes(), sudo_rule(self.layout).encode())
+        self.assertEqual(len(observed), 1)
+        recover_config_layer(self.manager, observed[0], read_json(observed[0]), candidate=False)
+        self.assertEqual(paths(self.layout)["sudo"].read_bytes(), old)
+        self.assertEqual(self.manager.providers.read()["revision"], revision)
+        self.assertEqual(read_json(observed[0])["phase"], "recovered")
+        self.assertEqual(self.system.active, {"worker", "gateway"})
+        self.manager.require_service_ownership()
 
     @contextmanager
     def terminal_failure(self, phase, *, published):

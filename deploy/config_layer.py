@@ -263,7 +263,10 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
                 if exc.code != "configuration_conflict":
                     raise
             else:
-                if "connections" in current:
+                # A recognized old policy can still lack catalog-server after
+                # control code changed. Publish its replacement through this
+                # transaction so failures can restore the exact prior policy.
+                if "connections" in current and paths(layout)["sudo"].read_bytes() == sudo_rule(layout).encode():
                     return {"providerConfigLayer": LAYER_MODE, "changed": False}
     candidate_config = {key: value for key, value in manager.config.items() if key != "providerConfigLayer"}
     if layered:

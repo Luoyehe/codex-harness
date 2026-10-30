@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy import candidate_archive as archive
-from deploy.common import DeployError, digest, read_json, write_json
+from deploy.common import DeployError, atomic_write, digest, read_json, write_json
 from deploy.manager import Manager
 from deploy.safe_fs import inspect_tree
 from tests.deploy.root import test_service_lifecycle as lifecycle_fixture
@@ -79,6 +79,46 @@ class CandidateArchiveRootTests(unittest.TestCase):
         self.assertTrue(self.source.exists())
         self.assertFalse((self.layout.config / "uninstalled.json").exists())
         self.assertEqual(self.system.events, [])
+
+    def assert_legacy_archive_restores_with_real_verification(self, *, workspace):
+        self.fixture.enable_real_verification()
+        old = self.fixture.install_previous_sudo(workspace=workspace)
+        active, enabled = set(self.system.active), set(self.system.enabled)
+        result = self.perform()
+        self.assertTrue(result["servicesRestored"])
+        self.assertTrue(Path(result["archive"]).is_dir())
+        self.assertFalse(self.source.exists())
+        self.assertEqual(self.system.active, active)
+        self.assertEqual(self.system.enabled, enabled)
+        self.assertEqual((self.layout.root / "etc/sudoers.d/codex-harness-lifecycle").read_bytes(), old)
+        self.assertEqual(read_json(Path(result["inventory"]))["phase"], "complete")
+        self.assertEqual(read_json(self.fixture.journal())["phase"], "recovered")
+        with self.assertRaisesRegex(DeployError, "Fixed sudo policy changed"):
+            self.manager.verify()
+
+    def test_legacy_workspace_archive_uses_real_verification_and_restores_services(self):
+        self.assert_legacy_archive_restores_with_real_verification(workspace=True)
+
+    def test_legacy_pre_workspace_archive_uses_real_verification_and_restores_services(self):
+        self.assert_legacy_archive_restores_with_real_verification(workspace=False)
+
+    def test_legacy_archive_verification_failure_keeps_pending_recovery_and_retry(self):
+        self.fixture.enable_real_verification()
+        old = self.fixture.install_previous_sudo()
+        sudo = self.layout.root / "etc/sudoers.d/codex-harness-lifecycle"
+        active = set(self.system.active)
+        with patch.object(self.manager, "healthy", side_effect=lambda: sudo.write_bytes(old + b"root ALL=(ALL) NOPASSWD: ALL\n")), self.assertRaises(DeployError):
+            self.perform()
+        self.fixture.assert_recovery_pending()
+        self.assertFalse(self.source.exists())
+        inventory = archive.archive_root(self.layout) / (self.candidate + ".json")
+        self.assertEqual(read_json(inventory)["phase"], "archived")
+        atomic_write(sudo, old, 0o440)
+        result = self.perform()
+        self.assertTrue(result["servicesRestored"])
+        self.assertEqual(self.system.active, active)
+        self.assertEqual(read_json(inventory)["phase"], "complete")
+        self.assertEqual(read_json(self.fixture.journal())["phase"], "recovered")
 
     def test_candidate_symlink_is_not_followed(self):
         retained = self.source.with_name("retained-real-directory")

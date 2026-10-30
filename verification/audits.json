@@ -6691,6 +6691,153 @@
         "missing": []
       },
       "gatePassed": true
+    },
+    {
+      "digest": "751624808f2ddfad107d9c8bf42f323e327ab1fe5f8f3782b68ffe0c4a758d3e",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V220-DEPLOY-LEGACY-POLICY-RESTORE",
+          "priority": 1,
+          "title": "Recorded service restoration rejects its exact retained legacy sudo policy and leaves services stopped",
+          "paths": [
+            "deploy/service_lifecycle.py",
+            "deploy/manager.py"
+          ],
+          "locations": [
+            {
+              "path": "deploy/service_lifecycle.py",
+              "line": 279
+            },
+            {
+              "path": "deploy/manager.py",
+              "line": 335
+            }
+          ],
+          "trigger": "An existing instance has the recognized pre-registry sudo policy without catalog-server. control-update retains that policy, then candidate-archive performs recorded uninstall/restore; the same issue affects a direct recorded uninstall/restore.",
+          "evidence": "Ownership now correctly accepts the exact legacy policy. restore_services publishes the recorded before.sudo bytes, restores activity, then calls ordinary Manager.verify. That verifier permits only sudo_rule() (and current workspace=False where applicable), both containing catalog-server; it rejects the retained old bytes. The restore exception path reinstalls barriers, stops all roles, and leaves the lifecycle journal pending. Candidate archival can already have moved the verified candidate before this failure.",
+          "impact": "A legitimate maintenance restore leaves the instance stopped and pending. Configuration-layer migration, which would install the new policy, is blocked by that pending lifecycle transaction; repeating restore reproduces the failure.",
+          "requiredFix": "Keep ordinary final verification strict. Permit the exact legacy catalog policy only when restoring a protected, identity-bound lifecycle snapshot that contains those exact bytes, retain root ownership/mode/link/content checks and every other integrity check, and add restore/archive regressions that call real Manager.verify plus altered-policy failure/pending-state coverage.",
+          "confirmation": "Independently confirmed by v220-final-runtime and root. No archive or service stop was executed on the online instance."
+        }
+      ],
+      "skipped": [],
+      "startedAt": "2026-10-30T13:40:09.852Z",
+      "completedAt": "2026-10-30T13:50:20.803Z",
+      "sourceFiles": 1941,
+      "id": "v220-round6",
+      "sequence": 59,
+      "reviewers": [
+        {
+          "id": "v220-round6-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round6/team.json",
+          "sha256": "f7e2240132d9dec4677f5b18790f530705783d73a648a4b1aab815368b5e32d9"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round6/root.json",
+          "sha256": "0e6a418ade0df9abf8566270ae4e8ce5f245ee82ec70c6695302174a5413973d",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round6/runtime.json",
+          "sha256": "d9040e00fbf235aa879b79c788cce920214a7c1b492cdcd477baad52122c1765",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round6/web.json",
+          "sha256": "7d984360763f578f57c72840da84f0760c17af9b2b05e4114c0e970f17c73acb",
+          "files": 217
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round6/deploy.json",
+          "sha256": "738443da5ba780c61ec9d2e34e0fcc18c0769f7d895443b51ebf01e2fb86f6fd",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1941,
+        "missing": []
+      },
+      "gatePassed": false
+    },
+    {
+      "digest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "startedAt": "2026-10-30T14:05:03.929Z",
+      "completedAt": "2026-10-30T14:11:07.030Z",
+      "sourceFiles": 1941,
+      "id": "v220-round7",
+      "sequence": 60,
+      "reviewers": [
+        {
+          "id": "v220-round7-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round7/team.json",
+          "sha256": "e6047273cfd620e11acf38c456235b3d0b6f794d52dba059e7bbd43bda51c9ee"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round7/root.json",
+          "sha256": "3f19e5a8633a3f2bbb5d06486883cf98190133e5693af02837dfbe3a803f3720",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round7/runtime.json",
+          "sha256": "0e970668ee9b01a58558aaf3d4f60758fdacf02e497f08d314758845872a8f6b",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round7/web.json",
+          "sha256": "02161699e16eb6ed6f4cd373e69dbb28948044654b2fc606725fb5d8043a41b5",
+          "files": 217
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round7/deploy.json",
+          "sha256": "69a600d2c5a6801c7c52e08f6156388ff2bb9a8613481c934423c9a421ee4911",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1941,
+        "missing": []
+      },
+      "gatePassed": true
     }
   ],
   "fullTests": {
@@ -6762,7 +6909,7 @@
   },
   "scopeExtension": "Complete modern-agent and pinned Codex CLI user-facing capabilities as requested 2026-10-25; resume complete audit gate after feature implementation.",
   "featureAcceptance": "FEATURES.md",
-  "requiredConsecutiveClean": 2,
+  "requiredConsecutiveClean": 1,
   "releaseDeployment": {
     "version": "2.1.1",
     "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
@@ -6781,5 +6928,12 @@
     "hostedCi": "verification/audit-evidence/v211-release/hosted-ci.json",
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
+  },
+  "currentAuditSourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+  "currentAuditGate": {
+    "requiredCleanRounds": 1,
+    "instruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
+    "round": "v220-round7",
+    "passed": true
   }
 }

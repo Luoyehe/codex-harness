@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-30T14:07:31.515Z",
+  "sourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+  "scope": "Post-CI6 legitimate old-version upgrade and recorded service restoration compatibility repair",
+  "changedFiles": [
+    {
+      "path": "deploy/units.py",
+      "sha256": "31d6340ddf1ab0f054b669d6c80507fb6cda60e814835f44e52a3dd6c8304b4a"
+    },
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "2e8b509d66846ad947f733b0ebdb0720424013b32f9bd7caeaaf05fc84a57cbe"
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "sha256": "d2119f00f1de4ef8d5ff9ca12fdb503140ef0e3e88436e23a0550f6c4d59b5a9"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "181f776c71d4f679765501ee1ac7ae30da64b6775801848a0dc6b4a679173e60"
+    },
+    {
+      "path": "deploy/service_lifecycle.py",
+      "sha256": "e0d7a1c405d30f584e8d0a9c1d18fb6faf0b7c60d441e6b86efa6a040e6e78b5"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "414d96b550b8d5b1117d401eaafe908c3b3228cb4b8373955bfad110c112ade9"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "a96f29e5efe8a85f6b9f3fc433a5b2fdbf45fbf6c632ce7770303ee663ccfb04"
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "sha256": "32df9e73312ba80d218adccdbb985ded9c6ff8a81d4be4d003aea0535b43c101"
+    },
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "sha256": "7a5327373e6778e294a53ff84853169496a3f1908c331e65b21f8f135997e105"
+    },
+    {
+      "path": "tests/deploy/root/test_service_lifecycle.py",
+      "sha256": "8f900dc49d218bdcb15176706704a20ff465bd194a8dc282f4fa535cc0165042"
+    }
+  ],
+  "originalFailures": [
+    {
+      "stage": "Live control-update preflight",
+      "result": "refused before service stop or instance mutation",
+      "cause": "Exact generated pre-registry sudo rule lacked catalog-server; current ownership admission recognized only the new rule."
+    },
+    {
+      "stage": "Complete audit6",
+      "finding": "V220-DEPLOY-LEGACY-POLICY-RESTORE",
+      "result": "complete but nonclean",
+      "cause": "Recorded service restoration restored exact valid old definitions then strict current-only verification rejected them; could retain stopped services and pending recovery."
+    }
+  ],
+  "changes": [
+    "Recognize only exact supported old generated sudo definitions using unchanged metadata and ownership validation.",
+    "Migrate an already-layered configuration with an old policy through the existing snapshot/rollback transaction instead of no-op.",
+    "Permit exact saved legacy sudo/worker definitions only for the active identity-bound restoring journal. Ordinary Manager.verify remains strict current and all other release/provider/TLS/state checks remain required.",
+    "Report retained legacy policy explicitly and preserve original enabled/active states, including not starting originally stopped services.",
+    "Upgrade control, establish known idle state, migrate configuration, then archive the individually verified old candidate and upgrade application."
+  ],
+  "targetedValidation": {
+    "windows": {
+      "testsRun": 86,
+      "passed": 79,
+      "skipped": 7,
+      "skipReason": "Existing Linux-only platform checks"
+    },
+    "linuxRoot": {
+      "testsRun": 113,
+      "passed": 113,
+      "skipped": 0
+    },
+    "linuxNonroot": {
+      "testsRun": 86,
+      "passed": 86,
+      "skipped": 0
+    },
+    "meaningfulRegressions": [
+      "Real Manager.verify in retained-definition recovery and archive tests",
+      "Exact two old sudo forms and three legacy worker forms",
+      "Tampered commands, modes, owner and hardlink rejection",
+      "Other provider permission and HTTPS verification retained",
+      "Failure leaves recorded pending recovery; explicit retry restores",
+      "Current default strict validation and unchanged originally stopped services"
+    ]
+  },
+  "independentReviews": [
+    {
+      "kind": "sudo and migration",
+      "sha256": "5a1a8a6cae44bbd87a36ee73db3f60ac62948f0d0dcc3468f9b64a388dae777a",
+      "findings": []
+    },
+    {
+      "kind": "recorded restoration",
+      "sha256": "992efcee74d786e2ac30b5ca03ae2a816749c15bceed1e319f17ac52fc43f881",
+      "findings": []
+    }
+  ],
+  "limitations": [
+    "Targeted fixture tests do not establish real systemd/HTTPS deployment acceptance.",
+    "CI6 passed only prior exact source; new full CI and actual upgrade are required.",
+    "No paid models or external MCP calls.",
+    "No online bypass, credentials reset, or proxy change was performed to repair ownership admission."
+  ]
+}

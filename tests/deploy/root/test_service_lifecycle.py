@@ -1,5 +1,6 @@
 """Real root-owned snapshots; every service and account operation is substituted."""
 import contextlib
+import base64
 import os
 import sys
 import tempfile
@@ -8,11 +9,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from deploy.common import DeployError, Layout, atomic_write, fsync_directory, mkdir, read_json, write_json
+from deploy.common import DeployError, Layout, atomic_write, digest, fsync_directory, mkdir, read_json, write_json
 from deploy.manager import Manager
 from deploy.ownership import ROLES
+from deploy.safe_fs import inspect_tree
 from deploy.service_lifecycle import restore_services, uninstall_services
 from deploy.units import render_edge_units, render_units, sudo_rule
+from tests.deploy.test_control_update import previous_sudo_policy
 
 
 class FixtureSystem:
@@ -65,7 +68,7 @@ class ServiceLifecycleTests(unittest.TestCase):
         self.manager.verify_release = lambda release: {"release": release}
         self.manager.recover_control = lambda: None
         self.manager.healthy = lambda: None
-        self.manager.verify = lambda **kwargs: None
+        self.manager.verify = lambda **kwargs: {"sudoPolicy": "current"}
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
         self.stack.enter_context(patch("deploy.service_lifecycle.identity_state", return_value={"fixture": "exact numeric identities"}))
@@ -83,6 +86,206 @@ class ServiceLifecycleTests(unittest.TestCase):
     def journal(self):
         marker = read_json(self.layout.config / "uninstalled.json")
         return self.layout.state / "transactions" / marker["transaction"] / "state.json"
+
+    def enable_real_verification(self):
+        # Keep process/account/network calls isolated, but exercise the complete
+        # Manager.verify file, release, provider and permission checks.
+        self.config.update(workerUid=1002, supervisorUid=1003)
+        self.manager.config = self.config
+        write_json(self.layout.config / "instance.json", self.config)
+        os.chown(self.layout.config / "gateway-token", 0, self.config["gatewayGid"])
+        for role in ("gateway", "worker", "supervisor"):
+            mkdir(self.layout.state / role, 0o700 if role == "gateway" else 0o750, self.config[role + "Uid"], 0)
+        settings = {"kind": "responses", "revision": "a" * 32, "baseUrl": "https://provider.invalid/v1",
+                    "model": "fixture-model", "apiKey": "fixture-secret", "models": []}
+        self.manager.providers.select(self.manager.providers.prepare(settings))
+        if Manager.selected(self.manager) is None:
+            release = self.layout.app / "releases/stage"
+            mkdir(release)
+            atomic_write(release / "application.txt", b"verified fixture application", 0o644)
+            manifest = inspect_tree(release, root_owned=True)
+            identity = digest(manifest)
+            release.rename(release.with_name(identity))
+            mkdir(self.layout.config / "manifests")
+            write_json(self.layout.config / "manifests" / (identity + ".json"), manifest)
+            os.symlink("releases/" + identity, self.layout.app / "current")
+        self.manager.selected = types.MethodType(Manager.selected, self.manager)
+        self.manager.verify_release = types.MethodType(Manager.verify_release, self.manager)
+        self.manager.verify = types.MethodType(Manager.verify, self.manager)
+        self.https_verification = self.stack.enter_context(patch.object(self.manager, "verify_https", return_value={"configured": True}))
+
+    def install_previous_sudo(self, *, workspace=True):
+        data = previous_sudo_policy(self.layout, workspace=workspace)
+        atomic_write(self.layout.root / "etc/sudoers.d/codex-harness-lifecycle", data, 0o440)
+        return data
+
+    def assert_recovery_pending(self):
+        self.assertEqual(read_json(self.journal())["phase"], "restoring")
+        self.assertFalse(self.system.active)
+        for role in ROLES:
+            self.assertTrue((self.layout.config / "service-lifecycle" / role).exists())
+
+    def test_real_verification_restores_exact_legacy_policies_but_default_stays_strict(self):
+        self.enable_real_verification()
+        active, enabled = set(self.system.active), set(self.system.enabled)
+        for workspace in (False, True):
+            with self.subTest(workspace=workspace):
+                old = self.install_previous_sudo(workspace=workspace)
+                with self.assertRaisesRegex(DeployError, "Fixed sudo policy changed"):
+                    self.manager.verify()
+                uninstall_services(self.manager)
+                result = restore_services(self.manager)
+                self.assertEqual(result["sudoPolicy"], "retained-legacy")
+                sudo = self.layout.root / "etc/sudoers.d/codex-harness-lifecycle"
+                self.assertEqual(sudo.read_bytes(), old)
+                self.assertEqual(sudo.stat().st_mode & 0o777, 0o440)
+                self.assertEqual(self.system.active, active)
+                self.assertEqual(self.system.enabled, enabled)
+                self.assertEqual(read_json(self.journal())["phase"], "recovered")
+                with self.assertRaisesRegex(DeployError, "Fixed sudo policy changed"):
+                    self.manager.verify()
+                with self.assertRaisesRegex(DeployError, "active restoration record"):
+                    self.manager.verify(service_recovery=self.journal())
+        self.assertEqual(self.https_verification.call_count, 2)
+
+    def test_real_current_policy_verification_is_unchanged(self):
+        self.enable_real_verification()
+        self.assertEqual(self.manager.verify()["sudoPolicy"], "current")
+        uninstall_services(self.manager)
+        self.assertEqual(restore_services(self.manager)["sudoPolicy"], "current")
+        self.assertEqual(self.manager.verify()["sudoPolicy"], "current")
+
+    def test_legacy_context_requires_matching_active_journal(self):
+        self.enable_real_verification()
+        self.install_previous_sudo()
+        with self.assertRaises(DeployError):
+            self.manager.verify(service_recovery=self.layout.state / "transactions" / ("0" * 32) / "state.json")
+        uninstall_services(self.manager)
+        real_verify = self.manager.verify
+        def wrong_context(**kwargs):
+            return real_verify(https_probe=kwargs["https_probe"], service_recovery=self.journal().with_name("other.json"))
+        with patch.object(self.manager, "verify", side_effect=wrong_context), self.assertRaises(DeployError):
+            restore_services(self.manager)
+        self.assert_recovery_pending()
+        self.assertEqual(restore_services(self.manager)["sudoPolicy"], "retained-legacy")
+
+    def test_legacy_restore_rejects_changed_policy_identity_and_metadata_then_retries(self):
+        self.enable_real_verification()
+        old = self.install_previous_sudo()
+        uninstall_services(self.manager)
+        sudo = self.layout.root / "etc/sudoers.d/codex-harness-lifecycle"
+        linked = sudo.with_name("fixture-link")
+        mutations = {"extra-command": lambda: sudo.write_bytes(old + b"root ALL=(ALL) NOPASSWD: ALL\n"),
+                     "changed-command": lambda: sudo.write_bytes(old.replace(b"app-server", b"shell")),
+                     "owner": lambda: os.chown(sudo, 65534, 65534),
+                     "writable": lambda: sudo.chmod(0o660),
+                     "safe-mode-drift": lambda: sudo.chmod(0o400),
+                     "hardlink": lambda: os.link(sudo, linked)}
+        for name, mutate in mutations.items():
+            with self.subTest(mutation=name):
+                with patch.object(self.manager, "healthy", side_effect=mutate), self.assertRaises(DeployError):
+                    restore_services(self.manager)
+                self.assert_recovery_pending()
+                linked.unlink(missing_ok=True)
+                atomic_write(sudo, old, 0o440)
+        self.assertEqual(restore_services(self.manager)["sudoPolicy"], "retained-legacy")
+
+    def test_matching_snapshot_cannot_authorize_unrecognized_policy(self):
+        self.enable_real_verification()
+        self.install_previous_sudo()
+        uninstall_services(self.manager)
+        record = read_json(self.journal())
+        old = record["before"]["sudo"]
+        old["data"] = base64.b64encode(base64.b64decode(old["data"]) + b"root ALL=(ALL) NOPASSWD: ALL\n").decode()
+        write_json(self.journal(), record)
+        marker = read_json(self.layout.config / "uninstalled.json")
+        marker["snapshotDigest"] = digest({key: record[key] for key in ("before", "active", "enabled", "bindings")})
+        write_json(self.layout.config / "uninstalled.json", marker)
+        with self.assertRaises(DeployError):
+            restore_services(self.manager)
+        self.assert_recovery_pending()
+
+    def test_legacy_compatibility_preserves_other_provider_and_https_checks(self):
+        self.enable_real_verification()
+        self.install_previous_sudo()
+        uninstall_services(self.manager)
+        provider = self.manager.providers.root / "current/config.toml"
+        original = provider.read_bytes()
+        with patch.object(self.manager, "healthy", side_effect=lambda: provider.write_bytes(b"changed provider")), self.assertRaises(DeployError):
+            restore_services(self.manager)
+        self.assert_recovery_pending()
+        provider.write_bytes(original)
+        with patch.object(self.manager, "verify_https", side_effect=DeployError("https_health", "fixture failed TLS")), self.assertRaises(DeployError):
+            restore_services(self.manager)
+        self.assert_recovery_pending()
+        self.assertEqual(restore_services(self.manager)["sudoPolicy"], "retained-legacy")
+
+    def test_real_verification_restores_stopped_legacy_workers_without_starting_them(self):
+        self.enable_real_verification()
+        self.system.active.clear()
+        enabled = set(self.system.enabled)
+        unit = self.layout.units / self.layout.unit("worker")
+        for runtime, home in ((True, False), (False, True), (True, True)):
+            with self.subTest(runtime=runtime, home=home):
+                old = render_units(self.layout, self.config, self.config["codexRelative"],
+                                   legacy_runtime_directory=runtime, legacy_native_home=home)[unit.name].encode()
+                atomic_write(unit, old, 0o644)
+                self.install_previous_sudo()
+                with self.assertRaisesRegex(DeployError, "Service unit differs"):
+                    self.manager.verify()
+                uninstall_services(self.manager)
+                with patch.object(self.manager, "healthy") as healthy:
+                    result = restore_services(self.manager)
+                    healthy.assert_not_called()
+                self.assertEqual(result["unitPolicy"], "retained-legacy")
+                self.assertEqual(result["sudoPolicy"], "retained-legacy")
+                self.assertEqual(unit.read_bytes(), old)
+                self.assertEqual(self.system.enabled, enabled)
+                self.assertFalse(self.system.active)
+                self.assertNotIn("start", self.system.events)
+                self.https_verification.assert_called_with(probe=False)
+                with self.assertRaisesRegex(DeployError, "Service unit differs"):
+                    self.manager.verify()
+
+    def test_legacy_worker_context_rejects_snapshot_mismatch_and_permission_drift(self):
+        self.enable_real_verification()
+        self.system.active.clear()
+        unit = self.layout.units / self.layout.unit("worker")
+        old = render_units(self.layout, self.config, self.config["codexRelative"], legacy_native_home=True)[unit.name].encode()
+        other = render_units(self.layout, self.config, self.config["codexRelative"], legacy_runtime_directory=True)[unit.name].encode()
+        atomic_write(unit, old, 0o644)
+        uninstall_services(self.manager)
+        real_verify = self.manager.verify
+        for name, mutate in (("different-supported-variant", lambda: unit.write_bytes(other)),
+                             ("safe-mode-drift", lambda: unit.chmod(0o600))):
+            with self.subTest(mutation=name):
+                def changed(**kwargs):
+                    mutate()
+                    return real_verify(**kwargs)
+                with patch.object(self.manager, "verify", side_effect=changed), self.assertRaises(DeployError):
+                    restore_services(self.manager)
+                self.assert_recovery_pending()
+                atomic_write(unit, old, 0o644)
+        self.assertEqual(restore_services(self.manager)["unitPolicy"], "retained-legacy")
+        self.assertNotIn("start", self.system.events)
+
+    def test_matching_snapshot_cannot_authorize_extra_worker_commands(self):
+        self.enable_real_verification()
+        self.system.active.clear()
+        unit = self.layout.units / self.layout.unit("worker")
+        old = render_units(self.layout, self.config, self.config["codexRelative"], legacy_native_home=True)[unit.name].encode()
+        atomic_write(unit, old, 0o644)
+        uninstall_services(self.manager)
+        record = read_json(self.journal())
+        record["before"]["worker"]["data"] = base64.b64encode(old.replace(b"ExecStart=", b"ExecStartPre=/bin/false\nExecStart=")).decode()
+        write_json(self.journal(), record)
+        marker = read_json(self.layout.config / "uninstalled.json")
+        marker["snapshotDigest"] = digest({key: record[key] for key in ("before", "active", "enabled", "bindings")})
+        write_json(self.layout.config / "uninstalled.json", marker)
+        with self.assertRaises(DeployError):
+            restore_services(self.manager)
+        self.assert_recovery_pending()
+        self.assertNotIn("start", self.system.events)
 
     def test_transaction_parent_failure_prevents_uninstall_marker_stop_and_deletion(self):
         from deploy.service_lifecycle import service_paths
@@ -213,9 +416,9 @@ class ServiceLifecycleTests(unittest.TestCase):
                 self.system.active = {self.layout.unit(role) for role in roles}
                 original_enabled = set(self.system.enabled)
                 uninstall_services(self.manager)
-                with patch.object(self.manager, "verify") as verify:
+                with patch.object(self.manager, "verify", return_value={"sudoPolicy": "current"}) as verify:
                     restore_services(self.manager)
-                    verify.assert_called_once_with(https_probe=False)
+                    verify.assert_called_once_with(https_probe=False, service_recovery=self.journal())
                 self.assertEqual(self.system.active, {self.layout.unit(role) for role in roles})
                 self.assertEqual(self.system.enabled, original_enabled)
 

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "scope": "Additional visible main-branch alert 16, alongside the existing v2.1.1 CodeQL review",
+  "openAlertsObserved": 15,
+  "branchObserved": "main",
+  "branchCommitObserved": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+  "alert": {
+    "id": 16,
+    "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/16",
+    "rule": "py/insecure-protocol",
+    "path": "tests/deploy/test_https_health.py",
+    "line": 240,
+    "fileSha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+    "assessment": "The flagged wrap_socket belongs to a loopback-only negative test that requires an expired fixture certificate to fail with verification code 10 before any HTTP request. The test uses create_default_context, preserves hostname and certificate checks and never configures a deployed endpoint. The production probe explicitly sets TLS 1.2 minimum, hostname checking and CERT_REQUIRED in deploy/https_health.py:141-145. No production protocol downgrade or actionable issue was established.",
+    "localRuntimeObservation": {"python": "3.12.14", "openssl": "OpenSSL 3.5.8", "minimumTls": "TLSv1_2", "checkHostname": true, "verifyMode": "CERT_REQUIRED"}
+  },
+  "previousReview": "verification/audit-evidence/v211-release/codeql-review.json",
+  "evidence": ".work/v220-codeql-alert16-ui.txt",
+  "findings": [],
+  "sourceChanged": false,
+  "alertsDismissed": false,
+  "limitations": ["This is a scoped review of the additional alert; it does not claim zero open alerts or a fresh review of all older alerts.", "The local TLS default observation is for Python 3.12.14, not a measurement of the hosted 3.12.10 runner."]
+}

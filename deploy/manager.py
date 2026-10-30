@@ -314,7 +314,7 @@ class Manager:
                 "HTTPS verification failed (" + str(result["failure"]) + "); inspect status and logs --service caddy", "https_health")
         return result
 
-    def verify(self, *, https_probe: bool = True) -> dict:
+    def verify(self, *, https_probe: bool = True, service_recovery: Path | None = None) -> dict:
         release = self.selected()
         require(release is not None, "No active release", "not_installed")
         result = self.verify_release(release)
@@ -330,13 +330,24 @@ class Manager:
             require(stat.S_ISDIR(details.st_mode) and details.st_uid == self.config[role + "Uid"] and
                     stat.S_IMODE(details.st_mode) == (0o700 if role == "gateway" else 0o750), "Service state permissions changed", "integrity")
         inspect_tree(self.layout.control, root_owned=True)
+        unit_policy = "current"
         for name, value in render_units(self.layout, self.config, self.config["codexRelative"]).items():
-            require((self.layout.units / name).read_text() == value, "Service unit differs from managed configuration", "integrity")
+            if (self.layout.units / name).read_bytes() != value.encode():
+                require(service_recovery is not None and name == self.layout.unit("worker"),
+                        "Service unit differs from managed configuration", "integrity")
+                from .service_lifecycle import verify_retained_definition
+                verify_retained_definition(self, service_recovery, "worker")
+                unit_policy = "retained-legacy"
         sudo_path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
-        sudo_policies = {sudo_rule(self.layout)}
+        sudo_policies = {sudo_rule(self.layout).encode()}
         if self.config.get("providerConfigLayer") is None:
-            sudo_policies.add(sudo_rule(self.layout, workspace=False))
-        require(sudo_path.read_text() in sudo_policies, "Fixed sudo policy changed", "integrity")
+            sudo_policies.add(sudo_rule(self.layout, workspace=False).encode())
+        sudo_policy = "current"
+        if sudo_path.read_bytes() not in sudo_policies:
+            require(service_recovery is not None, "Fixed sudo policy changed", "integrity")
+            from .service_lifecycle import verify_retained_definition
+            verify_retained_definition(self, service_recovery, "sudo")
+            sudo_policy = "retained-legacy"
         settings = self.providers.read()
         from .provider import native_config
         require((self.providers.root / "current/config.toml").read_bytes() == native_config(settings, self.layout),
@@ -349,7 +360,8 @@ class Manager:
             verify_system_layers(self.layout)
         https = self.verify_https(probe=https_probe)
         roles = ("gateway", "worker", "caddy") if https["configured"] else ("gateway", "worker")
-        return {**result, "permissions": True, "managedUnits": True, "accountBootstrap": account_bootstrap,
+        return {**result, "permissions": True, "managedUnits": True, "unitPolicy": unit_policy,
+                "sudoPolicy": sudo_policy, "accountBootstrap": account_bootstrap,
                 "providerRevision": settings["revision"], "https": https,
                 "services": {role: self.system.state(self.layout.unit(role)) for role in roles}}
 
