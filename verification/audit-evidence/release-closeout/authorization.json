@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
   "sourceFiles": 1947,
   "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
   "version": "2.2.0",
-  "approvedAt": "2026-10-30T18:41:30.961Z",
+  "approvedAt": "2026-10-30T19:02:31.006Z",
   "userInstruction": "现在对刚刚提到的所有问题进行修复，同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。此前用户已指定 v2.2.0 和全量验证、120 持续运行。",
   "auditWaiverInstruction": "同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。",
   "repairsReviewed": true,
@@ -36,9 +36,9 @@
       ]
     }
   ],
-  "note": "Actual complete clean audit10 meets the latest one-round instruction after all user feedback repairs. Earlier full test and deployment results remain source-bound history. This permits new exact-source full validation; it is not a claim that validation or deployment has already completed.",
+  "note": "Retain actual clean full round10 for all unchanged product/protocol/deployment/tooling/documentation source. Only three UI test fixtures changed; independent semantic review and complete 1947-file manifest verification retain 1944 unchanged files. No extra full audit round is fabricated. Original CI10 full pass and selected failures remain separate facts. This authorizes a fresh exact-source complete CI run after the scoped test-only repair.",
   "scopedRepairReview": {
-    "path": "verification/audit-evidence/v220-user-feedback/summary.json",
-    "sha256": "f035d763791d119cce40ab8b5e453663b4b0ce2d1345c4df3d657fe96b26e09e"
+    "path": "verification/audit-evidence/v220-ci-feedback-tests/summary.json",
+    "sha256": "45a114e2248d64f838a1523d75e8092231fc5e7ed7b9af87d249be5f5f8156b8"
   }
 }

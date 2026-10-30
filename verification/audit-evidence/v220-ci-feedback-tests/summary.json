@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-10-30T19:02:31.003Z",
+  "sourceDigest": "438cd21cbaf01d05cac3e506a17f83f886419db6e8b4564baf1dce676809e5e2",
+  "sourceFiles": 1947,
+  "kind": "Three test-only synchronization repairs after mixed CI10 outcomes",
+  "changedFiles": [
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "beforeSha256": "e3858199d4985e80c35a3f04d301513c6fc6ed8130ba4a856140951778dc216b",
+      "sha256": "3c5208222a9d0b30a8cbdbc493b4262d4c00432a4fc2a85eb42354357ec2d48b"
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "beforeSha256": "fb9fd4d6f8a3d9767598d4bfff0398915c4aabe36be56594432480f387cfe132",
+      "sha256": "086790117a0db9b8a1fe0ff0cd44fc2d5cdf83d5fbaf88a941f1caf8aa987e4d"
+    },
+    {
+      "path": "web/tests/project-handoff.test.tsx",
+      "beforeSha256": "cab4271aa667b677fe5023c4e5949279f02151fc6bceb4a9fec9288a0b84dd9f",
+      "sha256": "792112c42e51987044f25756f7cd96b1fc7f60b06e9696de0ee8bf727d7a2617"
+    }
+  ],
+  "productionFilesChanged": [],
+  "retainedAudit": {
+    "roundId": "v220-round10",
+    "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+    "unchangedFiles": 1944,
+    "newCompleteRoundClaimed": false
+  },
+  "evidence": [
+    {
+      "path": "verification/audit-evidence/v220-ci-feedback-tests/author.json",
+      "sha256": "074bfe7e5e5350dd603734afa48f0bf2def2b26226d5a901438c698bd7be2c1f"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-feedback-tests/review.json",
+      "sha256": "ac311d53c0d8ad8f903aa5a7d91c773b979975c9a219809d8a41fc916c01faaa"
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-feedback-tests/carry-forward.json",
+      "sha256": "2a63b71f86d23e756617e040228ff6fbc2e372fd5839aaf19135d1828028673e"
+    }
+  ],
+  "validation": {
+    "targetedCases": 76,
+    "targetedPassed": 76,
+    "webTypes": "passed",
+    "originalHostedFailure": "CI10 push failed three assertions; its separate full PR passed 232 files and 2468 distinct cases. Original failures remain recorded.",
+    "freshFullCi": "pending"
+  },
+  "limits": [
+    "Exact hosted scheduling failure was not reproduced or traced. Controlled reads now establish valid authorization ordering, and real mutation persistence is awaited before UI assertions.",
+    "No production change, timeout extension, retry or skipped assertion.",
+    "Original complete audit is retained only after all source hashes and independent three-file review; this is not another invented full audit round."
+  ]
+}

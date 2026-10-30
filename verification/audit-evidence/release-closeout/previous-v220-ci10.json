@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "sourceFiles": 1947,
+  "baseCommit": "f6a5831abd5fcd15cf0e8d71ce84aaaf82d5616a",
+  "version": "2.2.0",
+  "approvedAt": "2026-10-30T18:41:30.961Z",
+  "userInstruction": "现在对刚刚提到的所有问题进行修复，同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。此前用户已指定 v2.2.0 和全量验证、120 持续运行。",
+  "auditWaiverInstruction": "同样修改后进行代码审计，有一轮无问题就进行收尾和部署发布。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v220-round10",
+      "sourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+      "completedAt": "2026-10-30T18:41:30.485Z",
+      "files": 1947,
+      "reviewers": [
+        {
+          "id": "v220-round10-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round10/team.json",
+          "sha256": "7950e6e05d129b511830bc72f73cca06fc56dddbcc2c5eee3f81a7f116228cea"
+        }
+      ]
+    }
+  ],
+  "note": "Actual complete clean audit10 meets the latest one-round instruction after all user feedback repairs. Earlier full test and deployment results remain source-bound history. This permits new exact-source full validation; it is not a claim that validation or deployment has already completed.",
+  "scopedRepairReview": {
+    "path": "verification/audit-evidence/v220-user-feedback/summary.json",
+    "sha256": "f035d763791d119cce40ab8b5e453663b4b0ce2d1345c4df3d657fe96b26e09e"
+  }
+}

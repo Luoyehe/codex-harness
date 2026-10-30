@@ -6,6 +6,7 @@ import { listOperations } from '../lib/operations';
 import { Events } from '../lib/events';
 import { ProcessPanel } from '../components/ProcessPanel';
 import { RemoteSettings } from '../components/RemoteSettings';
+import { enabledButton } from './enabled-button';
 const project = { id: 'project', name: 'Project', cwd: '/project' };
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
 const settleFixtures: (() => Promise<unknown>)[] = [];
@@ -507,6 +508,8 @@ it('remote access defaults to ephemeral and requires explicit independent-channe
   });
 });
 it('pairing secrets are owner reads, survive status refresh, never persist, and clear on disconnect', async () => {
+  const initialStatus = delayedWrite(), refreshedStatus = delayedWrite();
+  let statusReads = 0, holdRefresh = false;
   const pair = {
     pairingId: 'pair',
     environmentId: 'remote-env',
@@ -514,8 +517,10 @@ it('pairing secrets are owner reads, survive status refresh, never persist, and 
     pairingCode: 'private-pair-code',
     manualPairingCode: null,
   };
-  const { api, calls } = routed((call) =>
-    call.method === 'remoteControl/pairing/start'
+  const { api, calls, settle } = routed((call) =>
+    call.method === 'remoteControl/status/read'
+      ? (++statusReads === 1 ? initialStatus.promise : holdRefresh ? refreshedStatus.promise : status)
+      : call.method === 'remoteControl/pairing/start'
       ? { pairingId: pair.pairingId, environmentId: pair.environmentId, expiresAt: pair.expiresAt }
       : call.method === 'remoteControl/pairing/read'
         ? pair
@@ -523,16 +528,33 @@ it('pairing secrets are owner reads, survive status refresh, never persist, and 
   );
   const props = base(),
     view = render(<RemoteSettings {...props} api={api} />);
-  await screen.findByText('状态：connected · fixture');
   fireEvent.click(screen.getByText('配对新的客户端', { selector: 'summary' }));
-  fireEvent.click(screen.getByRole('checkbox', { name: '确认创建用于授权新客户端的配对码' }));
-  fireEvent.click(screen.getByRole('button', { name: '创建一次配对' }));
+  const consent = screen.getByRole('checkbox', { name: '确认创建用于授权新客户端的配对码' });
+  fireEvent.click(consent);
+  expect(screen.getByRole('button', { name: '创建一次配对' }).matches(':disabled')).toBe(true);
+  expect(calls.some(call => call.method === 'remoteControl/pairing/start')).toBe(false);
+  // Commit the environment identity and its consent-reset effect before authorizing it.
+  await act(async () => { initialStatus.resolve(status); await initialStatus.promise; });
+  await screen.findByText('状态：connected · fixture');
+  expect(consent).toHaveProperty('checked', false);
+  fireEvent.click(consent);
+  fireEvent.click(await enabledButton({ name: '创建一次配对' }));
+  expect(api.mutate).toHaveBeenCalledTimes(1);
+  // Await the real admission/accepted-receipt transaction, not just the HTTP response.
+  await act(settle);
   await screen.findByDisplayValue(pair.pairingCode);
+  const readsBeforeRefresh = statusReads;
+  holdRefresh = true;
   fireEvent.click(screen.getByRole('button', { name: '刷新远程控制状态' }));
+  await waitFor(() => expect(statusReads).toBeGreaterThan(readsBeforeRefresh));
+  expect(screen.getByDisplayValue(pair.pairingCode)).toBeTruthy();
+  await act(async () => { refreshedStatus.resolve(status); await refreshedStatus.promise; });
   await screen.findByText('状态：connected · fixture');
   expect(screen.getByDisplayValue(pair.pairingCode)).toBeTruthy();
   expect(JSON.stringify(localStorage)).not.toContain(pair.pairingCode);
   expect(calls.filter((call) => call.method === 'remoteControl/pairing/start')).toHaveLength(1);
+  expect(calls.filter((call) => call.method === 'remoteControl/pairing/read').map(call => call.params))
+    .toEqual([{ pairingId: pair.pairingId }]);
   view.rerender(<RemoteSettings {...props} api={api} connected={false} />);
   await waitFor(() => expect(screen.queryByDisplayValue(pair.pairingCode)).toBeNull());
 });

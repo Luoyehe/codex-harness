@@ -791,19 +791,35 @@ it('keeps the voice panel mounted when returning to chat and does not implicitly
   expect(f.count('thread/realtime/stop')).toBe(0);
 });
 it('retains owner-only OAuth handoff after configuration refresh without starting it on open', async () => {
-  const f = await fixture();
+  let resolveGateway!: (value: Record<string, unknown>) => void;
+  const initialGateway = new Promise<Record<string, unknown>>(resolve => { resolveGateway = resolve; });
+  let gatewayReads = 0;
+  const f = await fixture(false, false, undefined, true, call =>
+    call.method === 'account/gatewayOAuth/read' && ++gatewayReads === 1 ? initialGateway : undefined);
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
   fireEvent.click(await screen.findByText('供应商网关 OAuth', { selector: 'summary' }));
-  await screen.findByText('当前供应商：Fixture');
+  await waitFor(() => expect(f.count('account/gatewayOAuth/read')).toBe(1));
+  const consent = screen.getByRole('checkbox', { name: '确认开始当前供应商的网关授权流程' });
+  fireEvent.click(consent);
+  expect(screen.getByRole('button', { name: '开始网关授权' }).matches(':disabled')).toBe(true);
   expect(f.count('account/gatewayOAuth/login')).toBe(0);
-  fireEvent.click(screen.getByRole('checkbox', { name: '确认开始当前供应商的网关授权流程' }));
-  fireEvent.click(screen.getByRole('button', { name: '开始网关授权' }));
+  await act(async () => {
+    resolveGateway({ providerId: 'fixture-provider', providerName: 'Fixture', required: true, status: 'notReady', error: null });
+    await initialGateway;
+  });
+  await screen.findByText('当前供应商：Fixture');
+  expect(consent).toHaveProperty('checked', false);
+  fireEvent.click(consent);
+  fireEvent.click(await enabledButton({ name: '开始网关授权' }));
+  // Preserve the real IndexedDB/receipt path and flush its resulting configuration refresh.
+  await act(settleMutations);
   const link = await screen.findByRole('link', { name: '打开此连接的网关授权链接 ↗' });
   expect(link.getAttribute('href')).toBe('https://example.invalid/fixture-authorization');
   await waitFor(() => expect(f.count('account/gatewayOAuth/read')).toBeGreaterThan(1));
   expect(screen.getByRole('link', { name: '打开此连接的网关授权链接 ↗' })).toBe(link);
   expect(f.count('account/gatewayOAuth/login')).toBe(1);
+  expect(f.calls.filter(call => call.method === 'account/gatewayOAuth/handoff').every(call => call.params.handoffId === 'fixture-handoff')).toBe(true);
 });
 it('retains an accepted owner pairing through ordinary configuration revision changes', async () => {
   const f = await fixture();

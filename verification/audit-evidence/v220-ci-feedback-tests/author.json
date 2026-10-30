@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "kind": "scoped-test-synchronization-repair",
+  "author": "/root/v220_round4_web",
+  "completedAt": "2026-10-30T18:56:49.147Z",
+  "baselineSourceDigest": "32a6e612b897da02e76fe93a734e2b4cd43ec75e2659bf6334e3466fdc9bf029",
+  "changedFiles": [
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "beforeSha256": "e3858199d4985e80c35a3f04d301513c6fc6ed8130ba4a856140951778dc216b",
+      "sha256": "3c5208222a9d0b30a8cbdbc493b4262d4c00432a4fc2a85eb42354357ec2d48b"
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "beforeSha256": "fb9fd4d6f8a3d9767598d4bfff0398915c4aabe36be56594432480f387cfe132",
+      "sha256": "086790117a0db9b8a1fe0ff0cd44fc2d5cdf83d5fbaf88a941f1caf8aa987e4d"
+    },
+    {
+      "path": "web/tests/project-handoff.test.tsx",
+      "beforeSha256": "cab4271aa667b677fe5023c4e5949279f02151fc6bceb4a9fec9288a0b84dd9f",
+      "sha256": "792112c42e51987044f25756f7cd96b1fc7f60b06e9696de0ee8bf727d7a2617"
+    }
+  ],
+  "productionFilesChanged": [],
+  "failures": [
+    {
+      "platform": "Linux",
+      "file": "web/tests/process-remote.test.tsx",
+      "test": "pairing secrets are owner reads, survive status refresh, never persist, and clear on disconnect",
+      "log": ".work/v220-ci10-push-linux-raw.txt",
+      "line": 826,
+      "assertion": "first private-pair-code textarea was absent",
+      "observed": "Captured RemoteSettings DOM has an unchecked pairing consent, disabled create button and no mutation notice; this does not record the exact earlier click/transaction timing."
+    },
+    {
+      "platform": "Windows",
+      "file": "web/tests/app-lifecycle.test.tsx",
+      "test": "retains owner-only OAuth handoff after configuration refresh without starting it on open",
+      "log": ".work/v220-ci10-push-windows-raw.txt",
+      "line": 881,
+      "assertion": "first owner authorization link was absent",
+      "observed": "CI DOM is truncated before the relevant account panel; no method dispatch or durable transaction phase is recorded."
+    },
+    {
+      "platform": "Windows",
+      "file": "web/tests/project-handoff.test.tsx",
+      "test": "adding a project respects its destination and the prior draft (new)",
+      "log": ".work/v220-ci10-push-windows-raw.txt",
+      "line": 1231,
+      "assertion": "new project row was absent",
+      "observed": "The original test already waits for an enabled save; CI does not identify which part of admission, HTTP, receipt persistence or navigation had completed."
+    }
+  ],
+  "logHashes": [
+    {
+      "path": ".work/v220-ci10-push-linux-raw.txt",
+      "sha256": "30ca8bdc1b7d12f403c1946ecc7757242447e46e0d60837b59dfed6288dfba07"
+    },
+    {
+      "path": ".work/v220-ci10-push-windows-raw.txt",
+      "sha256": "a783072fd0e790ad2ae6ae26867710cf184fa85e028f8acadb4d029e3ddea6be"
+    }
+  ],
+  "diagnosis": [
+    "No production defect was established by the scoped source review. The original fixtures rely on findByRole/findByDisplayValue default UI deadlines to cover the full real mutation transaction and its resulting React updates.",
+    "Api.mutate delegates to beginMutation.result, which includes durable intent admission, the RPC response, accepted receipt persistence and acknowledgement before workflow onChanged and component result handling run.",
+    "Pairing also binds consent to the environment lifecycle: the environment read commits an effect that resets pairing consent. Waiting for visible status text alone does not explicitly synchronize that passive effect.",
+    "OAuth consent is bound to the currently read provider ID. A pending provider read cannot safely authorize a provider that has not yet been identified.",
+    "The local unchanged three-file run passed once. The hosted event timing was not reproduced or traced, so these are confirmed synchronization gaps and controlled valid orderings, not proof of the precise cause of each hosted scheduling failure."
+  ],
+  "changesAndControlledProof": [
+    "Pairing: hold the initial environment read; early confirmation cannot enable or dispatch creation. Resolve inside act, observe the identity change clearing consent, then explicitly confirm and click only an enabled button.",
+    "Pairing: await the real unmocked mutation promise, assert exactly one write and an owner read for that pairing ID. Hold a later status refresh and prove the code survives both pending and completed status reads, remains absent from localStorage and clears on disconnect.",
+    "OAuth: hold the initial gateway read; early confirmation cannot dispatch login. Commit the identified provider inside act, explicitly confirm it and await the enabled action and real beginMutation result. Retain the same authorization link after the configuration reread, with one login and only the original handoff ID.",
+    "Project handoff: spy without replacing Api.mutate, assert one correct create/add call and await its actual promise in act before inspecting navigation. Preserve all new/existing/storage-failure destination and prior-draft assertions, plus exactly one project RPC.",
+    "Project teardown now drains real outstanding mutation promises before cleanup and mock restoration, matching the lifecycle and remote fixtures; it does not fabricate accepted results or retry actions."
+  ],
+  "relatedReview": [
+    "Read the entire project-handoff fixture and all three parameter branches.",
+    "Checked the immediately adjacent native remote enable/revoke and accepted pairing configuration-refresh cases. No speculative blanket changes were made to unrelated tests.",
+    "Read useResource, useWorkflow, useExtensionAction, RemoteSettings pairing ownership, AccountToolsPanel handoff ownership, ProjectDialog submit and API mutation persistence paths."
+  ],
+  "tests": [
+    {
+      "phase": "single local diagnostic run before repair; hosted failure not reproduced",
+      "path": ".work/test-results/run-jeMuwR/vitest.json",
+      "sha256": "bed8bcbaddd84d69e8683f1a69d059a76f03604779a80ecb27d59e8821fdcde3",
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0,
+      "files": 3,
+      "node": "24.22.1"
+    },
+    {
+      "phase": "targeted verification after repair, including controlled prerequisite reads",
+      "path": ".work/test-results/run-uKPwxx/vitest.json",
+      "sha256": "477859978c33efa00ea43fdbc762e5efdd4dfcede68f1236f93d78985dbb0e19",
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0,
+      "files": 3,
+      "node": "24.22.1"
+    }
+  ],
+  "checks": [
+    {
+      "name": "web TypeScript noEmit",
+      "command": "node node_modules/typescript/bin/tsc --noEmit -p web/tsconfig.json",
+      "exitCode": 0
+    }
+  ],
+  "sourceScan": {
+    "mode": "source",
+    "status": "clean",
+    "scannedFiles": 3,
+    "scannedBytes": 82682,
+    "findings": [],
+    "artifacts": [],
+    "unreadable": [],
+    "skipped": []
+  },
+  "independentReview": {
+    "owner": "/root/v220_final_deploy",
+    "path": ".work/v220-ci10-web-fixture-independent-review.json",
+    "status": "requested separately; do not infer approval from this author record"
+  },
+  "limitations": [
+    "No business source changes, default timeout increase, retry, skip, full-suite run, Git mutation, deployment or external provider call.",
+    "Passing targeted checks do not replace the next complete hosted CI run.",
+    "This scoped fixture repair is not a new complete repository audit round and does not retrospectively convert CI10 failures into passes."
+  ],
+  "findings": []
+}
