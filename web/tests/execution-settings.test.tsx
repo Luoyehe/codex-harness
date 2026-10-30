@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
 import { Events } from '../lib/events';
@@ -105,6 +105,61 @@ it('reads scoped profiles and provider capabilities without resume or any mutati
     true,
   );
   expect(s.calls.some((c) => c.operationId || c.method === 'thread/resume')).toBe(false);
+});
+it.each([false, true])('uses the current thread provider for identical model IDs and effort choices (turn=%s)', async (turn) => {
+  const s = setup(c => c.method === 'thread/session'
+    ? { ...snapshot, modelProvider: 'beta-native' } : c.method === 'turn/settings/update' ? { status: 'applied' } : undefined);
+  render(<ThreadExecutionSettings {...props(s.api, s.events)} models={[
+    { ...model, modelProvider: 'alpha' },
+    { ...model, id: 'alpha-only', model: 'alpha-only', modelProvider: 'alpha', displayName: 'Alpha only' },
+    { ...model, modelProvider: 'beta', providerAliases: ['beta-native'], displayName: 'Beta model',
+      supportedReasoningEfforts: [{ reasoningEffort: 'max' }],
+      serviceTiers: [{ id: 'beta-tier', name: 'Beta tier', description: 'Beta service' }] },
+  ]} />);
+  await screen.findByText('model / beta-native');
+  if (turn) fireEvent.click(screen.getByRole('button', { name: '仅当前回合' }));
+  const selector = screen.getByRole('combobox', { name: '模型' });
+  expect(within(selector).queryByRole('option', { name: 'Alpha only' })).toBeNull();
+  expect(within(selector).getAllByRole('option')).toHaveLength(2);
+  const efforts = screen.getByRole('combobox', { name: '推理强度' });
+  expect(within(efforts).queryByRole('option', { name: 'high' })).toBeNull();
+  expect(within(efforts).getByRole('option', { name: 'max' })).toBeTruthy();
+  choose('模型', 'model');
+  choose('推理强度', 'max');
+  choose('服务档位', 'beta-tier');
+  await submit(turn);
+  await waitFor(() => expect(s.calls.find(c => c.method === (turn ? 'turn/settings/update' : 'thread/settings/update'))?.params).toEqual({
+    threadId: 'thread', ...(turn ? { turnId: 'turn' } : {}), model: 'model', effort: 'max', serviceTier: 'beta-tier',
+  }));
+});
+it('retains a removed provider model and blocks submission despite another provider having the same ID', async () => {
+  const s = setup(), inherited = { ...model, modelProvider: 'provider' },
+    foreign = { ...model, modelProvider: 'foreign' };
+  const view = render(<ThreadExecutionSettings {...props(s.api, s.events)} models={[foreign, inherited]} />);
+  await ready();
+  choose('模型', 'model');
+  choose('推理强度', 'high');
+  view.rerender(<ThreadExecutionSettings {...props(s.api, s.events)} models={[foreign]} />);
+  expect((screen.getByRole('combobox', { name: '模型' }) as HTMLSelectElement).selectedOptions[0]?.textContent).toContain('原模型已不可用');
+  expect((screen.getByRole('combobox', { name: '推理强度' }) as HTMLSelectElement).selectedOptions[0]?.textContent).toContain('原强度已不可用');
+  await submit();
+  expect(s.calls.some(c => c.operationId)).toBe(false);
+});
+it('does not reinterpret selected model settings under a different provider after a snapshot refresh', async () => {
+  let provider = 'provider';
+  const s = setup(c => c.method === 'thread/session' ? { ...snapshot, modelProvider: provider } : undefined);
+  render(<ThreadExecutionSettings {...props(s.api, s.events)} models={[
+    { ...model, modelProvider: 'provider' }, { ...model, modelProvider: 'other' },
+  ]} />);
+  await ready();
+  choose('模型', 'model');
+  choose('推理强度', 'high');
+  provider = 'other';
+  fireEvent.click(screen.getByRole('button', { name: '重新读取设置' }));
+  await screen.findByText('model / other');
+  await submit();
+  expect(s.calls.some(c => c.operationId)).toBe(false);
+  expect(screen.getByRole('alert').textContent).toContain('所选设置已不在当前目录');
 });
 it('changes only selected future fields and explicitly clears service tier with null', async () => {
   const s = setup();

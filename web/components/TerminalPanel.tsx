@@ -411,9 +411,9 @@ export function TerminalPanel({
           </h2>
           <p className="muted small">
             {program === 'codex-cloud'
-              ? '启动官方 codex cloud 交互界面，按账号实际可用能力查看、创建、检查云任务或应用更改。创建任务可能消耗额度，应用 diff 会修改当前项目，均由你在官方界面明确操作。网页不会自动提交云任务或应用补丁；退出后须明确重启原生服务。'
+              ? '需要登录 ChatGPT。退出后后台会自动刷新，随后可继续对话或打开其他终端。'
               : program === 'codex'
-                ? '启动官方交互式 CLI。请自行键入 /hooks，审阅当前哈希后选择信任或停用。终端存活时暂停其他执行与配置写入；退出后必须到服务管理明确重启以同步原生配置。网页不会替你输入、信任或自动重启。'
+                ? '官方 Codex 交互终端，可输入 /hooks 管理钩子。使用期间暂停其他任务，退出后自动恢复。'
                 : '使用 worker 的 shell 权限，独立于当前回合的 sandbox 设置。断线后结束。'}
           </p>
         </div>
@@ -487,8 +487,7 @@ export function TerminalPanel({
       {restartRequired && (
         <div className="workspace-warning" role="status">
           <p>
-            原生 CLI
-            会话需要重新同步。请先在服务管理中明确重启原生服务，同步可能改变的配置或账户，再继续执行。这里不代表配置已获信任或云任务已完成。
+            终端已结束，正在自动刷新后台环境，连接恢复后即可继续操作。若长时间未恢复，可查看服务状态。
           </p>
           {onServiceSettings && (
             <button className="button small" onClick={onServiceSettings}>

@@ -1,6 +1,6 @@
 # 重写边界与实现契约
 
-本文描述 2.1.1 的实现边界；交付验证状态以 `verification/WORKLOG.md` 为准。本目录从空项目开始，测试也重新编写，固定上游协议为 Codex CLI 0.164.0。
+本文描述 2.2.0 的实现边界；交付验证状态以 `verification/WORKLOG.md` 为准。本目录从空项目开始，测试也重新编写，固定上游协议为 Codex CLI 0.164.0。
 
 ## 产品范围
 
@@ -17,6 +17,8 @@
 - `deploy`: Python 标准库的安装与管理事务。源码/运行时不可由服务账号修改。依赖准备与候选执行分离，候选以隔离非 root 身份验证。停机确认前不切换发布目录；恢复不确定时保留材料并失败。
 
 网页会话外壳、工作区编排、消息条目与 Markdown 排版、输入选项、服务管理各有独立组件。历史数据预算与可见 DOM 窗口分开：保留已加载的完整数据，最多显示 150 条时间线记录；Markdown 在解析前检查字符/结构预算，解析后检查节点数和深度，失败只降级当前消息。计划和思考增量沿用条目身份及终态保护；没有共同水位的历史快照和增量不猜测拼接。
+
+供应商以独立连接保存 endpoint、凭据和模型目录，可同时启用。新会话使用明确选择的 modelProvider；已有会话保持原供应商身份。模型目录和思考强度按供应商、模型联合匹配，分页不合并不同供应商的同名模型。非默认原生供应商的目录与共享 ChatGPT 状态通过有界只读探针读取；供应商设置修改仍经 root 事务生效。既有单供应商配置在配置层迁移中转换，保留账号和模型凭据。
 
 浏览器从已认证 session、服务状态及 WebSocket 状态获取操作日志代际，仅新操作 ID 使用对应 UUID v8；资源 ID 不随之改变。归档维护必须完整读取分片、核对 SHA-256、下载并经用户确认，发送前另存维护身份；未知轮换结果只按代际和归档摘要核对，不能重发。旧代际回执保持 unknown/archived，不能降为 not_sent。管理器的只读状态与日志请求串行执行，取消页面读取不提前释放已发请求的客户端队列。
 
@@ -46,7 +48,7 @@ HTTP 同时限制连接数、处理中的请求数及实际保留的响应字节
 
 ## RPC 方法
 
-- gateway：`project/list|add|remove`，`operation/read|retire`，`system/status|logs|restart|provider/read|provider/write|models/refresh`。
+- gateway：`project/list|defaults|create|add|remove`，`operation/read|retire`，`system/status|logs|restart|provider/read|provider/write|models/refresh`。
 - runtime：`conversation/start`，`thread/list|resume|read|history|name/set|archive|unarchive|compact`，`turn/start|interrupt`，`model/list`，`defaults/read`，`account/read|login|login/cancel|logout|rateLimits`，`mcp/list|oauth`，`prompt/list|answer`，`attachment/upload|read|remove`，`terminal/open|write|resize|close`，`runtime/status`。
 - “新会话”在浏览器创建草稿，首次发送才调用 `conversation/start`，内部创建原生线程并启动第一回合，返回 `{thread,turn}`；gateway 将已注册 projectId 转为 cwd，客户端不可覆盖。上游空线程尚未物化，不能作为持久会话承诺。部分创建后的错误保持 unknown，可携带已创建 threadId 帮助核对；不自动重放。输入可包含附件、受控上下文引用和经过验证的模型、权限、协作模式及输出 schema；确切允许字段由 `validation.ts` 定义。`thread/history` 同时遍历回合和原生时间线，返回分项完整性、历史版本与 owner 绑定的不透明续页标识；容量不足、时间线变化或未走完所有分页都不能标 complete。
 - terminal/open 返回 `{terminalId}`，后续输出通过事件传递，不等待命令最终退出；终端必须绑定 clientId，最多每连接 2 个，非所有者不能控制。网页 clientId 由服务端会话/连接绑定，不信任提交字段。
@@ -55,7 +57,7 @@ HTTP 同时限制连接数、处理中的请求数及实际保留的响应字节
 - `thread/session` 只读当前进程已确认的会话设置，缓存缺失返回 `requiresResume:true`。查看历史不调用原生 resume。`thread/resume` 是持久化的显式继续操作，可能继续原生目标或队列；必须先完成当前连接的完整历史核对。空闲线程的 queue/add 也可能立即执行，不能归类为普通元数据修改。已激活目标、待执行队列及其核对过程在回合之间仍计入活动状态。
 - 技能切换从当前项目的原生目录解析身份；插件安装以刚查看的详情摘要核对当前身份和策略。安装返回的认证需求、更新的逐项失败均保留；reconcile 不作为工具就绪证明。配置修改固定写原生用户配置、检查版本，不允许浏览器指定任意配置路径或改写供应商管理边界。
 - 登录回执只有登录 ID；设备码与网关授权链接只在当前连接私有内存中读取。未确认的登录和取消不重复提交。诊断与预测内容同样通过 owner 绑定的临时结果读取；建议只能由用户明确放入草稿，不自动发送。
-- 固定原生 Codex / Cloud 交互终端持有全局执行租约，准备、运行与进程树回收期间禁止并发配置和任务；结束后需明确重启原生服务，重新同步 CLI 可能修改的设置与账号。原生诊断使用固定只读命令和独立进程回收证明，不要求无意义的重启。
+- 固定原生 Codex / Cloud 交互终端持有全局执行租约，准备、运行与进程树回收期间禁止并发配置和任务；确认结束后先送达尚在处理的 HTTP 回执，再自动重建后台进程，重新同步 CLI 可能修改的设置与账号。无法确认进程退出时仍保留未知状态。云任务启动前检查共享 ChatGPT 登录；原生诊断使用固定只读命令和独立进程回收证明。
 - 文件写入通过 native 身份的描述符相对路径操作，校验旧版本并保留恢复材料。native 可写的恢复日志只供检查；supervisor 在收到并验证成功应答后，先将最小回执写入自己的私有 SQLite，再返回结果。`operation/read` 仅凭匹配操作、项目、原请求摘要的 supervisor 成功记录解除对应未知回执；只有 native 日志或缺少记录时保持未知，不重放文件变更。
 
 浏览器需从 /api/session 获取 CSRF，POST /api/rpc 时带上。只订阅服务器事件，终端写入仍走鉴权 RPC。所有请求超时都有独立状态，过时代际回调不修改当前页面。
@@ -77,4 +79,4 @@ pnpm build
 pnpm test:targeted tests/core/ledger.test.ts tests/gateway/http.test.ts
 ```
 
-代码修改期间运行受影响的定向测试。全量测试在完整审计通过后执行；本次 2.1.1 发布按维护者明确指定的连续两轮无新增问题标准收尾，审计与授权记录绑定实际源码摘要。平台跳过项须由适用平台补足，不能计作测试通过。CI 同时提供 CodeQL、依赖漏洞和固定上游版本检查；真实供应商、公网证书及外部服务需另有实测证据。具体证据与完整测试入口见 [验证说明](verification/RELEASE-CHECKS.md)。
+代码修改期间运行受影响的定向测试。全量测试在完整审计通过后执行；本次 2.2.0 发布按维护者明确指定的一轮完整审计无新增问题标准收尾，审计与授权记录绑定实际源码摘要。平台跳过项须由适用平台补足，不能计作测试通过。CI 同时提供 CodeQL、依赖漏洞和固定上游版本检查；真实供应商、公网证书及外部服务需另有实测证据。具体证据与完整测试入口见 [验证说明](verification/RELEASE-CHECKS.md)。

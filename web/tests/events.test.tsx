@@ -9,6 +9,19 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('transport and runtime state separation', () => {
+  it('blocks work only during automatic CLI refresh and restores it on the next runtime epoch', () => {
+    let socket!: { onmessage: (event: { data: string }) => void };
+    vi.stubGlobal('WebSocket', class { onmessage = (_: { data: string }) => {}; close() {} constructor() { socket = this; } });
+    const api = { clientId: 'owner', connectionChanged: vi.fn() } as unknown as Api;
+    const { result } = renderHook(() => useEvents(api, vi.fn()));
+    const state = (extra: Record<string, unknown>) => act(() => socket.onmessage({ data: JSON.stringify({ type: 'state', data: {
+      connected: true, epoch: 'before', activity: { unknown: false, activeThreads: [], pendingStarts: 0, terminals: 0 }, ...extra,
+    } }) }));
+    state({}); expect(result.current.activityReady).toBe(true); const revision = result.current.revision;
+    state({ restarting: true }); expect(result.current.restarting).toBe(true); expect(result.current.activityReady).toBe(false); expect(result.current.configurationReady).toBe(false);
+    state({ connected: false }); expect(result.current.restarting).toBe(true);
+    state({ epoch: 'after', restarting: false }); expect(result.current.restarting).toBe(false); expect(result.current.activityReady).toBe(true); expect(result.current.configurationReady).toBe(true); expect(result.current.revision).toBe(revision + 1);
+  });
   it('updates operation generation from state events even without a runtime reconnect', () => {
     let socket!: { onmessage: (event: { data: string }) => void };
     vi.stubGlobal(

@@ -42,16 +42,16 @@ export function SectionSettings({
   return (
     <section className="stack">
       <div className="section-heading">
-        <h3>会话分区</h3>
+        <h3>会话分组</h3>
         <button
           className="button small"
           disabled={action.disabled}
           onClick={() => setEdit({ name: '', icon: '', color: '' })}
         >
-          新增分区
+          新增分组
         </button>
       </div>
-      <ExtensionStatus api={api} action={action} recoveryLabel="查询原分区操作回执" />
+      <ExtensionStatus api={api} action={action} recoveryLabel="查询原分组操作回执" />
       <ReadState {...sections} />
       {sections.items.map((section) => (
         <article className="info-card stack" key={section.id}>
@@ -79,14 +79,14 @@ export function SectionSettings({
               disabled={action.disabled}
               onClick={() => setRemove(section)}
             >
-              删除分区
+              删除分组
             </button>
           </div>
         </article>
       ))}
       {sections.hasMore && (
         <button className="button" disabled={sections.loading} onClick={() => void sections.more()}>
-          更多分区
+          更多分组
         </button>
       )}
       {edit && (
@@ -107,7 +107,7 @@ export function SectionSettings({
         >
           <fieldset disabled={action.busy} className="stack">
             <label className="field">
-              分区名称
+              分组名称
               <input
                 value={edit.name}
                 required
@@ -134,7 +134,7 @@ export function SectionSettings({
             </label>
             <div className="inline">
               <button className="button primary" disabled={action.disabled}>
-                保存分区
+                保存分组
               </button>
               <button className="button" type="button" onClick={() => setEdit(undefined)}>
                 取消
@@ -145,7 +145,7 @@ export function SectionSettings({
       )}
       {remove && (
         <div className="workspace-warning stack">
-          <p>删除“{remove.name}”分区并解除其中会话的分区归属；保留会话历史和工作目录。</p>
+          <p>删除“{remove.name}”分组并解除其中会话的分组归属；保留会话历史和工作目录。</p>
           <div className="inline">
             <button
               className="button danger"
@@ -155,7 +155,7 @@ export function SectionSettings({
                   setRemove(undefined);
               }}
             >
-              确认删除分区组织
+              确认删除分组组织
             </button>
             <button className="button" onClick={() => setRemove(undefined)}>
               取消
@@ -242,9 +242,9 @@ export function ThreadOrganization({
   return (
     <section className="stack">
       <div className="section-heading">
-        <h3>当前会话组织</h3>
+        <h3>当前会话分组</h3>
         <button className="button small" onClick={action.refresh}>
-          重新读取会话组织
+          重新读取会话分组
         </button>
       </div>
       {!threadId ? (
@@ -252,13 +252,13 @@ export function ThreadOrganization({
       ) : (
         <>
           <ReadState {...thread} />
-          <ExtensionStatus api={api} action={action} recoveryLabel="查询原会话组织操作回执" />
+          <ExtensionStatus api={api} action={action} recoveryLabel="查询原会话分组操作回执" />
           {thread.data && (
             <>
               <h4>{thread.data.thread.name || thread.data.thread.preview || threadId}</h4>
               <p className="small path">工作目录：{thread.data.thread.cwd}</p>
               <label className="field">
-                所属原生会话项目
+                所属原生项目归类
                 <select
                   value={nativeProjectId}
                   disabled={action.busy}
@@ -287,7 +287,7 @@ export function ThreadOrganization({
                   disabled={projects.loading}
                   onClick={() => void projects.more()}
                 >
-                  更多会话项目
+                  更多项目归类
                 </button>
               )}
               <button
@@ -308,7 +308,7 @@ export function ThreadOrganization({
               <p className="small muted">只列出包含此工作目录的原生项目；保存归属不会切换目录。</p>
               <ReadState {...sections} />
               <label className="field">
-                所属分区
+                所属分组
                 <select
                   value={sectionId}
                   disabled={action.busy}
@@ -316,9 +316,9 @@ export function ThreadOrganization({
                     setSectionEdit({ sectionId: event.target.value, beforeThreadId: '' });
                   }}
                 >
-                  <option value="">无分区</option>
+                  <option value="">无分组</option>
                   {sectionId && !sections.items.some((row) => row.id === sectionId) && (
-                    <option value={sectionId}>当前分区（尚未加载）</option>
+                    <option value={sectionId}>当前分组（尚未加载）</option>
                   )}
                   {sections.items.map((row) => (
                     <option key={row.id} value={row.id}>
@@ -333,11 +333,11 @@ export function ThreadOrganization({
                   disabled={sections.loading}
                   onClick={() => void sections.more()}
                 >
-                  更多分区
+                  更多分组
                 </button>
               )}
               <label className="field">
-                分区内顺序
+                分组内顺序
                 <select
                   value={beforeThreadId}
                   disabled={action.busy}
@@ -345,7 +345,7 @@ export function ThreadOrganization({
                     setSectionEdit({ sectionId, beforeThreadId: event.target.value });
                   }}
                 >
-                  <option value="">移到所选分区末尾</option>
+                  <option value="">移到所选分组末尾</option>
                   {sameSection.map((row) => (
                     <option key={row.id} value={row.id}>
                       放在 {row.name || row.preview || row.id} 之前
@@ -377,7 +377,7 @@ export function ThreadOrganization({
                     setSectionEdit(undefined);
                 }}
               >
-                保存分区与顺序
+                保存分组与顺序
               </button>
               <h4>已读状态</h4>
               <p>

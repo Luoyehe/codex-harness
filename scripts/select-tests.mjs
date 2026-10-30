@@ -19,6 +19,7 @@ const deploymentPairs = [
   ['tests/deploy/test_edge_diagnostics.py', 'tests/deploy/root/test_edge_diagnostics.py'],
   ['tests/deploy/test_initialization_resume.py', 'tests/deploy/root/test_initialization_resume.py'],
   ['tests/deploy/test_service_lifecycle.py', 'tests/deploy/root/test_service_lifecycle.py'],
+  ['tests/deploy/test_candidate_archive.py', 'tests/deploy/root/test_candidate_archive.py'],
   ['tests/deploy/test_control_update.py', 'tests/deploy/root/test_control_update.py'],
   ['tests/deploy/test_https.py', 'tests/deploy/root/test_https.py'],
   ['tests/deploy/test_install_recovery.py', 'tests/deploy/root/test_release_reuse.py'],
@@ -68,7 +69,7 @@ export function selectTests(changed, available) {
     } else if (name.startsWith('src/core/')) add(name, [...domain('tests/core/'), ...domain('tests/gateway/'), ...domain('tests/runtime/')], 'shared-server-core');
     else if (name.startsWith('src/gateway/')) add(name, [...domain('tests/gateway/'), 'tests/runtime/gateway-native.test.ts', ...(name.endsWith('/manager-client.ts') ? domain('tests/deploy/') : [])], 'gateway-boundary');
     else if (name.startsWith('src/runtime/') || name.startsWith('protocol/')) add(name, [...domain('tests/runtime/'), ...domain('tests/gateway/')], 'runtime-protocol-boundary');
-    else if (name.startsWith('deploy/')) {
+    else if (name.startsWith('deploy/') || name === 'harness.sh') {
       if (documentation.has(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-only' });
       else {
         add(name, domain('tests/deploy/'), 'deployment-python');

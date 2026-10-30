@@ -35,9 +35,10 @@ export function validateOfficial(name: string, value: JsonValue): void {
 export function options(input: JsonValue | undefined, turn: boolean): JsonObject {
   if (input === undefined) return {};
   const value = object(input, 'options');
-  const allowed = ['model', 'effort', 'approvalPolicy', 'sandbox', 'personality', 'collaborationMode', 'serviceTier', 'summary', 'permissions', 'approvalsReviewer', 'outputSchema'];
+  const allowed = ['model', 'modelProvider', 'effort', 'approvalPolicy', 'sandbox', 'personality', 'collaborationMode', 'serviceTier', 'summary', 'permissions', 'approvalsReviewer', 'outputSchema'];
   for (const key of Object.keys(value)) if (!allowed.includes(key)) throw new DeliveryError('invalid_params', `Unsupported option ${key}`);
   const result = { ...value };
+  if (turn) delete result.modelProvider;
   if (result.outputSchema !== undefined && result.outputSchema !== null) outputSchema(result.outputSchema);
   if (result.permissions != null && result.sandbox != null) throw new DeliveryError('invalid_params', 'Choose a named permission profile or a sandbox mode, not both');
   if (result.collaborationMode !== undefined && result.collaborationMode !== null) {

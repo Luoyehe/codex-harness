@@ -8,6 +8,7 @@ import {
   renderHook,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
@@ -98,6 +99,29 @@ const formProps = (api: Api) => ({
   onSaved: vi.fn(),
   onCancel: vi.fn(),
 });
+const providerModels = [
+  { id: 'shared', model: 'shared', modelProvider: 'alpha', providerName: 'Alpha', displayName: 'Shared',
+    supportedReasoningEfforts: [{ reasoningEffort: 'high' }] },
+  { id: 'shared', model: 'shared', modelProvider: 'beta', providerName: 'Beta', displayName: 'Shared',
+    supportedReasoningEfforts: [{ reasoningEffort: 'max' }] },
+];
+const providerDefaults = (call: Call) => {
+  if (call.method !== 'defaults/read') return undefined;
+  const options = call.params.options as Record<string, unknown>;
+  return { model: options.model || 'shared', modelProvider: options.modelProvider || 'alpha',
+    reasoningEffort: options.modelProvider === 'beta' ? 'max' : 'high' };
+};
+function openModelSettings() {
+  fireEvent.click(screen.getByText('模型、模式与权限'));
+}
+function chooseProvider(name: string) {
+  const row = within(screen.getByRole('group', { name })).getByRole('option', { name: `Shared · ${name}` }) as HTMLOptionElement;
+  fireEvent.change(screen.getByRole('combobox', { name: '自动化模型' }), { target: { value: row.value } });
+}
+async function savePlan(edit = false) {
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
+  fireEvent.click(await enabledButton({ name: edit ? '保存计划修改' : '创建暂停的计划' }));
+}
 const detailProps = (api: Api) => ({
   api,
   record: job,
@@ -161,6 +185,132 @@ it('requires preview and consent, creates explicitly paused with registered proj
     maxRunMinutes: 30,
   });
   expect(params).not.toHaveProperty('cwd');
+});
+it('selects same-named models by provider and saves its reasoning effort and collaboration model', async () => {
+  const { api, calls } = setup(providerDefaults), props = formProps(api);
+  render(<AutomationForm {...props} models={providerModels}
+    modes={[{ name: 'Plan', mode: 'plan', model: 'shared', reasoning_effort: 'high' }]} />);
+  await prepareForm();
+  openModelSettings();
+  chooseProvider('Beta');
+  await waitFor(() => expect(calls.at(-1)?.params).toMatchObject({
+    projectId: project.id, options: { model: 'shared', modelProvider: 'beta' },
+  }));
+  const effort = screen.getByRole('combobox', { name: '自动化推理强度' });
+  expect(within(effort).queryByRole('option', { name: 'high' })).toBeNull();
+  fireEvent.change(effort, { target: { value: 'max' } });
+  fireEvent.change(screen.getByRole('combobox', { name: '自动化协作模式' }), { target: { value: 'plan' } });
+  await savePlan();
+  await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
+  expect(calls.find(call => call.method === 'automation/create')?.params.spec).toMatchObject({
+    options: { model: 'shared', modelProvider: 'beta', effort: 'max',
+      collaborationMode: { mode: 'plan', settings: { model: 'shared', reasoning_effort: 'max' } } },
+  });
+});
+it.each(['unchanged', 'alpha', 'default'])(
+  'preserves an existing provider and unrelated native settings until explicitly changed (%s)', async (choice) => {
+    const record = { ...job, options: { model: 'shared', modelProvider: 'beta', effort: 'max', serviceTier: 'flex',
+      collaborationMode: { mode: 'plan', settings: { model: 'shared', reasoning_effort: 'max', developer_instructions: 'Keep instruction' } } } };
+    const { api, calls } = setup(call => call.method === 'automation/update'
+      ? { id: job.id, revision: 5 } : providerDefaults(call));
+    const props = formProps(api);
+    render(<AutomationForm {...props} record={record} models={providerModels} />);
+    await prepareForm();
+    openModelSettings();
+    expect(((screen.getByRole('combobox', { name: '自动化模型' }) as HTMLSelectElement).selectedOptions[0]?.parentElement as HTMLOptGroupElement)?.label).toBe('Beta');
+    if (choice === 'alpha') chooseProvider('Alpha');
+    if (choice === 'default') fireEvent.change(screen.getByRole('combobox', { name: '自动化模型' }), { target: { value: '' } });
+    await savePlan(true);
+    await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
+    const options = (calls.find(call => call.method === 'automation/update')?.params.spec as { options: unknown }).options;
+    expect(options).toEqual(choice === 'unchanged' ? record.options : {
+      ...(choice === 'alpha' ? { model: 'shared', modelProvider: 'alpha' } : {}),
+      serviceTier: 'flex', collaborationMode: { mode: 'plan', settings: {
+        model: 'shared', reasoning_effort: 'high', developer_instructions: 'Keep instruction',
+      } },
+    });
+  },
+);
+it('fences late provider defaults and cannot save while the newly selected defaults are pending', async () => {
+  const pending = new Map<string, (value: unknown) => void>();
+  const { api, calls } = setup(call => call.method === 'defaults/read'
+    ? new Promise(resolve => pending.set(String((call.params.options as Record<string, unknown>).modelProvider || 'default'), resolve)) : undefined);
+  const props = formProps(api);
+  render(<AutomationForm {...props} models={providerModels}
+    modes={[{ name: 'Plan', mode: 'plan', model: 'shared', reasoning_effort: 'high' }]} />);
+  await prepareForm();
+  openModelSettings();
+  chooseProvider('Alpha');
+  await waitFor(() => expect(pending.has('alpha')).toBe(true));
+  chooseProvider('Beta');
+  fireEvent.change(screen.getByRole('combobox', { name: '自动化协作模式' }), { target: { value: 'plan' } });
+  await waitFor(() => expect(pending.has('beta')).toBe(true));
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
+  const save = screen.getByRole('button', { name: '创建暂停的计划' }) as HTMLButtonElement;
+  expect(save.disabled).toBe(true);
+  await act(async () => pending.get('alpha')!({ model: 'shared', modelProvider: 'alpha', reasoningEffort: 'high' }));
+  expect(save.disabled).toBe(true);
+  expect(calls.some(call => call.method === 'automation/create')).toBe(false);
+  await act(async () => pending.get('beta')!({ model: 'shared', modelProvider: 'beta', reasoningEffort: null }));
+  fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
+  await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
+  expect(calls.find(call => call.method === 'automation/create')?.params.spec).toMatchObject({
+    options: { modelProvider: 'beta', collaborationMode: { settings: { reasoning_effort: null } } },
+  });
+});
+it('retains an unavailable selected model and requires an explicit replacement before saving', async () => {
+  const { api, calls } = setup(providerDefaults), props = formProps(api);
+  const view = render(<AutomationForm {...props} models={providerModels} />);
+  await prepareForm();
+  openModelSettings();
+  chooseProvider('Beta');
+  await waitFor(() => expect(screen.queryByText(/正在核对模型设置/)).toBeNull());
+  view.rerender(<AutomationForm {...props} models={[providerModels[0]!]} />);
+  const select = screen.getByRole('combobox', { name: '自动化模型' }) as HTMLSelectElement;
+  expect(select.selectedOptions[0]?.textContent).toContain('beta / shared（保留）');
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
+  expect((screen.getByRole('button', { name: '创建暂停的计划' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(calls.some(call => call.method === 'automation/create')).toBe(false);
+  fireEvent.change(select, { target: { value: '' } });
+  await savePlan();
+  await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
+  expect(calls.find(call => call.method === 'automation/create')?.params.spec).toMatchObject({ options: {} });
+});
+it('keeps an unlisted existing provider/model when only the schedule or text is edited', async () => {
+  const record = { ...job, options: { modelProvider: 'beta', model: 'shared', serviceTier: 'flex' } };
+  const { api, calls } = setup(call => call.method === 'automation/update' ? { id: job.id, revision: 5 } : providerDefaults(call));
+  const props = formProps(api);
+  render(<AutomationForm {...props} record={record} models={[providerModels[0]!]} />);
+  await prepareForm();
+  openModelSettings();
+  expect((screen.getByRole('combobox', { name: '自动化模型' }) as HTMLSelectElement).selectedOptions[0]?.textContent).toContain('beta / shared（保留）');
+  await savePlan(true);
+  await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
+  expect(calls.find(call => call.method === 'automation/update')?.params.spec).toMatchObject({ options: record.options });
+});
+it('blocks a failed defaults read and retries without losing provider choice or prior edits', async () => {
+  let failed = true;
+  const { api, calls } = setup(call => {
+    if (call.method === 'defaults/read' && (call.params.options as Record<string, unknown>).modelProvider === 'beta' && failed)
+      throw new Error('provider temporarily unavailable');
+    return providerDefaults(call);
+  }), props = formProps(api);
+  render(<AutomationForm {...props} models={providerModels} />);
+  await prepareForm();
+  openModelSettings();
+  chooseProvider('Beta');
+  await screen.findByText(/无法核对模型默认设置/);
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认保存计划/ }));
+  expect((screen.getByRole('button', { name: '创建暂停的计划' }) as HTMLButtonElement).disabled).toBe(true);
+  failed = false;
+  fireEvent.click(screen.getByRole('button', { name: '重新读取模型默认设置' }));
+  await waitFor(() => expect(screen.queryByText(/正在核对模型设置/)).toBeNull());
+  expect((screen.getByRole('checkbox', { name: /确认保存计划/ }) as HTMLInputElement).checked).toBe(false);
+  await savePlan();
+  await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
+  expect(calls.find(call => call.method === 'automation/create')?.params.spec).toMatchObject({
+    name: 'Daily check', options: { modelProvider: 'beta', model: 'shared' },
+  });
 });
 it.each([
   ['Asia/Shanghai', 'UTC'],

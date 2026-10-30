@@ -54,9 +54,36 @@ def parse_ids(data: bytes) -> list[dict]:
         ident = small_text(item.get("id", item.get("slug")), "provider model id")
         require(ident not in ids, "Duplicate provider model id", "catalog_invalid")
         ids.add(ident)
-        # Never copy OpenAI/native/previous-model capability fields into newly
-        # discovered IDs, even if a similarly named model was known previously.
-        models.append({"id": ident, "defaultEffort": None, "efforts": []})
+        # Preserve only metadata actually supplied by this endpoint. ID-only
+        # OpenAI lists are valid, but do not invent reasoning levels for them.
+        levels = item.get("supported_reasoning_levels", item.get("supportedReasoningEfforts", []))
+        require(isinstance(levels, list) and len(levels) <= 32, "Invalid reasoning metadata", "catalog_invalid")
+        efforts = []
+        for level in levels:
+            require(isinstance(level, dict), "Invalid reasoning metadata", "catalog_invalid")
+            effort = small_text(level.get("effort", level.get("reasoningEffort")), "reasoning effort", 64)
+            if effort not in efforts:
+                efforts.append(effort)
+        default = item.get("default_reasoning_level", item.get("defaultReasoningEffort"))
+        require(default is None or isinstance(default, str), "Invalid reasoning default", "catalog_invalid")
+        model = {"id": ident, "defaultEffort": default, "efforts": efforts}
+        modalities = item.get("input_modalities", item.get("inputModalities"))
+        if modalities is not None:
+            require(isinstance(modalities, list) and 0 < len(modalities) <= 3 and "text" in modalities
+                    and all(value in ("text", "image", "audio") for value in modalities), "Invalid input metadata", "catalog_invalid")
+            model["inputModalities"] = modalities
+        context = item.get("context_window", item.get("contextWindow"))
+        if context is not None:
+            require(type(context) is int and 4096 <= context <= 10_000_000, "Invalid context metadata", "catalog_invalid")
+            model["contextWindow"] = context
+        if "supportsTools" in item:
+            require(type(item["supportsTools"]) is bool, "Invalid tool metadata", "catalog_invalid")
+            model["supportsTools"] = item["supportsTools"]
+        elif "shell_type" in item:
+            model["supportsTools"] = item["shell_type"] in ("shell_command", "unified_exec")
+        if isinstance(item.get("base_instructions"), str) and item["base_instructions"]:
+            model["instructions"] = item["base_instructions"]
+        models.append(model)
     return sorted(models, key=lambda item: item["id"])
 
 
@@ -80,7 +107,9 @@ def _fetch_ids(current: dict) -> list[dict]:
         response = connection.getresponse()
         # http.client deliberately does not follow Location. No credential can be
         # forwarded to a redirection target, including a same-host redirect.
-        require(response.status == 200, "Provider catalog request failed or redirected", "catalog_http")
+        require(response.status not in (401, 403), "模型目录授权失败，请检查该供应商的 API Key 与套餐权限。", "catalog_unauthorized")
+        require(response.status not in (404, 405), "该供应商没有提供兼容的模型目录接口。", "catalog_not_supported")
+        require(response.status == 200, "模型目录请求失败；请检查供应商状态和服务地址。", "catalog_http")
         length = response.getheader("Content-Length")
         require(length is None or (length.isdigit() and int(length) <= MAX_CATALOG_BYTES), "Catalog Content-Length exceeds budget", "catalog_budget")
         pieces, count = [], 0

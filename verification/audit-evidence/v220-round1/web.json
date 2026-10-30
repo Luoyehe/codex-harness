@@ -1,0 +1,1723 @@
+{
+  "audit": "v2.2.0-web-independent",
+  "reviewer": "/root/v220_audit_web",
+  "start": "2026-10-30T05:31:07.809Z",
+  "end": "2026-10-30T05:44:08.279Z",
+  "digest": "21c655db59635a455853dacbd4a29c792606bb5baca27cdb198d9fb96b048d62",
+  "endDigest": "21c655db59635a455853dacbd4a29c792606bb5baca27cdb198d9fb96b048d62",
+  "sourceUnchanged": true,
+  "complete": true,
+  "completeMeaning": "All 213 frozen web paths underwent the declared structural/content inspection and user-path review. This is not a claim that every source/test line received a manual full-text reading; exact manual full-text and structural-only coverage are recorded separately.",
+  "noNewActionableIssues": false,
+  "releaseGate": "failed: 3 reproduced functional/usability findings; not a clean audit",
+  "findings": [
+    {
+      "id": "WEB-V220-01",
+      "priority": "P2",
+      "title": "Creating a project leaves the next message targeted at the previous project",
+      "path": "web/components/ProjectDialog.tsx",
+      "line": 37,
+      "related": [
+        {
+          "path": "web/components/ProjectDialog.tsx",
+          "line": 14
+        },
+        {
+          "path": "web/Workspace.tsx",
+          "line": 1398
+        },
+        {
+          "path": "web/Workspace.tsx",
+          "line": 389
+        }
+      ],
+      "scenario": "With Old Project already selected, create New Project using the new-project dialog. The dialog closes without selecting the returned ID or retaining a success-target notice. The old project remains selected; the next ordinary message dispatches conversation/start with projectId old.",
+      "impact": "The primary create-project/start-work flow can send intended new-project work into an existing directory or old thread.",
+      "evidence": {
+        "test": ".work/v220-web-repro.test.tsx",
+        "line": 8,
+        "log": ".work/v220-web-repro.log",
+        "observed": "New Project appears, Old Project remains selected, and the captured conversation/start params.projectId is old."
+      },
+      "recommendation": "Return the accepted project ID to Workspace, refresh the registered list, and explicitly hand off to a new chat in that project while retaining the prior draft and respecting navigation changes."
+    },
+    {
+      "id": "WEB-V220-02",
+      "priority": "P2",
+      "title": "Automation model selection loses provider identity",
+      "path": "web/components/AutomationForm.tsx",
+      "line": 618,
+      "related": [
+        {
+          "path": "web/components/AutomationForm.tsx",
+          "line": 280
+        },
+        {
+          "path": "web/components/AutomationForm.tsx",
+          "line": 288
+        },
+        {
+          "path": "web/components/AutomationForm.tsx",
+          "line": 294
+        }
+      ],
+      "scenario": "Enable two providers that advertise model shared, with A supporting high and B supporting max. The automation editor emits both options with value/key shared, uses the first provider's reasoning list, reads defaults using model alone, and saves options {model:'shared'} without the intended provider.",
+      "impact": "The automation editor cannot distinguish same-name models, cannot reliably configure a nondefault provider, and may preserve an old provider when an existing automation changes its model.",
+      "evidence": {
+        "test": ".work/v220-web-repro.test.tsx",
+        "line": 60,
+        "log": ".work/v220-web-repro.log",
+        "observed": "Both provider options have value shared; high is offered, max is absent; saved automation/create.spec.options contains only model. React also reports duplicate shared keys."
+      },
+      "recommendation": "Use provider-plus-model identity for selection, persist modelProvider, fetch defaults with that provider, resolve effort against that exact catalog entry, and carry provider identity through collaboration mode preparation."
+    },
+    {
+      "id": "WEB-V220-03",
+      "priority": "P2",
+      "title": "Existing-thread settings use another provider's model capabilities",
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "line": 253,
+      "related": [
+        {
+          "path": "web/components/ThreadExecutionSettings.tsx",
+          "line": 194
+        },
+        {
+          "path": "web/components/ThreadExecutionSettings.tsx",
+          "line": 260
+        },
+        {
+          "path": "web/components/ThreadExecutionSettings.tsx",
+          "line": 322
+        }
+      ],
+      "scenario": "Open execution settings for thread B whose session snapshot says shared/provider-b. Pass the merged catalog with provider A's shared/high first and provider B's shared/max second. The form offers A's high, omits B's max, and allows thread/settings/update{threadId:'thread-b',effort:'high'}. It also lists models belonging only to other providers.",
+      "impact": "A valid provider-B reasoning setting becomes unavailable, and the UI admits overrides that do not belong to the actual thread provider.",
+      "evidence": {
+        "test": ".work/v220-web-repro.test.tsx",
+        "line": 80,
+        "log": ".work/v220-web-repro.log",
+        "observed": "Snapshot shared/provider-b is visible while high is offered and max is absent; captured settings update sends high to thread-b."
+      },
+      "recommendation": "Pass snapshot.modelProvider into the form, filter models to that provider including supported legacy aliases, and validate model/effort/serviceTier using only the matching provider entry."
+    }
+  ],
+  "method": {
+    "inventory": "Frozen snapshot names restricted to web/**, excluding generated untracked web/dist. All 213 files were read from this clean-room repository; no old archive, history, personal home, credentials, deployment, commercial inference, or external MCP was used.",
+    "structural": "TypeScript 7 local compiler API parsed all TS/TSX/MJS files and traversed every AST node. The retained evidence includes imports, test declaration expressions, assertion counts, focused/skipped declarations, RPC method/argument text, complete effect text, JSX event-handler text and function declarations. All file-level RPC/effect summaries and test scenario names were reviewed; this is structural inspection, not a claim of manual full-test-body reading.",
+    "manual": "Full-text reading for the files in manualFullTextFiles; selected source ranges and cross-component call-flow review for the remaining production files. Core paths covered authentication/MFA, project creation and navigation, composer/models/provider settings, defaults and effort validation, usage, receipts and storage, background reconnect and terminal ownership, rendering, draft recovery, automation/execution settings, file/Git/worktree operations, MCP and extensions.",
+    "tests": "Exactly one temporary local-protocol-substitute reproduction file, containing 3 specific defect reproductions, was executed. Final result: 3 passed (these assertions prove current incorrect behavior). An initial automation reproduction used an incorrect fixture button label; correcting that label produced the final pass. No product test was edited and no full suite or production build was run.",
+    "cssAndBuild": "All eight CSS files and web build/bootstrap/configuration files were read. No current real-browser pixel/OS-IME/production-authentication/live-provider validation is claimed.",
+    "digest": "node scripts/snapshot.mjs rechecked the original 1937-file digest at the end; unchanged."
+  },
+  "evidence": [
+    ".work/v220-audit-web-structure.mjs",
+    ".work/v220-audit-web-structure.json",
+    ".work/v220-audit-web-summary.json",
+    ".work/v220-audit-web-tsconfig.json",
+    ".work/v220-web-repro.test.tsx",
+    ".work/v220-web-repro.config.mjs",
+    ".work/v220-web-repro.log"
+  ],
+  "manualFullTextFiles": [
+    "AGENTS.md",
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ModelPicker.tsx",
+    "web/components/OperationHistory.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/UsagePopover.tsx",
+    "web/components/Welcome.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/useModelCatalogRefresh.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operation-store.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-usability.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/model-picker.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/project-create.test.tsx",
+    "web/tests/usage.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "limitations": [
+    "Not all 213 source/test files received manual line-by-line full-text reading; structural inspection and focused control-flow review are explicitly distinguished.",
+    "No full suite, production build, commercial inference, real external MCP, live account credentials, production deployment, or real-browser screenshot session was performed in this audit."
+  ],
+  "inspectedFiles": [
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpAuthorization.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ModelPicker.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OperationHistory.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/UsagePopover.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/useModelCatalogRefresh.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/events.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operation-store.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/styles-automations.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-usability.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/enabled-button.ts",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extension-mcp-drafts.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/model-picker.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operation-history.test.tsx",
+    "web/tests/operation-setup.ts",
+    "web/tests/operation-storage.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/paged-models.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/preview-server.test.ts",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/project-create.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx",
+    "web/tests/provider-multi.test.tsx",
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings-drafts.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/usage.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-handoff.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "inspectionByFile": [
+    {
+      "path": "web/App.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 120,
+      "bytes": 3579
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "method": "manual-full-text plus structural",
+      "lines": 87,
+      "bytes": 14483
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 1582,
+      "bytes": 62302
+    },
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 489,
+      "bytes": 17452
+    },
+    {
+      "path": "web/components/AccountToolsPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 378,
+      "bytes": 14226
+    },
+    {
+      "path": "web/components/AdminSettings.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 161,
+      "bytes": 6713
+    },
+    {
+      "path": "web/components/ArchiveActions.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 28,
+      "bytes": 688
+    },
+    {
+      "path": "web/components/AttachmentButton.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 178,
+      "bytes": 5695
+    },
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 738,
+      "bytes": 27048
+    },
+    {
+      "path": "web/components/AutomationsPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 517,
+      "bytes": 18253
+    },
+    {
+      "path": "web/components/CliDiagnosticsPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 159,
+      "bytes": 5790
+    },
+    {
+      "path": "web/components/CompactThreshold.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 80,
+      "bytes": 2776
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 512,
+      "bytes": 18439
+    },
+    {
+      "path": "web/components/ComposerOptions.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 54,
+      "bytes": 1758
+    },
+    {
+      "path": "web/components/ConfigSettings.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 429,
+      "bytes": 16232
+    },
+    {
+      "path": "web/components/CreditNudge.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 121,
+      "bytes": 4217
+    },
+    {
+      "path": "web/components/DiagnosticsPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 276,
+      "bytes": 10572
+    },
+    {
+      "path": "web/components/Dialog.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 133,
+      "bytes": 4441
+    },
+    {
+      "path": "web/components/DraftsSettings.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 108,
+      "bytes": 3829
+    },
+    {
+      "path": "web/components/EnvironmentPicker.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 165,
+      "bytes": 5524
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 118,
+      "bytes": 4067
+    },
+    {
+      "path": "web/components/ExtensionsPanel.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 169,
+      "bytes": 6572
+    },
+    {
+      "path": "web/components/FileEditor.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 439,
+      "bytes": 15100
+    },
+    {
+      "path": "web/components/GuardianReviewPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 406,
+      "bytes": 14121
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 636,
+      "bytes": 20830
+    },
+    {
+      "path": "web/components/HookEventsPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 217,
+      "bytes": 8290
+    },
+    {
+      "path": "web/components/Icon.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 37,
+      "bytes": 1234
+    },
+    {
+      "path": "web/components/ImportPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 421,
+      "bytes": 15347
+    },
+    {
+      "path": "web/components/InputContextPicker.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 422,
+      "bytes": 14734
+    },
+    {
+      "path": "web/components/InputPreferences.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 32,
+      "bytes": 1110
+    },
+    {
+      "path": "web/components/LoadedThreadsPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 153,
+      "bytes": 6071
+    },
+    {
+      "path": "web/components/Login.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 104,
+      "bytes": 7133
+    },
+    {
+      "path": "web/components/McpArguments.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 152,
+      "bytes": 5177
+    },
+    {
+      "path": "web/components/McpAuthorization.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 130,
+      "bytes": 10506
+    },
+    {
+      "path": "web/components/McpConfiguration.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 591,
+      "bytes": 21405
+    },
+    {
+      "path": "web/components/McpContent.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 263,
+      "bytes": 8757
+    },
+    {
+      "path": "web/components/McpPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 845,
+      "bytes": 32029
+    },
+    {
+      "path": "web/components/MemorySettings.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 205,
+      "bytes": 7509
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 162,
+      "bytes": 5860
+    },
+    {
+      "path": "web/components/MessageMedia.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 219,
+      "bytes": 7169
+    },
+    {
+      "path": "web/components/Messages.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 267,
+      "bytes": 9288
+    },
+    {
+      "path": "web/components/ModelCatalog.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 440,
+      "bytes": 17603
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 76,
+      "bytes": 6252
+    },
+    {
+      "path": "web/components/NativeProjects.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 412,
+      "bytes": 14578
+    },
+    {
+      "path": "web/components/OperationHistory.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 41,
+      "bytes": 2706
+    },
+    {
+      "path": "web/components/OrganizationPanel.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 129,
+      "bytes": 4361
+    },
+    {
+      "path": "web/components/PluginSettings.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 450,
+      "bytes": 16983
+    },
+    {
+      "path": "web/components/PluginSharing.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 495,
+      "bytes": 18205
+    },
+    {
+      "path": "web/components/PredictionPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 409,
+      "bytes": 15336
+    },
+    {
+      "path": "web/components/ProcessPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 571,
+      "bytes": 19807
+    },
+    {
+      "path": "web/components/ProjectDialog.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 109,
+      "bytes": 4749
+    },
+    {
+      "path": "web/components/ProjectTrustSettings.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 121,
+      "bytes": 4470
+    },
+    {
+      "path": "web/components/PromptFields.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 229,
+      "bytes": 7444
+    },
+    {
+      "path": "web/components/Prompts.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 495,
+      "bytes": 17960
+    },
+    {
+      "path": "web/components/ProviderProfiles.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 159,
+      "bytes": 5348
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 493,
+      "bytes": 21110
+    },
+    {
+      "path": "web/components/RealtimePanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 716,
+      "bytes": 24702
+    },
+    {
+      "path": "web/components/ReceiptMaintenance.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 274,
+      "bytes": 9285
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 264,
+      "bytes": 11132
+    },
+    {
+      "path": "web/components/RemoteSettings.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 637,
+      "bytes": 21883
+    },
+    {
+      "path": "web/components/RenameDialog.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 68,
+      "bytes": 2192
+    },
+    {
+      "path": "web/components/RuntimeInsights.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 295,
+      "bytes": 10866
+    },
+    {
+      "path": "web/components/SafeMarkdown.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 249,
+      "bytes": 7790
+    },
+    {
+      "path": "web/components/SecuritySettings.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 161,
+      "bytes": 12504
+    },
+    {
+      "path": "web/components/Settings.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 243,
+      "bytes": 9126
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 217,
+      "bytes": 6451
+    },
+    {
+      "path": "web/components/SkillLibraryTools.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 628,
+      "bytes": 24340
+    },
+    {
+      "path": "web/components/SkillSettings.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 190,
+      "bytes": 7361
+    },
+    {
+      "path": "web/components/TaskPanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 736,
+      "bytes": 25236
+    },
+    {
+      "path": "web/components/TerminalPanel.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 522,
+      "bytes": 18861
+    },
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 470,
+      "bytes": 17365
+    },
+    {
+      "path": "web/components/ThreadOrganization.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 733,
+      "bytes": 25659
+    },
+    {
+      "path": "web/components/ThreadTerminals.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 400,
+      "bytes": 13522
+    },
+    {
+      "path": "web/components/UsagePopover.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 43,
+      "bytes": 2014
+    },
+    {
+      "path": "web/components/Welcome.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 42,
+      "bytes": 1352
+    },
+    {
+      "path": "web/components/WorkspaceCommit.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 248,
+      "bytes": 8378
+    },
+    {
+      "path": "web/components/WorkspaceDownload.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 90,
+      "bytes": 2824
+    },
+    {
+      "path": "web/components/WorkspaceGit.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 221,
+      "bytes": 6772
+    },
+    {
+      "path": "web/components/WorkspaceIndex.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 268,
+      "bytes": 9791
+    },
+    {
+      "path": "web/components/WorkspaceIndexRecovery.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 319,
+      "bytes": 11679
+    },
+    {
+      "path": "web/components/WorkspacePanel.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 820,
+      "bytes": 29410
+    },
+    {
+      "path": "web/components/WorkspaceRecovery.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 416,
+      "bytes": 15277
+    },
+    {
+      "path": "web/components/WorkspaceSearch.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 176,
+      "bytes": 6218
+    },
+    {
+      "path": "web/components/WorkspaceWorktrees.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 394,
+      "bytes": 14129
+    },
+    {
+      "path": "web/hooks/useAutomationRuns.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 112,
+      "bytes": 4099
+    },
+    {
+      "path": "web/hooks/useConversation.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 280,
+      "bytes": 9619
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 165,
+      "bytes": 6655
+    },
+    {
+      "path": "web/hooks/useEvents.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 148,
+      "bytes": 5399
+    },
+    {
+      "path": "web/hooks/useModelCatalogRefresh.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 42,
+      "bytes": 2828
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 122,
+      "bytes": 4195
+    },
+    {
+      "path": "web/hooks/usePrompts.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 59,
+      "bytes": 2211
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 49,
+      "bytes": 1485
+    },
+    {
+      "path": "web/hooks/useResume.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 44,
+      "bytes": 1623
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 132,
+      "bytes": 4633
+    },
+    {
+      "path": "web/hooks/useWorkspaceWatch.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 88,
+      "bytes": 3304
+    },
+    {
+      "path": "web/index.html",
+      "method": "manual-full-text plus structural",
+      "lines": 3,
+      "bytes": 306
+    },
+    {
+      "path": "web/lib/api.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 471,
+      "bytes": 19676
+    },
+    {
+      "path": "web/lib/automations.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 133,
+      "bytes": 4231
+    },
+    {
+      "path": "web/lib/download.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 20,
+      "bytes": 662
+    },
+    {
+      "path": "web/lib/drafts.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 144,
+      "bytes": 5237
+    },
+    {
+      "path": "web/lib/events.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 18,
+      "bytes": 582
+    },
+    {
+      "path": "web/lib/file-drafts.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 106,
+      "bytes": 3957
+    },
+    {
+      "path": "web/lib/form-values.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 16,
+      "bytes": 483
+    },
+    {
+      "path": "web/lib/git-state.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 28,
+      "bytes": 961
+    },
+    {
+      "path": "web/lib/history.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 227,
+      "bytes": 8556
+    },
+    {
+      "path": "web/lib/ids.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 19,
+      "bytes": 1041
+    },
+    {
+      "path": "web/lib/imports.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 91,
+      "bytes": 3233
+    },
+    {
+      "path": "web/lib/input-context.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 127,
+      "bytes": 5187
+    },
+    {
+      "path": "web/lib/input-modalities.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 76,
+      "bytes": 3156
+    },
+    {
+      "path": "web/lib/input-preference.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 47,
+      "bytes": 1292
+    },
+    {
+      "path": "web/lib/mcp-session.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 101,
+      "bytes": 3751
+    },
+    {
+      "path": "web/lib/media.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 177,
+      "bytes": 6879
+    },
+    {
+      "path": "web/lib/operation-store.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 70,
+      "bytes": 3026
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 290,
+      "bytes": 16138
+    },
+    {
+      "path": "web/lib/organization.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 11,
+      "bytes": 533
+    },
+    {
+      "path": "web/lib/prompt-validation.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 170,
+      "bytes": 6536
+    },
+    {
+      "path": "web/lib/realtime-media.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 117,
+      "bytes": 4660
+    },
+    {
+      "path": "web/lib/receipt-archive.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 116,
+      "bytes": 4386
+    },
+    {
+      "path": "web/lib/stream-items.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 77,
+      "bytes": 2966
+    },
+    {
+      "path": "web/lib/timeline.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 126,
+      "bytes": 5189
+    },
+    {
+      "path": "web/lib/types.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 88,
+      "bytes": 2452
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 127,
+      "bytes": 5996
+    },
+    {
+      "path": "web/lib/workspace.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 132,
+      "bytes": 4612
+    },
+    {
+      "path": "web/main.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 13,
+      "bytes": 306
+    },
+    {
+      "path": "web/styles-automations.css",
+      "method": "manual-full-text plus structural",
+      "lines": 66,
+      "bytes": 1198
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "method": "manual-full-text plus structural",
+      "lines": 218,
+      "bytes": 3994
+    },
+    {
+      "path": "web/styles-input-context.css",
+      "method": "manual-full-text plus structural",
+      "lines": 92,
+      "bytes": 1603
+    },
+    {
+      "path": "web/styles-responsive.css",
+      "method": "manual-full-text plus structural",
+      "lines": 443,
+      "bytes": 7847
+    },
+    {
+      "path": "web/styles-usability.css",
+      "method": "manual-full-text plus structural",
+      "lines": 54,
+      "bytes": 3959
+    },
+    {
+      "path": "web/styles-workflows.css",
+      "method": "manual-full-text plus structural",
+      "lines": 285,
+      "bytes": 5135
+    },
+    {
+      "path": "web/styles-workspace.css",
+      "method": "manual-full-text plus structural",
+      "lines": 318,
+      "bytes": 5725
+    },
+    {
+      "path": "web/styles.css",
+      "method": "manual-full-text plus structural",
+      "lines": 1528,
+      "bytes": 26114
+    },
+    {
+      "path": "web/tests/account-app.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 36,
+      "bytes": 1933
+    },
+    {
+      "path": "web/tests/account-tools.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 167,
+      "bytes": 7147
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 839,
+      "bytes": 37038
+    },
+    {
+      "path": "web/tests/attachments.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 241,
+      "bytes": 10438
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 701,
+      "bytes": 30173
+    },
+    {
+      "path": "web/tests/builtin-auth.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 279,
+      "bytes": 18313
+    },
+    {
+      "path": "web/tests/cli-diagnostics.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 115,
+      "bytes": 5080
+    },
+    {
+      "path": "web/tests/compact-threshold.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 37,
+      "bytes": 1379
+    },
+    {
+      "path": "web/tests/composer.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 261,
+      "bytes": 9510
+    },
+    {
+      "path": "web/tests/conversation.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 444,
+      "bytes": 15910
+    },
+    {
+      "path": "web/tests/credit-nudge.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 85,
+      "bytes": 3491
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 287,
+      "bytes": 12202
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 240,
+      "bytes": 9637
+    },
+    {
+      "path": "web/tests/dialog.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 180,
+      "bytes": 6992
+    },
+    {
+      "path": "web/tests/drafts.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 364,
+      "bytes": 19552
+    },
+    {
+      "path": "web/tests/enabled-button.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 10,
+      "bytes": 430
+    },
+    {
+      "path": "web/tests/environment-picker.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 94,
+      "bytes": 3130
+    },
+    {
+      "path": "web/tests/events.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 269,
+      "bytes": 9503
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 294,
+      "bytes": 12033
+    },
+    {
+      "path": "web/tests/extension-mcp-drafts.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 256,
+      "bytes": 19499
+    },
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 407,
+      "bytes": 16821
+    },
+    {
+      "path": "web/tests/git-index-ui.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 285,
+      "bytes": 12501
+    },
+    {
+      "path": "web/tests/guardian-review.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 257,
+      "bytes": 9544
+    },
+    {
+      "path": "web/tests/history.test.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 240,
+      "bytes": 7368
+    },
+    {
+      "path": "web/tests/hook-events.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 139,
+      "bytes": 5097
+    },
+    {
+      "path": "web/tests/import-ui.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 282,
+      "bytes": 11400
+    },
+    {
+      "path": "web/tests/input-context.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 420,
+      "bytes": 14117
+    },
+    {
+      "path": "web/tests/input-modalities.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 148,
+      "bytes": 5933
+    },
+    {
+      "path": "web/tests/input-preference.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 74,
+      "bytes": 2851
+    },
+    {
+      "path": "web/tests/loaded-threads.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 128,
+      "bytes": 5306
+    },
+    {
+      "path": "web/tests/mcp-media.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 325,
+      "bytes": 14300
+    },
+    {
+      "path": "web/tests/mcp-oauth.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 115,
+      "bytes": 9682
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 1008,
+      "bytes": 39089
+    },
+    {
+      "path": "web/tests/memory-settings.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 139,
+      "bytes": 5777
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 190,
+      "bytes": 7296
+    },
+    {
+      "path": "web/tests/modal-mutations.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 468,
+      "bytes": 18385
+    },
+    {
+      "path": "web/tests/model-picker.test.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 100,
+      "bytes": 7275
+    },
+    {
+      "path": "web/tests/operation-generation.test.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 56,
+      "bytes": 2238
+    },
+    {
+      "path": "web/tests/operation-history.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 57,
+      "bytes": 3702
+    },
+    {
+      "path": "web/tests/operation-setup.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 12,
+      "bytes": 482
+    },
+    {
+      "path": "web/tests/operation-storage.test.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 283,
+      "bytes": 17929
+    },
+    {
+      "path": "web/tests/operations.test.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 278,
+      "bytes": 12259
+    },
+    {
+      "path": "web/tests/organization.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 412,
+      "bytes": 20139
+    },
+    {
+      "path": "web/tests/paged-models.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 35,
+      "bytes": 2144
+    },
+    {
+      "path": "web/tests/prediction.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 217,
+      "bytes": 8492
+    },
+    {
+      "path": "web/tests/preview-server.mjs",
+      "method": "manual-full-text plus structural",
+      "lines": 139,
+      "bytes": 8772
+    },
+    {
+      "path": "web/tests/preview-server.test.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 126,
+      "bytes": 6760
+    },
+    {
+      "path": "web/tests/process-remote.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 758,
+      "bytes": 33350
+    },
+    {
+      "path": "web/tests/project-create.test.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 42,
+      "bytes": 3141
+    },
+    {
+      "path": "web/tests/prompt-fields.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 275,
+      "bytes": 10831
+    },
+    {
+      "path": "web/tests/prompts.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 591,
+      "bytes": 21207
+    },
+    {
+      "path": "web/tests/provider-advanced.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 228,
+      "bytes": 11047
+    },
+    {
+      "path": "web/tests/provider-catalog.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 351,
+      "bytes": 17682
+    },
+    {
+      "path": "web/tests/provider-multi.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 84,
+      "bytes": 4583
+    },
+    {
+      "path": "web/tests/provider-profiles.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 115,
+      "bytes": 5383
+    },
+    {
+      "path": "web/tests/provider.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 139,
+      "bytes": 5921
+    },
+    {
+      "path": "web/tests/realtime.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 592,
+      "bytes": 24239
+    },
+    {
+      "path": "web/tests/receipt-maintenance.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 187,
+      "bytes": 8668
+    },
+    {
+      "path": "web/tests/recovery.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 162,
+      "bytes": 7414
+    },
+    {
+      "path": "web/tests/render-budget.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 161,
+      "bytes": 6553
+    },
+    {
+      "path": "web/tests/resources.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 57,
+      "bytes": 2356
+    },
+    {
+      "path": "web/tests/resume.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 51,
+      "bytes": 2281
+    },
+    {
+      "path": "web/tests/session.test.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 195,
+      "bytes": 8209
+    },
+    {
+      "path": "web/tests/settings-drafts.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 234,
+      "bytes": 13430
+    },
+    {
+      "path": "web/tests/settings.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 190,
+      "bytes": 7560
+    },
+    {
+      "path": "web/tests/sharing-diagnostics.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 347,
+      "bytes": 14806
+    },
+    {
+      "path": "web/tests/skill-library.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 606,
+      "bytes": 29909
+    },
+    {
+      "path": "web/tests/stream-items.test.ts",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 93,
+      "bytes": 3521
+    },
+    {
+      "path": "web/tests/terminal.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 613,
+      "bytes": 24353
+    },
+    {
+      "path": "web/tests/thread-terminals.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 431,
+      "bytes": 18082
+    },
+    {
+      "path": "web/tests/timeline-history.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 293,
+      "bytes": 11241
+    },
+    {
+      "path": "web/tests/usage.test.tsx",
+      "method": "manual-full-text plus structural",
+      "lines": 34,
+      "bytes": 2137
+    },
+    {
+      "path": "web/tests/workflows.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 942,
+      "bytes": 41851
+    },
+    {
+      "path": "web/tests/workspace-git-drafts.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 242,
+      "bytes": 13576
+    },
+    {
+      "path": "web/tests/workspace-handoff.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 287,
+      "bytes": 14904
+    },
+    {
+      "path": "web/tests/workspace-management.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 542,
+      "bytes": 23307
+    },
+    {
+      "path": "web/tests/workspace-search.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 90,
+      "bytes": 3025
+    },
+    {
+      "path": "web/tests/workspace-ui.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 517,
+      "bytes": 20220
+    },
+    {
+      "path": "web/tests/workspace-watch.test.tsx",
+      "method": "AST/content structural inspection plus scenario/control-flow review",
+      "lines": 178,
+      "bytes": 7065
+    },
+    {
+      "path": "web/tsconfig.json",
+      "method": "manual-full-text plus structural",
+      "lines": 2,
+      "bytes": 329
+    },
+    {
+      "path": "web/vite.config.ts",
+      "method": "manual-full-text plus structural",
+      "lines": 12,
+      "bytes": 362
+    }
+  ],
+  "statistics": {
+    "frozenWebFiles": 213,
+    "totalBytes": 2158565,
+    "testSupportFiles": 79,
+    "assertionNodes": 2853,
+    "parseErrors": [],
+    "focusedOrSkipped": [],
+    "manualFullTextFiles": 91
+  }
+}

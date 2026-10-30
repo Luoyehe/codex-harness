@@ -1,0 +1,1115 @@
+{
+  "audit": "v220-audit2-deploy",
+  "auditor": "independent deploy subagent",
+  "repository": "D:\\Document\\ChatGPT\\codex-harness\\rewrite-20261025",
+  "scope": [
+    "deploy/**",
+    "tests/deploy/**",
+    "harness.sh"
+  ],
+  "start": {
+    "earliestBoundUtc": "2026-10-30T05:55:43.773486+00:00",
+    "latestBoundUtc": "2026-10-30T05:58:55.559685+00:00",
+    "note": "Exact first-read wallclock was not separately recorded; review began after parent snapshot freeze and before the structural-inspection helper was created."
+  },
+  "finishedAtUtc": "2026-10-30T06:08:12.913574+00:00",
+  "frozenSnapshot": {
+    "files": 1938,
+    "digest": "c6f55746080e5feba82a88190e7c48789f583169475e9aa82e1b968511fee34a",
+    "evidence": ".work/v220-audit2-snapshot.json"
+  },
+  "endingSnapshot": {
+    "files": 1938,
+    "digest": "c6f55746080e5feba82a88190e7c48789f583169475e9aa82e1b968511fee34a"
+  },
+  "snapshotUnchanged": true,
+  "complete": true,
+  "clean": false,
+  "coverage": {
+    "scopeFiles": 124,
+    "inspectedFiles": 124,
+    "methodCounts": {
+      "ast_structure": 12,
+      "ast_test_structure": 56,
+      "dependency_material_structure": 2,
+      "full_text": 54
+    },
+    "enumerationOnly": 0,
+    "uninspectedSourceFiles": []
+  },
+  "inspectedFiles": [
+    {
+      "path": "deploy/README.md",
+      "sha256": "54ca6f7167dfa44e6c4957bb62eb75b5553a8b99091de35351cc08b78fea7984",
+      "bytes": 96678,
+      "lines": 490,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/RECOVERY.md",
+      "sha256": "74b82b96b8d0b81abc268735e440800eb1628e32a144efcd60dddbffcf215361",
+      "bytes": 26008,
+      "lines": 318,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/__init__.py",
+      "sha256": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+      "bytes": 78,
+      "lines": 1,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/accounts.py",
+      "sha256": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+      "bytes": 11018,
+      "lines": 191,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/archive.py",
+      "sha256": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+      "bytes": 7375,
+      "lines": 161,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "1f4c0733cbc7973c58594efb3c91e9c5847a1f02c3a943ceb3ebe7595d79b79c",
+      "bytes": 20859,
+      "lines": 352,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/caddy_dns_source/go.mod",
+      "sha256": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+      "bytes": 10793,
+      "lines": 215,
+      "method": "dependency_material_structure",
+      "details": "Pinned source-byte hash verification; all go.sum line fields, h1 digest lengths and duplicate module/version pairs; direct Caddy and all six provider module/version pins present in go.mod and both go.sum entries. Not semantic source review of external dependencies."
+    },
+    {
+      "path": "deploy/caddy_dns_source/go.sum",
+      "sha256": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975",
+      "bytes": 151582,
+      "lines": 1545,
+      "method": "dependency_material_structure",
+      "details": "Pinned source-byte hash verification; all go.sum line fields, h1 digest lengths and duplicate module/version pairs; direct Caddy and all six provider module/version pins present in go.mod and both go.sum entries. Not semantic source review of external dependencies."
+    },
+    {
+      "path": "deploy/caddy_dns_source/main.go",
+      "sha256": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+      "bytes": 3202,
+      "lines": 111,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/caddy_dns_source/main_test.go",
+      "sha256": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+      "bytes": 6198,
+      "lines": 183,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/candidate_archive.py",
+      "sha256": "f5932546f85aafafca86312b14db5fb33a692605b60f756599ff5e530ae6b91b",
+      "bytes": 14578,
+      "lines": 252,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/candidate_probe.py",
+      "sha256": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+      "bytes": 5420,
+      "lines": 115,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/catalog.py",
+      "sha256": "f90928d0f5d52c95793f0a8af8fbdfd00e8410ab82fefba83f132d2599a9ec29",
+      "bytes": 6976,
+      "lines": 128,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "1bf4a8e14f1a923b9ba95d0cc9dfc9451aa9b4e7d2ad0282cdea4cdbe04dbb40",
+      "bytes": 24304,
+      "lines": 360,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/common.py",
+      "sha256": "e795ab23079b5fb72f1fa95a2b512b15ffd7a8c2c39ad0d8012aced7e3e72fe3",
+      "bytes": 8516,
+      "lines": 207,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "sha256": "65eac1a170900e1c15dcb9e8d290bc0e53cb1f3bbbdb5a3bd015cc840135271f",
+      "bytes": 16091,
+      "lines": 312,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "5793a688d763b27a4d90665dc59fea8b82b9e390fa62b044328af01c5f7a2f59",
+      "bytes": 37128,
+      "lines": 631,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/dns_caddy_build.py",
+      "sha256": "88babaac6ea04d2e63df0c3bba128c1e7c987dad22eda8d188b3b6bb71e63c89",
+      "bytes": 18857,
+      "lines": 355,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/dns_providers.py",
+      "sha256": "e85f0d718dd911d1116c604d497bd637e7e7e3927cc4457eb6a8bbbcc76de167",
+      "bytes": 4325,
+      "lines": 86,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/dns_tls.py",
+      "sha256": "4b451e88758577d41507b3ef3c9fdeb69729b211650d6095d3cfadf9211db612",
+      "bytes": 7354,
+      "lines": 135,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/edge_defaults.py",
+      "sha256": "b2ee74b8c5fe22c095f13651cfc4a174449ab367e1d30bce78421fcc4c099ae1",
+      "bytes": 145,
+      "lines": 4,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/https.py",
+      "sha256": "0c6d05e5f2233cd42ff1ee4fc112d6b736b62a32711edca5259e89dea4edc6d7",
+      "bytes": 38407,
+      "lines": 678,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/https_guidance.py",
+      "sha256": "143157050a8f0ffe69f6a214bc1d7cc7661968bee4c65b9b3f4511ff3db4b218",
+      "bytes": 7466,
+      "lines": 98,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/https_health.py",
+      "sha256": "1862f1c1373a582ea08a3627d2449e17ce998dc517bdd513b147d1e046ba1d90",
+      "bytes": 13786,
+      "lines": 279,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "9611ea11fbd59d3a9e62aebf18936108e222e66e1c9d6375db1625e1153d4079",
+      "bytes": 8819,
+      "lines": 179,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/install.sh",
+      "sha256": "5c255716dcbe6f9fc2e973c078838639a4846383900b6e5b93a54890a2a523de",
+      "bytes": 100,
+      "lines": 4,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/install_recovery.py",
+      "sha256": "7195b20796ac0c301415c5c931292e131a5392d26e6b34a335f9c70355b85306",
+      "bytes": 26657,
+      "lines": 427,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/journal.py",
+      "sha256": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+      "bytes": 4204,
+      "lines": 82,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/journal_schema.py",
+      "sha256": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+      "bytes": 4158,
+      "lines": 75,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "8ed3237c3f844a0191db447cc54311a2dbf2c1d1fa9c813d24fa99a1e979e8b2",
+      "bytes": 42108,
+      "lines": 712,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "fa28203049c31f13743bbbdc567d20968243f9024eb4bd2d300cb8c2ea4365ea",
+      "bytes": 15444,
+      "lines": 267,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/operator.py",
+      "sha256": "6041efbc9e9d922227d27a9bbce4ca0817da72f7c85a44fba1f60e3d2b8deacc",
+      "bytes": 21934,
+      "lines": 376,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "5984bb21c541f7ad6f87e6a4b44052a4171e41c2eff876cb4944dafa49b74c6a",
+      "bytes": 5985,
+      "lines": 98,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/ports.py",
+      "sha256": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+      "bytes": 4019,
+      "lines": 71,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "0add7de50dea5c6fe09aaec33a31e117e722253e9c2b8a79f34392417c1bac2f",
+      "bytes": 22131,
+      "lines": 338,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/provider_bedrock.py",
+      "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+      "bytes": 1997,
+      "lines": 36,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/provider_catalogs.py",
+      "sha256": "54c26f79ffdfb48777ab4d9f1fdd96d3726760b2d09734e5549573cf986f9e57",
+      "bytes": 2313,
+      "lines": 51,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/provider_gateway.py",
+      "sha256": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+      "bytes": 3428,
+      "lines": 53,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "sha256": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+      "bytes": 16009,
+      "lines": 284,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/provider_lifecycle.py",
+      "sha256": "41ab476b99fe8f3d78047ea228e186fe6b25af299bb5c3973845c411466745be",
+      "bytes": 9502,
+      "lines": 180,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "26d9adb18c915a57a2fd38577002b0ed4c97ef7a1834fcb639cf60b4d6223bf6",
+      "bytes": 10746,
+      "lines": 205,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/requests.py",
+      "sha256": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+      "bytes": 8432,
+      "lines": 165,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/safe_fs.py",
+      "sha256": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+      "bytes": 15533,
+      "lines": 330,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/sandbox.py",
+      "sha256": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+      "bytes": 3137,
+      "lines": 55,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/service_lifecycle.py",
+      "sha256": "8930c198999fa857e58ad48de12793d9e2280d93f33cc2a11fc5d4f56b8b081c",
+      "bytes": 16921,
+      "lines": 298,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/system.py",
+      "sha256": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+      "bytes": 8225,
+      "lines": 136,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/transactions.py",
+      "sha256": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+      "bytes": 2301,
+      "lines": 36,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "e77d031d2bcc97c42528c8540efd184a1a4adc14389fd4b3abac83fdbfba951e",
+      "bytes": 10199,
+      "lines": 189,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/workspace.py",
+      "sha256": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+      "bytes": 19312,
+      "lines": 334,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "deploy/workspace_commit.py",
+      "sha256": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+      "bytes": 11168,
+      "lines": 197,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "sha256": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+      "bytes": 9409,
+      "lines": 166,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_git_transaction.py",
+      "sha256": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+      "bytes": 4076,
+      "lines": 75,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_git_view.py",
+      "sha256": "97e02216521e0067a18ddc75d8f7d7932b50e4051278edc0b01b04aca5be23c2",
+      "bytes": 3427,
+      "lines": 74,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_index.py",
+      "sha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+      "bytes": 14592,
+      "lines": 244,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_index_store.py",
+      "sha256": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+      "bytes": 8062,
+      "lines": 155,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_paths.py",
+      "sha256": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+      "bytes": 7126,
+      "lines": 156,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_recovery.py",
+      "sha256": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+      "bytes": 7673,
+      "lines": 163,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_resources.py",
+      "sha256": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+      "bytes": 6876,
+      "lines": 139,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_search.py",
+      "sha256": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+      "bytes": 6156,
+      "lines": 129,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_store.py",
+      "sha256": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+      "bytes": 15313,
+      "lines": 310,
+      "method": "ast_structure",
+      "details": "Parsed whole file; manually inspected every function name/range, unique calls, require guards, selected mutation/fsync/process effects and exception types. Not a full-text line-by-line read; extracted guard/effect expressions are bounded in evidence."
+    },
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "sha256": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+      "bytes": 20252,
+      "lines": 339,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "harness.sh",
+      "sha256": "016d68a0d4c996f7d96158e17e8a4909cc41693a46552a613d6de262b64ab6a6",
+      "bytes": 324,
+      "lines": 11,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "tests/deploy/linux_isolation.py",
+      "sha256": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+      "bytes": 4092,
+      "lines": 98,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "tests/deploy/linux_native_boundary.py",
+      "sha256": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+      "bytes": 5330,
+      "lines": 104,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "tests/deploy/recovery_runbook_probe.py",
+      "sha256": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+      "bytes": 15150,
+      "lines": 304,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "sha256": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+      "bytes": 8559,
+      "lines": 159,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_accounts.py",
+      "sha256": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+      "bytes": 3669,
+      "lines": 71,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "sha256": "de0dfba80c321df14d1f5c98600832e94b49b055391af695303b24e9c6e516a6",
+      "bytes": 6261,
+      "lines": 118,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "sha256": "9f5d80e38106ca3df29749a545e3e66a4d82b0d627433d6c5feaccbf2c6dc90a",
+      "bytes": 30802,
+      "lines": 521,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "3e785369e24808977b71edcd41ef24b906938c2f38db2cb1914141d0a76418a7",
+      "bytes": 43041,
+      "lines": 778,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_directory_durability.py",
+      "sha256": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+      "bytes": 6899,
+      "lines": 143,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_dns_caddy_build.py",
+      "sha256": "f9566f96a8faadb17e6c34c7202553e66fc888c8d6b30519e4a0778cfe2f1107",
+      "bytes": 9538,
+      "lines": 182,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_edge_diagnostics.py",
+      "sha256": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+      "bytes": 5081,
+      "lines": 100,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_https.py",
+      "sha256": "15856c2c06ba33f692d64c406e5ea836ff8a9b282e3de6506913da29a9a451d0",
+      "bytes": 61491,
+      "lines": 1020,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_initialization_resume.py",
+      "sha256": "6899ed54037018616ec35fe0bb40727e01f21a2dbc1a8bdc12310874768907e8",
+      "bytes": 13690,
+      "lines": 237,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_journal_recovery.py",
+      "sha256": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+      "bytes": 5873,
+      "lines": 113,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_management_boundaries.py",
+      "sha256": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+      "bytes": 11135,
+      "lines": 205,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_project_identity.py",
+      "sha256": "8f4375f4ef646ac04f2c9a6af09adbdc66f2b6d5ef48c215ec36aa234bdb2410",
+      "bytes": 3500,
+      "lines": 69,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "524b829bf7018d07e5ede380d903f1c84fc1422ae284ff96a9027f90c978f10a",
+      "bytes": 6667,
+      "lines": 93,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_provider_layers.py",
+      "sha256": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+      "bytes": 6215,
+      "lines": 129,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_release_reuse.py",
+      "sha256": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+      "bytes": 3386,
+      "lines": 71,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_request_spool.py",
+      "sha256": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+      "bytes": 3239,
+      "lines": 81,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_service_lifecycle.py",
+      "sha256": "892aea63c1657ba1563c128c23d7a9b36827b8915abba4aac84b0a4181b0bbc6",
+      "bytes": 13145,
+      "lines": 223,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/root/test_tree_durability.py",
+      "sha256": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+      "bytes": 14524,
+      "lines": 289,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_accounts.py",
+      "sha256": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+      "bytes": 10142,
+      "lines": 179,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_candidate_archive.py",
+      "sha256": "bf07c83cc781e356ea1e62a8755f89ea23147c09394e586eebd2ca100ec4e23b",
+      "bytes": 14450,
+      "lines": 274,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "ddff9786433e9192aaa07df309ccc8c87e84a9bd814e70fa87831b46d9ef5c5e",
+      "bytes": 13938,
+      "lines": 227,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_dependency_lock.py",
+      "sha256": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+      "bytes": 7487,
+      "lines": 164,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "16e1cbdf1f4f7b8b575ffbb0cee553dc184aed86f1e526d43222f10278e58c7e",
+      "bytes": 49524,
+      "lines": 841,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_directory_durability.py",
+      "sha256": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+      "bytes": 6267,
+      "lines": 137,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_dns_caddy_build.py",
+      "sha256": "5faf7d10a41d8942d9bf5f52c79d85d2e928b1a59d2357322098e5d3c4293ae9",
+      "bytes": 6947,
+      "lines": 110,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_dns_tls.py",
+      "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+      "bytes": 13714,
+      "lines": 234,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_edge_diagnostics.py",
+      "sha256": "43d8f3e4c73f2e19c611151acfa969d7fac441bcea7caaaaae6568dd83b780a8",
+      "bytes": 5158,
+      "lines": 96,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_https.py",
+      "sha256": "33e7f111cb83dd7e175b10fe9429c0a98634be092f969725f3b2f937ac34290d",
+      "bytes": 9721,
+      "lines": 148,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_https_defaults.py",
+      "sha256": "3939b56ba536286c41e25b1386f4b7942e020d8caeefb42f41674e3d4971a6e5",
+      "bytes": 6925,
+      "lines": 111,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_https_guidance.py",
+      "sha256": "691002a67f5ae2f25223eee2bf6943a6f1e82f2f74bb7203eecf9bdb8efcb7b2",
+      "bytes": 7297,
+      "lines": 115,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_https_health.py",
+      "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "bytes": 20304,
+      "lines": 362,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_https_ports.py",
+      "sha256": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+      "bytes": 3869,
+      "lines": 69,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_initialization_resume.py",
+      "sha256": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+      "bytes": 5969,
+      "lines": 110,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "sha256": "6d0a9a326bf67c77dc1bcd4e3a9058a8de1d4e1b235a447fc64a61da590da2b1",
+      "bytes": 19937,
+      "lines": 380,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_journal_schema.py",
+      "sha256": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+      "bytes": 10895,
+      "lines": 164,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_management_boundaries.py",
+      "sha256": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+      "bytes": 3286,
+      "lines": 71,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_native_shutdown.py",
+      "sha256": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+      "bytes": 7863,
+      "lines": 139,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_operator.py",
+      "sha256": "506cc04b9145247f2ebd46d6c22da17c081979d611f71164a1687d1274a6e4c3",
+      "bytes": 20125,
+      "lines": 346,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_origins.py",
+      "sha256": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+      "bytes": 1411,
+      "lines": 31,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_prepare_ci_go.py",
+      "sha256": "f6809e2784c5d6a4aef0789dd82a495669632107e090ac2d8f0f6eea33a920c6",
+      "bytes": 13093,
+      "lines": 239,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_project_creation.py",
+      "sha256": "9c3ff6d7c65ff5ef515b2becce457b2236e5bb91c915cb3297b1310da7bb2cb8",
+      "bytes": 2958,
+      "lines": 55,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    },
+    {
+      "path": "tests/deploy/test_provider_bedrock.py",
+      "sha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+      "bytes": 5643,
+      "lines": 79,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_provider_gateway.py",
+      "sha256": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+      "bytes": 6530,
+      "lines": 87,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_provider_layers.py",
+      "sha256": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+      "bytes": 9537,
+      "lines": 138,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_provider_lifecycle.py",
+      "sha256": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+      "bytes": 8343,
+      "lines": 149,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "sha256": "3fbae8dc94568ab82aae833818d97c8b8a46295dea7579e74dba8d5a20d9c671",
+      "bytes": 14190,
+      "lines": 221,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_request_spool.py",
+      "sha256": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+      "bytes": 17047,
+      "lines": 335,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_sandbox.py",
+      "sha256": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+      "bytes": 2709,
+      "lines": 43,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_service_lifecycle.py",
+      "sha256": "4e1fbf7a4938e0c566b66aa0fddeddf693e73ac25913bbda38c065ec30850b85",
+      "bytes": 3281,
+      "lines": 56,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "sha256": "365b0f8ef95c5179d143f1211ffb11f0af90c42ee44ffe83082ba4d49edf94a0",
+      "bytes": 20576,
+      "lines": 347,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace_ack.py",
+      "sha256": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+      "bytes": 6764,
+      "lines": 116,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace_commit.py",
+      "sha256": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+      "bytes": 12458,
+      "lines": 226,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace_index.py",
+      "sha256": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+      "bytes": 17931,
+      "lines": 305,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace_recovery.py",
+      "sha256": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+      "bytes": 12346,
+      "lines": 200,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace_resources.py",
+      "sha256": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+      "bytes": 8985,
+      "lines": 166,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace_search.py",
+      "sha256": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+      "bytes": 4335,
+      "lines": 82,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/test_workspace_worktrees.py",
+      "sha256": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+      "bytes": 17010,
+      "lines": 291,
+      "method": "ast_test_structure",
+      "details": "Parsed whole file; manually inspected test method inventory, called helper/assertion targets and assertion counts, fixture setup/teardown side effects. Not a full-text read of every test predicate."
+    },
+    {
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "bytes": 7686,
+      "lines": 43,
+      "method": "full_text",
+      "details": "Whole current file read, in chunks where needed; selected cross-file callers, validation, publication/recovery and error paths traced. Documentation historical verification claims were read but not accepted as current audit/test evidence."
+    }
+  ],
+  "methods": [
+    "Read current AGENTS.md first and applied parent-provided latest user audit/test gate; no prior audit verdict or historical/adjacent archive source used.",
+    "Frozen-snapshot names provided exact scope. Each inspected file has its current byte SHA-256, separately checked at report time; whole-repository ending digest uses unmodified scripts/snapshot.mjs.",
+    "Focused manual cross-file review covered installation, HTTPS activation and recovery, DNS recipes/credentials, archive validation/build staging, upgrades, administrator reset, provider registry/layers/model catalogs, native identity/launcher and actual project creation.",
+    "AST structural inspection is reported separately from full-text review; test method/call coverage is not represented as executing tests or reading every assertion predicate.",
+    "Narrow offline monkeypatched fsync tracing exercised the actual create_project_from_input implementation in a fresh task-owned temporary native home.",
+    "Offline Caddy source pin/Go lock structure check read current repository material only; no dependency fetch or build occurred."
+  ],
+  "findings": [
+    {
+      "id": "DEPLOY-A2-001",
+      "priority": "P2",
+      "title": "Persist the newly created projects directory before reporting project creation success",
+      "file": "deploy/native_launcher.py",
+      "startLine": 51,
+      "endLine": 58,
+      "function": "create_project_from_input",
+      "trigger": "First successful project creation when native_home/projects does not yet exist; also a retry following interruption after creating that root.",
+      "description": "root.mkdir publishes native_home/projects, then project.mkdir publishes the child. Only fsync_directory(root) runs before the helper returns success. This synchronizes entries within projects but does not establish persistence of the projects name in native_home. The higher-level project registration can be durably committed after success while an abrupt reboot can lose that newly published ancestor entry.",
+      "impact": "A successfully registered first project can point to a missing directory after abrupt host failure; this violates durable publication before success. Ordinary non-crash creation succeeds.",
+      "evidence": ".work/v220-audit2-project-durability-repro.json",
+      "reproduce": [
+        "Run the ignored offline probe with the supplied Python: .work/audit2_deploy_project_probe.py.",
+        "The probe uses a fresh temporary native home and patches fsync_directory only to record its arguments.",
+        "Call create_project_from_input with {\"directory\":\"first-project\"}.",
+        "Observe a successful result while fsyncCallsRelativeToNativeHome equals [\"projects\"] and nativeHomeSynced equals false."
+      ],
+      "expected": "After root.mkdir and its directory/symlink checks, synchronize native_home before creating/publishing the project; do this even when projects already exists to cover interrupted retries. Also review synchronization of the newly created empty project directory itself before returning success.",
+      "validationBoundary": "Confirmed actual helper call ordering only. No power cut, destructive reboot, service changes or Linux filesystem durability experiment was performed.",
+      "testGap": "Both project-creation unit tests and native-identity project tests exercise ordinary success/error/ownership paths but do not require ancestor-directory durability."
+    }
+  ],
+  "checks": [
+    {
+      "name": "Python AST syntax/structure for all scoped Python files",
+      "result": "completed",
+      "evidence": ".work/v220-audit2-deploy-structure.json"
+    },
+    {
+      "name": "First-project publication syscall trace",
+      "result": "reproduced missing parent-directory fsync",
+      "evidence": ".work/v220-audit2-project-durability-repro.json"
+    },
+    {
+      "name": "Pinned Caddy recipe byte hashes, provider/Caddy lock pins and 1545 go.sum lines",
+      "result": "passed",
+      "evidence": ".work/v220-audit2-deploy-lockcheck.json"
+    },
+    {
+      "name": "Whole-repository final source freeze check",
+      "result": "matched 1938 files and expected digest",
+      "evidence": ".work/v220-audit2-deploy-final-snapshot.json"
+    }
+  ],
+  "skipped": [
+    {
+      "activity": "Full and targeted deployment test suites",
+      "reason": "This read-only audit stage explicitly prohibits full tests; only the narrow offline probes above were run."
+    },
+    {
+      "activity": "Real Linux root/systemd/UID/namespace/network/mount integration and actual reboot/power loss",
+      "reason": "No authorized disposable integration host used; current environment is Windows."
+    },
+    {
+      "activity": "Live installation, HTTPS issuance, DNS provider APIs, live administrator reset, real provider/model/MCP calls",
+      "reason": "Would mutate services or use external credentials/calls outside this audit scope."
+    },
+    {
+      "activity": "Historical documentation verification claims and externally linked source documentation",
+      "reason": "Not used as fresh evidence; this audit binds current repository source and offline observations."
+    }
+  ],
+  "limitations": [
+    "Complete means every scoped source file was inspected using the explicitly recorded method, not that every file had full-text review or that all runtime behavior was exercised.",
+    "Twelve production helpers and most tests received AST structural inspection; this method has less semantic detail than a full line-by-line read, and bounded extracted expressions may truncate long guards.",
+    "go.mod/go.sum review verifies pinned material consistency and lock structure, not correctness/security of all external dependency source.",
+    "Production Linux behaviors and external services remain unexecuted in this round.",
+    "The single durability finding establishes a missing persistence barrier, not measured data loss under a physical power interruption."
+  ],
+  "mutations": "Only ignored .work audit helpers/evidence; no source/service/configuration changes.",
+  "releaseDisposition": "Not clean: repair DEPLOY-A2-001 and re-establish the latest user-required complete clean audit before full tests/publication."
+}

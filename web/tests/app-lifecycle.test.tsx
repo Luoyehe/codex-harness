@@ -45,6 +45,17 @@ type Socket = {
   close: () => void;
 };
 let settleMutations = async () => {};
+async function loadedModelPicker() {
+  const trigger = await screen.findByLabelText('选择模型与思考强度');
+  // The summary derives from the loaded thread settings, not just catalog
+  // arrival. Keep the original fixture's session-readiness synchronization.
+  await waitFor(() => expect(trigger.textContent).toContain('fixture-model'), { timeout: 5000 });
+  fireEvent.click(trigger);
+  await screen.findByRole('option', { name: 'fixture-model' });
+  await screen.findByRole('option', { name: '沿用会话模型' });
+  await waitFor(() => expect((screen.getByRole('combobox', { name: '思考强度' }) as HTMLSelectElement).disabled).toBe(false));
+  fireEvent.click(trigger);
+}
 beforeEach(() => {
   const mutations = vi.spyOn(Api.prototype, 'beginMutation');
   settleMutations = async () => {
@@ -144,7 +155,15 @@ async function fixture(
             nextCursor: null,
           });
         case 'model/list':
-          return ok({ data: [], nextCursor: null });
+          return ok({ data: [{ id: 'fixture-model', model: 'fixture-model', displayName: 'fixture-model',
+            supportedReasoningEfforts: [{ reasoningEffort: 'medium' }], defaultReasoningEffort: 'medium' }], nextCursor: null });
+        case 'system/provider/read':
+          return ok({ revision: 'provider-fixture', defaultProviderId: 'fixture-provider', profiles: [], connections: [{
+            id: 'fixture-provider', name: 'Fixture', kind: 'chatgpt-gateway', enabled: true,
+            modelProvider: 'harness_fixture', model: 'fixture-model', baseUrl: 'https://example.invalid/codex',
+            gatewayOAuth: { authorizationUrl: 'https://example.invalid/authorize', tokenUrl: 'https://example.invalid/token',
+              clientId: 'fixture-public-client', cookieName: 'fixture-cookie' },
+          }] });
         case 'thread/read':
           return ok({ thread });
         case 'thread/history':
@@ -267,11 +286,7 @@ async function fixture(
   });
   if (requiresResume)
     await screen.findByRole('button', { name: '加载并继续（可能恢复待执行任务）' });
-  else
-    await waitFor(() =>
-      expect(screen.getByRole('option', { name: '沿用会话设置（fixture-model）' })).toBeTruthy(),
-      { timeout: 5000 },
-    );
+  else await loadedModelPicker();
   return {
     sockets,
     calls,
@@ -368,7 +383,7 @@ it('requires explicit continuation before loading a stored thread that may resum
     true,
   );
   fireEvent.click(screen.getByRole('button', { name: '加载并继续（可能恢复待执行任务）' }));
-  await screen.findByRole('option', { name: '沿用会话设置（fixture-model）' });
+  await loadedModelPicker();
   expect(f.count('thread/resume')).toBe(1);
   expect(f.count('turn/start')).toBe(0);
   expect(
@@ -775,7 +790,7 @@ it('keeps the voice panel mounted when returning to chat and does not implicitly
 it('retains owner-only OAuth handoff after configuration refresh without starting it on open', async () => {
   const f = await fixture();
   fireEvent.click(screen.getByRole('button', { name: /我的工作台/ }));
-  fireEvent.click(screen.getByRole('button', { name: '模型账户' }));
+  fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
   fireEvent.click(await screen.findByText('供应商网关 OAuth', { selector: 'summary' }));
   await screen.findByText('当前供应商：Fixture');
   expect(f.count('account/gatewayOAuth/login')).toBe(0);

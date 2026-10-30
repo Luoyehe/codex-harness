@@ -37,6 +37,83 @@ function rejectDraftWrites() {
   });
 }
 describe('bounded document-local drafts', () => {
+  it('guards only cross-key navigation and unload while the current draft is unsaved, then retries saving', () => {
+    const view = renderHook(() => useDraft('a')), failure = rejectDraftWrites();
+    act(() => view.result.current.setText('memory only'));
+    expect(view.result.current.canNavigateTo('a')).toBe(true);
+    expect(view.result.current.canNavigateTo('b')).toBe(false);
+    const leaving = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(leaving);
+    expect(leaving.defaultPrevented).toBe(true);
+    act(() => expect(view.result.current.retrySave()).toBe(false));
+    expect(view.result.current.text).toBe('memory only');
+    failure.mockRestore();
+    act(() => expect(view.result.current.retrySave()).toBe(true));
+    expect(readDraft('a').text).toBe('memory only');
+    expect(view.result.current.canNavigateTo('b')).toBe(true);
+    const savedLeave = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(savedLeave);
+    expect(savedLeave.defaultPrevented).toBe(false);
+  });
+  it('binds discard to its revision and restores only the saved owner without reviving old handoff authority', () => {
+    writeDraft({ ...emptyDraft('a'), text: 'saved A' });
+    writeDraft({ ...emptyDraft('b'), text: 'saved B' });
+    const view = renderHook(() => useDraft('a')), accepted = view.result.current.canLeaveAfterAcceptance;
+    rejectDraftWrites();
+    act(() => view.result.current.setText('memory B'));
+    const revision = view.result.current.revision;
+    act(() => view.result.current.setText('memory C'));
+    act(() => expect(view.result.current.discardUnsaved(revision)).toBe(false));
+    expect(view.result.current.text).toBe('memory C');
+    act(() => expect(view.result.current.discardUnsaved(view.result.current.revision)).toBe(true));
+    expect(view.result.current.text).toBe('saved A');
+    expect(readDraft('b').text).toBe('saved B');
+    expect(view.result.current.canNavigateTo('b')).toBe(true);
+    expect(accepted()).toBe(false);
+  });
+  it('durably restores the baseline when a failed read-back left the rejected write in storage', () => {
+    writeDraft({ ...emptyDraft('a'), text: 'saved A' });
+    const view = renderHook(({ key }) => useDraft(key), { initialProps: { key: 'a' } });
+    const original = Storage.prototype.getItem;
+    const failure = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key) {
+      if (this === sessionStorage && key === 'harness.draft.v1.a') throw new Error('verification failed');
+      return original.call(this, key);
+    });
+    act(() => view.result.current.setText('write reached storage'));
+    expect(view.result.current.hasUnsaved).toBe(true);
+    failure.mockRestore();
+    expect(readDraft('a').text).toBe('write reached storage');
+    act(() => expect(view.result.current.discardUnsaved(view.result.current.revision)).toBe(true));
+    view.rerender({ key: 'b' });
+    view.rerender({ key: 'a' });
+    expect(view.result.current.text).toBe('saved A');
+    expect(readDraft('a').text).toBe('saved A');
+  });
+  it.each(['snapshot-cleared', 'attachment-removed'] as const)('does not restore confirmed %s facts when discarding later unsaved input', kind => {
+    const original = { ...emptyDraft('a'), text: 'submitted A', attachments: [attachment] };
+    writeDraft(original);
+    const view = renderHook(({ key }) => useDraft(key), { initialProps: { key: 'a' } });
+    const failure = rejectDraftWrites();
+    act(() => view.result.current.setText('unsaved B'));
+    act(() => {
+      if (kind === 'snapshot-cleared') clearDraftSnapshot('a', original.revision);
+      else view.result.current.removeAttachment(attachment.attachmentId);
+    });
+    act(() => expect(view.result.current.discardUnsaved(view.result.current.revision)).toBe(kind === 'snapshot-cleared'));
+    expect(view.result.current.attachments).toEqual([]);
+    expect(view.result.current.text).toBe(kind === 'snapshot-cleared' ? '' : 'submitted A');
+    if (kind === 'attachment-removed') {
+      expect(view.result.current.canNavigateTo('b')).toBe(false);
+      expect(readDraft('a').attachments).toHaveLength(1);
+      failure.mockRestore();
+      act(() => expect(view.result.current.retrySave()).toBe(true));
+    }
+    expect(view.result.current.canNavigateTo('b')).toBe(true);
+    view.rerender({ key: 'b' });
+    view.rerender({ key: 'a' });
+    expect(view.result.current.attachments).toEqual([]);
+    expect(view.result.current.text).toBe(kind === 'snapshot-cleared' ? '' : 'submitted A');
+  });
   it('retains input dispatched from the first DOM commit before passive draft loading', async () => {
     writeDraft({ ...emptyDraft('a'), text: 'stored A' });
     rejectDraftWrites();

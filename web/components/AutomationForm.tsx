@@ -14,6 +14,14 @@ import { executionOptions, type CollaborationModeMask } from '../lib/workflows';
 import { useResource } from '../hooks/useResource';
 import { reconcileOperation } from '../lib/operations';
 import { useOperations } from './Recovery';
+import { modelSelection } from './ModelPicker';
+import { ModelDirectoryStatus, type ModelPagination } from './ModelDirectoryStatus';
+
+const matchesProvider = (model: Model, provider: unknown) =>
+  !provider ||
+  !model.modelProvider ||
+  model.modelProvider === provider ||
+  (typeof provider === 'string' && model.providerAliases?.includes(provider));
 type Submission = {
   operationId: string;
   revision: number;
@@ -47,6 +55,7 @@ type Props = {
   projectId: string;
   record?: Automation;
   models: Model[];
+  modelCatalog?: ModelPagination;
   modes: CollaborationModeMask[];
   enabled: boolean;
   onChanged: () => void;
@@ -115,6 +124,7 @@ function AutomationEditor({
   projectId,
   record,
   models,
+  modelCatalog,
   modes,
   enabled,
   onChanged,
@@ -271,24 +281,57 @@ function AutomationEditor({
     preview?.key === planKey && preview.next.some((at) => at > Date.now()) ? preview : undefined;
   const nativeOptions = original?.options ?? {},
     model = draft.overrides.model ?? String(nativeOptions.model ?? ''),
+    provider = draft.overrides.modelProvider ?? String(nativeOptions.modelProvider ?? ''),
     mode = draft.modeChanged
       ? (draft.overrides.mode ?? '')
       : String(object(nativeOptions.collaborationMode).mode ?? '');
   const defaults = useResource(
-    `${draft.projectId}:${model}`,
+    JSON.stringify([draft.projectId, provider, model]),
     (signal) =>
       api.call(
         'defaults/read',
-        { projectId: draft.projectId, options: model ? { model } : {} },
+        {
+          projectId: draft.projectId,
+          options: {
+            ...(model ? { model } : {}),
+            ...(provider ? { modelProvider: provider } : {}),
+          },
+        },
         signal,
       ),
-    Boolean(draft.projectId),
+    enabled && Boolean(draft.projectId),
   );
-  const efforts =
-    models.find((entry) => (entry.model ?? entry.id) === (model || defaults.data?.model))
-      ?.supportedReasoningEfforts ?? [];
+  const candidates = models.filter(
+    (entry) => (entry.model ?? entry.id) === (model || defaults.data?.model) &&
+      matchesProvider(entry, provider || defaults.data?.modelProvider),
+  );
+  const selectedModel = candidates.length === 1 ? candidates[0] : undefined;
+  const efforts = selectedModel?.supportedReasoningEfforts ?? [];
   const option = (name: keyof Options) =>
     String(draft.overrides[name] ?? nativeOptions[name] ?? '');
+  const selection = model
+    ? selectedModel ? modelSelection(selectedModel) : '__unavailable__'
+    : provider ? '__provider_default__' : '';
+  const modelChanged = 'model' in draft.overrides || 'modelProvider' in draft.overrides;
+  const defaultsMatch =
+    (!model || model === defaults.data?.model) &&
+    (!provider || provider === defaults.data?.modelProvider || Boolean(
+      selectedModel?.modelProvider && defaults.data?.modelProvider &&
+      matchesProvider(selectedModel, defaults.data.modelProvider),
+    ));
+  const settingsIssue = defaults.loading || modelCatalog?.loading
+    ? '正在核对模型设置，完成后即可保存计划。'
+    : defaults.error
+      ? `无法核对模型默认设置：${defaults.error}`
+      : !defaults.data || !defaultsMatch
+        ? '模型默认设置尚未确认，请重新读取。'
+        : modelChanged && model && !selectedModel
+          ? modelCatalog?.hasMore || modelCatalog?.error || modelCatalog?.warning
+            ? '尚未在已加载目录中找到所选模型，请继续加载或重新读取模型目录；原选择仍已保留。'
+            : '所选供应商或模型已不在当前目录，请重新选择；原选择仍已保留。'
+          : option('effort') && !efforts.some(entry => entry.reasoningEffort === option('effort'))
+            ? '所选推理强度不适用于当前供应商的模型，请重新选择或恢复默认强度。'
+            : '';
   const setOption = (name: keyof Options, value: string) =>
     update({ overrides: { ...draft.overrides, [name]: value } });
   const buildOptions = () => {
@@ -299,22 +342,27 @@ function AutomationEditor({
         else delete result[field];
       }
     if (draft.modeChanged) {
-      if (draft.overrides.mode)
-        result.collaborationMode = object(
+      if (draft.overrides.mode) {
+        const collaboration = object(object(
           executionOptions(
             {
               model: typeof result.model === 'string' ? result.model : undefined,
+              modelProvider: typeof result.modelProvider === 'string' ? result.modelProvider : undefined,
               effort: typeof result.effort === 'string' ? result.effort : undefined,
               mode: draft.overrides.mode,
             },
             defaults.data,
             modes,
           ),
-        ).collaborationMode;
-      else delete result.collaborationMode;
+        ).collaborationMode);
+        result.collaborationMode = { ...collaboration, settings: {
+          ...object(collaboration.settings),
+          reasoning_effort: result.effort ?? defaults.data?.reasoningEffort ?? null,
+        } };
+      } else delete result.collaborationMode;
     } else if (
       result.collaborationMode &&
-      ('model' in draft.overrides || 'effort' in draft.overrides)
+      (modelChanged || 'effort' in draft.overrides)
     ) {
       const collaboration = object(result.collaborationMode),
         settings = object(collaboration.settings),
@@ -357,7 +405,7 @@ function AutomationEditor({
     }
   };
   const save = async () => {
-    if (!confirmed || !currentPreview || disabled || running.current || current.current.pending)
+    if (!confirmed || !currentPreview || disabled || settingsIssue || running.current || current.current.pending)
       return;
     setError('');
     let submission: Submission | undefined;
@@ -606,19 +654,30 @@ function AutomationEditor({
             <label className="field">
               自动化模型
               <select
-                value={model}
-                onChange={(e) =>
-                  update({ overrides: { ...draft.overrides, model: e.target.value, effort: '' } })
-                }
+                value={selection}
+                onChange={(e) => {
+                  const next = models.find(entry => modelSelection(entry) === e.target.value);
+                  if (e.target.value && !next) return;
+                  update({ overrides: { ...draft.overrides, model: next?.model ?? next?.id ?? '',
+                    modelProvider: next?.modelProvider ?? '', effort: '' } });
+                }}
               >
                 <option value="">执行时使用项目默认值</option>
-                {model && !models.some((entry) => (entry.model ?? entry.id) === model) && (
-                  <option value={model}>{model}</option>
+                {selection === '__unavailable__' && (
+                  <option value="__unavailable__" disabled>原模型不在目录：{provider ? `${provider} / ` : ''}{model}（保留）</option>
                 )}
-                {models.map((entry) => (
-                  <option key={entry.id} value={entry.model ?? entry.id}>
-                    {entry.displayName ?? entry.id}
-                  </option>
+                {selection === '__provider_default__' && (
+                  <option value="__provider_default__" disabled>沿用供应商 {provider} 的默认模型</option>
+                )}
+                {[...new Set(models.map(entry => entry.modelProvider ?? ''))].map(group => (
+                  <optgroup key={group} label={models.find(entry => (entry.modelProvider ?? '') === group)?.providerName ?? (group || '模型')}>
+                    {models.filter(entry => (entry.modelProvider ?? '') === group).map(entry => (
+                      <option key={modelSelection(entry)} value={modelSelection(entry)}>
+                        {entry.displayName ?? entry.id}
+                        {entry.providerName || entry.modelProvider ? ` · ${entry.providerName ?? entry.modelProvider}` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
@@ -631,7 +690,7 @@ function AutomationEditor({
                 <option value="">执行时使用项目默认值</option>
                 {option('effort') &&
                   !efforts.some((entry) => entry.reasoningEffort === option('effort')) && (
-                    <option>{option('effort')}</option>
+                    <option value={option('effort')} disabled>{option('effort')}（原强度已不可用）</option>
                   )}
                 {efforts.map((entry) => (
                   <option key={entry.reasoningEffort}>{entry.reasoningEffort}</option>
@@ -684,8 +743,13 @@ function AutomationEditor({
               </select>
             </label>
           </div>
-          {defaults.error && <p className="error">{defaults.error}</p>}
+          <ModelDirectoryStatus directory={modelCatalog} enabled={enabled} />
         </details>
+        {settingsIssue && <p className="small muted" role="status">{settingsIssue}</p>}
+        {(defaults.error || defaults.data && !defaultsMatch) && (
+          <button className="button small" disabled={!enabled || defaults.loading}
+            onClick={() => { setConfirmed(false); defaults.refresh(); }}>重新读取模型默认设置</button>
+        )}
         <button
           className="button"
           disabled={previewBusy || !enabled}
@@ -722,7 +786,7 @@ function AutomationEditor({
         <div className="inline file-editor-actions">
           <button
             className="button primary"
-            disabled={disabled || !currentPreview || !confirmed}
+            disabled={disabled || Boolean(settingsIssue) || !currentPreview || !confirmed}
             onClick={() => void save()}
           >
             {original ? '保存计划修改' : '创建暂停的计划'}

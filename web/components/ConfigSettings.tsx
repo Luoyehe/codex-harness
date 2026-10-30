@@ -6,6 +6,7 @@ import { useResource } from '../hooks/useResource';
 import { usePaged } from '../hooks/usePaged';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 import { CompactThreshold } from './CompactThreshold';
+import { ModelDirectoryStatus } from './ModelDirectoryStatus';
 type Field = {
   key: string;
   label: string;
@@ -109,6 +110,29 @@ export function ConfigSettings({
     version = current.data?.userVersion;
   const changed = Object.keys(changes),
     conflict = Boolean(base && typeof version === 'string' && base.version !== version);
+  // Pre-registry native catalogs omit provider metadata. Only trust that legacy
+  // shape after every page has arrived; a later page can reveal a mixed catalog.
+  const legacyCatalog = models.snapshotKey === key && !models.loading && !models.hasMore &&
+    !models.error && !models.warning && models.items.length > 0 && models.items.every(
+      (model) => model.modelProvider === undefined && model.providerId === undefined &&
+        model.providerName === undefined && model.providerAliases === undefined,
+    );
+  const provider = typeof config.model_provider === 'string' ? config.model_provider : '',
+    modelName = changes.model ?? config.model,
+    candidates = models.items.filter(
+      (model) =>
+        (model.model ?? model.id) === modelName &&
+        (!provider || model.modelProvider === provider || model.providerAliases?.includes(provider) || legacyCatalog),
+    ),
+    selectedModel = candidates.length === 1 ? candidates[0] : undefined,
+    efforts = selectedModel?.supportedReasoningEfforts?.map((option) => option.reasoningEffort) ?? [];
+  const effortIssue =
+    changes.model_reasoning_effort &&
+    (models.loading || !efforts.includes(changes.model_reasoning_effort))
+      ? models.loading
+        ? '正在核对模型目录，完成后即可保存推理强度。'
+        : '所选推理强度尚未得到当前供应商模型的目录确认，请加载目录后重新选择或清除该设置。'
+      : '';
   const update = (key: string, next: string) => {
     if (!drafts.has(project.id) && drafts.size >= 10) {
       setError('页面已保留 10 个项目的配置草稿。请先保存或放弃已有配置，再编辑此项目。');
@@ -125,7 +149,7 @@ export function ConfigSettings({
     else drafts.delete(project.id);
   }, [base, changes, project.id]);
   const save = async () => {
-    if (!base || typeof version !== 'string' || conflict || !changed.length) return;
+    if (!base || typeof version !== 'string' || conflict || !changed.length || effortIssue) return;
     setError('');
     const submitted = { ...changes },
       edits: { key: string; value: string | number | null }[] = [];
@@ -168,6 +192,7 @@ export function ConfigSettings({
           onClick={() => {
             current.refresh();
             requirements.refresh();
+            models.refresh();
           }}
         >
           重新读取配置
@@ -178,6 +203,13 @@ export function ConfigSettings({
       </p>
       <ReadState {...current} />
       <ReadState {...requirements} />
+      <ModelDirectoryStatus directory={models} enabled={enabled && !action.busy} />
+      {Boolean(modelName) && !selectedModel && !models.loading && (
+        <p className="small muted" role="status">
+          尚未在已加载目录中找到当前供应商的模型；可继续加载或重新读取模型目录，以核对推理强度。
+        </p>
+      )}
+      {effortIssue && <p className="small muted" role="status">{effortIssue}</p>}
       <ExtensionStatus api={api} action={action} />
       {error && (
         <p className="error" role="alert">
@@ -252,12 +284,9 @@ export function ConfigSettings({
               value =
                 changes[field.key] ??
                 (typeof raw === 'string' || typeof raw === 'number' ? String(raw) : '');
-            const model = models.items.find(
-              (model) => (model.model ?? model.id) === (changes.model ?? config.model),
-            );
             const allowed =
               field.key === 'model_reasoning_effort'
-                ? (model?.supportedReasoningEfforts?.map((option) => option.reasoningEffort) ?? [])
+                ? efforts
                 : field.requirement && Array.isArray(policy[field.requirement])
                   ? array<unknown>(policy[field.requirement]).filter(
                       (item): item is string => typeof item === 'string',
@@ -328,7 +357,8 @@ export function ConfigSettings({
               current.loading ||
               Boolean(current.error) ||
               requirements.loading ||
-              Boolean(requirements.error)
+              Boolean(requirements.error) ||
+              Boolean(effortIssue)
             }
           >
             保存 {changed.length} 项配置

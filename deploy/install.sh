@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 cd -- "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-exec python3 -m deploy.cli "$@"
+exec sh ./harness.sh "$@"

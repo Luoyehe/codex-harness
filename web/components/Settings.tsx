@@ -14,6 +14,7 @@ import { RemoteSettings } from './RemoteSettings';
 import { McpPanel } from './McpPanel';
 import { CliDiagnosticsPanel } from './CliDiagnosticsPanel';
 import { SecuritySettings } from './SecuritySettings';
+import { OperationHistory } from './OperationHistory';
 export function Settings({
   api,
   epoch,
@@ -26,6 +27,7 @@ export function Settings({
   onProjectsChanged,
   onLogout,
   onOpenDraft,
+  onOpenThread,
   configurationReady = true,
   connectionId = '',
   runtimeEpoch = epoch,
@@ -38,7 +40,7 @@ export function Settings({
   initialTab = 'general',
   onOpenNativeTerminal,
 }: {
-  initialTab?: 'general' | 'admin';
+  initialTab?: 'general' | 'admin' | 'provider';
   onOpenNativeTerminal?: (projectId: string) => void;
   runtimeEpoch?: string;
   connectionId?: string;
@@ -60,20 +62,22 @@ export function Settings({
   onProjectsChanged: () => void;
   onLogout: () => Promise<void>;
   onOpenDraft: (key: string) => void;
+  onOpenThread?: (id: string) => void;
 }) {
-  const [accountMounted, setAccountMounted] = useState(false);
-  const [visited, setVisited] = useState<string[]>([]);
+  const [visited, setVisited] = useState<string[]>([initialTab]);
   const [tab, setTab] = useState<string>(initialTab),
     [error, setError] = useState(''),
     [busy, setBusy] = useState('');
   const tabs = [
     ['general', '通用'],
-    ['security', '账号与安全'],
     ['provider', '模型供应商'],
-    ['account', '模型账户'],
+    ['projects', '项目目录'],
     ['extensions', '扩展与配置'],
     ['mcp', 'MCP'],
     ['remote', '远端环境与连接'],
+    ['drafts', '本地草稿'],
+    ['operations', '操作记录'],
+    ['security', '账号与安全'],
     ['admin', '服务管理'],
   ];
   return (
@@ -86,7 +90,6 @@ export function Settings({
               key={id}
               aria-current={tab === id ? 'page' : undefined}
               onClick={() => {
-                if (id === 'account') setAccountMounted(true);
                 setVisited((previous) => (previous.includes(id) ? previous : [...previous, id]));
                 setTab(id);
               }}
@@ -108,6 +111,10 @@ export function Settings({
                 </select>
               </label>
               <InputPreferences />
+            </section>
+          )}
+          {tab === 'projects' && (
+            <section className="stack">
               <h3>已注册项目</h3>
               <p className="muted">移除只取消项目注册，不删除目录或历史文件。</p>
               {projects.map((p) => (
@@ -134,15 +141,6 @@ export function Settings({
                   </button>
                 </div>
               ))}
-              <hr />
-              <DraftsSettings projects={projects} onOpen={onOpenDraft} />
-              <hr />
-              <button
-                className="button"
-                onClick={() => void onLogout().catch((e) => setError(message(e)))}
-              >
-                退出工作台登录
-              </button>
               {error && (
                 <p className="error" role="alert">
                   {error}
@@ -150,7 +148,14 @@ export function Settings({
               )}
             </section>
           )}
-          {tab === 'security' && <SecuritySettings key={api.csrf} api={api} authenticated={Boolean(api.csrf)} />}
+          {tab === 'drafts' && <DraftsSettings projects={projects} onOpen={onOpenDraft} />}
+          {tab === 'operations' && <OperationHistory api={api} runtimeReady={configurationReady && connected}
+            recoveryEpoch={epoch} openThread={onOpenThread ?? (() => {})} />}
+          {tab === 'security' && <section className="stack">
+            <SecuritySettings key={api.csrf} api={api} authenticated={Boolean(api.csrf)} />
+            <button className="button" onClick={() => void onLogout().catch((e) => setError(message(e)))}>退出工作台登录</button>
+            {error && <p className="error" role="alert">{error}</p>}
+          </section>}
           {visited.includes('provider') && (
             <div hidden={tab !== 'provider'} inert={tab !== 'provider'}>
               <ProviderSettings
@@ -159,28 +164,15 @@ export function Settings({
                 api={api}
                 epoch={epoch}
                 onChanged={onChanged}
-              />
-            </div>
-          )}{' '}
-          {accountMounted && (
-            <div className="stack" hidden={tab !== 'account'} inert={tab !== 'account'}>
-              <AccountSettings
-                api={api}
-                epoch={runtimeEpoch}
-                connectionId={connectionId}
-                connected={connected}
-                enabled={configurationReady && connected}
-                events={events}
-                onServiceSettings={() => setTab('admin')}
-              />
-              <AccountToolsPanel
-                api={api}
-                events={events}
-                epoch={runtimeEpoch}
-                connectionId={connectionId}
-                enabled={configurationReady}
-                connected={connected}
-                onChanged={onChanged}
+                accountPanel={(provider, isDefault) => <div className="stack provider-account">
+                  <p className="small muted">ChatGPT 登录由本实例的 ChatGPT 供应商共享；API Key 在各自供应商配置中管理。</p>
+                  <AccountSettings api={api} epoch={runtimeEpoch} connectionId={connectionId}
+                    connected={connected} enabled={configurationReady && connected} events={events}
+                    onServiceSettings={() => setTab('admin')} />
+                  {isDefault && <AccountToolsPanel api={api} events={events} epoch={runtimeEpoch} connectionId={connectionId}
+                    enabled={configurationReady} connected={connected} onChanged={onChanged} />}
+                  {!isDefault && provider.kind === 'chatgpt-gateway' && <p className="small muted">需要网关 OAuth 授权时，先将此供应商设为默认，再在这里完成网关授权。</p>}
+                </div>}
               />
             </div>
           )}{' '}

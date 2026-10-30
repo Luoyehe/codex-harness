@@ -26,6 +26,11 @@ LAYER_MODE = "system-v1"
 def provider_documents(value: dict, layout: Layout) -> tuple[dict, dict]:
     from .provider import native_config
     defaults = tomllib.loads(native_config(value, layout).decode())
+    if "connections" in value:
+        # Every managed definition remains complete and immutable. Selection is
+        # per thread; an exact model_provider requirement would force all
+        # conversations onto the same endpoint.
+        return defaults, {"model_providers": copy.deepcopy(defaults["model_providers"])}
     if value["kind"] in ("chatgpt", "chatgpt-gateway"):
         provider = "harness_chatgpt" if value["kind"] == "chatgpt" else "harness_chatgpt_gateway"
         if value["kind"] == "chatgpt-gateway":
@@ -151,20 +156,20 @@ def merge_preserving_host(host: dict, managed: dict, *, prefix: str = "") -> dic
 def compose_layers(defaults: dict, requirements: dict, host: dict[str, dict]) -> dict[str, bytes]:
     require(set(host) == set(HOST_NAMES), "Incomplete host configuration snapshot")
     provider = requirements.get("model_provider")
-    require(isinstance(provider, str) and isinstance(requirements.get("model_providers"), dict) and
-            isinstance(requirements["model_providers"].get(provider), dict), "Complete enforced provider definition is required")
-    enforced = requirements["model_providers"][provider]
+    definitions_required = requirements.get("model_providers")
+    require(isinstance(definitions_required, dict) and definitions_required and
+            (provider is None or isinstance(provider, str) and isinstance(definitions_required.get(provider), dict)),
+            "Complete enforced provider definitions are required")
     for name in HOST_NAMES:
         document = host[name]
         require(isinstance(document, dict), "Invalid host configuration snapshot")
         if "model_provider" in document:
-            require(document["model_provider"] == provider, "Host provider selection conflicts in " + name, "configuration_conflict")
+            require(document["model_provider"] == (provider or defaults["model_provider"]), "Host provider selection conflicts in " + name, "configuration_conflict")
         definitions = document.get("model_providers", {})
         require(isinstance(definitions, dict), "Invalid host provider table", "configuration_conflict")
-        if provider in definitions:
-            # A requirements provider replaces the complete ordinary definition.
-            # Do not silently erase an administrator's extra auth/header fields.
-            require(equivalent(definitions[provider], enforced), "Host provider definition conflicts in " + name, "configuration_conflict")
+        for managed_provider, enforced in definitions_required.items():
+            if managed_provider in definitions:
+                require(equivalent(definitions[managed_provider], enforced), "Host provider definition conflicts in " + name, "configuration_conflict")
         for field in ("model_catalog_json", "chatgpt_base_url"):
             if field in requirements and field in document:
                 require(equivalent(requirements[field], document[field]), "Host provider constraint conflicts in " + name, "configuration_conflict")

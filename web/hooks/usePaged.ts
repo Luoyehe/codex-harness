@@ -11,6 +11,7 @@ export function usePaged<T>(
   const [items, setItems] = useState<T[]>([]),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(''),
+    [warning, setWarning] = useState(''),
     [cursor, setCursor] = useState<string | null>(null),
     [revision, setRevision] = useState(0);
   const epoch = useRef(0),
@@ -36,13 +37,19 @@ export function usePaged<T>(
       JSON.stringify(data).length > 2_000_000
     )
       throw new Error('目录达到读取上限，已保留现有结果。');
-    return { data: data as T[], next: typeof next === 'string' ? next : null };
+    const warnings = method === 'model/list' && Array.isArray(result.providerErrors)
+      ? result.providerErrors.slice(0, 16).map(value => {
+        const failure = object(value);
+        return `${String(failure.name ?? '供应商').slice(0, 64)}：${String(failure.message ?? '模型目录读取失败').slice(0, 300)}`;
+      }) : [];
+    return { data: data as T[], next: typeof next === 'string' ? next : null, warning: warnings.join('；') };
   };
   useEffect(() => {
     const gen = ++epoch.current,
       controller = new AbortController();
     setItems([]);
     setError('');
+    setWarning('');
     setCursor(null);
     setSnapshotKey(undefined);
     seen.current.clear();
@@ -60,6 +67,7 @@ export function usePaged<T>(
         if (page.next !== null) seen.current.add(page.next);
         pageCount.current++;
         setItems(page.data);
+        setWarning(page.warning);
         setCursor(page.next);
         setSnapshotKey(resourceKey);
       })
@@ -86,9 +94,13 @@ export function usePaged<T>(
       if (page.next !== null) seen.current.add(page.next);
       pageCount.current++;
       const merged = new Map<string, T>();
-      for (const item of [...items, ...page.data])
-        merged.set(String(object(item).id ?? object(item).name ?? JSON.stringify(item)), item);
+      for (const item of [...items, ...page.data]) {
+        const row = object(item);
+        const identity = String(row.id ?? row.name ?? JSON.stringify(item));
+        merged.set(method === 'model/list' ? JSON.stringify([row.modelProvider ?? '', identity]) : identity, item);
+      }
       setItems([...merged.values()]);
+      setWarning(page.warning);
       setCursor(page.next);
     } catch (e) {
       if (epoch.current === gen) setError(message(e));
@@ -100,6 +112,7 @@ export function usePaged<T>(
     items,
     loading,
     error,
+    warning,
     snapshotKey,
     hasMore: cursor !== null,
     more,

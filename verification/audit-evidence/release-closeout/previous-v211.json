@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561",
+  "sourceFiles": 1911,
+  "sourceHead": "historical-commit-115",
+  "baseCommit": "historical-commit-115",
+  "version": "2.1.1",
+  "approvedAt": "2026-10-29T20:11:31.550Z",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 2,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "public-https-round24",
+      "sequence": 52,
+      "sourceDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+      "completedAt": "2026-10-29T18:57:04.961Z",
+      "files": 1911,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-deploy-tooling.json",
+          "sha256": "e9140e74b08668174fa9244ed8040ff380345bde646ceaa4ac9128c8d14a6fdf"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-runtime-gateway.json",
+          "sha256": "29b2fb8d7fd3fbbf0bda1cd17ce2152e1b94e365d34b95fedbdf11d459a01ecb"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round24/public-https-round24-web.json",
+          "sha256": "6893ac879844eacafd5e0acd8ac34bbf116eadb7300ca1490674882571c65e4e"
+        }
+      ]
+    },
+    {
+      "roundId": "public-https-round25",
+      "sequence": 53,
+      "sourceDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+      "completedAt": "2026-10-29T19:21:44.064Z",
+      "files": 1911,
+      "reviewers": [
+        {
+          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-deploy-tooling.json",
+          "sha256": "f38def50efa14534eb22d7323c1c20dc6b8a7675653ac32c8620ed269ec16bef"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-runtime-gateway-normalized.json",
+          "sha256": "7d084d38ecfb2dd6e515c7cf276601351c1712135b4b155a80006c91281a38f5"
+        },
+        {
+          "evidence": "verification/audit-evidence/public-https-round25/public-https-round25-web.json",
+          "sha256": "8f4cb8642c2b51e1704f662e58d0ba2063829ae5b25517dff5f14a03d99166ab"
+        }
+      ]
+    }
+  ],
+  "testOnlyAuditCarryForward": {
+    "path": "verification/audit-evidence/public-https-test-delta/carry-forward.json",
+    "sha256": "843905140e1d82e62a32fb0303e8e320c4714237627cfd6faeb3496084057427",
+    "baselineDigest": "0b770f6c1a7323484af2db9ce2c7c7d0b90b8cafd474cc664cd649a60161c281",
+    "sourceDigest": "99521cf29d49d5e16142131ef1dad1f21ad73465ed478f0da6238669e9b1e561"
+  },
+  "exactCurrentDigestCleanAuditRounds": 0,
+  "newFullAuditsClaimed": 0,
+  "note": "The baseline R24/R25 reports and original failures remain unchanged. This authorization binds the repaired digest through an exact one-line test-await review; it does not create or amend audit rounds and does not claim a full-suite pass.",
+  "publicCopyNotice": "Public historical summary. Operator-specific deployment details have been removed. The private original is the record of the original execution."
+}

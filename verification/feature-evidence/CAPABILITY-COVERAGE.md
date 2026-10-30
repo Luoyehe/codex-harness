@@ -21,13 +21,13 @@
 | 下一步建议 | 用户手动请求最新已完成回合，结果归当前连接所有；重新核对后只放入空白草稿，绝不自动发送。运行时与界面定向通过，真实账号生成未执行。资格依原生实际结果。[官方说明](https://learn.chatgpt.com/docs/features/composer-predictions) |
 | 额度通知邮件 | 当前账号、通知类型和预览摘要绑定明确确认；展示 `sent` / `cooldown_active`，未知只查原回执。未实际发邮件。[官方协议](https://learn.chatgpt.com/docs/app-server) |
 | 已加载会话 | 分页发现、选择后读取、打开和明确停止订阅；不把 `unsubscribed` 描述成进程已卸载或历史已删除 |
-| Codex Cloud | 固定 `codex cloud` 官方交互入口，原生身份、全局空闲、受控 PTY、退出后明确重启。Windows 与 Linux 跨 UID 的真实无账号错误及清理已验；登录后的浏览、提交和应用未验 |
+| Codex Cloud | 固定 `codex cloud` 官方交互入口，启动前检查共享 ChatGPT 登录，原生身份、全局空闲、受控 PTY；确认退出并送达回执后自动重建后台连接。Windows 与 Linux 跨 UID 的历史无账号错误及清理已验；登录后的浏览、提交和应用未验 |
 | Doctor / bundled models | 设置页运行固定命令并读取当前连接私有报告；结果如实显示检查失败。内置模型目录不冒充账号当前目录 |
 | Hooks / 全局记忆 | Hooks 仅保留当前连接的有界事件；来源/输出不授予执行权限。全局生成与使用开关采用用户层版本 CAS、差异确认与冲突重读 |
 
 MCP OAuth 登出属于明确的运维 CLI 能力：在受管原生身份及其 HOME/CODEX_HOME 下运行官方 `codex mcp logout <NAME>`，随后重启 app-server 并重新读取状态。隔离无凭据 fixture 与 help 已验证；退出零不等于真实令牌撤销。禁用/删除配置也不等于登出。没有虚构网页 logout RPC。
 
-固定原生 Codex TUI 已提供 `/hooks` 的哈希信任审阅入口，具有全局空闲准入、连接所有权、进程树清理和退出后重启要求。无需再造没有官方 RPC 的信任存储。`execpolicy check`、`debug prompt-input`、rollout/NFS 数据迁移保持明确的运维流程；`rollout/compress` 仅证明触发，不能替代迁移或声称压缩已完成。
+固定原生 Codex TUI 已提供 `/hooks` 的哈希信任审阅入口，具有全局空闲准入、连接所有权和进程树清理；确认退出后自动重建后台连接，清理无法确认时保留未知状态。无需再造没有官方 RPC 的信任存储。`execpolicy check`、`debug prompt-input`、rollout/NFS 数据迁移保持明确的运维流程；`rollout/compress` 仅证明触发，不能替代迁移或声称压缩已完成。
 
 ## 常见 Agent 工作流
 

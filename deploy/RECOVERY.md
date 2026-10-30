@@ -1,6 +1,6 @@
 # Recovery and maintenance
 
-Run operator commands from the reviewed deployment checkout. Keep the original instance name, numeric service identities and protected configuration. There is no general `backup`, `restore` or candidate-pruning CLI command.
+Run operator commands from the reviewed deployment checkout. Keep the original instance name, numeric service identities and protected configuration. There is no general `backup` or `restore` CLI command. Completed build workspaces have a dedicated, non-destructive `candidate-archive` command.
 
 ## Choose the recovery operation
 
@@ -286,6 +286,17 @@ The snapshot is a recovery input, not proof that a restore has been rehearsed. R
 ## Archive completed build candidates
 
 At eight retained `candidate-*` directories, another build is refused. `provider-prune` manages provider generations only. It does not remove build candidates, releases, control journals or TLS generations.
+
+Use `sh harness.sh` → **修复 / 恢复 / 回滚** → **归档已完成构建**. The menu lists verified candidates, asks which exact candidate to archive, and confirms a brief service interruption. It then performs the recorded maintenance, two-lock checks, same-filesystem move and service restoration below. It never deletes a workspace, release or receipt. If runtime activity is unknown, first use recovery/restart to establish its state. For automation:
+
+```sh
+python3 -B -m deploy.cli --instance demo candidate-list
+python3 -B -m deploy.cli --instance demo candidate-archive --candidate VERIFIED_32_HEX_ID --confirm-stop
+```
+
+The private archive and progress inventory are under `/var/cache/codex-harness/operator-archives/INSTANCE`. On interruption, keep both paths and all original transaction records. Retry the same candidate to finish an already recorded move or service restoration; the menu also lists unfinished archives. If service removal stopped before the archive could bind its lifecycle record, run `restore-services` first and retry. Do not manually remove the journal or overwrite an existing destination. Moving caches frees an upgrade slot, not disk space.
+
+The following manual procedure describes the same safeguards and remains available for inspection:
 
 Use the same recorded `uninstall`, two locks and stopped-instance checks above. Inspect one exact 32-hex candidate ID. Require all of the following before moving it:
 

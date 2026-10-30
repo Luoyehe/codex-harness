@@ -153,7 +153,7 @@ def sudo_rule(layout: Layout, *, workspace: bool = True) -> str:
             f"{layout.prefix}-gateway ALL=(root) NOPASSWD: {layout.control}/manage rpc\n"
             f"Defaults:{layout.prefix}-control env_reset,!setenv,!use_pty\n"
             f"{layout.prefix}-control ALL=({layout.prefix}-worker) NOPASSWD: {layout.control}/native-launch version, "
-            f"{layout.control}/native-launch app-server, {layout.control}/native-launch resolve-project" +
+            f"{layout.control}/native-launch app-server, {layout.control}/native-launch catalog-server *, {layout.control}/native-launch resolve-project" +
             (f", {layout.control}/native-launch workspace" if workspace else "") + "\n")
 
 

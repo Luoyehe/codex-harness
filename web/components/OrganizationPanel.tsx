@@ -34,13 +34,14 @@ function OrganizationSession(props: Props) {
     setTab(next);
   };
   return (
-    <Dialog title="会话组织" onClose={props.onClose} wide>
+    <Dialog title="会话分组与历史管理" onClose={props.onClose} wide>
       <section className="stack organization-panel">
-        <nav className="extension-tabs" aria-label="会话组织类别">
+        <p className="small muted">把相关会话归入同一项目或分组，方便在侧栏查找；这里不会创建、移动或删除服务器目录。</p>
+        <nav className="extension-tabs" aria-label="会话分组类别">
           {([
             ['thread', '当前会话'],
-            ['projects', '会话项目'],
-            ['sections', '分区'],
+            ['projects', '项目归类'],
+            ['sections', '分组标签'],
           ] as const).map(([id, label]) => (
             <button
               className={`button small ${tab === id ? 'selected' : ''}`}
@@ -53,7 +54,7 @@ function OrganizationSession(props: Props) {
           ))}
         </nav>
         {!props.enabled && (
-          <p className="connection-banner">运行时连接或操作状态尚未就绪，暂不能更改组织。</p>
+          <p className="connection-banner">运行时尚未就绪，暂不能修改会话分组。</p>
         )}
         {visited.projects && (
           <div hidden={tab !== 'projects'} inert={tab !== 'projects'}>

@@ -447,7 +447,7 @@ it('only permits a new open after a definitive not-sent recovery result', async 
   expect((await listOperations())).toEqual([]);
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
 });
-it('requires an explicit idle CLI launch and directs confirmed exit to service settings without restarting', async () => {
+it('requires an idle CLI launch and automatically reenables shell after the refreshed epoch arrives', async () => {
   const api = terminalApi({
       mutate: vi.fn().mockResolvedValue({ terminalId: 'cli' }),
       call: vi.fn().mockResolvedValue({}),
@@ -504,7 +504,7 @@ it('requires an explicit idle CLI launch and directs confirmed exit to service s
       data: { owned: true, terminalId: 'cli', type: 'exit', exitCode: 0 },
     }),
   );
-  expect(await screen.findByText(/原生 CLI 会话需要重新同步/)).toBeTruthy();
+  expect(await screen.findByText(/终端已结束，正在自动刷新后台环境/)).toBeTruthy();
   expect((screen.getByRole('button', { name: '启动原生 CLI' }) as HTMLButtonElement).disabled).toBe(
     true,
   );
@@ -568,10 +568,10 @@ it('does not adopt an unresolved CLI startup after switching to shell mode', asy
     f.calls.filter((c) => c.method === 'terminal/close').map((c) => c.params.terminalId),
   ).toEqual(['cli']);
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
-  expect(screen.getByText(/原生 CLI 会话需要重新同步/)).toBeTruthy();
+  expect(screen.getByText(/终端已结束，正在自动刷新后台环境/)).toBeTruthy();
 });
 
-it('recovers the fixed cloud program once and requires explicit restart after close', async () => {
+it('recovers the fixed cloud program once and waits for the automatic epoch refresh after close', async () => {
   const f = await lostResponseFixture('codex-cloud');
   expect(f.calls[0]?.params).toEqual({
     projectId: 'p',
@@ -585,7 +585,7 @@ it('recovers the fixed cloud program once and requires explicit restart after cl
   await screen.findByRole('button', { name: '关闭终端' });
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: '关闭终端' }));
-  await screen.findByText(/原生 CLI 会话需要重新同步/);
+  await screen.findByText(/终端已结束，正在自动刷新后台环境/);
   expect(
     (screen.getByRole('button', { name: '打开官方云任务界面' }) as HTMLButtonElement).disabled,
   ).toBe(true);

@@ -15,7 +15,11 @@ ZHIPU_URL = "https://open.bigmodel.cn/api/v1"
 
 
 def require_provider_layer(settings: dict, *, layered: bool) -> None:
-    require(layered or settings.get("kind") in ("chatgpt", "responses", "zhipu-coding"),
+    providers = [settings]
+    if "connections" in settings:
+        from .provider_registry import entries
+        providers = [row["settings"] for row in entries(settings) if row["enabled"]]
+    require(layered or all(provider.get("kind") in ("chatgpt", "responses", "zhipu-coding") for provider in providers),
             "This provider requires the managed system configuration layer", "configuration_conflict")
 
 
@@ -45,13 +49,14 @@ def small_text(value, name: str, maximum: int = 256) -> str:
 
 
 def validate_provider(params: dict, current: dict) -> dict:
-    require(isinstance(params, dict) and not set(params) - {"expectedRevision", "kind", "baseUrl", "model", "effort", "apiKey", "allowInsecureHttp", "gatewayOAuth", "confirmGatewayCredentials", "region"},
+    require(isinstance(params, dict) and not set(params) - {"expectedRevision", "kind", "baseUrl", "model", "effort", "apiKey", "allowInsecureHttp", "gatewayOAuth", "confirmGatewayCredentials", "region", "supportsTools"},
             "Unknown provider field")
     require(params.get("expectedRevision") == current.get("revision"), "Provider changed; read again", "revision_conflict")
     kind = params.get("kind")
     require(kind in KINDS, "Unknown provider kind")
     require(kind == "chatgpt-gateway" or not {"gatewayOAuth", "confirmGatewayCredentials"} & set(params), "Gateway fields require the ChatGPT gateway provider")
     require(kind.startswith("bedrock-") or "region" not in params, "AWS region requires a Bedrock provider")
+    require(kind == "responses" or "supportsTools" not in params, "Tool defaults apply to a custom Responses provider")
     result = {"kind": kind, "models": current.get("models", []) if kind == current.get("kind") else []}
     if kind.startswith("bedrock-"):
         from .provider_bedrock import validate_bedrock
@@ -72,7 +77,9 @@ def validate_provider(params: dict, current: dict) -> dict:
     else:
         base = ZHIPU_URL if kind == "zhipu-coding" else small_text(params.get("baseUrl"), "Responses base URL", 2048)
         result["baseUrl"] = base.rstrip("/")
-        result["model"] = small_text(params.get("model"), "model")
+        # Credentials can be saved before selecting a model from discovery.
+        if params.get("model"):
+            result["model"] = small_text(params["model"], "model")
         # Never reuse a credential across endpoint/provider changes.
         unchanged = kind == current.get("kind") and result["baseUrl"] == current.get("baseUrl")
         if not unchanged:
@@ -82,6 +89,9 @@ def validate_provider(params: dict, current: dict) -> dict:
         key = params.get("apiKey", current.get("apiKey", "") if unchanged else "")
         require(isinstance(key, str), "API key must be a string; empty explicitly means no authentication")
         result["apiKey"] = small_text(key, "API key", 8192) if key else ""
+        if key != current.get("apiKey", ""):
+            result["models"] = []
+            result.pop("nativeCatalog", None)
         require(kind != "zhipu-coding" or bool(key), "Zhipu Coding Plan requires an API key")
         require("\x7f" not in result["apiKey"], "Invalid API key")
         insecure = params.get("allowInsecureHttp", current.get("allowInsecureHttp", False) if unchanged else False)
@@ -89,11 +99,20 @@ def validate_provider(params: dict, current: dict) -> dict:
         result["baseUrl"] = provider_url(base, result["apiKey"], insecure)
         if insecure:
             result["allowInsecureHttp"] = True
+        if kind == "responses":
+            tools = params.get("supportsTools", current.get("supportsTools", True) if unchanged else True)
+            require(type(tools) is bool, "supportsTools must be a boolean")
+            result["supportsTools"] = tools
     if params.get("model"):
         result["model"] = small_text(params["model"], "model")
     if params.get("effort"):
         result["effort"] = small_text(params["effort"], "reasoning effort", 64)
     result["revision"] = secrets.token_hex(16)
+    if result.get("nativeCatalog") and current.get("catalogSource"):
+        result["catalogSource"] = current["catalogSource"]
+    if kind == "responses" and result.get("models"):
+        models = [{**model, "supportsTools": result["supportsTools"]} if model.get("toolsSource") == "configured" else model for model in result["models"]]
+        result = validate_catalog({"expectedRevision": result["revision"], "models": models}, result)
     return result
 
 
@@ -106,7 +125,7 @@ def validate_catalog(params: dict, current: dict) -> dict:
     cleaned = []
     for model in models:
         require(isinstance(model, dict) and {"id", "defaultEffort", "efforts"} <= set(model) and not set(model) -
-                {"id", "defaultEffort", "efforts", "inputModalities", "contextWindow", "supportsTools", "instructions"}, "Invalid model metadata")
+                {"id", "defaultEffort", "efforts", "inputModalities", "contextWindow", "supportsTools", "instructions", "toolsSource"}, "Invalid model metadata")
         ident = small_text(model["id"], "model id")
         require(ident not in seen, "Duplicate model id")
         seen.add(ident)
@@ -126,8 +145,11 @@ def validate_catalog(params: dict, current: dict) -> dict:
         require(type(tools) is bool, "supportsTools must be a boolean")
         instructions = model.get("instructions", "Assist the user with the requested task. Follow their instructions and respect tool approval decisions.")
         require(isinstance(instructions, str) and 0 < len(instructions.encode()) <= 65536 and "\x00" not in instructions, "Invalid model instructions")
+        source = model.get("toolsSource")
+        require(source is None or source in ("provider", "configured", "administrator"), "Invalid tool capability source")
         cleaned.append({"id": ident, "defaultEffort": default, "efforts": efforts,
-                        "inputModalities": sorted(set(modalities)), "contextWindow": context, "supportsTools": tools, "instructions": instructions})
+                        "inputModalities": sorted(set(modalities)), "contextWindow": context, "supportsTools": tools, "instructions": instructions,
+                        **({"toolsSource": source} if source else {})})
     cleaned.sort(key=lambda model: model["id"])
     selected = next((model for model in cleaned if model["id"] == current.get("model")), None)
     if current.get("effort") and selected:
@@ -150,7 +172,7 @@ def validate_catalog(params: dict, current: dict) -> dict:
 
 
 def redacted(value: dict) -> dict:
-    public = {"kind", "revision", "baseUrl", "model", "effort", "models", "allowInsecureHttp", "gatewayOAuth", "region"}
+    public = {"kind", "revision", "baseUrl", "model", "effort", "models", "allowInsecureHttp", "gatewayOAuth", "region", "supportsTools", "catalogSource", "catalogError"}
     return {**{key: item for key, item in value.items() if key in public}, "hasApiKey": bool(value.get("apiKey"))}
 
 
@@ -159,7 +181,7 @@ def quote_toml(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
-def native_config(value: dict, layout: Layout | None = None) -> bytes:
+def _single_native_config(value: dict, layout: Layout | None = None) -> bytes:
     lines = ["# Managed provider generation; credentials are supplied by systemd."]
     if value.get("model"):
         lines.append("model = " + quote_toml(value["model"]))
@@ -197,6 +219,15 @@ def native_config(value: dict, layout: Layout | None = None) -> bytes:
     return ("\n".join(lines) + "\n").encode()
 
 
+def native_config(value: dict, layout: Layout | None = None) -> bytes:
+    if "connections" in value:
+        from .provider_registry import configuration
+        from .provider_layers import serialize_toml
+        require(layout is not None, "Multiple providers require an installed layout")
+        return serialize_toml(configuration(value, layout))
+    return _single_native_config(value, layout)
+
+
 class ProviderStore:
     def __init__(self, layout: Layout, worker_gid: int):
         self.layout = layout
@@ -208,14 +239,22 @@ class ProviderStore:
 
     def public(self, settings: dict | None = None) -> dict:
         from .provider_lifecycle import Profiles, generations, KEEP_HISTORY, MAX_GENERATIONS
-        return {**redacted(settings if settings is not None else self.read()), "profiles": Profiles(self.layout).public(),
+        settings = settings if settings is not None else self.read()
+        from .provider_registry import public_registry
+        return {**redacted(settings), **public_registry(settings), "profiles": Profiles(self.layout).public(),
                 "retention": {"generations": len(generations(self.root)), "limit": MAX_GENERATIONS, "retainedHistory": KEEP_HISTORY}}
 
     def validate_change(self, params: dict, current: dict) -> tuple[str, dict | str]:
         from .provider_lifecycle import Profiles
         profiles = Profiles(self.layout)
+        if set(params) & {"providerId", "name", "enabled", "defaultProviderId", "removeProviderId"}:
+            from .provider_registry import change
+            return "provider", change(params, current)
         actions = set(params) & {"saveProfileName", "profileId", "deleteProfileId"}
         if not actions:
+            if "connections" in current:
+                from .provider_registry import change
+                return "provider", change(params, current)
             return "provider", validate_provider(params, current)
         require(len(actions) == 1 and set(params) == {"expectedRevision", *actions},
                 "Profile actions cannot be mixed with provider fields")
@@ -227,9 +266,12 @@ class ProviderStore:
         if action == "deleteProfileId":
             return action, saved["id"]
         settings = saved["settings"]
+        if "connections" in settings:
+            from .provider_registry import combine, entries
+            return "provider", combine(current, entries(settings), settings["defaultProviderId"])
         # Restore a complete immutable endpoint-bound profile; the browser cannot
         # substitute an endpoint while asking to reuse its stored credential.
-        allowed = {"kind", "baseUrl", "model", "effort", "apiKey", "allowInsecureHttp", "gatewayOAuth", "region"}
+        allowed = {"kind", "baseUrl", "model", "effort", "apiKey", "allowInsecureHttp", "gatewayOAuth", "region", "supportsTools"}
         restore = {key: value for key, value in settings.items() if key in allowed}
         if settings.get("kind") == "chatgpt-gateway":
             restore["confirmGatewayCredentials"] = True
@@ -261,6 +303,10 @@ class ProviderStore:
         write_json(target / "settings.json", settings, mode=0o600)
         if settings.get("nativeCatalog"):
             write_json(target / "models.json", settings["nativeCatalog"], mode=0o640, uid=0, gid=self.gid)
+        if "connections" in settings:
+            from .provider_registry import catalog_files
+            for name, catalog in catalog_files(settings).items():
+                write_json(target / name, catalog, mode=0o640, uid=0, gid=self.gid)
         atomic_write(target / "config.toml", native_config(settings, self.layout), mode=0o640, uid=0, gid=self.gid)
         if layers is not None:
             for name, content in layers.items():
@@ -274,6 +320,12 @@ class ProviderStore:
             from .provider_bedrock import environment as bedrock_environment
             native_env.update(bedrock_environment(settings))
         environment = "".join(key + '="' + value.replace("\\", "\\\\").replace('"', '\\"') + '"\n' for key, value in native_env.items())
+        if "connections" in settings:
+            from .provider_registry import environment as registry_environment, runtime_registry
+            native_env = registry_environment(settings)
+            environment = "".join(key + "=" + quote_toml(value) + "\n" for key, value in native_env.items())
+            write_json(target / "runtime.json", runtime_registry(settings, self.layout), mode=0o640, uid=0, gid=self.gid)
+            environment += 'HARNESS_PROVIDER_REGISTRY_FILE="' + str(target / "runtime.json") + '"\n'
         atomic_write(target / "provider.env", environment.encode(), mode=0o600)
         write_json(target / "native-env.json", native_env, mode=0o640, uid=0, gid=self.gid)
         return generation

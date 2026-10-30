@@ -6,7 +6,7 @@ import { DiagnosticRedactor } from './redaction.js';
 import { nativeCommand, type NativeLauncher } from './native-launch.js';
 import { windowsJob } from './windows-job.js';
 
-export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher }
+export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher; catalogProvider?: string }
 export interface NativeOptions { beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
 interface Pending { id: number; frame: Buffer | null; bytes: number; sent: boolean; flushed: boolean; resolved: boolean; timer: NodeJS.Timeout | null; options: NativeOptions; resolve: (value: JsonValue) => void; reject: (error: Error) => void }
 

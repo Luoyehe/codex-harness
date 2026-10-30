@@ -263,11 +263,19 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
                 if exc.code != "configuration_conflict":
                     raise
             else:
-                return {"providerConfigLayer": LAYER_MODE, "changed": False}
+                if "connections" in current:
+                    return {"providerConfigLayer": LAYER_MODE, "changed": False}
     candidate_config = {key: value for key, value in manager.config.items() if key != "providerConfigLayer"}
     if layered:
         candidate_config["providerConfigLayer"] = LAYER_MODE
         next_settings = {**current, "revision": uuid.uuid4().hex}
+        if "connections" not in current:
+            from .provider_registry import combine, entries
+            rows = entries(current)
+            if current["kind"] == "zhipu-coding" and not current.get("models"):
+                from .provider_catalogs import initialize
+                rows[0]["settings"] = initialize(rows[0]["settings"])
+            next_settings = combine(current, rows, "default")
         prepare_host_targets(next_settings, layout, manager.config["workerGid"])
         generation = manager.providers.prepare(next_settings, layered=True)
     else:

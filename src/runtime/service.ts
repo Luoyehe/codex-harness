@@ -1,14 +1,13 @@
 import { EventEmitter } from 'node:events';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
-import { access, realpath, stat } from 'node:fs/promises';
-import { constants as fsConstants } from 'node:fs';
 import { NativeRpc, type NativeConfig, type NativeOptions } from './native.js';
 import { Attachments, type PreparedAttachments } from './attachments.js';
 import { options, supportedPrompt, validateOfficial, validatePrompt } from './validation.js';
 import { canonical, DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue, type RuntimeEvent } from './types.js';
 import { DiagnosticRedactor } from './redaction.js';
 import { resolveNativeProject } from './native-launch.js';
+import { createProject, resolveProject } from './projects.js';
 import { Workflows, type WorkflowMutation } from './workflows.js';
 import { workflowMethods } from './workflow-methods.js';
 import { SessionSnapshots } from './session-snapshots.js';
@@ -39,8 +38,9 @@ import { DeviceLogin } from './device-login.js';
 import { McpOauth } from './mcp-oauth.js';
 import { Predictions, predictionMethods } from './predictions.js';
 import { ThreadActivity, hasTurnActivity, type Activity } from './thread-activity.js';
+import { ManagedProviders, readNativeCatalog } from './providers.js';
 
-export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number }
+export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject }
 interface Prompt { promptId: string; epoch: string; method: string; params: JsonObject; threadId: string | null; turnId: string | null; requestId: string | number; bytes: number; answering: boolean }
 interface Terminal { terminalId: string; clientId: string; eventChannelId: string | undefined; generation: number; ended: boolean }
 export class RuntimeService extends EventEmitter {
@@ -61,11 +61,15 @@ export class RuntimeService extends EventEmitter {
   private promptBytes = 0;
   private pendingStarts = 0;
   private unknown = false;
+  private restarting = false;
   private closed = false;
   private attachments: Attachments;
   private defaultsCache = new Map<string, JsonValue>();
   private defaultsPending = false;
   private defaultsProbe: NativeRpc | undefined;
+  private providers: ManagedProviders;
+  private catalogProbes = new Map<string, Promise<JsonObject[]>>();
+  private catalogProcesses = new Set<NativeRpc>();
   private closePromise: Promise<void> | undefined;
   private historyStore: UnifiedHistory;
   private gcTimer: NodeJS.Timeout;
@@ -92,6 +96,7 @@ export class RuntimeService extends EventEmitter {
   private continuationChecks = new Map<string, Promise<void>>();
   constructor(readonly config: RuntimeConfig, readonly native: NativeRpc) {
     super();
+    this.providers = new ManagedProviders(config.providerRegistry);
     this.workspace = new RuntimeWorkspace({
       config, cwd: value => this.cwd(value), admit: () => this.admit(),
       configure: (operation, context) => this.configurationMutation((_write, boundary) => operation(boundary), context),
@@ -122,8 +127,13 @@ export class RuntimeService extends EventEmitter {
     this.environments = new Environments(remoteHost); this.remoteControl = new RemoteControl(remoteHost);
     this.threadTerminals = new ThreadTerminals({ native: (method, params, options) => this.native.call(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context) });
     this.guardian = new Guardian({ mutate: (operation, context) => this.workflowMutation(operation, context) });
-    this.cliTerminals = new CliTerminals({ bin: config.bin, native: (method, params, options) => this.native.call(method, params, options), start: (operation, context) => this.metadataMutation(operation, context, true), available: () => this.admit(undefined, false, false, true), cwd: value => this.cwd(value), emit: (data, channel) => this.emitEvent('terminal', data, channel), changed: () => this.emitState(),
-      settled: () => { this.unknown = true; this.defaultsCache.clear(); this.sessions.clear(); this.historyStore.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); this.emitState(); }, failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
+    this.cliTerminals = new CliTerminals({ bin: config.bin, native: (method, params, options) => method === 'account/read' ? this.readAccount() : this.native.call(method, params, options), start: (operation, context) => this.metadataMutation(operation, context, true), available: () => this.admit(undefined, false, false, true), cwd: value => this.cwd(value), emit: (data, channel) => this.emitEvent('terminal', data, channel), changed: () => this.emitState(),
+      settled: () => {
+        // The CLI can edit native configuration and sessions independently. Its
+        // confirmed exit requires a fresh epoch, not a permanent unknown state.
+        if (this.closed || this.restarting) return;
+        this.restarting = true; this.defaultsCache.clear(); this.sessions.clear(); this.historyStore.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); this.emitState(); this.emit('restart-required');
+      }, failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: (operation, context) => this.configurationMutation(operation, context, false), available: () => this.admit(undefined, false, true), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.deviceLogin = new DeviceLogin({ native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor });
     this.mcpOauth = new McpOauth({ epoch: this.epoch, redactor: this.redactor, notify: (params, channel) => this.emitEvent('mcp', { type: 'oauth-completed', ...params }, channel) });
@@ -165,7 +175,7 @@ export class RuntimeService extends EventEmitter {
   status(): JsonValue {
     const activeThreads = new Set([...this.activity].filter(([, value]) => hasTurnActivity(value) || value.pending || value.unknown || value.goalActive || value.queued || value.checkingContinuation).map(([id]) => id));
     for (const id of this.realtime.activeThreads()) activeThreads.add(id);
-    return { epoch: this.epoch, connected: this.native.connected && !this.closed, activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + (this.predictions?.activeThreads().length ?? 0), terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || [...this.activity.values()].some(value => value.unknown) }, budget: this.native.budget, prompts: this.prompts.size };
+    return { epoch: this.epoch, connected: this.native.connected && !this.closed, restarting: this.restarting, activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + (this.predictions?.activeThreads().length ?? 0), terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || [...this.activity.values()].some(value => value.unknown) }, budget: this.native.budget, prompts: this.prompts.size };
   }
   private emitEvent(type: RuntimeEvent['type'], data: JsonValue, eventChannelId?: string): void { jsonBytes({ type, data }, LIMITS.eventBytes); this.emit('event', { type, data, ...(eventChannelId ? { eventChannelId } : {}) } satisfies RuntimeEvent); }
   private ownerKey(clientId: string, eventChannelId?: string): string { return canonical([eventChannelId ?? null, clientId]); }
@@ -175,8 +185,9 @@ export class RuntimeService extends EventEmitter {
   }
   private admit(threadId?: string, ownPending = false, ownConfiguration = false, ownCli = false): void {
     if (!this.native.connected || this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime unavailable');
+    if (this.restarting) throw new DeliveryError('runtime_restarting', '终端已退出，正在自动刷新后台环境，请稍候。');
     if (this.unknown) throw new DeliveryError('activity_unknown', 'Runtime activity is unknown; recovery is required');
-    if (!ownCli && this.cliTerminals?.active) throw new DeliveryError('native_cli_busy', 'Close the native CLI terminal and restart the runtime before starting other work');
+    if (!ownCli && this.cliTerminals?.active) throw new DeliveryError('native_cli_busy', '请先关闭 Codex CLI 终端；后台会自动刷新后恢复其他操作。');
     if (this.configurationPending && !ownConfiguration) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing');
     if (threadId) { const state = this.track(threadId); if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown'); if (hasTurnActivity(state) || state.goalActive || state.queued || state.checkingContinuation || this.realtime.has(threadId) || (state.pending && !ownPending)) throw new DeliveryError('thread_busy', 'Thread already has active or pending work'); }
   }
@@ -203,7 +214,9 @@ export class RuntimeService extends EventEmitter {
     if (this.cliTerminals.notification(method, params)) return;
     if (this.processes.notification(method, params)) return;
     if (this.realtime.notification(method, params)) return;
-    if (method === 'account/updated' || method === 'account/login/completed') this.defaultsCache.clear();
+    if (method === 'account/updated' || method === 'account/login/completed') {
+      this.defaultsCache.clear(); this.accountReadGeneration++; this.accountProbe = undefined;
+    }
     if (typeof params.threadId === 'string') {
       const state = this.track(params.threadId); state.revision++;
       if (['thread/status/changed', 'turn/started', 'turn/completed', 'thread/goal/updated', 'thread/goal/cleared', 'thread/queue/changed', 'thread/closed', 'thread/deleted'].includes(method)) state.continuationRevision = (state.continuationRevision ?? 0) + 1;
@@ -253,7 +266,7 @@ export class RuntimeService extends EventEmitter {
   private closePrompt(prompt: Prompt, reason: string): void { if (!this.prompts.delete(prompt.promptId)) return; this.promptBytes -= prompt.bytes; this.emitEvent('prompt-closed', { promptId: prompt.promptId, reason }); }
   async call(method: string, input: JsonValue, context: CallContext): Promise<JsonValue> {
     const params = object(input); string(context.clientId, 'clientId', 256); jsonBytes(params);
-    if (this.cliTerminals.active && !['terminal/write', 'terminal/resize', 'terminal/close', 'runtime/status', 'thread/read', 'thread/list', 'thread/history', 'prompt/list', 'attachment/read', 'model/list', 'account/read', 'account/rateLimits'].includes(method) && featureMethod(method)?.access !== 'read') throw new DeliveryError('native_cli_busy', 'The native CLI has exclusive execution access; close it and restart the runtime before other changes');
+    if (this.cliTerminals.active && !['terminal/write', 'terminal/resize', 'terminal/close', 'runtime/status', 'thread/read', 'thread/list', 'thread/history', 'prompt/list', 'attachment/read', 'model/list', 'account/read', 'account/rateLimits', 'project/defaults'].includes(method) && featureMethod(method)?.access !== 'read') throw new DeliveryError('native_cli_busy', '请先关闭 Codex CLI 终端；后台会自动刷新后恢复其他操作。');
     if (mcpMethods.has(method)) return this.mcp.call(method, params, context);
     if (Object.hasOwn(organizationMethods, method)) return this.organization.call(method, params, context);
     if (Object.hasOwn(processMethods, method)) return this.processes.call(method, params, context);
@@ -277,11 +290,15 @@ export class RuntimeService extends EventEmitter {
       }
       case 'project/resolve': {
         onlyKeys(params, ['path']); const requested = this.cwd(params.path);
-        if (this.config.launcher) return resolveNativeProject(this.config, requested);
-        try { const resolved = await realpath(requested); const info = await stat(resolved);
-          if (!info.isDirectory()) throw new DeliveryError('invalid_params', 'Project path must be a directory');
-          await access(resolved, fsConstants.R_OK | (process.platform === 'win32' ? 0 : fsConstants.X_OK)); return { path: resolved, name: path.basename(resolved) || resolved };
-        } catch (error) { if (error instanceof DeliveryError) throw error; throw new DeliveryError('project_unavailable', 'Worker cannot access this project directory'); }
+        return resolveProject(this.config, requested);
+      }
+      case 'project/defaults': {
+        onlyKeys(params, []); return { directory: path.join(this.config.nativeHome ?? this.config.workerHome, 'projects') };
+      }
+      case 'project/create': {
+        onlyKeys(params, ['directory']); this.admit();
+        if (!context.beforeWrite) throw new DeliveryError('operation_required', 'Project creation requires a durable operation');
+        return createProject(this.config, this.config.nativeHome ?? this.config.workerHome, params.directory, () => { this.admit(); context.beforeWrite!(); });
       }
       case 'runtime/status': return this.status();
       case 'runtime/maintenance/check': {
@@ -336,11 +353,11 @@ export class RuntimeService extends EventEmitter {
       case 'turn/interrupt': {
         onlyKeys(params, ['threadId', 'turnId']); const threadId = string(params.threadId, 'threadId'); const turnId = string(params.turnId ?? this.track(threadId).turnId, 'turnId'); return this.directMutation(method, { threadId, turnId }, context);
       }
-      case 'model/list': return this.page(method, 'ModelListParams', params, {}, ['cursor', 'limit', 'includeHidden']);
+      case 'model/list': return this.providers.list(params, (method, params) => this.native.call(method, params), (provider, chatgpt, hidden) => this.providerCatalog(provider, chatgpt, hidden));
       case 'mcp/oauth': return this.mcpOauth.start(params, (method, params, options) => this.directMutation(method, params, context, options), context);
       case 'mcp/oauth/handoff': return this.mcpOauth.read(params, context);
       case 'defaults/read': return this.defaults(params);
-      case 'account/read': onlyKeys(params, []); return this.native.call('account/read', { refreshToken: false });
+      case 'account/read': onlyKeys(params, []); return this.readAccount();
       case 'account/login/handoff': return this.deviceLogin.read(params, context);
       case 'account/login': return this.configurationMutation(write => this.deviceLogin.start(params, write, context), context);
       case 'account/login/cancel': return this.configurationMutation(write => this.deviceLogin.cancel(params, write, context), context);
@@ -350,7 +367,7 @@ export class RuntimeService extends EventEmitter {
     }
   }
   private async directMutation(method: string, params: JsonValue, context: CallContext, options: NativeOptions = {}): Promise<JsonValue> {
-    const guard = (): void => { if (this.cliTerminals.active) throw new DeliveryError('native_cli_busy', 'The native CLI has exclusive execution access'); if (this.configurationPending) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing'); };
+    const guard = (): void => { if (this.restarting) throw new DeliveryError('runtime_restarting', '终端已退出，正在自动刷新后台环境，请稍候。'); if (this.cliTerminals.active) throw new DeliveryError('native_cli_busy', 'The native CLI has exclusive execution access'); if (this.configurationPending) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing'); };
     guard(); this.pendingStarts++; this.emitState();
     try { return await this.native.call(method, params, { ...options, beforeWrite: () => { guard(); context.beforeWrite?.(); options.beforeWrite?.(); if (params && typeof params === 'object' && !Array.isArray(params) && typeof params.threadId === 'string') this.predictions.invalidate(params.threadId); } }); }
     catch (error) { if (!(error instanceof DeliveryError) || error.delivery === 'unknown') this.unknown = true; throw error; }
@@ -358,10 +375,61 @@ export class RuntimeService extends EventEmitter {
   }
   private cwd(value: unknown): string { const cwd = string(value, 'cwd'); if (!path.isAbsolute(cwd) || cwd.includes('\0')) throw new DeliveryError('invalid_params', 'cwd must be an absolute native path'); return cwd; }
   private threadOptions(value: JsonValue | undefined, turn: boolean): JsonObject {
-    if (value === undefined) return options(value, turn);
-    const { environments, ...ordinary } = object(value, 'options'); const selected = options(ordinary, turn);
+    const prepared = this.providers.selection(value, turn);
+    if (prepared === undefined) return options(prepared, turn);
+    const { environments, modelProvider, ...ordinary } = object(prepared, 'options'); const selected = options(ordinary, turn);
+    if (!turn && modelProvider !== undefined) {
+      selected.modelProvider = modelProvider;
+      const overrides = this.providers.catalogOverride(modelProvider);
+      if (Object.keys(overrides).length) selected.config = { ...(selected.config ? object(selected.config) : {}), ...overrides };
+    }
     if (environments !== undefined) selected.environments = this.environments.selection(environments);
     return selected;
+  }
+  private async providerCatalog(provider: string, chatgpt: boolean, hidden = false): Promise<JsonObject[]> {
+    const key = provider + ':' + hidden;
+    const existing = this.catalogProbes.get(key); if (existing) return existing;
+    if (this.catalogProbes.size >= 4 || this.closed) throw new DeliveryError('capacity', '模型目录正在读取，请稍后重试。');
+    const pending = (async () => {
+      const probe = new NativeRpc({ ...this.config, catalogProvider: provider, isolatedGroup: true });
+      this.catalogProcesses.add(probe);
+      probe.on('fatal', () => {});
+      try {
+        await probe.initialize();
+        return await readNativeCatalog((method, params) => probe.call(method, params), chatgpt, hidden);
+      } finally { try { await probe.close(); } finally { this.catalogProcesses.delete(probe); } }
+    })();
+    this.catalogProbes.set(key, pending);
+    try { return await pending; } finally { if (this.catalogProbes.get(key) === pending) this.catalogProbes.delete(key); }
+  }
+  private accountProbe: Promise<JsonValue> | undefined;
+  private accountReadGeneration = 0;
+  private async readAccount(retry = 1): Promise<JsonValue> {
+    const provider = this.providers.accountProvider();
+    if (!provider) return this.native.call('account/read', { refreshToken: false });
+    if (this.accountProbe) return this.accountProbe;
+    if (this.closed) throw new DeliveryError('runtime_unavailable', 'Native runtime is closing');
+    // Login, cancellation and logout stay on the main process, which owns the
+    // shared credential cache and device-code notifications. Account display
+    // must select ChatGPT: native account/read otherwise reports only the
+    // default API-key provider, even when the shared ChatGPT login exists.
+    const generation = this.accountReadGeneration;
+    const pending = (async () => {
+      const probe = new NativeRpc({ ...this.config, catalogProvider: provider, isolatedGroup: true });
+      this.catalogProcesses.add(probe); probe.on('fatal', () => {});
+      try {
+        await probe.initialize(); const result = await probe.call('account/read', { refreshToken: false });
+        if (generation !== this.accountReadGeneration) throw new DeliveryError('account_changed', '登录状态已改变，请刷新账户。');
+        return result;
+      }
+      finally { try { await probe.close(); } finally { this.catalogProcesses.delete(probe); } }
+    })();
+    this.accountProbe = pending;
+    try { return await pending; }
+    catch (error) {
+      if (error instanceof DeliveryError && error.code === 'account_changed' && retry > 0) return this.readAccount(retry - 1);
+      throw error;
+    } finally { if (this.accountProbe === pending) this.accountProbe = undefined; }
   }
   private async startConversation(params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, ['projectId', 'cwd', 'text', 'attachmentIds', 'options', 'references', 'extraContext']); const cwd = this.cwd(params.cwd); const text = string(params.text ?? '', 'text', 1024 * 1024, true);
@@ -493,6 +561,20 @@ export class RuntimeService extends EventEmitter {
     try {
       const revision = state.revision; const current = await this.native.call('thread/read', { threadId });
       if (object(object(current).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.observeThread(current, revision); guard();
+      if (operation.method === 'thread/resume' || operation.method === 'thread/fork') {
+        const provider = object(object(current).thread).modelProvider;
+        if (typeof provider === 'string') {
+          this.providers.assertThread(provider, operation.params.modelProvider === undefined ? undefined : { modelProvider: operation.params.modelProvider });
+          operation.params.modelProvider = provider;
+          const overrides = this.providers.catalogOverride(provider);
+          const previous = object(object(current).thread);
+          if (operation.params.model === undefined && typeof previous.model === 'string') operation.params.model = previous.model;
+          const supplied = operation.params.config ? object(operation.params.config) : {};
+          if (supplied.model_reasoning_effort === undefined && typeof previous.reasoningEffort === 'string')
+            overrides.model_reasoning_effort = previous.reasoningEffort;
+          if (Object.keys(overrides).length) operation.params.config = { ...(operation.params.config ? object(operation.params.config) : {}), ...overrides };
+        }
+      }
       if (operation.newThread) this.environments.assertIndependentLoad();
       if (operation.directInput || operation.newThread || operation.method === 'thread/resume') this.environments.assertThread(object(object(current).thread));
       await operation.preflight?.(object(object(current).thread)); validateOfficial(operation.schema, operation.params);
@@ -500,7 +582,10 @@ export class RuntimeService extends EventEmitter {
       if (mediaModalities(input).length) {
         mediaRevision = state.settingsRevision ?? 0;
         const fallback = operation.method === 'turn/steer' ? state.activeModel : object(object(current).thread).model ?? this.sessions.read(threadId).model;
-        await validateInputModalities((method, params) => this.native.call(method, params), selectedInputModel(operation.params, fallback), input);
+        const provider = object(object(current).thread).modelProvider;
+        await validateInputModalities((method, params) => method === 'model/list'
+          ? this.providers.list({ ...object(params), ...(provider !== undefined ? { modelProvider: provider } : {}) }, (method, params) => this.native.call(method, params), (provider, chatgpt, hidden) => this.providerCatalog(provider, chatgpt, hidden))
+          : this.native.call(method, params), selectedInputModel(operation.params, fallback), input);
       }
       const result = await this.native.call(operation.method, operation.params, { beforeWrite: () => {
         guard(); context.beforeWrite?.(); operation.beforeWrite?.(); operation.prepared?.pin(); if (operation.method !== 'thread/prediction/request') this.predictions.invalidate(threadId); if (operation.invalidateHistory) this.invalidateHistory(threadId); if (operation.method === 'thread/settings/update') restoreSession = this.sessions.invalidate(threadId);
@@ -547,13 +632,20 @@ export class RuntimeService extends EventEmitter {
       const revision = activity.revision; const current = await this.native.call('thread/read', { threadId }); if (object(object(current).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.observeThread(current, revision);
       if (method !== 'turn/start') this.environments.assertThread(object(object(current).thread));
       if (method === 'turn/start') {
+        this.providers.assertThread(object(object(current).thread).modelProvider, params.options);
         const text = string(params.text ?? '', 'text', 1024 * 1024, true); prepared = this.attachments.prepare(params.attachmentIds, threadId);
         const selected = params.references === undefined && params.extraContext === undefined ? { input: [], additionalContext: {} } : await this.inputContext.prepare(this.cwd(object(object(current).thread).cwd), params.references, params.extraContext, context, threadId);
         if (!text.length && prepared.input.length === 0 && !selected.input.length && !Object.keys(selected.additionalContext).length) throw new DeliveryError('invalid_params', 'Turn requires text, attachments or context references');
         p.input = [{ type: 'text', text, text_elements: [] }, ...prepared.input, ...selected.input]; if (Object.keys(selected.additionalContext).length) p.additionalContext = selected.additionalContext;
         Object.assign(p, this.threadOptions(params.options, true)); validateOfficial('TurnStartParams', p);
         model = selectedInputModel(p, object(object(current).thread).model ?? this.sessions.read(threadId).model);
-        if (mediaModalities(p.input).length) { mediaRevision = activity.settingsRevision ?? 0; await validateInputModalities((method, params) => this.native.call(method, params), model, p.input); }
+        if (mediaModalities(p.input).length) {
+          mediaRevision = activity.settingsRevision ?? 0;
+          const provider = object(object(current).thread).modelProvider;
+          await validateInputModalities((method, params) => method === 'model/list'
+            ? this.providers.list({ ...object(params), ...(provider !== undefined ? { modelProvider: provider } : {}) }, (method, params) => this.native.call(method, params), (provider, chatgpt, hidden) => this.providerCatalog(provider, chatgpt, hidden))
+            : this.native.call(method, params), model, p.input);
+        }
         if (p.environments === undefined) this.environments.assertThread(object(object(current).thread));
       }
       if (activity.directInput === false) throw new DeliveryError('direct_input_unavailable', 'Native thread does not accept direct input');
@@ -583,7 +675,7 @@ export class RuntimeService extends EventEmitter {
   }
   private async defaults(params: JsonObject): Promise<JsonValue> {
     if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime is closing');
-    onlyKeys(params, ['cwd', 'options']); const cwd = params.cwd === undefined ? this.config.cwd : this.cwd(params.cwd); const selected = options(params.options, false);
+    onlyKeys(params, ['cwd', 'options']); const cwd = params.cwd === undefined ? this.config.cwd : this.cwd(params.cwd); const selected = this.threadOptions(params.options, false);
     if (this.config.launcher) await resolveNativeProject(this.config, cwd);
     const config = object(await this.native.call('config/read', { cwd, includeLayers: false })); jsonBytes(config.config, 256 * 1024); const key = createHash('sha256').update(canonical({ cwd, selected, config: config.config! })).digest('hex');
     if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime closed during the defaults read');
@@ -674,7 +766,7 @@ export class RuntimeService extends EventEmitter {
     this.cliDiagnostics.reset();
     this.environments.reset(); this.remoteControl.reset();
     this.extensions.close(); this.deviceLogin.close(); this.mcpOauth.close();
-    this.closePromise = Promise.allSettled([this.native.close(), ...(this.defaultsProbe ? [this.defaultsProbe.close()] : []), this.workspace.close()]).then(results => {
+    this.closePromise = Promise.allSettled([this.native.close(), ...[...this.catalogProcesses].map(probe => probe.close()), ...(this.defaultsProbe ? [this.defaultsProbe.close()] : []), this.workspace.close()]).then(results => {
       const errors = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map(result => result.reason as unknown);
       if (errors.length) throw new AggregateError(errors, 'Runtime process cleanup was not fully confirmed');
     });

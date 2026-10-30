@@ -5,7 +5,7 @@ import { HarnessError } from '../core/errors.js';
 const reads = new Set([
   'thread/list', 'thread/read', 'thread/history', 'model/list', 'defaults/read',
   'account/read', 'account/rateLimits', 'mcp/list', 'prompt/list', 'attachment/read', 'runtime/status',
-  'system/status', 'system/logs', 'system/provider/read', 'project/list', 'workspace/worktree/list',
+  'system/status', 'system/logs', 'system/provider/read', 'project/list', 'project/defaults', 'workspace/worktree/list',
   'automation/status', 'operation/read', 'operation/maintenance/preview', 'operation/maintenance/chunk',
 ]);
 /** Old documents cannot create side effects after the browser retires their storage namespace. */

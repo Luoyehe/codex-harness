@@ -14,8 +14,8 @@ vi.mock('../../src/runtime/windows-process.js', () => ({ windowsProcessJob: asyn
 vi.mock('../../src/runtime/linux-process.js', async () => ({ linuxProcessJob: (await import('../../src/runtime/windows-process.js')).windowsProcessJob }));
 import { RuntimeService } from '../../src/runtime/service.js';
 class Native extends EventEmitter {
-  connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonValue }[] = []; gates = new Map<string, Promise<void>>();
-  async call(method: string, params: JsonValue, options?: NativeOptions) { await this.gates.get(method); options?.beforeWrite?.(); this.calls.push({ method, params }); return {}; }
+  connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonValue }[] = []; gates = new Map<string, Promise<void>>(); account: JsonValue = { type: 'chatgpt', email: null, planType: 'plus' };
+  async call(method: string, params: JsonValue, options?: NativeOptions) { await this.gates.get(method); options?.beforeWrite?.(); this.calls.push({ method, params }); return method === 'account/read' ? { account: this.account } : {}; }
   async close() { this.connected = false; }
 }
 const roots = path.resolve('.work/cli-terminal-tests'); mkdirSync(roots, { recursive: true }); const services: RuntimeService[] = [];
@@ -38,8 +38,10 @@ test('fixed CLI argv, private connection ownership, and independent cleanup proo
   const event = f.events.find(event => event.type === 'terminal')!; expect(event).toMatchObject({ eventChannelId: 'channel', data: { terminalId, clientId: 'owner', type: 'output' } }); expect(object(event.data)).not.toHaveProperty('processHandle');
   exit(f.native, processHandle); await Promise.resolve(); expect(f.activity()).toMatchObject({ terminals: 1, unknown: false });
   await expect(f.service.call('thread/start', { cwd: f.cwd }, owner)).rejects.toMatchObject({ code: 'native_cli_busy' });
-  fixture.jobs[0]!.finish(0); await expect.poll(() => f.activity().terminals).toBe(0); expect(f.activity().unknown).toBe(true);
-  await expect(f.service.call('thread/start', { cwd: f.cwd }, owner)).rejects.toMatchObject({ code: 'activity_unknown' });
+  const restart = vi.fn(); f.service.on('restart-required', restart);
+  fixture.jobs[0]!.finish(0); await expect.poll(() => f.activity().terminals).toBe(0); expect(f.activity().unknown).toBe(false);
+  expect(object(f.service.status()).restarting).toBe(true); expect(restart).toHaveBeenCalledOnce();
+  await expect(f.service.call('thread/start', { cwd: f.cwd }, owner)).rejects.toMatchObject({ code: 'runtime_restarting', delivery: 'not_sent' });
 });
 
 test('disconnect while preparing revokes startup without dispatching or requiring a restart', async () => {
@@ -55,8 +57,8 @@ test('cloud terminal selects exactly the fixed cloud TUI and uses the same owner
   expect(fixture.commands).toEqual([[process.execPath, 'cloud']]);
   await expect(f.service.call('terminal/open', { cwd: f.cwd, program: 'codex' }, owner)).rejects.toMatchObject({ code: 'native_cli_busy' });
   await expect(f.service.call('terminal/write', { terminalId, text: 'x' }, { ...owner, eventChannelId: 'other' })).rejects.toMatchObject({ code: 'not_found' });
-  fixture.jobs[0]!.signal = vi.fn(async () => { fixture.jobs[0]!.finish(1); exit(f.native, processHandle, 1); });
-  await f.service.clientDisconnected(owner.clientId, owner.eventChannelId); expect(f.activity()).toMatchObject({ terminals: 0, unknown: true });
+  fixture.jobs[0]!.signal = vi.fn(async () => { fixture.jobs[0]!.finish(1); exit(f.native, processHandle); });
+  await f.service.clientDisconnected(owner.clientId, owner.eventChannelId); expect(f.activity()).toMatchObject({ terminals: 0, unknown: false }); expect(object(f.service.status()).restarting).toBe(true);
 });
 
 test('legacy direct writes cannot cross a CLI reservation and outstanding writes prevent CLI dispatch', async () => {
@@ -65,7 +67,7 @@ test('legacy direct writes cannot cross a CLI reservation and outstanding writes
   let prepare!: () => void; fixture.gate = new Promise(resolve => { prepare = resolve; }); const opening = f.open();
   releaseWrite(); await rejected; prepare(); const terminalId = object(await opening).terminalId!; expect(f.native.calls.map(call => call.method)).toEqual(['process/spawn']);
   const processHandle = handle(f.native); fixture.jobs[0]!.signal = vi.fn(async () => { fixture.jobs[0]!.finish(0); exit(f.native, processHandle); });
-  await f.service.call('terminal/close', { terminalId }, owner); expect(f.activity()).toMatchObject({ terminals: 0, unknown: true });
+  await f.service.call('terminal/close', { terminalId }, owner); expect(f.activity()).toMatchObject({ terminals: 0, unknown: false }); expect(object(f.service.status()).restarting).toBe(true);
   const second = setup(); let complete!: () => void; second.native.gates.set('thread/name/set', new Promise(resolve => { complete = resolve; }));
   const pending = second.service.call('thread/name/set', { threadId: 'thread', name: 'name' }, owner); await expect(second.open()).rejects.toMatchObject({ code: 'activity_busy' }); complete(); await pending;
   expect(second.native.calls.map(call => call.method)).toEqual(['thread/name/set']); expect(second.activity()).toMatchObject({ terminals: 0, unknown: false });
@@ -82,4 +84,21 @@ test('active turns and ordinary processes prevent CLI startup, and final owner l
 test('controller failure closes the runtime without publishing a successful terminal exit', async () => {
   const f = setup(); await f.open(); const processHandle = handle(f.native); exit(f.native, processHandle); fixture.jobs[0]!.fail();
   await expect.poll(() => f.native.connected).toBe(false); expect(f.activity().unknown).toBe(true); expect(f.events.some(event => event.type === 'terminal' && object(event.data).type === 'exit')).toBe(false);
+});
+
+test.each([null, { type: 'apiKey' }, { type: 'amazonBedrock', usesCodexManagedCredentials: false }])('cloud sign-in failure never reserves a CLI or blocks shell/process execution (%j)', async account => {
+  const f = setup(); f.native.account = account;
+  await expect(f.service.call('terminal/open', { cwd: f.cwd, program: 'codex-cloud' }, owner)).rejects.toMatchObject({ code: 'chatgpt_login_required', delivery: 'not_sent' });
+  expect(f.activity()).toMatchObject({ terminals: 0, unknown: false }); expect(object(f.service.status()).restarting).toBe(false);
+  expect(fixture.commands).toEqual([]);
+  await f.service.call('process/spawn', { cwd: f.cwd, command: ['fixture'] }, owner);
+  expect(f.activity().processes).toBe(1);
+});
+
+test('a known nonzero CLI exit requests one automatic refresh and preserves its terminal output', async () => {
+  const f = setup(), restart = vi.fn(); f.service.on('restart-required', restart); await f.open();
+  const processHandle = handle(f.native); fixture.jobs[0]!.finish(1); exit(f.native, processHandle);
+  await expect.poll(() => restart.mock.calls.length).toBe(1);
+  expect(f.activity()).toMatchObject({ terminals: 0, unknown: false });
+  expect(f.events.some(event => event.type === 'terminal' && object(event.data).type === 'exit' && object(event.data).exitCode === 1)).toBe(true);
 });

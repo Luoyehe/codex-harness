@@ -9,6 +9,8 @@ export type Operation = {
   id: string; method: string; threadId?: string; projectId?: string; resourceId?: string;
   draftKey?: string; draftRevision?: string; createdAt: number; state: OperationState;
   resolvedThreadId?: string; terminalOwner?: TerminalOwner; terminalResult?: TerminalResult;
+  /** The destination thread has been loaded after this receipt was observed. */
+  consumed?: true;
   /** Legacy JavaScript cannot join our transactions; retain its draft conservatively. */
   legacy?: true;
 };
@@ -32,6 +34,7 @@ function checkedOperation(value: unknown, id?: string): Operation {
       ['threadId', 'projectId', 'resourceId', 'draftKey', 'draftRevision', 'resolvedThreadId'].some((field) =>
         (value as Record<string, unknown>)[field] !== undefined && typeof (value as Record<string, unknown>)[field] !== 'string') ||
       !['pending', 'unknown', 'accepted', 'not_sent'].includes(record.state) ||
+      (record.consumed !== undefined && record.consumed !== true) ||
       (record.legacy !== undefined && record.legacy !== true) ||
       (record.terminalOwner !== undefined && (!record.terminalOwner ||
         typeof record.terminalOwner.clientId !== 'string' || !record.terminalOwner.clientId ||
@@ -169,14 +172,46 @@ export async function listOperations(): Promise<Operation[]> {
   return transact(async (records) => (await stored(records.getAll()) as unknown[])
     .map((record) => checkedOperation(record)).sort((a, b) => a.createdAt - b.createdAt));
 }
+const threadReceiptMethods = new Set([...INPUT_METHODS, 'thread/fork', 'review/startNew']);
+/** Keep fresh receipts available to settings refresh and new-thread handoff.
+ * Only the view that has loaded the destination can make them collectible. */
+export async function consumeThreadOperations(threadId: string, ids: string[]): Promise<void> {
+  if (!threadId || ids.length === 0) return;
+  const changedRecords = await transact(async (records) => {
+    let changed = false;
+    for (const id of new Set(ids)) {
+      const value: unknown = await stored(records.get(id));
+      if (value === undefined) continue;
+      const record = checkedOperation(value, id);
+      if (record.state !== 'accepted' || record.legacy || record.consumed ||
+          !threadReceiptMethods.has(record.method) ||
+          (record.resolvedThreadId ?? record.threadId) !== threadId) continue;
+      // Retry any interrupted draft cleanup before allowing the receipt to be
+      // collected. A newer revision remains untouched by clearDraftSnapshot.
+      if (record.draftKey && record.draftRevision) clearDraftSnapshot(record.draftKey, record.draftRevision);
+      await stored(records.put({ ...record, consumed: true }));
+      changed = true;
+    }
+    return changed;
+  });
+  if (changedRecords) changed();
+}
+
 /** Allocating an ID is separate from committing it; only this promise permits dispatch. */
 export async function createOperation(
   method: string, scope: Scope, generation = 0, id = operationId(generation),
 ): Promise<Operation> {
   const record: Operation = structuredClone({ id, method, ...scope, createdAt: Date.now(), state: 'pending' });
   await transact(async (store) => {
-    const records = (await stored(store.getAll()) as unknown[]).map((value) => checkedOperation(value));
-    if (records.length >= 200) throw new Error('恢复记录已达到 200 条上限。请先处理已完成的记录。');
+    let records = (await stored(store.getAll()) as unknown[]).map((value) => checkedOperation(value));
+    if (records.length >= 160) {
+      const collectible = records.filter((row) => row.state === 'accepted' && row.consumed && !row.legacy)
+        .sort((a, b) => a.createdAt - b.createdAt).slice(0, Math.max(0, records.length - 128));
+      for (const row of collectible) await stored(store.delete(row.id));
+      const removed = new Set(collectible.map((row) => row.id));
+      records = records.filter((row) => !removed.has(row.id));
+    }
+    if (records.length >= 200) throw new Error('恢复记录已达到 200 条上限。请在设置 → 操作记录中处理待确认或已完成的记录。');
     if (records.some((r) => ['pending', 'unknown'].includes(r.state) &&
       (r.method === method || (INPUT_METHODS.includes(r.method) && INPUT_METHODS.includes(method))) &&
       r.threadId === scope.threadId && r.projectId === scope.projectId && r.resourceId === scope.resourceId &&

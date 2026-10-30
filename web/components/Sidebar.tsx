@@ -63,7 +63,7 @@ export function Sidebar({
       </div>
       <button className="new-chat" onClick={onNew}>
         <Icon name="plus" />
-        新会话<span className="shortcut">开始</span>
+        新会话
       </button>
       <div className="nav-tools">
         <button
@@ -92,7 +92,7 @@ export function Sidebar({
         {onOrganize && (
           <button className="nav-item" onClick={onOrganize}>
             <Icon name="folder" />
-            会话组织
+            会话分组
           </button>
         )}
       </div>
@@ -148,7 +148,7 @@ export function Sidebar({
             }
           >
             <option value="recency_at">最近活动</option>
-            <option value="section_position">原生分区顺序</option>
+            <option value="section_position">按分组排序</option>
           </select>
         </label>
       )}
@@ -194,7 +194,7 @@ export function Sidebar({
               ? more
                 ? '本页没有此项目的匹配项，请继续加载。'
                 : '没有找到匹配会话'
-              : '这里会记录你的工作'}
+              : '暂无会话'}
           </p>
         )}
         {more && (

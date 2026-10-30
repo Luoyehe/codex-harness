@@ -36,6 +36,17 @@ test('worker HTTP authenticates all private routes and preserves delivery classi
   const denied = await fetch(`${base}/rpc`, { method: 'POST', headers: channel.headers, body: JSON.stringify({ ...request, method: 'bad' }) }); expect(await denied.json()).toMatchObject({ ok: false, error: { code: 'invalid_params', delivery: 'not_sent' } });
   await fetch(`${base}/disconnect`, { method: 'POST', headers: channel.headers, body: JSON.stringify({ clientId: channel.clientId }) }); expect(service.disconnected).toEqual([channel.clientId]);
 });
+
+test('automatic CLI refresh waits for an in-flight RPC to finish before recycling the worker', async () => {
+  const { token, base, service, ws } = await setup(); const owner = await connect(ws, token);
+  let finish!: () => void; service.writeGate = new Promise(resolve => { finish = resolve; });
+  let restarts = 0; service.on('restart-ready', () => { restarts++; });
+  const pending = fetch(`${base}/rpc`, { method: 'POST', headers: owner.headers, body: JSON.stringify({ method: 'terminal/open', params: {}, context: { clientId: owner.clientId } }) });
+  await expect.poll(() => service.calls.length).toBe(1);
+  service.emit('restart-required'); expect(restarts).toBe(0);
+  finish(); expect(await (await pending).json()).toMatchObject({ ok: true, result: { method: 'terminal/open' } });
+  await expect.poll(() => restarts).toBe(1);
+});
 test('worker events start with state, are receive-only, and clean terminal owners on loss of the event channel', async () => {
   const { token, ws: url, service } = await setup(); const { ws, eventChannelId } = await connect(url, token);
   const closed = new Promise<number>(resolve => ws.once('close', code => resolve(code))); ws.send('{}'); expect(await closed).toBe(1008); await expect.poll(() => service.closedChannels).toContain(eventChannelId);

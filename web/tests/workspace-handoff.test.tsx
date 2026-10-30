@@ -7,6 +7,9 @@ import type { Composer } from '../components/Composer';
 import type { Sidebar } from '../components/Sidebar';
 import type { BranchDialog, ReviewDialog } from '../components/HistoryTools';
 import type { Messages } from '../components/Messages';
+import type { Settings } from '../components/Settings';
+import type { Recovery } from '../components/Recovery';
+import type { WorkspacePanel } from '../components/WorkspacePanel';
 import { Api } from '../lib/api';
 import { emptyDraft, readDraft, writeDraft, type Draft } from '../lib/drafts';
 import { listOperations, reconcileOperation } from '../lib/operations';
@@ -18,6 +21,9 @@ const controls = vi.hoisted(() => ({
   review: undefined as ComponentProps<typeof ReviewDialog> | undefined,
   branch: undefined as ComponentProps<typeof BranchDialog> | undefined,
   messages: undefined as ComponentProps<typeof Messages> | undefined,
+  settings: undefined as ComponentProps<typeof Settings> | undefined,
+  recovery: undefined as ComponentProps<typeof Recovery> | undefined,
+  workspace: undefined as ComponentProps<typeof WorkspacePanel> | undefined,
   data: { projects: [{ id: 'p', name: 'Project', cwd: '/project' }], data: [] },
   empty: [],
 }));
@@ -44,6 +50,16 @@ vi.mock('../components/HookEventsPanel', () => ({
   HookEventsProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('../components/McpPanel', () => ({ McpEventBridge: () => null }));
+vi.mock('../components/Settings', () => ({ Settings: (props: ComponentProps<typeof Settings>) => {
+  controls.settings = props; return <div data-testid="settings-open" />;
+} }));
+vi.mock('../components/Recovery', async () => ({
+  ...await vi.importActual<typeof import('../components/Recovery')>('../components/Recovery'),
+  Recovery: (props: ComponentProps<typeof Recovery>) => { controls.recovery = props; return null; },
+}));
+vi.mock('../components/WorkspacePanel', () => ({ WorkspacePanel: (props: ComponentProps<typeof WorkspacePanel>) => {
+  controls.workspace = props; return null;
+} }));
 vi.mock('../components/Welcome', () => ({ Welcome: () => null }));
 vi.mock('../components/Messages', () => ({
   Messages: (props: ComponentProps<typeof Messages>) => { controls.messages = props; return null; },
@@ -58,6 +74,7 @@ vi.mock('../components/Sidebar', () => ({ Sidebar: (props: ComponentProps<typeof
   <output data-testid="thread">{props.threadId}</output>
   <button onClick={() => props.onThread('other')}>Open other thread</button>
   <button onClick={props.onNew}>New chat</button>
+  <button onClick={props.onSettings}>Settings</button>
 </> }));
 // Keep the actual Workspace callbacks and its real draft/API/receipt ownership.
 // Only presentational controls and unrelated resource readers are substituted.
@@ -75,6 +92,11 @@ beforeEach(() => {
   controls.review = undefined;
   controls.branch = undefined;
   controls.messages = undefined;
+  controls.settings = undefined;
+  controls.recovery = undefined;
+  controls.workspace = undefined;
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
@@ -91,6 +113,34 @@ function visibleFields() {
   return { text: p.value, options: p.options, attachments: p.savedAttachments,
     references: p.references, extraContext: p.extraContext, outputSchema: p.outputSchema };
 }
+it.each(['workspace', 'recovery-files', 'recovery-thread', 'settings-draft', 'settings-thread', 'settings-terminal'] as const)(
+  'guards the real Workspace %s navigation callback before changing project, panel or modal', async route => {
+    writeDraft({ ...emptyDraft('new:p'), text: 'saved A' });
+    render(<Workspace api={new Api()} logout={async () => {}} active />);
+    await waitFor(() => expect(controls.composer?.value).toBe('saved A'));
+    fireEvent.click(screen.getByRole('button', { name: '打开项目文件' }));
+    if (route.startsWith('settings')) fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    rejectDraftWrites();
+    act(() => controls.composer!.onChange('memory only'));
+    const url = location.href;
+    const panel = document.querySelector('.workspace-body')!.getAttribute('data-panel');
+    act(() => {
+      if (route === 'workspace') controls.workspace!.onSelectProject!('other-project');
+      if (route === 'recovery-files') controls.recovery!.openWorkspace!('other-project', 'file.txt');
+      if (route === 'recovery-thread') controls.recovery!.openThread('other-thread');
+      if (route === 'settings-draft') controls.settings!.onOpenDraft('new:other-project');
+      if (route === 'settings-thread') controls.settings!.onOpenThread!('other-thread');
+      if (route === 'settings-terminal') controls.settings!.onOpenNativeTerminal!('other-project');
+    });
+    expect(screen.getByRole('dialog', { name: '草稿尚未保存' })).toBeTruthy();
+    expect(controls.composer?.value).toBe('memory only');
+    expect(screen.getByTestId('thread').textContent).toBe('');
+    expect(sessionStorage.getItem('harness.project')).toBe('p');
+    expect(location.href).toBe(url);
+    expect(document.querySelector('.workspace-body')!.getAttribute('data-panel')).toBe(panel);
+    if (route.startsWith('settings')) expect(screen.getByTestId('settings-open')).toBeTruthy();
+  },
+);
 async function start(thread = '', intent: 'send' | 'queue' | 'steer' = 'send', initial: Partial<Draft> = {}) {
   if (thread) history.replaceState({}, '', `/?thread=${thread}`);
   const key = thread || 'new:p';

@@ -114,6 +114,7 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Codex Harness Linux installation and transaction manager")
     root.add_argument("--instance", default="main")
     subs = root.add_subparsers(dest="command", required=True)
+    subs.add_parser("manage", help="Interactive installation, upgrades, HTTPS, diagnostics and account recovery")
     pack = subs.add_parser("pack-source", help="Package allowed source inputs; does not include credentials or dependencies")
     pack.add_argument("--source", type=Path, default=Path.cwd())
     pack.add_argument("--output", type=Path, required=True)
@@ -141,6 +142,10 @@ def parser() -> argparse.ArgumentParser:
     update = subs.add_parser("update")
     update.add_argument("--source", type=Path, required=True)
     subs.add_parser("control-update", help="Operator only: install trusted control code from this reviewed root-owned checkout")
+    subs.add_parser("candidate-list", help="Inspect retained builds eligible for archival without deleting data")
+    candidate_archive = subs.add_parser("candidate-archive", help="Archive one verified completed build and restore recorded services")
+    candidate_archive.add_argument("--candidate", required=True)
+    candidate_archive.add_argument("--confirm-stop", action="store_true", help="Confirm this instance may briefly stop for archival")
     control_recover = subs.add_parser("control-recover", help="Operator only: recover one original control generation after interrupted maintenance")
     control_recover.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("config-layer-migrate", help="Operator only: migrate or refresh preserved host defaults and enforced provider requirements")
@@ -201,130 +206,145 @@ def parser() -> argparse.ArgumentParser:
     return root
 
 
+def execute(args: argparse.Namespace) -> dict:
+    """The single operator-command implementation, shared by JSON CLI and menu."""
+    if args.command == "https-plan":
+        from .https_guidance import https_plan
+        return https_plan(host=args.host, tls=args.tls, dns_provider=args.dns_provider,
+                          http_port=args.http_port, https_port=args.https_port, public_origin=args.public_origin)
+    layout = Layout(args.instance)
+    if args.command == "pack-source":
+        pack_source(args.source.resolve(), args.output.resolve())
+        result = {"sourceArchive": str(args.output.resolve())}
+    elif args.command == "install":
+        require_linux()
+        origin = args.origin
+        if not origin:
+            require(sys.stdin.isatty(), "--origin is required for non-interactive installation")
+            print("Single administrator deployment. Default bind address is 127.0.0.1; use SSH forwarding or optional HTTPS.", file=sys.stderr)
+            origin = input(f"Browser origin [http://127.0.0.1:{args.port}]: ").strip() or f"http://127.0.0.1:{args.port}"
+        from .accounts import bootstrap, read_password
+        account = bootstrap(args.username, read_password(from_stdin=args.password_stdin))
+        result = install(layout, args.source.resolve(), origin=origin, port=args.port, account=account)
+    elif args.command == "install-resume":
+        require_linux()
+        from .install_recovery import install_resume
+        result = install_resume(layout, args.source.resolve())
+    elif args.command == "candidate-archive":
+        require_linux()
+        from .candidate_archive import archive_candidate
+        result = archive_candidate(layout, args.candidate, confirm_stop=args.confirm_stop)
+    elif args.command in ("control-update", "control-recover", "control-rollback"):
+        require_linux()
+        from .transactions import require_initialization_complete
+        require_initialization_complete(layout)
+        from .control_update import control_command
+        with exclusive(layout.config / "management.lock"):
+            result = control_command(layout, args.command, getattr(args, "transaction", None), target=getattr(args, "target", "old"))
+    else:
+        require_linux()
+        from .transactions import require_initialization_complete
+        require_initialization_complete(layout)
+        with exclusive(layout.config / "management.lock"):
+            from .control_update import require_no_pending_control
+            require_no_pending_control(layout)
+            manager = Manager(layout)
+            if args.command == "status":
+                result = manager.status()
+            elif args.command == "candidate-list":
+                from .candidate_archive import list_candidates
+                result = list_candidates(manager)
+            elif args.command in ("account-setup", "account-reset"):
+                from .accounts import configure_account, read_password
+                result = configure_account(manager, args.username, read_password(from_stdin=args.password_stdin),
+                                           reset=args.command == "account-reset")
+            elif args.command in ("config-layer-migrate", "config-layer-rollback"):
+                from .config_layer import change_config_layer
+                result = change_config_layer(manager, layered=args.command == "config-layer-migrate")
+            elif args.command == "config-layer-recover":
+                from .config_layer import recover_config_layer
+                pending = [(path, read_json(path)) for path in (layout.state / "transactions").glob("*/state.json")]
+                pending = [(path, state) for path, state in pending if state.get("phase") not in ("committed", "recovered", "failed_first_start")]
+                require(len(pending) == 1 and pending[0][1].get("kind") == "config-layer", "Expected one pending configuration-layer transaction", "recovery_required")
+                result = recover_config_layer(manager, *pending[0], candidate=args.target == "candidate")
+            elif args.command == "verify":
+                result = manager.verify()
+            elif args.command == "provider-prune":
+                from .provider_lifecycle import collect_generations
+                result = collect_generations(layout, manager.providers.root)
+            elif args.command == "update":
+                manager.require_update_ready(persist=False)
+                config = manager.config
+                release = Builder(layout, manager.system, config["buildUid"], config["buildGid"]).prepare(args.source.resolve())
+                result = manager.activate(release)
+            elif args.command == "rollback":
+                release = manager.selected("previous")
+                require(release is not None, "No previous release", "not_installed")
+                result = manager.activate(release)
+            elif args.command == "restart":
+                result = manager.restart()
+            elif args.command == "repair":
+                result = manager.repair(target=args.target)
+            elif args.command == "uninstall":
+                result = uninstall(layout)
+            elif args.command == "restore-services":
+                from .install import restore_services
+                result = restore_services(layout)
+            elif args.command == "https-read":
+                from .https import read_https
+                result = read_https(manager)
+            elif args.command in ("https", "https-migrate"):
+                from .https import setup_https
+                from .accounts import read_password
+                require(not (args.credentials_stdin and (args.password_stdin or args.two_factor)),
+                        "Choose one credential input mode")
+                if args.credentials_stdin:
+                    credentials = read_request(sys.stdin)
+                    require(set(credentials) <= {"username", "password", "otp"} and
+                            {"username", "password"} <= set(credentials) and
+                            ("otp" not in credentials or isinstance(credentials["otp"], str) and len(credentials["otp"]) <= 128),
+                            "Credentials JSON must contain username, password and optional otp")
+                else:
+                    credentials = {"username": args.username, "password": read_password(from_stdin=args.password_stdin, confirm=False)}
+                    if args.two_factor:
+                        require(sys.stdin.isatty(), "Use --credentials-stdin for non-interactive two-factor verification")
+                        credentials["otp"] = getpass.getpass("Two-factor or recovery code: ")
+                result = setup_https(manager, host=args.host, auth_host=args.auth_host, domain=args.cookie_domain,
+                                     username=credentials["username"], password=credentials["password"], otp=credentials.get("otp"),
+                                     email=args.email, auth_port=args.authelia_port, tls=args.tls,
+                                     certificate=args.certificate, private_key=args.private_key,
+                                     tls_ca_certificate=args.tls_ca_certificate, tls_system_ca=args.tls_system_ca,
+                                     dns_provider=args.dns_provider, dns_credentials=args.dns_credentials,
+                                     download_proxy=args.download_proxy,
+                                     progress=lambda phase: print("DNS component: " + phase, file=sys.stderr, flush=True),
+                                     public_origin=args.public_origin,
+                                     http_port=args.http_port, https_port=args.https_port,
+                                     expected_origin=getattr(args, "expected_origin", None),
+                                     expected_https_revision=getattr(args, "expected_https_revision", None))
+            else:
+                method, params = {
+                    "logs": ("logs", {"service": getattr(args, "service", "gateway"), "lines": getattr(args, "lines", 100)}),
+                    "provider-read": ("provider/read", {}),
+                    "operation-read": ("operation/read", {"operationId": getattr(args, "operation_id", "")}),
+                    "provider-write": ("provider/write", None), "models-sync": ("models/refresh", None),
+                }[args.command]
+                if params is None:
+                    params = read_request(sys.stdin)
+                request = {"method": method, "params": params}
+                if args.command in ("provider-write", "models-sync"):
+                    request["operationId"] = args.operation_id or str(uuid.uuid4())
+                result = manager.dispatch(request)
+    return result
+
+
 def main(argv: list[str] | None = None) -> None:
     try:
         args = parser().parse_args(argv)
-        if args.command == "https-plan":
-            from .https_guidance import https_plan
-            print(json.dumps(https_plan(host=args.host, tls=args.tls, dns_provider=args.dns_provider,
-                                       http_port=args.http_port, https_port=args.https_port,
-                                       public_origin=args.public_origin), ensure_ascii=False, indent=2))
+        if args.command == "manage":
+            from .operator import manage
+            manage(args.instance)
             return
-        layout = Layout(args.instance)
-        if args.command == "pack-source":
-            pack_source(args.source.resolve(), args.output.resolve())
-            result = {"sourceArchive": str(args.output.resolve())}
-        elif args.command == "install":
-            require_linux()
-            origin = args.origin
-            if not origin:
-                require(sys.stdin.isatty(), "--origin is required for non-interactive installation")
-                print("Single administrator deployment. Default bind address is 127.0.0.1; use SSH forwarding or optional HTTPS.", file=sys.stderr)
-                origin = input(f"Browser origin [http://127.0.0.1:{args.port}]: ").strip() or f"http://127.0.0.1:{args.port}"
-            from .accounts import bootstrap, read_password
-            account = bootstrap(args.username, read_password(from_stdin=args.password_stdin))
-            result = install(layout, args.source.resolve(), origin=origin, port=args.port, account=account)
-        elif args.command == "install-resume":
-            require_linux()
-            from .install_recovery import install_resume
-            result = install_resume(layout, args.source.resolve())
-        elif args.command in ("control-update", "control-recover", "control-rollback"):
-            require_linux()
-            from .transactions import require_initialization_complete
-            require_initialization_complete(layout)
-            from .control_update import control_command
-            with exclusive(layout.config / "management.lock"):
-                result = control_command(layout, args.command, getattr(args, "transaction", None), target=getattr(args, "target", "old"))
-        else:
-            require_linux()
-            from .transactions import require_initialization_complete
-            require_initialization_complete(layout)
-            with exclusive(layout.config / "management.lock"):
-                from .control_update import require_no_pending_control
-                require_no_pending_control(layout)
-                manager = Manager(layout)
-                if args.command == "status":
-                    result = manager.status()
-                elif args.command in ("account-setup", "account-reset"):
-                    from .accounts import configure_account, read_password
-                    result = configure_account(manager, args.username, read_password(from_stdin=args.password_stdin),
-                                               reset=args.command == "account-reset")
-                elif args.command in ("config-layer-migrate", "config-layer-rollback"):
-                    from .config_layer import change_config_layer
-                    result = change_config_layer(manager, layered=args.command == "config-layer-migrate")
-                elif args.command == "config-layer-recover":
-                    from .config_layer import recover_config_layer
-                    pending = [(path, read_json(path)) for path in (layout.state / "transactions").glob("*/state.json")]
-                    pending = [(path, state) for path, state in pending if state.get("phase") not in ("committed", "recovered", "failed_first_start")]
-                    require(len(pending) == 1 and pending[0][1].get("kind") == "config-layer", "Expected one pending configuration-layer transaction", "recovery_required")
-                    result = recover_config_layer(manager, *pending[0], candidate=args.target == "candidate")
-                elif args.command == "verify":
-                    result = manager.verify()
-                elif args.command == "provider-prune":
-                    from .provider_lifecycle import collect_generations
-                    result = collect_generations(layout, manager.providers.root)
-                elif args.command == "update":
-                    manager.require_update_ready(persist=False)
-                    config = manager.config
-                    release = Builder(layout, manager.system, config["buildUid"], config["buildGid"]).prepare(args.source.resolve())
-                    result = manager.activate(release)
-                elif args.command == "rollback":
-                    release = manager.selected("previous")
-                    require(release is not None, "No previous release", "not_installed")
-                    result = manager.activate(release)
-                elif args.command == "restart":
-                    result = manager.restart()
-                elif args.command == "repair":
-                    result = manager.repair(target=args.target)
-                elif args.command == "uninstall":
-                    result = uninstall(layout)
-                elif args.command == "restore-services":
-                    from .install import restore_services
-                    result = restore_services(layout)
-                elif args.command == "https-read":
-                    from .https import read_https
-                    result = read_https(manager)
-                elif args.command in ("https", "https-migrate"):
-                    from .https import setup_https
-                    from .accounts import read_password
-                    require(not (args.credentials_stdin and (args.password_stdin or args.two_factor)),
-                            "Choose one credential input mode")
-                    if args.credentials_stdin:
-                        credentials = read_request(sys.stdin)
-                        require(set(credentials) <= {"username", "password", "otp"} and
-                                {"username", "password"} <= set(credentials) and
-                                ("otp" not in credentials or isinstance(credentials["otp"], str) and len(credentials["otp"]) <= 128),
-                                "Credentials JSON must contain username, password and optional otp")
-                    else:
-                        credentials = {"username": args.username, "password": read_password(from_stdin=args.password_stdin, confirm=False)}
-                        if args.two_factor:
-                            require(sys.stdin.isatty(), "Use --credentials-stdin for non-interactive two-factor verification")
-                            credentials["otp"] = getpass.getpass("Two-factor or recovery code: ")
-                    result = setup_https(manager, host=args.host, auth_host=args.auth_host, domain=args.cookie_domain,
-                                         username=credentials["username"], password=credentials["password"], otp=credentials.get("otp"),
-                                         email=args.email, auth_port=args.authelia_port, tls=args.tls,
-                                         certificate=args.certificate, private_key=args.private_key,
-                                         tls_ca_certificate=args.tls_ca_certificate, tls_system_ca=args.tls_system_ca,
-                                         dns_provider=args.dns_provider, dns_credentials=args.dns_credentials,
-                                         download_proxy=args.download_proxy,
-                                         progress=lambda phase: print("DNS component: " + phase, file=sys.stderr, flush=True),
-                                         public_origin=args.public_origin,
-                                         http_port=args.http_port, https_port=args.https_port,
-                                         expected_origin=getattr(args, "expected_origin", None),
-                                         expected_https_revision=getattr(args, "expected_https_revision", None))
-                else:
-                    method, params = {
-                        "logs": ("logs", {"service": getattr(args, "service", "gateway"), "lines": getattr(args, "lines", 100)}),
-                        "provider-read": ("provider/read", {}),
-                        "operation-read": ("operation/read", {"operationId": getattr(args, "operation_id", "")}),
-                        "provider-write": ("provider/write", None), "models-sync": ("models/refresh", None),
-                    }[args.command]
-                    if params is None:
-                        params = read_request(sys.stdin)
-                    request = {"method": method, "params": params}
-                    if args.command in ("provider-write", "models-sync"):
-                        request["operationId"] = args.operation_id or str(uuid.uuid4())
-                    result = manager.dispatch(request)
+        result = execute(args)
         print(json.dumps(result, ensure_ascii=False, indent=2))
     except Exception as exc:
         # Operator commands have durable transaction journals, but no single
