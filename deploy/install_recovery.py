@@ -30,23 +30,37 @@ def private_record(path: Path) -> dict:
 
 
 @contextlib.contextmanager
-def root_lock(path: Path, *, shared_root: Path | None = None):
+def _owned_lock(path: Path, *, modes: tuple[int, ...], message: str, shared_root: Path | None = None):
     from .install import trusted_ancestors
     import fcntl
     trusted_ancestors(path.parent)
     durable_directory(path.parent, create=True, shared_root=shared_root)
-    fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
     try:
         info = os.fstat(fd)
         require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and info.st_nlink == 1 and info.st_size == 0 and
-                stat.S_IMODE(info.st_mode) == 0o600, "Unsafe initialization lock", "integrity")
+                stat.S_IMODE(info.st_mode) in modes, message, "integrity")
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            require(False, "Another initialization is running", "busy")
+            require(False, "Another operation holds this lock", "busy")
+        current = path.lstat()
+        require((current.st_dev, current.st_ino) == (info.st_dev, info.st_ino),
+                "Lock path changed while acquiring ownership", "integrity")
         yield
     finally:
         os.close(fd)
+
+
+def root_lock(path: Path, *, shared_root: Path | None = None):
+    return _owned_lock(path, modes=(0o600,), message="Unsafe initialization lock", shared_root=shared_root)
+
+
+def management_lock(layout: Layout):
+    # common.exclusive creates this shared, empty lock with the operator's
+    # umask. Group/other read permission cannot modify its contents or inode.
+    # Keep its inode and mode, so existing operators contend on the same lock.
+    return _owned_lock(layout.config / "management.lock", modes=(0o600, 0o640, 0o644), message="Unsafe management lock")
 
 
 def initialization_lock(layout: Layout):

@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "v220-round4-web",
+  "completedAt": "2026-10-30T14:13:16.831Z",
+  "kind": "Final read-only user-document review while current-source CI7 is being prepared; separate from audit7 code scope",
+  "sourceScope": {
+    "audit7Digest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+    "snapshot": ".work/v220-audit7-snapshot.json",
+    "note": "Verification Markdown is historical evidence and may be updated separately; exact Markdown hashes are recorded here."
+  },
+  "counts": {
+    "trackedMarkdown": 15,
+    "userAndOperatorGuides": 4,
+    "legalNotices": 1,
+    "internalOrHistorical": 10,
+    "untrackedReleaseBodiesReviewed": 1
+  },
+  "inventory": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "78506da8a3fcc15f51071a127e90d53318191c054a4093adf07c2f1f8ee6d700",
+      "lines": 11,
+      "bytes": 1968,
+      "classification": "internal contributor instructions; ordinary gate subject to explicit user override",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "ae0314cced1cf73141dab873675c34640f27cb7c74f12798f45bf5569939c804",
+      "lines": 82,
+      "bytes": 15615,
+      "classification": "internal current architecture and ownership contract",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "FEATURES.md",
+      "sha256": "c37d895732ade92bdcb2d27911b37ebb9d7e4976131d730220ca8f36f4b8f0c9",
+      "lines": 50,
+      "bytes": 8366,
+      "classification": "user feature scope and provider/platform limits",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "403b29c9250ac716e123f8164a7f187049a278afd9f9d940b3f8e0cb686a5faa",
+      "lines": 7,
+      "bytes": 809,
+      "classification": "user-facing legal and third-party notices",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "PROBLEM-ACCEPTANCE.md",
+      "sha256": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e",
+      "lines": 330,
+      "bytes": 38888,
+      "classification": "historical problem-derived acceptance requirements, explicitly not implementation proof",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "README.md",
+      "sha256": "709c9f808c039dd137d7456edde1035480a226ba4c2e7f85634dbb2c57a2adc0",
+      "lines": 86,
+      "bytes": 8622,
+      "classification": "user quickstart and everyday use",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "54ca6f7167dfa44e6c4957bb62eb75b5553a8b99091de35351cc08b78fea7984",
+      "lines": 490,
+      "bytes": 96678,
+      "classification": "operator deployment/maintenance guide with explicitly scoped historical evidence",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "deploy/RECOVERY.md",
+      "sha256": "74b82b96b8d0b81abc268735e440800eb1628e32a144efcd60dddbffcf215361",
+      "lines": 318,
+      "bytes": 26008,
+      "classification": "operator recovery/offline-backup/same-machine-restore guide",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "reference/PROTOCOL-CONTRACT.md",
+      "sha256": "2671d5fd4e22b78efc869d299bc3cc24420c927b863ae0845f850e9dcbd5175d",
+      "lines": 97,
+      "bytes": 12578,
+      "classification": "internal fixed-version upstream contract and dated provenance",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "tests/runtime/README.md",
+      "sha256": "8308c87eb08ebf9e525269617f15f87e13640c13f5056084a8e27578dc3900fa",
+      "lines": 118,
+      "bytes": 36516,
+      "classification": "internal runtime testing guide and scoped historical evidence",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "verification/RELEASE-CHECKS.md",
+      "sha256": "b3e73042d354cf5c3937e7d95b416fa26cdafe5b1792fc1194c88d38f83fad82",
+      "lines": 266,
+      "bytes": 30784,
+      "classification": "maintainer release procedure/current result plus labelled historical checkpoints",
+      "changedSincePreviousDocumentInventory": true
+    },
+    {
+      "path": "verification/WORKLOG.md",
+      "sha256": "e022743a0bdfd67f987034f22e4b491a7a3449d5c91844de372e10642d081f92",
+      "lines": 501,
+      "bytes": 106406,
+      "classification": "dated execution history including current closeout status",
+      "changedSincePreviousDocumentInventory": true
+    },
+    {
+      "path": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+      "sha256": "fb9d5942cf42146ffb625b00b66f15706a190959ba49797894d6e297e74fbb3d",
+      "lines": 42,
+      "bytes": 6145,
+      "classification": "internal fixed-protocol capability mapping with external-acceptance limits",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "verification/reports/20261030-functional-workflows.md",
+      "sha256": "17027de4d95c33f38654df43647f1e538c5b20ab70a0aa20a091d65b01b0e290",
+      "lines": 41,
+      "bytes": 5150,
+      "classification": "scoped current-release functional repair report, not independent deployment proof",
+      "changedSincePreviousDocumentInventory": false
+    },
+    {
+      "path": "web/VERIFICATION.md",
+      "sha256": "2056563b8af0fdca7aed30895beadf7321f1643479eaa5624bd4ceb65fb72571",
+      "lines": 86,
+      "bytes": 14483,
+      "classification": "internal implementation-phase web evidence explicitly superseded by later release records",
+      "changedSincePreviousDocumentInventory": false
+    }
+  ],
+  "changedFiles": [
+    "verification/RELEASE-CHECKS.md",
+    "verification/WORKLOG.md"
+  ],
+  "priorReview": {
+    "path": ".work/v220-final-doc-review.json",
+    "sha256": "bf0426532828fc21c10c06c56219c539500d9474a581ab4c588bedbc0764cf46",
+    "retainedScope": "Unchanged historical/internal document semantics and earlier detailed recovery read; not a new line-by-line read of all historical records."
+  },
+  "releaseBody": {
+    "path": ".work/v220-release-body.md",
+    "sha256": "7a3f46618d37e05a8cd2ffd4a53410ab162b8ee45b34648ead973634558c1686",
+    "note": "Read current local draft; no claim that it was published."
+  },
+  "methods": [
+    "Fresh git ls-files inventory and SHA-256 for every tracked Markdown; inline relative file link targets checked locally, with zero missing targets. No external URLs or GitHub fragment anchors were fetched.",
+    "Current README deployment/start/model/daily-management/limits text and FEATURES scope reviewed against current UI labels and behavior audited in audit7.",
+    "Fresh selected installation/menu/upgrade/recovery/platform evidence passages in deploy/README and RECOVERY, plus current deploy.operator and deploy.cli action names/order. Earlier unchanged detailed recovery review is retained, not claimed repeated.",
+    "All 15 documents classified. Current architecture/protocol/functional evidence/verification intros and platform statements spot-checked; historical/internal body analysis retained where unchanged.",
+    "Read exact current Git diff for the two changed verification Markdown files and their latest entries. Re-read their new audit7 entries when parent updated them during review, then regenerated the inventory. They preserve old source digests, identify audit6 as non-clean, and leave new full CI and deployment pending rather than treating CI6 as validation of the deployment repair."
+  ],
+  "codeCrosschecks": [
+    "One-stop upgrade uses a separate reviewed checkout and executes control-update, config-layer-migrate and update in order, stopping on failure; source archive is the application input.",
+    "Current recovery menu maps repair/control-recover/install-resume/restore-services/rollback explicitly, with separate candidate archive confirmation.",
+    "README model/effort control, provider-account location, new/existing project forms, session grouping, MFA and receipt settings match current UI.",
+    "Service support remains Ubuntu 24.04/Debian 12 x64/arm64 with systemd. Windows material is scoped to development/fixtures and does not claim Windows service or Linux identity/systemd acceptance.",
+    "DNS platform credential and ingress requirements remain explicit; no bundled VLESS/VPN project feature is claimed. Host-specific proxy setup stays outside user product capabilities."
+  ],
+  "conclusions": [
+    "No new actionable user-document mismatch confirmed in the reviewed current material.",
+    "README keeps the deployment prerequisites, tasks handled by the menu, model setup and recovery actions distinct. The detailed recovery guide remains available without overloading the quick start.",
+    "All 13 unchanged documents retain their previously reviewed hashes. Two changed internal verification records correctly identify CI6 as exact-old-source evidence, audit6 as non-clean and audit7 as a clean review whose new full CI and deployment remain pending. The canonical authorization pointer is described as the latest reviewed source and currently binds audit7.",
+    "The current release body describes features and the supported upgrade path without inventing a current full-suite pass or integrated VPN support."
+  ],
+  "findings": [],
+  "publicationFollowup": [
+    "After CI7 and deployment actually finish, parent should append their actual source-bound results to the verification record. At this review boundary those results are not claimed complete."
+  ],
+  "limits": [
+    "No source or Markdown edits, tests, browser, network/paid calls or deployment by this reviewer.",
+    "Not a fresh line-by-line read of all lengthy historical records or a repeat of the deployment code audit.",
+    "The draft Release and verification evidence may receive later source-bound results; this review certifies only the recorded bytes and does not preapprove future content.",
+    "CI6 success on its recorded source is not a full-test result for audit7."
+  ],
+  "inventoryArtifact": ".work/v220-ci7-doc-inventory.json"
+}

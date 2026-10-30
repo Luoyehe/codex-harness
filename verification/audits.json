@@ -6838,6 +6838,67 @@
         "missing": []
       },
       "gatePassed": true
+    },
+    {
+      "digest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
+      "complete": true,
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "startedAt": "2026-10-30T14:35:52.611Z",
+      "completedAt": "2026-10-30T14:40:14.954Z",
+      "sourceFiles": 1941,
+      "id": "v220-round8",
+      "sequence": 61,
+      "reviewers": [
+        {
+          "id": "v220-round8-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v220-round8/team.json",
+          "sha256": "87d39b91a04eed48ecf19ebc1b9834757cee3876c91145ca448d6b3e3a158de8"
+        }
+      ],
+      "members": [
+        {
+          "reviewer": "root",
+          "evidence": "verification/audit-evidence/v220-round8/root.json",
+          "sha256": "c882c71cb66b190f2f6a50f83bcba9e5a5b1044508d7275dd117636f955bc1fb",
+          "files": 1427
+        },
+        {
+          "reviewer": "runtime",
+          "evidence": "verification/audit-evidence/v220-round8/runtime.json",
+          "sha256": "80a4decd7a830ee8cc91a8a79b7c4c53c701a29b699c975a5b8491ad2200655e",
+          "files": 173
+        },
+        {
+          "reviewer": "web",
+          "evidence": "verification/audit-evidence/v220-round8/web.json",
+          "sha256": "a77d660c92c5d242ed07610468d2d6cfb098b68a80a80aa64e58c3c87cdb4cda",
+          "files": 217
+        },
+        {
+          "reviewer": "deploy",
+          "evidence": "verification/audit-evidence/v220-round8/deploy.json",
+          "sha256": "cceb50bf71c36cd37738bdf5d0a2249b9e39a6f900e668cdc72696c233333bd9",
+          "files": 124
+        }
+      ],
+      "coverage": {
+        "sourceFiles": 1941,
+        "missing": []
+      },
+      "gatePassed": true
     }
   ],
   "fullTests": {
@@ -6929,11 +6990,11 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "9fcb107461d9b6b77fd07d646c834fef017a64e731d282f5ba3b67b118e34e01",
+  "currentAuditSourceDigest": "49f6d15bf8698d9581b13e851bcfcaf2ca6538c5b16fcd8be53c084131be73f3",
   "currentAuditGate": {
     "requiredCleanRounds": 1,
     "instruction": "然后在全部完成之后，只要有一轮审计没有发现新问题就进行发行和部署。",
-    "round": "v220-round7",
+    "round": "v220-round8",
     "passed": true
   }
 }

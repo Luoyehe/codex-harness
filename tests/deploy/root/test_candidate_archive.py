@@ -9,7 +9,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy import candidate_archive as archive
-from deploy.common import DeployError, atomic_write, digest, read_json, write_json
+from deploy.common import DeployError, atomic_write, digest, exclusive, read_json, write_json
+from deploy.install_recovery import management_lock
 from deploy.manager import Manager
 from deploy.safe_fs import inspect_tree
 from tests.deploy.root import test_service_lifecycle as lifecycle_fixture
@@ -152,11 +153,14 @@ class CandidateArchiveRootTests(unittest.TestCase):
 
     def test_management_lock_contention_keeps_online_fixture_untouched(self):
         lock = self.layout.config / "management.lock"
-        code = "import fcntl,sys; f=open(sys.argv[1],'a+b'); fcntl.flock(f,fcntl.LOCK_EX); print('locked',flush=True); sys.stdin.read()"
+        code = ("import os,sys; sys.path.insert(0," + repr(str(Path(__file__).resolve().parents[3])) + "); "
+                "from deploy.common import exclusive; os.umask(0o022)\n"
+                "with exclusive(__import__('pathlib').Path(sys.argv[1])):\n print('locked',flush=True); sys.stdin.read()")
         child = subprocess.Popen([sys.executable, "-I", "-B", "-c", code, str(lock)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
         try:
             self.assertEqual(child.stdout.readline().strip(), "locked")
-            lock.chmod(0o600)
+            before = lock.stat()
+            self.assertEqual(before.st_mode & 0o777, 0o644)
             with self.assertRaises(DeployError) as raised:
                 self.perform()
             self.assertEqual(raised.exception.code, "busy")
@@ -166,6 +170,110 @@ class CandidateArchiveRootTests(unittest.TestCase):
             child.stdin.close()
             child.wait(timeout=5)
             child.stdout.close()
+        self.assertTrue(self.perform()["servicesRestored"])
+        self.assertEqual((lock.stat().st_dev, lock.stat().st_ino, lock.stat().st_mode),
+                         (before.st_dev, before.st_ino, before.st_mode))
+
+    def test_common_exclusive_created_lock_allows_real_verified_archive(self):
+        self.fixture.enable_real_verification()
+        lock = self.layout.config / "management.lock"
+        old_umask = os.umask(0o022)
+        try:
+            with exclusive(lock):
+                self.assertEqual(lock.stat().st_mode & 0o777, 0o644)
+        finally:
+            os.umask(old_umask)
+        before = lock.stat()
+        result = self.perform()
+        self.assertTrue(result["servicesRestored"])
+        self.assertTrue(self.manager.verify()["integrity"])
+        self.assertEqual(read_json(self.fixture.journal())["phase"], "recovered")
+        after = lock.stat()
+        self.assertEqual((after.st_dev, after.st_ino, after.st_mode, after.st_size),
+                         (before.st_dev, before.st_ino, before.st_mode, 0))
+
+    def test_management_lock_accepts_only_supported_readable_modes_without_normalizing(self):
+        lock = self.layout.config / "management.lock"
+        for mask, mode in ((0o077, 0o600), (0o027, 0o640), (0o022, 0o644)):
+            with self.subTest(mode=oct(mode)):
+                old_umask = os.umask(mask)
+                try:
+                    with exclusive(lock):
+                        pass
+                finally:
+                    os.umask(old_umask)
+                before = lock.stat()
+                self.assertEqual(before.st_mode & 0o777, mode)
+                with management_lock(self.layout):
+                    self.assertEqual(lock.stat().st_ino, before.st_ino)
+                self.assertEqual(lock.stat().st_mode, before.st_mode)
+                lock.unlink()
+
+    def test_unsafe_management_locks_block_before_any_archive_or_service_action(self):
+        lock = self.layout.config / "management.lock"
+        other = lock.with_name("fixture-other-lock")
+        linked = lock.with_name("fixture-linked-lock")
+        atomic_write(other, b"", 0o600)
+        other_before = other.stat()
+        def symlink():
+            lock.unlink()
+            lock.symlink_to(other)
+        def fifo():
+            lock.unlink()
+            os.mkfifo(lock, 0o600)
+        def directory():
+            lock.unlink()
+            lock.mkdir(mode=0o700)
+        mutations = {"foreign-owner": lambda: os.chown(lock, 65534, 65534),
+                     "group-writable": lambda: lock.chmod(0o660),
+                     "other-writable": lambda: lock.chmod(0o646),
+                     "unsupported-read-mode": lambda: lock.chmod(0o604),
+                     "content": lambda: lock.write_bytes(b"foreign lock content"),
+                     "hardlink": lambda: os.link(lock, linked), "symlink": symlink,
+                     "fifo": fifo, "directory": directory}
+        for name, mutate in mutations.items():
+            with self.subTest(mutation=name):
+                atomic_write(lock, b"", 0o600)
+                mutate()
+                with self.assertRaises((DeployError, OSError)):
+                    self.perform()
+                self.assertEqual(self.system.events, [])
+                self.assertTrue(self.source.exists())
+                self.assertFalse(self.target_exists())
+                self.assertFalse((self.layout.config / "uninstalled.json").exists())
+                linked.unlink(missing_ok=True)
+                if lock.is_dir() and not lock.is_symlink():
+                    lock.rmdir()
+                else:
+                    lock.unlink()
+        self.assertEqual((other.stat().st_ino, other.stat().st_mode, other.read_bytes()),
+                         (other_before.st_ino, other_before.st_mode, b""))
+
+    def test_initialization_lock_still_rejects_readable_0644_without_changing_it(self):
+        lock = self.layout.config.parent / ("." + self.layout.instance + "-initialize.lock")
+        atomic_write(lock, b"", 0o644)
+        before = lock.stat()
+        with self.assertRaisesRegex(DeployError, "Unsafe initialization lock"):
+            self.perform()
+        self.assertEqual(self.system.events, [])
+        self.assertTrue(self.source.exists())
+        self.assertFalse((self.layout.config / "management.lock").exists())
+        self.assertEqual((lock.stat().st_ino, lock.stat().st_mode), (before.st_ino, before.st_mode))
+
+    def test_lock_path_replaced_during_acquisition_is_rejected(self):
+        import fcntl
+        lock = self.layout.config / "management.lock"
+        atomic_write(lock, b"", 0o644)
+        before = lock.stat()
+        original = fcntl.flock
+        def replace_path(descriptor, operation):
+            original(descriptor, operation)
+            atomic_write(lock, b"", 0o644)
+        with patch.object(fcntl, "flock", side_effect=replace_path), self.assertRaisesRegex(DeployError, "Lock path changed"):
+            with management_lock(self.layout):
+                self.fail("Must not enter with a lock on an unlinked inode")
+        self.assertNotEqual(lock.stat().st_ino, before.st_ino)
+        self.assertEqual(self.system.events, [])
 
     def test_retained_image_is_never_archived(self):
         (self.source / "build.ext4").write_bytes(b"uncertain image")

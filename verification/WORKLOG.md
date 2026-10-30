@@ -2,17 +2,21 @@
 
 > Public copy. Private deployment details have been omitted.
 
+## 2026-10-30 — 管理锁衔接修复与第八轮检查
+
+实际归档在停止服务前发现普通管理锁与初始化锁的契约不一致，已修复专用管理锁入口并保留原 inode/权限。真实普通入口创建0644锁的回归、竞争与拒绝测试通过，独立复核通过；完整第八轮覆盖1,941文件无新增问题。新精确源码等待完整CI8及继续线上升级，不以CI7通过替代。详见[修复](audit-evidence/v220-management-lock/summary.json)和[第八轮](audit-evidence/v220-round8/team.json)。
+
 ## 2026-10-30 — 升级与恢复修复收口
 
-第七轮完整检查覆盖 1,941 文件，无新增可修复问题，满足最新的一轮门槛。旧 sudo 规则通过精确匹配识别并经配置事务迁移；记录式服务恢复仅在身份绑定的恢复日志下接受原有合法定义，普通验证保持严格。Linux root 113 项、非 root 86 项全部通过；Windows 79 项通过，7 项由 Linux 覆盖的平台跳过。独立复核通过，等待此精确源码的新全量 CI 和实际部署；先前 CI6 结果和第六轮失败原样保留。详见[第七轮报告](audit-evidence/v220-round7/team.json)和[修复记录](audit-evidence/v220-upgrade-compat/summary.json)。
+第七轮完整检查覆盖 1,941 文件，无新增可修复问题，满足最新的一轮门槛。旧 sudo 规则通过精确匹配识别并经配置事务迁移；记录式服务恢复仅在身份绑定的恢复日志下接受原有合法定义，普通验证保持严格。Linux root 113 项、非 root 86 项全部通过；Windows 79 项通过，7 项由 Linux 覆盖的平台跳过。独立复核通过；此精确源码的新完整 CI7 已通过 227 文件、2,383 个不同用例，覆盖缺口为零。实际部署与公网验收进行中；先前 CI6 结果和第六轮失败原样保留。详见[第七轮报告](audit-evidence/v220-round7/team.json)和[修复记录](audit-evidence/v220-upgrade-compat/summary.json)。
 
 ## 2026-10-30 — 升级兼容性阻断与第六轮检查
 
 
 
-## 2026-10-30 — v2.2.0 全量验证通过
+## 2026-10-30 — 历史 CI6 全量验证通过
 
-
+提交 `historical-commit-104` 的完整 GitHub 验证已通过：**227 个测试文件、2,362 个独立用例，跨平台覆盖缺口为零**；原始平台跳过保持记录，由适用平台通过的同一用例补足。源码摘要为 `9fbd2de73c61d794b50283dfd8bd7f5c3830c1000ebc10e77aa8ebd6ed1e9cb4`。安全分析与依赖扫描作业通过，CodeQL 聚合仍显示已复核的凭据子进程管道提示和旧配置缺失，不冒称零告警。此结果不覆盖之后的部署兼容修复。详见[全量结果](audit-evidence/v220-release/hosted-ci6.json)和[当前 CodeQL 复核](audit-evidence/v220-release/codeql-ci6.json)。
 
 ## 2026-10-30 — 自动化恢复测试时序收尾
 
