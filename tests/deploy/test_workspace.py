@@ -1,5 +1,7 @@
 """Native workspace validators and Linux descriptor/transaction regressions."""
+import hashlib
 import os
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -330,6 +332,39 @@ class WorkspaceFilesystemTests(unittest.TestCase):
         self.assertIn("+staged", self.call("git/diff", {"staged": True})["result"]["text"])
         self.assertIn("+unstaged", self.call("git/diff", {})["result"]["text"])
         self.assertEqual((self.path / ".git/index").read_bytes(), index_before)
+
+    def test_git_view_detects_racy_equal_size_edit_without_refreshing_original_index(self):
+        def git(*args):
+            return subprocess.run(["/usr/bin/git", "-C", str(self.path), *args], env=GIT_ENV, check=True,
+                                  capture_output=True, timeout=10).stdout
+        git("init", "-q", "--object-format=sha1")
+        git("config", "user.name", "Fixture")
+        git("config", "user.email", "fixture@example.invalid")
+        target = self.path / "file.txt"
+        target.write_text("base\n")
+        git("add", "--", "file.txt")
+        git("commit", "-qm", "fixture")
+        git("update-index", "--index-version=2")
+        target.write_text("edit\n")
+        os.utime(target, ns=(1_000_000_000, 1_000_000_000))
+        info = target.stat()
+        index = self.path / ".git/index"
+        data = bytearray(index.read_bytes())
+        self.assertEqual(struct.unpack_from(">4sII", data), (b"DIRC", 2, 1))
+        # Reproduce a stat-cache collision without relying on wall-clock timing
+        # or the filesystem's timestamp resolution. Keep the original blob ID;
+        # only the cached ctime/mtime match the equal-size edited working file.
+        struct.pack_into(">IIII", data, 12, info.st_ctime_ns // 1_000_000_000, info.st_ctime_ns % 1_000_000_000,
+                         info.st_mtime_ns // 1_000_000_000, info.st_mtime_ns % 1_000_000_000)
+        data[-20:] = hashlib.sha1(data[:-20]).digest()
+        index.write_bytes(data)
+        os.utime(index, ns=(info.st_mtime_ns, info.st_mtime_ns))
+        original = index.read_bytes(), index.stat().st_mtime_ns
+        self.assertIn(b" M file.txt\0", git("status", "--porcelain=v1", "-z"))
+        status = self.call("git/status", {})["result"]
+        self.assertTrue(any(item["path"] == "file.txt" and item["worktree"] == "M" for item in status["entries"]))
+        self.assertIn("+edit", self.call("git/diff", {})["result"]["text"])
+        self.assertEqual((index.read_bytes(), index.stat().st_mtime_ns), original)
 
     def test_edit_preserves_executable_mode_and_git_metadata_symlinks_are_rejected(self):
         (self.path / "script").write_text("old")

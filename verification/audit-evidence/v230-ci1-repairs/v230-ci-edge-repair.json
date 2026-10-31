@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "completedAt": "2026-10-30T23:49:34.676051+00:00",
+  "kind": "ci-test-fixture-repair",
+  "ciCommit": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "ciRun": "41145274221",
+  "classification": "Test-only fixture missing mandatory fixed native identity, not a product validation defect.",
+  "originalFailure": {
+    "evidence": {
+      "path": ".work/v230-ci-linux-raw.txt",
+      "sha256": "8eccafc16986e28149975cda7f883cfd7eb1e2b94a4e7b88e60e9514aa512683"
+    },
+    "caseNames": [
+      "test_status_reports_edge_failure_independently_of_active_process",
+      "test_unconfigured_edge_is_explicit_and_never_queries_an_unrelated_caddy_unit"
+    ],
+    "location": "Manager.status -> execution_identity.state -> DeployError(integrity, Invalid fixed native identity)",
+    "cause": "Manager.__new__ fixture supplied only origin/port; production status now includes verified execution policy and requires positive integer workerUid and workerGid.",
+    "originalFixtureSha256": "b9af43f064fb7740b671ec1fb4c15ba67b7f1490e84a8d499943a9a630d9fb1e",
+    "preserved": true
+  },
+  "changedFiles": [
+    "tests/deploy/test_edge_diagnostics.py"
+  ],
+  "fileHashes": [
+    {
+      "path": "tests/deploy/test_edge_diagnostics.py",
+      "sha256": "28e8880fad7597cde73ea54f1807f0984b4313bc813ab0a96c8085b7bce71ff6"
+    }
+  ],
+  "productionContractFiles": [
+    {
+      "path": "deploy/manager.py",
+      "sha256": "8bae128462d88e79fee30bc0a06b14766d823890038396d4d2e47755b0c9eaa9"
+    },
+    {
+      "path": "deploy/execution_identity.py",
+      "sha256": "369b6ad64ab9db8bffbc2a04e973779e19e603fab9f3f9ddcf14f8fce92a6649"
+    }
+  ],
+  "repair": [
+    "Supply fixed non-root fixture workerUid/workerGid=1002 without mocking execution_identity.state.",
+    "Keep all original HTTPS failure, unconfigured edge, log allowlist/redaction and pending lifecycle assertions.",
+    "Assert the real returned legacy-native mode, effective UID and rootAllowed=false in both previously failing status cases.",
+    "Add one negative test with 10 subcases: missing, zero, negative, boolean and string value for each UID/GID must remain integrity errors before any service query."
+  ],
+  "validation": {
+    "windowsBefore": {
+      "testsRun": 5,
+      "passed": 3,
+      "failed": 2,
+      "skipped": 0,
+      "exitCode": 1,
+      "result": {
+        "path": ".work/v230-ci-edge-baseline-windows.json",
+        "sha256": "559f647bbd753d1a2952a1804769ef1c9284c31e8e0514b8fe2b9e0538492a48"
+      },
+      "rawLog": {
+        "path": ".work/v230-ci-edge-baseline-windows.log",
+        "sha256": "4cad1d2c1e56d2412689176c234041cc3ba3fe7d436230793e91c34439c62459"
+      }
+    },
+    "windowsAfter": {
+      "testsRun": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "result": {
+        "path": ".work/v230-ci-edge-windows.json",
+        "sha256": "603c04b36a871ca6968681174913fa111c3bd05c9a7a01cc08a2faa4d7521280"
+      },
+      "rawLog": {
+        "path": ".work/v230-ci-edge-windows.log",
+        "sha256": "c771258aad46332ca667663710892cc4fc98884698a85abbf284c6dccba28b5b"
+      }
+    },
+    "linuxOrdinaryAfter": {
+      "testsRun": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "uid": 65534,
+      "fixture": "/var/tmp/crtest-v230-edge-27cdf38d148d9870",
+      "result": {
+        "path": ".work/v230-ci-edge-linux.json",
+        "sha256": "f5cc88251e1760bc47de974d7ef89d7c01f9310f8fa22aeb004d67544a812388"
+      },
+      "rawLog": {
+        "path": ".work/v230-ci-edge-linux.log",
+        "sha256": "00ad642d114777daebcb5794c3d0464c524699a945ed574d69c2b8c363984005"
+      },
+      "fixtureSourceHashesVerified": true
+    },
+    "command": "python -B scripts/python-tests.py <isolated-result.json> tests/deploy/test_edge_diagnostics.py",
+    "linuxTransport": "Strict known-host SSH to existing 120 alias; new /var/tmp/crtest-v230-edge-* fixture, runuser nobody with isolated HOME/TMPDIR and controlled environment.",
+    "astParsed": true,
+    "diffCheckPassed": true
+  },
+  "independentReview": {
+    "path": ".work/v230-ci-edge-repair-review.json",
+    "reviewer": "v230_audit_gateway_tooling",
+    "status": "Author report handed over for final evidence binding; preliminary read-only review found no issue."
+  },
+  "productionCodeChanged": false,
+  "validationWeakened": false,
+  "testsSkipped": false,
+  "fullTestsRun": false,
+  "mainInstanceReadDuringTest": false,
+  "mainInstanceChanged": false,
+  "stagingOrDeploymentPerformed": false,
+  "credentialsRead": false,
+  "limits": [
+    "These fixtures intentionally mock systemd and the configured HTTPS network probe; they do not claim real certificate/network/systemd acceptance.",
+    "Linux execution used actual non-root UID65534 with real temporary filesystem/profile serialization; it did not mutate the running application.",
+    "Only this six-case file ran after repair. Full CI remains failed and release/deployment gates remain closed.",
+    "The added negative method has ten subcases, counted as one unittest case, not ten additional independent cases."
+  ],
+  "findings": []
+}

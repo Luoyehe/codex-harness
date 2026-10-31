@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "/root/v230_audit_gateway_tooling",
+  "task": "Read-only public API CI monitoring",
+  "complete": true,
+  "result": "failure",
+  "candidate": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "expectedSourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+  "testRun": 41145274221,
+  "securityRun": 41145274215,
+  "observedFrom": "2026-10-30T23:35:20.6363730Z",
+  "observedThrough": "2026-10-30T23:46:45.9204109Z",
+  "before": {
+    "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+    "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+    "method": "git rev-parse HEAD and pinned Node scripts/snapshot.mjs before first API poll",
+    "sourceFiles": 1975
+  },
+  "after": {
+    "sourceFiles": 1975,
+    "observedAt": "2026-10-30T23:47:22.4830324Z",
+    "method": "git rev-parse HEAD and pinned Node scripts/snapshot.mjs",
+    "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+    "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+    "unchanged": true
+  },
+  "checks": [
+    {
+      "id": 124372112605,
+      "name": "Verified case coverage",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "failure",
+      "annotationsCount": 1,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124372112605"
+    },
+    {
+      "id": 124368960967,
+      "name": "root_deploy",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "success",
+      "annotationsCount": 0,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124368960967"
+    },
+    {
+      "id": 124368960945,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "failure",
+      "annotationsCount": 1,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124368960945"
+    },
+    {
+      "id": 124368960936,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "failure",
+      "annotationsCount": 1,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124368960936"
+    },
+    {
+      "id": 124368794226,
+      "name": "plan",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "success",
+      "annotationsCount": 0,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124368794226"
+    },
+    {
+      "id": 124368793892,
+      "name": "codeql (python)",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "success",
+      "annotationsCount": 0,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274215/job/124368793892"
+    },
+    {
+      "id": 124368793866,
+      "name": "codeql (javascript-typescript)",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "success",
+      "annotationsCount": 0,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274215/job/124368793866"
+    },
+    {
+      "id": 124368793630,
+      "name": "dependencies",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "status": "completed",
+      "conclusion": "success",
+      "annotationsCount": 0,
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274215/job/124368793630"
+    }
+  ],
+  "failures": [
+    {
+      "jobId": 124368960936,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "conclusion": "failure",
+      "steps": [
+        {
+          "number": 12,
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T23:35:48Z",
+          "completed_at": "2026-10-30T23:41:51Z"
+        }
+      ],
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124368960936"
+    },
+    {
+      "jobId": 124368960945,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "conclusion": "failure",
+      "steps": [
+        {
+          "number": 12,
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T23:36:55Z",
+          "completed_at": "2026-10-30T23:45:07Z"
+        }
+      ],
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124368960945"
+    },
+    {
+      "jobId": 124372112605,
+      "name": "Verified case coverage",
+      "conclusion": "failure",
+      "steps": [
+        {
+          "number": 5,
+          "name": "Require all identities and complement every skipped case",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T23:45:18Z",
+          "completed_at": "2026-10-30T23:45:18Z"
+        }
+      ],
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221/job/124372112605"
+    }
+  ],
+  "coverage": {
+    "id": 124372112605,
+    "status": "completed",
+    "reason": "Final check and step failure verified from API; actual reconciliation log and individual artifacts not acquired by this monitor.",
+    "gaps": null,
+    "name": "Verified case coverage",
+    "conclusion": "failure",
+    "caseCounts": null
+  },
+  "security": {
+    "jobConclusions": "dependencies and both named codeql language jobs completed/success",
+    "aggregateObservation": "No independently named CodeQL aggregate appeared through final check snapshot.",
+    "alertConclusion": "Not established: successful jobs and annotations_count=0 do not prove zero code-scanning alerts.",
+    "independentCodeQLAggregateObserved": false
+  },
+  "plan": {
+    "line": 109,
+    "sha256": "c8f889980202c5f45692dea2423d58ab716248469154231571034d3ab387479e",
+    "artifactDownloaded": false,
+    "path": ".work/v230-ci-plan-ui.txt",
+    "actualOutput": {
+      "mode": "authorized-full",
+      "base": "4905bd40d95931b4ec6646c7a06ed37cffbf6ed9",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "files": 247,
+      "targets": [
+        "linux",
+        "windows",
+        "linux-root"
+      ]
+    },
+    "evidenceKind": "Parent-captured hosted GitHub Actions page accessibility text, locally inspected"
+  },
+  "evidence": {
+    "lastChecksMeta": {
+      "endpoint": "https://api.github.com/repos/Luoyehe/codex-harness/commits/930614562a98889f63cfb1e853b1f5caaa362001/check-runs?per_page=100",
+      "raw": ".work/v230-ci-checks-20261030T234645902Z.json",
+      "sha256": "e1376819f9cec58cf8e8e979cb68c40132966d5bcc6d7b4e720dcbed3fd70ae3",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "observedAt": "2026-10-30T23:46:45.9204109Z",
+      "remaining": [
+        "51"
+      ]
+    },
+    "rawSnapshots": [
+      {
+        "path": ".work/v230-ci-checks-20261030T233520616Z.json",
+        "sha256": "67515cc3a07447f665b35d5e336b0de24d7ba33803ff5320ee0784facdff7775"
+      },
+      {
+        "path": ".work/v230-ci-checks-20261030T233643378Z.json",
+        "sha256": "6941fd65972e45486cc7a08d9ef5fa5412a77b41ef57a9b2ae82cc59e1d44306"
+      },
+      {
+        "path": ".work/v230-ci-checks-20261030T233914327Z.json",
+        "sha256": "c794704918e6884544fea0d0c779a2b5e9da64c1bba5316d0e4c490f21d96edf"
+      },
+      {
+        "path": ".work/v230-ci-checks-20261030T234030188Z.json",
+        "sha256": "c794704918e6884544fea0d0c779a2b5e9da64c1bba5316d0e4c490f21d96edf"
+      },
+      {
+        "path": ".work/v230-ci-checks-20261030T234252964Z.json",
+        "sha256": "f68ccffc60cfc5e41101b99c71648938e73ab6361ee4ed31cf37b8c9ee0f6266"
+      },
+      {
+        "path": ".work/v230-ci-checks-20261030T234420555Z.json",
+        "sha256": "f68ccffc60cfc5e41101b99c71648938e73ab6361ee4ed31cf37b8c9ee0f6266"
+      },
+      {
+        "path": ".work/v230-ci-checks-20261030T234645902Z.json",
+        "sha256": "e1376819f9cec58cf8e8e979cb68c40132966d5bcc6d7b4e720dcbed3fd70ae3"
+      },
+      {
+        "path": ".work/v230-ci-job-124368960936-20261030T234307930Z.json",
+        "sha256": "b41ea150b63e025087e5b15900401820a389d3df75f1a462f366bcbfbe971ae2"
+      },
+      {
+        "path": ".work/v230-ci-jobs-41145274221-20261030T233753393Z.json",
+        "sha256": "bc41390e1b00fb2402c1ff151909132b686195b2fbf9f2790149b707f31274e5"
+      },
+      {
+        "path": ".work/v230-ci-jobs-41145274221-20261030T234143813Z.json",
+        "sha256": "bc41390e1b00fb2402c1ff151909132b686195b2fbf9f2790149b707f31274e5"
+      },
+      {
+        "path": ".work/v230-ci-jobs-41145274221-20261030T234531699Z.json",
+        "sha256": "823bd02568cfc9cf5af7a9f438dee696e46ae7e68523319505166b7100f7d2c5"
+      }
+    ],
+    "lastJobsMeta": {
+      "endpoint": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41145274221/jobs?per_page=100",
+      "raw": ".work/v230-ci-jobs-41145274221-20261030T234531699Z.json",
+      "sha256": "823bd02568cfc9cf5af7a9f438dee696e46ae7e68523319505166b7100f7d2c5",
+      "remaining": [
+        "52"
+      ],
+      "observedAt": "2026-10-30T23:45:31.7147548Z",
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001"
+    }
+  },
+  "method": [
+    "Only the supplied v230-ci-read.ps1 public GET endpoints were used; raw timestamped JSON preserved by that tool.",
+    "Routine polling at least 60 seconds apart; one immediate failed-job diagnostic followed discovery of Linux failure to identify its exact failed step.",
+    "No cancellation, rerun, dispatch, source change, deployment, browser or credential access.",
+    "No root cause or case count inferred from elapsed time or job conclusion."
+  ],
+  "limitations": [
+    "This report establishes API job/check outcomes and the saved hosted plan output. It does not substitute for actual test/reconciliation logs or raw individual artifacts.",
+    "The two failed platform test steps and failed coverage check prohibit claiming the full reviewed run passed.",
+    "Parent owns hosted log collection and any investigation or subsequent action."
+  ]
+}

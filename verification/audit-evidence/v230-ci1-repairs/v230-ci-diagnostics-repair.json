@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "kind": "ci-group-diagnostics",
+  "author": "/root/v230_audit_gateway_tooling",
+  "candidate": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "problem": "The hosted platform log prints JS/Python output but no group result or Go outcome; Go subprocess output is captured in the platform result artifact, leaving the observed failed run ambiguous without that artifact.",
+  "changedFiles": [
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "72ae8b7305ee6153d39b50adcdd241534b4588b5eb7ec448b03a30b7ced5170b"
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "fb2fcee7a12151ee1d64be00a0bb1ab9749ea7b393096fd8b5575aa72b3fe10e"
+    }
+  ],
+  "implementation": [
+    "Wrap each existing runVitest/runPythonTests/runGoTests invocation in runCiGroup to print one fixed JSON started event and one completed event. Unexpected thrown execution errors emit a fixed threw event and propagate the same exception.",
+    "Completed summaries include allowlisted group/status, bounded numeric exitCode, selected file count, and observed case-status counts; missing case evidence is null, not zero or success.",
+    "Go summaries contain only the five fixed phase names with allowlisted status and bounded numeric exitCode. Only known static reasons or a known phase failure prefix are printed; unknown reason content is replaced with a platform-artifact pointer. Raw case identities, test paths, exception messages, stderr, detail and payload are never printed by this new summary.",
+    "The wrapper returns the exact original result object and does not retry, skip subsequent groups after a returned failed result, replace evidence, alter exit aggregation, or change reconcileCi."
+  ],
+  "validation": {
+    "log": {
+      "path": ".work/v230-ci-diagnostics-targeted.log",
+      "sha256": "45fba4a9420bec5889f93bfbba62fb0f0789e19e66a283e0d3bdf37256047270"
+    },
+    "diffCheck": "passed",
+    "newCasesPassed": 2,
+    "json": {
+      "path": ".work/test-results/run-LjGL7g/vitest.json",
+      "sha256": "b20c861056bd6571aa297ec69e1bf98f3dd407414c75138da2f298cc941001ab"
+    },
+    "exitCode": 3,
+    "skip": "Existing Unix-only root fixture traversal test is not runnable on Windows",
+    "skipped": 1,
+    "nodeSyntaxCheck": "passed",
+    "failed": 0,
+    "passed": 10,
+    "command": "pinned Node scripts/run-tests.mjs --targeted tests/tooling/ci-checks.test.ts"
+  },
+  "testsCover": [
+    "Exact original result identity and single invocation across failed/skipped/passed groups; start/end ordering and missing case evidence.",
+    "Same thrown exception escapes and only a fixed diagnostic is emitted, excluding its secret message.",
+    "Five fixed Go phase states and allowlisted reason reporting, untrusted reason redaction, ignored extra checks, payload/path/case-ID suppression, and each output line below 1500 bytes for oversized synthetic reasons/checks.",
+    "Existing coverage gates continue rejecting failed, stale, missing, duplicate and all-skipped case evidence."
+  ],
+  "limits": [
+    "No full suite, real Go compiler execution, CI trigger/retry, browser, deployment or online action was performed.",
+    "These new diagnostics improve future run visibility; they do not establish the missing Go outcome of the already-failed candidate run.",
+    "The test-only platform skip is retained as exit code 3; this is not reported as an all-platform pass.",
+    "Independent review remains assigned to root."
+  ],
+  "findings": []
+}

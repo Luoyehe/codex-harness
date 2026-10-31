@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "finalRound": "v230-round7",
+  "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
+  "sourceFiles": 1975,
+  "baseCommit": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "createdAt": "2026-10-30T23:59:47.166Z",
+  "archivePolicy": "semantic records LF canonical; exact originals retained in sidecars when needed",
+  "files": [
+    {
+      "from": ".work/v230-round7-deployment.json",
+      "to": "verification/audit-evidence/v230-round7/deployment.json",
+      "originalSha256": "9a70ab402c829b24a4e7b49b418742527f5ccfde8761dd121c196fb55b516aa2",
+      "archivedSha256": "9a70ab402c829b24a4e7b49b418742527f5ccfde8761dd121c196fb55b516aa2"
+    },
+    {
+      "from": ".work/v230-round7-root-protocol-docs.json",
+      "to": "verification/audit-evidence/v230-round7/root-protocol-docs.json",
+      "originalSha256": "80dabc88c1095818f1edcdc3692f9f8b1cc804897b4f0b6ff5c3fc801e4fca99",
+      "archivedSha256": "80dabc88c1095818f1edcdc3692f9f8b1cc804897b4f0b6ff5c3fc801e4fca99"
+    },
+    {
+      "from": ".work/v230-round7-runtime-gateway-initial.json",
+      "to": "verification/audit-evidence/v230-round7/runtime-gateway-initial.json",
+      "originalSha256": "7bc9c9c1ab7367a59e4e3bbdeb799a66e7fbf767d8792313cbac8ec3424c2159",
+      "archivedSha256": "c239306c85b10b1bf5e8b03a38c51390a9b57af62a86412483d03b69014c8356",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-round7/runtime-gateway-initial-original-bytes.json",
+        "sha256": "28177a174c47cf2ae7038afc95fa49b406917a65673eb6fbbb104d0b6eaa75a6",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-round7-runtime-gateway.json",
+      "to": "verification/audit-evidence/v230-round7/runtime-gateway.json",
+      "originalSha256": "729478964ef3f3aa08f2048219d05513353a98e2b672ba60d69d38c0c4728743",
+      "archivedSha256": "729478964ef3f3aa08f2048219d05513353a98e2b672ba60d69d38c0c4728743"
+    },
+    {
+      "from": ".work/v230-round7-snapshot.json",
+      "to": "verification/audit-evidence/v230-round7/snapshot.json",
+      "originalSha256": "9fa4d663392a29d1c658687a7c65954e3489770dda8b24e4708e8a13b6d91ea5",
+      "archivedSha256": "9fa4d663392a29d1c658687a7c65954e3489770dda8b24e4708e8a13b6d91ea5"
+    },
+    {
+      "from": ".work/v230-round7-source-scan.json",
+      "to": "verification/audit-evidence/v230-round7/source-scan.json",
+      "originalSha256": "acd5d9600c3caf86ec6f5be486dcd607f0be47474e13a65d972f369fd84a0730",
+      "archivedSha256": "acd5d9600c3caf86ec6f5be486dcd607f0be47474e13a65d972f369fd84a0730"
+    },
+    {
+      "from": ".work/v230-round7-team.json",
+      "to": "verification/audit-evidence/v230-round7/team.json",
+      "originalSha256": "672801874a33fd2a22c47f632248c2a2abf9108a2b08d5340a22a424d613378f",
+      "archivedSha256": "672801874a33fd2a22c47f632248c2a2abf9108a2b08d5340a22a424d613378f"
+    },
+    {
+      "from": ".work/v230-round7-web.json",
+      "to": "verification/audit-evidence/v230-round7/web.json",
+      "originalSha256": "0c41860e331396efefb413040ed76ffa7db3403970e708d04cfc04b99a282b88",
+      "archivedSha256": "0c41860e331396efefb413040ed76ffa7db3403970e708d04cfc04b99a282b88"
+    },
+    {
+      "from": ".work/v230-ci-edge-repair.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair.json",
+      "originalSha256": "6201dbd6fc7ba5a3fe099943160a23da65950930ea7a00e813e697ecc619af30",
+      "archivedSha256": "6201dbd6fc7ba5a3fe099943160a23da65950930ea7a00e813e697ecc619af30"
+    },
+    {
+      "from": ".work/v230-ci-edge-repair-review.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair-review.json",
+      "originalSha256": "e1259e2252ff63d7871d823e24a1cc37645d3a04e9822f01691c5afc0264a949",
+      "archivedSha256": "93d077690fb6a02f63015bb593cf322c6ca3c8087ae31218f2fd9e7daabb2713",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair-review-original-bytes.json",
+        "sha256": "7db102cf6f1adf42488c2d4975c964bb4265bf5eb31fc27c689d15d4387374a6",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-ci-workspace-repair.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair.json",
+      "originalSha256": "ce3082b44e2cc69cd5185cdc40b275032a4885bdda8833b539c26512b4d18130",
+      "archivedSha256": "6783e39ac4c2e14bc420f5231464cd4ca4a3503af64dbff29d7bd6379d7dcc6a",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair-original-bytes.json",
+        "sha256": "28e473d8c81e6c0b7f181d9f444274c20b5361f79c976e60153dc52a71140d99",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-ci-workspace-repair-review.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair-review.json",
+      "originalSha256": "6a886e6d3a8f1522f41a31c24c6ffcbf74ba685f98ee7d0fa607e3a649d631a2",
+      "archivedSha256": "6a886e6d3a8f1522f41a31c24c6ffcbf74ba685f98ee7d0fa607e3a649d631a2"
+    },
+    {
+      "from": ".work/v230-ci-web-repair.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair.json",
+      "originalSha256": "319f4253dff33cfa5e65280bc00e85613d16e12fa479f5d0ade48b2326ec5ff5",
+      "archivedSha256": "319f4253dff33cfa5e65280bc00e85613d16e12fa479f5d0ade48b2326ec5ff5"
+    },
+    {
+      "from": ".work/v230-ci-web-repair-review.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair-review.json",
+      "originalSha256": "e9d5ea253746b9326e98a65e89726e9408a0026c9781a7547a5c4eefadd39aa6",
+      "archivedSha256": "406f65e4c96728747d9f30e4968ce16f158544b8ebe540b014188014d06cf8cd",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair-review-original-bytes.json",
+        "sha256": "a4443a1b5a9218d4127bc1284442fee4d859a7945ce1d22a01de7cbf2f11f499",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-ci-diagnostics-repair.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair.json",
+      "originalSha256": "2f1cd104d10f6a0ae8c51c7568ef0b2098778c69898369b9cc482ff064a21078",
+      "archivedSha256": "cfbbe212f841fd2509bb0c739a7e22e2613f9823c61b64d87235a554311e89e0",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair-original-bytes.json",
+        "sha256": "22af593e791c877b2a0f7270db9faee5dd49929286d54c2ce3f1a7b5b75eee96",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-ci-diagnostics-repair-review.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair-review.json",
+      "originalSha256": "48ddbbf9a5b077adf3aece052a3f76b5d69c4031cc8eb9df7bdaa80e64f605d2",
+      "archivedSha256": "48ddbbf9a5b077adf3aece052a3f76b5d69c4031cc8eb9df7bdaa80e64f605d2"
+    },
+    {
+      "from": ".work/v230-ci-monitor-summary.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/ci1-monitor-summary.json",
+      "originalSha256": "b288ead6b0fa8edb4eee8fd006b6e4cd19d579c2144e3d98e65c323c8078759e",
+      "archivedSha256": "d099460b78b4f1ba597650e9c098f45e393e910f05c54edfc02f8a24ee23ebab",
+      "originalBytesSidecar": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/ci1-monitor-summary-original-bytes.json",
+        "sha256": "0ff6c36f981ba993110600412210df7b91a6c9f705bf5bde45282ab60f563c85",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "from": ".work/v230-ci1-failure.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/ci1-failure.json",
+      "originalSha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff",
+      "archivedSha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
+    },
+    {
+      "from": "verification/audit-evidence/release-closeout/authorization.json",
+      "to": "verification/audit-evidence/v230-ci1-repairs/failed-ci1-authorization.json",
+      "originalSha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763",
+      "archivedSha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763"
+    }
+  ],
+  "limitations": [
+    "Raw logs remain ignored; their references and SHA256 do not mean missing output was reconstructed.",
+    "Original team member SHA references bind original bytes; public reviewer SHA binds LF archive bytes.",
+    "No test, CI trigger, application build, online action or release publication is performed by this seal."
+  ]
+}

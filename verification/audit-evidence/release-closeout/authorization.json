@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+  "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
   "sourceFiles": 1975,
-  "baseCommit": "4905bd40d95931b4ec6646c7a06ed37cffbf6ed9",
+  "baseCommit": "930614562a98889f63cfb1e853b1f5caaa362001",
   "version": "2.3.0",
-  "approvedAt": "2026-10-30T23:29:33.208Z",
+  "approvedAt": "2026-10-30T23:59:47.166Z",
   "userInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。用户指定发布 v2.3.0，更新 120 并保持服务运行；最终路径规则为 / 开头绝对路径，否则相对路径，普通和 ROOT 模式一致。",
   "auditWaiverInstruction": "完成后同样一轮审计无问题后进行收尾和部署发布；不要求仓库默认的连续三轮无问题。",
   "repairsReviewed": true,
@@ -17,24 +17,78 @@
   "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "v230-round6",
-      "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
-      "completedAt": "2026-10-30T23:25:51.729Z",
+      "roundId": "v230-round7",
+      "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
+      "completedAt": "2026-10-30T23:59:39.035Z",
       "files": 1975,
       "reviewers": [
         {
-          "id": "v230-round6-team",
+          "id": "v230-round7-team",
           "scopes": [
             "gateway-core",
             "runtime-protocol",
             "web-ux",
             "deployment-release"
           ],
-          "evidence": "verification/audit-evidence/v230-round6/team.json",
-          "sha256": "c0b4498b575cae08ad63b0923618b646ff0cd0533f37460242a7fe7f1cdce4f4"
+          "evidence": "verification/audit-evidence/v230-round7/team.json",
+          "sha256": "672801874a33fd2a22c47f632248c2a2abf9108a2b08d5340a22a424d613378f"
         }
       ]
     }
   ],
-  "note": "One complete clean current-source audit (v230-round6) authorizes full tests. Preserved history: v230-round1: nonclean (4 findings); v230-round2: clean; superseded for release; v230-round3: nonclean (2 findings); v230-round4: nonclean (1 findings); v230-round5: nonclean (1 findings); v230-round6: clean. Round5 identified the remaining resume-success snapshot acknowledgement gap (V230-RG-004); its repair and worker serialization defense have separate author and independent-review evidence. Tests, deployment and publication are not claimed complete."
+  "note": "One fresh complete clean current-source audit (v230-round7) follows the failed first full CI 41145274221 for 930614562a98889f63cfb1e853b1f5caaa362001. Rounds1..6 retain their original source/time/outcomes; their clean source reviews are not rewritten as CI success. All four repair groups have exact independent reviews. Only a second full test is authorized; no full-CI, deployment, browser acceptance or release success is claimed.",
+  "priorFailedCiAuthorization": {
+    "path": "verification/audit-evidence/v230-ci1-repairs/failed-ci1-authorization.json",
+    "sha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763"
+  },
+  "repairReviews": [
+    {
+      "kind": "edge",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair.json",
+        "sha256": "6201dbd6fc7ba5a3fe099943160a23da65950930ea7a00e813e697ecc619af30"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair-review.json",
+        "sha256": "93d077690fb6a02f63015bb593cf322c6ca3c8087ae31218f2fd9e7daabb2713"
+      }
+    },
+    {
+      "kind": "workspace",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair.json",
+        "sha256": "6783e39ac4c2e14bc420f5231464cd4ca4a3503af64dbff29d7bd6379d7dcc6a"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair-review.json",
+        "sha256": "6a886e6d3a8f1522f41a31c24c6ffcbf74ba685f98ee7d0fa607e3a649d631a2"
+      }
+    },
+    {
+      "kind": "web",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair.json",
+        "sha256": "319f4253dff33cfa5e65280bc00e85613d16e12fa479f5d0ade48b2326ec5ff5"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair-review.json",
+        "sha256": "406f65e4c96728747d9f30e4968ce16f158544b8ebe540b014188014d06cf8cd"
+      }
+    },
+    {
+      "kind": "ci-diagnostics",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair.json",
+        "sha256": "cfbbe212f841fd2509bb0c739a7e22e2613f9823c61b64d87235a554311e89e0"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair-review.json",
+        "sha256": "48ddbbf9a5b077adf3aece052a3f76b5d69c4031cc8eb9df7bdaa80e64f605d2"
+      }
+    }
+  ],
+  "firstCiFailure": {
+    "path": "verification/audit-evidence/v230-ci1-repairs/ci1-failure.json",
+    "sha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
+  }
 }

@@ -23,7 +23,8 @@ class EdgeDiagnosticsTests(unittest.TestCase):
         self.layout.units.mkdir(parents=True)
         self.manager = Manager.__new__(Manager)
         self.manager.layout = self.layout
-        self.manager.config = {'origin': 'https://edge.invalid', 'port': 3300}
+        self.manager.config = {'origin': 'https://edge.invalid', 'port': 3300,
+                               'workerUid': 1002, 'workerGid': 1002}
         self.manager.selected = Mock(return_value=None)
         self.manager.system = Mock()
         self.manager.system.state.return_value = {'ActiveState': 'active', 'SubState': 'running', 'MainPID': '123'}
@@ -44,6 +45,8 @@ class EdgeDiagnosticsTests(unittest.TestCase):
             status = self.manager.status()
         self.assertEqual(status['services']['caddy']['ActiveState'], 'active')
         self.assertFalse(status['https']['ready'])
+        self.assertEqual((status['executionMode']['mode'], status['executionMode']['effectiveUid'],
+                          status['executionMode']['rootAllowed']), ('native', 1002, False))
         check.assert_called_once_with(self.manager, connect_address='127.0.0.1', timeout=3)
 
     def test_unconfigured_edge_is_explicit_and_never_queries_an_unrelated_caddy_unit(self):
@@ -51,10 +54,24 @@ class EdgeDiagnosticsTests(unittest.TestCase):
         self.assertFalse(status['https']['configured'])
         self.assertEqual(status['https']['failure'], 'not_configured')
         self.assertNotIn('caddy', status['services'])
+        self.assertEqual((status['executionMode']['mode'], status['executionMode']['effectiveUid'],
+                          status['executionMode']['rootAllowed']), ('native', 1002, False))
         self.assertFalse(self.manager.verify_https()['configured'])
 
-
-
+    def test_status_rejects_invalid_fixed_identity_before_service_queries(self):
+        for field in ('workerUid', 'workerGid'):
+            for value in (None, 0, -1, True, '1002'):
+                invalid = dict(self.manager.config)
+                if value is None:
+                    invalid.pop(field)
+                else:
+                    invalid[field] = value
+                with self.subTest(field=field, value=value), patch.dict(self.manager.config, invalid, clear=True):
+                    with self.assertRaises(DeployError) as error:
+                        self.manager.status()
+                    self.assertEqual(error.exception.code, 'integrity')
+                    self.assertEqual(str(error.exception), 'Invalid fixed native identity')
+                self.manager.system.state.assert_not_called()
 
     def test_lifecycle_repair_rejects_before_stopping_any_service(self):
         (self.layout.state / 'transactions/fixture').mkdir(parents=True)

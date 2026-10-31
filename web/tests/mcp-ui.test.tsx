@@ -842,6 +842,7 @@ it.each(['start', 'recover'] as const)(
       fireEvent.click(screen.getByRole('button', { name: '查询原 MCP 调用回执' }));
     }
     await waitFor(() => expect(finishBody).toBeTypeOf('function'));
+    await waitFor(() => expect(screen.getByRole('combobox', { name: '选择 MCP 服务' })).toHaveProperty('disabled', false));
     fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), {
       target: { value: 'other' },
     });
@@ -863,6 +864,37 @@ it.each(['start', 'recover'] as const)(
       origin === 'start' ? 1 : 0,
     );
     await act(async () => finishResource({ contents: [] }));
+  },
+);
+
+it.each(['success', 'failure'] as const)(
+  'keeps the selected MCP option and argument draft visible during a delayed directory refresh (%s)',
+  async (outcome) => {
+    let finish!: (value: unknown) => void, fail!: (error: Error) => void, reads = 0;
+    const { api, events, calls } = setup(call =>
+      call.method === 'mcp/list' && ++reads > 1
+        ? new Promise((resolve, reject) => { finish = resolve; fail = reject; })
+        : fallback(call),
+    );
+    render(<McpPanel {...panelProps(api, events)} />);
+    await selectTool();
+    fireEvent.click(screen.getByRole('checkbox', { name: /提供 Text/ }));
+    fireEvent.change(screen.getByRole('textbox', { name: /Text/ }), { target: { value: 'retained draft' } });
+    fireEvent.click(screen.getByRole('button', { name: '重新读取目录与订阅' }));
+    await waitFor(() => expect(finish).toBeTypeOf('function'));
+    const selector = screen.getByRole('combobox', { name: '选择 MCP 服务' });
+    expect(selector).toHaveProperty('value', 'local');
+    expect(selector).toHaveProperty('disabled', true);
+    expect(screen.getByRole('textbox', { name: /Text/ })).toHaveProperty('value', 'retained draft');
+    expect(screen.getByRole('button', { name: '调用 Echo' })).toHaveProperty('disabled', true);
+    await act(async () => outcome === 'success'
+      ? finish({ data: [server], nextCursor: null })
+      : fail(new Error('DIRECTORY_UNAVAILABLE')));
+    expect(selector).toHaveProperty('value', 'local');
+    expect(selector).toHaveProperty('disabled', outcome === 'failure');
+    expect(screen.getByRole('textbox', { name: /Text/ })).toHaveProperty('value', 'retained draft');
+    expect(calls.some(call => call.operationId)).toBe(false);
+    if (outcome === 'failure') expect(screen.getByText('DIRECTORY_UNAVAILABLE')).toBeTruthy();
   },
 );
 

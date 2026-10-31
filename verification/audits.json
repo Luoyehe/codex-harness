@@ -7452,6 +7452,37 @@
         }
       ],
       "method": "Complete partitioned source review; semantic records LF canonical; exact originals retained in sidecars when needed. Raw/initial/preserved reports retain depth, findings and limitations. Original member references retain original SHA256 values; reviewer SHA256 binds the public LF record. No clean round or historical completion time is invented."
+    },
+    {
+      "id": "v230-round7",
+      "sequence": 70,
+      "digest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-10-30T23:53:12.474Z",
+      "completedAt": "2026-10-30T23:59:39.035Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round7-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round7/team.json",
+          "sha256": "672801874a33fd2a22c47f632248c2a2abf9108a2b08d5340a22a424d613378f"
+        }
+      ],
+      "method": "Fresh complete partitioned audit after first-CI repairs, with actual per-file review depth and inherited evidence retained. Semantic records LF canonical; exact originals retained in sidecars when needed. No tests or historical timestamps fabricated."
     }
   ],
   "fullTests": {
@@ -7543,22 +7574,51 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+  "currentAuditSourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
   "currentAuditGate": {
     "status": "passed",
-    "round": "v230-round6",
-    "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+    "round": "v230-round7",
+    "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
     "sourceFiles": 1975,
     "requiredCleanRounds": 1,
     "userOverride": true
   },
   "v230FullTests": {
     "status": "pending",
-    "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37"
+    "attempt": 2,
+    "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
+    "sourceFiles": 1975,
+    "previousFailure": {
+      "path": "verification/audit-evidence/v230-ci1-repairs/ci1-failure.json",
+      "sha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
+    }
   },
   "v230ReleaseDeployment": {
     "status": "pending",
     "target": "120",
-    "version": "2.3.0"
-  }
+    "version": "2.3.0",
+    "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f"
+  },
+  "v230FullTestHistory": [
+    {
+      "attempt": 1,
+      "status": "failed",
+      "run": 41145274221,
+      "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+      "observedAt": "2026-10-30T23:51:54.793Z",
+      "evidence": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/ci1-failure.json",
+        "sha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
+      },
+      "monitor": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/ci1-monitor-summary.json",
+        "sha256": "d099460b78b4f1ba597650e9c098f45e393e910f05c54edfc02f8a24ee23ebab"
+      },
+      "authorization": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/failed-ci1-authorization.json",
+        "sha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763"
+      }
+    }
+  ]
 }

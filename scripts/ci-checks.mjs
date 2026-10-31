@@ -95,6 +95,39 @@ export function reconcileCi(plan, reports, base = root) {
   return { status: plan.files.length ? 'passed' : 'no-behavior-change', sourceDigest: plan.sourceDigest, head: plan.head, files: plan.files.length, cases: cases.size, coverageGaps: [], note: plan.files.length ? 'All observed cases passed on an appropriate platform; individual skips remain recorded.' : 'No tests were run for documentation-only changes.' };
 }
 
+const goPhases = ['module-verification', 'test-discovery', 'go-test', 'executable-build', 'version-plugin-probe'];
+const diagnosticReasons = new Set([
+  'missing-or-invalid-test-evidence', 'missing-or-invalid-python-evidence', 'pinned-go-preparation-required', 'invalid-go-preparation',
+  'go-selection-must-cover-exact-sealed-package', 'Go discovery differs from source test declarations', 'Go test process or package failed',
+  'Incomplete Go test execution', 'Incomplete source-bound Go evidence', 'Compiled Caddy version/plugin probe mismatch',
+  'Go source, lock or runtime changed during execution', 'Go module cache copy budget exceeded', 'Non-ordinary prepared module cache',
+]);
+const diagnosticStatus = value => ['passed', 'failed', 'skipped'].includes(value) ? value : 'not-reported';
+const diagnosticExit = value => Number.isInteger(value) && value >= 0 && value <= 255 ? value : null;
+
+export function runCiGroup(group, execute, log = line => console.log(line)) {
+  if (!['javascript', 'deploy', 'go'].includes(group)) throw Error('Unknown CI test group');
+  const emit = value => log(JSON.stringify({ event: 'ci-test-group', group, ...value }));
+  emit({ state: 'started' });
+  let result;
+  try { result = execute(); }
+  catch (error) { emit({ state: 'threw', reason: 'group-execution-threw' }); throw error; }
+  const cases = Array.isArray(result.cases) ? { total: result.cases.length, passed: 0, failed: 0, skipped: 0, other: 0 } : null;
+  if (cases) for (const item of result.cases) cases[['passed', 'failed', 'skipped'].includes(item?.status) ? item.status : 'other']++;
+  // Never print raw reasons: Go subprocess errors can include arbitrary stderr,
+  // paths or secrets. Full evidence remains in the platform result artifact.
+  const phaseFailure = typeof result.reason === 'string' && goPhases.find(name => result.reason.startsWith(`${name} failed:`));
+  const reason = diagnosticReasons.has(result.reason) ? result.reason : phaseFailure ? `${phaseFailure} failed` : result.reason ? 'unclassified-reason-see-platform-artifact' : null;
+  emit({ state: 'completed', status: diagnosticStatus(result.status), exitCode: diagnosticExit(result.exitCode),
+    selectedFiles: Array.isArray(result.tests) ? result.tests.length : null, cases, reason,
+    ...(group === 'go' ? { phases: goPhases.map(name => {
+      const check = Array.isArray(result.checks) ? result.checks.find(item => item?.name === name) : undefined;
+      return { name, status: diagnosticStatus(check?.status), exitCode: diagnosticExit(check?.exitCode) };
+    }) } : {}),
+  });
+  return result;
+}
+
 export function runCi(plan, target, base = root) {
   if (!plan.targets.includes(target) || snapshot(base).digest !== plan.sourceDigest) throw Error('Unknown target or source changed before execution');
   if ((target === 'windows') !== (process.platform === 'win32') || target.startsWith('linux') && process.platform !== 'linux' || target === 'linux-root' && process.getuid?.() !== 0 || target === 'linux' && process.getuid?.() === 0) throw Error('Wrong platform or execution identity');
@@ -117,9 +150,9 @@ export function runCi(plan, target, base = root) {
     if (native.status !== 'ready') throw Error('Independent official CLI prerequisite is not ready');
   }
   const results = [];
-  if (js.length) results.push(runVitest(js, base, env));
-  if (python.length) results.push(runPythonTests(python, base, env));
-  if (go.length) results.push({ group: 'go', ...runGoTests(go, base, env) });
+  if (js.length) results.push(runCiGroup('javascript', () => runVitest(js, base, env)));
+  if (python.length) results.push(runCiGroup('deploy', () => runPythonTests(python, base, env)));
+  if (go.length) results.push({ group: 'go', ...runCiGroup('go', () => runGoTests(go, base, env)) });
   const exitCode = results.some(item => item.exitCode === 1) ? 1 : results.some(item => item.exitCode) ? 3 : 0;
   return { schemaVersion: 1, target, head: plan.head, sourceDigest: plan.sourceDigest, sourceDigestAfter: snapshot(base).digest, files, exitCode, cases: results.flatMap(item => item.cases ?? []), results };
 }

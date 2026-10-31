@@ -19,12 +19,16 @@ def directory(path: Path) -> int:
     return open_directory(path)
 
 
-def read_index(parent: int, name: str) -> bytes:
+def read_index_state(parent: int, name: str) -> tuple[bytes, os.stat_result]:
     fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
     try:
-        return read_file(fd, INDEX_LIMIT)[0]
+        return read_file(fd, INDEX_LIMIT)
     finally:
         os.close(fd)
+
+
+def read_index(parent: int, name: str) -> bytes:
+    return read_index_state(parent, name)[0]
 
 
 @contextmanager
@@ -60,10 +64,13 @@ def content_view(root, git_dir: Path, common_dir: Path):
                         require(len(names) <= 33, "Git index view exceeds entry budget", "budget")
             total = 0
             for entry in names:
-                data = read_index(metadata, entry)
+                data, info = read_index_state(metadata, entry)
                 total += len(data)
                 require(total <= VIEW_LIMIT, "Git index view exceeds byte budget", "budget")
                 (view / entry).write_bytes(data)
+                # Git uses the index timestamp to recognize racy stat-cache
+                # matches. A newer copy can hide same-size, same-tick edits.
+                os.utime(view / entry, ns=(info.st_atime_ns, info.st_mtime_ns))
             environment = {"GIT_DIR": str(view), "GIT_COMMON_DIR": str(view), "GIT_WORK_TREE": f"/proc/self/fd/{root.fd}",
                            "GIT_INDEX_FILE": str(view / "index"), "GIT_OBJECT_DIRECTORY": f"/proc/self/fd/{objects}",
                            "GIT_ATTR_NOSYSTEM": "1"}

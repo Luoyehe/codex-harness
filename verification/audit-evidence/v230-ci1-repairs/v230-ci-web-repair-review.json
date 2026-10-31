@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "/root/v230_audit_gateway_tooling",
+  "complete": true,
+  "result": "accepted",
+  "candidateBefore": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "scope": "Independent incremental review of MCP retained-selection and draft-navigation CI repairs",
+  "authorReport": {
+    "path": ".work/v230-ci-web-repair.json",
+    "sha256": "319f4253dff33cfa5e65280bc00e85613d16e12fa479f5d0ade48b2326ec5ff5"
+  },
+  "files": [
+    {
+      "path": "web/components/McpPanel.tsx",
+      "sha256": "1ce0ab505a0f0e58c1514b2cc5d552829818274ba204a1221c695b3473642601"
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "7ca4808bf6e36854fdfba30dd3031a647e9108263f5b18664ed73c0479d44b20"
+    },
+    {
+      "path": "web/tests/draft-navigation.test.tsx",
+      "sha256": "9c5c786d34f0bcf74fec82c9c0034671b8e1c48a218496ead1c0ce6663678e7e"
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "sha256": "76090982db4a492a856db0416447e628ae3acfbc042c5f25692ddf4ed0398c49"
+    },
+    {
+      "path": "web/components/DraftsSettings.tsx",
+      "sha256": "6a4d083c857d00356dbc786a1420693a34e3f7d1352eff8dcc7079710cff8463"
+    }
+  ],
+  "method": [
+    "Read the exact three-file diff against the failed candidate; followed McpPanel selection, displayedServers/lastServers, identity remount, allowed/start, accepted/recovered body and resource-read ownership boundaries; read usePaged fully, the changed MCP fixtures/cases and the complete navigation test.",
+    "usePaged removes its current-owner data while refreshing. The existing editor already retains lastServers in that interval; the select now shares that same display list. Disabled state includes loading, read error and snapshotKey mismatch, avoiding an absent option becoming an empty DOM selection.",
+    "The existing allowed/start guard still independently requires current discovery, connected and visible ownership, loaded thread, no pending/unknown operation, and appropriate confirmation/idle state; it is unchanged. Retained display does not authorize mutation.",
+    "McpPanel identity remount still separates api/epoch/runtimeEpoch/lease/thread/project/connection, so retained options are not newly reused across those ownership changes.",
+    "The accepted-body tests now wait until the selector is actually usable while the old body promise remains pending. They still start a newer read, resolve the old body, assert the newer read stays busy and assert no extra tool mutation.",
+    "The two new deferred refresh cases assert actual DOM option value and retained draft across pending and success/failure; these checks directly exercise the previously missing-option defect.",
+    "DraftsSettings renders the native identity prefix before project name. Updating the exact label to 普通 · Project B preserves all sole-draft, settings-open, fresh-discard-consent and eventual-navigation assertions."
+  ],
+  "validation": {
+    "originalCI": {
+      "run": 41145274221,
+      "linux": {
+        "path": ".work/v230-ci-linux-raw.txt",
+        "sha256": "8eccafc16986e28149975cda7f883cfd7eb1e2b94a4e7b88e60e9514aa512683"
+      },
+      "windows": {
+        "path": ".work/v230-ci-windows-raw.txt",
+        "sha256": "db320d4ef02a807e5b89378ab11d48f89c788d251c0a2706ed03703fbfaffd4e"
+      }
+    },
+    "authorExecution": {
+      "path": ".work/v230-ci-web-after.log",
+      "sha256": "8b0890f8ca10c05cd22886bccdbe41b53659a7349ce29e8f7f5942c9b047e602",
+      "files": 4,
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0
+    },
+    "reviewerExecution": {
+      "command": "pinned Node scripts/run-tests.mjs --targeted web/tests/mcp-ui.test.tsx web/tests/draft-navigation.test.tsx",
+      "failed": 0,
+      "passed": 45,
+      "log": {
+        "path": ".work/v230-ci-web-independent-targeted.log",
+        "sha256": "0d427acccdc61247647c31fba7ed9fd5254793f5499f6c3781634da4e27740c8"
+      },
+      "json": {
+        "path": ".work/test-results/run-UiSz73/vitest.json",
+        "sha256": "7edf084ba8a9a84ef26d338681ab377078f10392f9aae53072a50b532e3adce3"
+      },
+      "exitCode": 0,
+      "files": 2,
+      "skipped": 0
+    }
+  },
+  "findings": [],
+  "remainingFindings": [],
+  "limitations": [
+    "This is an incremental repair review and an independent Windows/jsdom rerun of the two changed test files, not a new whole-web audit or physical browser acceptance.",
+    "The added delayed-refresh tests assert call-disabled state without establishing a confirmed call beforehand; the unchanged allowed/start guard was separately inspected, and the existing mutation tests were rerun. No stronger claim of a new adversarial handler-bypass test is made.",
+    "No source or test file was changed by this reviewer for the web review; no full-suite, paid inference, external MCP or deployment was performed.",
+    "The prior failed full CI remains failed; a successful targeted review does not satisfy the final coverage gate."
+  ]
+}

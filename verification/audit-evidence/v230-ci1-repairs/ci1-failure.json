@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "status": "failed",
+  "head": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+  "sourceFiles": 1975,
+  "observedAt": "2026-10-30T23:51:54.793Z",
+  "run": 41145274221,
+  "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41145274221",
+  "plan": {
+    "mode": "authorized-full",
+    "files": 247,
+    "targets": [
+      "linux",
+      "windows",
+      "linux-root"
+    ]
+  },
+  "results": {
+    "linux": {
+      "job": 124368960936,
+      "conclusion": "failure",
+      "javascript": {
+        "files": 180,
+        "passed": 1908,
+        "failed": 3,
+        "skipped": 15
+      },
+      "python": {
+        "total": 539,
+        "failures": 1,
+        "errors": 2
+      },
+      "go": "not-established-from-visible-log"
+    },
+    "windows": {
+      "job": 124368960945,
+      "conclusion": "failure",
+      "javascript": {
+        "files": 180,
+        "passed": 1920,
+        "failed": 1,
+        "skipped": 5
+      },
+      "python": {
+        "total": 539,
+        "errors": 2,
+        "skipped": 97
+      },
+      "go": "not-established-from-visible-log"
+    },
+    "linuxRoot": {
+      "job": 124368960967,
+      "conclusion": "success"
+    },
+    "coverage": {
+      "job": 124372112605,
+      "conclusion": "failure"
+    }
+  },
+  "observedFailures": [
+    {
+      "file": "web/tests/draft-navigation.test.tsx",
+      "cases": 1,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "cause": "Exact Project B text expectation omitted the new execution-mode prefix."
+    },
+    {
+      "file": "web/tests/mcp-ui.test.tsx",
+      "cases": 2,
+      "platforms": [
+        "linux"
+      ],
+      "cause": "Accepted start/recover refresh temporarily removed select options while retaining editor; changing to an absent option lost selection."
+    },
+    {
+      "file": "tests/deploy/test_edge_diagnostics.py",
+      "cases": 2,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "cause": "Manager.__new__ fixture omitted fixed native identity now required by status."
+    },
+    {
+      "file": "tests/deploy/test_workspace.py",
+      "cases": 1,
+      "platforms": [
+        "linux"
+      ],
+      "cause": "Private Git index copy assigned a newer mtime, suppressing Git racy-clean detection of equal-size same-second edits."
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v230-ci-monitor-summary.json",
+      "sha256": "b288ead6b0fa8edb4eee8fd006b6e4cd19d579c2144e3d98e65c323c8078759e"
+    },
+    {
+      "path": ".work/v230-ci-plan-ui.txt",
+      "sha256": "c8f889980202c5f45692dea2423d58ab716248469154231571034d3ab387479e"
+    },
+    {
+      "path": ".work/v230-ci-linux-raw.txt",
+      "sha256": "8eccafc16986e28149975cda7f883cfd7eb1e2b94a4e7b88e60e9514aa512683"
+    },
+    {
+      "path": ".work/v230-ci-windows-raw.txt",
+      "sha256": "db320d4ef02a807e5b89378ab11d48f89c788d251c0a2706ed03703fbfaffd4e"
+    }
+  ],
+  "handling": "Original failed run retained. No retry, cancellation, tag, Release or online application update. Source repairs require a new clean review and exact-source full test run.",
+  "limits": [
+    "Go results are captured in CI artifacts and absent from visible job logs; no Go pass is inferred.",
+    "Negative fixture exceptions inside the passing tooling tests are expected and not counted as additional suite failures.",
+    "Security workflow jobs succeeded; open CodeQL alerts require separate source/dataflow review and are not declared zero."
+  ]
+}

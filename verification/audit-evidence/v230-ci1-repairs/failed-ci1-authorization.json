@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+  "sourceFiles": 1975,
+  "baseCommit": "4905bd40d95931b4ec6646c7a06ed37cffbf6ed9",
+  "version": "2.3.0",
+  "approvedAt": "2026-10-30T23:29:33.208Z",
+  "userInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。用户指定发布 v2.3.0，更新 120 并保持服务运行；最终路径规则为 / 开头绝对路径，否则相对路径，普通和 ROOT 模式一致。",
+  "auditWaiverInstruction": "完成后同样一轮审计无问题后进行收尾和部署发布；不要求仓库默认的连续三轮无问题。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v230-round6",
+      "sourceDigest": "24bbdc70bc04e3765b0a8acf4a9d3c9a361ee2d0577808ccf3d8b933a6b54e37",
+      "completedAt": "2026-10-30T23:25:51.729Z",
+      "files": 1975,
+      "reviewers": [
+        {
+          "id": "v230-round6-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round6/team.json",
+          "sha256": "c0b4498b575cae08ad63b0923618b646ff0cd0533f37460242a7fe7f1cdce4f4"
+        }
+      ]
+    }
+  ],
+  "note": "One complete clean current-source audit (v230-round6) authorizes full tests. Preserved history: v230-round1: nonclean (4 findings); v230-round2: clean; superseded for release; v230-round3: nonclean (2 findings); v230-round4: nonclean (1 findings); v230-round5: nonclean (1 findings); v230-round6: clean. Round5 identified the remaining resume-success snapshot acknowledgement gap (V230-RG-004); its repair and worker serialization defense have separate author and independent-review evidence. Tests, deployment and publication are not claimed complete."
+}

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "/root/v230_audit_gateway_tooling",
+  "complete": true,
+  "result": "accepted",
+  "scope": "Independent read-only review of the single test fixture repair; not a full-source audit",
+  "authorReport": {
+    "sha256": "6201dbd6fc7ba5a3fe099943160a23da65950930ea7a00e813e697ecc619af30",
+    "path": ".work/v230-ci-edge-repair.json"
+  },
+  "files": [
+    {
+      "sha256": "28e8880fad7597cde73ea54f1807f0984b4313bc813ab0a96c8085b7bce71ff6",
+      "path": "tests/deploy/test_edge_diagnostics.py"
+    },
+    {
+      "sha256": "369b6ad64ab9db8bffbc2a04e973779e19e603fab9f3f9ddcf14f8fce92a6649",
+      "path": "deploy/execution_identity.py"
+    },
+    {
+      "sha256": "8bae128462d88e79fee30bc0a06b14766d823890038396d4d2e47755b0c9eaa9",
+      "path": "deploy/manager.py"
+    }
+  ],
+  "method": [
+    "Read the complete changed test, its exact diff from candidate HEAD, execution_identity.py and Manager.status; no source modification and no tests executed by this reviewer.",
+    "The fixed positive integers satisfy the real unmanaged-native identity contract. No execution identity function was mocked, and production files remain identical to HEAD.",
+    "Original HTTPS failure, absence/unrelated unit, pending transaction and log allowlist/redaction assertions remain intact. The two original status cases now also assert native mode, effectiveUid 1002 and rootAllowed false.",
+    "Each missing/zero/negative/bool/string UID or GID is rejected before system.state. The ten subcases count as one unittest method, not ten independent tests."
+  ],
+  "evidence": {
+    "originalLinux": {
+      "lines": [
+        2269,
+        2285
+      ],
+      "sha256": "8eccafc16986e28149975cda7f883cfd7eb1e2b94a4e7b88e60e9514aa512683",
+      "path": ".work/v230-ci-linux-raw.txt"
+    },
+    "linuxSourceHashesVerifiedCount": 62,
+    "reviewerReranTests": false,
+    "linuxAfter": {
+      "testsRun": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "uid": 65534,
+      "fixture": "/var/tmp/crtest-v230-edge-27cdf38d148d9870",
+      "result": {
+        "path": ".work/v230-ci-edge-linux.json",
+        "sha256": "f5cc88251e1760bc47de974d7ef89d7c01f9310f8fa22aeb004d67544a812388"
+      },
+      "rawLog": {
+        "path": ".work/v230-ci-edge-linux.log",
+        "sha256": "00ad642d114777daebcb5794c3d0464c524699a945ed574d69c2b8c363984005"
+      },
+      "fixtureSourceHashesVerified": true
+    },
+    "linuxSourceHashMismatches": [],
+    "windowsAfter": {
+      "testsRun": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "result": {
+        "path": ".work/v230-ci-edge-windows.json",
+        "sha256": "603c04b36a871ca6968681174913fa111c3bd05c9a7a01cc08a2faa4d7521280"
+      },
+      "rawLog": {
+        "path": ".work/v230-ci-edge-windows.log",
+        "sha256": "c771258aad46332ca667663710892cc4fc98884698a85abbf284c6dccba28b5b"
+      }
+    },
+    "windowsBefore": {
+      "testsRun": 5,
+      "passed": 3,
+      "failed": 2,
+      "skipped": 0,
+      "exitCode": 1,
+      "result": {
+        "path": ".work/v230-ci-edge-baseline-windows.json",
+        "sha256": "559f647bbd753d1a2952a1804769ef1c9284c31e8e0514b8fe2b9e0538492a48"
+      },
+      "rawLog": {
+        "path": ".work/v230-ci-edge-baseline-windows.log",
+        "sha256": "4cad1d2c1e56d2412689176c234041cc3ba3fe7d436230793e91c34439c62459"
+      }
+    }
+  },
+  "findings": [],
+  "remainingFindings": [],
+  "limitations": [
+    "Windows baseline/post and ordinary Linux post execution evidence were independently inspected, not rerun by this reviewer.",
+    "These fixtures mock systemd and the HTTPS probe. They establish the status/identity boundary and retained assertions, not live service or certificate behavior.",
+    "This review does not make the failed full CI pass or authorize deployment."
+  ]
+}

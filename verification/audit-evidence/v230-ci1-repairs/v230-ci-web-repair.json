@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "kind": "ci-repair",
+  "completedAt": "2026-10-30T23:51:26.716Z",
+  "candidateBefore": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "findings": [
+    {
+      "id": "V230-CI1-WEB-1",
+      "kind": "product-ui-and-test-race",
+      "description": "MCP refresh retained the selected editor but removed select options. During an accepted tool refresh, selecting an absent option could become empty. Keep the displayed catalog in the select and disable it until current discovery is ready. Tests wait for an actually usable selection instead of sending change into the transient missing-option state."
+    },
+    {
+      "id": "V230-CI1-WEB-2",
+      "kind": "test-expectation",
+      "description": "Draft rows now include their execution identity prefix. The navigation test still requested the old exact Project B label. Updated the exact label; all unsaved-draft and discard assertions remain."
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "web/components/McpPanel.tsx",
+      "sha256": "1ce0ab505a0f0e58c1514b2cc5d552829818274ba204a1221c695b3473642601"
+    },
+    {
+      "path": "web/tests/draft-navigation.test.tsx",
+      "sha256": "9c5c786d34f0bcf74fec82c9c0034671b8e1c48a218496ead1c0ce6663678e7e"
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "7ca4808bf6e36854fdfba30dd3031a647e9108263f5b18664ed73c0479d44b20"
+    }
+  ],
+  "evidence": {
+    "ci": {
+      "run": 41145274221,
+      "linux": {
+        "path": ".work/v230-ci-linux-raw.txt",
+        "sha256": "8eccafc16986e28149975cda7f883cfd7eb1e2b94a4e7b88e60e9514aa512683"
+      },
+      "windows": {
+        "path": ".work/v230-ci-windows-raw.txt",
+        "sha256": "db320d4ef02a807e5b89378ab11d48f89c788d251c0a2706ed03703fbfaffd4e"
+      }
+    },
+    "baseline": {
+      "path": ".work/v230-ci-web-before.log",
+      "sha256": "094da9ac97dcb69bdfab07a37b585dcf978b009f8eeab3fb9dd25573ebff03ab",
+      "result": "2 failed / 41 passed; draft label and accepted start race reproduced locally. CI Linux also reproduced recover race."
+    },
+    "after": {
+      "path": ".work/v230-ci-web-after.log",
+      "sha256": "8b0890f8ca10c05cd22886bccdbe41b53659a7349ce29e8f7f5942c9b047e602",
+      "files": 4,
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0
+    },
+    "typecheck": "tsc -p web/tsconfig.json --noEmit passed; git diff --check passed"
+  },
+  "regression": "Two deferred catalog tests preserve actual selected DOM value and argument draft across loading and success/failure, disable stale selection/call, and assert zero mutation calls.",
+  "limitations": [
+    "Windows jsdom targeted tests, not physical mobile browser acceptance.",
+    "No paid inference, real external MCP, deployment or full rerun claimed."
+  ]
+}

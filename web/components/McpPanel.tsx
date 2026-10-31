@@ -427,6 +427,7 @@ function McpPanelContent({
           选择 MCP 服务
           <select
             value={selected}
+            disabled={servers.loading || Boolean(servers.error) || servers.snapshotKey !== key}
             onChange={(event) => {
               setSelected(event.target.value);
               setError('');
@@ -438,7 +439,7 @@ function McpPanelContent({
             }}
           >
             <option value="">选择已发现的服务</option>
-            {servers.items.map((server) => (
+            {displayedServers.map((server) => (
               <option key={server.name} value={server.name}>
                 {server.name} · {server.runtimeStatus ?? '状态未知'} · {server.authStatus}
               </option>
