@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "reviewerId": "root",
+  "author": "/root/v230_audit_gateway_tooling",
+  "kind": "independent-repair-review",
+  "completedAt": "2026-10-30T23:52:53.525Z",
+  "findings": [],
+  "reviewedFiles": [
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "72ae8b7305ee6153d39b50adcdd241534b4588b5eb7ec448b03a30b7ced5170b"
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "fb2fcee7a12151ee1d64be00a0bb1ab9749ea7b393096fd8b5575aa72b3fe10e"
+    },
+    {
+      "path": "scripts/go-tests.mjs",
+      "sha256": "56a3556da7833399f4979b5011b1f0ee3a81af4ea055aac76481992e8b721a45"
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "f922d6caeb89fb7631071b4b1f8c5e521c5dd83d8afe0436f111ab264fde2a40"
+    }
+  ],
+  "authorEvidence": {
+    "path": ".work/v230-ci-diagnostics-repair.json",
+    "sha256": "2f1cd104d10f6a0ae8c51c7568ef0b2098778c69898369b9cc482ff064a21078"
+  },
+  "method": "Freshly read the complete CI plan/reconcile path, new wrapper and call-site diff, Go captured-output path, author tests and report; compared reconcileCi bytes to HEAD; independently ran the three affected tooling suites with pinned Node and isolated Python.",
+  "assessment": [
+    "The wrapper calls each selected runner once and returns the identical result, leaving exit-code aggregation and source/case reconciliation unchanged.",
+    "Only fixed group/status/phase/reason vocabulary and numeric counts are emitted; arbitrary child errors, test IDs and content are not printed by this added summary.",
+    "No result case array is reported as null, not a zero-pass claim; the five Go phase reports expose skipped or unobserved work without declaring success."
+  ],
+  "validation": {
+    "path": ".work/v230-ci-diagnostics-independent.log",
+    "sha256": "26e79150c1e12fd54137e16ab4a33e216daac4fd0b313a252fa0f9323b9149ba",
+    "summary": "30 passed | 1 skipped (31)",
+    "exitCode": 3,
+    "skip": "One preexisting Unix-only traversal fixture skipped on Windows; no new diagnostic test skipped.",
+    "reconcileCiUnchanged": true
+  },
+  "limits": [
+    "This is affected tooling verification, not real Go compilation or full platform CI.",
+    "The original failing CI run remains failed and its absent Go detail remains unknown."
+  ]
+}

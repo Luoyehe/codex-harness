@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildCiPlan, isolatedPaths, reconcileCi, selectCiPlan } from '../../scripts/ci-checks.mjs';
+import { buildCiPlan, isolatedPaths, reconcileCi, runCiGroup, selectCiPlan } from '../../scripts/ci-checks.mjs';
 import { releaseAuthorization } from '../../scripts/release-authorization.mjs';
 import { snapshot } from '../../scripts/snapshot.mjs';
 import { nativeTestFiles } from '../../scripts/select-tests.mjs';
@@ -128,6 +128,43 @@ test('coverage reconciles exact per-case platform complements and rejects failur
 test('documentation-only CI explicitly reports that no tests ran', () => {
   const plan = selectCiPlan({ changed: ['README.md'], available, head, sourceDigest: digest });
   expect(plan.targets).toEqual([]); expect(reconcileCi(plan, [])).toMatchObject({ status: 'no-behavior-change', cases: 0 });
+});
+
+test('CI group diagnostics preserve exact outcomes, report missing case evidence and never retry failures', () => {
+  const lines: string[] = []; const invoked: string[] = [];
+  const results = [
+    { status: 'failed', exitCode: 1, tests: ['fixture.test.ts'] },
+    { status: 'skipped', exitCode: 3, tests: ['fixture.py'], cases: [{ status: 'passed' }, { status: 'skipped' }] },
+    { status: 'passed', exitCode: 0, tests: ['fixture.go'], cases: [{ status: 'passed' }], checks: [] },
+  ];
+  for (const [index, group] of ['javascript', 'deploy', 'go'].entries()) {
+    expect(runCiGroup(group, () => { invoked.push(group); return results[index]; }, line => lines.push(line))).toBe(results[index]);
+  }
+  expect(invoked).toEqual(['javascript', 'deploy', 'go']);
+  const output = lines.map(line => JSON.parse(line));
+  expect(output.map(item => [item.group, item.state])).toEqual(['javascript', 'deploy', 'go'].flatMap(group => [[group, 'started'], [group, 'completed']]));
+  expect(output[1]).toMatchObject({ status: 'failed', exitCode: 1, selectedFiles: 1, cases: null });
+  expect(output[3]).toMatchObject({ status: 'skipped', exitCode: 3, cases: { total: 2, passed: 1, failed: 0, skipped: 1, other: 0 } });
+  const error = new Error('private exception');
+  expect(() => runCiGroup('go', () => { throw error; }, line => lines.push(line))).toThrow(error);
+  expect(JSON.parse(lines.at(-1)!)).toEqual({ event: 'ci-test-group', group: 'go', state: 'threw', reason: 'group-execution-threw' });
+  expect(lines.join('\n')).not.toContain('private exception');
+});
+
+test('CI Go diagnostics retain fixed phases and known reasons without leaking or growing with payloads', () => {
+  const lines: string[] = []; const secret = 'secret fixture\n::error::payload';
+  const phases = ['module-verification', 'test-discovery', 'go-test', 'executable-build', 'version-plugin-probe'];
+  for (const reason of ['executable-build failed: ' + secret.repeat(10000), secret, 'invalid-go-preparation']) {
+    const result = { status: 'failed', exitCode: 1, tests: [secret], reason, detail: secret,
+      cases: [{ id: secret, status: 'failed' }], checks: [...phases.map(name => ({ name, status: name === 'executable-build' ? 'failed' : 'passed', exitCode: name === 'executable-build' ? 1 : 0 })), ...Array(1000).fill({ name: secret, status: secret, exitCode: secret })] };
+    expect(runCiGroup('go', () => result, line => lines.push(line))).toBe(result);
+  }
+  const completed = lines.map(line => JSON.parse(line)).filter(item => item.state === 'completed');
+  expect(completed.map(item => item.reason)).toEqual(['executable-build failed', 'unclassified-reason-see-platform-artifact', 'invalid-go-preparation']);
+  expect(completed[0].phases).toEqual(phases.map(name => ({ name, status: name === 'executable-build' ? 'failed' : 'passed', exitCode: name === 'executable-build' ? 1 : 0 })));
+  expect(completed[0].cases).toEqual({ total: 1, passed: 0, failed: 1, skipped: 0, other: 0 });
+  expect(lines.every(line => Buffer.byteLength(line) < 1500)).toBe(true);
+  expect(lines.join('\n')).not.toContain('secret fixture'); expect(lines.join('\n')).not.toContain('::error::');
 });
 
 test('hosted root work is scoped and every matrix result is reconciled before the coverage gate passes', () => {

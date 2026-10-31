@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "kind": "independent-repair-review",
+  "reviewerId": "root",
+  "completedAt": "2026-10-30T23:54:00.802Z",
+  "findings": [],
+  "authorEvidence": {
+    "path": ".work/v230-ci-workspace-repair.json",
+    "sha256": "ce3082b44e2cc69cd5185cdc40b275032a4885bdda8833b539c26512b4d18130"
+  },
+  "reviewedFiles": [
+    {
+      "path": "deploy/workspace_git_view.py",
+      "sha256": "c304778fedbd55ca7c71130eec71df5d79729c54f5a0b1db5885ac9bc93edaf8"
+    },
+    {
+      "path": "deploy/workspace_paths.py",
+      "sha256": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088"
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "sha256": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5"
+    },
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "sha256": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d"
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "sha256": "6072fc155964d94cb797baaca60b8d7863c2ffa83e34325d55853738eab1cdae"
+    }
+  ],
+  "method": "Freshly read the private Git view and diff, stable descriptor read contract, fixed Git environment and read_index callers, new real-Git regression, author natural-timing probes and exact-source before/after evidence. Cross-checked hashes and case outcomes; did not rerun the same Linux tests.",
+  "assessment": [
+    "Index stat and bytes come from the same already-validated no-follow descriptor; concurrent size/mtime/ctime changes continue to fail closed.",
+    "Only newly-created private index/sharedindex copies receive the original atime/mtime; original repository bytes and timestamps are not written. Fixed config excludes repository hooks, fsmonitor, external diff and filters.",
+    "The byte-returning read_index wrapper preserves existing worktree callers. The new regression makes a real stat-cache collision without timing sleeps and requires native Git agreement plus unchanged original index.",
+    "The fixture SHA1 checksum belongs to the explicit Git SHA1 index format, not password hashing or a new production cryptographic mechanism."
+  ],
+  "validation": {
+    "naturalReproductions": 3,
+    "before": {
+      "passed": 59,
+      "failed": 1,
+      "skipped": 0
+    },
+    "after": {
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0
+    },
+    "platform": "120 isolated Linux UID65534; author evidence independently inspected",
+    "affectedFiles": [
+      "tests/deploy/test_workspace.py",
+      "tests/deploy/test_workspace_index.py",
+      "tests/deploy/test_workspace_worktrees.py"
+    ]
+  },
+  "limits": [
+    "Focused independent repair review; whole-source review and full CI remain separately required.",
+    "No online deployment or paid inference."
+  ]
+}

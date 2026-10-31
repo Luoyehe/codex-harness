@@ -122,7 +122,7 @@ it('keeps settings open when another saved draft cannot be opened and requires a
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   const settings = within(screen.getByRole('dialog', { name: '设置' }));
   fireEvent.click(settings.getByRole('button', { name: '本地草稿' }));
-  const row = settings.getByText('Project B').closest('.info-card')!;
+  const row = settings.getByText('普通 · Project B').closest('.info-card')!;
   fireEvent.click(within(row as HTMLElement).getByRole('button', { name: '打开草稿' }));
   expect(screen.getByRole('dialog', { name: '设置' })).toBeTruthy();
   expect(editor().value).toBe('only copy');
