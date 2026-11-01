@@ -23,8 +23,6 @@ export interface Activity {
   settingsRevision?: number;
   activeModel?: string;
   modelRevision?: number;
-  /** Valid only for this loaded native instance and provider; discarded on close/revert. */
-  reasoningProvider?: string;
 }
 
 // Idle metadata does not settle an accepted turn; its matching completion does.

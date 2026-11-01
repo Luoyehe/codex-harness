@@ -10,7 +10,7 @@
   "codexVersion": "0.164.0",
   "harnessAuthentication": "account-v1",
   "codexHarnessExecutionMode": 1,
-  "codexHarnessThreadHistory": 1,
+  "codexHarnessThreadHistory": 2,
   "scripts": {
     "release:preflight": "node scripts/release-preflight.mjs",
     "build:server": "tsc -p tsconfig.server.json",

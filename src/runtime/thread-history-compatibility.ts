@@ -9,10 +9,8 @@ import { DeliveryError, jsonBytes, object, string, type JsonObject } from './typ
 export type ReasoningCompatibility = 'foreign' | 'plaintext';
 
 /** The helper runs as the actual native identity, never as the supervisor. */
-export async function historyCompatibility(config: NativeConfig, thread: JsonObject, mode: ReasoningCompatibility,
-  repair = false, beforeWrite?: () => void): Promise<boolean | undefined> {
-  if (thread.ephemeral === true || thread.path == null) return false;
-  const input: JsonObject = { action: 'inspect', threadId: string(thread.id, 'threadId'), path: string(thread.path, 'rollout path'), mode };
+export async function historyHelper(config: NativeConfig, request: JsonObject, mutating = false,
+  beforeWrite?: () => void): Promise<JsonObject> {
   const command = config.launcher ? nativeCommand(config, 'thread-history') : (() => {
     if (!config.dev) throw new DeliveryError('history_compatibility_unavailable', '历史兼容检查需要原生身份启动器。');
     const here = path.dirname(fileURLToPath(import.meta.url));
@@ -21,13 +19,12 @@ export async function historyCompatibility(config: NativeConfig, thread: JsonObj
     return { bin: config.env.HARNESS_DEV_PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3'),
       args: ['-B', '-m', 'deploy.thread_history', '--home', config.home], cwd: root, env: config.env };
   })();
-  const call = (request: JsonObject, mutating: boolean): Promise<JsonObject> => {
     const body = jsonBytes(request, 8192);
     return new Promise((resolve, reject) => {
       // Do not dispatch a helper after the operation's caller/epoch was revoked.
       try { if (mutating) beforeWrite?.(); } catch (error) { reject(error); return; }
       const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, windowsHide: true,
-        timeout: 15000, maxBuffer: 8192, encoding: 'utf8' }, (error, stdout) => {
+        timeout: mutating ? 60000 : 15000, maxBuffer: request.action === 'copy-inspect' ? 2 * 1024 * 1024 + 8192 : 8192, encoding: 'utf8' }, (error, stdout) => {
         try {
           const result = object(JSON.parse(stdout));
           if (error || result.error !== undefined) {
@@ -36,8 +33,6 @@ export async function historyCompatibility(config: NativeConfig, thread: JsonObj
               throw new DeliveryError(fault.code, string(fault.message, 'history error', 2048));
             throw new Error('Unconfirmed helper result');
           }
-          if (typeof result.needsRepair !== 'boolean' || typeof result.hasHistoryBase !== 'boolean' || typeof result.hasOpaqueCompaction !== 'boolean' ||
-              result.inspectionUnsupported !== true && !result.expected || typeof result.changedItems !== 'number') throw new Error('Invalid helper result');
           resolve(result);
         } catch (failure) {
           reject(failure instanceof DeliveryError ? failure : new DeliveryError('history_compatibility_unconfirmed',
@@ -46,8 +41,16 @@ export async function historyCompatibility(config: NativeConfig, thread: JsonObj
       });
       child.stdin?.on('error', () => {}); child.stdin?.end(body);
     });
-  };
-  const inspected = await call(input, false);
+}
+
+/** Inspection only; conversion writes belong to the verified recovery-copy flow. */
+export async function historyCompatibility(config: NativeConfig, thread: JsonObject, mode: ReasoningCompatibility): Promise<boolean | undefined> {
+  if (thread.ephemeral === true || thread.path == null) return false;
+  const input: JsonObject = { action: 'inspect', threadId: string(thread.id, 'threadId'), path: string(thread.path, 'rollout path'), mode };
+  const inspected = await historyHelper(config, input);
+  if (typeof inspected.needsRepair !== 'boolean' || typeof inspected.hasHistoryBase !== 'boolean' || typeof inspected.hasOpaqueCompaction !== 'boolean' ||
+      inspected.inspectionUnsupported !== true && !inspected.expected || typeof inspected.changedItems !== 'number')
+    throw new DeliveryError('history_compatibility_unconfirmed', '历史兼容检查返回无效结果。');
   if (mode === 'foreign' && (inspected.hasHistoryBase || inspected.hasOpaqueCompaction) ||
       mode === 'plaintext' && inspected.hasHistoryBase && (inspected.needsRepair || inspected.hasInheritedPlaintext === true))
     throw new DeliveryError('history_conversion_unsupported', '此会话包含继承的历史或供应商加密压缩上下文，暂不能安全转换；请继续使用原供应商。');
@@ -57,10 +60,7 @@ export async function historyCompatibility(config: NativeConfig, thread: JsonObj
     // A native append may materialize compressed history for the next check.
     return undefined;
   }
-  if (!inspected.needsRepair || !repair) return inspected.needsRepair === true;
-  const result = await call({ ...input, action: 'repair', expected: inspected.expected! }, true);
-  if (result.needsRepair) throw new DeliveryError('history_compatibility_unconfirmed', '历史兼容转换未完成。', 'unknown', { inputSent: false });
-  return true;
+  return inspected.needsRepair === true;
 }
 
 /** Install before unsubscribe: its positive response is not a writer-close proof. */

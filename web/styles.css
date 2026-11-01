@@ -819,14 +819,6 @@ hr {
   width: 29px;
   height: 30px;
 }
-.model-select select {
-  border: 0;
-  background: none;
-  font-size: 10px;
-  color: #737e72;
-  padding: 6px 19px 6px 5px;
-  max-width: 180px;
-}
 .options-trigger {
   font-size: 10px !important;
   padding: 6px 7px !important;

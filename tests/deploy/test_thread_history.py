@@ -226,5 +226,206 @@ class ThreadHistoryTests(unittest.TestCase):
             with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, self.request(path=invalid))
 
 
+class RecoveryCopyTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.home = Path(self.temp.name).resolve()
+        self.uid = os.geteuid() if os.name == "posix" else 0
+        (self.home / "sessions").mkdir(mode=0o700)
+        self.target_id = "00000000-0000-4000-8000-000000000002"
+        self.source = self.home / "sessions" / (THREAD + ".jsonl")
+        self.target = self.home / "sessions" / (self.target_id + ".jsonl")
+        self.cwd = str(self.home / "project")
+        self.settings = {"cwd": self.cwd, "model_provider": "fixture_a", "history_mode": "paginated",
+                         "base_instructions": {"text": "synthetic original base"}, "dynamic_tools": [], "selected_capability_roots": []}
+        self.source_raw = self.record(0, "session_meta", {**self.settings, "id": THREAD}) + self.record(1, "response_item", {
+            "type": "message", "role": "user", "content": [{"type": "input_text", "text": "synthetic public 用户"}]}) + self.record(2, "event_msg", {
+            "type": "thread_settings_applied", "thread_id": THREAD, "thread_settings": {
+                "cwd": self.cwd, "model_provider_id": "fixture_a", "reasoning_summary": "detailed", "service_tier": "priority"}})
+        self.target_raw = self.record(0, "session_meta", {**self.settings, "id": self.target_id})
+        self.write(self.source, self.source_raw); self.write(self.target, self.target_raw)
+
+    def record(self, ordinal, kind, payload):
+        return (json.dumps({"ordinal": ordinal, "timestamp": "2026-11-01T00:00:00Z", "type": kind, "payload": payload}, ensure_ascii=False) + "\n").encode()
+
+    def write(self, path, data):
+        path.write_bytes(data); path.chmod(0o600)
+
+    def inspect(self, path=None, identity=None):
+        return history.operate(self.home, self.uid, {"action": "copy-inspect", "mode": "foreign",
+            "threadId": identity or THREAD, "path": str(path or self.source)})
+
+    def request(self):
+        return {"action": "recovery-copy", "mode": "foreign", "threadId": THREAD, "path": str(self.source),
+                "expected": self.inspect()["expected"], "sourceProvider": "fixture_a", "cwd": self.cwd,
+                "target": {"threadId": self.target_id, "path": str(self.target),
+                           "expected": self.inspect(self.target, self.target_id)["expected"]}}
+
+    def test_copy_keeps_official_header_and_all_other_bytes_source_unchanged_and_target_witness(self):
+        request = self.request(); metadata = self.inspect()["sourceMetadata"]
+        self.assertEqual(metadata, {"baseInstructions": "synthetic original base", "dynamicTools": [], "selectedCapabilityRoots": [], "summary": "detailed", "serviceTier": "priority"})
+        result = history.operate(self.home, self.uid, request)
+        self.assertTrue(result["copied"]); self.assertTrue(result["sourcePreserved"])
+        self.assertEqual(result["expected"], request["expected"])
+        self.assertEqual(self.source.read_bytes(), self.source_raw)
+        self.assertEqual(self.target.read_bytes(), self.target_raw + self.source_raw.split(b"\n", 1)[1])
+        self.assertFalse((self.home / "harness-history-backups").exists())
+        self.assertEqual(result["target"]["expected"]["sha256"], hashlib.sha256(self.target.read_bytes()).hexdigest())
+        if os.name == "posix": self.assertEqual(self.target.stat().st_mode & 0o777, 0o600)
+        # Copying never modifies the source's identity, bytes or timestamps.
+        proof = history.operate(self.home, self.uid, {"action": "inspect", "mode": "foreign", "threadId": THREAD, "path": str(self.source)})
+        self.assertEqual(proof["expected"], result["expected"])
+
+    def test_nonempty_and_replayed_target_never_overwrite_a_published_copy(self):
+        request = self.request(); history.operate(self.home, self.uid, request)
+        published = self.target.read_bytes()
+        with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, request)
+        request["target"]["expected"] = self.inspect(self.target, self.target_id)["expected"]
+        with self.assertRaises(history.HistoryError) as caught: history.operate(self.home, self.uid, request)
+        self.assertEqual(caught.exception.code, "thread_history_target_not_empty")
+        self.assertEqual(self.target.read_bytes(), published); self.assertEqual(self.source.read_bytes(), self.source_raw)
+
+    def test_source_or_target_changed_inode_or_bytes_refuses_before_backup(self):
+        for path, data in ((self.source, self.source_raw), (self.target, self.target_raw)):
+            for change in ("inode", "bytes"):
+                with self.subTest(path=path.name, change=change):
+                    request = self.request()
+                    if change == "inode":
+                        temporary = path.with_suffix(".replacement"); self.write(temporary, data); os.replace(temporary, path)
+                    else: self.write(path, data + self.record(3, "event_msg", {"type": "fixture"}))
+                    with self.assertRaises(history.HistoryError) as caught: history.operate(self.home, self.uid, request)
+                    self.assertEqual(caught.exception.code, "thread_history_changed")
+                    self.assertFalse((self.home / "harness-history-backups").exists())
+                    self.write(path, data)
+
+    def test_latest_official_settings_not_stale_source_header_determine_provider_and_cwd(self):
+        # Existing source header can predate a legitimate provider/settings change.
+        self.write(self.source, self.source_raw.replace(b'"model_provider": "fixture_a"', b'"model_provider": "fixture_old"', 1))
+        request = self.request(); history.operate(self.home, self.uid, request)
+        self.write(self.target, self.target_raw)
+        request = self.request(); request["sourceProvider"] = "fixture_wrong"
+        with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, request)
+        self.assertEqual(self.target.read_bytes(), self.target_raw)
+
+    def test_without_settings_source_header_must_correspond_to_current_source_provider_and_project(self):
+        original = b"".join(self.source_raw.splitlines(keepends=True)[:2])
+        for key, different in (("model_provider", "fixture_old"), ("cwd", str(self.home / "old-project"))):
+            rows = original.splitlines(keepends=True)
+            header = json.loads(rows[0]); header["payload"][key] = different
+            self.write(self.source, (json.dumps(header) + "\n").encode() + rows[1])
+            with self.assertRaises(history.HistoryError) as caught: history.operate(self.home, self.uid, self.request())
+            self.assertEqual(caught.exception.code, "thread_history_changed")
+            self.assertEqual(self.target.read_bytes(), self.target_raw)
+        self.write(self.source, original)
+        self.assertIsNone(self.inspect()["sourceMetadata"]["serviceTier"])
+        self.assertTrue(history.operate(self.home, self.uid, self.request())["copied"])
+
+    def test_wrong_target_identity_project_provider_or_header_semantics_are_rejected(self):
+        for key, value in (("cwd", str(self.home / "other")), ("model_provider", "fixture_b"),
+                           ("base_instructions", {"text": "different base"}), ("dynamic_tools", [{"name": "different"}]),
+                           ("selected_capability_roots", ["different"]), ("history_base", {"thread_id": THREAD})):
+            with self.subTest(key=key):
+                self.write(self.target, self.record(0, "session_meta", {**self.settings, key: value, "id": self.target_id}))
+                with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, self.request())
+                self.assertEqual(self.source.read_bytes(), self.source_raw)
+        self.assertFalse((self.home / "harness-history-backups").exists())
+
+    def test_no_aliases_wrong_home_symlinks_or_hardlinks(self):
+        request = self.request(); request["target"] = {"threadId": THREAD, "path": str(self.source), "expected": request["expected"]}
+        with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, request)
+        self.target.unlink(); os.link(self.source, self.target)
+        with self.assertRaises(history.HistoryError): self.request()
+        self.target.unlink(); self.write(self.target, self.target_raw)
+        request = self.request(); request["target"]["path"] = str(self.home / "outside.jsonl")
+        with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, request)
+        if os.name == "posix":
+            self.target.unlink(); self.target.symlink_to(self.source)
+            with self.assertRaises(history.HistoryError): self.request()
+
+    def test_late_source_or_target_change_is_rejected_before_publication(self):
+        scan = history._copy_scan
+        for path in (self.source, self.target):
+            request = self.request()
+            def mutate(*args, **kwargs):
+                result = scan(*args, **kwargs)
+                if kwargs.get("output") is not None:
+                    path.write_bytes(path.read_bytes() + self.record(4, "event_msg", {"type": "fixture"}))
+                return result
+            with patch.object(history, "_copy_scan", side_effect=mutate):
+                with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, request)
+            if path == self.source: self.assertEqual(self.target.read_bytes(), self.target_raw)
+            else: self.assertEqual(self.source.read_bytes(), self.source_raw)
+            self.assertFalse(list(self.home.rglob(".harness-history-copy-*")))
+            self.write(self.source, self.source_raw); self.write(self.target, self.target_raw)
+
+    def test_post_publish_failure_is_unknown_and_keeps_named_copy_and_unchanged_original(self):
+        request = self.request(); original = history.fsync_directory
+        def fail(path, **kwargs):
+            if path == self.target.parent: raise OSError("synthetic confirmation failure")
+            return original(path, **kwargs)
+        with patch.object(history, "fsync_directory", side_effect=fail):
+            with self.assertRaises(history.HistoryError) as caught: history.operate(self.home, self.uid, request)
+        self.assertEqual(caught.exception.delivery, "unknown")
+        self.assertEqual(self.source.read_bytes(), self.source_raw)
+        self.assertEqual(self.target.read_bytes(), self.target_raw + self.source_raw.split(b"\n", 1)[1])
+        self.assertFalse((self.home / "harness-history-backups").exists())
+
+    def test_metadata_and_rollout_budgets_fail_without_partial_target(self):
+        request = self.request()
+        for limit, value in (("COPY_METADATA_LIMIT", 1), ("ROLLOUT_LIMIT", len(self.source_raw) - 1)):
+            with self.subTest(limit=limit), patch.object(history, limit, value):
+                with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, request)
+            self.assertEqual(self.source.read_bytes(), self.source_raw); self.assertEqual(self.target.read_bytes(), self.target_raw)
+            self.assertFalse(list(self.home.rglob(".harness-history-copy-*")))
+
+    def test_source_and_target_native_writer_locks_each_block_copy(self):
+        request = self.request(); directory = self.home / "thread-writer-locks"; directory.mkdir(mode=0o700)
+        for identity in (THREAD, self.target_id):
+            lock_path = directory / (identity + ".lock")
+            code = "import os,sys;from deploy.thread_history import _lock;f=os.open(sys.argv[1],os.O_RDWR|os.O_CREAT,0o600);\nwith _lock(f):\n print('locked',flush=True)\n sys.stdin.readline()\nos.close(f)"
+            process = subprocess.Popen([sys.executable, "-B", "-c", code, str(lock_path)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                self.assertEqual(process.stdout.readline().rstrip(b"\r\n"), b"locked")
+                with self.assertRaises(history.HistoryError) as caught: history.operate(self.home, self.uid, request)
+                self.assertEqual(caught.exception.code, "thread_history_busy")
+                self.assertEqual(self.target.read_bytes(), self.target_raw); self.assertEqual(self.source.read_bytes(), self.source_raw)
+            finally: process.communicate(b"done\n", timeout=5)
+            lock_path.unlink()
+        self.assertFalse((self.home / "harness-history-backups").exists())
+
+    def test_copy_metadata_entrypoint_uses_utf8_and_never_emits_other_record_text(self):
+        text = "原始基础说明🙂" * 100
+        self.write(self.source, self.source_raw.replace(b'synthetic original base', text.encode("utf-8")))
+        request = {"action": "copy-inspect", "mode": "foreign", "threadId": THREAD, "path": str(self.source)}
+        result = subprocess.run([sys.executable, "-B", "-m", "deploy.thread_history", "--home", str(self.home)],
+                                input=json.dumps(request).encode(), capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        self.assertEqual(json.loads(result.stdout)["sourceMetadata"]["baseInstructions"], text)
+        self.assertIn(text.encode("utf-8"), result.stdout)
+        self.assertNotIn("synthetic public 用户".encode("utf-8"), result.stdout)
+
+    def test_copy_does_not_consume_backup_budget_but_only_target_repair_preserves_its_raw_backup(self):
+        plaintext = {"type": "reasoning", "content": [{"type": "reasoning_text", "text": "synthetic 思考"}], "summary": []}
+        raw = self.source_raw + self.record(3, "response_item", plaintext)
+        self.write(self.source, raw)
+        self.assertNotIn("plannedRepairSha256", self.inspect())
+        with patch.object(history, "BACKUP_LIMIT", 1):
+            copied = history.operate(self.home, self.uid, self.request())
+        before = self.target.read_bytes()
+        request = {"action": "repair", "mode": "foreign", "threadId": self.target_id,
+                   "path": str(self.target), "expected": copied["target"]["expected"]}
+        with patch.object(history, "BACKUP_LIMIT", 1):
+            with self.assertRaises(history.HistoryError) as caught: history.operate(self.home, self.uid, request)
+        self.assertEqual(caught.exception.code, "thread_history_backup_limit")
+        self.assertEqual(self.target.read_bytes(), before); self.assertEqual(self.source.read_bytes(), raw)
+        result = history.operate(self.home, self.uid, request)
+        self.assertTrue(result["repaired"]); self.assertTrue(result["backupPreserved"])
+        self.assertEqual(self.source.read_bytes(), raw)
+        backup = next((self.home / "harness-history-backups").glob("*.jsonl.gz"))
+        self.assertTrue(backup.name.startswith(self.target_id + "-"))
+        self.assertEqual(gzip.decompress(backup.read_bytes()), before)
+        self.assertNotEqual(self.target.read_bytes(), before)
+
+
 if __name__ == "__main__":
     unittest.main()

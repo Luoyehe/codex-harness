@@ -254,7 +254,14 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     object(input); return { thread: threadMetadata(input.thread), turn: turnMetadata(input.turn) };
   }
   if (method === 'turn/start') { object(input); return { turn: turnMetadata(input.turn) }; }
-  if (['thread/fork', 'thread/revert', 'thread/metadata/update', 'thread/resume'].includes(method)) { object(input); return { thread: threadMetadata(input.thread) }; }
+  if (method === 'thread/convert') {
+    object(input);
+    const thread = threadMetadata(input.thread), sourceThreadId = identifier(input.sourceThreadId);
+    if (thread.id === sourceThreadId) throw new Error('Conversion must create a distinct conversation');
+    return { thread, sourceThreadId, sourceProvider: identifier(input.sourceProvider), targetProvider: identifier(input.targetProvider) };
+  }
+  if (method === 'thread/resume') { object(input); return { thread: threadMetadata(input.thread) }; }
+  if (['thread/fork', 'thread/revert', 'thread/metadata/update'].includes(method)) { object(input); return { thread: threadMetadata(input.thread) }; }
   if (method === 'review/start' || method === 'review/startNew') {
     object(input); return { ...(method === 'review/startNew' ? { thread: threadMetadata(input.thread) } : {}),
       turn: turnMetadata(input.turn), reviewThreadId: identifier(input.reviewThreadId) };

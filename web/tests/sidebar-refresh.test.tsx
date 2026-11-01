@@ -29,7 +29,7 @@ it('refreshes both ordinary and searched lists on remote mutations, including un
   vi.useFakeTimers();
   const events = new Events(), projects = vi.fn(), threads = vi.fn(), search = vi.fn();
   renderHook(() => useSidebarRefresh(events, 'root', { projects, threads, search }));
-  const methods = ['thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/delete', 'thread/fork', 'thread/section/move'];
+  const methods = ['thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/delete', 'thread/fork', 'thread/convert', 'thread/section/move'];
   for (const method of methods) act(() => {
     events.publish({ type: 'receipt', data: { state: 'accepted', method } });
     vi.advanceTimersByTime(100);
@@ -52,4 +52,12 @@ it('drops a queued old-mode refresh and detaches its subscription on unmount', (
   act(() => events.publish({ type: 'notification', data: { method: 'turn/completed' } }));
   unmount();
   act(() => vi.advanceTimersByTime(100)); expect(threads).not.toHaveBeenCalled();
+});
+
+it('refreshes an uncertain conversion without submitting or resuming anything', () => {
+  vi.useFakeTimers();
+  const events = new Events(), projects = vi.fn(), threads = vi.fn(), search = vi.fn();
+  renderHook(() => useSidebarRefresh(events, 'root', { projects, threads, search }));
+  act(() => { events.publish({ type: 'receipt', data: { state: 'unknown', method: 'thread/convert' } }); vi.advanceTimersByTime(100); });
+  expect(threads).toHaveBeenCalledOnce(); expect(search).toHaveBeenCalledOnce(); expect(projects).not.toHaveBeenCalled();
 });

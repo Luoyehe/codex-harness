@@ -1,0 +1,1717 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v232-converted-copy-final",
+  "reviewerId": "v220-final-deploy",
+  "kind": "independent-partition-review-with-explicit-author-cross-review",
+  "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+  "sourceFiles": 2004,
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-11-01T14:17:42.608011+00:00",
+  "scopeFiles": 226,
+  "scopes": [
+    "deploy/**",
+    "tests/deploy/**",
+    "harness.sh",
+    "src/core/**",
+    "tests/core/**",
+    "src/gateway/**",
+    "tests/gateway/**",
+    "scripts/**",
+    "tests/tooling/**",
+    ".github/**"
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "caa953de087e91ff28cdef5a810ba4da7e8ca6fb1e5688d2631db8a6ba718799",
+      "bytes": 10309,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": ".github/workflows/compatibility.yml",
+      "sha256": "b78dea2aa061b52fbdaed997b4bb28b45aa8eeedbdfc666ded21fe3209188069",
+      "bytes": 782,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "7387ff5dfaa60e438ef9eb57f3965edd0c96b7e60a03c32813ae5920f8e3cee5",
+      "bytes": 1601,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "e0412bbb6d1d877b967fecf46f01d14a229f38ddfa1efea742b674ffde0f993b",
+      "bytes": 110821,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/RECOVERY.md",
+      "sha256": "ca271d4ee9cba8820f9ca17910bbd49be494a69b4bf3686ff86b0c280fafa486",
+      "bytes": 33789,
+      "unchangedFromPrior": false,
+      "review": "Current changed body/diff and surrounding functional callers/assertions read."
+    },
+    {
+      "path": "deploy/__init__.py",
+      "sha256": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d",
+      "bytes": 78,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/accounts.py",
+      "sha256": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104",
+      "bytes": 11018,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/archive.py",
+      "sha256": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7",
+      "bytes": 7375,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/auth_storage_policy.py",
+      "sha256": "8d5fb24357c604c8672f0a9e3483bcaa83e43964cc6008765bd5089c53f10a30",
+      "bytes": 4787,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "b106e57369c02561c3a58e2ed9d54b17ed40cb2e782d257ffe353ce5abc6cd2a",
+      "bytes": 20859,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/caddy_dns_source/go.mod",
+      "sha256": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
+      "bytes": 10793,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/caddy_dns_source/go.sum",
+      "sha256": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975",
+      "bytes": 151582,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/caddy_dns_source/main.go",
+      "sha256": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
+      "bytes": 3202,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/caddy_dns_source/main_test.go",
+      "sha256": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
+      "bytes": 6198,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/candidate_archive.py",
+      "sha256": "b162958bb3e0384d501c7e81bc32e25f1fe697acffc5cb6746b59ff8c32436a3",
+      "bytes": 14572,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/candidate_probe.py",
+      "sha256": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8",
+      "bytes": 5420,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/catalog.py",
+      "sha256": "f90928d0f5d52c95793f0a8af8fbdfd00e8410ab82fefba83f132d2599a9ec29",
+      "bytes": 6976,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "f54947251348d19c5a59f4f8927c1efb4fcf472b14304ed0255ce2d786b673c0",
+      "bytes": 31236,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/common.py",
+      "sha256": "c80442094f724745d70d1358522ea4625ca3d6ecd8f7a29a0ae85c6e3cc9946c",
+      "bytes": 8541,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "sha256": "0c97bcebf0a679227b476e415c650f5a7d05972063bc5297672e9376cc550ddf",
+      "bytes": 16985,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "6b2645c2222c0d3afec17f095f1606a1392f9725d4c5a5e637d77b9182a033a1",
+      "bytes": 43275,
+      "unchangedFromPrior": false,
+      "review": "Author-owned capability change: exact current bytes independently reviewed by root in v232-copy-control-review; this reviewer retraced surrounding upgrade/recovery integration, not an independent self-review."
+    },
+    {
+      "path": "deploy/dns_caddy_build.py",
+      "sha256": "88babaac6ea04d2e63df0c3bba128c1e7c987dad22eda8d188b3b6bb71e63c89",
+      "bytes": 18857,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/dns_providers.py",
+      "sha256": "e85f0d718dd911d1116c604d497bd637e7e7e3927cc4457eb6a8bbbcc76de167",
+      "bytes": 4325,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/dns_tls.py",
+      "sha256": "4b451e88758577d41507b3ef3c9fdeb69729b211650d6095d3cfadf9211db612",
+      "bytes": 7354,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/edge_defaults.py",
+      "sha256": "b2ee74b8c5fe22c095f13651cfc4a174449ab367e1d30bce78421fcc4c099ae1",
+      "bytes": 145,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/execution_identity.py",
+      "sha256": "9e928abd9463180f907278e8fca364b93507e22349392ce022073a77e7c5d01f",
+      "bytes": 4916,
+      "unchangedFromPrior": false,
+      "review": "Author-owned capability change: exact current bytes independently reviewed by root in v232-copy-control-review; this reviewer retraced surrounding upgrade/recovery integration, not an independent self-review."
+    },
+    {
+      "path": "deploy/execution_mode.py",
+      "sha256": "c2e0b776433428e242e770214329988e05cd7f20f4a968e6a1b62e8f171af482",
+      "bytes": 13835,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/https.py",
+      "sha256": "0c6d05e5f2233cd42ff1ee4fc112d6b736b62a32711edca5259e89dea4edc6d7",
+      "bytes": 38407,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/https_guidance.py",
+      "sha256": "143157050a8f0ffe69f6a214bc1d7cc7661968bee4c65b9b3f4511ff3db4b218",
+      "bytes": 7466,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/https_health.py",
+      "sha256": "1862f1c1373a582ea08a3627d2449e17ce998dc517bdd513b147d1e046ba1d90",
+      "bytes": 13786,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "dab9f0a649e1970b372c6b2a2371dfaff97048ec52b79b7c07d43e41997ce55b",
+      "bytes": 9154,
+      "unchangedFromPrior": false,
+      "review": "Author-owned capability change: exact current bytes independently reviewed by root in v232-copy-control-review; this reviewer retraced surrounding upgrade/recovery integration, not an independent self-review."
+    },
+    {
+      "path": "deploy/install.sh",
+      "sha256": "5c255716dcbe6f9fc2e973c078838639a4846383900b6e5b93a54890a2a523de",
+      "bytes": 100,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/install_recovery.py",
+      "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a",
+      "bytes": 27444,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/journal.py",
+      "sha256": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e",
+      "bytes": 4204,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/journal_schema.py",
+      "sha256": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101",
+      "bytes": 4158,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "14559992cf6b31bf057aba2847eca46dbf611e2a92a1f56f288208786d2cadde",
+      "bytes": 47675,
+      "unchangedFromPrior": false,
+      "review": "Author-owned capability change: exact current bytes independently reviewed by root in v232-copy-control-review; this reviewer retraced surrounding upgrade/recovery integration, not an independent self-review."
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126",
+      "bytes": 23445,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/operator.py",
+      "sha256": "3afa177957fb3ea4b8a176ec902eee58b7d46d89032dc7aaa440cd72ab965600",
+      "bytes": 31044,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/operator_origin.py",
+      "sha256": "dc5b47f34a13c5954ebc4e8b0b927a4f6db33f5973bcae8f96f1e68c4a19c92d",
+      "bytes": 2734,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "8b552f902c059916f82dee813c599f19c5329206bc2a31843c4fb17115124d25",
+      "bytes": 6304,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/ports.py",
+      "sha256": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf",
+      "bytes": 4019,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "c06f314a13ca7797915da0d47d6744d2d672364ca49a2b41f75f8a2bd5f29488",
+      "bytes": 22352,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/provider_bedrock.py",
+      "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c",
+      "bytes": 1997,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/provider_catalogs.py",
+      "sha256": "54c26f79ffdfb48777ab4d9f1fdd96d3726760b2d09734e5549573cf986f9e57",
+      "bytes": 2313,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/provider_gateway.py",
+      "sha256": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe",
+      "bytes": 3428,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "sha256": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+      "bytes": 16009,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/provider_lifecycle.py",
+      "sha256": "41ab476b99fe8f3d78047ea228e186fe6b25af299bb5c3973845c411466745be",
+      "bytes": 9502,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "bd13c48a5271b36cb72f384d4c9dfc5cf83e276c39b7f51a025c49561c8bbe45",
+      "bytes": 10956,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/proxy_core.py",
+      "sha256": "a2d3cd83b79a1a35c6cc39aa0ce492f44cc9f691b0e748572f460ae7da948b90",
+      "bytes": 18238,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "16f27781ea5f78790af15f2cd603beef44a94a645de0d9807f14049bb3e7ad8d",
+      "bytes": 16250,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/requests.py",
+      "sha256": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083",
+      "bytes": 8432,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/safe_fs.py",
+      "sha256": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b",
+      "bytes": 15533,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/sandbox.py",
+      "sha256": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5",
+      "bytes": 3137,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/service_lifecycle.py",
+      "sha256": "a8bbb5730a68946a5f4a6a8f6e426b9ebf6e63e363ca09f8ed489b2c76b47c5a",
+      "bytes": 19610,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "b6433c9b7575e4c3eb113e2507f2c2c639cee396fd8eb027d80bdce1d8132d7a",
+      "bytes": 26563,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/shared_auth.py",
+      "sha256": "c3c2d1d4979da54bf3caacf4733330e81d83cb66abfc6dfecd3d3d656afd2c61",
+      "bytes": 14342,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/system.py",
+      "sha256": "000edbc8aa75a24761509e2df0ce8701cdb2dea2f7f00d90d5b63ec47cfdded2",
+      "bytes": 8225,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "f8f39a0a8e65fd4cbd580f8ca6428b90ab8b38e23a9b7b6c950abfd5287fb784",
+      "bytes": 35576,
+      "unchangedFromPrior": false,
+      "review": "Helper body and its new assertions independently reviewed by root at exact current SHA; this reviewer checked launcher/identity/version/budget and recovery integration, plus fresh AST/hash. No duplicate full helper line-by-line claim."
+    },
+    {
+      "path": "deploy/transactions.py",
+      "sha256": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123",
+      "bytes": 2301,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "b0aa6c53c1bc551078d4ec00eb8fe52599cae2f5df18c083ff929d9993bb29a8",
+      "bytes": 13659,
+      "unchangedFromPrior": false,
+      "review": "Author-owned capability change: exact current bytes independently reviewed by root in v232-copy-control-review; this reviewer retraced surrounding upgrade/recovery integration, not an independent self-review."
+    },
+    {
+      "path": "deploy/workspace.py",
+      "sha256": "a0dfaf4be0c3d4940188701d79bb78d40905711b8ff1713971d7c42fc07edb30",
+      "bytes": 19312,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_commit.py",
+      "sha256": "f79c132b67324ef183c005ac175d08b691aeab34a6e98fadb5f4e2cbb3451053",
+      "bytes": 11168,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_git.py",
+      "sha256": "78d97f310cdfbff4f55ffc933fac4414d5bca6a18e1efed102ac9fd8e88837d5",
+      "bytes": 9409,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_git_transaction.py",
+      "sha256": "fdf1f3f71c343d8d9e9998a1ec0435f1e05c7d249248ddb33ad5b40c24765f56",
+      "bytes": 4076,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_git_view.py",
+      "sha256": "c304778fedbd55ca7c71130eec71df5d79729c54f5a0b1db5885ac9bc93edaf8",
+      "bytes": 3794,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_index.py",
+      "sha256": "f574ad7945a30c7e13882456573d5835b30a780dc8341e17855c0e5178d26945",
+      "bytes": 14592,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_index_store.py",
+      "sha256": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1",
+      "bytes": 8062,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_paths.py",
+      "sha256": "e21d762f467ce5ff11664b037f18c37add5df884283d13a1892036ac6e524088",
+      "bytes": 7126,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_recovery.py",
+      "sha256": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5",
+      "bytes": 7673,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_resources.py",
+      "sha256": "a78c4c375ba310141254e5c89f8b9de445fead03f9655ca807611ec7e3d013c2",
+      "bytes": 6876,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_search.py",
+      "sha256": "ff1c3e78a54755500ea7cd51b08f64f8b83cfa4cd2d4dc167d1bf6ae0e55bf1b",
+      "bytes": 6156,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_store.py",
+      "sha256": "73916dbaeb9258fba65a9120957705c5a1cde32861088852fdcd616b520dde73",
+      "bytes": 15313,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "deploy/workspace_worktrees.py",
+      "sha256": "7ebca0c83bfa7194c33c119f5dbbdf301965efa86e3f376d0c501968850ef41d",
+      "bytes": 20252,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "harness.sh",
+      "sha256": "016d68a0d4c996f7d96158e17e8a4909cc41693a46552a613d6de262b64ab6a6",
+      "bytes": 324,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "fb23c0d7e61ef3a33200c1fabf3457871a3164317c064c4e065f7bb8035c9dc7",
+      "bytes": 5267,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/check-builtin-mcp.mjs",
+      "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "bytes": 9157,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "72ae8b7305ee6153d39b50adcdd241534b4588b5eb7ec448b03a30b7ced5170b",
+      "bytes": 13960,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/compatibility-watch.mjs",
+      "sha256": "a474298e01e90fd87f364327e99f336e77f33d2398faaca9c2744ef98aa3bf6f",
+      "bytes": 2146,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/go-tests.mjs",
+      "sha256": "56a3556da7833399f4979b5011b1f0ee3a81af4ea055aac76481992e8b721a45",
+      "bytes": 13583,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/prepare-ci-go.py",
+      "sha256": "2ec71bcdb84ebe9a912b3ba58cb73b277346febfc69e51c709f899ec5cda8a4f",
+      "bytes": 15982,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/prepare-ci-native.mjs",
+      "sha256": "330ac0475fde81efd586d525127e74b3e2f833980df53e3089ae58fcc323925d",
+      "bytes": 3292,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/python-tests.py",
+      "sha256": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab",
+      "bytes": 4511,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/release-audit.mjs",
+      "sha256": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b",
+      "bytes": 12356,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/release-authorization.mjs",
+      "sha256": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e",
+      "bytes": 2431,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/release-preflight.mjs",
+      "sha256": "5a8f85ebfd4e47bec037e4b94f47ee57059dd2697ea90728694398183d8721e4",
+      "bytes": 12852,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/reviewed-history.mjs",
+      "sha256": "a7f5201a2ece3bbf15b526f8e6c60cc288e8c7a066fa87af5504979efc31a4e2",
+      "bytes": 5594,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "f922d6caeb89fb7631071b4b1f8c5e521c5dd83d8afe0436f111ab264fde2a40",
+      "bytes": 13185,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "caabfa5f06d0840ea002c32fb766e6578bf64e11972cc336a61643778bc318d4",
+      "bytes": 22555,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432",
+      "bytes": 2681,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/test-environment.mjs",
+      "sha256": "156ce382187684f60bf3f08c7f12f1acfe13110ec7b21a230f21a3d09e4cffe4",
+      "bytes": 2703,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d",
+      "bytes": 13256,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/automations.ts",
+      "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a",
+      "bytes": 15964,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/budget.ts",
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b",
+      "bytes": 1146,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5",
+      "bytes": 1712,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/errors.ts",
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a",
+      "bytes": 772,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/execution-mode.ts",
+      "sha256": "3aeb8eb3ea729de0fbffcd74302d1c8b3a35395fae81025ba14bead24ff4ec0b",
+      "bytes": 1754,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/extension-methods.ts",
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a",
+      "bytes": 2413,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "7e8374b948410c661de71febb19f20bffae9e87e74e3c1d8dfc68bdf4bf472df",
+      "bytes": 5245,
+      "unchangedFromPrior": false,
+      "review": "Current changed body/diff and surrounding functional callers/assertions read."
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "f17493bf533254f5b44c6d1501fadb322030df67c139f3c54fed0b95daba774f",
+      "bytes": 18471,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+      "bytes": 1379,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "sha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b",
+      "bytes": 8822,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/organization-methods.ts",
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4",
+      "bytes": 969,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/process-methods.ts",
+      "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f",
+      "bytes": 464,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/realtime-methods.ts",
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41",
+      "bytes": 560,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/remote-methods.ts",
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43",
+      "bytes": 921,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/schedule.ts",
+      "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a",
+      "bytes": 4577,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "bytes": 3162,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/core/worktrees.ts",
+      "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089",
+      "bytes": 5380,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/auth-crypto.ts",
+      "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+      "bytes": 4054,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/auth.ts",
+      "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3",
+      "bytes": 21527,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/automation-scheduler.ts",
+      "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9",
+      "bytes": 10936,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "fd41d95dbd4ca50ad559785ca6deecb51a39a14603f8cc7c3d65bd586a459154",
+      "bytes": 28234,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/main.ts",
+      "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd",
+      "bytes": 3119,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7",
+      "bytes": 7988,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/organization-receipt.ts",
+      "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d",
+      "bytes": 1608,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/receipt-maintenance.ts",
+      "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6",
+      "bytes": 3294,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "5307b41a7f0e29118607985f7797bcbc075a6a500c41da6fa070a6eec47fa57c",
+      "bytes": 34986,
+      "unchangedFromPrior": false,
+      "review": "Current changed body/diff and surrounding functional callers/assertions read."
+    },
+    {
+      "path": "src/gateway/recovery-protocol.ts",
+      "sha256": "84995b1c4f70f1179b806248a3d84f5aab3522602fb8ea991f20ad04b8196505",
+      "bytes": 1117,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360",
+      "bytes": 24279,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "2fea3c97b97d0ebe39328d340658d0b1f88b0986673f08fde6956c0c0f32cb2d",
+      "bytes": 10952,
+      "unchangedFromPrior": false,
+      "review": "Current changed body/diff and surrounding functional callers/assertions read."
+    },
+    {
+      "path": "src/gateway/workspace-ack.ts",
+      "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+      "bytes": 6230,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/core/automation-retention.test.ts",
+      "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3",
+      "bytes": 3142,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/core/ledger-capacity.test.ts",
+      "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d",
+      "bytes": 17691,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "sha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de",
+      "bytes": 7145,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/core/operation-retention.test.ts",
+      "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9",
+      "bytes": 6572,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/core/schedule.test.ts",
+      "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328",
+      "bytes": 3301,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/linux_isolation.py",
+      "sha256": "4b58ab26da58b90ac9e7da9ed9c1e60b40d9887eb7e3a4c2894127290e75c13a",
+      "bytes": 4092,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/linux_native_boundary.py",
+      "sha256": "f506f4e8724d323100b00c364a7b15d7d3915953a225d1f681f0cca6c28fd171",
+      "bytes": 5330,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/recovery_runbook_probe.py",
+      "sha256": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19",
+      "bytes": 15150,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "sha256": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+      "bytes": 8559,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_accounts.py",
+      "sha256": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53",
+      "bytes": 3669,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "sha256": "ce6f68ea4dab05554eed9d760d670161b7fe52b69fbb8867ce62d7cd1828ddbc",
+      "bytes": 15104,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "sha256": "32df9e73312ba80d218adccdbb985ded9c6ff8a81d4be4d003aea0535b43c101",
+      "bytes": 34826,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "9915c5c42ab6790e86305d8c45820235738ef97b296dbf9e70f1ac8b41333ec7",
+      "bytes": 63200,
+      "unchangedFromPrior": false,
+      "review": "Author-owned capability change: exact current bytes independently reviewed by root in v232-copy-control-review; this reviewer retraced surrounding upgrade/recovery integration, not an independent self-review."
+    },
+    {
+      "path": "tests/deploy/root/test_directory_durability.py",
+      "sha256": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548",
+      "bytes": 6899,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_dns_caddy_build.py",
+      "sha256": "f9566f96a8faadb17e6c34c7202553e66fc888c8d6b30519e4a0778cfe2f1107",
+      "bytes": 9538,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_edge_diagnostics.py",
+      "sha256": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0",
+      "bytes": 5081,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "fde60691469375c0c4e053bc4d730623b79f79cffd425ef269b0b4a88c94535e",
+      "bytes": 31161,
+      "unchangedFromPrior": false,
+      "review": "Helper body and its new assertions independently reviewed by root at exact current SHA; this reviewer checked launcher/identity/version/budget and recovery integration, plus fresh AST/hash. No duplicate full helper line-by-line claim."
+    },
+    {
+      "path": "tests/deploy/root/test_https.py",
+      "sha256": "15856c2c06ba33f692d64c406e5ea836ff8a9b282e3de6506913da29a9a451d0",
+      "bytes": 61491,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_initialization_resume.py",
+      "sha256": "6899ed54037018616ec35fe0bb40727e01f21a2dbc1a8bdc12310874768907e8",
+      "bytes": 13690,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_journal_recovery.py",
+      "sha256": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+      "bytes": 5873,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_management_boundaries.py",
+      "sha256": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+      "bytes": 11135,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_project_identity.py",
+      "sha256": "377be23a0a25f3ab13a73c9116399bcc404dcdb6c132a2bef607bd8ef1a17816",
+      "bytes": 14686,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+      "bytes": 7739,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_provider_layers.py",
+      "sha256": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d",
+      "bytes": 6215,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_core.py",
+      "sha256": "b6c4fde4a9a794880928acf65fc1bfefed78b0b410c70803c10d26b660ea9787",
+      "bytes": 8399,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "0ffe691c008a0f76464fb68175bd39e8c176583667ed375d1f3f74a9e7444433",
+      "bytes": 30909,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_release_reuse.py",
+      "sha256": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986",
+      "bytes": 3386,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_request_spool.py",
+      "sha256": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3",
+      "bytes": 3239,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_service_lifecycle.py",
+      "sha256": "22fd31ed178d371b4d5be5353000ba176f7473186023f28a4fc53221eac7d9f3",
+      "bytes": 28475,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_shared_auth.py",
+      "sha256": "443947ba9977153c531be1acb0a6d7d90aee530369f9a7edaabcdc726172d1ab",
+      "bytes": 11451,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/root/test_tree_durability.py",
+      "sha256": "e43d1aeea5c79305acaceea764c9ba0ed420f660134ff403ab367e89bb48e791",
+      "bytes": 14524,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_accounts.py",
+      "sha256": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9",
+      "bytes": 10142,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_auth_storage_policy.py",
+      "sha256": "773c00c8d91d3c5f00054f58730d95f8f6c35a71703559ae53f411fd4c23bf80",
+      "bytes": 4264,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_candidate_archive.py",
+      "sha256": "2c226e6222aff645d2ba37564261a8b5d9daad5625332943c9b833731229b9fc",
+      "bytes": 15135,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "3d5ba260b1db68be82505309df962b87c384c1ecf3ca7d9ab3791c81af68d7f3",
+      "bytes": 27325,
+      "unchangedFromPrior": false,
+      "review": "Author-owned capability change: exact current bytes independently reviewed by root in v232-copy-control-review; this reviewer retraced surrounding upgrade/recovery integration, not an independent self-review."
+    },
+    {
+      "path": "tests/deploy/test_dependency_lock.py",
+      "sha256": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5",
+      "bytes": 7487,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "ba4156d209a89a1616419b035636b01561991a5249f7ae4d5318c7bd3e238493",
+      "bytes": 55056,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_directory_durability.py",
+      "sha256": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30",
+      "bytes": 6267,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_dns_caddy_build.py",
+      "sha256": "5faf7d10a41d8942d9bf5f52c79d85d2e928b1a59d2357322098e5d3c4293ae9",
+      "bytes": 6947,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_dns_tls.py",
+      "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+      "bytes": 13714,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_edge_diagnostics.py",
+      "sha256": "28e8880fad7597cde73ea54f1807f0984b4313bc813ab0a96c8085b7bce71ff6",
+      "bytes": 6995,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_execution_mode.py",
+      "sha256": "cc4aa78f1bd7bdcda06590d16b1115be287a4827bac71a6f7157fa35ebbf90a9",
+      "bytes": 8787,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_https.py",
+      "sha256": "33e7f111cb83dd7e175b10fe9429c0a98634be092f969725f3b2f937ac34290d",
+      "bytes": 9721,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_https_defaults.py",
+      "sha256": "3939b56ba536286c41e25b1386f4b7942e020d8caeefb42f41674e3d4971a6e5",
+      "bytes": 6925,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_https_guidance.py",
+      "sha256": "691002a67f5ae2f25223eee2bf6943a6f1e82f2f74bb7203eecf9bdb8efcb7b2",
+      "bytes": 7297,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_https_health.py",
+      "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "bytes": 20304,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_https_ports.py",
+      "sha256": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189",
+      "bytes": 3869,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_initialization_resume.py",
+      "sha256": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9",
+      "bytes": 5969,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "sha256": "6d0a9a326bf67c77dc1bcd4e3a9058a8de1d4e1b235a447fc64a61da590da2b1",
+      "bytes": 19937,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_journal_schema.py",
+      "sha256": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+      "bytes": 10895,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_management_boundaries.py",
+      "sha256": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707",
+      "bytes": 3286,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_native_shutdown.py",
+      "sha256": "e193c747a35fc5782bea3324e23dcf8f2404de24a4ace761a3ac1be8d5fe99ae",
+      "bytes": 7863,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_operator.py",
+      "sha256": "a16ee71d2e65c13f83fdda65c3d13f49a687c1492b3ff3326cc087685a7f9b99",
+      "bytes": 31656,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_origins.py",
+      "sha256": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c",
+      "bytes": 1411,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_prepare_ci_go.py",
+      "sha256": "f6809e2784c5d6a4aef0789dd82a495669632107e090ac2d8f0f6eea33a920c6",
+      "bytes": 13093,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_project_creation.py",
+      "sha256": "47f535f84fc50bddbb30acf4ea7d451cbb208de41ea19755f8e217c7ba3079de",
+      "bytes": 13494,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_provider_bedrock.py",
+      "sha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c",
+      "bytes": 5643,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_provider_gateway.py",
+      "sha256": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559",
+      "bytes": 6530,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_provider_layers.py",
+      "sha256": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82",
+      "bytes": 9537,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_provider_lifecycle.py",
+      "sha256": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+      "bytes": 8343,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "sha256": "96e059f9ac58db555426623a437711dcfdb8e5f178988de4166661138ff72fef",
+      "bytes": 19130,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_proxy_bootstrap.py",
+      "sha256": "ee1ac55173d41e6c73b434da76151b4968796190dbb6431a73ddbac801c1b2ae",
+      "bytes": 4168,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_proxy_core.py",
+      "sha256": "7fb8d77362963b75ae5213b3fa2f8ff8ef474c5bec59c5e780a031cf454629aa",
+      "bytes": 18694,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_proxy_transaction.py",
+      "sha256": "ba38e7ee4bf43286ed5d08b6d1afc21ba5d916f43593f58e148735aba68a3640",
+      "bytes": 17865,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_request_spool.py",
+      "sha256": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02",
+      "bytes": 17047,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_sandbox.py",
+      "sha256": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6",
+      "bytes": 2709,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_service_lifecycle.py",
+      "sha256": "e5fad191fceaaa8419b631830b38eac5d44bfbb7746f1b12059f43d8ffc6f516",
+      "bytes": 4880,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_service_proxy.py",
+      "sha256": "8d763a5db9068fc7ceca0ea2d8cdeb109d321e05d4a1ba07b987c65d48dd4995",
+      "bytes": 24949,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_thread_history.py",
+      "sha256": "c33b130a5b4fe2792c7897d0dc6a82848fa261020129a2eb0e45d329e1e7e2f4",
+      "bytes": 30248,
+      "unchangedFromPrior": false,
+      "review": "Helper body and its new assertions independently reviewed by root at exact current SHA; this reviewer checked launcher/identity/version/budget and recovery integration, plus fresh AST/hash. No duplicate full helper line-by-line claim."
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "sha256": "6072fc155964d94cb797baaca60b8d7863c2ffa83e34325d55853738eab1cdae",
+      "bytes": 22621,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_workspace_ack.py",
+      "sha256": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13",
+      "bytes": 6764,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_workspace_commit.py",
+      "sha256": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378",
+      "bytes": 12458,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_workspace_index.py",
+      "sha256": "3f9947aaab359cbd6de24259084107fa5a6e1549523e4b557d8bda98f8ad3abf",
+      "bytes": 17931,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_workspace_recovery.py",
+      "sha256": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473",
+      "bytes": 12346,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_workspace_resources.py",
+      "sha256": "74461c1c574fd8fb5ed313d4b9a16432c6ea9cb1bfa595eb0e5bb07c3c071335",
+      "bytes": 8985,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_workspace_search.py",
+      "sha256": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede",
+      "bytes": 4335,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/test_workspace_worktrees.py",
+      "sha256": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7",
+      "bytes": 17010,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "bytes": 7686,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/auth.test.ts",
+      "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679",
+      "bytes": 17981,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5469b1d08c582d51e29cca45ad5d19e34fe10bf6d4a8fbc93508ed905a8785e4",
+      "bytes": 10644,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/automation-scheduler.test.ts",
+      "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5",
+      "bytes": 12425,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "eced1b733aeee74d8da88edb9cf1a9e8a1f316040cfd706cc968f3b1c72b0485",
+      "bytes": 41188,
+      "unchangedFromPrior": false,
+      "review": "Current changed body/diff and surrounding functional callers/assertions read."
+    },
+    {
+      "path": "tests/gateway/emergency-recovery.test.ts",
+      "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b",
+      "bytes": 13660,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/execution-mode.test.ts",
+      "sha256": "d5cbbd567b2b674e3fcb0d6cfc56088c3d7e7d3de073d65d7c08666a291718a7",
+      "bytes": 9502,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877",
+      "bytes": 37398,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091",
+      "bytes": 17400,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492",
+      "bytes": 12933,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/receipt-maintenance.test.ts",
+      "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f",
+      "bytes": 4639,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "f7c0efb445bff39a148f76aaec704ca6531281f533c174af846be81af7e3cf5b",
+      "bytes": 14566,
+      "unchangedFromPrior": false,
+      "review": "Current changed body/diff and surrounding functional callers/assertions read."
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "aae2a226caf8c41400800622e8a03fbdbc58cdaf97b4ec961f54cacc7853e8d4",
+      "bytes": 14335,
+      "unchangedFromPrior": false,
+      "review": "Current changed body/diff and surrounding functional callers/assertions read."
+    },
+    {
+      "path": "tests/gateway/workspace-ack.test.ts",
+      "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b",
+      "bytes": 7434,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "sha256": "facc579f89fa7178c50b953c42ab76d2ef19b8e8daa7aeebb887d41685c0e1c6",
+      "bytes": 6963,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/builtin-mcp.test.ts",
+      "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+      "bytes": 6776,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "fb2fcee7a12151ee1d64be00a0bb1ab9749ea7b393096fd8b5575aa72b3fe10e",
+      "bytes": 13548,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/compatibility-watch.test.ts",
+      "sha256": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89",
+      "bytes": 785,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/go-tests.test.ts",
+      "sha256": "112457e214569432f5b2de19a0e79034cb4f88b0701914204fa44c78472881e4",
+      "bytes": 11863,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/prepare-ci-native.test.ts",
+      "sha256": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371",
+      "bytes": 4075,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/release-audit.test.ts",
+      "sha256": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+      "bytes": 12373,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/release-preflight.test.ts",
+      "sha256": "9625389c2b122aed1603a8705afe3ee4c9729a72c3b2282eb708f3f40a5aade8",
+      "bytes": 10604,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/reviewed-history.test.ts",
+      "sha256": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5",
+      "bytes": 1942,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/run-tests.test.ts",
+      "sha256": "bed3c9a1c47770120417bc12cfec47ed076ceab89bc310dde20f69075b1f36ad",
+      "bytes": 10921,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "828acb976bf5812fc3acc97e94c8a78f5653586cc9c4f791614610afe16ad26c",
+      "bytes": 15440,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/test-environment.test.ts",
+      "sha256": "b4e0884156216c6a5a8442563c860b7d2963242595ba64af80943af07f4de7ea",
+      "bytes": 12881,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/vision-compat.test.ts",
+      "sha256": "24f1d6aa30e947764d0264b67fa30d3c353f5fe5562fa45a048508adbb5f3a99",
+      "bytes": 3123,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    },
+    {
+      "path": "tests/tooling/windows-controller-preflight.test.ts",
+      "sha256": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e",
+      "bytes": 2158,
+      "unchangedFromPrior": true,
+      "review": "Unchanged exact bytes: retained prior complete-scope semantic review; fresh structure/hash and relevant callers rechecked."
+    }
+  ],
+  "additionalReviewedFiles": [
+    {
+      "path": "package.json",
+      "sha256": "a87422cbbfd0e5b3382fe436c53d1fc75d99d6936444e1afe2a3ee7e3970cae6"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "5625bccfb6d09cc6d01333d9f66f7f94a308bd58884843e3988a95906d889c14"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "8435069050b87577433ed225432a049cc53a5ebefedab2b43d198eaf143837ab"
+    },
+    {
+      "path": "web/tests/operations.test.ts",
+      "sha256": "dc4171f0ecebfd4e644088a62bb55d2b744e83edcd9e36039b00bb3726e44ea4"
+    }
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": [
+    "Current frozen inventory covers 226 files: 144 deployment files and 82 core/gateway/tooling/workflow files. All raw SHA256 values equal the final frozen snapshot. 209 match the prior v232-release complete audit exactly; 17 differ. This is not a claim of newly reading every unchanged line.",
+    "Read all changed gateway/core code and corresponding three test diffs completely, including complete WorkerClient transport, receipt projection, Dispatcher admission/beforeWrite/settlement/replay, unchanged file-backed Ledger interactions, Api call/mutation and local operation retention/consumption. Reviewed exact author 96/96 evidence without rerunning it.",
+    "Read the current deployment capability module and changed selection predicates plus surrounding install, operator update, application activate/verify, control update/rollback/old-candidate recovery, retained sudo identity grammar, config-layer/execution-mode recovery and bound service restoration. Fixed launcher dispatch and active HOME boundary were rechecked.",
+    "Capability-2 files authored by this reviewer are independently covered by root at current exact hashes. The helper body and final root/ordinary assertions are covered by the same current root review and helper author evidence; this reviewer does not substitute self-review for that independence.",
+    "Unchanged full-scope semantic work is inherited from the published v232-release audit/control/core reports. Their declared coverage includes complete original core/gateway/scripts/workflow production reads, targeted tests body/assertion reads, and earlier whole deployment functional audit. Current code/lock bytes are checked; Go dependencies/lockfiles are not represented as newly manually read line by line.",
+    "Fresh nonexecuting structure verification parsed 137 Python files with ast.parse and 77 TS/MJS files with pinned Node --check. Literal relative imports resolved with zero failures. JSON/YAML/Go/locks and shell are inventoried and retained against their prior reviewed bytes; no additional dependency installation, shell execution or full test selection was performed.",
+    "Reread unchanged release authorization/preflight/selector/CI coverage boundaries against deleted old conversion tests and newly discovered web conversion test; discovery remains inventory-based and source-bound, native fixture remains in the independently installed official CLI requirement list. No excluded tests, retries or special CI bypass were added.",
+    "Final source snapshot rechecked after review: 2004 files, exact d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e. Root performed the one consolidated official builtin freshness check and semantic review, referenced here rather than duplicated."
+  ],
+  "conclusions": [
+    "Thread conversion is an authenticated idle write with durable source-thread operation scope. Active or uncertain work is rejected; actual dispatch retains connection/authorization and recovery-generation fencing. The same operation ID replays the persisted result/error without another conversion.",
+    "Accepted projection requires a distinct new thread and bounded source/target identities, stripping titles, previews, turns, instructions and private paths. Partial failure metadata is limited to phase/conversion/new-thread/source-thread/inputSent:false, bound to the actual requested source. Unknown delivery remains unknown; no automatic replay or generic flag clearing is introduced.",
+    "Only explicit thread/convert receives the 360-second browser budget; normal methods keep their prior deadline. Successful new-thread receipts remain retained until the destination is loaded. Source-side receipt reconciliation cannot consume the destination or clear the unsent source draft.",
+    "Application history capability 2 requires known integer control capability 2; app capability 1 remains supported by control 1 or 2. Current control exposes the same fixed thread-history verb, not extra arguments or privileged arbitrary paths. Ordinary native and explicit root modes retain their existing identity checks.",
+    "Normal one-stop upgrade remains control-update, config-layer-migrate, application update. Control capability selection is checked before stops for rollback/old or candidate recovery, and application capability is checked before activation. Exact old/candidate sudo bytes and identity remain journal-bound; only the fixed helper bit is migrated where supported. Unsupported restoration remains pending with original barriers rather than publishing false health.",
+    "Unchanged candidate capacity/identity checks, stop proof, shared management flock, native/root authorization, shared-auth transfer, proxy/direct-host selection, TLS/provider layers, service ownership and retained recovery paths remain part of the carried complete deployment review. No online operation or user data was touched.",
+    "Current RECOVERY documentation accurately describes original-preserving distinct copy, two confirmations, failed/unknown retained targets, private target backup, fixed capability-2 upgrade order and stopped-instance backup boundaries. Earlier source-repair/three-step/backup-store claims are superseded rather than falsely retained as current."
+  ],
+  "evidence": {
+    "finalSnapshot": {
+      "path": ".work/v232-converted-copy-snapshot.json",
+      "sha256": "e6e91df4aec055d1f99500c6a41b35380a596064cc3b9d45a2c7e74199082881"
+    },
+    "freshStructure": {
+      "path": ".work/v232-converted-copy-deploy-core-structure.json",
+      "sha256": "d51806200ce42a2baa73b39670347c144687d53ac03fed14056e7d74f93561ed"
+    },
+    "priorWholeAudit": {
+      "path": "verification/audit-evidence/v232-release/audit.json",
+      "sha256": "7e7e9626f1e79af991d41c6b01f65ab83d39dae2b12bd3b124e129c421ded087"
+    },
+    "priorCoreCompleteReview": {
+      "path": "verification/audit-evidence/v232-release/core.json",
+      "sha256": "7ade20f2cfdeeeb47605e8bea6c1550ca65ac64bd8f0d3ce63b5e899a5174e92"
+    },
+    "priorControlIntegration": {
+      "path": "verification/audit-evidence/v232-release/control.json",
+      "sha256": "5367f01ea84843d67fa37fb03c42fb11c8d3439c70bf84a5f5efab6f473db9f3"
+    },
+    "currentIndependentHelperAndCapability": {
+      "path": ".work/v232-copy-control-review.json",
+      "sha256": "a64e6d0d906190b0732d13f684784f719b3c266aa81a0452325b0a56719a9d7a"
+    },
+    "currentHelperAuthor": {
+      "path": ".work/v232-conversion-copy-helper.json",
+      "sha256": "3c605522b0237dbdcfbbdbe9b3ece6c6b2febd55c92c669359aa5df2f0f7af04"
+    },
+    "capabilityAuthorHistorical": {
+      "path": ".work/v232-history-capability2-implementation.json",
+      "sha256": "b5192d9f76e3d1c498dbe0d8c97c7c91eb06482b21c821a44524d12e8b1eb261"
+    },
+    "gatewayAndApiAuthorTests": {
+      "path": ".work/test-results/run-KnHp0Z/vitest.json",
+      "sha256": "9171d58b1bf972adf818e531f9fcf3408c525826e702d0f00023fb698c5edf75",
+      "passed": 96,
+      "failed": 0,
+      "boundary": "Real local HTTP/WebSocket WorkerClient, Dispatcher, file SQLite close/reopen and Api storage fixtures; no real inference."
+    },
+    "capabilityLinuxAuthorTests": {
+      "path": ".work/v232-recovery-copy-linux-1.json",
+      "sha256": "d81c44b02b5f30813b87198c680e3f40cefc98802f90f149196c61c4e1e3180a",
+      "testsRun": 133,
+      "passed": 132,
+      "failed": 0,
+      "skipped": 1,
+      "exitCode": 3,
+      "boundary": "Older helper version; current unchanged ordinary/root control capability tests are covered. Final helper source uses its newer author report. Windows-path-only skip retained honestly."
+    },
+    "builtinFreshness": {
+      "path": ".work/builtin-mcp-freshness-6954484b-f57b-481c-9fcd-8e1ec1b2cce2.json",
+      "sha256": "1e256f4a4a5abcac835d4b59ce42358c51c48dd001c59de3b500cc701cd29cf1",
+      "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+      "status": "current",
+      "reviewOwner": "root",
+      "issues": []
+    }
+  },
+  "limits": [
+    "No test suite or targeted test was rerun during this independent review. Earlier UI author tests are separately reported and are not counted as reviewer evidence.",
+    "No external network request, production mutation, server restart, real MCP/model inference, credential access, browser test or deployment was performed for this partition review.",
+    "No assertion that this partition alone proves complete repository readiness, current CI success, deployment completion or publication. Parent aggregates the other independent partitions.",
+    "Inherited unchanged test/Go/dependency evidence and separately owned helper review are explicitly identified; hashes and syntax are not presented as fresh line-by-line semantic reading."
+  ],
+  "endSnapshot": {
+    "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+    "sourceFiles": 2004,
+    "matches": true
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "kind": "author-implementation",
+  "complete": true,
+  "createdAt": "2026-11-01T14:11:41.688549+00:00",
+  "scope": "New-thread conversion UI, provider-scoped existing-chat menu, retained mobile composer",
+  "files": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "2dc882d67c4123682a7d0a142a592835362bad9f67b2555d05043d388ff66c63",
+      "lfOnly": true
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "b7fcb7499852f9dd2edb8310358ae43ed61569505590f887fdae205fb7278a82",
+      "lfOnly": true
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "sha256": "7b2fee7072c3b9697cf35e6aa1e83d2bc75b896a85fc682aecffc77be2a7dc63",
+      "lfOnly": true
+    },
+    {
+      "path": "web/components/ThreadConversionDialog.tsx",
+      "sha256": "72bf9f531fe12ac5d729fe977c520f30c8955bb21e35703b490a2d6b2b95d7d7",
+      "lfOnly": true
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "dc1c74be4fc580e5bfecb48f15ae70601b20173577a988c7a0678385cb759a7f",
+      "lfOnly": true
+    },
+    {
+      "path": "web/hooks/useModelDirectory.tsx",
+      "sha256": "349bd3ab78a05456f225414b997b5551a6c132f5f9b09a288afe7cd7dcc6dd86",
+      "lfOnly": true
+    },
+    {
+      "path": "web/hooks/useSidebarRefresh.ts",
+      "sha256": "7a31400acefb4eebceadd3ead3b4e0e2ba816068524cff81daae80ad6e125b76",
+      "lfOnly": true
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "sha256": "18053ab9fad25b79eeb048449c8805447a3b15e2c72417dba012cd8d17ac7030",
+      "lfOnly": true
+    },
+    {
+      "path": "web/lib/provider-models.ts",
+      "sha256": "7893aac071b69baedd8ccd9d8e59e78122d23cb081c4888f73975f0addeb82f9",
+      "lfOnly": true
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "29530a8cb98dfc0b1afef4655e92305b1c1fc1247cc1a2af811aed2e1b4351d5",
+      "lfOnly": true
+    },
+    {
+      "path": "web/tests/thread-conversion.test.tsx",
+      "sha256": "bc08b26c57a572094f65ad110c9ae81d98647f71505cb81389f382fdbafa34ed",
+      "lfOnly": true
+    },
+    {
+      "path": "web/tests/model-picker.test.tsx",
+      "sha256": "a78c4681e6675ca30ab7660f9d3ee1b481a3beb3292b86a5ca1d8b34d4cb631b",
+      "lfOnly": true
+    },
+    {
+      "path": "web/tests/shared-model-directory.test.tsx",
+      "sha256": "cb08d6a96e5aa4941544e3736542c0f1702dfeaeb2237e3e584c2b10bd017f84",
+      "lfOnly": true
+    },
+    {
+      "path": "web/tests/sidebar-refresh.test.tsx",
+      "sha256": "374fcc3c9eab70af636b7e3d82e85067cad37c9a7c0e224738104567d5026aa9",
+      "lfOnly": true
+    },
+    {
+      "path": "web/styles-responsive.css",
+      "sha256": "67e5886d0eed5dc9011edf904d4832824ec4a722566657bfc04431d3e1ee3331",
+      "lfOnly": true
+    },
+    {
+      "path": "web/styles-usability.css",
+      "sha256": "1cf3ecb88fb1a7890af5c00eaa633115149c1f956ee369c238404124e5ef5f9c",
+      "lfOnly": true
+    },
+    {
+      "path": "web/styles-workflows.css",
+      "sha256": "674771e68109f4056b26ff90654fb70db236d28b0db0eb5c9c0d9fb3230b217c",
+      "lfOnly": true
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "14eca48f369edaabb78994ea2b70c416b744884eadab8d3555e41d07ded7583b",
+      "lfOnly": true
+    }
+  ],
+  "removed": [
+    "web/components/HistoryConversionDialog.tsx",
+    "web/components/ConversionBackupDialog.tsx",
+    "web/tests/history-conversion-confirmation.test.tsx",
+    "web/tests/conversion-backup.test.tsx"
+  ],
+  "behavior": [
+    "Existing thread composer renders only exact provider/alias rows; unlabelled compatibility requires complete entirely legacy directory. Shared catalog and new-chat/automation selectors remain global.",
+    "Foreign saved options are retained while identity/alias is incomplete; uncertain input is blocked. A complete catalog proving mismatch clears only model/modelProvider/effort, retaining text/attachments/other settings.",
+    "Independent menu selects target model/effort then requires two intentional confirmations. No input, original-history mutation or draft option change occurs. thread/convert receives explicit source/target/model/confirm only.",
+    "Current-provider compatibility copy remains selectable; source must be loaded and idle. Removed source configuration needs restoration; no hidden cold-conversion path.",
+    "Pending conversion marks current context busy synchronously; durable pending/unknown receipt prevents automatic resume on source thread/closed. Terminal proof restores ordinary source loading.",
+    "Accepted result requires distinct new ID; lost response queries original receipt only. Navigation uses existing draft-safe handoff, with completion link if local draft cannot be saved.",
+    "Old inline consent, backup dialog, special abandon hook and obsolete tests removed. Core/gateway/API changes belong to root/runtime authors.",
+    "Mobile composer changes retained; 16px inputs, grouped toolbars, fixed short-viewport model panel. Earlier parent browser evidence remains scoped to those CSS bytes; new dialog browser QA pending root."
+  ],
+  "tests": [
+    {
+      "path": ".work/test-results/run-WsqnFL/vitest.json",
+      "sha256": "23136afb5e755705c61634669fc01772c28ada5ab497de3ffac78c7fd01859bc",
+      "files": 5,
+      "passed": 102,
+      "failed": 0,
+      "boundary": "Real App, Api durable operations, useWorkflow and draft hooks with local fetch/WebSocket fixtures; no native inference or production calls."
+    },
+    {
+      "path": ".work/test-results/run-15yLFr/vitest.json",
+      "sha256": "357c06bf9b375f2585f8d4b7e4c5731fdbb45ebb63f86a849e16f2f3d81927ac",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "boundary": "Actual sidebar hook and event bus, fake timers only for defined 100ms coalescing."
+    }
+  ],
+  "checks": {
+    "webTypes": "tsc -p web/tsconfig.json --noEmit exit 0",
+    "build": {
+      "path": ".work/v232-new-thread-conversion-build.log",
+      "sha256": "8b659e5b74cebf118c4cb64edc0d3a37f2e03bda64ab3ccd3bb4177ea5815454",
+      "exitCode": 0,
+      "warning": "Existing chunk-size warning; not an error."
+    },
+    "lineEndings": "All listed source and tests normalized to LF after semantic targeted run."
+  },
+  "limitations": [
+    "No full suite, deployment, external MCP or paid inference.",
+    "Parent performs desktop/mobile browser QA and independent UI review.",
+    "This author report is not a repository audit or release authorization.",
+    "Prior three-step / in-place conversion evidence is preserved as superseded historical behavior, not claimed as current."
+  ]
+}

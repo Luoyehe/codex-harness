@@ -28,6 +28,7 @@ BACKUP_LIMIT = 512 * 1024 * 1024
 BACKUP_COUNT_LIMIT = 4096
 ANCESTOR_LIMIT = 16
 LOOKUP_ENTRY_LIMIT = 10000
+COPY_METADATA_LIMIT = 2 * 1024 * 1024
 
 
 class HistoryError(DeployError):
@@ -318,24 +319,25 @@ def _lock(fd: int):
 
 
 @contextlib.contextmanager
-def _publication(home: Path, uid: int, thread_id: str):
+def _publication(home: Path, uid: int, thread_id: str, *other_threads: str):
     directory = home / "thread-writer-locks"
     directory.mkdir(mode=0o700, exist_ok=True)
     _safe(directory.lstat(), uid, directory=True)
     fd = _open(directory / ".coordination.lock", os.O_RDWR | os.O_CREAT, uid, create=True)
     try:
         with _lock(fd):
-            thread_path = directory / (thread_id + ".lock")
-            try:
-                writer = _open(thread_path, os.O_RDWR, uid)
-            except FileNotFoundError:
-                writer = None
-            if writer is not None:
+            for identity in (thread_id, *other_threads):
+                thread_path = directory / (identity + ".lock")
                 try:
-                    with _lock(writer):
-                        pass
-                finally:
-                    os.close(writer)
+                    writer = _open(thread_path, os.O_RDWR, uid)
+                except FileNotFoundError:
+                    writer = None
+                if writer is not None:
+                    try:
+                        with _lock(writer):
+                            pass
+                    finally:
+                        os.close(writer)
             # Every official writer takes coordination before opening its lock.
             # Keep coordination held until the replacement and fsync finish.
             yield
@@ -397,16 +399,135 @@ def _backup(home: Path, uid: int, thread_id: str, source_path: Path, witness: di
             with contextlib.suppress(FileNotFoundError): os.unlink(temporary)
 
 
+def _copy_scan(path: Path, uid: int, thread_id: str, *, output=None, target_header=None) -> tuple:
+    """Read canonical records without replaying or changing their payloads."""
+    with os.fdopen(_open(path, os.O_RDONLY, uid), "rb") as source:
+        before = os.fstat(source.fileno())
+        check(before.st_size <= ROLLOUT_LIMIT, "Rollout exceeds the copy budget", "thread_history_limit")
+        digest = hashlib.sha256(); size = count = 0; ordinal = -1
+        metadata = {"serviceTier": None}; latest = {}; header = None
+        while raw := source.readline(LINE_LIMIT + 1):
+            count += 1; size += len(raw)
+            check(count <= LINE_COUNT_LIMIT and len(raw) <= LINE_LIMIT and size <= ROLLOUT_LIMIT,
+                  "Rollout exceeds the copy budget", "thread_history_limit")
+            check(raw.endswith(b"\n"), "Rollout is incomplete", "thread_history_changed")
+            value = _decode(raw)
+            check(isinstance(value, dict) and isinstance(value.get("payload"), dict), "Invalid rollout record")
+            payload = value["payload"]; position = value.get("ordinal")
+            check(type(position) is int and position > ordinal, "Recovery copy requires canonical paginated records")
+            ordinal = position
+            if count == 1:
+                check(value.get("type") == "session_meta" and payload.get("id") == thread_id and position == 0,
+                      "Rollout thread identity does not match")
+                check(payload.get("history_mode") == "paginated" and payload.get("history_base") is None,
+                      "Recovery copy requires independent paginated history", "thread_history_inherited")
+                header = payload
+                instructions = payload.get("base_instructions")
+                check(instructions is None or isinstance(instructions, dict) and isinstance(instructions.get("text"), str),
+                      "Unsupported base instructions")
+                if instructions is not None: metadata["baseInstructions"] = instructions["text"]
+                for original, exposed in (("dynamic_tools", "dynamicTools"), ("selected_capability_roots", "selectedCapabilityRoots")):
+                    if original in payload:
+                        check(payload[original] is None or isinstance(payload[original], list), "Unsupported recovery metadata")
+                        metadata[exposed] = payload[original]
+            else:
+                check(value.get("type") != "session_meta", "Repeated rollout identity")
+                if value.get("type") == "event_msg" and payload.get("type") == "thread_settings_applied" and payload.get("thread_id") == thread_id:
+                    settings = payload.get("thread_settings")
+                    check(isinstance(settings, dict), "Invalid thread settings record")
+                    latest = {key: settings[key] for key in ("cwd", "model_provider_id") if key in settings}
+                    check(settings.get("service_tier") is None or isinstance(settings["service_tier"], str), "Invalid service tier")
+                    metadata["serviceTier"] = settings.get("service_tier")
+                    if "reasoning_summary" in settings:
+                        check(settings["reasoning_summary"] is None or isinstance(settings["reasoning_summary"], str), "Invalid reasoning summary")
+                        metadata["summary"] = settings["reasoning_summary"]
+                    else:
+                        metadata.pop("summary", None)
+            digest.update(raw)
+            if output is not None:
+                output.write(target_header if count == 1 else raw)
+                check(output.tell() <= ROLLOUT_LIMIT, "Recovery copy exceeds the rollout budget", "thread_history_limit")
+        check(count > 0 and size == before.st_size and _identity(before) == _identity(os.fstat(source.fileno())) and
+              os.path.samestat(before, path.lstat()), "History changed during inspection", "thread_history_changed")
+    check(len(json.dumps(metadata, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) <= COPY_METADATA_LIMIT,
+          "Recovery metadata exceeds the copy budget", "thread_history_limit")
+    return _witness(before, digest.hexdigest()), header, metadata, latest, count
+
+
+def _recovery_copy(home: Path, uid: int, request: dict, source_path: Path) -> dict:
+    target = request.get("target")
+    check(isinstance(target, dict) and set(target) == {"threadId", "path", "expected"}, "Invalid recovery target")
+    target_id = target["threadId"]
+    check(isinstance(target_id, str) and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", target_id) and
+          target_id != request["threadId"], "Recovery copy requires a new native thread identity")
+    provider = request.get("sourceProvider"); cwd = request.get("cwd")
+    check(isinstance(provider, str) and 0 < len(provider) <= 128 and "\x00" not in provider and
+          isinstance(cwd, str) and 0 < len(cwd) <= 4096 and "\x00" not in cwd and _local_path(cwd).is_absolute(),
+          "Invalid recovery source settings")
+    target_path = _path(home, target["path"], uid)
+    check(target_path.relative_to(home).parts[0] == "sessions", "Recovery target must be an unarchived native thread")
+    check(not os.path.samestat(source_path.stat(), target_path.stat()), "Recovery source and target must be independent files")
+    temporary = None; replaced = False
+    try:
+        with _publication(home, uid, request["threadId"], target_id):
+            _path(home, str(source_path), uid); _path(home, str(target_path), uid)
+            source_witness, source_header, _, latest, _ = _copy_scan(source_path, uid, request["threadId"])
+            target_witness, target_header, _, _, count = _copy_scan(target_path, uid, target_id)
+            check(request.get("expected") == source_witness and target["expected"] == target_witness,
+                  "History identity or content changed after inspection", "thread_history_changed")
+            check(count == 1, "Recovery target is no longer empty", "thread_history_target_not_empty")
+            check(target_header.get("model_provider") == provider and target_header.get("cwd") == cwd and
+                  latest.get("model_provider_id", source_header.get("model_provider")) == provider and
+                  latest.get("cwd", source_header.get("cwd")) == cwd,
+                  "Recovery source settings changed", "thread_history_changed")
+            check((source_header.get("base_instructions") or {}).get("text") ==
+                  (target_header.get("base_instructions") or {}).get("text"), "Recovery target does not preserve base instructions")
+            for key in ("dynamic_tools", "selected_capability_roots"):
+                check(source_header.get(key) == target_header.get(key), "Recovery target does not preserve source settings")
+            with os.fdopen(_open(target_path, os.O_RDONLY, uid), "rb") as stream:
+                target_raw = stream.read(LINE_LIMIT + 1)
+            check(len(target_raw) <= LINE_LIMIT and hashlib.sha256(target_raw).hexdigest() == target_witness["sha256"],
+                  "Recovery target changed", "thread_history_changed")
+            fd, temporary = tempfile.mkstemp(prefix=".harness-history-copy-", dir=target_path.parent)
+            with os.fdopen(fd, "wb") as output:
+                copied_witness, _, _, _, _ = _copy_scan(source_path, uid, request["threadId"], output=output, target_header=target_raw)
+                check(copied_witness == source_witness, "Source changed during recovery copy", "thread_history_changed")
+                output.flush(); os.fsync(output.fileno())
+            _path(home, str(source_path), uid); _path(home, str(target_path), uid)
+            check(_read_witness(source_path, uid) == source_witness and _read_witness(target_path, uid) == target_witness,
+                  "History changed before recovery publication", "thread_history_changed")
+            os.replace(temporary, target_path); replaced = True; temporary = None
+            fsync_directory(target_path.parent)
+            return {"copied": True, "sourcePreserved": True, "expected": source_witness,
+                    "target": {"threadId": target_id, "expected": _read_witness(target_path, uid)}}
+    except BaseException as error:
+        if replaced:
+            raise HistoryError("thread_history_unknown", "Recovery copy was published but confirmation failed; inspect the named recovery thread before continuing", "unknown") from None
+        raise
+    finally:
+        if temporary is not None:
+            with contextlib.suppress(FileNotFoundError): os.unlink(temporary)
+
+
 def operate(home: Path, uid: int, request: object) -> dict:
     replaced = False
     temporary = None
     try:
-        check(isinstance(request, dict) and set(request) <= {"action", "threadId", "path", "mode", "expected"}, "Invalid history request")
-        check(request.get("action") in ("inspect", "repair") and request.get("mode") in ("foreign", "plaintext"), "Unsupported history operation")
+        check(isinstance(request, dict), "Invalid history request")
+        allowed = {"action", "threadId", "path", "mode", "expected"}
+        if request.get("action") == "recovery-copy": allowed |= {"target", "sourceProvider", "cwd"}
+        check(set(request) <= allowed, "Invalid history request")
+        check(request.get("action") in ("inspect", "repair", "copy-inspect", "recovery-copy") and request.get("mode") in ("foreign", "plaintext"), "Unsupported history operation")
         thread_id = request.get("threadId")
         check(isinstance(thread_id, str) and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", thread_id) is not None, "Invalid history thread identity")
         home = _local_path(str(home))
         path = _path(home, request.get("path"), uid, inspect_compressed=request["action"] == "inspect")
+        if request["action"] == "copy-inspect":
+            check("expected" not in request, "Inspection does not accept replacement proof")
+            witness, _, metadata, _, _ = _copy_scan(path, uid, thread_id)
+            return {"expected": witness, "sourceMetadata": metadata}
+        if request["action"] == "recovery-copy":
+            return _recovery_copy(home, uid, request, path)
         if path.name.endswith(".jsonl.zst"):
             check("expected" not in request, "Inspection does not accept replacement proof")
             return {"expected": _read_witness(path, uid), "needsRepair": False, "reasoningItems": 0,
@@ -460,7 +581,11 @@ def history_main(home: Path, uid: int) -> None:
         raw = sys.stdin.buffer.read(REQUEST_LIMIT + 1)
         check(len(raw) <= REQUEST_LIMIT, "History request exceeds budget")
         result = operate(home, uid, _decode(raw))
-        print(json.dumps(result, separators=(",", ":")))
+        # Metadata can contain Unicode base instructions. Bind the budget to
+        # actual UTF-8 stdout bytes instead of ASCII escapes or console locale.
+        encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n"
+        check(len(encoded) <= COPY_METADATA_LIMIT + REQUEST_LIMIT, "History response exceeds budget", "thread_history_limit")
+        sys.stdout.buffer.write(encoded); sys.stdout.buffer.flush()
     except (ValueError, HistoryError) as error:
         if not isinstance(error, HistoryError):
             error = HistoryError("thread_history_invalid", "Invalid history request JSON")

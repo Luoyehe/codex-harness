@@ -49,6 +49,7 @@ const methods: Readonly<Record<string, FeatureMethod>> = Object.freeze({
   'thread/backgroundTerminals/clean': continuation,
   'thread/loaded/list': read,
   'thread/session': read,
+  'thread/convert': idle,
   'thread/resume': continuation,
   'thread/search': Object.freeze({ access: 'read', project: true }),
   'thread/searchOccurrences': read,

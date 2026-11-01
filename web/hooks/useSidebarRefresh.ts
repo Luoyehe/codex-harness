@@ -3,7 +3,7 @@ import type { Events } from '../lib/events';
 
 const projectMutations = new Set(['project/add', 'project/create', 'project/rename', 'project/remove']);
 const threadMutations = new Set([
-  'conversation/start', 'thread/start', 'thread/fork', 'review/startNew', 'turn/start',
+  'conversation/start', 'thread/start', 'thread/fork', 'thread/convert', 'review/startNew', 'turn/start',
   'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/delete', 'thread/revert',
   'thread/project/set', 'thread/section/move', 'threadSection/create', 'threadSection/update', 'threadSection/delete',
 ]);

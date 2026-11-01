@@ -1,25 +1,30 @@
 import { useEffect, useRef } from 'react';
 import { object, type Model, type Options } from '../lib/types';
+import { providerModels } from '../lib/provider-models';
 
-const effortName = (value: string) => ({ none: '关闭', minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '极高', max: '最高' }[value] ?? value);
+export const effortName = (value: string) => ({ none: '关闭', minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '极高', max: '最高' }[value] ?? value);
 export const modelSelection = (model: Model): string => model.modelProvider
   ? JSON.stringify([model.modelProvider, model.model ?? model.id]) : model.model ?? model.id;
 const matchesProvider = (model: Model, provider?: string) => !provider || !model.modelProvider ||
   model.modelProvider === provider || model.providerAliases?.includes(provider);
 
 export function ModelPicker({ models, options, onOptions, defaults, existingThread, loading, defaultsLoading, disabled,
-  onRefresh, more, onMore, onProviders, refreshDisabled,
+  onRefresh, more, onMore, onProviders, refreshDisabled, threadProvider, directoryComplete,
 }: {
   models: Model[]; options: Options; onOptions: (options: Options) => void;
   defaults?: Record<string, unknown>; existingThread: boolean; loading?: boolean; defaultsLoading?: boolean; disabled?: boolean;
   onRefresh?: () => void; more?: boolean; onMore?: () => void; onProviders?: () => void;
   refreshDisabled?: boolean;
+  threadProvider?: string;
+  directoryComplete?: boolean;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const inheritedProvider = typeof defaults?.modelProvider === 'string' ? defaults.modelProvider : undefined;
+  const currentProvider = threadProvider ?? inheritedProvider;
+  models = existingThread ? currentProvider ? providerModels(models, currentProvider, directoryComplete ?? (!more && !loading)) : [] : models;
   const provider = options.modelProvider ?? inheritedProvider;
   const id = options.model ?? (typeof defaults?.model === 'string' ? defaults.model : undefined);
-  const waitingDefaults = Boolean(defaultsLoading && (!options.model || !options.modelProvider));
+  const waitingDefaults = Boolean(existingThread && !currentProvider || defaultsLoading && (!options.model || !options.modelProvider));
   const candidates = waitingDefaults ? [] : models.filter(row => (row.model ?? row.id) === id && matchesProvider(row, provider));
   const selected = candidates.length === 1 ? candidates[0] : undefined;
   const efforts = selected?.supportedReasoningEfforts ?? [];
@@ -65,6 +70,7 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
         </select>
       </label>
       {models.length === 0 && !loading && !waitingDefaults && <p className="small muted">先添加供应商并完成所需登录，再读取模型目录。</p>}
+      {existingThread && <p className="small muted">这里只选择当前供应商的模型。使用其他供应商，请打开会话操作中的“切换供应商 / 转换会话”。</p>}
       {disabled && <p className="small muted">排队或追加指令沿用会话设置，不能修改本次模型。</p>}
       <div className="inline wrap">
         {onRefresh && <button className="button small" disabled={loading || refreshDisabled} onClick={onRefresh}>刷新模型目录</button>}

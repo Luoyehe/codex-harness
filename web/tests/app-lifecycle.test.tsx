@@ -102,6 +102,7 @@ async function fixture(
   initialAuthenticated = true,
   override?: (call: { method: string; params: Record<string, unknown>; operationId?: string }) => unknown,
   safeAutoLoad = false,
+  waitForModel = true,
 ) {
   const sockets: Socket[] = [],
     calls: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
@@ -295,7 +296,7 @@ async function fixture(
       screen.queryByRole('button', { name: '重新读取会话' }) ||
       screen.queryByLabelText('选择模型与思考强度')?.textContent?.includes('fixture-model'))).toBe(true));
   }
-  if (!screen.queryByRole('button', { name: '加载并继续（可能恢复待执行任务）' }) &&
+  if (waitForModel && !screen.queryByRole('button', { name: '加载并继续（可能恢复待执行任务）' }) &&
       !screen.queryByRole('button', { name: '重新读取会话' })) await loadedModelPicker();
   return {
     sockets,
@@ -426,29 +427,23 @@ it('offers explicit continuation when queued work appears after the automatic-lo
   expect(confirm.isConnected).toBe(false);
   expect(f.count('turn/start')).toBe(0);
 });
-it('loads the same stored conversation with an explicitly chosen model after its former provider was removed', async () => {
+it('keeps a removed-provider chat readable and explains why conversion needs its original provider restored', async () => {
   writeDraft({ ...emptyDraft('t'), text: 'keep the existing chat draft' });
-  const f = await fixture(false, true, undefined, true, call => call.method === 'thread/resume' && !call.params.options
-    ? new RpcError('原供应商已停用，请选择可用模型。', 'provider_disabled', 'not_sent') : call.method === 'thread/read'
+  const f = await fixture(false, true, undefined, true, call => call.method === 'thread/resume'
+    ? new RpcError('原供应商已停用，请恢复配置后加载。', 'provider_disabled', 'not_sent') : call.method === 'thread/read'
       ? { thread: { id: 't', name: 'Current thread', cwd: '/p', modelProvider: 'removed-provider', status: { type: 'notLoaded' } } }
       : undefined, true);
-  await screen.findByText('原供应商已停用，请选择可用模型。');
-  const picker = screen.getByLabelText('选择模型与思考强度');
-  fireEvent.click(picker);
-  const models = await screen.findByRole('combobox', { name: '模型' });
-  await waitFor(() => expect(models.matches(':disabled')).toBe(false));
-  fireEvent.change(models, { target: { value: JSON.stringify(['harness_fixture', 'fixture-model']) } });
-  await screen.findByRole('dialog', { name: '确认供应商历史转换' });
-  expect(f.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
-  fireEvent.click(screen.getByRole('button', { name: '确认选择' }));
-  await waitFor(() => expect(f.calls.filter(call => call.method === 'thread/resume')).toHaveLength(2));
-  expect(f.calls.filter(call => call.method === 'thread/resume')[1]?.params).toEqual({ threadId: 't', automatic: true,
-    options: { modelProvider: 'harness_fixture', model: 'fixture-model' },
-    historyConversionConsent: { sourceProvider: 'removed-provider', targetProvider: 'harness_fixture' } });
-  await enabledButton({ name: '发送消息' });
-  expect(f.count('turn/start')).toBe(0);
-  expect(f.count('conversation/start')).toBe(0);
-  expect(screen.getByRole('textbox', { name: '给 Codex 的消息' })).toHaveProperty('value', 'keep the existing chat draft');
+  await screen.findByText('原供应商已停用，请恢复配置后加载。');
+  fireEvent.click(screen.getByLabelText('选择模型与思考强度'));
+  expect(screen.getByRole('combobox', { name: '模型' }).matches(':disabled')).toBe(true);
+  expect(screen.queryByRole('option', { name: 'fixture-model' })).toBeNull();
+  fireEvent.click(screen.getByLabelText('会话操作'));
+  fireEvent.click(screen.getByRole('button', { name: '切换供应商 / 转换会话' }));
+  await screen.findByText(/若原供应商已停用或删除，请先恢复其配置/);
+  expect(screen.getByRole('button', { name: '继续（1\/2）' }).matches(':disabled')).toBe(true);
+  expect(f.count('thread/resume')).toBe(1); expect(f.count('thread/convert')).toBe(0);
+  expect(f.count('turn/start')).toBe(0); expect(f.count('conversation/start')).toBe(0);
+  expect(readDraft('t').text).toBe('keep the existing chat draft');
 });
 it('closes the action menu and gives each tool the main region while retaining pending answers', async () => {
   const f = await fixture();
@@ -986,6 +981,35 @@ it('manages an unselected sidebar conversation without opening or resuming that 
   expect((screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value).toBe('keep current draft');
 });
 
+it.each([false, true])('creates a separate converted chat and protects the original draft (storage failure %s)', async failStorage => {
+  const f = await fixture(false, false, undefined, true, call => call.method === 'thread/convert'
+    ? { thread: { id: 'converted', modelProvider: 'harness_fixture' }, sourceThreadId: 't', sourceProvider: 'harness_fixture', targetProvider: 'harness_fixture' }
+    : call.params.threadId === 'converted' && call.method === 'thread/session'
+      ? { requiresResume: false, thread: { id: 'converted', cwd: '/p', modelProvider: 'harness_fixture' }, model: 'fixture-model', modelProvider: 'harness_fixture' }
+      : call.params.threadId === 'converted' && call.method === 'thread/read'
+        ? { thread: { id: 'converted', cwd: '/p', modelProvider: 'harness_fixture' } } : undefined);
+  if (failStorage) vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('storage full', 'QuotaExceededError'); });
+  fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { target: { value: 'keep conversion draft' } });
+  fireEvent.click(screen.getByLabelText('会话操作'));
+  fireEvent.click(screen.getByRole('button', { name: '切换供应商 / 转换会话' }));
+  fireEvent.change(screen.getByRole('combobox', { name: '目标模型' }), { target: { value: JSON.stringify(['harness_fixture', 'fixture-model']) } });
+  fireEvent.click(await enabledButton({ name: '继续（1/2）' }));
+  expect(f.count('thread/convert')).toBe(0);
+  fireEvent.click(await enabledButton({ name: '创建转换会话（2/2）' }));
+  await waitFor(() => expect(f.count('thread/convert')).toBe(1));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: '切换供应商 / 转换会话' })).toBeNull());
+  if (failStorage) {
+    expect(new URL(location.href).searchParams.get('thread')).toBe('t');
+    expect(screen.getByRole('textbox', { name: '给 Codex 的消息' })).toHaveProperty('value', 'keep conversion draft');
+    expect(screen.getByText(/新会话已创建，当前输入仍保留在这里/)).toBeTruthy();
+  } else {
+    await waitFor(() => expect(new URL(location.href).searchParams.get('thread')).toBe('converted'));
+    expect(readDraft('t').text).toBe('keep conversion draft');
+  }
+  expect(f.calls.find(call => call.method === 'thread/convert')?.params).toEqual({ threadId: 't', sourceProvider: 'harness_fixture', targetProvider: 'harness_fixture', model: 'fixture-model', confirm: true });
+  expect(f.count('turn/start')).toBe(0); expect(f.count('conversation/start')).toBe(0);
+});
+
 it.each(['sidebar', 'settings'])('refuses removing the current project from %s while its draft cannot be saved', async source => {
   const f = await fixture();
   vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('storage full', 'QuotaExceededError'); });
@@ -1003,4 +1027,72 @@ it.each(['sidebar', 'settings'])('refuses removing the current project from %s w
   expect(f.count('project/remove')).toBe(0);
   expect(new URL(location.href).searchParams.get('thread')).toBe('t');
   expect((screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value).toBe('unsaved current draft');
+});
+
+
+it('retains a paged alias draft until its provider is confirmed, then sends normally on that provider', async () => {
+  writeDraft({ ...emptyDraft('t'), text: 'alias draft', options: { model: 'fixture-model', modelProvider: 'harness_chatgpt', effort: 'medium', sandbox: 'workspace-write' } });
+  const thread = { id: 't', name: 'Current thread', cwd: '/p', modelProvider: 'openai', status: { type: 'idle' } };
+  const f = await fixture(false, false, undefined, true, call => {
+    if (call.method === 'thread/read') return { thread };
+    if (call.method === 'thread/session') return { requiresResume: false, thread, model: 'fixture-model', modelProvider: 'openai' };
+    if (call.method === 'model/list') return call.params.cursor
+      ? { data: [{ id: 'fixture-model', modelProvider: 'harness_chatgpt', providerAliases: ['openai'], supportedReasoningEfforts: [{ reasoningEffort: 'medium' }] }], nextCursor: null }
+      : { data: [{ id: 'other', modelProvider: 'other' }], nextCursor: 'aliases-next' };
+    if (call.method === 'turn/start') return { turn: { id: 'sent', status: 'inProgress', items: [] } };
+    return undefined;
+  }, false, false);
+  await screen.findByText('正在核对草稿模型的供应商归属，请完成模型目录读取后再发送。');
+  expect(readDraft('t')).toMatchObject({ text: 'alias draft', options: { modelProvider: 'harness_chatgpt', effort: 'medium', sandbox: 'workspace-write' } });
+  expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(true);
+  fireEvent.click(screen.getByLabelText('选择模型与思考强度'));
+  fireEvent.click(await enabledButton({ name: '加载更多模型' }));
+  await screen.findByRole('option', { name: 'fixture-model' });
+  expect(readDraft('t')).toMatchObject({ text: 'alias draft', options: { modelProvider: 'harness_chatgpt', effort: 'medium' } });
+  fireEvent.click(await enabledButton({ name: '发送消息' }));
+  await waitFor(() => expect(f.count('turn/start')).toBe(1));
+  expect(f.calls.find(call => call.method === 'turn/start')?.params.options).toMatchObject({ modelProvider: 'harness_chatgpt', model: 'fixture-model' });
+  expect(f.count('thread/convert')).toBe(0);
+});
+
+it('clears only a confirmed foreign model override and preserves message, attachments and other options', async () => {
+  const attachments = [{ attachmentId: 'kept', name: 'note.txt', size: 4, mimeType: 'text/plain' }];
+  writeDraft({ ...emptyDraft('t'), text: 'kept body', attachments, options: { model: 'foreign', modelProvider: 'foreign', effort: 'max', sandbox: 'workspace-write', personality: 'friendly' } });
+  await fixture();
+  await screen.findByText(/已移除草稿中其他供应商的模型和强度选择/);
+  expect(readDraft('t')).toMatchObject({ text: 'kept body', attachments, options: { sandbox: 'workspace-write', personality: 'friendly' } });
+  expect(readDraft('t').options).not.toHaveProperty('model');
+  expect(readDraft('t').options).not.toHaveProperty('modelProvider');
+  expect(readDraft('t').options).not.toHaveProperty('effort');
+});
+
+it('does not auto-resume the source while conversion is pending or unknown, and restores normal loading after terminal proof', async () => {
+  let fail!: (reason: Error) => void, cold = false;
+  const f = await fixture(false, false, undefined, true, call => {
+    if (call.method === 'thread/convert') return new Promise((_resolve, reject) => { fail = reject; });
+    if (call.method === 'thread/session' && cold) return { requiresResume: true, requiresContinuationConfirmation: false };
+    if (call.method === 'thread/resume') cold = false;
+    return undefined;
+  });
+  fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { target: { value: 'preserved draft' } });
+  fireEvent.click(screen.getByLabelText('会话操作'));
+  fireEvent.click(screen.getByRole('button', { name: '切换供应商 / 转换会话' }));
+  fireEvent.change(screen.getByRole('combobox', { name: '目标模型' }), { target: { value: JSON.stringify(['harness_fixture', 'fixture-model']) } });
+  fireEvent.click(await enabledButton({ name: '继续（1/2）' }));
+  fireEvent.click(await enabledButton({ name: '创建转换会话（2/2）' }));
+  await waitFor(() => expect(fail).toBeTypeOf('function'));
+  const before = f.count('thread/session'); cold = true;
+  await act(async () => f.sockets[0]!.onmessage({ data: JSON.stringify({ type: 'notification', data: { method: 'thread/closed', params: { threadId: 't' } } }) }));
+  await waitFor(() => expect(f.count('thread/session')).toBeGreaterThan(before));
+  expect(f.count('thread/resume')).toBe(0);
+  await act(async () => fail(new Error('conversion response lost')));
+  await screen.findByRole('button', { name: '查询原转换操作回执' });
+  expect(f.count('thread/resume')).toBe(0); expect(f.count('thread/convert')).toBe(1);
+  const operation = (await listOperations()).find(row => row.method === 'thread/convert')!;
+  expect(operation.state).toBe('unknown');
+  fireEvent.click(screen.getByRole('button', { name: '关闭（保留操作记录）' }));
+  await act(async () => updateOperation(operation.id, 'not_sent'));
+  await waitFor(() => expect(f.count('thread/resume')).toBe(1));
+  expect(f.count('thread/convert')).toBe(1); expect(f.count('turn/start')).toBe(0);
+  expect(readDraft('t').text).toBe('preserved draft');
 });

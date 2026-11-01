@@ -14,6 +14,24 @@ class Worker implements WorkerPort {
   run: (method: string, params: JsonObject, context: CallContext) => Promise<JsonValue> = async (_m, _p, c) => { c.beforeWrite?.(); return { turn: { id: 'turn', status: 'inProgress' } }; };
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> { this.calls++; return this.run(method, params, context); }
 }
+it('admits conversion as an idle mutation and replays its new identity without converting twice', async () => {
+  const { ledger, worker, dispatcher } = setup();
+  try {
+    const result = { thread: { id: 'converted' }, sourceThreadId: 'source', sourceProvider: 'provider-a', targetProvider: 'provider-b' };
+    worker.run = vi.fn(async (_m, _p, context) => { context.beforeWrite?.(); return result; });
+    const requireConnection = vi.fn();
+    const call = { method: 'thread/convert', operationId: randomUUID(), params: { threadId: 'source', sourceProvider: 'provider-a', targetProvider: 'provider-b', model: 'target-model', confirm: true } };
+    dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: ['source'], pendingStarts: 0, terminals: 0, unknown: false } } });
+    await expect(dispatcher.call(call, { clientId: 'owner', requireConnection })).rejects.toMatchObject({ delivery: 'not_sent' });
+    expect(worker.calls).toBe(0);
+    dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+    const admitted = { ...call, operationId: randomUUID() };
+    expect(await dispatcher.call(admitted, { clientId: 'owner', requireConnection })).toEqual(result);
+    expect(ledger.read(admitted.operationId)).toMatchObject({ state: 'accepted', result });
+    expect(await dispatcher.call(admitted, { clientId: 'owner', requireConnection })).toEqual(result);
+    expect(worker.calls).toBe(1); expect(requireConnection).toHaveBeenCalled();
+  } finally { ledger.close(); }
+});
 function setup(file = ':memory:') {
   const ledger = new Ledger(file); const worker = new Worker();
   const manager: ManagerPort = { call: async (_m, _p, _id, before) => { before?.(); return {}; } };

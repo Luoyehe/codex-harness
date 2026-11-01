@@ -6,6 +6,7 @@ import { ModelPicker, modelSelection } from '../components/ModelPicker';
 import type { Model, Options } from '../lib/types';
 import { mediaAdmission } from '../lib/input-modalities';
 import { executionOptions, modelSettingsIssue } from '../lib/workflows';
+import { providerModels, providerRelation } from '../lib/provider-models';
 import { Composer } from '../components/Composer';
 import type { Api } from '../lib/api';
 
@@ -39,11 +40,11 @@ it('does not present a bundled or inherited default as an available model with a
   fireEvent.click(screen.getByRole('button', { name: '管理供应商' }));
   expect(providers).toHaveBeenCalledOnce();
 });
-it('shows all providers in an existing conversation and keeps unsupported effort explicit', () => {
+it('scopes an existing conversation to its actual provider and keeps unsupported effort explicit', () => {
   render(<ModelPicker models={[...models, { id: 'simple', modelProvider: 'coding', supportedReasoningEfforts: [] }]} options={{ model: 'simple' }} onOptions={vi.fn()}
     defaults={{ modelProvider: 'coding' }} existingThread />);
   open();
-  expect(screen.getByRole('option', { name: '同名模型 A' })).toHaveProperty('disabled', false);
+  expect(screen.queryByRole('option', { name: '同名模型 A' })).toBeNull();
   expect(screen.getByRole('combobox', { name: '思考强度' }).matches(':disabled')).toBe(true);
   expect(screen.getByRole('option', { name: '此模型未提供可调强度' })).toBeTruthy();
 });
@@ -98,28 +99,18 @@ it('does not apply unused model overrides to queue admission', () => {
   expect(send).toHaveBeenCalledWith([], 'queue');
 });
 
-it('allows an explicit model choice while waiting for the previous chat settings without guessing capabilities', () => {
+it('waits for the actual provider and never treats a saved choice as proof of the loaded identity', () => {
   const change = vi.fn();
-  const view = render(<ModelPicker models={models} options={{ model: 'shared' }} onOptions={change}
-    existingThread defaultsLoading />);
+  const view = render(<ModelPicker models={models} options={{ model: 'shared', modelProvider: 'openai' }} onOptions={change} existingThread defaultsLoading />);
   open();
-  expect(screen.getByRole('combobox', { name: '模型' }).matches(':disabled')).toBe(false);
-  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
-  expect(screen.queryByRole('option', { name: '最高' })).toBeNull();
+  expect(screen.getByRole('combobox', { name: '模型' }).matches(':disabled')).toBe(true);
   expect(screen.getByText('读取模型设置…')).toBeTruthy();
-  expect(screen.getByRole('option', { name: '同名模型 A' })).toBeTruthy();
-  expect(screen.getByRole('option', { name: '同名模型 B' })).toBeTruthy();
-  fireEvent.change(screen.getByRole('combobox', { name: '模型' }), { target: { value: modelSelection(models[0]!) } });
-  expect(change).toHaveBeenCalledWith({ model: 'shared', modelProvider: 'openai', effort: undefined });
-  view.rerender(<ModelPicker models={models} options={{ model: 'shared', modelProvider: 'openai' }} onOptions={change}
-    existingThread defaultsLoading />);
-  expect(screen.getByRole('option', { name: '高' })).toBeTruthy();
-  expect(screen.queryByRole('option', { name: '最高' })).toBeNull();
+  expect(screen.queryByRole('option', { name: '同名模型 A' })).toBeNull();
   view.rerender(<ModelPicker models={models} options={{ model: 'shared' }} onOptions={change}
     existingThread defaultsLoading={false} defaults={{ model: 'shared', modelProvider: 'coding', reasoningEffort: 'max' }} />);
   expect(screen.getByRole('option', { name: '最高' })).toBeTruthy();
-  expect(screen.getByRole('option', { name: '同名模型 A' })).toHaveProperty('disabled', false);
-  expect(change).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('option', { name: '同名模型 A' })).toBeNull();
+  expect(change).not.toHaveBeenCalled();
 });
 
 it('does not guess capabilities when a saved model name has no unambiguous provider', () => {
@@ -130,7 +121,7 @@ it('does not guess capabilities when a saved model name has no unambiguous provi
   expect(screen.queryByRole('option', { name: '最高' })).toBeNull();
 });
 
-it('selects another provider in the same conversation without moving the draft and checks its exact capabilities', () => {
+it('keeps the existing provider model menu local without moving the draft or sending', () => {
   const send = vi.fn(async () => false), changeDraft = vi.fn();
   let current: Options = {};
   function Harness() {
@@ -140,22 +131,25 @@ it('selects another provider in the same conversation without moving the draft a
       busy={false} disabled={false} active={false} existingThread options={options} onOptions={setOptions} models={models}
       defaults={{ modelProvider: 'coding', model: 'shared', reasoningEffort: 'max' }} defaultsLoading={false} notice="" contextKey="same-thread" />;
   }
-  render(<Harness />);
-  open();
-  expect(screen.getByRole('group', { name: 'ChatGPT' })).toBeTruthy();
+  render(<Harness />); open();
+  expect(screen.queryByRole('group', { name: 'ChatGPT' })).toBeNull();
   expect(screen.getByRole('group', { name: '智谱' })).toBeTruthy();
-  expect(screen.queryByText(/新会话可用|新会话中选择其它供应商/)).toBeNull();
-  fireEvent.change(screen.getByRole('combobox', { name: '模型' }), { target: { value: modelSelection(models[0]!) } });
-  expect(current).toEqual({ model: 'shared', modelProvider: 'openai', effort: undefined });
+  fireEvent.change(screen.getByRole('combobox', { name: '模型' }), { target: { value: modelSelection(models[1]!) } });
+  expect(current).toEqual({ model: 'shared', modelProvider: 'coding', effort: undefined });
   expect(screen.getByRole('textbox', { name: '给 Codex 的消息' })).toHaveProperty('value', 'keep this conversation draft');
-  expect(changeDraft).not.toHaveBeenCalled();
-  expect(send).not.toHaveBeenCalled();
-  const effort = screen.getByRole('combobox', { name: '思考强度' });
-  expect(within(effort).queryByRole('option', { name: '最高' })).toBeNull();
-  fireEvent.change(effort, { target: { value: 'high' } });
-  expect(current.effort).toBe('high');
-  expect(mediaAdmission({ attachments: [{ mimeType: 'image/png' }], models, modelsLoading: false, defaultsLoading: false,
-    options: current, defaults: { model: 'shared', modelProvider: 'coding' }, modes: [], intent: 'send' }).issue).toBe('');
+  expect(changeDraft).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '发送消息' }));
   expect(send).toHaveBeenCalledExactlyOnceWith([], 'send');
+});
+
+it('admits unlabelled models only for a complete entirely legacy catalog and respects explicit aliases', () => {
+  const legacy = { id: 'legacy' }, tagged = { id: 'tagged', providerId: 'unresolved' };
+  expect(providerModels([legacy], 'openai', true)).toEqual([legacy]);
+  expect(providerModels([legacy], 'openai', false)).toEqual([]);
+  expect(providerModels([...models, legacy, tagged], 'coding', true)).toEqual([models[1]]);
+  const alias = { ...models[0]!, modelProvider: 'harness_chatgpt', providerAliases: ['openai'] };
+  expect(providerModels([alias, legacy], 'openai', true)).toEqual([alias]);
+  expect(providerRelation([models[1]!], 'openai', 'harness_chatgpt', false)).toBe('unknown');
+  expect(providerRelation([models[1]!, alias], 'openai', 'harness_chatgpt', true)).toBe('same');
+  expect(providerRelation([models[1]!, alias], 'coding', 'harness_chatgpt', true)).toBe('different');
 });

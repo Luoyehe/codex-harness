@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { receiptResult } from '../../src/gateway/receipt-result.js';
 describe('durable receipt data minimization', () => {
+  it('retains a distinct converted conversation identity without its private history or title', () => {
+    const result = { thread: { id: 'converted', modelProvider: 'provider-b' }, sourceThreadId: 'source', sourceProvider: 'provider-a', targetProvider: 'provider-b' };
+    expect(receiptResult('thread/convert', { ...result, thread: { ...result.thread, name: 'private', turns: [{ text: 'private' }] }, path: '/private/history' }))
+      .toEqual(result);
+    for (const fields of [{ thread: { id: 'source' } }, { sourceThreadId: '' }, { targetProvider: '' }])
+      expect(() => receiptResult('thread/convert', { ...result, ...fields })).toThrow();
+  });
   it('projects fixed root management results and nested saved profiles without future secret fields', () => {
     const model = { id: 'fixture', defaultEffort: null, efforts: [], inputModalities: ['text'], contextWindow: 4096, supportsTools: false, instructions: 'Known\nmodel instructions' };
     const profile = { id: 'b'.repeat(32), name: 'Saved endpoint', kind: 'responses', revision: 'c'.repeat(32), baseUrl: 'https://provider.invalid/v1', model: 'fixture', hasApiKey: true };

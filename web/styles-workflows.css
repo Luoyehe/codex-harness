@@ -212,14 +212,6 @@
   .agent-list .info-card {
     margin-left: calc(var(--agent-depth, 0) * 8px);
   }
-  .composer-toolbar .model-select {
-    flex: 1;
-    min-width: 80px;
-  }
-  .composer-toolbar .model-select select {
-    max-width: 100%;
-    width: 100%;
-  }
   .composer-toolbar .spacer {
     display: none;
   }

@@ -136,7 +136,7 @@ class ControlUpdateTests(unittest.TestCase):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
         write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
                                                       "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1", "serviceProxy": 1,
-                                                      "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1, "threadHistoryRepair": 1}, mode=0o644)
+                                                      "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1, "threadHistoryRepair": 2}, mode=0o644)
 
     def configure_proxy(self, direct_domains=None, enabled=True):
         document = configuration({"protocol": "vless", "settings": {}}, 18793, direct_domains)
@@ -381,8 +381,32 @@ class ControlUpdateTests(unittest.TestCase):
         self.assertEqual(self.system.events, events); self.assertEqual(self.current(), current)
         self.assertFalse(self.updater.pending())
 
+    def test_history_v1_application_can_upgrade_and_rollback_control_v1_v2(self):
+        capability = self.layout.control / "capabilities.json"
+        write_json(capability, {**read_json(capability), "threadHistoryRepair": 1}, mode=0o644)
+        self.add_application(accounts=False, history=1)
+        policy = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
+        original = policy.read_bytes()
+        result = self.updater.update()
+        self.assertEqual(read_json(capability)["threadHistoryRepair"], 2)
+        self.assertEqual(policy.read_bytes(), original)
+        self.updater.update(result["transaction"])
+        self.assertEqual(read_json(capability)["threadHistoryRepair"], 1)
+        self.assertEqual(policy.read_bytes(), original)
+        self.assertEqual(self.system.active, {"worker", "caddy"})
+        self.assertFalse(self.updater.pending())
+
+    def test_history_v2_application_rejects_v1_control_rollback_before_stop(self):
+        capability = self.layout.control / "capabilities.json"
+        write_json(capability, {**read_json(capability), "threadHistoryRepair": 1}, mode=0o644)
+        result = self.updater.update()
+        self.add_application(accounts=False, history=2)
+        self.assert_account_rollback_rejected(result["transaction"], "history_unsupported")
+
     def test_history_app_old_recovery_is_pre_stop_rejected_and_candidate_restores_policy(self):
         self.add_application(accounts=False, history=True)
+        capability = self.layout.control / "capabilities.json"
+        write_json(capability, {**read_json(capability), "threadHistoryRepair": 1}, mode=0o644)
         policy = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
         atomic_write(policy, sudo_rule(self.layout, legacy_thread_history=True).encode(), 0o440)
         save = self.updater.save
@@ -395,6 +419,7 @@ class ControlUpdateTests(unittest.TestCase):
         self.assertEqual(error.exception.code, "history_unsupported")
         self.assertEqual(self.system.events, events)
         self.assertEqual(self.updater.recover(target="candidate")["target"], "candidate")
+        self.assertEqual(read_json(capability)["threadHistoryRepair"], 2)
         self.assertEqual(policy.read_bytes(), sudo_rule(self.layout).encode())
         self.assertFalse(self.updater.pending())
 
@@ -800,7 +825,7 @@ class ControlUpdateTests(unittest.TestCase):
         if accounts:
             package["harnessAuthentication"] = "account-v1"
         if history:
-            package["codexHarnessThreadHistory"] = 1
+            package["codexHarnessThreadHistory"] = 2 if history is True else history
         write_json(staging / "app/package.json", package, mode=0o644)
         manifest = inspect_tree(staging, root_owned=True)
         identity = digest(manifest)

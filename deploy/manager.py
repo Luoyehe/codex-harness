@@ -370,7 +370,8 @@ class Manager:
             sudo_policies.add(sudo_rule(self.layout, workspace=False, config=self.config).encode())
         capability_file = self.layout.control / "capabilities.json"
         capabilities = read_json(capability_file, 4096) if capability_file.exists() else {}
-        if type(capabilities.get("threadHistoryRepair")) is not int or capabilities["threadHistoryRepair"] != 1:
+        from .execution_identity import supports_history_control
+        if not supports_history_control(capabilities):
             # External recovery of an older selected control generation keeps
             # its exact fixed grammar. A new application is rejected above.
             sudo_policies.add(sudo_rule(self.layout, config=self.config, legacy_thread_history=True).encode())

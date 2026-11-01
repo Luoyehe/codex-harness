@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "kind": "implementation",
+  "feature": "History helper capability 2 and safe upgrade compatibility",
+  "complete": true,
+  "completedAt": "2026-11-01T13:33:05.769054+00:00",
+  "author": "v220_final_deploy",
+  "files": [
+    {
+      "path": "package.json",
+      "sha256": "a87422cbbfd0e5b3382fe436c53d1fc75d99d6936444e1afe2a3ee7e3970cae6"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "dab9f0a649e1970b372c6b2a2371dfaff97048ec52b79b7c07d43e41997ce55b"
+    },
+    {
+      "path": "deploy/execution_identity.py",
+      "sha256": "9e928abd9463180f907278e8fca364b93507e22349392ce022073a77e7c5d01f"
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "6b2645c2222c0d3afec17f095f1606a1392f9725d4c5a5e637d77b9182a033a1"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "14559992cf6b31bf057aba2847eca46dbf611e2a92a1f56f288208786d2cadde"
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "b0aa6c53c1bc551078d4ec00eb8fe52599cae2f5df18c083ff929d9993bb29a8"
+    },
+    {
+      "path": "deploy/RECOVERY.md",
+      "sha256": "f9ae9476ee7fe83f0701eac6fb73224ce5888bdae4a503b709973ed05ba9a4b6"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "3d5ba260b1db68be82505309df962b87c384c1ecf3ca7d9ab3791c81af68d7f3"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "9915c5c42ab6790e86305d8c45820235738ef97b296dbf9e70f1ac8b41333ec7"
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "cd8634efbea7263a7a988d44dffbe069abc057d46a4e77880aa9008515efeff7"
+    }
+  ],
+  "ownershipNotes": [
+    "Only capability setup and recovery values changed in root/test_execution_mode.py; its new copy/repair helper case is authored by v230_audit_gateway_tooling.",
+    "Helper recovery-copy/copy-inspect implementation and runtime orchestration are not authored or claimed fully reviewed here."
+  ],
+  "contract": {
+    "currentApplication": 2,
+    "currentControl": 2,
+    "supportedMatrix": [
+      {
+        "application": 1,
+        "control": [
+          1,
+          2
+        ]
+      },
+      {
+        "application": 2,
+        "control": [
+          2
+        ]
+      }
+    ],
+    "missingApplicationFlag": "Legacy application remains compatible.",
+    "unsupported": "Bool/string/unknown application versions and insufficient/unknown control versions reject with history_unsupported before application activation or control stop.",
+    "sudo": "The same exact native-launch thread-history command is used; no additional verb, wildcard, identity or authority added."
+  },
+  "flowReview": [
+    "Normal stage_control publishes capability 2; ControlUpdater candidate selection and retained rollback/recovery use require_dns_guard -> require_history_control.",
+    "Manager application activate, verify and account compatibility all call require_application, including native mode; app2 cannot run on control1.",
+    "Known control1 and control2 retain the same helper sudo grammar; units.migrated_history_sudo, ControlUpdater.sudo_policies and Manager.verify share supports_history_control.",
+    "Config-layer and execution-mode recovery already call migrated_history_sudo; lifecycle restore still performs full Manager.verify. No direct source changes to those flows were needed.",
+    "Old app1 can upgrade control1 to2 and roll control back to1; app2 rejects rollback or recovery to control1 before service stop; candidate2 recovery remains supported."
+  ],
+  "validation": {
+    "windows": {
+      "evidence": {
+        "path": ".work/v232-history-capability-portable-2.json",
+        "sha256": "5dfcfd70eaa6f7865ddf9d2789466ac67a3d17ad20a737a538747c27b119c27a"
+      },
+      "log": {
+        "path": ".work/v232-history-capability-portable-2.log",
+        "sha256": "480c7d4f2410a46f5ba421cb5f461f3b493ed459787072e2934d7928c3125ec2"
+      },
+      "files": [
+        "tests/deploy/test_control_update.py",
+        "tests/deploy/test_deployment.py",
+        "tests/deploy/test_execution_mode.py",
+        "tests/deploy/test_service_lifecycle.py"
+      ],
+      "testsRun": 101,
+      "counts": {
+        "passed": 93,
+        "skipped": 8
+      },
+      "exitCode": 3
+    },
+    "linuxSharedIsolatedRun": {
+      "executedBy": "v230_audit_gateway_tooling",
+      "evidence": {
+        "path": ".work/v232-recovery-copy-linux-1.json",
+        "sha256": "d81c44b02b5f30813b87198c680e3f40cefc98802f90f149196c61c4e1e3180a"
+      },
+      "uid": 0,
+      "files": [
+        "tests/deploy/test_thread_history.py",
+        "tests/deploy/test_control_update.py",
+        "tests/deploy/root/test_execution_mode.py",
+        "tests/deploy/root/test_control_update.py"
+      ],
+      "testsRun": 133,
+      "counts": {
+        "passed": 132,
+        "skipped": 1
+      },
+      "exitCode": 3,
+      "rawComplete": false,
+      "interpretation": "Raw runner complete=false and exit3 reflect the one recorded Windows-only skip; all selected remaining cases passed. This is not a zero-skip full-suite claim.",
+      "sourceHashesRechecked": [
+        "package.json",
+        "deploy/install.py",
+        "deploy/execution_identity.py",
+        "deploy/control_update.py",
+        "deploy/manager.py",
+        "deploy/units.py",
+        "tests/deploy/test_control_update.py",
+        "tests/deploy/root/test_control_update.py",
+        "tests/deploy/root/test_execution_mode.py"
+      ],
+      "sourceMismatches": [],
+      "mainInstanceRead": false,
+      "mainMutation": false,
+      "servicesControlled": false
+    },
+    "syntax": {
+      "pythonASTFiles": 8,
+      "passed": true
+    },
+    "diffCheck": {
+      "exitCode": 0
+    }
+  },
+  "initialFailure": {
+    "path": ".work/v232-history-capability-portable.log",
+    "sha256": "9dd1b07c82d3df2f7b186669096334b2a4b9389a2d51154aa9bc70eb85148bfa",
+    "reason": "Author initially named nonexistent ordinary tests/deploy/test_config_layer.py. Runner rejected the selection before executing any test; corrected selection excludes it, no source validation was relaxed."
+  },
+  "limits": [
+    "Linux runs use isolated root filesystem fixtures and fake service systems for control transactions; the shared helper case uses actual fixed UID 0/65534, but this report does not claim a production upgrade or real service stop/start.",
+    "No full suite, commit, push, stage activation, online state change, credential access, external model or MCP call.",
+    "No independent review is implied by this author report; root will independently review the capability diff."
+  ],
+  "findings": []
+}

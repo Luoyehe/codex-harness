@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v230_audit_runtime-author",
+  "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+  "sourceFiles": 2004,
+  "snapshot": {
+    "path": ".work/v232-converted-copy-snapshot.json",
+    "sha256": "e6e91df4aec055d1f99500c6a41b35380a596064cc3b9d45a2c7e74199082881"
+  },
+  "complete": true,
+  "status": "targeted-passed-awaiting-independent-audit",
+  "contract": {
+    "method": "thread/convert",
+    "params": [
+      "threadId",
+      "sourceProvider",
+      "targetProvider",
+      "model",
+      "effort?",
+      "confirm:true"
+    ],
+    "result": [
+      "thread(new identity)",
+      "sourceThreadId",
+      "sourceProvider",
+      "targetProvider"
+    ],
+    "partialFailure": "phase=conversion, distinct new threadId, sourceThreadId, inputSent=false; original delivery preserved as unknown after any write/ACK"
+  },
+  "files": [
+    {
+      "path": "src/runtime/thread-conversion.ts",
+      "sha256": "8b7c612aa55bcb1c750f16cbe6bd1b4662c568e577f1b6c231c80d6fce394419"
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "6f551a5e545f8e5a0e80ec51dfc4dd5400d888509df631f776966ae5ba017e5a"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2"
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6"
+    },
+    {
+      "path": "src/runtime/thread-history-compatibility.ts",
+      "sha256": "2d89da3295080c81240e3adaa172ccb1986c82a72c995a075a889670a08a94a5"
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "3c0f0d7c8599dda682467f99385f786806996e723cf56015bded389360f63a16"
+    },
+    {
+      "path": "tests/runtime/providers.test.ts",
+      "sha256": "65db1c017cda86d03841908b31ce8411a36b48e057cb864b1f04caeaf01ae9e9"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "da65685f00be95bf3f5379170e5f8aa7b3f1bcee7e101d79c1858dc74785eb66"
+    },
+    {
+      "path": "tests/runtime/thread-history-compatibility.test.ts",
+      "sha256": "47f13040b325eac8d8fbcf97b009008ae47ffee350666c8cfe5daed56fc13b75"
+    },
+    {
+      "path": "tests/runtime/thread-conversion.test.ts",
+      "sha256": "2a4b61fe1886f18eac9a8153f826b23ed9eb3c78909ea1f5c50dce474a5b405d"
+    }
+  ],
+  "removed": [
+    "src/runtime/history-conversion-consent.ts",
+    "src/runtime/thread-provider-switch.ts",
+    "tests/runtime/provider-switch.test.ts"
+  ],
+  "discardedUnreleased": [
+    "src/runtime/history-backup-store.ts",
+    "src/runtime/history-recovery-copies.ts",
+    "tests/runtime/history-recovery-copies.test.ts"
+  ],
+  "behavior": [
+    "Loaded idle source and enabled original provider required. Explicit confirmation is checked before any mutation. Queued/active-goal continuation is refused.",
+    "Source is closed with the exact native thread/closed event; the post-flush source witness is immutable through copy. No source provider change or source repair occurs.",
+    "Native creates an independent empty paginated target with original settings/project/environment. Target remains pending alongside source; only target is copied, repaired and resumed under chosen provider.",
+    "Target project/environment/cwd identity is checked after creation, first resume and final cold verification. Source metadata serviceTier explicit null is preserved; model collaboration instructions/summary/permissions are verified.",
+    "A verified named target begins with [已转换至 configured provider name]; source title stays unchanged. No turn/start/model request is part of conversion.",
+    "The original in-place switch, history consent, recovery-copy store/read/abandon orchestration and unused switch-plan builder were removed. Ordinary turn/resume refuse cross-provider changes.",
+    "Same-provider ChatGPT compatibility conversion is explicit and affects only a new target; compatible aliases do not create needless duplicates. Normal same-provider resume does not scan or rewrite source history.",
+    "Live thread capacity is reserved. A positive native ACK is recorded before parsing/bookkeeping; capture/uncertain failures cannot downgrade it to not_sent. Gateway operation identity prevents unknown replay.",
+    "Source and new target concurrency guards reject automatic resume and turn/start during conversion. Copied target requires the caller to read history before sending; publish fresh=false is defensive clarity because close already invalidates freshness."
+  ],
+  "validation": {
+    "passed": 98,
+    "failed": 0,
+    "skipped": 0,
+    "files": 5,
+    "report": {
+      "path": ".work/test-results/run-YE0CVb/vitest.json",
+      "sha256": "722450ee2bde9da1866a8b88d3e0aa38f5c100ce107236892ab344a9a6afb210"
+    },
+    "log": {
+      "path": ".work/v232-conversion-final-targeted-4.log",
+      "sha256": "a3534f2925a7916eca20d81a3f9f5a8956f9675cdbcd21d856747f5f99c4654f"
+    },
+    "runnerExit": 0,
+    "serverTsc": "passed",
+    "gitDiffCheck": "passed",
+    "ownedFilesLfOnly": true,
+    "native": "Official 0.164.0, isolated HOME, loopback strict Responses only. One end-to-end case contains five local model POSTs: A original, B new, A original continued, B after source delete/restart, B same-provider compatibility copy; conversion itself makes zero POSTs.",
+    "assertions": [
+      "source post-close full bytes/provider/title unchanged",
+      "compacted replacement_history and parallel metadata",
+      "public summary/user/tool call pair/custom base/global developer/collaboration text preserved",
+      "plan/settings and saved priority preserved",
+      "no copied goal/queue task starts",
+      "source and target pending races rejected",
+      "native writer lock rejects repair while active",
+      "delete original and restart: converted target still continues independently",
+      "old bad same-provider history is retained, explicit new compatibility copy works",
+      "positive ACK + activity maximum=1 + failing uncertainty callback remains unknown with new ID",
+      "schema-valid environment/project identity mismatch refuses publication",
+      "pre-dispatch capacity remains not_sent"
+    ],
+    "externalEvidence": [
+      {
+        "path": ".work/v232-conversion-copy-helper.json",
+        "sha256": "3c605522b0237dbdcfbbdbe9b3ece6c6b2febd55c92c669359aa5df2f0f7af04"
+      },
+      {
+        "path": ".work/test-results/run-KnHp0Z/vitest.json",
+        "sha256": "9171d58b1bf972adf818e531f9fcf3408c525826e702d0f00023fb698c5edf75"
+      }
+    ]
+  },
+  "failedHistory": [
+    {
+      "evidence": {
+        "path": ".work/v232-conversion-final-targeted.log",
+        "sha256": "a68f1089d1b189bdd6ad6edafac32434699cf170be7490d9707145d3bc2b3994"
+      },
+      "raw": {
+        "path": ".work/test-results/run-Ew4KRO/vitest.json",
+        "sha256": "63ef2e7c45cdf840aaa30aca3bfba83b6c355aa3cbd5862eaf85a1142fc9b186"
+      },
+      "fact": "97 assertions passed; runner rejected duplicate parameterized test identities. Test names corrected, collector not weakened."
+    },
+    {
+      "evidence": {
+        "path": ".work/v232-conversion-final-targeted-3.log",
+        "sha256": "76ef45405828f8f1cb9d657078b42d54747166129d644bb58ac3f2136956f50d"
+      },
+      "fact": "97 passed / 1 failed: new assertion incorrectly expected history_not_ready; real documented existing history_incomplete/not_sent was returned. Only expected code corrected."
+    },
+    {
+      "evidence": {
+        "path": ".work/v232-new-conversion-targeted.log",
+        "sha256": "446d1f1b56f2140e2e9f57d32716e6f383032df50090f1562bf01ec6586968c0"
+      },
+      "fact": "Earlier new-design 79/79 passed; superseded by final 98/98."
+    },
+    {
+      "fact": "Earlier original-in-place/recovery-store designs and their passes remain historical only, not acceptance for this user-revised design."
+    }
+  ],
+  "limits": [
+    "No full suite, live deployment, production auth, paid model or real external MCP used.",
+    "Loaded local independent paginated source only. Legacy/compressed/lineage/opaque unsupported conversion is explicitly refused before unload; ordinary original loading remains native.",
+    "Copied chat is conversation history and execution settings, not filesystem/worktree/terminal/goal/queue database snapshot. It cannot undo later tool side effects.",
+    "1GiB/32MiB-line helper budgets and long-history measurements are bound to helper evidence, not newly benchmarked by this runtime test.",
+    "Runtime total conversion deadline 240s after preflight; helper mutation bounded 60s, inspection15s; gateway350s/browser360s. Timeout remains unknown, never automatic retry.",
+    "Restart/replay of partial identities is covered by independently authored gateway real HTTP + persistent Ledger tests, not a forced OS crash of this native end-to-end case."
+  ],
+  "findings": []
+}

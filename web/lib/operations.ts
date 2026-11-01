@@ -182,7 +182,7 @@ export async function listOperations(): Promise<Operation[]> {
   return transact(async (records) => (await stored(records.getAll()) as unknown[])
     .map((record) => checkedOperation(record)).sort((a, b) => a.createdAt - b.createdAt));
 }
-const threadReceiptMethods = new Set([...INPUT_METHODS, 'thread/fork', 'review/startNew']);
+const threadReceiptMethods = new Set([...INPUT_METHODS, 'thread/fork', 'thread/convert', 'review/startNew']);
 /** Keep fresh receipts available to settings refresh and new-thread handoff.
  * Only the view that has loaded the destination can make them collectible. */
 export async function consumeThreadOperations(threadId: string, ids: string[]): Promise<void> {

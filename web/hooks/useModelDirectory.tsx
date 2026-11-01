@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { Api } from '../lib/api';
 import type { Model } from '../lib/types';
+import { providerModels } from '../lib/provider-models';
 import { usePaged } from './usePaged';
 
 type Directory = ReturnType<typeof usePaged<Model>>;
@@ -15,11 +16,8 @@ export function useModelDirectory(api: Api, resourceKey: string, enabled = true,
   const local = usePaged<Model>(api, 'model/list', modelProvider ? { modelProvider } : {},
     JSON.stringify([api.csrf, resourceKey, modelProvider]), enabled && !shared);
   const directory = shared ?? local;
-  const items = shared && modelProvider ? directory.items.filter(row =>
-    row.modelProvider === modelProvider || row.providerAliases?.includes(modelProvider) ||
-    !row.modelProvider && !row.providerId && !directory.hasMore && !directory.loading &&
-      !directory.error && !directory.warning && directory.items.every(item => !item.modelProvider && !item.providerId),
-  ) : directory.items;
+  const items = shared && modelProvider ? providerModels(directory.items, modelProvider,
+    !directory.hasMore && !directory.loading && !directory.error && !directory.warning) : directory.items;
   return { ...directory, items,
     snapshotKey: directory.snapshotKey === undefined ? undefined : resourceKey };
 }

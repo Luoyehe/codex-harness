@@ -82,7 +82,7 @@ export function useWorkflow(
                 thread: { id: proof.resolvedThreadId },
                 reviewThreadId: proof.resolvedThreadId,
               };
-            if (!['thread/fork', 'review/startNew'].includes(method)) return {};
+            if (!['thread/fork', 'review/startNew', 'thread/convert'].includes(method)) return {};
           }
         } catch {
           /* Preserve the original failure and visible recovery record. */

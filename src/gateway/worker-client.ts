@@ -90,6 +90,9 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
   invalidateConnection(): void { this.connected = false; this.#eventChannelId = undefined; this.#clientChannels.clear(); this.#socket?.terminate(); }
   request(path: string, body: JsonValue, beforeWrite?: () => void): Promise<JsonValue> {
     const channelId = this.#eventChannelId;
+    const requestBody = body && typeof body === 'object' && !Array.isArray(body) ? body : undefined;
+    const requestParams = requestBody?.params && typeof requestBody.params === 'object' && !Array.isArray(requestBody.params) ? requestBody.params : undefined;
+    const conversionSource = path === '/rpc' && requestBody?.method === 'thread/convert' ? requestParams?.threadId : undefined;
     if (!this.connected || !channelId || this.#socket?.readyState !== WebSocket.OPEN) return Promise.reject(new HarnessError('worker_unavailable', '后台事件连接尚未就绪，请稍后重试。'));
     const payload = Buffer.from(JSON.stringify(body));
     if (payload.length > LIMITS.requestBytes) return Promise.reject(new HarnessError('capacity', '请求过大。'));
@@ -123,9 +126,9 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
               if (typeof error.code !== 'string' || typeof error.message !== 'string') throw new Error('Invalid error');
               const detail = error.data && typeof error.data === 'object' && !Array.isArray(error.data) ? error.data : null;
               const identity = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_.:-]{1,256}$/.test(value);
-              const data = error.code === 'history_conversion_confirmation_required' && error.delivery === 'not_sent' &&
-                detail?.conversionRequired === true && identity(detail.threadId) && identity(detail.sourceProvider) && identity(detail.targetProvider)
-                ? { threadId: detail.threadId, sourceProvider: detail.sourceProvider, targetProvider: detail.targetProvider, conversionRequired: true }
+              const data = detail?.phase === 'conversion' && identity(conversionSource) && detail.sourceThreadId === conversionSource &&
+                identity(detail.threadId) && detail.threadId !== conversionSource && detail.inputSent === false
+                ? { phase: 'conversion', threadId: detail.threadId, sourceThreadId: conversionSource, inputSent: false }
                 : (detail?.phase === 'first_turn' || detail?.phase === 'review') && typeof detail.threadId === 'string' && detail.threadId.length > 0 && detail.threadId.length <= 256 && typeof detail.causeCode === 'string' && detail.causeCode.length > 0 && detail.causeCode.length <= 128
                   ? { phase: detail.phase, threadId: detail.threadId, causeCode: detail.causeCode } : undefined;
               finish(new HarnessError(error.code.slice(0, 128), error.message.slice(0, 4096), error.delivery === 'not_sent' ? 'not_sent' : 'unknown', data));

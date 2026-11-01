@@ -17,18 +17,20 @@
 .composer { padding: 12px; border-radius: 15px; }
 .composer textarea { min-height: 90px; padding: 8px 5px 14px; font-size: 14px; }
 .composer-toolbar { gap: 8px; flex-wrap: wrap; }
-.composer-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; flex: 1 1 0; }
+.composer-selection { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; flex: 1 1 220px; }
+.composer-tools { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 0 0 auto; }
 .composer-send-actions { display: flex; align-items: center; align-self: flex-end; gap: 6px; flex: 0 0 auto; margin-inline-start: auto; max-width: 100%; }
 .model-picker { position: relative; min-width: 0; max-width: min(32ch, 100%); flex: 0 1 auto; }
-.model-picker > summary { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 7px 4px; font-size: 12px; list-style: none; }
+.model-picker > summary { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 7px 4px; font-size: 12px; list-style: none; min-width: 0; }
 .model-picker > summary::-webkit-details-marker { display: none; }
-.model-picker > summary > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.model-picker > summary small { color: var(--muted); white-space: nowrap; font-size: 11px; }
+.model-picker > summary > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-picker > summary small { color: var(--muted); white-space: nowrap; font-size: 11px; flex-shrink: 0; }
+.model-picker > summary > span:last-child { flex-shrink: 0; }
 .model-picker-panel { position: absolute; bottom: calc(100% + 12px); left: -40px; z-index: 15; width: min(380px, calc(100vw - 48px)); max-height: min(460px, calc(100dvh - 200px)); overflow: auto; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
 .model-picker-panel select { width: 100%; min-width: 0; }
 .composer-toolbar .options-trigger { font-size: 12px !important; white-space: nowrap; }
 .composer-toolbar .mode-select { flex: 0 0 auto; min-width: 0; max-width: 100%; }
-.composer-toolbar .mode-select select { font-size: 12px; max-width: 100%; width: auto; white-space: nowrap; }
+.composer-toolbar .mode-select select { font-size: 12px; max-width: 100%; width: auto; white-space: nowrap; padding: 7px 10px; }
 .composer-send-mode { min-width: 0; }
 .composer-send-mode select { white-space: nowrap; }
 .composer-extras { max-height: min(420px, 42dvh); overflow: auto; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 10px; }
@@ -46,12 +48,21 @@
 .security-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .provider-account { border-top: 1px solid var(--line); padding-top: 16px; }
 @media (max-width: 640px) {
-  .composer { position: relative; }
+  .composer { position: relative; padding: 8px; }
+  .composer textarea { min-height: 64px; padding: 6px 4px; line-height: 1.5; }
   .model-picker { position: static; }
-  .model-picker-panel { left: 8px; right: 8px; width: auto; bottom: 54px; }
+  .model-picker-panel { position: fixed; left: 8px; right: 8px; width: auto; bottom: 8px; max-height: min(420px, calc(100dvh - 16px)); }
   .usage-popover { right: 8px; width: calc(100vw - 32px); }
-  .composer-toolbar { gap: 5px; }
-  .composer-toolbar .options-trigger { padding: 6px !important; }
+  .composer-toolbar { gap: 6px; }
+  .composer-selection { flex: 1 0 100%; }
+  .composer-toolbar .model-picker { flex: 1 1 0; max-width: 100%; }
+  .composer-toolbar .model-picker > summary { min-height: 40px; font-size: 14px; }
+  .composer-toolbar .model-picker > summary small { font-size: 12px; }
+  .composer-toolbar .mode-select select { min-height: 40px; }
+  .composer-tools > .icon-button, .composer-send-actions > .send-button { width: 40px; height: 40px; }
+  .composer-toolbar .options-trigger { min-height: 40px; padding: 6px 8px !important; font-size: 14px !important; }
+  .composer-send-actions > .stop-button { min-width: 40px; min-height: 40px; padding: 6px 8px; }
+  .composer-send-mode select { min-height: 40px; padding: 6px 8px; }
   .composer-extras .composer-options { max-height: none; overflow: visible; }
   .composer-note { font-size: 10px; }
 }
@@ -64,8 +75,4 @@
   select {
     font-size: 16px !important;
   }
-  .composer-toolbar .model-picker { max-width: calc(100% - 62px); }
-  .composer-toolbar .model-picker > summary { font-size: 16px; }
-  .composer-toolbar .model-picker > summary small { font-size: 13px; }
-  .composer-toolbar .options-trigger { font-size: 16px !important; }
 }

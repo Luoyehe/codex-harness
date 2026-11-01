@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "v2.3.1-shared-providers-and-workflow-repair",
+  "phase": "v2.3.2-independent-converted-conversation",
   "consecutiveClean": 1,
   "rounds": [
     {
@@ -7755,6 +7755,37 @@
         }
       ],
       "method": "Complete 1991-file snapshot revalidation after CI1. Exactly two test files changed; every production/runtime/deployment/protocol byte is unchanged from round2. Root and runtime reviewer independently reviewed changed test contracts and their actual component/hook callers; round2 independent full-partition semantic evidence is inherited explicitly for unchanged files. This is not a claim of rereading every unchanged generated line."
+    },
+    {
+      "id": "v232-converted-copy-final",
+      "sequence": 79,
+      "digest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-11-01T14:13:44.812Z",
+      "completedAt": "2026-11-01T14:21:20.505Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "root-with-independent-partition-review",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v232-converted-copy/audit.json",
+          "sha256": "f6d3dad69b62a29e1b9aa47dbef0ed800d7eb2dfbb1242cf0bc235dbc2f1878a"
+        }
+      ],
+      "method": "One complete final inventory/impact audit. Every changed file and contract boundary is independently reviewed; unchanged files are bound by exact byte hashes to the earlier complete audit. Remaining generated protocol/reference files inherit verified provenance and unchanged review. This does not claim all unchanged lines were reread. Findings found during implementation are closed before this frozen clean audit."
     }
   ],
   "fullTests": {
@@ -7846,12 +7877,12 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "currentAuditSourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
   "currentAuditGate": {
     "status": "passed",
-    "round": "v231-round3",
-    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
-    "sourceFiles": 1991,
+    "round": "v232-converted-copy-final",
+    "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+    "sourceFiles": 2004,
     "requiredCleanRounds": 1,
     "userOverride": true
   },
@@ -8543,5 +8574,14 @@
       "sha256": "3b591f4306f9ce483ae4460322914588badf161b9df5090f10b2dfaa6954d935"
     },
     "defaultBranchEvidenceOnly": true
+  },
+  "v232FullTests": {
+    "status": "pending",
+    "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+    "sourceFiles": 2004
+  },
+  "v232ReleaseDeployment": {
+    "status": "pending",
+    "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e"
   }
 }

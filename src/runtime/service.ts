@@ -38,11 +38,9 @@ import { DeviceLogin } from './device-login.js';
 import { McpOauth } from './mcp-oauth.js';
 import { Predictions, predictionMethods } from './predictions.js';
 import { ThreadActivity, hasTurnActivity, type Activity } from './thread-activity.js';
-import { ManagedProviders, readNativeCatalog, type ProviderSwitchPlan } from './providers.js';
-import { switchThreadProvider } from './thread-provider-switch.js';
-import { awaitThreadClosed, historyCompatibility, type ReasoningCompatibility } from './thread-history-compatibility.js';
-import { requireHistoryConversionConsent } from './history-conversion-consent.js';
+import { ManagedProviders, readNativeCatalog } from './providers.js';
 import { LiveThreadList } from './live-thread-list.js';
+import { convertThread } from './thread-conversion.js';
 
 export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject; executionPolicy?: ExecutionPolicy }
 interface Prompt { promptId: string; epoch: string; method: string; params: JsonObject; threadId: string | null; turnId: string | null; requestId: string | number; bytes: number; answering: boolean }
@@ -250,7 +248,7 @@ export class RuntimeService extends EventEmitter {
       }
       if (method === 'thread/reverted') { delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; this.invalidateHistory(params.threadId); }
       if (method === 'thread/closed' || method === 'thread/deleted') { state.status = 'notLoaded'; state.subscribed = false; state.turnId = null; delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; state.goalActive = false; state.goalRevision = (state.goalRevision ?? 0) + 1; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; state.queued = false; this.invalidateHistory(params.threadId); this.emitState(); }
-      if (method === 'thread/closed' || method === 'thread/deleted' || (method === 'thread/status/changed' && state.status === 'notLoaded')) { this.sessions.invalidate(params.threadId); delete state.reasoningProvider; }
+      if (method === 'thread/closed' || method === 'thread/deleted' || (method === 'thread/status/changed' && state.status === 'notLoaded')) { this.sessions.invalidate(params.threadId); }
       if (method === 'thread/settings/updated') { state.settingsRevision = (state.settingsRevision ?? 0) + 1; validateOfficial('ThreadSettings', params.threadSettings!); if (state.status !== 'notLoaded') this.sessions.settings(params.threadId, object(params.threadSettings)); }
       if (method === 'model/rerouted') { validateOfficial('ModelReroutedNotification', params); if (state.turnId === params.turnId) { state.activeModel = string(params.toModel, 'rerouted model'); state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; } }
       if (method === 'thread/goal/updated') { validateOfficial('ThreadGoal', params.goal!); state.goalActive = object(params.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; this.emitState(); }
@@ -334,6 +332,7 @@ export class RuntimeService extends EventEmitter {
         if (snapshot.requiresResume !== true || params.checkContinuation !== true || this.closed || !this.native.connected) return snapshot;
         return { ...snapshot, requiresContinuationConfirmation: (await this.continuationForLoad(threadId)).required };
       }
+      case 'thread/convert': return this.convert(params, context);
       case 'prompt/list': return { epoch: this.epoch, prompts: [...this.prompts.values()].map(prompt => this.publicPrompt(prompt)) };
       case 'prompt/answer': return this.answer(params, context);
       case 'attachment/upload': return this.attachments.upload(params, context.clientId);
@@ -347,12 +346,12 @@ export class RuntimeService extends EventEmitter {
         onlyKeys(params, ['projectId', 'cwd', 'options']); const cwd = this.cwd(params.cwd); const selected = this.threadOptions(params.options, false); const nativeParams = { cwd, ...selected, environments: selected.environments ?? [{ environmentId: 'local', cwd }] }; validateOfficial('ThreadStartParams', nativeParams);
         this.admit(); const releaseListing = this.liveThreads.reserve(); this.pendingStarts++; this.emitState();
         let accepted = false;
-        try { const result = await this.native.call(method, nativeParams, { beforeWrite: () => { this.admit(); context.beforeWrite?.(); } }); accepted = true; this.liveThreads.capture(object(object(result).thread), cwd); this.observeThread(result); this.sessions.capture(result); const state = this.track(string(object(object(result).thread).id, 'thread id')); state.subscribed = true; if (typeof object(object(result).thread).modelProvider === 'string') state.reasoningProvider = String(object(object(result).thread).modelProvider); if (state.fresh !== false && state.turnId === null && state.status !== 'active') state.fresh = true; return result; }
+        try { const result = await this.native.call(method, nativeParams, { beforeWrite: () => { this.admit(); context.beforeWrite?.(); } }); accepted = true; this.liveThreads.capture(object(object(result).thread), cwd); this.observeThread(result); this.sessions.capture(result); const state = this.track(string(object(object(result).thread).id, 'thread id')); state.subscribed = true; if (state.fresh !== false && state.turnId === null && state.status !== 'active') state.fresh = true; return result; }
         catch (error) { if (accepted) { this.unknown = true; throw new DeliveryError('invalid_native_response', 'Native thread creation returned an invalid result', 'unknown'); } if (error instanceof DeliveryError && error.delivery === 'unknown') this.unknown = true; throw error; }
         finally { releaseListing(); this.pendingStarts--; this.emitState(); }
       }
       case 'thread/resume': {
-        onlyKeys(params, ['threadId', 'automatic', 'options', 'historyConversionConsent']);
+        onlyKeys(params, ['threadId', 'automatic', 'options']);
         if (params.automatic !== undefined && typeof params.automatic !== 'boolean') throw new DeliveryError('invalid_params', 'Invalid automatic load');
         const selection = params.options === undefined ? undefined : this.threadOptions(this.providers.resumeSelection(params.options), false);
         const threadId = string(params.threadId, 'threadId'); const p: JsonObject = { threadId, excludeTurns: true, ...selection }; validateOfficial('ThreadResumeParams', p);
@@ -391,7 +390,7 @@ export class RuntimeService extends EventEmitter {
             this.environments.assertThread(thread);
             return value;
           } } : {}),
-        }, context, selection, params.historyConversionConsent); accepted = true; this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
+        }, context, selection); accepted = true; this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
         catch (error) {
           const failure = accepted && (!(error instanceof DeliveryError) || error.delivery === 'not_sent')
             ? new DeliveryError('invalid_native_response', 'Thread loaded, but its settings could not be confirmed; inspect its state before continuing', 'unknown') : error;
@@ -622,14 +621,14 @@ export class RuntimeService extends EventEmitter {
       throw failure;
     } finally { this.configurationPending = false; this.pendingStarts--; this.emitState(); }
   }
-  private async workflowMutation(operation: WorkflowMutation, context: CallContext, resumeSelection?: JsonObject, historyConsent?: JsonValue): Promise<JsonValue> {
+  private async workflowMutation(operation: WorkflowMutation, context: CallContext, resumeSelection?: JsonObject): Promise<JsonValue> {
     const { threadId } = operation; this.admit(); const state = this.track(threadId);
     if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
     if (state.pending) throw new DeliveryError('thread_busy', 'Thread already has a pending mutation');
     if (operation.history) this.admitHistory(threadId, context);
     const releaseListing = operation.newThread ? this.liveThreads.reserve() : undefined;
     state.pending = true; if (operation.newThread) this.pendingStarts++; this.emitState();
-    let accepted = false; let checkedReasoningProvider: string | undefined; let writeRevision: number | undefined; let restoreSession: (() => void) | undefined; let mediaRevision: number | undefined; const wasFresh = state.fresh;
+    let accepted = false; let writeRevision: number | undefined; let restoreSession: (() => void) | undefined; let mediaRevision: number | undefined; const wasFresh = state.fresh;
     const goalMutation = operation.method === 'thread/goal/set' || operation.method === 'thread/goal/clear';
     let goalRevision: number | undefined; let modelRevision: number | undefined; let modelTurnId: string | null | undefined;
     const guard = (): void => {
@@ -662,21 +661,8 @@ export class RuntimeService extends EventEmitter {
       if (operation.newThread) this.environments.assertIndependentLoad();
       if (operation.directInput || operation.newThread || operation.method === 'thread/resume') this.environments.assertThread(object(object(current).thread));
       await operation.preflight?.(object(object(current).thread)); validateOfficial(operation.schema, operation.params);
-      if (operation.method === 'thread/resume') {
-        const previous = object(object(current).thread), target = operation.params.modelProvider;
-        const providerChanged = !this.providers.sameProvider(previous.modelProvider, target);
-        requireHistoryConversionConsent(historyConsent, threadId, previous.modelProvider, target, providerChanged);
-        // Stored threads can already carry a failed cross-provider turn. Repair
-        // before cold resume even when no new provider selection is requested.
-        const mode = providerChanged ? 'foreign' : this.providers.requiresOpaqueReasoning(target) ? 'plaintext' : undefined;
-        if (mode && object(previous.status).type === 'notLoaded') {
-          const needsRepair = await historyCompatibility(this.config, previous, mode);
-          requireHistoryConversionConsent(historyConsent, threadId, previous.modelProvider, target, needsRepair === true);
-          const repaired = needsRepair && await historyCompatibility(this.config, previous, mode, true, () => { guard(); context.beforeWrite?.(); operation.beforeWrite?.(); });
-          if (needsRepair !== undefined) checkedReasoningProvider = string(target, 'model provider');
-          if (repaired) accepted = true; // A later resume failure cannot erase a completed durable repair.
-        }
-      }
+      if (operation.method === 'thread/resume' && !this.providers.sameProvider(object(object(current).thread).modelProvider, operation.params.modelProvider))
+        throw new DeliveryError('provider_conversion_required', '请使用右上角切换供应商创建新会话；加载不会更改原会话供应商。');
       const input = operation.mediaInput ?? operation.params.input;
       if (mediaModalities(input).length) {
         mediaRevision = state.settingsRevision ?? 0;
@@ -693,7 +679,6 @@ export class RuntimeService extends EventEmitter {
         if (operation.method === 'turn/settings/update') { modelRevision = state.modelRevision ?? 0; modelTurnId = state.turnId; }
       } });
       accepted = true; operation.prepared?.settle(true); validateOfficial(operation.responseSchema, result);
-      if (checkedReasoningProvider !== undefined) state.reasoningProvider = checkedReasoningProvider;
       const value = object(result);
       if (value.goal !== undefined && object(value.goal).threadId !== threadId) throw new Error('Native goal identity mismatch');
       if (goalMutation) {
@@ -704,7 +689,7 @@ export class RuntimeService extends EventEmitter {
       }
       if (operation.method === 'thread/delete' || operation.method === 'thread/unsubscribe') { this.sessions.invalidate(threadId); state.subscribed = false; }
       if (operation.method === 'thread/delete') this.liveThreads.remove(threadId);
-      if (['thread/delete', 'thread/unsubscribe', 'thread/revert'].includes(operation.method)) { delete state.lastTerminalTurn; delete state.reasoningProvider; state.turnRevision = (state.turnRevision ?? 0) + 1; }
+      if (['thread/delete', 'thread/unsubscribe', 'thread/revert'].includes(operation.method)) { delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; }
       if (operation.method === 'turn/settings/update' && value.status === 'applied' && typeof operation.params.model === 'string' && modelRevision === (state.modelRevision ?? 0) && modelTurnId === state.turnId) { state.activeModel = operation.params.model; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
       if (['thread/delete', 'thread/unsubscribe', 'thread/revert', 'thread/settings/update', 'turn/settings/update'].includes(operation.method)) this.guardian.invalidate(threadId);
       if (operation.method === 'turn/steer' && value.turnId !== operation.expectedTurnId) throw new Error('Native steering target mismatch');
@@ -725,75 +710,56 @@ export class RuntimeService extends EventEmitter {
       if (accepted) throw new DeliveryError('invalid_native_response', 'Native workflow returned an invalid result', 'unknown'); throw error;
     } finally { releaseListing?.(); if (goalMutation) state.goalPending = false; state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
   }
-  private async switchProviderForTurn(plan: ProviderSwitchPlan, thread: JsonObject, context: CallContext, mode: ReasoningCompatibility = 'foreign', knownRepair?: boolean): Promise<CallContext> {
-    const threadId = string(thread.id, 'threadId'), state = this.track(threadId);
-    // A private read owner cannot collide with the browser's simultaneous history
-    // refresh after thread/closed. It is discarded as soon as this send settles.
-    const historyOwner: CallContext = { clientId: `provider-switch:${randomUUID()}`, ...(context.eventChannelId ? { eventChannelId: context.eventChannelId } : {}) };
-    const check = () => {
-      this.admit(threadId, true);
-      if (!state.pending || [...this.prompts.values()].some(prompt => prompt.threadId === threadId))
-        throw new DeliveryError('thread_busy', '请先处理此会话的待确认操作，再切换模型。');
-    };
-    if (knownRepair === undefined) await historyCompatibility(this.config, thread, mode);
-    let closed: ReturnType<typeof awaitThreadClosed> | undefined;
+  private async convert(params: JsonObject, context: CallContext): Promise<JsonObject> {
+    onlyKeys(params, ['threadId', 'sourceProvider', 'targetProvider', 'model', 'effort', 'confirm']);
+    if (params.confirm !== true) throw new DeliveryError('confirmation_required', '请确认转换为新会话；原会话将保留。');
+    const threadId = string(params.threadId, 'threadId', 128), sourceProvider = string(params.sourceProvider, 'sourceProvider', 128);
+    const targetProvider = string(params.targetProvider, 'targetProvider', 128), model = string(params.model, 'model', 256);
+    const selected = this.threadOptions(this.providers.resumeSelection({ modelProvider: targetProvider, model, ...(params.effort !== undefined ? { effort: params.effort } : {}) }), false);
+    // Native TOML config overrides do not accept a null reasoning effort.
+    if (selected.config && object(selected.config).model_reasoning_effort === null) delete object(selected.config).model_reasoning_effort;
+    this.admit(threadId); const state = this.track(threadId); state.pending = true; this.emitState();
     try {
-      await switchThreadProvider(plan, { ...this.sessions.read(threadId), thread }, {
-        call: (method, params, options) => this.native.call(method, params, options), check,
-        beforeWrite: phase => { check(); if (phase === 'detach') this.admitHistory(threadId, context); context.beforeWrite?.(); },
-        onDetached: () => { state.subscribed = false; this.sessions.invalidate(threadId); this.invalidateHistory(threadId); this.guardian.invalidate(threadId); this.predictions.invalidate(threadId); },
-        history: {
-          beforeDetach: () => { closed = awaitThreadClosed(this.native, threadId); },
-          afterDetach: async () => {
-            await closed!.wait; check();
-            // Unload can flush normal metadata. Obtain the CAS witness now,
-            // rather than rejecting that flush against the earlier inspection.
-            await historyCompatibility(this.config, thread, mode, true, () => { check(); context.beforeWrite?.(); });
-          },
-          cancel: () => closed?.cancel(),
-        },
-        afterResume: async result => {
-          this.observeThread(result); this.sessions.capture(result); state.subscribed = true;
-          state.reasoningProvider = plan.modelProvider;
-          state.settingsRevision = (state.settingsRevision ?? 0) + 1;
-          this.environments.assertThread(object(result.thread));
-          const deadline = Date.now() + 10000;
-          let cursor: JsonValue | undefined;
-          for (let page = 0; page < 128; page++) {
-            check();
-            if (Date.now() >= deadline) throw new DeliveryError('history_timeout', '模型已切换，但会话历史尚未完成同步。');
-            const history = object(await this.history({ threadId, limit: 100, ...(cursor === undefined ? {} : { cursor }) }, historyOwner));
-            if (history.complete === true) { this.admitHistory(threadId, historyOwner); return; }
-            cursor = string(history.nextCursor, 'history cursor');
-          }
-          throw new DeliveryError('capacity', '会话历史超过同步页数上限。');
-        },
-      });
-      return historyOwner;
-    } catch (error) { this.historyStore.disconnect(historyOwner.clientId, historyOwner.eventChannelId); throw error; }
+      const read = object(await this.native.call('thread/read', { threadId })); validateOfficial('ThreadReadResponse', read);
+      const thread = object(read.thread), snapshot = this.sessions.read(threadId);
+      if (thread.id !== threadId || thread.modelProvider !== sourceProvider || snapshot.modelProvider !== sourceProvider) throw new DeliveryError('provider_changed', '原会话供应商已变化，请重新读取后选择。');
+      if (snapshot.requiresResume === true || state.subscribed !== true) throw new DeliveryError('session_not_loaded', '请等待原会话加载完成，再切换供应商。');
+      if (object(thread.status).type !== 'idle') throw new DeliveryError('thread_busy', '请先停止当前任务，再创建转换会话。');
+      this.providers.assertThread(sourceProvider, undefined); this.environments.assertThread(thread); this.environments.assertIndependentLoad();
+      if ((await this.continuationForLoad(threadId)).required) throw new DeliveryError('thread_busy', '请先处理原会话的持续目标或队列，再创建转换会话。');
+      const same = this.providers.sameProvider(sourceProvider, selected.modelProvider);
+      if (same && !this.providers.requiresOpaqueReasoning(sourceProvider)) throw new DeliveryError('provider_unchanged', '同一供应商请直接使用模型菜单；无需转换会话。');
+      const check = () => { this.admit(threadId, true); context.beforeWrite?.(); };
+      return await convertThread(this.config, this.native, thread, snapshot, selected, same ? 'plaintext' : 'foreign', this.providers.catalogOverride(sourceProvider), this.providers.displayName(string(selected.modelProvider, 'target provider')), {
+        reserve: () => { this.admit(); const release = this.liveThreads.reserve(); this.pendingStarts++; this.emitState(); return () => { release(); this.pendingStarts--; this.emitState(); }; },
+        capture: result => { const id = string(object(result.thread).id, 'new thread'); const target = this.track(id); target.pending = true; this.environments.assertThread(object(result.thread)); this.observeThread(result); this.sessions.capture(result); target.subscribed = true; this.liveThreads.capture(object(result.thread), string(result.cwd, 'new cwd')); },
+        closed: id => { this.track(id).subscribed = false; this.sessions.invalidate(id); this.invalidateHistory(id); },
+        publish: (result, name) => { const thread = object(result.thread), target = this.track(string(thread.id, 'new thread')); this.observeThread(result); this.sessions.capture(result); target.pending = false; target.subscribed = true; target.fresh = false; this.liveThreads.capture(thread, string(result.cwd, 'new cwd')); this.emitEvent('notification', { method: 'thread/name/updated', params: { threadId: thread.id!, threadName: name } }); },
+        uncertain: id => { if (id) { try { const target = this.track(id); target.pending = false; target.unknown = true; } catch { this.unknown = true; } } else this.unknown = true; },
+      }, check);
+    } finally { state.pending = false; this.emitState(); }
   }
   private async newTurn(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
-    onlyKeys(params, method === 'turn/start' ? ['threadId', 'text', 'attachmentIds', 'options', 'references', 'extraContext', 'historyConversionConsent'] : ['threadId']);
+    onlyKeys(params, method === 'turn/start' ? ['threadId', 'text', 'attachmentIds', 'options', 'references', 'extraContext'] : ['threadId']);
     const threadId = string(params.threadId, 'threadId'); this.admit(threadId); this.admitHistory(threadId, context); const activity = this.track(threadId); activity.pending = true; this.emitState();
     let accepted = false; let prepared: PreparedAttachments | undefined; const wasFresh = activity.fresh; const initialRevision = activity.revision; let writeRevision: number | undefined; let mediaRevision: number | undefined; let model: JsonValue | undefined;
-    let switchedHistory: CallContext | undefined;
     try {
       const p: JsonObject = { threadId };
       const revision = activity.revision; const current = await this.native.call('thread/read', { threadId }); if (object(object(current).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.observeThread(current, revision);
       if (method !== 'turn/start') this.environments.assertThread(object(object(current).thread));
-      const providerPlan = method === 'turn/start' ? this.providers.switchPlan(object(object(current).thread).modelProvider, params.options) : null;
-      if (method === 'turn/start') requireHistoryConversionConsent(params.historyConversionConsent, threadId, object(object(current).thread).modelProvider,
-        providerPlan?.modelProvider ?? object(object(current).thread).modelProvider, providerPlan !== null);
       if (method === 'turn/start') {
+        const provider = object(object(current).thread).modelProvider, requested = params.options === undefined ? undefined : object(params.options).modelProvider;
+        if (requested !== undefined && !this.providers.sameProvider(provider, requested)) throw new DeliveryError('provider_conversion_required', '请使用右上角切换供应商创建新会话；发送不会更改原会话供应商。');
+        this.providers.assertThread(provider, params.options);
         const text = string(params.text ?? '', 'text', 1024 * 1024, true); prepared = this.attachments.prepare(params.attachmentIds, threadId);
         const selected = params.references === undefined && params.extraContext === undefined ? { input: [], additionalContext: {} } : await this.inputContext.prepare(this.cwd(object(object(current).thread).cwd), params.references, params.extraContext, context, threadId);
         if (!text.length && prepared.input.length === 0 && !selected.input.length && !Object.keys(selected.additionalContext).length) throw new DeliveryError('invalid_params', 'Turn requires text, attachments or context references');
         p.input = [{ type: 'text', text, text_elements: [] }, ...prepared.input, ...selected.input]; if (Object.keys(selected.additionalContext).length) p.additionalContext = selected.additionalContext;
-        Object.assign(p, this.threadOptions(providerPlan?.options ?? params.options, true)); validateOfficial('TurnStartParams', p);
+        Object.assign(p, this.threadOptions(params.options, true)); validateOfficial('TurnStartParams', p);
         model = selectedInputModel(p, object(object(current).thread).model ?? this.sessions.read(threadId).model);
         if (mediaModalities(p.input).length) {
           mediaRevision = activity.settingsRevision ?? 0;
-          const provider = providerPlan?.modelProvider ?? object(object(current).thread).modelProvider;
+          const provider = object(object(current).thread).modelProvider;
           await validateInputModalities((method, params) => method === 'model/list'
             ? this.providers.list({ ...object(params), ...(provider !== undefined ? { modelProvider: provider } : {}) }, (method, params) => this.native.call(method, params), (provider, chatgpt, hidden) => this.providerCatalog(provider, chatgpt, hidden))
             : this.native.call(method, params), model, p.input);
@@ -802,25 +768,7 @@ export class RuntimeService extends EventEmitter {
       }
       if (activity.directInput === false) throw new DeliveryError('direct_input_unavailable', 'Native thread does not accept direct input');
       if (activity.subscribed === false) throw new DeliveryError('session_not_loaded', 'Explicitly load the thread before starting work');
-      if (providerPlan) {
-        if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation');
-        switchedHistory = await this.switchProviderForTurn(providerPlan, object(object(current).thread), context);
-        if (mediaRevision !== undefined) mediaRevision = activity.settingsRevision ?? 0;
-      } else if (method === 'turn/start') {
-        const thread = object(object(current).thread), provider = thread.modelProvider;
-        if (activity.reasoningProvider !== provider && this.providers.requiresOpaqueReasoning(provider)) {
-          const needsRepair = await historyCompatibility(this.config, thread, 'plaintext');
-          if (needsRepair) {
-            requireHistoryConversionConsent(params.historyConversionConsent, threadId, provider, provider, true);
-            const snapshot = this.sessions.read(threadId);
-            switchedHistory = await this.switchProviderForTurn({ sourceProvider: string(provider, 'model provider'), modelProvider: string(provider, 'model provider'),
-              model: string(snapshot.model, 'model'), config: { ...this.providers.catalogOverride(provider), model_reasoning_effort: snapshot.reasoningEffort ?? null }, options: {} }, thread, context, 'plaintext', true);
-            if (mediaRevision !== undefined) mediaRevision = activity.settingsRevision ?? 0;
-          }
-          if (needsRepair !== undefined) activity.reasoningProvider = string(provider, 'model provider');
-        }
-      }
-      const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, switchedHistory ?? context); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
+      const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, context); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
       accepted = true; prepared?.settle(true);
       if (activity.revision === writeRevision) {
         if (method === 'turn/start') { const turn = object(object(result).turn); if (turn.status === 'inProgress') { activity.status = 'active'; activity.turnId = string(turn.id, 'turn id'); activity.turnRevision = (activity.turnRevision ?? 0) + 1; } }
@@ -830,15 +778,11 @@ export class RuntimeService extends EventEmitter {
     } catch (error) {
       const notSent = !accepted && error instanceof DeliveryError && error.delivery === 'not_sent';
       try { prepared?.settle(!notSent); } catch { this.emit('diagnostic', 'Rejected turn attachment reservation could not be released'); }
-      if (switchedHistory && notSent) {
-        activity.unknown = true;
-        throw new DeliveryError('provider_changed_input_not_sent', '会话模型已切换，但本次消息尚未发送；请核对会话和原操作状态后继续。', 'unknown', { inputSent: false, providerSwitched: true });
-      }
       if (notSent && wasFresh && activity.revision === (writeRevision ?? initialRevision) && activity.status !== 'active' && activity.turnId === null) activity.fresh = true;
       if (accepted) { activity.unknown = true; throw new DeliveryError('invalid_native_response', 'Native turn returned an invalid result', 'unknown'); }
       if (!notSent) activity.unknown = true; throw error;
     }
-    finally { if (switchedHistory) this.historyStore.disconnect(switchedHistory.clientId, switchedHistory.eventChannelId); activity.pending = false; this.emitState(); }
+    finally { activity.pending = false; this.emitState(); }
   }
   private async answer(params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, ['promptId', 'response']); const id = string(params.promptId, 'promptId'); const prompt = this.prompts.get(id);

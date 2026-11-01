@@ -2,8 +2,7 @@ import { expect, test, vi } from 'vitest';
 import { createServer } from 'node:http';
 import type { ChildProcess } from 'node:child_process';
 import type { AddressInfo } from 'node:net';
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
-import { zstdCompressSync } from 'node:zlib';
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonObject } from '../../src/runtime/types.js';
@@ -23,7 +22,7 @@ function trackNativeClose(service: RuntimeService) {
   };
 }
 
-test('RuntimeService and official CLI send the same persisted thread both ways through selected loopback providers', () => withFixtureCleanup(async defer => {
+test('explicit conversion creates independent named threads while original history and provider remain unchanged', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/provider-switch-native'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'home-')), codex = path.join(home, 'codex'), cwd = path.join(home, 'project'), temporary = path.join(home, 'tmp');
   mkdirSync(cwd); const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
@@ -64,154 +63,88 @@ test('RuntimeService and official CLI send the same persisted thread both ways t
   let runtime = await RuntimeService.create(config);
   const rpc = runtime.native, context = { clientId: 'provider-switch-native', beforeWrite: () => {} };
   const nativeCall = rpc.call.bind(rpc);
-  rpc.call = async (method, params, options) => { try { return await nativeCall(method, params, options); } catch (error) { writeFileSync(path.join(home, 'native-error.json'), JSON.stringify({ method, code: (error as { code?: string }).code, message: (error as Error).message })); throw error; } };
+  rpc.call = async (method, params, options) => { try { const result = await nativeCall(method, params, options);
+    if (method === 'thread/resume') appendFileSync(path.join(home, 'resume-settings.jsonl'), JSON.stringify({ threadId: object(object(result).thread).id, serviceTier: object(result).serviceTier, effort: object(result).reasoningEffort, collaborationMode: object(result).collaborationMode }) + '\n');
+    return result; } catch (error) { writeFileSync(path.join(home, 'native-error.json'), JSON.stringify({ method, code: (error as { code?: string }).code, message: (error as Error).message })); throw error; } };
   const closeInitial = trackNativeClose(runtime); defer(closeInitial);
   const completed = new Map<string, JsonObject>();
   rpc.on('notification', (message: JsonObject) => { if (message.method === 'turn/completed') { const turn = object(object(message.params).turn); completed.set(String(turn.id), turn); } });
   const created = object(await runtime.call('thread/start', { cwd, options: { model: 'harness-loopback-fixture', modelProvider: 'provider_a', approvalPolicy: 'on-request', sandbox: 'read-only' } }, context));
-  const threadId = String(object(created.thread).id);
-  let currentProvider = 'provider_a';
-  const turn = async (text: string, modelProvider = 'provider_a') => { const result = object(await runtime.call('turn/start', { threadId, text, options: { modelProvider, model: 'harness-loopback-fixture' }, ...(modelProvider === currentProvider ? {} : { historyConversionConsent: { sourceProvider: currentProvider, targetProvider: modelProvider } }) }, context).catch(error => { throw new Error(String(error.code) + ': ' + error.message); })); const id = String(object(result.turn).id); await expect.poll(() => completed.get(id), { timeout: 10000 }).toMatchObject({ status: 'completed' }); currentProvider = modelProvider; };
-  await turn('first local message');
-  // Add a complete, inert tool pair through the official append API; no tool runs.
-  await rpc.call('thread/inject_items', { threadId, items: [
-    { type: 'function_call', name: 'fixture_tool', call_id: 'preserved-tool-call', arguments: '{"fixture":true}' },
-    { type: 'function_call_output', call_id: 'preserved-tool-call', output: 'PRESERVED_TOOL_RESULT' },
-  ] });
-  const initialHistory = await runtime.call('thread/history', { threadId }, context);
-  expect(JSON.stringify(initialHistory)).toContain('Public reasoning summary fixture');
-  await expect(compatibility.historyCompatibility(config, object(object(await rpc.call('thread/read', { threadId })).thread), 'foreign', true))
-    .rejects.toMatchObject({ code: 'thread_history_busy', delivery: 'not_sent' });
-  const noConsentRequests = requests.length;
-  await expect(runtime.call('turn/start', { threadId, text: 'not sent without confirmation', options: { modelProvider: 'provider_b', model: 'harness-loopback-fixture' } }, context))
-    .rejects.toMatchObject({ code: 'history_conversion_confirmation_required', delivery: 'not_sent' });
-  expect(requests).toHaveLength(noConsentRequests);
-  expect(object(object(runtime.status()).activity).unknown).toBe(false);
-  const forked = object(await runtime.call('thread/fork', { threadId }, context)), forkId = String(object(forked.thread).id);
-  await runtime.call('thread/history', { threadId: forkId }, context);
-  const parentPath = String(object(object(await rpc.call('thread/read', { threadId })).thread).path), parentBefore = readFileSync(parentPath);
-  await expect(runtime.call('turn/start', { threadId: forkId, text: 'unsupported inherited conversion', options: { modelProvider: 'provider_b', model: 'harness-loopback-fixture' },
-    historyConversionConsent: { sourceProvider: 'provider_a', targetProvider: 'provider_b' } }, context))
-    .rejects.toMatchObject({ code: 'history_conversion_unsupported', delivery: 'not_sent' });
-  expect(readFileSync(parentPath)).toEqual(parentBefore); expect(requests).toHaveLength(noConsentRequests);
-  expect(object(object(await rpc.call('thread/read', { threadId: forkId })).thread).status).toMatchObject({ type: 'idle' });
-  expect(object(object(runtime.status()).activity).unknown).toBe(false);
-  await runtime.call('thread/settings/update', { threadId, collaborationMode: { mode: 'plan', settings: { model: 'harness-loopback-fixture', reasoning_effort: 'low', developer_instructions: 'PRESERVED_COLLABORATION' } }, summary: 'detailed', serviceTier: 'priority' }, context);
-  for (const [target, text] of [['provider_b', 'second local message'], ['provider_a', 'third local message']]) {
-    await runtime.call('thread/history', { threadId }, context);
-    const checks = target === 'provider_a' ? vi.spyOn(compatibility, 'historyCompatibility') : undefined;
-    let flushed = false;
-    const flush = (message: JsonObject) => {
-      if (message.method !== 'thread/closed' || object(message.params).threadId !== threadId) return;
-      // Simulate the writer's final flush after the initial inspection found no
-      // reasoning. The true closed event proves that no writer can overlap it.
-      const rows = readFileSync(parentPath, 'utf8').trimEnd().split('\n').map(line => object(JSON.parse(line)));
-      appendFileSync(parentPath, JSON.stringify({ timestamp: new Date().toISOString(),
-        ordinal: Math.max(...rows.map(row => Number(row.ordinal ?? 0))) + 1, type: 'response_item',
-        payload: { type: 'reasoning', summary: [], content: [{ type: 'reasoning_text', text: 'LATE_FLUSH_REASONING' }] } }) + '\n');
-      flushed = true;
-    };
-    if (checks) rpc.on('notification', flush);
-    try {
-      await turn(text!, target!);
-      if (checks) {
-        expect(flushed).toBe(true);
-        expect(checks.mock.calls.map(args => args[3] ?? false)).toEqual([false, true]);
-        await expect(checks.mock.results[0]!.value).resolves.toBe(false);
-        await expect(checks.mock.results[1]!.value).resolves.toBe(true);
-        expect(JSON.stringify(requests.at(-1)!.body)).not.toContain('LATE_FLUSH_REASONING');
+  const sourceId = String(object(created.thread).id);
+  const send = async (id: string, text: string, provider: string) => {
+    await runtime.call('thread/history', { threadId: id }, context);
+    const sent = object(await runtime.call('turn/start', { threadId: id, text, options: { modelProvider: provider, model: 'harness-loopback-fixture' } }, context));
+    await expect.poll(() => completed.get(String(object(sent.turn).id)), { timeout: 10000 }).toMatchObject({ status: 'completed' });
+  };
+  await send(sourceId, 'first original message', 'provider_a');
+  await rpc.call('thread/inject_items', { threadId: sourceId, items: [{ type: 'function_call', name: 'fixture_tool', call_id: 'preserved-tool-call', arguments: '{"fixture":true}' }, { type: 'function_call_output', call_id: 'preserved-tool-call', output: 'PRESERVED_TOOL_RESULT' }] });
+  const sourceThread = object(object(await rpc.call('thread/read', { threadId: sourceId })).thread), sourcePath = String(sourceThread.path);
+  const busy = await compatibility.historyHelper(config, { action: 'inspect', threadId: sourceId, path: sourcePath, mode: 'foreign' });
+  await expect(compatibility.historyHelper(config, { action: 'repair', threadId: sourceId, path: sourcePath, mode: 'foreign', expected: busy.expected! }, true)).rejects.toMatchObject({ code: 'thread_history_busy', delivery: 'not_sent' });
+  const closed = compatibility.awaitThreadClosed(rpc, sourceId); await rpc.call('thread/unsubscribe', { threadId: sourceId }); await closed.wait;
+  const rows = readFileSync(sourcePath, 'utf8').trimEnd().split('\n').map(line => object(JSON.parse(line)));
+  const replacement = rows.filter(row => row.type === 'response_item').map(row => row.payload!);
+  appendFileSync(sourcePath, JSON.stringify({ timestamp: new Date().toISOString(), ordinal: Math.max(...rows.map(row => Number(row.ordinal ?? 0))) + 1, type: 'compacted', payload: { message: 'CHECKPOINT', replacement_history: replacement, replacement_history_metadata: replacement.map(() => ({})), window_number: 1 } }) + '\n');
+  await runtime.call('thread/history', { threadId: sourceId }, context); await runtime.call('thread/resume', { threadId: sourceId }, context);
+  await runtime.call('thread/settings/update', { threadId: sourceId, summary: 'detailed', serviceTier: 'priority', collaborationMode: { mode: 'plan', settings: { model: 'harness-loopback-fixture', reasoning_effort: 'low', developer_instructions: 'PRESERVED_COLLABORATION' } } }, context);
+  await rpc.call('thread/goal/set', { threadId: sourceId, origin: 'user', objective: 'Paused fixture', status: 'paused', tokenBudget: 1000 });
+  await runtime.call('thread/history', { threadId: sourceId }, context);
+  await expect(runtime.call('turn/start', { threadId: sourceId, text: 'must not send', options: { modelProvider: 'provider_b', model: 'harness-loopback-fixture' } }, context)).rejects.toMatchObject({ code: 'provider_conversion_required', delivery: 'not_sent' });
+  await expect(runtime.call('thread/resume', { threadId: sourceId, options: { modelProvider: 'provider_b', model: 'harness-loopback-fixture' } }, context)).rejects.toMatchObject({ code: 'provider_conversion_required', delivery: 'not_sent' });
+  const params = { threadId: sourceId, sourceProvider: 'provider_a', targetProvider: 'provider_b', model: 'harness-loopback-fixture', effort: 'low', confirm: true };
+  await expect(runtime.call('thread/convert', { ...params, confirm: false }, context)).rejects.toMatchObject({ delivery: 'not_sent' });
+  expect(requests).toHaveLength(1);
+  let frozen: Buffer | undefined;
+  const freeze = (event: JsonObject) => { if (event.method === 'thread/closed' && object(event.params).threadId === sourceId) frozen = readFileSync(sourcePath); };
+  rpc.on('notification', freeze);
+  // The just-created target is visible before copying finishes. A second UI
+  // page must not resume or send to either side while conversion owns them.
+  const guardedCall = rpc.call.bind(rpc); let guardedTarget: string | undefined;
+  rpc.call = async (method, p, options) => {
+    if (method === 'thread/name/set' && object(p).threadId !== sourceId && !guardedTarget) {
+      guardedTarget = String(object(p).threadId);
+      for (const id of [sourceId, guardedTarget]) {
+        await expect(runtime.call('thread/resume', { threadId: id }, context)).rejects.toMatchObject({ code: 'thread_busy', delivery: 'not_sent' });
+        await expect(runtime.call('turn/start', { threadId: id, text: 'must not race conversion' }, context)).rejects.toMatchObject({ code: 'thread_busy', delivery: 'not_sent' });
       }
-    } finally { rpc.off('notification', flush); checks?.mockRestore(); }
-    const snapshot = object(await runtime.call('thread/session', { threadId }, context));
-    expect(snapshot).toMatchObject({ modelProvider: target, approvalPolicy: 'on-request', sandbox: { type: 'readOnly', networkAccess: false }, serviceTier: 'priority', collaborationMode: { mode: 'plan' } });
-    expect(object(snapshot.thread).id).toBe(threadId);
-    expect(JSON.stringify(await runtime.call('thread/history', { threadId }, context))).toContain('first local message');
-  }
-  expect(requests.map(item => item.route)).toEqual(['/a/v1/responses', '/b/v1/responses', '/a/v1/responses']);
-  for (const request of requests) { expect(JSON.stringify(request.body).includes('PRESERVED_CUSTOM_BASE'), request.route + ' base instructions').toBe(true); expect(JSON.stringify(request.body).includes('PRESERVED_GLOBAL_DEVELOPER'), request.route + ' developer instructions').toBe(true); }
-  // The saved tier is verified above. This custom Responses provider does not
-  // advertise priority transport, so its request need not contain service_tier.
-  for (const request of requests.slice(1)) { expect(JSON.stringify(request.body).includes('PRESERVED_COLLABORATION'), request.route + ' collaboration instructions').toBe(true); expect(request.body.reasoning).toMatchObject({ summary: 'detailed' }); }
-  expect(JSON.stringify(requests[2]!.body)).toContain('first local message'); expect(JSON.stringify(requests[2]!.body)).toContain('second local message');
-  // Simulate a provider removal and runtime restart: the old native definition
-  // really disappears, not just its public menu entry. Loading itself sends no input.
-  await closeInitial();
-  runtime = await RuntimeService.create(config);
-  const closeBaseline = trackNativeClose(runtime); defer(closeBaseline);
-  await runtime.call('thread/history', { threadId }, context);
-  const coldBaseline = object(await runtime.call('thread/resume', { threadId, automatic: true }, context));
-  expect(coldBaseline).toMatchObject({ modelProvider: 'provider_a', approvalPolicy: 'on-request', sandbox: { type: 'readOnly', networkAccess: false }, collaborationMode: { mode: 'plan' } });
-  expect(requests).toHaveLength(3);
-  await closeBaseline();
-  const configPath = path.join(codex, 'config.toml');
-  writeFileSync(configPath, readFileSync(configPath, 'utf8').replace('model_provider = "provider_a"', 'model_provider = "provider_b"')
-    .replace(/\[model_providers\.provider_a\][\s\S]*?(?=\[model_providers\.provider_b\])/, ''));
-  const remaining = registry.connections.filter(row => row.modelProvider === 'provider_b');
-  runtime = await RuntimeService.create({ ...config, providerRegistry: { ...registry, defaultProviderId: remaining[0]!.id, nativeCatalogProvider: 'provider_b', connections: remaining } });
-  defer(trackNativeClose(runtime));
-  runtime.native.on('notification', (message: JsonObject) => { if (message.method === 'turn/completed') { const result = object(object(message.params).turn); completed.set(String(result.id), result); } });
-  await runtime.call('thread/history', { threadId }, context);
-  await expect(runtime.call('thread/resume', { threadId, automatic: true }, context)).rejects.toMatchObject({ code: 'provider_unavailable', delivery: 'not_sent' });
-  const migrated = object(await runtime.call('thread/resume', { threadId, automatic: true, options: { modelProvider: 'provider_b', model: 'harness-loopback-fixture' }, historyConversionConsent: { sourceProvider: 'provider_a', targetProvider: 'provider_b' } }, context));
-  expect(migrated).toMatchObject({ modelProvider: 'provider_b', thread: { id: threadId }, approvalPolicy: 'on-request', sandbox: { type: 'readOnly', networkAccess: false }, collaborationMode: { mode: 'plan' } });
-  for (const key of ['approvalPolicy', 'approvalsReviewer', 'sandbox', 'activePermissionProfile', 'runtimeWorkspaceRoots', 'serviceTier', 'disabledPluginIds'])
-    expect(migrated[key], key).toEqual(coldBaseline[key]);
-  expect(requests).toHaveLength(3);
-  const restored = await runtime.call('thread/history', { threadId }, context);
-  expect(JSON.stringify(restored)).toContain('first local message'); expect(JSON.stringify(restored)).toContain('third local message');
-  currentProvider = 'provider_b';
-  await turn('fourth local message after cold provider removal', 'provider_b');
-  expect(requests.map(item => item.route)).toEqual(['/a/v1/responses', '/b/v1/responses', '/a/v1/responses', '/b/v1/responses']);
-  expect(JSON.stringify(requests[3]!.body)).toContain('PRESERVED_CUSTOM_BASE');
-  expect(JSON.stringify(requests[3]!.body)).toContain('PRESERVED_GLOBAL_DEVELOPER');
-  expect(JSON.stringify(requests[3]!.body)).toContain('PRESERVED_COLLABORATION');
-  expect(JSON.stringify(await runtime.call('thread/history', { threadId }, context))).toContain('Public reasoning summary fixture');
-  const forwarded = requests[1]!.body.input as JsonObject[];
-  expect(forwarded.find(item => item.type === 'function_call')).toMatchObject({ call_id: 'preserved-tool-call', arguments: '{"fixture":true}' });
-  expect(forwarded.find(item => item.type === 'function_call_output')).toMatchObject({ call_id: 'preserved-tool-call', output: 'PRESERVED_TOOL_RESULT' });
-  expect(forwarded.some(item => item.type === 'reasoning' || item.type === 'other')).toBe(false);
-  // Reproduce an already-failed old conversation: its saved current provider is
-  // B, but a foreign reasoning item remains in its rollout after a prior failure.
-  const stored = object(object(await runtime.native.call('thread/read', { threadId })).thread);
+    }
+    return guardedCall(method, p, options);
+  };
+  const converted = object(await runtime.call('thread/convert', params, context)); rpc.call = guardedCall; rpc.off('notification', freeze);
+  const newId = String(object(converted.thread).id); expect(newId).not.toBe(sourceId);
+  expect(guardedTarget).toBe(newId);
+  expect(converted).toMatchObject({ sourceThreadId: sourceId, sourceProvider: 'provider_a', targetProvider: 'provider_b', thread: { cwd, modelProvider: 'provider_b' } });
+  expect(String(object(converted.thread).name)).toMatch(/^\[已转换至 b\]/); expect(readFileSync(sourcePath)).toEqual(frozen); expect(requests).toHaveLength(1);
+  expect(object(object(await rpc.call('thread/read', { threadId: sourceId })).thread).name).toBe(sourceThread.name);
+  expect(object(object(await rpc.call('thread/read', { threadId: sourceId })).thread).modelProvider).toBe('provider_a');
+  expect(await rpc.call('thread/goal/get', { threadId: newId })).toMatchObject({ goal: null });
+  expect(await rpc.call('thread/queue/list', { threadId: newId, limit: 1 })).toMatchObject({ data: [] });
+  await expect(runtime.call('turn/start', { threadId: newId, text: 'unread inherited history', options: { modelProvider: 'provider_b' } }, context)).rejects.toMatchObject({ code: 'history_incomplete', delivery: 'not_sent' });
+  expect(requests).toHaveLength(1);
+  expect(JSON.stringify(await runtime.call('thread/history', { threadId: newId }, context))).toContain('Public reasoning summary fixture');
+  await send(newId, 'new converted message', 'provider_b');
+  const forwarded = JSON.stringify(requests[1]!.body); for (const text of ['first original message', 'PRESERVED_TOOL_RESULT', 'PRESERVED_CUSTOM_BASE', 'PRESERVED_GLOBAL_DEVELOPER', 'PRESERVED_COLLABORATION']) expect(forwarded).toContain(text);
+  expect(forwarded).not.toContain('Foreign provider reasoning'); expect(requests[1]!.body.reasoning).toMatchObject({ summary: 'detailed' });
+  await runtime.call('thread/history', { threadId: sourceId }, context); await runtime.call('thread/resume', { threadId: sourceId }, context);
+  await send(sourceId, 'original remains independently usable', 'provider_a');
+  expect(JSON.stringify(requests[2]!.body)).toContain('Foreign provider reasoning');
+  await rpc.call('thread/archive', { threadId: sourceId }); await rpc.call('thread/delete', { threadId: sourceId });
+  await closeInitial(); runtime = await RuntimeService.create(config); defer(trackNativeClose(runtime));
+  runtime.native.on('notification', (message: JsonObject) => { if (message.method === 'turn/completed') { const turn = object(object(message.params).turn); completed.set(String(turn.id), turn); } });
+  await runtime.call('thread/history', { threadId: newId }, context); await runtime.call('thread/resume', { threadId: newId }, context);
+  await send(newId, 'converted survives deletion and restart', 'provider_b');
+  expect(JSON.stringify(requests[3]!.body)).toContain('new converted message'); expect(JSON.stringify(requests[3]!.body)).not.toContain('original remains independently usable');
+  const newThread = object(object(await runtime.native.call('thread/read', { threadId: newId })).thread), newPath = String(newThread.path);
   await runtime.close();
-  const rollout = String(stored.path), records = readFileSync(rollout, 'utf8').trimEnd().split('\n').map(line => object(JSON.parse(line)));
-  const ordinal = Math.max(...records.map(row => Number(row.ordinal ?? 0))) + 1;
-  const oldReasoning = { type: 'reasoning', id: 'rs_old_foreign', summary: [], content: [{ type: 'reasoning_text', text: 'old foreign private reasoning' }], encrypted_content: null };
-  const replacement = [...records.filter(row => row.type === 'response_item' && object(row.payload).type !== 'other').map(row => object(row.payload)), oldReasoning];
-  appendFileSync(rollout, JSON.stringify({ timestamp: new Date().toISOString(), ordinal, type: 'response_item', payload: oldReasoning }) + '\n' +
-    JSON.stringify({ timestamp: new Date().toISOString(), ordinal: ordinal + 1, type: 'compacted', payload: { message: 'Local checkpoint fixture',
-      replacement_history: replacement, replacement_history_metadata: replacement.map(() => ({})), window_number: 1 } }) + '\n');
-  const strictRegistry = { ...registry, defaultProviderId: remaining[0]!.id, nativeCatalogProvider: 'provider_b', connections: remaining.map(row => ({ ...row, kind: 'chatgpt' })) };
-  runtime = await RuntimeService.create({ ...config, providerRegistry: strictRegistry }); defer(trackNativeClose(runtime));
-  runtime.native.on('notification', (message: JsonObject) => { if (message.method === 'turn/completed') { const result = object(object(message.params).turn); completed.set(String(result.id), result); } });
-  await runtime.call('thread/history', { threadId }, context);
-  await expect(runtime.call('thread/resume', { threadId, automatic: true }, context)).rejects.toMatchObject({
-    code: 'history_conversion_confirmation_required', delivery: 'not_sent', data: { sourceProvider: 'provider_b', targetProvider: 'provider_b' },
-  });
-  expect(requests).toHaveLength(4); expect(object(object(runtime.status()).activity).unknown).toBe(false);
-  const repaired = await runtime.call('thread/resume', { threadId, automatic: true, historyConversionConsent: { sourceProvider: 'provider_b', targetProvider: 'provider_b' } }, context);
-  expect(repaired).toMatchObject({ thread: { id: threadId }, modelProvider: 'provider_b' });
-  await runtime.call('thread/history', { threadId }, context);
-  const inspections = vi.spyOn(compatibility, 'historyCompatibility');
-  await turn('fifth local message after same-provider repair', 'provider_b');
-  expect(inspections).not.toHaveBeenCalled(); inspections.mockRestore();
-  expect(JSON.stringify(requests[4]!.body)).toContain('PRESERVED_TOOL_RESULT');
-  expect(JSON.stringify(requests[4]!.body)).not.toContain('old foreign private reasoning');
-  await runtime.call('thread/history', { threadId }, context);
-  const validFork = object(await runtime.call('thread/fork', { threadId }, context)), validForkId = String(object(validFork.thread).id);
-  // Codex compresses cold rollouts. Compatibility inspection must not turn a
-  // valid same-provider compressed conversation into a new load restriction.
-  await runtime.close();
-  const plain = process.platform === 'win32' && rollout.startsWith('\\\\?\\') ? rollout.slice(4) : rollout;
-  const relative = path.relative(codex, plain); expect(path.isAbsolute(relative) || relative.startsWith('..')).toBe(false);
-  writeFileSync(plain + '.zst', zstdCompressSync(readFileSync(plain)), { flag: 'wx' }); unlinkSync(plain);
-  runtime = await RuntimeService.create({ ...config, providerRegistry: strictRegistry }); defer(trackNativeClose(runtime));
-  await runtime.call('thread/history', { threadId }, context);
-  const compressedResume = await runtime.call('thread/resume', { threadId, automatic: true }, context);
-  expect(compressedResume).toMatchObject({ thread: { id: threadId }, modelProvider: 'provider_b' });
-  await runtime.call('thread/history', { threadId: validForkId }, context);
-  expect(await runtime.call('thread/resume', { threadId: validForkId, automatic: true }, context))
-    .toMatchObject({ thread: { id: validForkId }, modelProvider: 'provider_b' });
-  expect(requests).toHaveLength(5);
+  const newRows = readFileSync(newPath, 'utf8').trimEnd().split('\n').map(line => object(JSON.parse(line)));
+  appendFileSync(newPath, JSON.stringify({ timestamp: new Date().toISOString(), ordinal: Math.max(...newRows.map(row => Number(row.ordinal ?? 0))) + 1, type: 'response_item', payload: { type: 'reasoning', summary: [], content: [{ type: 'reasoning_text', text: 'OLD_BAD_FOREIGN_REASONING' }] } }) + '\n');
+  runtime = await RuntimeService.create({ ...config, providerRegistry: { ...registry, connections: registry.connections.map(row => row.modelProvider === 'provider_b' ? { ...row, kind: 'chatgpt' } : row) } }); defer(trackNativeClose(runtime));
+  runtime.native.on('notification', (message: JsonObject) => { if (message.method === 'turn/completed') { const turn = object(object(message.params).turn); completed.set(String(turn.id), turn); } });
+  await runtime.call('thread/history', { threadId: newId }, context); await runtime.call('thread/resume', { threadId: newId }, context);
+  expect(readFileSync(newPath, 'utf8')).toContain('OLD_BAD_FOREIGN_REASONING');
+  const repairedCopy = object(await runtime.call('thread/convert', { threadId: newId, sourceProvider: 'provider_b', targetProvider: 'provider_b', model: 'harness-loopback-fixture', effort: 'low', confirm: true }, context));
+  const repairedId = String(object(repairedCopy.thread).id); expect(repairedId).not.toBe(newId); expect(readFileSync(newPath, 'utf8')).toContain('OLD_BAD_FOREIGN_REASONING');
+  await send(repairedId, 'explicit same-provider compatibility copy', 'provider_b'); expect(JSON.stringify(requests[4]!.body)).not.toContain('OLD_BAD_FOREIGN_REASONING');
+  expect(requests.map(request => request.route)).toEqual(['/a/v1/responses', '/b/v1/responses', '/a/v1/responses', '/b/v1/responses', '/b/v1/responses']);
   expect(errors).toEqual([]);
-}), 45000);
+}), 120000);
