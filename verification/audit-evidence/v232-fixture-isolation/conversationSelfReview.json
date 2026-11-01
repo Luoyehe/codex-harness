@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "kind": "session-core-author-self-review",
+  "reviewerId": "v230_audit_runtime",
+  "completedAt": "2026-11-01T14:49:11.685189+00:00",
+  "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+  "sourceFiles": 2004,
+  "snapshot": {
+    "path": ".work/v232-ci2-final-snapshot.json",
+    "sha256": "33288c63e1502dc6008d999a93b11a16f2ea93719c216ae2c5535f0a833f019c"
+  },
+  "baseHead": "b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb",
+  "complete": true,
+  "findings": [],
+  "independent": false,
+  "method": "Additional user-requested focused author self-check, current source/hash verification plus existing real-CLI and targeted evidence. No new tests or full-repository audit were run for this report.",
+  "files": [
+    {
+      "path": "src/runtime/thread-conversion.ts",
+      "sha256": "8b7c612aa55bcb1c750f16cbe6bd1b4662c568e577f1b6c231c80d6fce394419",
+      "depth": "Full current function read; author self-check of independent target, source witness, pending, settings, ACK/unknown and no-input paths."
+    },
+    {
+      "path": "src/runtime/thread-history-compatibility.ts",
+      "sha256": "2d89da3295080c81240e3adaa172ccb1986c82a72c995a075a889670a08a94a5",
+      "depth": "Full current module read; inspection, helper transport, writer-closed event and bounded operation lifecycle."
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2",
+      "depth": "Focused current lifecycle/admission/routes/start/load/convert/turn/goal-queue mutation and disconnect/close sections; not a fresh whole-file line-by-line audit."
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "6f551a5e545f8e5a0e80ec51dfc4dd5400d888509df631f776966ae5ba017e5a",
+      "depth": "Current provider selection, alias equality, resume selection and disabled-provider admission read; inherited unchanged module evidence retained."
+    },
+    {
+      "path": "src/runtime/history.ts",
+      "sha256": "48c57ac313c4b7c5d060c1f76c45f5a5bbac844954a1cc7ed166fe744e419c44",
+      "depth": "Full current module read; connection-owned complete traversal and invalidation."
+    },
+    {
+      "path": "src/runtime/session-snapshots.ts",
+      "sha256": "0d4ae99c3eacd6849e9a2bbc660d02a497e19c15401e2624ac18105034c8cbe6",
+      "depth": "Full current module read; read-only metadata/settings cache and stale/resume boundary."
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6",
+      "depth": "Full current module read; live and unknown capacity retention."
+    },
+    {
+      "path": "src/runtime/live-thread-list.ts",
+      "sha256": "25071a588bc5bacedbc02716554358cc23e5a4e786a16f464092d0ca102e4f05",
+      "depth": "Full current module read; creation reservations, indexing-lag overlay and native pagination."
+    },
+    {
+      "path": "src/runtime/workflows.ts",
+      "sha256": "40fe15d7d5b2c368110945663c7b58a3c58e7bb463214376cab6c65df6cf13bf",
+      "depth": "Focused current queue/goal/fork/delete/settings/agents/history workflows; real ancestor-provider regression inherited, no new test run."
+    },
+    {
+      "path": "src/runtime/native.ts",
+      "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+      "depth": "Current request/write/ACK/error/close lifecycle review; fixed launch argument contract traced to fixture consumers."
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "45c633db0f02bcabba09363661f6c14bca7a601a7e90085e3a451c6eabd0cf16",
+      "depth": "Current launch command and fixed argument review."
+    },
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "f8f39a0a8e65fd4cbd580f8ca6428b90ab8b38e23a9b7b6c950abfd5287fb784",
+      "depth": "Focused current _copy_scan/_recovery_copy source-read and target-only publication; full helper independent review is separate."
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "7e8374b948410c661de71febb19f20bffae9e87e74e3c1d8dfc68bdf4bf472df",
+      "depth": "Current thread/convert idle admission and existing mutation classifications inspected."
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "fd41d95dbd4ca50ad559785ca6deecb51a39a14603f8cc7c3d65bd586a459154",
+      "depth": "Focused current operation replay, pending admission and activity/unknown boundary; prior interface independent review retained."
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "ae0ab7fa6cd47f83f501c27edbe2e647bbf8f332f71e67d0d2fb6a660cdb71b9",
+      "depth": "Current real CLI regression and final independence/sessionId assertions read; actual targeted result bound below."
+    }
+  ],
+  "checks": [
+    "New conversations retain native creation/first-turn acknowledgement separation and partial-thread unknown recovery. Listing overlay bridges native indexing lag without substituting for persisted pagination.",
+    "Loaded existing conversations permit same-provider models and known aliases, while turn/start and resume refuse provider changes. Disabled original providers must be restored before the supported loaded-idle conversion.",
+    "Conversion creates a native independent paginated target. Target native header and new session identity are preserved; source nonheader records are historical copied data. No native fork, parent reference, hardlink or source history_base is introduced.",
+    "After native source close/flush, one stable source witness is held throughout copy. Helper reads source only and publishes atomically to the distinct empty target. Repair, settings, model/provider and title changes only address the new target.",
+    "The real CLI regression asserts new sessionId/header session_id, null parent/fork/history_base, distinct path/inode, original provider/title/raw witness preservation after close, original deletion followed by target cold restart and continuation.",
+    "No model input is dispatched by conversion. Original source and new target pending admission cover resume/turn races; positive ACK or post-write failures remain unknown with distinct partial target identity, never automatic resubmission.",
+    "Original and converted threads keep independent persisted conversation identity and runtime history-completeness state. Same project/cwd/environment and execution settings are verified; public compacted replacement history, tool pairs and public summary remain represented.",
+    "Ordinary native archive/unarchive/name requests remain their existing explicit operations, not hidden conversion stages. Source title is not renamed by conversion. Explicit user modifications are separate operations from source preservation evidence.",
+    "Disconnect revokes connection-scoped history and subsystem leases; fatal native epochs clear cached sessions and retain unknown activity. History pages and automatic load use revision/continuation checks rather than starting a new prompt.",
+    "Queue and goal mutations retain thread identity, history and user-provenance checks; automatic loading refuses active persisted continuation without acknowledgement. Conversion rejects active goal/queue, and does not copy their independent live database state.",
+    "Native ancestor agent listing has its own cross-provider semantics; the earlier suspected missing filter was disproved by official implementation and a real two-provider agent fixture. No unnecessary production parameter was retained.",
+    "No additional product defect was established in this scoped self-check. The four JS CI repairs are fixture-only and separately independently reviewed."
+  ],
+  "evidence": [
+    {
+      "path": ".work/v232-thread-conversion-implementation.json",
+      "sha256": "616d16d97e14d9de3e42f49e608bfa92b28236d1e926e75e51d5df71e571a59b"
+    },
+    {
+      "path": ".work/v232-converted-copy-runtime-audit.json",
+      "sha256": "eb1bbb5695081c9216f93a0973ac73eb28b39ec47b4ec95b8c07c60d7609c7f5"
+    },
+    {
+      "path": ".work/v232-user-session-independent-review.json",
+      "sha256": "6f2b6955cd5ec9533874653baedc65e7eb94f00a7f135cea05ebe7aeb1995889"
+    },
+    {
+      "path": ".work/v232-conversion-gateway-api-review.json",
+      "sha256": "aefeb7607bfc7677bbe409d1f0233cde10e32aaca9f08176673e75e4da51511e"
+    },
+    {
+      "path": ".work/v232-ci-js-session-independent-review.json",
+      "sha256": "556e656420abfb291feea56f4b4b928240de2d94ba9dd553ecda1c7f8ea58f28"
+    },
+    {
+      "path": ".work/v232-ci1-js-fixture-repair.json",
+      "sha256": "8d7b051300e75196cbd3986b73d5bc344345a1f28c6560eac5415f56cdca815c"
+    },
+    {
+      "path": ".work/test-results/run-XnfQ9R/vitest.json",
+      "sha256": "43e4f2da6739cfefe39480cca94bc274b4fc0d26a28acb8fe7f4c7718d2b73f8"
+    },
+    {
+      "path": ".work/v232-ci1-monitor-summary.json",
+      "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+    }
+  ],
+  "limits": [
+    "The conversion implementation is authored by this reviewer; this report cannot replace the independent root, helper/runtime and deployment reviews cited above.",
+    "Source byte immutability begins after normal native close/flush. This does not assert every raw byte or native indexing timestamp is unchanged between pre-close and post-close; no conversion is applied to original provider, title or conversation payload.",
+    "Independent conversations share their selected project filesystem and external services; copying history does not undo tool effects. Historical tool/agent IDs remain records, not newly running agents or copied ownership.",
+    "Independent plain paginated histories and supported compacted replacement are covered. Inherited/opaque-provider compaction/unsupported compressed disk formats are rejected rather than silently reconstructed.",
+    "No additional Linux JavaScript test environment was created. Fixed Linux test results are still pending the next exact-head full CI; existing targeted 29 distinct Windows cases and final native identity case are evidence, not a full gate.",
+    "CI1 remains failed, including refused aggregate coverage. CI2 has not been observed or declared passed by this report."
+  ]
+}

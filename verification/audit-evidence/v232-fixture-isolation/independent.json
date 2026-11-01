@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-ci2-composed-fixture-repair-review",
+  "reviewerId": "v220_final_deploy",
+  "completedAt": "2026-11-01T14:59:03.370823+00:00",
+  "complete": true,
+  "clean": true,
+  "findings": [],
+  "skipped": [],
+  "baseHead": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+  "baseSourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+  "sourceFiles": 2004,
+  "binding": "Exact four reviewed file hashes, bound after final source freeze; current2004 hashes match parent snapshot. Unchanged semantics explicitly inherit previous audit.",
+  "files": [
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "sha256": "557ddac501d72495743ac88bf9fbc1cd6f5e536bea1c4a060e3cd3f2d6fbff09",
+      "beforeSha256": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "60ac66d1beb9e2126b1c841b33d0d150bce9836013cffde1194ec5e9068930e9",
+      "beforeSha256": "caabfa5f06d0840ea002c32fb766e6578bf64e11972cc336a61643778bc318d4"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "e332594f2af229b5f443611f5245fb11f3a0be264325a948abf35bbb45922c1e",
+      "beforeSha256": "828acb976bf5812fc3acc97e94c8a78f5653586cc9c4f791614610afe16ad26c"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "0d27c8a78f5d45da4df8aca3e8343519b3f92dc65db61518ce9fa98a1a0f7948",
+      "beforeSha256": "c93eb2f3bf3a94554b5a97c384e53e8669f83501326b7295593915ffc6524a54"
+    }
+  ],
+  "method": [
+    "Read all four exact diffs and the root consumer/ordinary fixture setup, real Manager account admission, selector group expansion and missing-companion behavior.",
+    "Reverse-traced shared fixture imports, direct construction and setUp composition across all72 Python test files; no external TransactionTests consumer and only AccountRecoveryTests consumes InstallationRecoveryTests.",
+    "Compared AST of all8 existing root test methods to failed candidate: identical. Verified ordinary parent and product admission files unchanged.",
+    "Read actual Linux per-case results and additional real bound-method probe; verified every packed source hash and all evidence SHA. Read actual selector20/20 JSON. No tests rerun.",
+    "Compared current source inventory hashes to prior2004 frozen manifest: only the four reviewed paths differ. This is precise change/unchanged evidence, not a new line-by-line full-repository audit."
+  ],
+  "conclusions": [
+    "Root consumer restores the exact Manager.release_accounts method bound to its own manager instance; the real file ownership and account-v1 declaration checks execute again. The ordinary fixture keeps its local token-only substitute without affecting Manager class or a separate root manager.",
+    "Original two failing authentication_downgrade assertions and all8 existing account recovery test methods are unchanged. Real Linux account-v1/legacy readback plus __func__/__self__ assertions establish the intended boundary.",
+    "Selector now maps each of installation recovery, root account recovery and root release reuse to the exact same complete group. Missing any companion creates requires-full-audit; no coverage obligation silently disappears.",
+    "The maintainer lesson accurately records CI2 as failed, identifies composition rather than inheritance, and requires reverse consumer/method/cleanup inspection. It does not claim targeted checks replace next full CI."
+  ],
+  "reviewRetrospective": {
+    "previousReview": {
+      "path": ".work/v232-copy-ci-deploy-fixture-review.json",
+      "sha256": "27cde110db5ef41307822b3874583fd082d60eb783c140899df25f7cb6ba13db"
+    },
+    "diagnosis": {
+      "path": ".work/v232-ci2-fixture-independent-diagnosis.json",
+      "sha256": "7f1a756f25604533b3c66cb00ddaaa2e51e8a19dc6d8c1d2a7fc4204e0041cfe"
+    },
+    "missed": "My previous review verified selected root neighbors and forward dependencies, but failed to reverse-trace the changed ordinary setup into AccountRecoveryTests. Unchanged assertions alone did not prove that the real reader still executed.",
+    "correction": "This review includes the actual composed consumer, its method binding, lifetime/cleanup, reverse selector edge and real root/nobody validation. The old no-finding report and failed run are preserved, not rewritten."
+  },
+  "validation": {
+    "linux": [
+      {
+        "identity": "root",
+        "uid": 0,
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          "tests/deploy/root/test_account_recovery.py",
+          "tests/deploy/root/test_release_reuse.py"
+        ]
+      },
+      {
+        "identity": "ordinary",
+        "uid": 65534,
+        "passed": 22,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          "tests/deploy/test_install_recovery.py"
+        ]
+      }
+    ],
+    "bindingProbe": {
+      "evidence": {
+        "path": ".work/v232-ci2-account-fixture-linux.json",
+        "sha256": "eab70f7fef17b861ac7b574f9c867f06667bdd31eb3d03a9558707d300ee9ba7"
+      },
+      "actualOutput": {
+        "realRootReaderBound": true,
+        "accountAndLegacyMetadataDistinguished": true,
+        "separateManagerInstances": true,
+        "ordinaryInstanceSubstituteRetained": true
+      },
+      "additionalProbeNotCountedAsTest": true
+    },
+    "selector": {
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-IzfZEb/vitest.json",
+        "sha256": "54ce5f20fc37d329988c86451f9d5bbb5d8601dcb83bf825c87ed68f2c16e141"
+      }
+    },
+    "totalTargetedCases": 53
+  },
+  "supportingFiles": [
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "a49ed9303d6270aa9983713064bc99589d6dbdba6d1038e6e9d8ac1d25244d93"
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "sha256": "1c4ae691690245e7384e91ff17c1f8752660e05d67991b7536385e772b956539"
+    },
+    {
+      "path": "tests/deploy/root/test_release_reuse.py",
+      "sha256": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "14559992cf6b31bf057aba2847eca46dbf611e2a92a1f56f288208786d2cadde"
+    },
+    {
+      "path": "deploy/execution_identity.py",
+      "sha256": "9e928abd9463180f907278e8fca364b93507e22349392ce022073a77e7c5d01f"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v232-ci2-account-fixture-repair.json",
+      "sha256": "768ea6d5d9ed781b8c930b462be20c29490b12daa1cbaf8215840c1324c4a18f"
+    },
+    {
+      "path": ".work/v232-ci2-root-raw.txt",
+      "sha256": "85e0b8839c4bc12b0a4c4ad89380285759bf2800604ed4b92c5198467ef0ddb5"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-references.txt",
+      "sha256": "be240af12896c225b62d182a39d3ca00fe44745d755fd042bc8ac76ca85c392c"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-repair.diff",
+      "sha256": "1ae203fde5703eec23a525d6af0cce20ab43b993ac4904165c38e405504d81cc"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-linux.py",
+      "sha256": "8349e89c6aa5db36e309e98364d920dd523124484d9cab3a02b35a4d11b665af"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-linux.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v232-ci2-fixture-independent-diagnosis.json",
+      "sha256": "7f1a756f25604533b3c66cb00ddaaa2e51e8a19dc6d8c1d2a7fc4204e0041cfe"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-linux.json",
+      "sha256": "eab70f7fef17b861ac7b574f9c867f06667bdd31eb3d03a9558707d300ee9ba7"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-linux.json",
+      "sha256": "eab70f7fef17b861ac7b574f9c867f06667bdd31eb3d03a9558707d300ee9ba7"
+    },
+    {
+      "path": ".work/test-results/run-IzfZEb/vitest.json",
+      "sha256": "54ce5f20fc37d329988c86451f9d5bbb5d8601dcb83bf825c87ed68f2c16e141"
+    },
+    {
+      "path": ".work/v232-ci2-account-selector-tests.txt",
+      "sha256": "b972862a16175ab1a9dfe1729640487f6d973ed7b2ea0c10c234badf1e54c210"
+    },
+    {
+      "path": ".work/v232-ci2-fixture-independent-diagnosis.json",
+      "sha256": "7f1a756f25604533b3c66cb00ddaaa2e51e8a19dc6d8c1d2a7fc4204e0041cfe"
+    }
+  ],
+  "endInventory": {
+    "reference": {
+      "path": ".work/v232-ci2-final-snapshot.json",
+      "sha256": "33288c63e1502dc6008d999a93b11a16f2ea93719c216ae2c5535f0a833f019c"
+    },
+    "sourceFilesCompared": 2004,
+    "changedPaths": [
+      "scripts/RELEASE-PREFLIGHT.md",
+      "scripts/select-tests.mjs",
+      "tests/deploy/root/test_account_recovery.py",
+      "tests/tooling/select-tests.test.ts"
+    ],
+    "applicationAndDeploymentProductionChanged": false
+  },
+  "limits": [
+    "No new tests, network/server actions or source changes by reviewer. Author Linux fixtures use root/nobody and real files but substituted system services, not production service operations.",
+    "Windows selector ran locally; Linux root11 and ordinary22 are separate selected test groups. No full suite or deployment success is claimed.",
+    "a85 stage and all prior failed CI artifacts remain non-deployable. New source-bound audit, exact commit and actual complete CI are required."
+  ],
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceSnapshot": {
+    "path": ".work/v232-ci3-snapshot.json",
+    "sha256": "27c023b64d8efe03b823923533d1ebc43bbe084240112bda186afffe9cf2e5a1"
+  }
+}

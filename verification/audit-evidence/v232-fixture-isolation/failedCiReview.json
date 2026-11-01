@@ -1,0 +1,1521 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-v232-ci2-failure-monitor-and-retrospective",
+  "complete": true,
+  "result": "failed",
+  "fullGatePassed": false,
+  "deploymentAllowed": false,
+  "completedAt": "2026-11-01T15:02:01.362407+00:00",
+  "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+  "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+  "sourceFiles": 2004,
+  "branch": "Luoyehe/root-execution-mode",
+  "event": "workflow_dispatch",
+  "testRun": 41318007104,
+  "securityRun": 41318050861,
+  "runs": [
+    {
+      "id": 41318007104,
+      "name": "Reviewed checks",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T14:48:26Z",
+      "updated_at": "2026-11-01T14:59:41Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104"
+    },
+    {
+      "id": 41318050861,
+      "name": "Security checks",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T14:48:57Z",
+      "updated_at": "2026-11-01T14:50:48Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318050861"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 124882064252,
+      "run_id": 41318007104,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T14:48:31Z",
+      "completed_at": "2026-11-01T14:49:06Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882064252",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Scan source and complete Git objects",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Select reviewed changes or source-bound full closeout",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124882227661,
+      "run_id": 41318007104,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T14:49:09Z",
+      "completed_at": "2026-11-01T14:59:30Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882227661",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Prepare pinned Go and authenticated public modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Retain failed Go preparation logs",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 10,
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 11,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 12,
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 24,
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 25,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 26,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 27,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124882227749,
+      "run_id": 41318007104,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-11-01T14:49:09Z",
+      "completed_at": "2026-11-01T14:50:00Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882227749",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Build actual Ledger as the unprivileged runner",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Run root fixtures only on the disposable hosted runner",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "number": 7,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124882227763,
+      "run_id": 41318007104,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T14:49:09Z",
+      "completed_at": "2026-11-01T14:55:32Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882227763",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Prepare pinned Go and authenticated public modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Retain failed Go preparation logs",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 10,
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 11,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 12,
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 24,
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 25,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 26,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 27,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124884738925,
+      "run_id": 41318007104,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-11-01T14:59:33Z",
+      "completed_at": "2026-11-01T14:59:41Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124884738925",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Require all identities and complement every skipped case",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "number": 6,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 11,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124882195306,
+      "run_id": 41318050861,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T14:49:01Z",
+      "completed_at": "2026-11-01T14:50:21Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318050861/job/124882195306",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124882195443,
+      "run_id": 41318050861,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T14:49:01Z",
+      "completed_at": "2026-11-01T14:49:13Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318050861/job/124882195443",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run npm install --global pnpm@11.22.0 --ignore-scripts --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run pnpm audit --audit-level high --json > dependency-audit.json",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 11,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124882195506,
+      "run_id": 41318050861,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T14:49:01Z",
+      "completed_at": "2026-11-01T14:50:47Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318050861/job/124882195506",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": 124884738925,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124884738925",
+      "started_at": "2026-11-01T14:59:33Z",
+      "completed_at": "2026-11-01T14:59:41Z"
+    },
+    {
+      "id": 124882227763,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882227763",
+      "started_at": "2026-11-01T14:49:09Z",
+      "completed_at": "2026-11-01T14:55:32Z"
+    },
+    {
+      "id": 124882227749,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882227749",
+      "started_at": "2026-11-01T14:49:09Z",
+      "completed_at": "2026-11-01T14:50:00Z"
+    },
+    {
+      "id": 124882227661,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882227661",
+      "started_at": "2026-11-01T14:49:09Z",
+      "completed_at": "2026-11-01T14:59:30Z"
+    },
+    {
+      "id": 124882195506,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318050861/job/124882195506",
+      "started_at": "2026-11-01T14:49:01Z",
+      "completed_at": "2026-11-01T14:50:47Z"
+    },
+    {
+      "id": 124882195443,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318050861/job/124882195443",
+      "started_at": "2026-11-01T14:49:01Z",
+      "completed_at": "2026-11-01T14:49:13Z"
+    },
+    {
+      "id": 124882195306,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318050861/job/124882195306",
+      "started_at": "2026-11-01T14:49:01Z",
+      "completed_at": "2026-11-01T14:50:21Z"
+    },
+    {
+      "id": 124882064252,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41318007104/job/124882064252",
+      "started_at": "2026-11-01T14:48:31Z",
+      "completed_at": "2026-11-01T14:49:06Z"
+    }
+  ],
+  "plan": {
+    "schemaVersion": 1,
+    "complete": true,
+    "raw": {
+      "path": ".work/v232-ci2-plan-raw.txt",
+      "sha256": "39ae0036b42109411be9cb670503c7b0cc3ea49aaa01ba7d2a161cd6156cc56b"
+    },
+    "planLine": 244,
+    "plan": {
+      "mode": "authorized-full",
+      "base": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
+      "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+      "files": 263,
+      "targets": [
+        "linux",
+        "windows",
+        "linux-root"
+      ]
+    },
+    "authorizationSha256": "5e2906289cacf4bcead438913846b9dc55439ea444149843cced1566351303dd",
+    "historyScan": {
+      "line": 209,
+      "status": "passed-with-reviewed-historical-patterns",
+      "findings": [],
+      "reviewedHistoricalPatterns": 32,
+      "rawScannerStatus": "blocked",
+      "scannedFiles": 5649,
+      "skipped": []
+    },
+    "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+    "sourceBinding": "Authorized-full planner validated the exact committed source authorization; stdout reports plan identity, while final coverage must independently bind result source digest.",
+    "fullGatePassed": false
+  },
+  "platforms": [
+    {
+      "target": "linux",
+      "raw": {
+        "path": ".work/v232-ci2-linux-raw.txt",
+        "sha256": "d8f8ed7ee7bdc047698b30fa643c6876d3c1e3343c63c9141061e665fae26815"
+      },
+      "groupSummaries": [
+        {
+          "line": 852,
+          "output": {
+            "event": "ci-test-group",
+            "group": "javascript",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 193,
+            "cases": {
+              "total": 2110,
+              "passed": 2094,
+              "failed": 0,
+              "skipped": 16,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1465,
+          "output": {
+            "event": "ci-test-group",
+            "group": "deploy",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 46,
+            "cases": {
+              "total": 606,
+              "passed": 605,
+              "failed": 0,
+              "skipped": 1,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1467,
+          "output": {
+            "event": "ci-test-group",
+            "group": "go",
+            "state": "completed",
+            "status": "passed",
+            "exitCode": 0,
+            "selectedFiles": 1,
+            "cases": {
+              "total": 20,
+              "passed": 20,
+              "failed": 0,
+              "skipped": 0,
+              "other": 0
+            },
+            "reason": null,
+            "phases": [
+              {
+                "name": "module-verification",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "test-discovery",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "go-test",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "executable-build",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "version-plugin-probe",
+                "status": "passed",
+                "exitCode": 0
+              }
+            ]
+          }
+        }
+      ],
+      "actualJsFailures": [],
+      "actualPythonFailures": []
+    },
+    {
+      "target": "windows",
+      "raw": {
+        "path": ".work/v232-ci2-windows-raw.txt",
+        "sha256": "2564b0cfa92cdc48d857b3cf282254a62f53e53ac11d11c5bc14713a74655413"
+      },
+      "groupSummaries": [
+        {
+          "line": 1052,
+          "output": {
+            "event": "ci-test-group",
+            "group": "javascript",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 193,
+            "cases": {
+              "total": 2110,
+              "passed": 2105,
+              "failed": 0,
+              "skipped": 5,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1665,
+          "output": {
+            "event": "ci-test-group",
+            "group": "deploy",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 46,
+            "cases": {
+              "total": 606,
+              "passed": 507,
+              "failed": 0,
+              "skipped": 99,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1667,
+          "output": {
+            "event": "ci-test-group",
+            "group": "go",
+            "state": "completed",
+            "status": "passed",
+            "exitCode": 0,
+            "selectedFiles": 1,
+            "cases": {
+              "total": 20,
+              "passed": 20,
+              "failed": 0,
+              "skipped": 0,
+              "other": 0
+            },
+            "reason": null,
+            "phases": [
+              {
+                "name": "module-verification",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "test-discovery",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "go-test",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "executable-build",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "version-plugin-probe",
+                "status": "passed",
+                "exitCode": 0
+              }
+            ]
+          }
+        }
+      ],
+      "actualJsFailures": [],
+      "actualPythonFailures": []
+    },
+    {
+      "target": "linux-root",
+      "raw": {
+        "path": ".work/v232-ci2-root-raw.txt",
+        "sha256": "85e0b8839c4bc12b0a4c4ad89380285759bf2800604ed4b92c5198467ef0ddb5"
+      },
+      "groupSummaries": [
+        {
+          "line": 671,
+          "output": {
+            "event": "ci-test-group",
+            "group": "deploy",
+            "state": "completed",
+            "status": "failed",
+            "exitCode": 1,
+            "selectedFiles": 23,
+            "cases": {
+              "total": 336,
+              "passed": 334,
+              "failed": 2,
+              "skipped": 0,
+              "other": 0
+            },
+            "reason": null
+          }
+        }
+      ],
+      "actualJsFailures": [],
+      "actualPythonFailures": [
+        {
+          "line": 649,
+          "title": "FAIL: test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore (selected_deploy_0.AccountRecoveryTests.test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore)"
+        },
+        {
+          "line": 660,
+          "title": "FAIL: test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate (selected_deploy_0.AccountRecoveryTests.test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate)"
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "status": "failed",
+    "raw": {
+      "path": ".work/v232-ci2-coverage-raw.txt",
+      "sha256": "b12651f7b7addf301787b04710528a82ac53b43636998e4ace8892a1824a5164"
+    },
+    "failure": {
+      "line": 241,
+      "text": "CI validation refused: Incomplete or failed evidence for linux-root"
+    },
+    "deduplicatedCases": null,
+    "coverageGaps": null,
+    "reason": "Reconciliation correctly refused failed linux-root evidence. No valid deduplicated full-coverage result exists for this failed run."
+  },
+  "security": {
+    "workflow": "completed/success",
+    "jobs": "Dependencies and both CodeQL languages completed/success",
+    "zeroAlertsClaimed": false,
+    "alertReviewOwner": "root"
+  },
+  "retrospective": {
+    "failingJob": 124882227749,
+    "rootCause": "AccountRecoveryTests composes InstallationRecoveryTests by invoking setUp and reusing its Manager. The preceding repair added an instance release_accounts=False substitute to that ordinary-UID fixture. The root consumer restored verify_release but not release_accounts, misclassifying a real account-v1 candidate as legacy. Production Manager remained unchanged.",
+    "whyMissed": "The prior author and independent review validated changed fixture definitions and their selected root neighbors but missed the ordinary fixture composition in root account recovery. The selector paired installation recovery only with root release reuse, omitting this actual consumer. The prior narrow passes did not cover account recovery.",
+    "classification": "Fixture regression plus incomplete test impact mapping; not a demonstrated production authentication bypass.",
+    "reproducibleFixtureContract": "Root AccountRecoveryTests composes the ordinary setup and reuses its Manager. Root tests must restore real verify_release and release_accounts on that exact instance; ordinary instances retain their isolated replacement. Account-v1 metadata must remain distinguishable from legacy metadata before rollback selection.",
+    "prevention": [
+      "Group ordinary installation recovery, root account recovery and root release reuse bidirectionally. Regression asserts exact group membership for every changed member and requires review if any companion is missing.",
+      "Record the CI2 failure and a specific composition/setup/method-rebinding/cleanup inspection rule in maintainer preflight lessons. No workflow/full-suite rule or application capability check was weakened."
+    ],
+    "consumerReview": {
+      "evidence": {
+        "path": ".work/v232-ci2-account-fixture-references.txt",
+        "sha256": "be240af12896c225b62d182a39d3ca00fe44745d755fd042bc8ac76ca85c392c"
+      },
+      "ordinaryDefinitions": [
+        "tests/deploy/test_install_recovery.py::InstallationRecoveryTests",
+        "tests/deploy/test_deployment.py::TransactionTests"
+      ],
+      "composedConsumer": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests calls InstallationRecoveryTests.setUp; no inheritance is involved.",
+      "otherConsumers": "Repository Python reference search found no other consumer of InstallationRecoveryTests and no external consumer of TransactionTests. Other explicit setup reuse is candidate-archive/archive fixture and proxy-transaction/execution fixture, without these release_accounts replacements.",
+      "scope": "Both substitutes are assigned to newly constructed Manager instances, not the Manager class. Root restoration is bound to its own instance. The composed fixture doCleanups is registered on the outer test, retaining temporary-directory cleanup; ordinary instances keep the intended token-only isolation.",
+      "actualBindingProbe": {
+        "exitCode": 0,
+        "stdout": "{\"realRootReaderBound\": true, \"accountAndLegacyMetadataDistinguished\": true, \"separateManagerInstances\": true, \"ordinaryInstanceSubstituteRetained\": true}\n",
+        "stderr": ""
+      }
+    },
+    "targetedValidation": [
+      {
+        "kind": "isolated-linux-root",
+        "uid": 0,
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0,
+        "files": {
+          "tests/deploy/root/test_account_recovery.py": 8,
+          "tests/deploy/root/test_release_reuse.py": 3
+        },
+        "evidence": {
+          "path": ".work/v232-ci2-account-fixture-linux.json",
+          "sha256": "eab70f7fef17b861ac7b574f9c867f06667bdd31eb3d03a9558707d300ee9ba7"
+        }
+      },
+      {
+        "kind": "isolated-linux-ordinary",
+        "uid": 65534,
+        "passed": 22,
+        "failed": 0,
+        "skipped": 0,
+        "files": {
+          "tests/deploy/test_install_recovery.py": 22
+        },
+        "evidence": {
+          "path": ".work/v232-ci2-account-fixture-linux.json",
+          "sha256": "eab70f7fef17b861ac7b574f9c867f06667bdd31eb3d03a9558707d300ee9ba7"
+        }
+      },
+      {
+        "kind": "windows-targeted-selector",
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0,
+        "evidence": {
+          "path": ".work/test-results/run-IzfZEb/vitest.json",
+          "sha256": "54ce5f20fc37d329988c86451f9d5bbb5d8601dcb83bf825c87ed68f2c16e141"
+        },
+        "log": {
+          "path": ".work/v232-ci2-account-selector-tests.txt",
+          "sha256": "b972862a16175ab1a9dfe1729640487f6d973ed7b2ea0c10c234badf1e54c210"
+        }
+      }
+    ],
+    "author": {
+      "path": ".work/v232-ci2-account-fixture-repair.json",
+      "sha256": "768ea6d5d9ed781b8c930b462be20c29490b12daa1cbaf8215840c1324c4a18f"
+    },
+    "independentReview": {
+      "path": ".work/v232-ci2-account-fixture-repair-review.json",
+      "sha256": "f7993704e9f3e5601e7be159e5dd30ebc45b274e232044ba64013a1bc0814037"
+    },
+    "repairDoesNotChangeFailedRun": true
+  },
+  "ci1VerificationClosures": [
+    {
+      "area": "CI1 deployment fixture failures",
+      "platform": "linux",
+      "verifiedInRun": 41318007104,
+      "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+      "count": 16,
+      "cases": [
+        {
+          "priorFailure": "ERROR: test_failed_first_start_clears_current_and_never_becomes_previous (selected_deploy_17.InstallationRecoveryTests.test_failed_first_start_clears_current_and_never_becomes_previous)",
+          "verified": {
+            "line": 1084,
+            "text": "test_failed_first_start_clears_current_and_never_becomes_previous (selected_deploy_17.InstallationRecoveryTests.test_failed_first_start_clears_current_and_never_becomes_previous) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate (selected_deploy_17.InstallationRecoveryTests.test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate)",
+          "verified": {
+            "line": 1085,
+            "text": "test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate (selected_deploy_17.InstallationRecoveryTests.test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_interrupted_commit_repair_restores_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_interrupted_commit_repair_restores_both_release_pointers)",
+          "verified": {
+            "line": 1086,
+            "text": "test_interrupted_commit_repair_restores_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_interrupted_commit_repair_restores_both_release_pointers) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_interrupted_upgrade_after_failed_enable_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_after_failed_enable_requires_recovery)",
+          "verified": {
+            "line": 1087,
+            "text": "test_interrupted_upgrade_after_failed_enable_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_after_failed_enable_requires_recovery) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_interrupted_upgrade_of_completed_install_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_of_completed_install_requires_recovery)",
+          "verified": {
+            "line": 1088,
+            "text": "test_interrupted_upgrade_of_completed_install_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_of_completed_install_requires_recovery) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_legacy_failed_current_same_candidate_is_started_and_enabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_failed_current_same_candidate_is_started_and_enabled)",
+          "verified": {
+            "line": 1089,
+            "text": "test_legacy_failed_current_same_candidate_is_started_and_enabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_failed_current_same_candidate_is_started_and_enabled) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_legacy_successful_disabled_installation_is_not_reenabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_successful_disabled_installation_is_not_reenabled)",
+          "verified": {
+            "line": 1090,
+            "text": "test_legacy_successful_disabled_installation_is_not_reenabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_successful_disabled_installation_is_not_reenabled) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_partial_enable_failure_retains_healthy_commit_and_retries (selected_deploy_17.InstallationRecoveryTests.test_partial_enable_failure_retains_healthy_commit_and_retries)",
+          "verified": {
+            "line": 1091,
+            "text": "test_partial_enable_failure_retains_healthy_commit_and_retries (selected_deploy_17.InstallationRecoveryTests.test_partial_enable_failure_retains_healthy_commit_and_retries) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_prepare_retry_completes_enable_then_preserves_later_disabled_state (selected_deploy_17.InstallationRecoveryTests.test_prepare_retry_completes_enable_then_preserves_later_disabled_state)",
+          "verified": {
+            "line": 1092,
+            "text": "test_prepare_retry_completes_enable_then_preserves_later_disabled_state (selected_deploy_17.InstallationRecoveryTests.test_prepare_retry_completes_enable_then_preserves_later_disabled_state) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_published_commit_error_keeps_the_healthy_release_running (selected_deploy_17.InstallationRecoveryTests.test_published_commit_error_keeps_the_healthy_release_running)",
+          "verified": {
+            "line": 1094,
+            "text": "test_published_commit_error_keeps_the_healthy_release_running (selected_deploy_17.InstallationRecoveryTests.test_published_commit_error_keeps_the_healthy_release_running) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_unknown_stop_retains_pointer_until_a_confirmed_retry (selected_deploy_17.InstallationRecoveryTests.test_unknown_stop_retains_pointer_until_a_confirmed_retry)",
+          "verified": {
+            "line": 1100,
+            "text": "test_unknown_stop_retains_pointer_until_a_confirmed_retry (selected_deploy_17.InstallationRecoveryTests.test_unknown_stop_retains_pointer_until_a_confirmed_retry) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_unpublished_commit_failure_can_repair_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_unpublished_commit_failure_can_repair_both_release_pointers)",
+          "verified": {
+            "line": 1101,
+            "text": "test_unpublished_commit_failure_can_repair_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_unpublished_commit_failure_can_repair_both_release_pointers) ... ok"
+          }
+        },
+        {
+          "priorFailure": "FAIL: test_health_failure_confirms_stop_before_restoring_old_release (selected_deploy_5.TransactionTests.test_health_failure_confirms_stop_before_restoring_old_release)",
+          "verified": {
+            "line": 968,
+            "text": "test_health_failure_confirms_stop_before_restoring_old_release (selected_deploy_5.TransactionTests.test_health_failure_confirms_stop_before_restoring_old_release) ... ok"
+          }
+        },
+        {
+          "priorFailure": "FAIL: test_unconfirmed_stop_never_changes_pointer_or_recovery_barrier (selected_deploy_5.TransactionTests.test_unconfirmed_stop_never_changes_pointer_or_recovery_barrier)",
+          "verified": {
+            "line": 971,
+            "text": "test_unconfirmed_stop_never_changes_pointer_or_recovery_barrier (selected_deploy_5.TransactionTests.test_unconfirmed_stop_never_changes_pointer_or_recovery_barrier) ... ok"
+          }
+        },
+        {
+          "priorFailure": "FAIL: test_unknown_recovery_stop_preserves_candidate_and_transaction (selected_deploy_5.TransactionTests.test_unknown_recovery_stop_preserves_candidate_and_transaction)",
+          "verified": {
+            "line": 973,
+            "text": "test_unknown_recovery_stop_preserves_candidate_and_transaction (selected_deploy_5.TransactionTests.test_unknown_recovery_stop_preserves_candidate_and_transaction) ... ok"
+          }
+        },
+        {
+          "priorFailure": "FAIL: test_completion_record_write_failure_can_retry_after_successful_enable (selected_deploy_17.InstallationRecoveryTests.test_completion_record_write_failure_can_retry_after_successful_enable)",
+          "verified": {
+            "line": 1082,
+            "text": "test_completion_record_write_failure_can_retry_after_successful_enable (selected_deploy_17.InstallationRecoveryTests.test_completion_record_write_failure_can_retry_after_successful_enable) ... ok"
+          }
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci2-linux-raw.txt",
+        "sha256": "d8f8ed7ee7bdc047698b30fa643c6876d3c1e3343c63c9141061e665fae26815"
+      }
+    },
+    {
+      "area": "CI1 deployment fixture failures",
+      "platform": "windows",
+      "verifiedInRun": 41318007104,
+      "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+      "count": 13,
+      "cases": [
+        {
+          "priorFailure": "ERROR: test_failed_first_start_clears_current_and_never_becomes_previous (selected_deploy_17.InstallationRecoveryTests.test_failed_first_start_clears_current_and_never_becomes_previous)",
+          "verified": {
+            "line": 1284,
+            "text": "test_failed_first_start_clears_current_and_never_becomes_previous (selected_deploy_17.InstallationRecoveryTests.test_failed_first_start_clears_current_and_never_becomes_previous) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate (selected_deploy_17.InstallationRecoveryTests.test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate)",
+          "verified": {
+            "line": 1285,
+            "text": "test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate (selected_deploy_17.InstallationRecoveryTests.test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_interrupted_commit_repair_restores_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_interrupted_commit_repair_restores_both_release_pointers)",
+          "verified": {
+            "line": 1286,
+            "text": "test_interrupted_commit_repair_restores_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_interrupted_commit_repair_restores_both_release_pointers) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_interrupted_upgrade_after_failed_enable_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_after_failed_enable_requires_recovery)",
+          "verified": {
+            "line": 1287,
+            "text": "test_interrupted_upgrade_after_failed_enable_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_after_failed_enable_requires_recovery) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_interrupted_upgrade_of_completed_install_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_of_completed_install_requires_recovery)",
+          "verified": {
+            "line": 1288,
+            "text": "test_interrupted_upgrade_of_completed_install_requires_recovery (selected_deploy_17.InstallationRecoveryTests.test_interrupted_upgrade_of_completed_install_requires_recovery) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_legacy_failed_current_same_candidate_is_started_and_enabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_failed_current_same_candidate_is_started_and_enabled)",
+          "verified": {
+            "line": 1289,
+            "text": "test_legacy_failed_current_same_candidate_is_started_and_enabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_failed_current_same_candidate_is_started_and_enabled) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_legacy_successful_disabled_installation_is_not_reenabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_successful_disabled_installation_is_not_reenabled)",
+          "verified": {
+            "line": 1290,
+            "text": "test_legacy_successful_disabled_installation_is_not_reenabled (selected_deploy_17.InstallationRecoveryTests.test_legacy_successful_disabled_installation_is_not_reenabled) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_partial_enable_failure_retains_healthy_commit_and_retries (selected_deploy_17.InstallationRecoveryTests.test_partial_enable_failure_retains_healthy_commit_and_retries)",
+          "verified": {
+            "line": 1291,
+            "text": "test_partial_enable_failure_retains_healthy_commit_and_retries (selected_deploy_17.InstallationRecoveryTests.test_partial_enable_failure_retains_healthy_commit_and_retries) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_prepare_retry_completes_enable_then_preserves_later_disabled_state (selected_deploy_17.InstallationRecoveryTests.test_prepare_retry_completes_enable_then_preserves_later_disabled_state)",
+          "verified": {
+            "line": 1292,
+            "text": "test_prepare_retry_completes_enable_then_preserves_later_disabled_state (selected_deploy_17.InstallationRecoveryTests.test_prepare_retry_completes_enable_then_preserves_later_disabled_state) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_published_commit_error_keeps_the_healthy_release_running (selected_deploy_17.InstallationRecoveryTests.test_published_commit_error_keeps_the_healthy_release_running)",
+          "verified": {
+            "line": 1294,
+            "text": "test_published_commit_error_keeps_the_healthy_release_running (selected_deploy_17.InstallationRecoveryTests.test_published_commit_error_keeps_the_healthy_release_running) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_unknown_stop_retains_pointer_until_a_confirmed_retry (selected_deploy_17.InstallationRecoveryTests.test_unknown_stop_retains_pointer_until_a_confirmed_retry)",
+          "verified": {
+            "line": 1300,
+            "text": "test_unknown_stop_retains_pointer_until_a_confirmed_retry (selected_deploy_17.InstallationRecoveryTests.test_unknown_stop_retains_pointer_until_a_confirmed_retry) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_unpublished_commit_failure_can_repair_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_unpublished_commit_failure_can_repair_both_release_pointers)",
+          "verified": {
+            "line": 1301,
+            "text": "test_unpublished_commit_failure_can_repair_both_release_pointers (selected_deploy_17.InstallationRecoveryTests.test_unpublished_commit_failure_can_repair_both_release_pointers) ... ok"
+          }
+        },
+        {
+          "priorFailure": "FAIL: test_completion_record_write_failure_can_retry_after_successful_enable (selected_deploy_17.InstallationRecoveryTests.test_completion_record_write_failure_can_retry_after_successful_enable)",
+          "verified": {
+            "line": 1282,
+            "text": "test_completion_record_write_failure_can_retry_after_successful_enable (selected_deploy_17.InstallationRecoveryTests.test_completion_record_write_failure_can_retry_after_successful_enable) ... ok"
+          }
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci2-windows-raw.txt",
+        "sha256": "2564b0cfa92cdc48d857b3cf282254a62f53e53ac11d11c5bc14713a74655413"
+      }
+    },
+    {
+      "area": "CI1 deployment fixture failures",
+      "platform": "linux-root",
+      "verifiedInRun": 41318007104,
+      "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+      "count": 7,
+      "cases": [
+        {
+          "priorFailure": "ERROR: test_common_exclusive_created_lock_allows_real_verified_archive (selected_deploy_2.CandidateArchiveRootTests.test_common_exclusive_created_lock_allows_real_verified_archive)",
+          "verified": {
+            "line": 324,
+            "text": "test_common_exclusive_created_lock_allows_real_verified_archive (selected_deploy_2.CandidateArchiveRootTests.test_common_exclusive_created_lock_allows_real_verified_archive) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_legacy_archive_verification_failure_keeps_pending_recovery_and_retry (selected_deploy_2.CandidateArchiveRootTests.test_legacy_archive_verification_failure_keeps_pending_recovery_and_retry)",
+          "verified": {
+            "line": 328,
+            "text": "test_legacy_archive_verification_failure_keeps_pending_recovery_and_retry (selected_deploy_2.CandidateArchiveRootTests.test_legacy_archive_verification_failure_keeps_pending_recovery_and_retry) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_legacy_pre_workspace_archive_uses_real_verification_and_restores_services (selected_deploy_2.CandidateArchiveRootTests.test_legacy_pre_workspace_archive_uses_real_verification_and_restores_services)",
+          "verified": {
+            "line": 329,
+            "text": "test_legacy_pre_workspace_archive_uses_real_verification_and_restores_services (selected_deploy_2.CandidateArchiveRootTests.test_legacy_pre_workspace_archive_uses_real_verification_and_restores_services) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_legacy_workspace_archive_uses_real_verification_and_restores_services (selected_deploy_2.CandidateArchiveRootTests.test_legacy_workspace_archive_uses_real_verification_and_restores_services)",
+          "verified": {
+            "line": 330,
+            "text": "test_legacy_workspace_archive_uses_real_verification_and_restores_services (selected_deploy_2.CandidateArchiveRootTests.test_legacy_workspace_archive_uses_real_verification_and_restores_services) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_activation_recovers_before_candidate_start_and_preserves_previous (selected_deploy_11.JournalManagementRecoveryTests.test_activation_recovers_before_candidate_start_and_preserves_previous)",
+          "verified": {
+            "line": 532,
+            "text": "test_activation_recovers_before_candidate_start_and_preserves_previous (selected_deploy_11.JournalManagementRecoveryTests.test_activation_recovers_before_candidate_start_and_preserves_previous) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old (selected_deploy_12.ManagementBoundaryTests.test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old)",
+          "verified": {
+            "line": 537,
+            "text": "test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old (selected_deploy_12.ManagementBoundaryTests.test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old) ... ok"
+          }
+        },
+        {
+          "priorFailure": "ERROR: test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database (selected_deploy_12.ManagementBoundaryTests.test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database)",
+          "verified": {
+            "line": 540,
+            "text": "test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database (selected_deploy_12.ManagementBoundaryTests.test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database) ... ok"
+          }
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci2-root-raw.txt",
+        "sha256": "85e0b8839c4bc12b0a4c4ad89380285759bf2800604ed4b92c5198467ef0ddb5"
+      }
+    },
+    {
+      "area": "CI1 JS fixture repairs and requested independence assertions",
+      "platform": "linux",
+      "verifiedInRun": 41318007104,
+      "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+      "checks": [
+        {
+          "path": "tests/runtime/defaults-lifecycle.test.ts",
+          "line": 476,
+          "text": " ✓ tests/runtime/defaults-lifecycle.test.ts (16 tests | 1 skipped) 2354ms"
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "line": 469,
+          "text": " ✓ web/tests/defaults.test.tsx (4 tests) 3348ms"
+        },
+        {
+          "path": "tests/runtime/provider-switch-native.test.ts",
+          "line": 517,
+          "text": " ✓ tests/runtime/provider-switch-native.test.ts (1 test) 9477ms"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci2-linux-raw.txt",
+        "sha256": "d8f8ed7ee7bdc047698b30fa643c6876d3c1e3343c63c9141061e665fae26815"
+      }
+    },
+    {
+      "area": "CI1 JS fixture repairs and requested independence assertions",
+      "platform": "windows",
+      "verifiedInRun": 41318007104,
+      "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+      "checks": [
+        {
+          "path": "tests/runtime/defaults-lifecycle.test.ts",
+          "line": 588,
+          "text": " ✓ tests/runtime/defaults-lifecycle.test.ts (16 tests) 32979ms"
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "line": 519,
+          "text": " ✓ web/tests/defaults.test.tsx (4 tests) 4663ms"
+        },
+        {
+          "path": "tests/runtime/windows-job.test.ts",
+          "line": 941,
+          "text": " ✓ tests/runtime/windows-job.test.ts (8 tests) 13794ms"
+        },
+        {
+          "path": "tests/runtime/provider-switch-native.test.ts",
+          "line": 586,
+          "text": " ✓ tests/runtime/provider-switch-native.test.ts (1 test) 12048ms"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci2-windows-raw.txt",
+        "sha256": "2564b0cfa92cdc48d857b3cf282254a62f53e53ac11d11c5bc14713a74655413"
+      }
+    }
+  ],
+  "priorFailedRun": {
+    "path": ".work/v232-ci1-monitor-summary.json",
+    "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+  },
+  "evidence": {
+    "observations": [
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T144950168190Z.json",
+        "sha256": "97b20d7f7c9f6a946f2ff097a0f89bbde01912afa1a27b1c7f6d9fa7b5ac456c"
+      },
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T145123900713Z.json",
+        "sha256": "2b46aa913c8705b8433611aa0737da04c9ec4b85f390baa8e3928bc67e5da5e3"
+      },
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T145234291525Z.json",
+        "sha256": "fdce65e7359aa74f764bc7273d4881006f468da64625b9b9bee8c20953511077"
+      },
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T145359285981Z.json",
+        "sha256": "a9cfbfa6cf5e5a4090dad6eae4b49b9ac7e7ae15e7f513e8f1b51d42a6c9deda"
+      },
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T145517590275Z.json",
+        "sha256": "b4c95e9b78cf6f26500a3bf949820281d54db7b4c2fbeb4cec2b37565063d4bc"
+      },
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T145641171820Z.json",
+        "sha256": "7c3408970e08ed269adbaffa12c8c7e85c9dbd9c879c2558590e614b25ca8e9d"
+      },
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T145815704269Z.json",
+        "sha256": "79a424f8f3617c396a5f2fe541755cbba86d660dd11fdb846bf7f5b2c2747129"
+      },
+      {
+        "path": ".work/v232-copy-ci2-observation-20261101T145943915555Z.json",
+        "sha256": "543f66a1b58149621fba21f4bd43a067d846e1f7a196a9acfe62e1765b6cfee2"
+      }
+    ],
+    "finalObservation": {
+      "path": ".work/v232-copy-ci2-observation-20261101T145943915555Z.json",
+      "sha256": "543f66a1b58149621fba21f4bd43a067d846e1f7a196a9acfe62e1765b6cfee2"
+    },
+    "planReview": {
+      "path": ".work/v232-copy-ci2-plan-review.json",
+      "sha256": "37470d8e65ec9be9179997f376c6a3563ae3a717c699f87be3845bbc85e8a32c"
+    },
+    "ci1JsRepair": {
+      "path": ".work/v232-ci1-js-fixture-repair.json",
+      "sha256": "8d7b051300e75196cbd3986b73d5bc344345a1f28c6560eac5415f56cdca815c"
+    }
+  },
+  "method": [
+    "Unauthenticated public API GET only; exact head/topic/workflow_dispatch/run/attempt1 bound. At least60seconds between batches; no dispatch/retry/cancel. Polling stopped at complete terminal evidence.",
+    "Root supplied complete actual hosted raw logs. Final group JSON and true FAIL/ERROR headers used; deliberate failing meta-test examples excluded.",
+    "CI1 deployment failure identities individually matched actual CI2 ok lines; JS changed fixture files matched passing summaries with supported-platform skip boundaries. New independent sessionId assertion passed both Linux and Windows actual CLI cases."
+  ],
+  "limits": [
+    "CI2 failed despite Linux, Windows and Security success. Root2 failures and coverage refusal retained; no complete dedup count or gaps-zero claim.",
+    "Targeted53case fix is subsequent working-tree evidence and does not relabel the committed failing source as passed. New exact-source audit/full CI still required.",
+    "No individual case JSON artifacts were downloaded; raw hosted group counts and per-case lines are the cited source. No live service mutation, paid model or external MCP call performed."
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-ci2-fixture-root-cause-and-review-retrospective",
+  "complete": true,
+  "status": "cause-confirmed-repair-awaiting-independent-review",
+  "reviewerId": "v220_final_deploy",
+  "observedAt": "2026-11-01T14:54:14.362493+00:00",
+  "failedCandidate": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+  "failedSourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+  "failedFiles": [
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "a49ed9303d6270aa9983713064bc99589d6dbdba6d1038e6e9d8ac1d25244d93",
+      "worktreeStillMatchesFailedCommit": true
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "sha256": "1c4ae691690245e7384e91ff17c1f8752660e05d67991b7536385e772b956539",
+      "worktreeStillMatchesFailedCommit": true
+    },
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "sha256": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b",
+      "worktreeStillMatchesFailedCommit": true
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "caabfa5f06d0840ea002c32fb766e6578bf64e11972cc336a61643778bc318d4",
+      "worktreeStillMatchesFailedCommit": true
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "14559992cf6b31bf057aba2847eca46dbf611e2a92a1f56f288208786d2cadde",
+      "worktreeStillMatchesFailedCommit": true
+    }
+  ],
+  "raw": {
+    "path": ".work/v232-ci2-root-raw.txt",
+    "sha256": "85e0b8839c4bc12b0a4c4ad89380285759bf2800604ed4b92c5198467ef0ddb5"
+  },
+  "observedFailures": [
+    {
+      "test": "AccountRecoveryTests.test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore",
+      "actual": "health",
+      "expected": "authentication_downgrade"
+    },
+    {
+      "test": "AccountRecoveryTests.test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate",
+      "actual": "DeployError not raised",
+      "expected": "authentication_downgrade"
+    }
+  ],
+  "actualRootRun": {
+    "total": 336,
+    "passed": 334,
+    "failed": 2,
+    "skipped": 0
+  },
+  "rootCause": "AccountRecoveryTests composes an InstallationRecoveryTests fixture by invoking setUp and reusing its manager. The newly introduced unconditional instance release_accounts=False override travels with that manager; this consumer restored verify_release only. Candidate account declarations are therefore hidden and the two real downgrade branches are not exercised. Production Manager code is unchanged.",
+  "reverseDependencyInspection": {
+    "allPythonTestsAstParsed": 72,
+    "ordinaryFixtureImports": [
+      {
+        "path": "tests/deploy/root/test_account_recovery.py",
+        "line": 10,
+        "module": "tests.deploy.test_install_recovery",
+        "alias": "recovery_fixture"
+      }
+    ],
+    "textSearchAlsoCovered": [
+      "InstallationRecoveryTests",
+      "TransactionTests",
+      "test_install_recovery",
+      "test_deployment",
+      "release_accounts"
+    ],
+    "transactionFixtureExternalConsumers": [],
+    "compositionNotInheritance": true
+  },
+  "selectionGap": "deploymentPairs contains test_install_recovery.py and root/test_release_reuse.py but omits the actual root/test_account_recovery.py consumer. It therefore cannot select that consumer when only the shared ordinary fixture changes.",
+  "whyMyPreviousReviewMissed": "I checked the three explicitly selected root modules and their forward/imported dependencies against the earlier root29 evidence, then checked ordinary83 evidence. I did not reverse-trace the changed ordinary fixture constructors into all test consumers. The statement that root account downgrade tests retained their original assertions was true but insufficient: another unselected root recovery fixture had inherited the new manager override through composition. The previous no-finding conclusion missed this real test-contract regression.",
+  "previousReviewPreserved": {
+    "path": ".work/v232-copy-ci-deploy-fixture-review.json",
+    "sha256": "27cde110db5ef41307822b3874583fd082d60eb783c140899df25f7cb6ba13db"
+  },
+  "requiredRepairAndPrevention": [
+    "Restore the real Manager.release_accounts binding in the root account fixture and assert the binding, preserving original downgrade/no-start/pending-journal assertions.",
+    "Retain the ordinary UID token-only fixture isolation; do not weaken root metadata ownership or account admission production checks.",
+    "Add the account recovery consumer to the shared installation/reuse selection group, with both-direction selector regression.",
+    "Verify real root account cases, ordinary installation parent, and targeted selector cases. Future shared fixture method replacements require reverse consumer/import construction review, not only selected-suite dependency checks."
+  ],
+  "limits": [
+    "Independent read-only diagnosis only, not a repaired-source pass. No tests, external network, server access or source modifications performed.",
+    "No claim that the failing fixture indicates a production auth bypass: product hashes remain unchanged; this is a mock leaking into a root verification fixture.",
+    "Failed CI and prior review are retained, not rewritten. Final clean review awaits the author freeze and actual targeted results."
+  ]
+}

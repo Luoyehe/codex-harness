@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "v2.3.2-ci-repair-final",
+  "phase": "v2.3.2-composed-fixture-final",
   "consecutiveClean": 1,
   "rounds": [
     {
@@ -7817,6 +7817,37 @@
         }
       ],
       "method": "Final complete source inventory and impact audit. All 11 changes independently reviewed; all remaining source hashes bound to the prior complete audit. Core conversation, read/resume, lifecycle, conversion, sidebar and provider selection received additional independent review. Runtime/deployment production bytes are unchanged from b1ffa; nine test repairs and two mandatory learning documents changed. Does not claim every unchanged source line was reread."
+    },
+    {
+      "id": "v232-composed-fixture-final",
+      "sequence": 81,
+      "digest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-11-01T14:58:10.992Z",
+      "completedAt": "2026-11-01T15:02:21.119Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "root-with-independent-composed-fixture-review",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v232-fixture-isolation/audit.json",
+          "sha256": "513e86efb6771a082a07533cb7135aea16d7b135b5f3c370cdbf3e1571175f1d"
+        }
+      ],
+      "method": "Final full inventory and impact review: four changed fixture/selection/document files independently read and validated. All other files rehashed against the prior complete audit. Shared fixture imports, direct setup composition, instance method restoration and reverse consumers explicitly traced. Runtime/deploy/web application bytes remain unchanged. This is not a claim that every unchanged line was reread."
     }
   ],
   "fullTests": {
@@ -7908,11 +7939,11 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+  "currentAuditSourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
   "currentAuditGate": {
     "status": "passed",
-    "round": "v232-ci-fixtures-and-session-final",
-    "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+    "round": "v232-composed-fixture-final",
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
     "sourceFiles": 2004,
     "requiredCleanRounds": 1,
     "userOverride": true
@@ -8608,19 +8639,19 @@
   },
   "v232FullTests": {
     "status": "pending",
-    "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
     "sourceFiles": 2004,
     "failedPredecessor": {
-      "path": "verification/audit-evidence/v232-ci-repair/failedCiReview.json",
-      "sha256": "781c9f715ad1d17c77e3f76316d3af5fe709f90a368a81d801c053877c92fa33",
+      "path": "verification/audit-evidence/v232-fixture-isolation/failedCiReview.json",
+      "sha256": "5e0c95c0ac87328eb56926819f8e2f5d66d32ca7afd3a35d7e672b8faef9b9d9",
       "original": {
-        "path": ".work/v232-ci1-monitor-summary.json",
-        "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+        "path": ".work/v232-ci2-monitor-summary.json",
+        "sha256": "5e0c95c0ac87328eb56926819f8e2f5d66d32ca7afd3a35d7e672b8faef9b9d9"
       }
     }
   },
   "v232ReleaseDeployment": {
     "status": "pending",
-    "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383"
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938"
   }
 }

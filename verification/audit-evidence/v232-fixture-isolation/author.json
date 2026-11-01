@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "kind": "ci2-composed-fixture-repair",
+  "author": "v230_audit_gateway_tooling",
+  "complete": true,
+  "status": "targeted-passed",
+  "baseHead": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+  "files": [
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "sha256": "557ddac501d72495743ac88bf9fbc1cd6f5e536bea1c4a060e3cd3f2d6fbff09",
+      "beforeSha256": "7661b4381c535b5c9c085c1d8ffc722ea15c1807da8e77c81498f11fc682268b"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "60ac66d1beb9e2126b1c841b33d0d150bce9836013cffde1194ec5e9068930e9",
+      "beforeSha256": "caabfa5f06d0840ea002c32fb766e6578bf64e11972cc336a61643778bc318d4"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "e332594f2af229b5f443611f5245fb11f3a0be264325a948abf35bbb45922c1e",
+      "beforeSha256": "828acb976bf5812fc3acc97e94c8a78f5653586cc9c4f791614610afe16ad26c"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "0d27c8a78f5d45da4df8aca3e8343519b3f92dc65db61518ce9fa98a1a0f7948",
+      "beforeSha256": "c93eb2f3bf3a94554b5a97c384e53e8669f83501326b7295593915ffc6524a54"
+    }
+  ],
+  "productChanges": false,
+  "ciSelectionChanged": true,
+  "failure": {
+    "runId": 41318007104,
+    "head": "a85e69161fec94fb9c9389536efe2c743ab5ccd5",
+    "raw": {
+      "path": ".work/v232-ci2-root-raw.txt",
+      "sha256": "85e0b8839c4bc12b0a4c4ad89380285759bf2800604ed4b92c5198467ef0ddb5"
+    },
+    "actualRootCases": {
+      "total": 336,
+      "passed": 334,
+      "failed": 2,
+      "skipped": 0
+    },
+    "assertions": [
+      "test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore: expected authentication_downgrade, received health.",
+      "test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate: expected DeployError, none raised."
+    ],
+    "cause": "AccountRecoveryTests composes InstallationRecoveryTests by invoking setUp and reusing its Manager. The preceding repair added an instance release_accounts=False substitute to that ordinary-UID fixture. The root consumer restored verify_release but not release_accounts, misclassifying a real account-v1 candidate as legacy. Production Manager remained unchanged.",
+    "whyMissed": "The prior author and independent review validated changed fixture definitions and their selected root neighbors but missed the ordinary fixture composition in root account recovery. The selector paired installation recovery only with root release reuse, omitting this actual consumer. The prior narrow passes did not cover account recovery.",
+    "classification": "Fixture regression plus incomplete test impact mapping; not a demonstrated production authentication bypass."
+  },
+  "repair": [
+    "Restore Manager.release_accounts bound to the reused root Manager beside the existing real verify_release restoration. All eight root recovery/downgrade assertions remain unchanged.",
+    "Group ordinary installation recovery, root account recovery and root release reuse bidirectionally. Regression asserts exact group membership for every changed member and requires review if any companion is missing.",
+    "Record the CI2 failure and a specific composition/setup/method-rebinding/cleanup inspection rule in maintainer preflight lessons. No workflow/full-suite rule or application capability check was weakened."
+  ],
+  "consumerAndLifetimeReview": {
+    "evidence": {
+      "path": ".work/v232-ci2-account-fixture-references.txt",
+      "sha256": "be240af12896c225b62d182a39d3ca00fe44745d755fd042bc8ac76ca85c392c"
+    },
+    "ordinaryDefinitions": [
+      "tests/deploy/test_install_recovery.py::InstallationRecoveryTests",
+      "tests/deploy/test_deployment.py::TransactionTests"
+    ],
+    "composedConsumer": "tests/deploy/root/test_account_recovery.py::AccountRecoveryTests calls InstallationRecoveryTests.setUp; no inheritance is involved.",
+    "otherConsumers": "Repository Python reference search found no other consumer of InstallationRecoveryTests and no external consumer of TransactionTests. Other explicit setup reuse is candidate-archive/archive fixture and proxy-transaction/execution fixture, without these release_accounts replacements.",
+    "scope": "Both substitutes are assigned to newly constructed Manager instances, not the Manager class. Root restoration is bound to its own instance. The composed fixture doCleanups is registered on the outer test, retaining temporary-directory cleanup; ordinary instances keep the intended token-only isolation.",
+    "actualBindingProbe": {
+      "exitCode": 0,
+      "stdout": "{\"realRootReaderBound\": true, \"accountAndLegacyMetadataDistinguished\": true, \"separateManagerInstances\": true, \"ordinaryInstanceSubstituteRetained\": true}\n",
+      "stderr": ""
+    }
+  },
+  "validation": [
+    {
+      "kind": "isolated-linux-root",
+      "uid": 0,
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "files": {
+        "tests/deploy/root/test_account_recovery.py": 8,
+        "tests/deploy/root/test_release_reuse.py": 3
+      },
+      "evidence": {
+        "path": ".work/v232-ci2-account-fixture-linux.json",
+        "sha256": "eab70f7fef17b861ac7b574f9c867f06667bdd31eb3d03a9558707d300ee9ba7"
+      }
+    },
+    {
+      "kind": "isolated-linux-ordinary",
+      "uid": 65534,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "files": {
+        "tests/deploy/test_install_recovery.py": 22
+      },
+      "evidence": {
+        "path": ".work/v232-ci2-account-fixture-linux.json",
+        "sha256": "eab70f7fef17b861ac7b574f9c867f06667bdd31eb3d03a9558707d300ee9ba7"
+      }
+    },
+    {
+      "kind": "windows-targeted-selector",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-IzfZEb/vitest.json",
+        "sha256": "54ce5f20fc37d329988c86451f9d5bbb5d8601dcb83bf825c87ed68f2c16e141"
+      },
+      "log": {
+        "path": ".work/v232-ci2-account-selector-tests.txt",
+        "sha256": "b972862a16175ab1a9dfe1729640487f6d973ed7b2ea0c10c234badf1e54c210"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v232-ci2-account-fixture-repair.diff",
+      "sha256": "1ae203fde5703eec23a525d6af0cce20ab43b993ac4904165c38e405504d81cc"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-linux.py",
+      "sha256": "8349e89c6aa5db36e309e98364d920dd523124484d9cab3a02b35a4d11b665af"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-linux.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v232-ci2-fixture-independent-diagnosis.json",
+      "sha256": "7f1a756f25604533b3c66cb00ddaaa2e51e8a19dc6d8c1d2a7fc4204e0041cfe"
+    }
+  ],
+  "limits": [
+    "One fresh isolated /var/tmp fixture on authorized 120; no current instance paths, credentials, services, nftables, models or MCP were read or changed. Root tests use actual UID 0 ownership and real package/manifests with fake service/process execution; ordinary parent uses actual UID 65534.",
+    "53 distinct targeted cases passed. The explicit bound-method/metadata readback probe is additional evidence, not another counted test case. No full suite or deployment ran.",
+    "The failed CI2 raw remains unchanged. These targeted results neither turn that run into success nor authorize deploying its stage. A new exact-source audit and full CI are still required.",
+    "This is the implementation/targeted report; independent review is delegated to v220_final_deploy."
+  ]
+}
