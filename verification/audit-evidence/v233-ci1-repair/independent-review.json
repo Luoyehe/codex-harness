@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "/root/v233_full_web",
+  "independentOfRepairAuthor": true,
+  "reviewedAt": "2026-11-01T18:13:46.596Z",
+  "complete": true,
+  "clean": true,
+  "result": "no-new-findings-after-fixture-repair",
+  "sourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+  "sourceFiles": 2013,
+  "priorSourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+  "changedFiles": [
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "beforeSha256": "af48fdaa4cf26bbbc4921ed76f12744ab8725d9628971859111619efbc21be92",
+      "sha256": "51141b32380368610effdefdaae10946e5347f79755a8b4b6e88ef47ca653807",
+      "bytes": 14337
+    },
+    {
+      "path": "tests/runtime/predictions.test.ts",
+      "beforeSha256": "373f664687e5b7c9f753fd596bc442e24fa243e76a64a595a8da904850ae442e",
+      "sha256": "57b108d7ed6ebe4cfef02a0cd6644c2774a18fb141ad3374e8ed353cb60acaff",
+      "bytes": 9274
+    }
+  ],
+  "unchangedFiles": 2011,
+  "partitions": [
+    {
+      "scope": "gateway",
+      "files": 51,
+      "unchanged": 51,
+      "changed": 0,
+      "priorManifest": {
+        "path": ".work/v233-final-clean-3/gateway-manifest.json",
+        "sha256": "afe3f89984489dbd777777a0d2802760d1c467a01e5ecaccdadd3ea8239ff6b7"
+      }
+    },
+    {
+      "scope": "runtime",
+      "files": 1506,
+      "unchanged": 1505,
+      "changed": 1,
+      "priorManifest": {
+        "path": ".work/v233-final-clean-3/runtime-manifest.json",
+        "sha256": "c6b169232035bf7d833992aa066d59a3d12d00b2775cb5fb6c8d57ea933a68df"
+      }
+    },
+    {
+      "scope": "web",
+      "files": 241,
+      "unchanged": 241,
+      "changed": 0,
+      "priorManifest": {
+        "path": ".work/v233-final-clean-3/web-manifest.json",
+        "sha256": "9a4794e004b835fb48f0b3bec6d4c83b86c2cfa98f529d99c51f852781c01cdc"
+      }
+    },
+    {
+      "scope": "deployment",
+      "files": 215,
+      "unchanged": 214,
+      "changed": 1,
+      "priorManifest": {
+        "path": ".work/v233-final-clean-3/deployment-manifest.json",
+        "sha256": "68554c6146e15805163864a6c6fc4ed948b4c087ef34ffaa61945dbd4737ce14"
+      }
+    }
+  ],
+  "findings": [],
+  "semanticReview": [
+    {
+      "path": "tests/runtime/predictions.test.ts",
+      "inspectionDepth": "complete-test-and-mock-semantic-review",
+      "finding": "Only the missing native read response was added. The existing source turn has no items and no test later populates items, so data:[] with null next/backwards cursors is the exact official empty-page response. All five original ownership, latest-turn, reservation, invalidation, unknown-delivery and expiry assertions remain unchanged."
+    },
+    {
+      "path": "src/runtime/media-history.ts",
+      "inspectionDepth": "complete-coupled-implementation-read",
+      "finding": "The full-turn adapter requests notLoaded metadata then limit:1 item pages, including the legitimate empty page for a turn without items. Its malformed response/page size, identity, cursor and total-item budget validation remains untouched."
+    },
+    {
+      "path": "protocol/ts/v2/ThreadItemsListResponse.ts",
+      "inspectionDepth": "complete-contract-read",
+      "finding": "data array plus nullable nextCursor and backwardsCursor match the added fixture; no page records are fabricated."
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "inspectionDepth": "changed-lesson-and-coupled-guidance-review",
+      "finding": "The exact failed head/run, missing native mock method and manual-target omission are recorded. The guidance preserves original evidence and strict production validation. Existing src/runtime/protocol selector at scripts/select-tests.mjs:86 already covers runtime tests; this was not a selector defect."
+    }
+  ],
+  "regression": {
+    "files": 18,
+    "cases": 186,
+    "passed": 186,
+    "failed": 0,
+    "skipped": 0,
+    "report": {
+      "path": ".work/test-results/run-ZWDD1h/vitest.json",
+      "sha256": "b64b9b41bc5502d8333ace113217596f88a340531205dac72f7a811b435c252c"
+    },
+    "repair": {
+      "path": ".work/v233-ci1-runtime-fix.json",
+      "sha256": "f3c6e9e2848f89a733f0b5c5f4c364f80ad98f344fdc5f0d1654b8c2e81ca370"
+    },
+    "beforeFailure": {
+      "path": ".work/test-results/run-kocxWb/vitest.json",
+      "sha256": "e90d119441b8a7efb5374dce8b7bf04ede3cbb2c59feee5c9498645b977e88d5"
+    }
+  },
+  "priorAudit": {
+    "path": ".work/v233-final-clean-3/audit.json",
+    "sha256": "7b0862723b2f702a6b847b7ad865dd3ed365342f89449a3c7b89753bad3f1abc"
+  },
+  "priorSourceSnapshot": {
+    "path": ".work/v233-final-clean-3/source-snapshot.json",
+    "sha256": "ab45d9d9a98294d0a20a8f7eac8424f32577d0f7c3851369e8c80dcf8a46917f"
+  },
+  "method": "All 2013 names and bytes were compared with the prior frozen source; four nonoverlapping audit partitions cover that exact set. Only two changed files received fresh semantic review, plus their native response contract and unchanged coupled reader. Existing unchanged review depths are carried forward explicitly; this is not a claim of rereading 2011 unrelated files.",
+  "limitations": [
+    "Failed CI1 is retained as failed. This targeted result does not authorize deployment or replace fresh full CI.",
+    "No paid model or real external MCP calls were made."
+  ]
+}

@@ -14,6 +14,7 @@ class Native extends EventEmitter {
     if (method === 'thread/turns/list') await this.gate; this.before?.(method); options?.beforeWrite?.(); this.calls.push({ method, params });
     if (method === 'thread/read') return { thread: { id: 'thread', historyMode: 'paginated', status: { type: this.status }, canAcceptDirectInput: true, turns: [] } };
     if (method === 'thread/turns/list') return { data: [{ ...this.source, itemsView: object(params).itemsView ?? 'full' }], nextCursor: null, backwardsCursor: null };
+    if (method === 'thread/items/list') return { data: [], nextCursor: null, backwardsCursor: null };
     if (method === 'thread/timeline/list') return { data: [], nextCursor: null, activeRealtimeSessionAtPageStart: null };
     if (method === 'thread/prediction/request') { if (this.early) this.update({ type: 'completed', text: 'Private editable suggestion' }); if (this.failure) throw this.failure; }
     if (method === 'turn/start') return { turn: { ...turn, id: 'new-turn', itemsView: 'full', status: 'inProgress' } };

@@ -1,0 +1,105 @@
+{
+  "failure": {
+    "ciLog": ".work/v233-ci1-linux-raw.txt",
+    "lines": [
+      964,
+      1046
+    ],
+    "beforeSourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+    "localReproduction": ".work/test-results/run-kocxWb/vitest.json",
+    "localFailedCases": 5,
+    "localLog": ".work/v233-ci1-predictions-before.log",
+    "error": "DeliveryError: Invalid native item page"
+  },
+  "rootCause": "The predictions Native fake returns a nonempty notLoaded turn whose items are empty, but has no thread/items/list branch. The new bounded history adapter requests that native read and receives the generic fallback {}, not a valid empty ThreadItemsListResponse. The failure is not an oversized page, Linux-specific behavior or a timing race.",
+  "trace": [
+    "tests/runtime/predictions.test.ts setup().history()",
+    "RuntimeService.call(thread/history)",
+    "ThreadActivity.read",
+    "UnifiedHistory.read",
+    "readMediaHistory(thread/turns/list full)",
+    "native thread/turns/list itemsView:notLoaded",
+    "native thread/items/list limit:1",
+    "missing fake branch returns {}"
+  ],
+  "fix": {
+    "path": "tests/runtime/predictions.test.ts",
+    "sha256": "57b108d7ed6ebe4cfef02a0cd6644c2774a18fb141ad3374e8ed353cb60acaff",
+    "scope": "One test-fixture response branch only",
+    "response": {
+      "data": [],
+      "nextCursor": null,
+      "backwardsCursor": null
+    },
+    "contract": "protocol/ts/v2/ThreadItemsListResponse.ts",
+    "productionChanges": false,
+    "assertionsRemoved": false,
+    "retriesOrTimeoutChanges": false,
+    "paginationValidationRelaxed": false
+  },
+  "missedBeforeCI": "Previous targeted selection followed media/history/workflow files and actual CLI consumers but omitted predictions.test.ts, whose history preparation is an indirect dependency. Its initial test-file inspection was declaration/import inventory rather than full mock-body semantic inspection. A complete inventory hash does not establish mock compatibility or test execution; CI exposed this omission.",
+  "prevention": [
+    "For any shared native read adapter change, search every RuntimeService thread/history consumer and all thread/turns/list / thread/items/list / thread/timeline/list fake branches, including setup helpers unrelated by test filename.",
+    "Classify whether each fake returns no turns, full-turn items, notLoaded turns requiring item pages, or actual pinned CLI responses; execute the complete affected consumer selection before release.",
+    "Keep unsupported-read errors and page-limit checks strict; update the fake to the official response schema instead of widening production acceptance or weakening assertions.",
+    "Record the original CI and local failures with their source identities. A later targeted pass does not rewrite CI1 as a success."
+  ],
+  "mockReview": {
+    "emptyTurnPages": [
+      "remote.test.ts",
+      "realtime.test.ts",
+      "organization.test.ts"
+    ],
+    "fullTurnFixtures": [
+      "reasoning-summary.test.ts",
+      "service.test.ts",
+      "workflows.test.ts"
+    ],
+    "boundedItemPagination": [
+      "generated-media.test.ts"
+    ],
+    "repairedEmptyItemPage": [
+      "predictions.test.ts"
+    ],
+    "metadataOnlyConversionProbe": [
+      "thread-conversion.test.ts"
+    ],
+    "excludedNegativeOnlyReference": "thread-terminals.test.ts asserts no history read occurs; it does not execute that consumer. Gateway higher-level thread/history mocks do not instantiate this RuntimeService adapter."
+  },
+  "regression": {
+    "sourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+    "sourceFiles": 2013,
+    "files": [
+      "tests/runtime/approval-native.test.ts",
+      "tests/runtime/gateway-native.test.ts",
+      "tests/runtime/generated-media.test.ts",
+      "tests/runtime/guardian-native.test.ts",
+      "tests/runtime/input-native.test.ts",
+      "tests/runtime/native-smoke.test.ts",
+      "tests/runtime/organization-native.test.ts",
+      "tests/runtime/organization.test.ts",
+      "tests/runtime/predictions.test.ts",
+      "tests/runtime/provider-switch-native.test.ts",
+      "tests/runtime/realtime.test.ts",
+      "tests/runtime/reasoning-summary.test.ts",
+      "tests/runtime/remote-native.test.ts",
+      "tests/runtime/remote.test.ts",
+      "tests/runtime/service.test.ts",
+      "tests/runtime/thread-list-native.test.ts",
+      "tests/runtime/workflows-native.test.ts",
+      "tests/runtime/workflows.test.ts"
+    ],
+    "filesCount": 18,
+    "cases": 186,
+    "passed": 186,
+    "failed": 0,
+    "skipped": 0,
+    "report": ".work/test-results/run-ZWDD1h/vitest.json",
+    "log": ".work/v233-ci1-runtime-targeted.log",
+    "nativeVersion": "0.164.0",
+    "externalInference": false,
+    "externalMcpCalls": false,
+    "allDetectedHistoryConsumersCovered": true
+  },
+  "status": "targeted-regression-passed-awaiting-independent-review-and-fresh-CI"
+}
