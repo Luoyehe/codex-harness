@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-01T11:06:55.505Z",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "entries": [
+    {
+      "path": "verification/audit-evidence/v231-ci2/ci1-authorization.json",
+      "sha256": "096b1afdc9b87fba0bd0c9f454fae615bcca2c8cb157febed5f3402fbbae0eee",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "096b1afdc9b87fba0bd0c9f454fae615bcca2c8cb157febed5f3402fbbae0eee"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/ci1-failure.json",
+      "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb",
+      "original": {
+        "path": ".work/v231-ci1-failure-summary.json",
+        "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/round3-snapshot.json",
+      "sha256": "70b4e74100978156df5153e2b6574e1f1776e5bed80edcdaec924347866df1c2",
+      "original": {
+        "path": ".work/v231-round3-snapshot.json",
+        "sha256": "70b4e74100978156df5153e2b6574e1f1776e5bed80edcdaec924347866df1c2"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/round3-team.json",
+      "sha256": "8fe5c59cbd93132068fac9f14d0b39d64a64be61c3c55b73e575b5fe8235bef3",
+      "original": {
+        "path": ".work/v231-round3-team.json",
+        "sha256": "8fe5c59cbd93132068fac9f14d0b39d64a64be61c3c55b73e575b5fe8235bef3"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/account-test-author.json",
+      "sha256": "984001a8c8808f341bde94c0d817e67e9249595ee234dfc1aaa6d6550537bf8d",
+      "original": {
+        "path": ".work/v231-ci-device-login-repair.json",
+        "sha256": "984001a8c8808f341bde94c0d817e67e9249595ee234dfc1aaa6d6550537bf8d"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/models-test-author.json",
+      "sha256": "4db9bacc6b4e4809954ce63d0ac81075542c49615f4fc36d18d6a0b5e917ca70",
+      "original": {
+        "path": ".work/v231-shared-model-directory-repair.json",
+        "sha256": "4db9bacc6b4e4809954ce63d0ac81075542c49615f4fc36d18d6a0b5e917ca70"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/test-repair-review.json",
+      "sha256": "daa94187f383c9d73044b77c29bef4d9fbd626697233edfbd23335d5a482b6d2",
+      "original": {
+        "path": ".work/v231-ci1-repair-review.json",
+        "sha256": "daa94187f383c9d73044b77c29bef4d9fbd626697233edfbd23335d5a482b6d2"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/builtin-mcp-freshness.json",
+      "sha256": "ef4335eb4a33e5323cab9531ae6d7afea39968254dc06a825ffe0ab1301834f5",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-3922cafb-f9ee-43fa-99a6-ff42ad243d5c.json",
+        "sha256": "ef4335eb4a33e5323cab9531ae6d7afea39968254dc06a825ffe0ab1301834f5"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/source-scan.json",
+      "sha256": "0f3e15e45c67a56481e852fcea51404c9ee044f4d2ea15a8a259d9fdb0534edc",
+      "original": {
+        "path": ".work/v231-round3-source-security.json",
+        "sha256": "0f3e15e45c67a56481e852fcea51404c9ee044f4d2ea15a8a259d9fdb0534edc"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231-ci2/ci1-codeql.json",
+      "sha256": "0764c89f453316a9673131ab3adaf08d8c30ef503ecf110ebb430545268868b7",
+      "original": {
+        "path": ".work/v231-codeql-final-review.json",
+        "sha256": "0764c89f453316a9673131ab3adaf08d8c30ef503ecf110ebb430545268868b7"
+      }
+    }
+  ],
+  "canonicalization": "Published JSON evidence uses LF; original local byte hashes are retained separately. No original failed result is rewritten."
+}

@@ -8,7 +8,7 @@ import { ConfigSettings } from '../components/ConfigSettings';
 import { ModelCatalog } from '../components/ModelCatalog';
 import type { Api } from '../lib/api';
 import type { Model } from '../lib/types';
-import { emptyDraft, writeDraft } from '../lib/drafts';
+import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
 
 vi.mock('@xterm/xterm', () => ({ Terminal: class {} }));
 vi.mock('@xterm/addon-fit', () => ({ FitAddon: class {} }));
@@ -69,6 +69,7 @@ it('keeps each chat selection while switching projects and invalidates the share
   writeDraft({ ...emptyDraft('tb'), text: 'draft beta', options: { model: 'shared', modelProvider: 'beta', effort: 'max' } });
   const sockets: any[] = [], calls: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
   let finishBeta!: () => void, waitBeta = true, rows = models;
+  let finishCatalog: (() => void) | undefined, holdCatalog = false;
   const threads = { ta: { id: 'ta', name: 'Chat Alpha', cwd: '/p' }, tb: { id: 'tb', name: 'Chat Beta', cwd: '/q' } };
   vi.stubGlobal('WebSocket', class { onopen = () => {}; onclose = () => {}; onmessage = (_: any) => {}; close() {} constructor() { sockets.push(this); } });
   vi.stubGlobal('fetch', vi.fn(async (url, init) => {
@@ -78,7 +79,10 @@ it('keeps each chat selection while switching projects and invalidates the share
     switch (call.method) {
       case 'project/list': result = { projects: [{ id: 'p', name: 'Project Alpha', path: '/p' }, { id: 'q', name: 'Project Beta', path: '/q' }] }; break;
       case 'thread/list': result = { data: [call.params.projectId === 'q' ? threads.tb : threads.ta], nextCursor: null }; break;
-      case 'model/list': result = page(rows); break;
+      case 'model/list':
+        result = page(rows);
+        if (holdCatalog) await new Promise<void>(resolve => { finishCatalog = resolve; });
+        break;
       case 'defaults/read': result = { model: 'shared', modelProvider: call.params.projectId === 'q' ? 'beta' : 'alpha' }; break;
       case 'prompt/list': result = { prompts: [] }; break;
       case 'thread/read': result = { thread }; break;
@@ -102,9 +106,17 @@ it('keeps each chat selection while switching projects and invalidates the share
   fireEvent.click(screen.getByRole('button', { name: 'Project Beta' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Chat Beta' }));
   await waitFor(() => expect(finishBeta).toBeTypeOf('function'));
-  expect(picker().textContent).toContain('读取模型设置');
+  // The saved model/provider pair already identifies Beta in the current
+  // directory. Reading session defaults must not replace that explicit choice.
+  expect(picker().textContent).toContain('Beta model');
   fireEvent.click(picker());
-  expect(screen.getByRole('combobox', { name: '思考强度' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('combobox', { name: '模型' })).toHaveProperty('value', JSON.stringify(['beta', 'shared']));
+  expect(screen.getByRole('combobox', { name: '思考强度' })).toHaveProperty('value', 'max');
+  expect(screen.getByRole('combobox', { name: '思考强度' }).matches(':disabled')).toBe(false);
+  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
+  expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(true);
+  fireEvent.keyDown(input(), { key: 'Enter' });
+  expect(calls.some(call => call.operationId)).toBe(false);
   await act(async () => { waitBeta = false; finishBeta(); });
   await waitFor(() => expect(picker().textContent).toContain('Beta model'));
   expect(input()).toHaveProperty('value', 'draft beta');
@@ -115,15 +127,49 @@ it('keeps each chat selection while switching projects and invalidates the share
   await waitFor(() => expect(picker().textContent).toContain('Alpha model'));
   expect(input()).toHaveProperty('value', 'draft alpha');
   expect(calls.filter(call => call.method === 'model/list')).toHaveLength(1);
-  // Login/logout notifications refresh the directory without changing saved choices.
-  rows = [];
+  const savedChoices = () => {
+    expect(readDraft('ta')).toMatchObject({ text: 'draft alpha', options: { model: 'shared', modelProvider: 'alpha', effort: 'high' } });
+    expect(readDraft('tb')).toMatchObject({ text: 'draft beta', options: { model: 'shared', modelProvider: 'beta', effort: 'max' } });
+  };
+  savedChoices();
+  // Account invalidation removes old capabilities immediately, while retaining
+  // the explicit draft choices even before the replacement page has arrived.
+  rows = []; holdCatalog = true;
   await act(async () => sockets[0].onmessage({ data: JSON.stringify({ type: 'notification', data: { method: 'account/updated', params: {} } }) }));
-  await waitFor(() => expect(calls.filter(call => call.method === 'model/list')).toHaveLength(2));
-  await waitFor(() => expect(picker().textContent).not.toContain('Alpha model'));
+  await waitFor(() => expect(finishCatalog).toBeTypeOf('function'));
+  expect(calls.filter(call => call.method === 'model/list')).toHaveLength(2);
+  expect(picker().textContent).not.toContain('Alpha model');
+  if (!picker().parentElement?.hasAttribute('open')) fireEvent.click(picker());
+  expect(screen.getByRole('combobox', { name: '模型' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('combobox', { name: '思考强度' }).matches(':disabled')).toBe(true);
+  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
+  expect(screen.queryByRole('option', { name: '最高' })).toBeNull();
+  expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(true);
+  savedChoices();
+  await act(async () => { holdCatalog = false; finishCatalog!(); });
+  await screen.findByText('先添加供应商并完成所需登录，再读取模型目录。');
+  expect(screen.queryByRole('option', { name: 'Alpha model' })).toBeNull();
+  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
   expect(input()).toHaveProperty('value', 'draft alpha');
+  savedChoices();
+
+  // A response owned by the old authenticated runtime must remain discarded
+  // even if its fetch ignores AbortSignal and completes after the new epoch.
+  rows = [models[0]!]; holdCatalog = true; finishCatalog = undefined;
+  await act(async () => sockets[0].onmessage({ data: JSON.stringify({ type: 'notification', data: { method: 'account/login/completed', params: {} } }) }));
+  await waitFor(() => expect(finishCatalog).toBeTypeOf('function'));
+  const finishStaleCatalog = finishCatalog!;
+  holdCatalog = false;
   rows = [models[1]!];
   await state('root', 'two');
-  await waitFor(() => expect(calls.filter(call => call.method === 'model/list')).toHaveLength(3));
+  await waitFor(() => expect(calls.filter(call => call.method === 'model/list')).toHaveLength(4));
+  if (!picker().parentElement?.hasAttribute('open')) fireEvent.click(picker());
+  await screen.findByRole('option', { name: 'Beta model' });
+  await act(async () => { finishStaleCatalog(); });
+  expect(screen.queryByRole('option', { name: 'Alpha model' })).toBeNull();
+  expect(screen.getByRole('option', { name: 'Beta model' })).toBeTruthy();
+  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
+  savedChoices();
   expect(new URL(location.href).searchParams.get('thread')).toBeNull();
   expect(calls.some(call => call.operationId)).toBe(false);
 });
