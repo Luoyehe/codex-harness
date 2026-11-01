@@ -1,0 +1,67 @@
+{
+  "scope": "Scoped deployed-acceptance follow-up; not another full audit or full-test result",
+  "baselineCommit": "fd3c8c9d780e0dbcebc0f164113d402e6f6ee81f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "phenomenon": "A newly authenticated ROOT tab without a remembered project receives project/list before the first confirmed execution identity. The temporary identity gate later clears, but an error banner remains.",
+  "diagnosis": {
+    "kind": "Real stale UI error, not expected multi-tab behavior and not a remaining execution lock",
+    "cause": "Automatic project selection called the manual changeContext guard while executionBlocked was true, storing its message in generic error state. Confirming the same ROOT identity does not run the actual-mode-change clearing effect, and successful automatic selection uses an empty callback, so it leaves the message behind.",
+    "locations": [
+      "web/Workspace.tsx:222",
+      "web/Workspace.tsx:292-312",
+      "web/Workspace.tsx:503-506",
+      "web/Workspace.tsx:516-521",
+      "web/Workspace.tsx:1146-1157"
+    ],
+    "impact": "The reproduction confirms that the saved ROOT draft is loaded and Send is enabled while the old identity message is still displayed. Generic error is not itself part of the submission gate."
+  },
+  "change": "Both automatic project synchronization effects now wait for executionBlocked=false and include that state in their dependency lists. The latest project data is processed once identity confirmation or safe mode transition completes. Manual navigation, draft persistence checks and genuine missing-identity restrictions are unchanged; unrelated errors are not erased.",
+  "boundaryReview": {
+    "projectRenameWhileUnconfirmed": "Project data may refresh while gated; the effects do nothing until confirmation, then use the latest array. A retained id stays selected despite a name change.",
+    "projectRemovalWhileUnconfirmed": "After confirmation an absent selected id is evaluated against the latest list. Any replacement still goes through canNavigateTo; existing in-memory/saved-draft guards are retained. No project or conversation mutation is triggered by these effects.",
+    "actualModeChange": "The existing mode-change effect first preserves the old namespace and exits the old thread. Both project effects remain gated during that render, then rerun after the draft mode matches the confirmed identity. Existing tests cover unsaved-storage failure and preserving both namespaces.",
+    "reconnect": "Confirmation false pauses automatic synchronization; confirmation true is now an explicit dependency, so no unrelated data change is needed to resume it. useResource continues rejecting responses from obsolete resource epochs.",
+    "currentThreadAssociation": "The same guard applies to the cwd-to-project synchronization effect. A real unregistered-directory error is still reported after identity is confirmed."
+  },
+  "reproduction": {
+    "result": ".work/test-results/run-8gMFFl/vitest.json",
+    "log": ".work/v233-root-initial-before.log",
+    "failed": 1,
+    "passed": 7,
+    "expectedFailure": "initial ROOT tab, no remembered project, saved root input; stale identity span remains after send becomes enabled"
+  },
+  "regression": {
+    "result": ".work/test-results/run-tRQOxm/vitest.json",
+    "log": ".work/v233-root-initial-final.log",
+    "files": 7,
+    "cases": 70,
+    "passed": 70,
+    "failed": 0,
+    "skipped": 0,
+    "newCases": [
+      "initial ROOT/no remembered project/empty draft",
+      "initial ROOT/no remembered project/saved ROOT draft",
+      "initial ROOT/remembered project/saved ROOT draft"
+    ],
+    "noImplicitMutation": true,
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "log": ".work/v233-root-initial-typecheck-final.log"
+    },
+    "toolingCorrection": "An initial typecheck invocation used nonexistent tsconfig.web.json and failed TS5058; retained in .work/v233-root-initial-typecheck.log. Correct web/tsconfig.json subsequently passed."
+  },
+  "changedFiles": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "3440eab129aa5130a6a268c6ea3a7e9516ad56e8ba5ea2465d769c8da4fb9439"
+    },
+    {
+      "path": "web/tests/execution-drafts.test.tsx",
+      "sha256": "0bf002110dd0f88c1d4ccd65236acd075521b7a7cc3362069445e6d1df299915"
+    }
+  ],
+  "historicalRuntimeScopeCheck": "All 1506 original freeze3 runtime-partition hashes remain identical except the separately reviewed one-line predictions.test.ts fixture fix; prior failed reports are retained unchanged.",
+  "next": "Independent scoped review, fresh source binding and CI are required before claiming this source has full-test coverage."
+}

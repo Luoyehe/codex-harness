@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "/root/v233_full_web",
+  "independentOfRepairAuthor": true,
+  "completedAt": "2026-11-01T18:40:59.363Z",
+  "complete": true,
+  "clean": true,
+  "findings": [],
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "baselineCommit": "fd3c8c9d780e0dbcebc0f164113d402e6f6ee81f",
+  "priorSourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+  "unchangedFiles": 2011,
+  "changedFiles": [
+    {
+      "path": "web/Workspace.tsx",
+      "beforeSha256": "3eeae2d77b40f484d8274578eca9a35e73b795a219029ec2d0b8d03105a69cfb",
+      "sha256": "3440eab129aa5130a6a268c6ea3a7e9516ad56e8ba5ea2465d769c8da4fb9439",
+      "bytes": 83307
+    },
+    {
+      "path": "web/tests/execution-drafts.test.tsx",
+      "beforeSha256": "5c36e7f43e845093a75c3545a9b8f62a6fe5b7bdfdb660c7dbcc8fff8deb7f74",
+      "sha256": "0bf002110dd0f88c1d4ccd65236acd075521b7a7cc3362069445e6d1df299915",
+      "bytes": 11434
+    }
+  ],
+  "discovery": "Actual deployed browser acceptance found a stale ROOT identity banner after successful identity confirmation. This is a real UI defect, not a new CI failure; the earlier passing source remains accurately recorded.",
+  "semanticReview": [
+    {
+      "path": "web/Workspace.tsx",
+      "depth": "complete-changed-effects-and-coupled-initialization-navigation-identity-slices",
+      "evidence": "Read draftMode initialization, context keys, manual changeContext guard and draft persistence checks, runtime identity gate, actual mode-transition effect, project resource refresh and both automatic project synchronization effects. Added guard suppresses only premature automatic navigation; its dependency reruns against latest projects after confirmed identity. Manual navigation protection and real errors are retained; no blanket error clearing or automatic mutation is introduced."
+    },
+    {
+      "path": "web/hooks/useEvents.ts",
+      "depth": "coupled-identity-state-read",
+      "evidence": "Connection/reconnect resets executionModeConfirmed; valid connected runtime state explicitly confirms identity. The new effect dependency responds to that transition without requiring an unrelated project refresh."
+    },
+    {
+      "path": "web/tests/execution-drafts.test.tsx",
+      "depth": "complete-test-helper-and-assertion-read",
+      "evidence": "Three distinct initial ROOT scenarios cover no project/no draft, no project/saved draft, and remembered project/saved draft. Existing mode changes, failed local persistence, missing identity, manual navigation and namespace separation assertions remain unchanged. New cases assert no implicit resume/start and preserved ROOT draft."
+    }
+  ],
+  "regression": {
+    "files": 7,
+    "cases": 70,
+    "passed": 70,
+    "failed": 0,
+    "skipped": 0,
+    "testFiles": [
+      "web/tests/drafts.test.tsx",
+      "web/tests/events.test.tsx",
+      "web/tests/execution-drafts.test.tsx",
+      "web/tests/execution-mode.test.tsx",
+      "web/tests/project-handoff.test.tsx",
+      "web/tests/shared-model-directory.test.tsx",
+      "web/tests/sidebar-management.test.tsx"
+    ],
+    "report": {
+      "path": ".work/test-results/run-tRQOxm/vitest.json",
+      "sha256": "704cfc6d46d5a8ee5addef7014a28199a6136c1edd3a218befc1150d65503f6c"
+    },
+    "beforeFailure": {
+      "path": ".work/test-results/run-8gMFFl/vitest.json",
+      "sha256": "5fea8927dd7cf0b0955d57571b8193ecbf30b51171b2eb22a7783c63aeaf2a26"
+    },
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "log": ".work/v233-root-initial-typecheck-final.log"
+    }
+  },
+  "priorAudit": {
+    "path": "verification/audit-evidence/v233-ci1-repair/audit.json",
+    "sha256": "44d2f2fb4ba8167a210ac173b2b1f3d1430c66f7f35f11c71c11cb21a2e8e7d5"
+  },
+  "priorSourceSnapshot": {
+    "path": "verification/audit-evidence/v233-ci1-repair/source-snapshot.json",
+    "sha256": "87a50ca5b1cf79b77d3e8899a35eed438fb58c955bd05fbbcae949a34f036170"
+  },
+  "method": "Compared every one of the complete 2013 source names and hashes with the last four-scope audit inventory. 2011 files are unchanged and retain their expressly recorded review depth; the two changed files and coupled identity/navigation paths received fresh independent semantic review. No claim is made of rereading all unchanged bodies.",
+  "limits": [
+    "Targeted evidence does not replace a new full test run for this source.",
+    "Fresh MCP verification reads only official documentation and npm metadata; no paid inference or external MCP task."
+  ]
+}

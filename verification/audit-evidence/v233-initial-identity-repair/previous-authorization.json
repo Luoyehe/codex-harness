@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+  "sourceFiles": 2013,
+  "baseCommit": "0523873bda28dc6b1df55481475467dcd6397260",
+  "version": "2.3.3",
+  "approvedAt": "2026-11-01T18:15:05.539Z",
+  "userInstruction": "进行一轮完整审计，修复发现的问题，无新问题后进行全量测试，发布 v2.3.3 并更新 120 上的部署，保持服务运行。",
+  "auditWaiverInstruction": "User explicitly requires one clean comprehensive audit after fixes before full tests and v2.3.3 publication/deployment. CI1 failure was reviewed and repaired; a fresh whole-inventory and coupled semantic review found no remaining issue. Prior failed candidate is not a passing gate.",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v233-ci1-fixture-repair-clean",
+      "sourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+      "sourceFiles": 2013,
+      "completedAt": "2026-11-01T18:15:05.539Z",
+      "evidence": "verification/audit-evidence/v233-ci1-repair/audit.json",
+      "sha256": "44d2f2fb4ba8167a210ac173b2b1f3d1430c66f7f35f11c71c11cb21a2e8e7d5"
+    }
+  ],
+  "previousAuthorization": {
+    "path": "verification/audit-evidence/v233-ci1-repair/previous-authorization.json",
+    "sha256": "a83e80a8c64849dde6476f72182a01db53532a51e14345098f5017eff24d0a6f"
+  }
+}

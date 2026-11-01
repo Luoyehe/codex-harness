@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v233-initial-identity-repair-clean",
+  "completedAt": "2026-11-01T18:40:59.363Z",
+  "complete": true,
+  "clean": true,
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "findings": [],
+  "scopes": [
+    "gateway-core",
+    "runtime-protocol",
+    "web-ux",
+    "deployment-release"
+  ],
+  "sourceSnapshot": {
+    "path": "verification/audit-evidence/v233-initial-identity-repair/source-snapshot.json",
+    "sha256": "9ba346d98df2d35b3617ea9d7184263a47074dc488212f2849f51e26fab3ebd5"
+  },
+  "priorAudit": {
+    "path": "verification/audit-evidence/v233-ci1-repair/audit.json",
+    "sha256": "44d2f2fb4ba8167a210ac173b2b1f3d1430c66f7f35f11c71c11cb21a2e8e7d5"
+  },
+  "supporting": [
+    {
+      "path": "verification/audit-evidence/v233-initial-identity-repair/independent-review.json",
+      "sha256": "b18e2e3deb65e14be0b921b491137bc55f27b2ddb5a335a2c87f9e91eafaa090"
+    },
+    {
+      "path": "verification/audit-evidence/v233-initial-identity-repair/repair.json",
+      "sha256": "5c04ea8e6b9eb41b1b5d29dff48ef19f0de1da3fdca08bd64d945f4ac9a48f5d"
+    },
+    {
+      "path": "verification/audit-evidence/v233-initial-identity-repair/builtin-mcp.json",
+      "sha256": "8942ec6d4e7adad08a1159883da98ba0c6388f2562f17b71111d6d0d53f63560"
+    },
+    {
+      "path": "verification/audit-evidence/v233-initial-identity-repair/previous-authorization.json",
+      "sha256": "188c7f14956f0742bff86d5f8f81b83fd48aa31f02b8cfb2f0dd773c6ece7a08"
+    }
+  ],
+  "changedFiles": [
+    "web/Workspace.tsx",
+    "web/tests/execution-drafts.test.tsx"
+  ],
+  "unchangedFiles": 2011,
+  "method": "Compared every one of the complete 2013 source names and hashes with the last four-scope audit inventory. 2011 files are unchanged and retain their expressly recorded review depth; the two changed files and coupled identity/navigation paths received fresh independent semantic review. No claim is made of rereading all unchanged bodies.",
+  "discovery": "Actual deployed browser acceptance found a stale ROOT identity banner after successful identity confirmation. This is a real UI defect, not a new CI failure; the earlier passing source remains accurately recorded.",
+  "limitations": [
+    "Targeted evidence does not replace a new full test run for this source.",
+    "Fresh MCP verification reads only official documentation and npm metadata; no paid inference or external MCP task."
+  ]
+}
