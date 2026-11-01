@@ -590,3 +590,16 @@ All seven deployment phases completed successfully, leaving release `435375a6aba
 The live browser automatically loaded an existing completed conversation. Its model menu showed 2 Zhipu and 8 ChatGPT models; changing provider/model updated reasoning choices. An unsent temporary draft enabled sending, then the draft and original choices were restored. Desktop and 390x844 mobile viewport checks passed and the viewport was reset. No model message, external MCP tool, provider save or mode switch was submitted. Shared-auth mode handoff remains isolated-test evidence, not live switch acceptance; preserved auth metadata does not establish OAuth validity. Mobile viewport checks are not physical iOS acceptance.
 
 [Formal Release](https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.1) is published as Latest. The subsequent default-branch closeout commit is limited to declared non-executable evidence; the tag remains on the tested candidate. [Closeout](audit-evidence/v231-release/closeout.json) binds the separate public records. CodeQL remains 19 open/2 closed with 16 current-source dispositions and 3 legacy inventory entries, not zero alerts. No paid inference, real MCP business call, future TLS renewal or current DNS API permission acceptance is claimed.
+
+
+## 2026-11-01 — v2.3.2 published and deployment complete
+
+Tested tag v2.3.2 binds historical-commit-109, source 00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938 (2004 files). The user's one-clean-audit exception is satisfied by v232-composed-fixture-final with explicit unchanged-byte semantic inheritance. [CI3](https://github.com/Luoyehe/codex-harness/actions/runs/41319241294) and security passed: **263 test files, 3073 distinct cases, coverageGaps=[]**. Main selected checks also passed; they are not another full matrix. CI1 and CI2 failures remain retained, with root causes, missed dependency coverage, concrete prevention and actual CI3 closure in [CI lessons](reports/v232-ci-lessons.md).
+
+
+
+Live browser acceptance confirmed existing conversation auto-load, current-provider composer models, all-provider new-conversation models, the two-step conversion menu and cancel preserving an unsent draft. The temporary draft was cleared. ROOT is single-line on the left; 390/320 viewport layouts have no horizontal overflow and overrides were reset. No paid prompt, real MCP tool or production conversation conversion was submitted. Real pinned-CLI conversion independence is covered by isolated acceptance, including deleting the original then restarting the new conversation; shared project files and external effects are outside that independence.
+
+
+
+[Formal Release](https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.2) is published as Latest. This subsequent default-branch closeout only changes declared non-executable verification evidence; tested source and tag remain unchanged. CodeQL remains 19 open/2 closed with reviewed current-source dispositions and legacy inventory limits. No physical iOS, paid inference, external MCP business task, OAuth validity, future TLS renewal or current DNS API permission acceptance is claimed.

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "observedAt": "2026-11-01T15:28:51.487691+00:00",
+  "result": "Old bookmarked thread absent from both current native indexes and session/archive filenames; current project list entries load normally.",
+  "preDeploymentSessionBaselineAvailable": false,
+  "cause": "Not established; no attribution to deployment or user deletion.",
+  "historyBodiesRead": false,
+  "mutation": false,
+  "originalEvidence": {
+    "path": ".work/v232-ci3-old-tab-metadata.json",
+    "sha256": "13b45e48cb312913cd8c7642b5399f6231e08a91f68024b0dbde254073bc7457"
+  },
+  "limitation": "[private deployment detail omitted]",
+  "publicCopyNotice": "Public historical summary. Operator-specific deployment details have been removed. The private original is the record of the original execution."
+}
