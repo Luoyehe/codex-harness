@@ -33,12 +33,12 @@ export class ThreadTerminals {
     }
     if (method === 'thread/backgroundTerminals/terminate') {
       onlyKeys(params, ['threadId', 'processId']); const processId = string(params.processId, 'processId', 256);
-      return this.host.mutate({ method, params, schema: 'ThreadBackgroundTerminalsTerminateParams', responseSchema: 'ThreadBackgroundTerminalsTerminateResponse', threadId, mode: 'any', history: true,
+      return this.host.mutate({ method, params, schema: 'ThreadBackgroundTerminalsTerminateParams', responseSchema: 'ThreadBackgroundTerminalsTerminateResponse', threadId, mode: 'any',
         preflight: () => this.discovered(threadId, processId), project: result => ({ threadId, processId, terminated: object(result).terminated! }) }, context);
     }
     if (method === 'thread/backgroundTerminals/clean') {
       onlyKeys(params, ['threadId', 'confirm']); if (params.confirm !== true) throw new DeliveryError('confirmation_required', 'Confirm cleanup of this thread\'s native background terminals');
-      return this.host.mutate({ method, params: { threadId }, schema: 'ThreadBackgroundTerminalsCleanParams', responseSchema: 'ThreadBackgroundTerminalsCleanResponse', threadId, mode: 'any', history: true, project: () => ({ threadId, cleanupRequested: true }) }, context);
+      return this.host.mutate({ method, params: { threadId }, schema: 'ThreadBackgroundTerminalsCleanParams', responseSchema: 'ThreadBackgroundTerminalsCleanResponse', threadId, mode: 'any', project: () => ({ threadId, cleanupRequested: true }) }, context);
     }
     throw new DeliveryError('method_not_found', 'Unsupported thread terminal workflow');
   }

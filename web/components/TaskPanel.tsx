@@ -1,10 +1,10 @@
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { Api } from '../lib/api';
 import type { Events } from '../lib/events';
 import { usePaged } from '../hooks/usePaged';
 import { useResource } from '../hooks/useResource';
 import { useWorkflow, useWorkflowRevision } from '../hooks/useWorkflow';
-import { object, type Thread } from '../lib/types';
+import { array, object, type Thread } from '../lib/types';
 import {
   agentTreeRows,
   attachmentLabels,
@@ -576,6 +576,44 @@ function AgentsPanel(props: PanelProps) {
     props.resourceKey,
     props.visible,
   );
+  const latest = useRef(agents);
+  latest.current = agents;
+  const known = useRef(new Set<string>());
+  const remember = (id: unknown) => {
+    if (typeof id === 'string' && id && known.current.size < 3000) known.current.add(id);
+  };
+  agents.items.forEach(agent => remember(agent.id));
+  useEffect(() => {
+    if (!props.visible) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const flush = () => {
+      // Coalesce bursts without repeatedly aborting an unfinished page read.
+      if (latest.current.loading) { timer = setTimeout(flush, 500); return; }
+      timer = undefined;
+      latest.current.refresh();
+    };
+    const unsubscribe = props.events.subscribe(event => {
+      if (event.type !== 'notification') return;
+      latest.current.items.forEach(agent => remember(agent.id));
+      const params = object(event.data.params), method = String(event.data.method);
+      const id = params.threadId, thread = object(params.thread), item = object(params.item);
+      const inTree = (value: unknown) => value === props.threadId || typeof value === 'string' && known.current.has(value);
+      let related = false;
+      if (method === 'thread/started' && inTree(thread.parentThreadId)) {
+        remember(thread.id); related = true;
+      } else if (['item/started', 'item/completed'].includes(method) && inTree(id) &&
+        ['collabAgentToolCall', 'subAgentActivity'].includes(String(item.type))) {
+        array<unknown>(item.receiverThreadIds).forEach(remember);
+        Object.keys(object(item.agentsStates)).forEach(remember);
+        remember(item.agentThreadId); related = true;
+      } else if (known.current.has(String(id)) && ['thread/status/changed', 'thread/closed', 'thread/archived',
+        'thread/unarchived', 'thread/deleted', 'thread/name/updated', 'turn/started', 'turn/completed'].includes(method)) {
+        related = true;
+      }
+      if (related && timer === undefined) timer = setTimeout(flush, 500);
+    });
+    return () => { unsubscribe(); clearTimeout(timer); };
+  }, [props.events, props.threadId, props.epoch, props.api, props.visible]);
   const action = useWorkflow(props.api, props.threadId, props.enabled && props.visible, () => {
     agents.refresh();
     props.onChanged();

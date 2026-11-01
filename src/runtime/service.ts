@@ -38,7 +38,8 @@ import { DeviceLogin } from './device-login.js';
 import { McpOauth } from './mcp-oauth.js';
 import { Predictions, predictionMethods } from './predictions.js';
 import { ThreadActivity, hasTurnActivity, type Activity } from './thread-activity.js';
-import { ManagedProviders, readNativeCatalog } from './providers.js';
+import { ManagedProviders, readNativeCatalog, type ProviderSwitchPlan } from './providers.js';
+import { switchThreadProvider } from './thread-provider-switch.js';
 
 export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject; executionPolicy?: ExecutionPolicy }
 interface Prompt { promptId: string; epoch: string; method: string; params: JsonObject; threadId: string | null; turnId: string | null; requestId: string | number; bytes: number; answering: boolean }
@@ -320,7 +321,14 @@ export class RuntimeService extends EventEmitter {
         if (this.prompts.size || this.workspace.pending) throw new DeliveryError('activity_busy', 'Finish pending prompts and workspace operations before maintenance');
         return { idle: true, epoch: this.epoch, workspaceWitness: this.workspace.usage() };
       }
-      case 'thread/session': onlyKeys(params, ['threadId']); return this.closed || !this.native.connected ? { requiresResume: true } : this.sessions.read(string(params.threadId, 'threadId'));
+      case 'thread/session': {
+        onlyKeys(params, ['threadId', 'checkContinuation']);
+        if (params.checkContinuation !== undefined && typeof params.checkContinuation !== 'boolean') throw new DeliveryError('invalid_params', 'Invalid continuation check');
+        const threadId = string(params.threadId, 'threadId');
+        const snapshot = this.closed || !this.native.connected ? { requiresResume: true } : this.sessions.read(threadId);
+        if (snapshot.requiresResume !== true || params.checkContinuation !== true || this.closed || !this.native.connected) return snapshot;
+        return { ...snapshot, requiresContinuationConfirmation: (await this.continuationForLoad(threadId)).required };
+      }
       case 'prompt/list': return { epoch: this.epoch, prompts: [...this.prompts.values()].map(prompt => this.publicPrompt(prompt)) };
       case 'prompt/answer': return this.answer(params, context);
       case 'attachment/upload': return this.attachments.upload(params, context.clientId);
@@ -339,10 +347,46 @@ export class RuntimeService extends EventEmitter {
         finally { this.pendingStarts--; this.emitState(); }
       }
       case 'thread/resume': {
-        onlyKeys(params, ['threadId']); const threadId = string(params.threadId, 'threadId'); const p = { threadId, excludeTurns: true }; validateOfficial('ThreadResumeParams', p);
+        onlyKeys(params, ['threadId', 'automatic', 'options']);
+        if (params.automatic !== undefined && typeof params.automatic !== 'boolean') throw new DeliveryError('invalid_params', 'Invalid automatic load');
+        const selection = params.options === undefined ? undefined : this.threadOptions(this.providers.resumeSelection(params.options), false);
+        const threadId = string(params.threadId, 'threadId'); const p: JsonObject = { threadId, excludeTurns: true, ...selection }; validateOfficial('ThreadResumeParams', p);
         this.pendingStarts++; this.emitState();
         let accepted = false;
-        try { const result = await this.workflowMutation({ method, params: p, schema: 'ThreadResumeParams', responseSchema: 'ThreadResumeResponse', threadId, mode: 'any', history: true }, context); accepted = true; this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
+        let checkedRevision: number | undefined;
+        let previousThread: JsonObject | undefined;
+        try { const result = await this.workflowMutation({ method, params: p, schema: 'ThreadResumeParams', responseSchema: 'ThreadResumeResponse', threadId, mode: 'any', history: true,
+          ...(params.automatic === true || selection ? {
+            preflight: async (thread: JsonObject) => {
+              previousThread = thread;
+              if (selection && !['idle', 'notLoaded'].includes(String(object(thread.status).type)))
+                throw new DeliveryError('thread_busy', '请先结束当前任务，再使用其它模型加载会话。');
+              if (params.automatic === true) {
+                const check = await this.continuationForLoad(threadId);
+                if (check.required) throw new DeliveryError('continuation_confirmation_required', selection
+                  ? '此会话有已保存的队列或持续目标，请确认后使用所选模型继续执行。'
+                  : '此会话有已保存的队列或持续目标，请确认后继续执行。');
+                checkedRevision = check.revision;
+              }
+            },
+            beforeWrite: () => {
+              if (params.automatic === true && checkedRevision !== (this.track(threadId).continuationRevision ?? 0)) throw new DeliveryError('continuation_changed', '会话待执行任务已变化，请重新读取。');
+              if (selection && hasTurnActivity(this.track(threadId))) throw new DeliveryError('thread_busy', '会话已开始运行，请先结束任务。');
+            },
+          } : {}),
+          ...(selection ? { project: (value: JsonValue) => {
+            const resumed = object(value), thread = object(resumed.thread);
+            if (resumed.modelProvider !== selection.modelProvider || thread.modelProvider !== selection.modelProvider || resumed.model !== selection.model ||
+                resumed.cwd !== previousThread?.cwd || thread.cwd !== previousThread?.cwd ||
+                previousThread?.environments != null && canonical(thread.environments ?? null) !== canonical(previousThread.environments))
+              throw new DeliveryError('provider_switch_unconfirmed', '会话加载已受理，但所选模型或原工作环境未得到确认；本次未发送消息。', 'unknown', { inputSent: false });
+            // Cold thread/read omits executor details. Only the normal local
+            // executor may become concrete here; registered remote selections
+            // were already required above, and the resumed roots are rechecked.
+            this.environments.assertThread(thread);
+            return value;
+          } } : {}),
+        }, context, selection); accepted = true; this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
         catch (error) {
           const failure = accepted && (!(error instanceof DeliveryError) || error.delivery === 'not_sent')
             ? new DeliveryError('invalid_native_response', 'Thread loaded, but its settings could not be confirmed; inspect its state before continuing', 'unknown') : error;
@@ -490,6 +534,16 @@ export class RuntimeService extends EventEmitter {
     const removed = this.historyStore.invalidate(threadId), state = this.track(threadId); state.fresh = false; state.historyRevision = (state.historyRevision ?? 0) + 1;
     if (removed) this.emitEvent('notification', { method: 'thread/history/invalidated', params: { threadId, historyVersion: state.historyRevision } });
   }
+  /** Reading a cold thread must not itself resume its persisted work. */
+  private async continuationForLoad(threadId: string): Promise<{ required: boolean; revision: number }> {
+    const state = this.track(threadId), revision = state.continuationRevision ?? 0;
+    const goal = object(await this.native.call('thread/goal/get', { threadId })); validateOfficial('ThreadGoalGetResponse', goal);
+    if (goal.goal !== null && object(goal.goal).threadId !== threadId) throw new DeliveryError('invalid_native_response', 'Continuation goal identity mismatch');
+    const queue = object(await this.native.call('thread/queue/list', { threadId, limit: 1 })); validateOfficial('ThreadQueueListResponse', queue);
+    if ((queue.data as JsonValue[]).length > 1) throw new DeliveryError('invalid_native_response', 'Continuation queue page exceeded requested limit');
+    if (revision !== (state.continuationRevision ?? 0)) throw new DeliveryError('continuation_changed', '会话待执行任务已变化，请重新读取。');
+    return { required: goal.goal !== null && object(goal.goal).status === 'active' || (queue.data as JsonValue[]).length > 0 || queue.nextCursor != null, revision };
+  }
   private refreshContinuation(threadId: string): Promise<void> {
     const existing = this.continuationChecks.get(threadId); if (existing) return existing;
     const state = this.track(threadId); state.checkingContinuation = true; this.emitState();
@@ -563,7 +617,7 @@ export class RuntimeService extends EventEmitter {
       throw failure;
     } finally { this.configurationPending = false; this.pendingStarts--; this.emitState(); }
   }
-  private async workflowMutation(operation: WorkflowMutation, context: CallContext): Promise<JsonValue> {
+  private async workflowMutation(operation: WorkflowMutation, context: CallContext, resumeSelection?: JsonObject): Promise<JsonValue> {
     const { threadId } = operation; this.admit(); const state = this.track(threadId);
     if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
     if (state.pending) throw new DeliveryError('thread_busy', 'Thread already has a pending mutation');
@@ -585,7 +639,7 @@ export class RuntimeService extends EventEmitter {
     try {
       const revision = state.revision; const current = await this.native.call('thread/read', { threadId });
       if (object(object(current).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.observeThread(current, revision); guard();
-      if (operation.method === 'thread/resume' || operation.method === 'thread/fork') {
+      if (operation.method === 'thread/fork' || operation.method === 'thread/resume' && !resumeSelection) {
         const provider = object(object(current).thread).modelProvider;
         if (typeof provider === 'string') {
           this.providers.assertThread(provider, operation.params.modelProvider === undefined ? undefined : { modelProvider: operation.params.modelProvider });
@@ -648,25 +702,60 @@ export class RuntimeService extends EventEmitter {
       if (accepted) throw new DeliveryError('invalid_native_response', 'Native workflow returned an invalid result', 'unknown'); throw error;
     } finally { if (goalMutation) state.goalPending = false; state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
   }
+  private async switchProviderForTurn(plan: ProviderSwitchPlan, thread: JsonObject, context: CallContext): Promise<CallContext> {
+    const threadId = string(thread.id, 'threadId'), state = this.track(threadId);
+    // A private read owner cannot collide with the browser's simultaneous history
+    // refresh after thread/closed. It is discarded as soon as this send settles.
+    const historyOwner: CallContext = { clientId: `provider-switch:${randomUUID()}`, ...(context.eventChannelId ? { eventChannelId: context.eventChannelId } : {}) };
+    const check = () => {
+      this.admit(threadId, true);
+      if (!state.pending || [...this.prompts.values()].some(prompt => prompt.threadId === threadId))
+        throw new DeliveryError('thread_busy', '请先处理此会话的待确认操作，再切换模型。');
+    };
+    try {
+      await switchThreadProvider(plan, { ...this.sessions.read(threadId), thread }, {
+        call: (method, params, options) => this.native.call(method, params, options), check,
+        beforeWrite: phase => { check(); if (phase === 'detach') this.admitHistory(threadId, context); context.beforeWrite?.(); },
+        onDetached: () => { state.subscribed = false; this.sessions.invalidate(threadId); this.invalidateHistory(threadId); this.guardian.invalidate(threadId); this.predictions.invalidate(threadId); },
+        afterResume: async result => {
+          this.observeThread(result); this.sessions.capture(result); state.subscribed = true;
+          state.settingsRevision = (state.settingsRevision ?? 0) + 1;
+          this.environments.assertThread(object(result.thread));
+          const deadline = Date.now() + 10000;
+          let cursor: JsonValue | undefined;
+          for (let page = 0; page < 128; page++) {
+            check();
+            if (Date.now() >= deadline) throw new DeliveryError('history_timeout', '模型已切换，但会话历史尚未完成同步。');
+            const history = object(await this.history({ threadId, limit: 100, ...(cursor === undefined ? {} : { cursor }) }, historyOwner));
+            if (history.complete === true) { this.admitHistory(threadId, historyOwner); return; }
+            cursor = string(history.nextCursor, 'history cursor');
+          }
+          throw new DeliveryError('capacity', '会话历史超过同步页数上限。');
+        },
+      });
+      return historyOwner;
+    } catch (error) { this.historyStore.disconnect(historyOwner.clientId, historyOwner.eventChannelId); throw error; }
+  }
   private async newTurn(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, method === 'turn/start' ? ['threadId', 'text', 'attachmentIds', 'options', 'references', 'extraContext'] : ['threadId']);
     const threadId = string(params.threadId, 'threadId'); this.admit(threadId); this.admitHistory(threadId, context); const activity = this.track(threadId); activity.pending = true; this.emitState();
     let accepted = false; let prepared: PreparedAttachments | undefined; const wasFresh = activity.fresh; const initialRevision = activity.revision; let writeRevision: number | undefined; let mediaRevision: number | undefined; let model: JsonValue | undefined;
+    let switchedHistory: CallContext | undefined;
     try {
       const p: JsonObject = { threadId };
       const revision = activity.revision; const current = await this.native.call('thread/read', { threadId }); if (object(object(current).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.observeThread(current, revision);
       if (method !== 'turn/start') this.environments.assertThread(object(object(current).thread));
+      const providerPlan = method === 'turn/start' ? this.providers.switchPlan(object(object(current).thread).modelProvider, params.options) : null;
       if (method === 'turn/start') {
-        this.providers.assertThread(object(object(current).thread).modelProvider, params.options);
         const text = string(params.text ?? '', 'text', 1024 * 1024, true); prepared = this.attachments.prepare(params.attachmentIds, threadId);
         const selected = params.references === undefined && params.extraContext === undefined ? { input: [], additionalContext: {} } : await this.inputContext.prepare(this.cwd(object(object(current).thread).cwd), params.references, params.extraContext, context, threadId);
         if (!text.length && prepared.input.length === 0 && !selected.input.length && !Object.keys(selected.additionalContext).length) throw new DeliveryError('invalid_params', 'Turn requires text, attachments or context references');
         p.input = [{ type: 'text', text, text_elements: [] }, ...prepared.input, ...selected.input]; if (Object.keys(selected.additionalContext).length) p.additionalContext = selected.additionalContext;
-        Object.assign(p, this.threadOptions(params.options, true)); validateOfficial('TurnStartParams', p);
+        Object.assign(p, this.threadOptions(providerPlan?.options ?? params.options, true)); validateOfficial('TurnStartParams', p);
         model = selectedInputModel(p, object(object(current).thread).model ?? this.sessions.read(threadId).model);
         if (mediaModalities(p.input).length) {
           mediaRevision = activity.settingsRevision ?? 0;
-          const provider = object(object(current).thread).modelProvider;
+          const provider = providerPlan?.modelProvider ?? object(object(current).thread).modelProvider;
           await validateInputModalities((method, params) => method === 'model/list'
             ? this.providers.list({ ...object(params), ...(provider !== undefined ? { modelProvider: provider } : {}) }, (method, params) => this.native.call(method, params), (provider, chatgpt, hidden) => this.providerCatalog(provider, chatgpt, hidden))
             : this.native.call(method, params), model, p.input);
@@ -675,7 +764,12 @@ export class RuntimeService extends EventEmitter {
       }
       if (activity.directInput === false) throw new DeliveryError('direct_input_unavailable', 'Native thread does not accept direct input');
       if (activity.subscribed === false) throw new DeliveryError('session_not_loaded', 'Explicitly load the thread before starting work');
-      const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, context); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
+      if (providerPlan) {
+        if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation');
+        switchedHistory = await this.switchProviderForTurn(providerPlan, object(object(current).thread), context);
+        if (mediaRevision !== undefined) mediaRevision = activity.settingsRevision ?? 0;
+      }
+      const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, switchedHistory ?? context); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
       accepted = true; prepared?.settle(true);
       if (activity.revision === writeRevision) {
         if (method === 'turn/start') { const turn = object(object(result).turn); if (turn.status === 'inProgress') { activity.status = 'active'; activity.turnId = string(turn.id, 'turn id'); activity.turnRevision = (activity.turnRevision ?? 0) + 1; } }
@@ -685,11 +779,15 @@ export class RuntimeService extends EventEmitter {
     } catch (error) {
       const notSent = !accepted && error instanceof DeliveryError && error.delivery === 'not_sent';
       try { prepared?.settle(!notSent); } catch { this.emit('diagnostic', 'Rejected turn attachment reservation could not be released'); }
+      if (switchedHistory && notSent) {
+        activity.unknown = true;
+        throw new DeliveryError('provider_changed_input_not_sent', '会话模型已切换，但本次消息尚未发送；请核对会话和原操作状态后继续。', 'unknown', { inputSent: false, providerSwitched: true });
+      }
       if (notSent && wasFresh && activity.revision === (writeRevision ?? initialRevision) && activity.status !== 'active' && activity.turnId === null) activity.fresh = true;
       if (accepted) { activity.unknown = true; throw new DeliveryError('invalid_native_response', 'Native turn returned an invalid result', 'unknown'); }
       if (!notSent) activity.unknown = true; throw error;
     }
-    finally { activity.pending = false; this.emitState(); }
+    finally { if (switchedHistory) this.historyStore.disconnect(switchedHistory.clientId, switchedHistory.eventChannelId); activity.pending = false; this.emitState(); }
   }
   private async answer(params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, ['promptId', 'response']); const id = string(params.promptId, 'promptId'); const prompt = this.prompts.get(id);

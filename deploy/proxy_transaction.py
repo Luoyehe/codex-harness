@@ -215,7 +215,7 @@ def change(manager, *, action, confirm_restart, input_file=None, version=None, p
     from .config_layer import active_services
     from .proxy_core import prepare_core
     require(confirm_restart is True, "Confirm the proxy operation and brief restart of idle services", "confirmation_required")
-    require(action in ("configure", "disable", "core-update", "rollback", "direct-domains"), "Invalid proxy operation")
+    require(action in ("configure", "enable", "disable", "core-update", "rollback", "direct-domains"), "Invalid proxy operation")
     require(direct_domains is None or action in ("configure", "direct-domains"), "Direct domains require a configuration operation")
     if direct_domains is not None:
         direct_domains = normalize_direct_domains(direct_domains)
@@ -242,6 +242,9 @@ def change(manager, *, action, confirm_restart, input_file=None, version=None, p
         require(current is not None and version is not None, "Configure the proxy before updating its core")
         core = prepare_core(manager.layout, version, download_proxy=download_proxy)
         following = {**current, "core": core["core"]}
+    elif action == "enable":
+        require(current is not None, "No saved proxy configuration; configure a VLESS node first", "not_installed")
+        following = {**current, "enabled": True}
     elif action == "disable":
         following = {**current, "enabled": False} if current is not None else None
     else:

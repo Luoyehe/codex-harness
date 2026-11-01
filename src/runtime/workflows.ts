@@ -134,7 +134,7 @@ export class Workflows {
         return mutate('ThreadSettingsUpdateParams', 'ThreadSettingsUpdateResponse', 'any', params, { mediaInput, ...(typeof params.model === 'string' || params.collaborationMode != null ? { preflight: async () => { mediaInput.push(...await this.queuedInputs(threadId)); } } : {}) });
       }
       case 'thread/metadata/update': onlyKeys(params, ['threadId', 'gitInfo', 'daybreakEnabled']); return mutate('ThreadMetadataUpdateParams', 'ThreadMetadataUpdateResponse', 'any');
-      case 'thread/delete': onlyKeys(params, ['threadId']); return mutate('ThreadDeleteParams', 'ThreadDeleteResponse', 'idle', params, { history: true, invalidateHistory: true });
+      case 'thread/delete': onlyKeys(params, ['threadId']); return mutate('ThreadDeleteParams', 'ThreadDeleteResponse', 'idle', params, { invalidateHistory: true });
       case 'thread/unsubscribe': onlyKeys(params, ['threadId']); return mutate('ThreadUnsubscribeParams', 'ThreadUnsubscribeResponse', 'idle');
       case 'thread/readState/update': onlyKeys(params, ['threadId', 'operation', 'expectedRevision']); return mutate('ThreadReadStateUpdateParams', 'ThreadReadStateUpdateResponse', 'any');
       case 'thread/agents/list': {

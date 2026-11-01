@@ -114,12 +114,14 @@ test('a known ROOT workspace blocks project submissions after its actual identit
     activity: { unknown: false, activeThreads: [], pendingStarts: 0, terminals: 0, processes: 0, subscriptions: 0 },
   } } }) });
   await act(async () => { sockets[0].onopen(); sockets[0].onmessage(state(true)); });
+  expect(screen.getByRole('status', { name: 'ROOT 执行权限' }).closest('.topbar')).not.toBeNull();
   fireEvent.click(screen.getByRole('button', { name: '添加项目' }));
   fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), { target: { value: 'Pending project' } });
   fireEvent.change(screen.getByRole('textbox', { name: '项目路径' }), { target: { value: '../pending' } });
   const save = within(screen.getByRole('dialog', { name: '添加项目' })).getByRole('button', { name: '创建项目' });
   await waitFor(() => expect(save).toHaveProperty('disabled', false));
   await act(async () => sockets[0].onmessage(state(false)));
+  expect(screen.getByRole('button', { name: 'ROOT 执行身份待确认，查看执行权限' })).toBeTruthy();
   expect(save).toHaveProperty('disabled', true);
   fireEvent.submit(save.closest('form')!);
   expect(requests.some(request => ['project/create', 'project/add'].includes(request.method))).toBe(false);

@@ -36,7 +36,9 @@ class ProxyCommandTests(unittest.TestCase):
         update = parser().parse_args(["proxy-core-update", "--version", "26.10.29", "--confirm-restart", "--download-proxy", "http://127.0.0.1:18794"])
         self.assertTrue(update.confirm_restart)
         self.assertEqual(update.download_proxy, "http://127.0.0.1:18794")
+        self.assertFalse(parser().parse_args(["proxy-enable"]).confirm_restart)
         for command in (["proxy-configure", "--version", "26.10.29"], ["proxy-core-update"],
+                        ["proxy-enable", "--version", "26.10.31"], ["proxy-enable", "--clear-direct-domains"],
                         ["proxy-recover", "--target", "foreign"], ["proxy-configure", "--url", "vless://fixture"]):
             with self.subTest(command=command), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 parser().parse_args(command)
@@ -44,7 +46,7 @@ class ProxyCommandTests(unittest.TestCase):
         self.assertEqual(parser().parse_args(["proxy-recover", "--target", "candidate"]).target, "candidate")
 
     def test_proxy_commands_are_not_gateway_management_rpcs(self):
-        for method in ("proxy-status", "proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-recover", "service-proxy/write"):
+        for method in ("proxy-status", "proxy-configure", "proxy-enable", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-recover", "service-proxy/write"):
             with self.subTest(method=method), self.assertRaises(DeployError) as error:
                 validate_request({"method": method, "params": {}})
             self.assertEqual(error.exception.code, "method_not_found")
@@ -132,6 +134,17 @@ class ProxyTransactionTests(unittest.TestCase):
         result = transaction.change(self.manager, action="disable", confirm_restart=True)
         self.assertEqual(result, {"configured": False, "enabled": False, "coreVersion": None,
                                   "directDomains": [], "changed": False, "servicesRestored": True})
+        self.assertEqual((self.layout.config / "instance.json").read_bytes(), original)
+        self.assertEqual(list((self.layout.state / "transactions").iterdir()), [])
+        self.manager.system.stop.assert_not_called(); self.manager.system.start.assert_not_called()
+
+    def test_enabling_without_saved_configuration_never_prepares_or_stops(self):
+        original = (self.layout.config / "instance.json").read_bytes()
+        with patch("deploy.proxy_core.prepare_core") as prepare, patch.object(transaction, "prepare_configuration") as imported, \
+             self.assertRaisesRegex(DeployError, "No saved proxy configuration") as error:
+            transaction.change(self.manager, action="enable", confirm_restart=True)
+        self.assertEqual(error.exception.code, "not_installed")
+        prepare.assert_not_called(); imported.assert_not_called()
         self.assertEqual((self.layout.config / "instance.json").read_bytes(), original)
         self.assertEqual(list((self.layout.state / "transactions").iterdir()), [])
         self.manager.system.stop.assert_not_called(); self.manager.system.start.assert_not_called()

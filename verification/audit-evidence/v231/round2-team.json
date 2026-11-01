@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v231-round2",
+  "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "sourceFiles": 1991,
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-11-01T10:54:16.568Z",
+  "scopes": [
+    "gateway-core",
+    "runtime-protocol",
+    "web-ux",
+    "deployment-release"
+  ],
+  "findings": [],
+  "skipped": [],
+  "snapshot": {
+    "path": "verification/audit-evidence/v231/round2-snapshot.json",
+    "sha256": "4e7e0ebcde4af444642d8543241b68a07dc7b6acc48838e96cc9dd515c21da9d",
+    "original": {
+      "path": ".work/v231-round2-snapshot.json",
+      "sha256": "4e7e0ebcde4af444642d8543241b68a07dc7b6acc48838e96cc9dd515c21da9d"
+    }
+  },
+  "partitions": [
+    {
+      "name": "root",
+      "files": 118,
+      "clean": true,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round2-root.json",
+        "sha256": "b10a1e8cdd9af1b20d30a1123a899547e9477b198adf674ee5f59a0627e50020",
+        "original": {
+          "path": ".work/v231-round2-root.json",
+          "sha256": "b10a1e8cdd9af1b20d30a1123a899547e9477b198adf674ee5f59a0627e50020"
+        }
+      }
+    },
+    {
+      "name": "runtime",
+      "files": 1498,
+      "clean": true,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round2-runtime.json",
+        "sha256": "994e85510a892d4b84e8de05f2faca3f94ff84ac95a7854cc4a95e2a4a2221b0",
+        "original": {
+          "path": ".work/v231-round2-runtime.json",
+          "sha256": "994e85510a892d4b84e8de05f2faca3f94ff84ac95a7854cc4a95e2a4a2221b0"
+        }
+      }
+    },
+    {
+      "name": "web",
+      "files": 233,
+      "clean": true,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round2-web.json",
+        "sha256": "a6dde87570b873ce73d74f4db9edaaf9bf2c13ac49c82ece241a2705147ed51b",
+        "original": {
+          "path": ".work/v231-round2-web.json",
+          "sha256": "a6dde87570b873ce73d74f4db9edaaf9bf2c13ac49c82ece241a2705147ed51b"
+        }
+      }
+    },
+    {
+      "name": "deployment",
+      "files": 142,
+      "clean": true,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round2-deployment.json",
+        "sha256": "337deacbbc72099a6dbf234ad218b311a143a466d6dc26376a9642d281da2aac",
+        "original": {
+          "path": ".work/v231-round2-deployment.json",
+          "sha256": "337deacbbc72099a6dbf234ad218b311a143a466d6dc26376a9642d281da2aac"
+        }
+      }
+    }
+  ],
+  "method": "Complete partition inventory with fresh changed-source and workflow reviews. Unchanged semantic review is explicitly inherited by exact byte identity; no claim of re-reading every unchanged generated line. Round1 WEB001 is preserved as nonclean; Round2 binds its independent repair review."
+}

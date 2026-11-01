@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v231-round1",
+  "sourceDigest": "bae691fa63cbc1ee1040cd2f4557834ea2a8e5e2007193f16421d05de53b705c",
+  "sourceFiles": 1991,
+  "complete": true,
+  "clean": false,
+  "completedAt": "2026-11-01T10:54:16.521Z",
+  "scopes": [
+    "gateway-core",
+    "runtime-protocol",
+    "web-ux",
+    "deployment-release"
+  ],
+  "findings": [
+    {
+      "id": "WEB001",
+      "priority": "P2",
+      "title": "A failed account read disables the explicit authentication recovery actions",
+      "file": "web/components/AccountSettings.tsx",
+      "line": 205,
+      "relatedLines": [
+        58,
+        469,
+        476
+      ],
+      "trigger": "The connected account/read request completes with an error, for example native workspace-routing or authentication discovery failure.",
+      "observedContract": "accountReady requires a successful read; both perform(login/logout) and both buttons reject when it is false. The new device-login test explicitly expects login to remain disabled after a terminal read error.",
+      "impact": "An administrator cannot explicitly re-login or sign out to repair invalid account state; repeating the same read is the only available account action. A failed read does not itself represent an unresolved mutation.",
+      "evidence": [
+        "web/components/AccountSettings.tsx",
+        "web/hooks/useResource.ts",
+        "web/tests/device-login.test.tsx",
+        "src/runtime/service.ts: readAccount and account mutation callers"
+      ],
+      "recommendedFix": "Permit explicit login/logout after a terminal read failure while retaining the in-flight-read, global admission, pending/unknown receipt, loginId and missing-identity guards. Do not login automatically.",
+      "disposition": "Confirmed by root; repair authorized after this frozen NONCLEAN report. No repair is represented as part of this snapshot."
+    }
+  ],
+  "skipped": [],
+  "snapshot": {
+    "path": "verification/audit-evidence/v231/round1-snapshot.json",
+    "sha256": "5971d156385ad6e126b90856da0e12b8813bea418275db12403775cc74dfd77e",
+    "original": {
+      "path": ".work/v231-round1-snapshot.json",
+      "sha256": "5971d156385ad6e126b90856da0e12b8813bea418275db12403775cc74dfd77e"
+    }
+  },
+  "partitions": [
+    {
+      "name": "root",
+      "files": 118,
+      "clean": true,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round1-root.json",
+        "sha256": "6d0d42df75b3d5e7fd70fefc9c0318acf22c89871bfc74f03eb4efb999122d08",
+        "original": {
+          "path": ".work/v231-round1-root.json",
+          "sha256": "6d0d42df75b3d5e7fd70fefc9c0318acf22c89871bfc74f03eb4efb999122d08"
+        }
+      }
+    },
+    {
+      "name": "runtime",
+      "files": 1498,
+      "clean": true,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round1-runtime.json",
+        "sha256": "d10b176a50e6bc47f4df0219fc860822207e6b9fbcaab9ceb67f8301374511a6",
+        "original": {
+          "path": ".work/v231-round1-runtime.json",
+          "sha256": "d10b176a50e6bc47f4df0219fc860822207e6b9fbcaab9ceb67f8301374511a6"
+        }
+      }
+    },
+    {
+      "name": "web",
+      "files": 233,
+      "clean": false,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round1-web.json",
+        "sha256": "81f0158ec9984a67d2a42710d7e6364dfdb70efdb57a8e843dde2821273305f6",
+        "original": {
+          "path": ".work/v231-round1-web.json",
+          "sha256": "81f0158ec9984a67d2a42710d7e6364dfdb70efdb57a8e843dde2821273305f6"
+        }
+      }
+    },
+    {
+      "name": "deployment",
+      "files": 142,
+      "clean": true,
+      "evidence": {
+        "path": "verification/audit-evidence/v231/round1-deployment.json",
+        "sha256": "fefc3b08fd15a7e41376d5c94cf54e63687549eb93a089e7752751f8719e5ac2",
+        "original": {
+          "path": ".work/v231-round1-deployment.json",
+          "sha256": "fefc3b08fd15a7e41376d5c94cf54e63687549eb93a089e7752751f8719e5ac2"
+        }
+      }
+    }
+  ],
+  "method": "Complete partition inventory with fresh changed-source and workflow reviews. Unchanged semantic review is explicitly inherited by exact byte identity; no claim of re-reading every unchanged generated line. Round1 WEB001 is preserved as nonclean; Round2 binds its independent repair review."
+}

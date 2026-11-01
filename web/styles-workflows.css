@@ -72,7 +72,14 @@
 .agent-list .info-card {
   border-left: 3px solid var(--accent);
   margin-left: calc(var(--agent-depth, 0) * 18px);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
+.agent-activity > summary { flex-wrap: wrap; }
+.agent-activity .tool-body { min-width: 0; overflow-wrap: anywhere; }
+.agent-activity-targets { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.agent-activity-targets li { min-width: 0; }
+.agent-activity-id { min-width: 0; overflow-wrap: anywhere; flex: 1 1 120px; }
 .turn-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; color: var(--muted); font-size: 12px; }
 .turn-completed, .turn-copy { display: inline-flex; align-items: center; gap: 5px; }
 .turn-completed { color: var(--accent); }

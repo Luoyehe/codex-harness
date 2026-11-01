@@ -99,6 +99,7 @@ export function ThreadTerminals({
   threadId,
   connected,
   enabled,
+  shellEnabled,
   idle,
   onChanged,
   onLocate,
@@ -110,6 +111,7 @@ export function ThreadTerminals({
   threadId: string;
   connected: boolean;
   enabled: boolean;
+  shellEnabled: boolean;
   idle: boolean;
   onChanged: () => void;
   onLocate: (itemId: string) => void;
@@ -215,6 +217,7 @@ export function ThreadTerminals({
   const run = async () => {
     if (
       action.disabled ||
+      !shellEnabled ||
       !idle ||
       !consent ||
       !command.trim() ||
@@ -258,7 +261,7 @@ export function ThreadTerminals({
       {notice && <p role="status">{notice}</p>}
       {!enabled && (
         <p className="connection-banner">
-          操作前需要会话已加载且完整历史就绪。未知操作须先核对原回执。
+          当前操作暂不可用。请确认连接正常；未知操作须先核对原回执。
         </p>
       )}
       <div className="section-heading">
@@ -348,6 +351,9 @@ export function ThreadTerminals({
           <p>
             该命令以原生服务的完整权限执行，绕过当前会话的模型审批与沙箱。输出和执行结果写入会话历史；不是向模型发送指令。
           </p>
+          {!shellEnabled && (
+            <p className="connection-banner">启动新命令需要会话已加载且完整历史就绪；停止或清理已有后台进程不需要全文历史。</p>
+          )}
           <label className="field">
             会话 shell 命令
             <textarea
@@ -383,6 +389,7 @@ export function ThreadTerminals({
             className="button primary"
             disabled={
               action.disabled ||
+              !shellEnabled ||
               !idle ||
               !consent ||
               !command.trim() ||

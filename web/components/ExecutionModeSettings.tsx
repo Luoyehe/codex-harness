@@ -1,24 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { executionMode, type ExecutionIdentity } from '../lib/execution-mode';
+import { object } from '../lib/types';
 import { ExtensionStatus, useExtensionAction } from './ExtensionControls';
 
 export function RootExecutionNotice({ identity, confirmed, onSettings }: {
   identity?: ExecutionIdentity; confirmed: boolean; onSettings: () => void;
 }) {
   if (identity?.mode !== 'root') return null;
-  return <aside className="workspace-warning root-execution-notice" role="status" aria-label="ROOT 执行权限">
-    <strong>{confirmed ? 'ROOT 执行模式已启用' : 'ROOT 执行身份待重新确认'}</strong>
-    <span>Agent 和终端具有整机 root 权限，可修改系统、服务及 Harness 自身。对话的沙箱和审批设置不改变执行账号。</span>
-    {!confirmed && <span>连接恢复前保留 ROOT 提示；不能据此认定已经切回普通账号。</span>}
-    <button className="button small" onClick={onSettings}>查看执行权限</button>
-  </aside>;
+  const label = `${confirmed ? 'ROOT 模式已启用' : 'ROOT 执行身份待确认'}，查看执行权限`;
+  return <span className="root-execution-notice" role="status" aria-label="ROOT 执行权限">
+    <button type="button" title={label} aria-label={label} onClick={onSettings}>
+      {confirmed ? 'ROOT' : 'ROOT ?'}
+    </button>
+  </span>;
 }
 
-export function ExecutionModeSettings({ api, value, loading, enabled, onRefresh }: {
-  api: Api; value: unknown; loading: boolean; enabled: boolean; onRefresh: () => void;
+export function ExecutionModeSettings({ api, value, sharedChatgptAuth, loading, enabled, onRefresh }: {
+  api: Api; value: unknown; sharedChatgptAuth?: unknown; loading: boolean; enabled: boolean; onRefresh: () => void;
 }) {
   const current = executionMode(value);
+  const auth = object(sharedChatgptAuth);
+  const sharedAuthReady = auth.shared === true && auth.ready !== false && ['native', 'root'].includes(String(auth.activeMode)) &&
+    auth.automaticRestore === false && Array.isArray(auth.archivedLegacyModes) && auth.archivedLegacyModes.length <= 1 &&
+    auth.archivedLegacyModes.every(mode => mode === 'native' || mode === 'root');
+  const archivedModes = sharedAuthReady ? auth.archivedLegacyModes as ('native' | 'root')[] : [];
   const [choice, setChoice] = useState<{ mode: 'native' | 'root'; revision: string }>();
   const [confirmed, setConfirmed] = useState(false);
   useEffect(() => { setConfirmed(false); }, [current?.revision]);
@@ -52,7 +58,18 @@ export function ExecutionModeSettings({ api, value, loading, enabled, onRefresh 
     {current && <p>服务器 ROOT 授权：{current.rootAllowed ? '已允许，仍须在此明确选择和确认后才会启用。' : '未允许。请在服务器运行一站式运维脚本，先授权 ROOT 执行。'}</p>}
     <p>默认使用普通账号。ROOT 模式让 Agent、项目文件操作和终端以 root 身份执行，可访问 /root 并修改整机，包括 Harness 控制面、账号和凭据。</p>
     <p className="small muted">这是服务器执行身份，与模型、对话沙箱和审批策略分别管理。切回普通账号不会撤销已完成的系统修改，也不会自动修复 root 创建文件的权限。</p>
-    <p className="small muted">两种模式分别保留 Codex 登录和会话历史；首次进入 ROOT 模式需单独登录 ChatGPT，不复制普通模式的登录凭据。模型供应商配置共享，自动化任务会使用当前执行模式。</p>
+    <div className="stack" aria-label="实例 ChatGPT 登录">
+      <p className="small muted">{loading ? '正在读取实例登录共享状态…' : auth.shared === true && auth.ready === false
+        ? 'ChatGPT 登录转交尚未完成。请由服务器管理员恢复执行权限事务后刷新状态；不会自动恢复旧账号。'
+        : sharedAuthReady
+        ? `本实例共用一份 ChatGPT 登录，当前由${auth.activeMode === 'root' ? 'ROOT 模式' : '普通账号模式'}使用，切换执行模式时一并转交。共享状态不代表已经登录，请在账户设置中确认。`
+        : auth.shared === false ? '实例登录共享尚未初始化；执行权限切换时会沿用切换前模式的登录，并保留另一模式原有登录为受限备份。'
+        : '实例登录共享状态尚未确认，请刷新服务状态。'}</p>
+      {!loading && archivedModes.length > 0 && <p className="small" role="status">
+        {archivedModes.map(mode => mode === 'root' ? 'ROOT 模式' : '普通账号模式').join('、')}原有的 ChatGPT 登录已保留为受限备份，不会自动恢复，也不会覆盖当前实例登录。
+      </p>}
+      <p className="small muted">会话历史仍按执行模式分别保留。模型供应商配置共享，自动化任务会使用当前执行模式。</p>
+    </div>
     {!enabled && <p className="workspace-warning">请先结束任务、终端和其他活动，并等待后台状态确认，再切换执行权限。</p>}
     <fieldset className="submission-fields stack" disabled={frozen || !current || loading || !enabled}>
       <div className="segmented" role="group" aria-label="选择执行权限">

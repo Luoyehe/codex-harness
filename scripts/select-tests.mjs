@@ -8,7 +8,13 @@ import { isolatedTestEnvironment, isolateTestProcess } from './test-environment.
 import { goTestFile, goTestPattern, runGoTests } from './go-tests.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
-export const nativeTestFiles = ['tests/runtime/native-smoke.test.ts', 'tests/runtime/gateway-native.test.ts', 'tests/runtime/approval-native.test.ts', 'tests/runtime/workflows-native.test.ts', 'tests/runtime/extensions-native.test.ts', 'tests/runtime/mcp-native.test.ts', 'tests/runtime/organization-native.test.ts', 'tests/runtime/automation-native.test.ts', 'tests/runtime/process-native.test.ts', 'tests/runtime/input-native.test.ts', 'tests/runtime/remote-native.test.ts', 'tests/runtime/guardian-native.test.ts', 'tests/runtime/gateway-oauth-native.test.ts', 'tests/runtime/cli-diagnostics-native.test.ts'];
+export const nativeTestFiles = [
+  'tests/runtime/native-smoke.test.ts', 'tests/runtime/gateway-native.test.ts', 'tests/runtime/approval-native.test.ts',
+  'tests/runtime/workflows-native.test.ts', 'tests/runtime/extensions-native.test.ts', 'tests/runtime/mcp-native.test.ts',
+  'tests/runtime/organization-native.test.ts', 'tests/runtime/automation-native.test.ts', 'tests/runtime/process-native.test.ts',
+  'tests/runtime/input-native.test.ts', 'tests/runtime/remote-native.test.ts', 'tests/runtime/guardian-native.test.ts',
+  'tests/runtime/gateway-oauth-native.test.ts', 'tests/runtime/cli-diagnostics-native.test.ts', 'tests/runtime/provider-switch-native.test.ts',
+];
 const nativeNames = new Set(nativeTestFiles);
 const testPattern = /^(?:tests|web\/tests)\/.+\.test\.tsx?$/;
 const pythonPattern = /^tests\/deploy\/(?:[^/]+\/)*test_[^/]+\.py$/;

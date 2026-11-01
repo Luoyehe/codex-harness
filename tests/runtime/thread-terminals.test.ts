@@ -17,7 +17,7 @@ class Native extends EventEmitter {
   async close() { this.connected = false; }
 }
 const services: RuntimeService[] = []; const context = { clientId: 'owner', eventChannelId: 'channel', beforeWrite: () => {} };
-async function setup() { const parent = path.resolve('.work/thread-terminals-tests'); mkdirSync(parent, { recursive: true }); const home = mkdtempSync(path.join(parent, 'home-')); const native = new Native(); const service = new RuntimeService({ bin: process.execPath, home, workerHome: home, cwd: home, env: {} }, native as unknown as NativeRpc); services.push(service); await service.call('thread/start', { cwd: home }, context); return { service, native }; }
+async function setup(start = true) { const parent = path.resolve('.work/thread-terminals-tests'); mkdirSync(parent, { recursive: true }); const home = mkdtempSync(path.join(parent, 'home-')); const native = new Native(); const service = new RuntimeService({ bin: process.execPath, home, workerHome: home, cwd: home, env: {} }, native as unknown as NativeRpc); services.push(service); if (start) await service.call('thread/start', { cwd: home }, context); return { service, native }; }
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 const terminal = { itemId: 'item', processId: 'native-process', command: 'fixture', cwd: '/project', osPid: null, cpuPercent: null, rssKb: null };
 test('thread shell requires explicit unsandboxed consent and accepted work blocks a second input before native events', async () => {
@@ -28,22 +28,25 @@ test('thread shell requires explicit unsandboxed consent and accepted work block
   expect(object(object(service.status()).activity).activeThreads).toContain('thread');
   await expect(service.call('thread/shellCommand', { threadId: 'thread', command: 'second', confirmUnsandboxed: true }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
 });
-test('background termination requires fresh same-thread discovery and preserves native false results', async () => {
-  const { service, native } = await setup();
+test('unread background termination requires fresh same-thread discovery and preserves native false results', async () => {
+  const { service, native } = await setup(false);
+  await expect(service.call('thread/shellCommand', { threadId: 'thread', command: 'not loaded', confirmUnsandboxed: true }, context)).rejects.toMatchObject({ code: 'history_incomplete', delivery: 'not_sent' });
   await expect(service.call('thread/backgroundTerminals/terminate', { threadId: 'thread', processId: 'arbitrary-pid' }, context)).rejects.toMatchObject({ code: 'not_found' });
   native.pages.push({ data: [], nextCursor: 'next' }, { data: [terminal], nextCursor: null });
   expect(await service.call('thread/backgroundTerminals/terminate', { threadId: 'thread', processId: terminal.processId }, context)).toEqual({ threadId: 'thread', processId: terminal.processId, terminated: false });
   expect(native.calls.filter(call => call.method === 'thread/backgroundTerminals/terminate')).toHaveLength(1);
   expect(native.calls.at(-2)).toMatchObject({ params: { threadId: 'thread', cursor: 'next' } });
+  expect(native.calls.some(call => ['thread/start', 'thread/resume', 'thread/turns/list', 'thread/timeline/list', 'thread/shellCommand'].includes(call.method))).toBe(false);
 });
 test('owner revocation after discovery prevents termination and cursor loops never dispatch it', async () => {
-  const { service, native } = await setup(); native.pages.push({ data: [], nextCursor: 'loop' }, { data: [], nextCursor: 'loop' });
+  const { service, native } = await setup(false); native.pages.push({ data: [], nextCursor: 'loop' }, { data: [], nextCursor: 'loop' });
   await expect(service.call('thread/backgroundTerminals/terminate', { threadId: 'thread', processId: terminal.processId }, context)).rejects.toMatchObject({ code: 'cursor_loop' });
   native.pages.push({ data: [terminal], nextCursor: null }); let revoked = false; native.before = () => { revoked = true; };
   await expect(service.call('thread/backgroundTerminals/terminate', { threadId: 'thread', processId: terminal.processId }, { ...context, beforeWrite: () => { if (revoked) throw new DeliveryError('client_disconnected', 'revoked'); } })).rejects.toMatchObject({ code: 'client_disconnected' });
   expect(native.calls.some(call => call.method === 'thread/backgroundTerminals/terminate')).toBe(false);
 });
-test('native cleanup acknowledgement is represented only as a request and requires consent', async () => {
-  const { service } = await setup(); await expect(service.call('thread/backgroundTerminals/clean', { threadId: 'thread' }, context)).rejects.toMatchObject({ code: 'confirmation_required' });
+test('unread native cleanup is only a request and still requires consent', async () => {
+  const { service, native } = await setup(false); await expect(service.call('thread/backgroundTerminals/clean', { threadId: 'thread' }, context)).rejects.toMatchObject({ code: 'confirmation_required' });
   expect(await service.call('thread/backgroundTerminals/clean', { threadId: 'thread', confirm: true }, context)).toEqual({ threadId: 'thread', cleanupRequested: true });
+  expect(native.calls.map(call => call.method)).toEqual(['thread/read', 'thread/backgroundTerminals/clean']);
 });

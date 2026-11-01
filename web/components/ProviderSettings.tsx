@@ -157,6 +157,7 @@ function ProviderSettingsForm({
       !resource.data ||
       conflict ||
       action.disabled ||
+      (effectiveId !== 'new' && kind !== provider?.kind) ||
       (isGateway && gatewayConsent !== gatewayScope)
     )
       return;
@@ -251,7 +252,7 @@ function ProviderSettingsForm({
         <fieldset className="provider-fields stack" disabled={action.busy || !visible || !initialized}>
           <h3>模型供应商</h3>
           <p className="muted">
-            可同时启用多个服务，开始新对话时选择模型。保存配置会重启运行时，请先结束正在执行的任务。
+            可同时启用多个服务，在新旧对话中直接选择模型。保存配置会重启运行时，请先结束正在执行的任务。
           </p>
           {(connections.length > 0 || effectiveId === 'new') && <>
             <label className="field">显示名称<input value={name} maxLength={64} onChange={event => setName(event.target.value)} placeholder="例如：个人 Coding Plan" /></label>
@@ -261,7 +262,9 @@ function ProviderSettingsForm({
             供应商
             <select
               value={kind}
+              disabled={effectiveId !== 'new'}
               onChange={(e) => {
+                if (effectiveId !== 'new') return;
                 setKind(e.target.value);
                 setModel(''); setEffort(''); setBaseUrl(''); setRegion('');
                 setSaved(false);
@@ -279,6 +282,7 @@ function ProviderSettingsForm({
               <option value="bedrock-mantle">Amazon Bedrock Mantle</option>
             </select>
           </label>
+          {effectiveId !== 'new' && <p className="small muted">已添加供应商的类型固定；如需其他类型，请添加供应商。</p>}
           {['responses', 'chatgpt-gateway'].includes(kind) && (
             <label className="field">
               {isGateway ? '网关 Codex Base URL' : 'API Base URL'}
@@ -464,7 +468,7 @@ function ProviderSettingsForm({
         <div className="inline">
           <button type="button" className="button" disabled={action.disabled || provider.enabled === false || effectiveId === registry?.defaultProviderId}
             onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, defaultProviderId: effectiveId }, '已更新新对话的默认供应商。')) resource.refresh(); }}>设为默认供应商</button>
-          <details><summary>移除供应商</summary><p>移除后，使用此供应商的历史对话将无法继续，直到重新配置相同服务。</p>
+          <details><summary>移除供应商</summary><p>历史对话会保留，之后可选择其他已启用供应商的模型继续。</p>
             <button type="button" className="button danger" disabled={action.disabled || connections.length <= 1}
               onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, removeProviderId: effectiveId }, '已移除供应商。')) { setSelectedId(''); resource.refresh(); } }}>确认移除 {String(provider.name)}</button>
           </details>

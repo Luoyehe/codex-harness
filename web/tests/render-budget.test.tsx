@@ -19,6 +19,35 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+it('renders collaboration task and target states separately and opens only the chosen child through the supplied callback', () => {
+  const open = vi.fn();
+  Element.prototype.scrollIntoView = vi.fn();
+  render(<Messages turns={[{ id: 'turn', status: 'completed', items: [{
+    id: 'spawn', type: 'collabAgentToolCall', tool: 'spawnAgent', status: 'completed', senderThreadId: 'parent',
+    receiverThreadIds: ['child'], prompt: 'Review the implementation', model: 'model', reasoningEffort: 'high',
+    agentsStates: { child: { status: 'running', message: '<script>literal child output</script>' } },
+  }] }]} loading={false} complete onMore={vi.fn()} onOpenThread={open} />);
+  fireEvent.click(screen.getByText('创建子智能体'));
+  expect(screen.getByText('调用已完成')).toBeTruthy();
+  expect(screen.getByText('工作中')).toBeTruthy();
+  expect(screen.queryByText('任务已完成')).toBeNull();
+  expect(screen.getByText('Review the implementation')).toBeTruthy();
+  expect(screen.getByText('<script>literal child output</script>')).toBeTruthy();
+  expect(document.querySelector('script')).toBeNull();
+  expect(open).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '查看子会话' }));
+  expect(open).toHaveBeenCalledExactlyOnceWith('child');
+});
+it.each([
+  ['started', '已启动'], ['interacted', '有新交互'], ['interrupted', '已中断'], ['completed', '任务已完成'],
+])('renders protocol sub-agent activity %s without inventing a navigation or running task', (kind, label) => {
+  render(<MessageItem item={{ id: 'activity', type: 'subAgentActivity', kind, agentThreadId: 'child',
+    agentPath: '/reviewer', model: null, reasoningEffort: null }} />);
+  fireEvent.click(screen.getByText('子智能体动态'));
+  expect(screen.getByText(label)).toBeTruthy();
+  expect(screen.getByText('子智能体：/reviewer')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: '查看子会话' })).toBeNull();
+});
 it('commits focus together with an initially mounted search target before the result is published', () => {
   Element.prototype.scrollIntoView = vi.fn();
   const committed: (string | null | undefined)[] = [];

@@ -62,7 +62,7 @@ const props = (s: ReturnType<typeof setup>) => ({
   enabled: true,
   onServiceSettings: vi.fn(),
 });
-const start = () => fireEvent.click(screen.getByRole('button', { name: '使用 ChatGPT 登录' }));
+const start = async () => fireEvent.click(await enabledButton({ name: '使用 ChatGPT 登录' }));
 beforeEach(() => {
   sessionStorage.clear();
   localStorage.clear();
@@ -77,12 +77,109 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
+it('blocks account changes during reading but allows an explicit login after a terminal read failure without reading limits', async () => {
+  let finish!: (value: unknown) => void;
+  const s = setup(c => c.method === 'account/read'
+    ? new Promise(resolve => { finish = resolve; })
+    : undefined);
+  render(<AccountSettings {...props(s)} />);
+  const login = screen.getByRole('button', { name: '使用 ChatGPT 登录' });
+  const logout = screen.getByRole('button', { name: '退出模型账户' });
+  expect(login).toHaveProperty('disabled', true);
+  expect(logout).toHaveProperty('disabled', true);
+  fireEvent.click(login);
+  fireEvent.click(logout);
+  expect(s.calls.some(c => ['account/login', 'account/logout', 'account/rateLimits'].includes(c.method))).toBe(false);
+  await act(async () => finish({ fault: { code: 'runtime_error', message: 'account read failed', delivery: 'not_sent' } }));
+  await screen.findByText(/account read failed/);
+  expect(login).toHaveProperty('disabled', false);
+  expect(logout).toHaveProperty('disabled', false);
+  expect(s.calls.some(c => ['account/login', 'account/logout', 'account/rateLimits'].includes(c.method))).toBe(false);
+  await start();
+  await screen.findByText('PRIVATE-DEVICE-CODE');
+  expect(s.calls.filter(c => c.method === 'account/login')).toHaveLength(1);
+  expect(login).toHaveProperty('disabled', true);
+  expect(logout).toHaveProperty('disabled', true);
+  expect(await enabledButton({ name: '取消原设备码登录' })).toBeTruthy();
+  expect(s.calls.some(c => c.method === 'account/rateLimits')).toBe(false);
+});
+
+it('allows an explicit logout after a failed account read and checks the resulting signed-out account', async () => {
+  let signedOut = false;
+  const s = setup(c => {
+    if (c.method === 'account/read') return signedOut ? { account: null }
+      : { fault: { code: 'runtime_error', message: 'account read failed', delivery: 'not_sent' } };
+    if (c.method === 'account/logout') { signedOut = true; return {}; }
+    return undefined;
+  });
+  render(<AccountSettings {...props(s)} />);
+  await screen.findByText(/无法确认当前账户/);
+  expect(s.calls.some(c => ['account/login', 'account/logout'].includes(c.method))).toBe(false);
+  fireEvent.click(await enabledButton({ name: '退出模型账户' }));
+  await screen.findByText('尚未登录');
+  expect(s.calls.filter(c => c.method === 'account/logout')).toHaveLength(1);
+  expect(s.calls.filter(c => c.method === 'account/read')).toHaveLength(2);
+  expect(s.calls.some(c => ['account/login', 'account/rateLimits'].includes(c.method))).toBe(false);
+  expect(await enabledButton({ name: '使用 ChatGPT 登录' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: '退出模型账户' })).toHaveProperty('disabled', true);
+});
+
+it('reads limits only after authenticated state and removes them on logout without another signed-out request', async () => {
+  let loggedIn = true;
+  const s = setup(c => {
+    if (c.method === 'account/read') return { account: loggedIn ? { type: 'chatgpt', email: 'fixture@example.test' } : null };
+    if (c.method === 'account/rateLimits') return { rateLimits: { fixtureRemaining: 42 } };
+    if (c.method === 'account/logout') { loggedIn = false; return {}; }
+    return undefined;
+  });
+  render(<AccountSettings {...props(s)} />);
+  await screen.findByText('fixture@example.test');
+  await screen.findByText(/fixtureRemaining/);
+  expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(1);
+  fireEvent.click(await enabledButton({ name: '退出模型账户' }));
+  await screen.findByText('尚未登录');
+  expect(screen.queryByText(/fixtureRemaining/)).toBeNull();
+  expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(1);
+  await start();
+  await screen.findByText('PRIVATE-DEVICE-CODE');
+  expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(1);
+  loggedIn = true;
+  act(() => s.events.publish({ type: 'notification', data: {
+    method: 'account/login/completed', params: { loginId: 'login', success: true },
+  } }));
+  await screen.findByText('fixture@example.test');
+  await screen.findByText(/fixtureRemaining/);
+  expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(2);
+  expect(s.calls.filter(c => c.method === 'account/login')).toHaveLength(1);
+});
+
+it('keeps cancellation of the original device login available while account status is being re-read', async () => {
+  let hold = false;
+  const finishes: ((value: unknown) => void)[] = [];
+  const s = setup(c => c.method === 'account/read' && hold
+    ? new Promise(resolve => { finishes.push(resolve); }) : undefined);
+  render(<AccountSettings {...props(s)} />);
+  await start();
+  await screen.findByText('PRIVATE-DEVICE-CODE');
+  hold = true;
+  fireEvent.click(screen.getByRole('button', { name: '重新读取账户与登录状态' }));
+  await screen.findByText('读取账户中…');
+  fireEvent.click(await enabledButton({ name: '取消原设备码登录' }));
+  await screen.findByText('已取消原设备码登录。');
+  expect(s.calls.filter(c => c.method === 'account/login/cancel')).toHaveLength(1);
+  expect(s.calls.filter(c => c.method === 'account/login')).toHaveLength(1);
+  hold = false;
+  await act(async () => finishes.forEach(finish => finish({ account: null })));
+});
+
 it('keeps device secrets outside receipts and storage and reads only the owner handoff after explicit login', async () => {
   const s = setup();
   render(<AccountSettings {...props(s)} />);
   expect(s.calls.some((c) => c.method === 'account/login')).toBe(false);
-  start();
+  await start();
   await screen.findByText('PRIVATE-DEVICE-CODE');
+  expect(screen.getByText(/本地登录交接保留至/).textContent).toContain('设备码是否有效以验证页面为准');
+  expect(screen.queryByText(/^有效至 /)).toBeNull();
   expect(s.calls.find((c) => c.method === 'account/login/handoff')?.params).toEqual({
     loginId: 'login',
   });
@@ -99,6 +196,8 @@ it('keeps device secrets outside receipts and storage and reads only the owner h
 it('recovers a lost login response through the original receipt without opening a second login', async () => {
   let id = '';
   const s = setup((c) => {
+    if (c.method === 'account/read')
+      return { fault: { code: 'runtime_error', message: 'account read failed', delivery: 'not_sent' } };
     if (c.method === 'account/login') {
       id = c.operationId!;
       throw new Error('response lost');
@@ -112,7 +211,7 @@ it('recovers a lost login response through the original receipt without opening 
       };
   });
   render(<AccountSettings {...props(s)} />);
-  start();
+  await start();
   const recover = await enabledButton({ name: '查询原账户操作回执' });
   expect(
     (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
@@ -132,7 +231,7 @@ it('does not revive a device code from a late handoff after native completion', 
       : undefined,
   );
   render(<AccountSettings {...props(s)} />);
-  start();
+  await start();
   await waitFor(() => expect(s.calls.some((c) => c.method === 'account/login/handoff')).toBe(true));
   act(() =>
     s.events.publish({
@@ -155,7 +254,7 @@ it('clears codes and ignores old owner responses on disconnect or replacement', 
       : undefined,
   );
   const view = render(<AccountSettings {...props(s)} />);
-  start();
+  await start();
   await waitFor(() => expect(s.calls.some((c) => c.method === 'account/login/handoff')).toBe(true));
   view.rerender(<AccountSettings {...props(s)} connected={false} />);
   await act(async () => finish(code()));
@@ -201,11 +300,11 @@ it('treats revoked handoffs as closed and blocks changes when global admission i
       : undefined,
   );
   const view = render(<AccountSettings {...props(s)} enabled={false} />);
-  start();
+  fireEvent.click(screen.getByRole('button', { name: '使用 ChatGPT 登录' }));
   expect(s.calls.some((c) => c.method === 'account/login')).toBe(false);
   view.rerender(<AccountSettings {...props(s)} />);
-  start();
-  await screen.findByText(/原设备码已撤销或过期/);
+  await start();
+  await screen.findByText(/原登录交接已撤销或到期/);
   expect(screen.queryByText('PRIVATE-DEVICE-CODE')).toBeNull();
   expect(
     (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
@@ -215,7 +314,7 @@ it('does not turn accepted receipt without login identity into a fresh automatic
   const s = setup((c) => (c.method === 'account/login' ? {} : undefined));
   const service = vi.fn();
   render(<AccountSettings {...props(s)} onServiceSettings={service} />);
-  start();
+  await start();
   await screen.findByText(/没有取得有效登录 ID/);
   expect(
     (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
@@ -227,7 +326,7 @@ it('does not turn accepted receipt without login identity into a fresh automatic
 it('retains the missing-identity recovery gate when the settings modal is reopened', async () => {
   const s = setup((c) => (c.method === 'account/login' ? {} : undefined));
   const view = render(<AccountSettings {...props(s)} />);
-  start();
+  await start();
   await screen.findByText(/没有取得有效登录 ID/);
   view.unmount();
   render(<AccountSettings {...props(s)} />);

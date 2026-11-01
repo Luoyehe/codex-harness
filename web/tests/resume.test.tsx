@@ -46,5 +46,5 @@ it('reads unloaded history metadata without silently resuming queued work', asyn
   expect(view.result.current.resumedThread).toBe('');
   expect(loaded).not.toHaveBeenCalled();
   expect(mutate).not.toHaveBeenCalled();
-  expect(call).toHaveBeenCalledWith('thread/session', { threadId: 't' }, expect.any(AbortSignal));
+  expect(call).toHaveBeenCalledWith('thread/session', { threadId: 't', checkContinuation: true }, expect.any(AbortSignal));
 });

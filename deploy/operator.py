@@ -374,7 +374,7 @@ class Console:
         current = self.command("execution-mode-read")
         self.output("Root 授权：" + ("已授权" if current["rootAllowed"] else "未授权") + "；当前：" + current["mode"])
         self.output("授权允许网页登录管理员启用整机 root，包括修改 Harness 控制面。普通模式必须从独立 SSH/控制台授权；网页终端/Agent 不能自行授权。已启用的完整 root 不受此来源限制。")
-        self.output("Root 和普通模式的 CLI 登录、历史及默认项目目录独立；不复制个人凭据。旧外置 UID 代理不自动覆盖 root；本菜单的服务专属代理同时覆盖两种身份。")
+        self.output("本实例共享一个当前 ChatGPT 登录，停机切换身份时转交；历史及默认项目目录按身份独立。旧身份遗留登录仅受限备份，不自动恢复。旧外置 UID 代理不自动覆盖 root；本菜单的服务专属代理同时覆盖两种身份。")
         self.output("授权变更也会短暂停启服务；必须先完成任务并关闭终端。撤销会同时恢复普通身份，不撤销已做的系统修改或更改 root 文件归属。")
         choice = self.choice("执行权限", {"1": "允许网页 root 开关（不自动启用）", "2": "撤销授权并切回普通身份", "3": "切换为普通身份", "4": "切换为 root 身份", "5": "恢复中断的身份事务"})
         if not self.confirm("确认所选权限操作并短暂停启空闲服务"):
@@ -397,12 +397,18 @@ class Console:
         self.output("仅代理本实例 Agent、终端、网关和管理目录请求的 TCP；普通与 root 身份均适用，不包含其它系统服务或 root 进程。常见国内域名及自定义名单直连；中国 IP 和私有地址直连，未收录域名默认代理，不代理 UDP。")
         self.output("自定义精确直连域名：" + ("、".join(current.get("directDomains", [])) or "无"))
         self.output("启用需 systemd 255+、nftables、cgroup v2。输入只接受服务器 root:0600 的 VLESS outbound JSON；不在网页、命令行参数或日志输入节点密钥。")
-        choice = self.choice("服务专属代理", {"1": "配置 / 启用 VLESS", "2": "关闭代理（保留配置和核心）",
+        choice = self.choice("服务专属代理", {"1": "配置 / 更换 VLESS 节点", "2": "关闭代理（保留配置和核心）",
                              "3": "更新 Xray 核心", "4": "回滚上一项代理配置 / 核心", "5": "恢复中断的代理事务",
-                             "6": "直连域名"})
+                             "6": "直连域名", "7": "启用已保存代理"})
         if choice == "6":
             self.proxy_direct_domains(current)
             return
+        if choice == "7":
+            require(current.get("configured") is True, "尚无已保存代理配置，请先选择配置 / 更换 VLESS 节点。", "not_installed")
+            if current.get("enabled"):
+                self.output("已保存代理已启用，无需重复操作。")
+                return
+            self.output("启用当前保存的节点、核心和直连名单；不重新导入节点或下载核心。")
         arguments = []
         version = None
         download_proxy = ""
@@ -431,7 +437,7 @@ class Console:
                 arguments += ["--download-proxy", download_proxy]
         if choice != "5":
             arguments.append("--confirm-restart")
-        self.command({"1": "proxy-configure", "2": "proxy-disable", "3": "proxy-core-update", "4": "proxy-rollback", "5": "proxy-recover"}[choice], *arguments)
+        self.command({"1": "proxy-configure", "2": "proxy-disable", "3": "proxy-core-update", "4": "proxy-rollback", "5": "proxy-recover", "7": "proxy-enable"}[choice], *arguments)
         self.output("代理操作完成；旧核心和恢复材料已保留。请检查状态，失败或未知时不要重复提交。")
 
     def proxy_direct_domains(self, current: dict) -> None:

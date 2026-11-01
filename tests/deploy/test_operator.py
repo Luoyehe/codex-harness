@@ -39,7 +39,8 @@ class OperatorTests(unittest.TestCase):
                     (configure + ["--clear-direct-domains"], "configure", []),
                     (configure + ["--direct-domain", "API.Example.CN."], "configure", ["api.example.cn"]),
                     (["proxy-direct-domains", "--direct-domain", "api.example.cn"], "direct-domains", ["api.example.cn"]),
-                    (["proxy-direct-domains", "--clear-direct-domains"], "direct-domains", [])]
+                    (["proxy-direct-domains", "--clear-direct-domains"], "direct-domains", []),
+                    (["proxy-enable"], "enable", None)]
         with patch("deploy.cli.require_linux"), patch("deploy.transactions.require_initialization_complete"), \
              patch("deploy.cli.exclusive", return_value=nullcontext()), patch("deploy.control_update.require_no_pending_control"), \
              patch("deploy.cli.Manager") as manager, patch("deploy.proxy_transaction.change", return_value={"changed": True}) as change:
@@ -51,9 +52,39 @@ class OperatorTests(unittest.TestCase):
                     self.assertEqual(change.call_args.kwargs["action"], action)
                     self.assertEqual(change.call_args.kwargs["direct_domains"], domains)
                     self.assertTrue(change.call_args.kwargs["confirm_restart"])
-                    if action == "direct-domains":
+                    if action in ("direct-domains", "enable"):
                         for key in ("input_file", "version", "download_proxy"):
                             self.assertIsNone(change.call_args.kwargs[key])
+
+    def test_enable_saved_proxy_menu_reuses_materials_and_only_requests_confirmation(self):
+        current = {"configured": True, "enabled": False, "coreVersion": "26.10.31", "directDomains": ["api.example.cn"]}
+        with patch("deploy.proxy_core.latest_version") as latest:
+            self.console(["7", "y"], lambda args: current if args.command == "proxy-status" else {}).service_proxy()
+        latest.assert_not_called()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status", "proxy-enable"])
+        self.assertTrue(self.calls[-1].confirm_restart)
+        self.assertFalse(any(hasattr(self.calls[-1], key) for key in ("config_file", "version", "download_proxy", "direct_domain")))
+        self.assertIn("不重新导入节点或下载核心", "\n".join(self.output))
+        self.calls.clear()
+        self.console(["7", "n"], lambda _: current).service_proxy()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+
+    def test_enable_saved_proxy_menu_missing_configuration_and_enabled_noop_never_write(self):
+        with self.assertRaisesRegex(DeployError, "尚无已保存代理配置") as raised:
+            self.console(["7"], lambda _: {"configured": False}).service_proxy()
+        self.assertEqual(raised.exception.code, "not_installed")
+        self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+        self.calls.clear()
+        self.console(["7"], lambda _: {"configured": True, "enabled": True}).service_proxy()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+        self.assertIn("已保存代理已启用，无需重复操作。", self.output)
+
+    def test_execution_permissions_describes_shared_login_and_separate_history(self):
+        self.console(["3", "n"], lambda _: {"rootAllowed": True, "mode": "root"}).execution_permissions()
+        self.assertEqual([args.command for args in self.calls], ["execution-mode-read"])
+        text = "\n".join(self.output)
+        for message in ("共享一个当前 ChatGPT 登录", "停机切换身份时转交", "历史及默认项目目录按身份独立", "不自动恢复"):
+            self.assertIn(message, text)
 
     def test_direct_domain_menu_reuses_disabled_proxy_without_import_or_download(self):
         current = {"configured": True, "enabled": False, "coreVersion": "26.10.31", "directDomains": ["old.example.cn"]}

@@ -64,6 +64,7 @@ export function AdminSettings({ api, epoch, configurationReady = true, onRecover
         </p>
       )}
       <ExecutionModeSettings key={api.csrf} api={api} value={status.data?.executionMode}
+        sharedChatgptAuth={status.data?.sharedChatgptAuth}
         loading={status.loading} enabled={configurationReady} onRefresh={status.refresh} />
       {https.configured === true && (
         <div className="info-card stack" aria-label="HTTPS 状态">

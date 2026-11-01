@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "createdAt": "2026-11-01T10:52:11.223Z",
+  "finding": "WEB001",
+  "previousAudit": {
+    "path": ".work/v231-round1-web.json",
+    "sha256": "81f0158ec9984a67d2a42710d7e6364dfdb70efdb57a8e843dde2821273305f6",
+    "sourceDigest": "bae691fa63cbc1ee1040cd2f4557834ea2a8e5e2007193f16421d05de53b705c",
+    "disposition": "NONCLEAN retained unchanged"
+  },
+  "rationale": "A terminal read failure is not an unresolved mutation. Explicit account recovery remains possible after the read settles, while a read in progress cannot race login/logout.",
+  "changes": [
+    "accountSettled permits either successful account data or a terminal read error; login/logout use this gate, while usage limits still require confirmed authenticated accountReady.",
+    "The failed-read message explains the explicit re-read/login/logout options and promises no automatic login. Logout is available even when the failed read could not identify the existing account.",
+    "Busy, connected/global admission, operation-store failure, unresolved receipt, original loginId and missing-identity restart guards are unchanged. Cancel of a known original login remains available during account reading.",
+    "Regression asserts both actions blocked during held read; no automatic writes or limits after failure; exactly one explicit login or logout; logout rereads signed-out state; unknown login continues to query its original receipt without a fresh attempt."
+  ],
+  "files": [
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "previousSha256": "66f1be021322afa63ef45af314f9a4223b2ba35cb4f99ae39aa65b3b93fd8bfc",
+      "sha256": "8f6977e1fca85ed9b9c62aab2e574ec6006ab169a32091ef71b36887d632dc55"
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "previousSha256": "dc2c9b4052f469dc627609b77bc5a6f64a5a43c3de496e54e9ffe5d2e952521a",
+      "sha256": "1effb7139558dc559e7ef595d35947c619d871eb5271298dca23410ccd489f93"
+    }
+  ],
+  "tests": {
+    "command": "node scripts/run-tests.mjs --targeted web/tests/device-login.test.tsx",
+    "exitCode": 0,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "evidence": {
+      "path": ".work/test-results/run-MOGceS/vitest.json",
+      "sha256": "1395d14e6700b6aeb7ae3d8aab39128300b8aa2b96168b244d4a0ce924f75f70"
+    }
+  },
+  "checks": [
+    {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "toolChunk": "9e2d2a"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "toolChunk": "40faca"
+    }
+  ],
+  "currentSnapshot": {
+    "files": 1991,
+    "digest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094"
+  },
+  "limits": [
+    "Local jsdom fixture uses real Api mutation/receipt handling with controlled HTTP responses; no live account login/logout or server changes.",
+    "Only the affected 12-case file and web type check were run; no full suite.",
+    "Independent root review and next frozen snapshot are still required; this author report is not a clean full audit."
+  ]
+}

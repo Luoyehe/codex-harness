@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "root-independent-account-review",
+  "complete": true,
+  "clean": true,
+  "createdAt": "2026-11-01T10:52:48.415Z",
+  "files": [
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "previousSha256": "66f1be021322afa63ef45af314f9a4223b2ba35cb4f99ae39aa65b3b93fd8bfc",
+      "sha256": "8f6977e1fca85ed9b9c62aab2e574ec6006ab169a32091ef71b36887d632dc55"
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "previousSha256": "dc2c9b4052f469dc627609b77bc5a6f64a5a43c3de496e54e9ffe5d2e952521a",
+      "sha256": "1effb7139558dc559e7ef595d35947c619d871eb5271298dca23410ccd489f93"
+    }
+  ],
+  "findings": [],
+  "checks": [
+    "Reviewed complete AccountSettings lifecycle and the resource hook. requestKey invalidation hides stale data synchronously; pending read blocks fresh account mutations, but a terminal read error does not imply an unknown account mutation.",
+    "Explicit login and logout recovery now use accountSettled in both DOM disabled state and imperative handler; authenticated usage still requires successful current account data.",
+    "Known device-login cancellation bypasses account-read readiness as before; current owner, connection, global admission, unresolved receipt, missing login identity and execution lock guards remain.",
+    "Read failures do not automatically mutate. Tests exercise failed-read login/logout, signed-out reread, held reads, unknown response recovery and existing missing-identity/owner guards."
+  ],
+  "evidence": [
+    {
+      "path": ".work/v231-account-recovery-repair.json",
+      "sha256": "18a8751e37853c022f7e042d59a587d137b22839bae6aa2484996e262289cb31"
+    },
+    {
+      "path": ".work/test-results/run-MOGceS/vitest.json",
+      "sha256": "1395d14e6700b6aeb7ae3d8aab39128300b8aa2b96168b244d4a0ce924f75f70"
+    }
+  ],
+  "limits": [
+    "Independent code review and author targeted test verification; no duplicate full test or live account change."
+  ]
+}

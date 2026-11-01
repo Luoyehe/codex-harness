@@ -2,7 +2,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
-import { Events } from '../lib/events';
 import { SidebarManagementDialog, type SidebarAction } from '../components/SidebarManagementDialog';
 import { enabledButton } from './enabled-button';
 import { createOperation, listOperations, updateOperation } from '../lib/operations';
@@ -10,8 +9,6 @@ import { createOperation, listOperations, updateOperation } from '../lib/operati
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
 const project = { id: 'project-row', name: 'Project row', cwd: '/registered/row' };
 const thread = { id: 'thread-row', name: 'Thread row', cwd: project.cwd };
-const page = { turns: [], timeline: [], turnsComplete: true, timelineComplete: true,
-  historyVersion: 0, activeRealtimeSessionAtPageStart: null, complete: true, nextCursor: null };
 beforeEach(() => {
   localStorage.clear(); sessionStorage.clear();
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };
@@ -19,14 +16,14 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 function fixture(selection: SidebarAction, handle: (call: Call) => unknown = () => ({}), beforeSubmit = () => true) {
-  const calls: Call[] = [], api = new Api(), onAccepted = vi.fn(), onClose = vi.fn(), events = new Events();
+  const calls: Call[] = [], api = new Api(), onAccepted = vi.fn(), onClose = vi.fn();
   vi.stubGlobal('fetch', vi.fn(async (_url, init: RequestInit) => {
     const call = JSON.parse(String(init.body)) as Call;
     calls.push(call);
     const result = await handle(call);
     return { ok: true, status: 200, json: async () => ({ ok: true, result }) };
   }));
-  const props = { api, events, epoch: 'first', selection, enabled: true, beforeSubmit, onAccepted, onClose };
+  const props = { api, epoch: 'first', selection, enabled: true, beforeSubmit, onAccepted, onClose };
   const view = render(<SidebarManagementDialog {...props} />);
   return { ...view, calls, props, onAccepted, onClose };
 }
@@ -62,12 +59,10 @@ it('removes only the registered project identity and makes the retained director
   await waitFor(() => expect(f.onAccepted).toHaveBeenCalledOnce());
   expect(f.calls[0]).toMatchObject({ method: 'project/remove', params: { id: project.id } });
 });
-it('waits for the target complete history and explicit consent before deleting without resume', async () => {
+it('checks the target identity and consent without reading or resuming its history before deletion', async () => {
   let finish!: (value: unknown) => void;
   const f = fixture({ kind: 'thread', target: thread, action: 'delete' }, call => {
-    if (call.method === 'thread/read') return { thread: { ...thread, status: { type: 'idle' } } };
-    if (call.method === 'thread/history' && !call.params.cursor) return { ...page, complete: false, turnsComplete: false, nextCursor: 'next-page' };
-    if (call.method === 'thread/history') return new Promise(resolve => { finish = resolve; });
+    if (call.method === 'thread/read') return new Promise(resolve => { finish = resolve; });
     return {};
   });
   const button = screen.getByRole('button', { name: '永久删除会话' }) as HTMLButtonElement;
@@ -75,15 +70,15 @@ it('waits for the target complete history and explicit consent before deleting w
   fireEvent.click(screen.getByRole('checkbox'));
   await waitFor(() => expect(finish).toBeTypeOf('function'));
   expect(button.disabled).toBe(true);
-  await act(async () => finish(page));
+  await act(async () => finish({ thread: { ...thread, status: { type: 'notLoaded' } } }));
   fireEvent.click(await enabledButton({ name: '永久删除会话' }));
   await waitFor(() => expect(f.onAccepted).toHaveBeenCalledOnce());
-  expect(f.calls.map(call => call.method)).toEqual(['thread/read', 'thread/history', 'thread/history', 'thread/delete']);
+  expect(f.calls.map(call => call.method)).toEqual(['thread/read', 'thread/delete']);
   expect(f.calls.at(-1)?.params).toEqual({ threadId: thread.id });
 });
-it('does not delete an active row even with complete history and consent', async () => {
+it('does not delete an active row even with consent', async () => {
   const f = fixture({ kind: 'thread', target: thread, action: 'delete' }, call => call.method === 'thread/read'
-    ? { thread: { ...thread, status: { type: 'active' } } } : page);
+    ? { thread: { ...thread, status: { type: 'active' } } } : {});
   fireEvent.click(screen.getByRole('checkbox'));
   await screen.findByText(/请先结束此会话中正在运行/);
   expect((screen.getByRole('button', { name: '永久删除会话' }) as HTMLButtonElement).disabled).toBe(true);

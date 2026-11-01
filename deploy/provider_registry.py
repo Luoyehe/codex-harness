@@ -94,6 +94,8 @@ def change(params: dict, current: dict) -> dict:
         row = next((row for row in rows if row["id"] == ident), None)
         require(row is not None, "Provider no longer exists", "provider_missing")
         existing = row["settings"]
+        require("kind" not in params or params["kind"] == existing["kind"],
+                "已有供应商不能更改类型，请通过“添加供应商”创建新的配置。", "provider_kind_immutable")
     if "name" in params:
         name = small_text(params["name"], "provider name", 256).strip()
         require(0 < len(name) <= 64, "Provider name must contain 1 to 64 characters")

@@ -20,6 +20,69 @@ const fixtureApi = () => ({
   mutate: vi.fn().mockResolvedValue(registry),
 }) as unknown as Api;
 
+it('keeps an existing ChatGPT type fixed while saving its display name', async () => {
+  const api = fixtureApi();
+  render(<ProviderSettings api={api} epoch="a" onChanged={vi.fn()} accountPanel={<p>共享 ChatGPT 登录</p>} />);
+  await screen.findByText('共享 ChatGPT 登录');
+  const kind = screen.getByLabelText('供应商');
+  expect(kind).toHaveProperty('disabled', true);
+  fireEvent.change(kind, { target: { value: 'zhipu-coding' } });
+  expect(kind).toHaveProperty('value', 'chatgpt');
+  expect(screen.queryByLabelText('API Key')).toBeNull();
+  expect(screen.getByText('共享 ChatGPT 登录')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('显示名称'), { target: { value: 'My ChatGPT' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+  await waitFor(() => expect(api.mutate).toHaveBeenCalledWith('system/provider/write', expect.objectContaining({
+    providerId: 'default', kind: 'chatgpt', name: 'My ChatGPT', expectedRevision: registry.revision,
+  })));
+});
+
+it('keeps custom endpoint and key management editable without changing its saved type', async () => {
+  const api = fixtureApi();
+  const current = { ...registry, defaultProviderId: 'custom', connections: [...registry.connections, {
+    id: 'custom', name: 'Custom', kind: 'responses', enabled: true, baseUrl: 'https://api.example/v1', hasApiKey: true,
+  }] };
+  vi.mocked(api.call).mockResolvedValue(current);
+  render(<ProviderSettings api={api} epoch="a" onChanged={vi.fn()} />);
+  await waitFor(() => expect(screen.getByLabelText('供应商')).toHaveProperty('value', 'responses'));
+  expect(screen.getByLabelText('供应商')).toHaveProperty('disabled', true);
+  fireEvent.change(screen.getByLabelText('显示名称'), { target: { value: 'Updated custom' } });
+  fireEvent.change(screen.getByLabelText('API Base URL'), { target: { value: 'https://other.example/v1' } });
+  fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'fixture-new-key' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+  await waitFor(() => expect(api.mutate).toHaveBeenCalledWith('system/provider/write', expect.objectContaining({
+    providerId: 'custom', kind: 'responses', name: 'Updated custom', baseUrl: 'https://other.example/v1', apiKey: 'fixture-new-key',
+  })));
+});
+
+it('allows choosing a type only for a new provider and fixes it after creation', async () => {
+  const api = fixtureApi(), addedId = 'c'.repeat(32);
+  let current: Record<string, unknown> = registry;
+  vi.mocked(api.call).mockImplementation(async () => current);
+  vi.mocked(api.mutate).mockImplementation(async (_method, params = {}) => {
+    current = { ...registry, revision: 'd'.repeat(32), connections: [...registry.connections, {
+      id: addedId, name: params.name, kind: params.kind, enabled: true, hasApiKey: true,
+    }] };
+    return current;
+  });
+  render(<ProviderSettings api={api} epoch="a" onChanged={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: '添加供应商' }));
+  const kind = screen.getByLabelText('供应商');
+  await waitFor(() => expect(kind).toHaveProperty('value', 'responses'));
+  expect(kind).toHaveProperty('disabled', false);
+  fireEvent.change(kind, { target: { value: 'zhipu-coding' } });
+  fireEvent.change(screen.getByLabelText('显示名称'), { target: { value: 'Added Coding Plan' } });
+  fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'fixture-new-key' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+  await screen.findByRole('button', { name: 'Added Coding Plan' });
+  await waitFor(() => expect(screen.getByLabelText('供应商')).toHaveProperty('disabled', true));
+  expect(screen.getByLabelText('供应商')).toHaveProperty('value', 'zhipu-coding');
+  expect(api.mutate).toHaveBeenCalledExactlyOnceWith('system/provider/write', expect.objectContaining({
+    expectedRevision: registry.revision, providerId: 'new', kind: 'zhipu-coding', name: 'Added Coding Plan',
+  }));
+  expect(screen.getByRole('button', { name: 'ChatGPT（默认）' })).toBeTruthy();
+});
+
 it('keeps model login beside its saved provider and hides it when the editor switches to an API provider', async () => {
   const api = fixtureApi();
   render(<ProviderSettings api={api} epoch="a" onChanged={vi.fn()} accountPanel={<p>共享 ChatGPT 登录</p>} />);

@@ -40,7 +40,7 @@ class ExecutionModeRootTests(unittest.TestCase):
         write_json(self.layout.config / "instance.json", self.config)
         write_json(self.layout.config / "native.json", native_settings(self.layout, self.config), mode=0o644)
         atomic_write(self.layout.config / "gateway-token", b"fixture-token-not-personal" * 3, 0o640, 0, 65532)
-        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1"}, mode=0o644)
+        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "sharedChatgptAuth": 1}, mode=0o644)
         for name, content in render_units(self.layout, self.config, self.config["codexRelative"]).items():
             atomic_write(self.layout.units / name, content.encode(), 0o644)
         atomic_write(paths(self.layout)["sudo"], sudo_rule(self.layout).encode(), 0o440)
@@ -74,16 +74,23 @@ class ExecutionModeRootTests(unittest.TestCase):
     def test_grant_does_not_enable_and_root_native_roundtrip_preserves_both_homes(self):
         original = (self.layout.state / "worker/codex/auth.json").read_bytes()
         granted = self.grant();self.assertEqual(granted["mode"], "native");self.assertTrue(granted["rootAllowed"])
+        self.assertEqual(granted["sharedChatgptAuth"], {"shared": False})
         root = change(self.manager, self.params("root"));self.assertEqual(root["effectiveUid"], 0)
         home = self.layout.state / "worker-root/codex"
-        self.assertFalse((home / "auth.json").exists())
+        self.assertEqual((home / "auth.json").read_bytes(), original)
+        self.assertEqual((home / "auth.json").stat().st_uid, 0)
+        self.assertFalse((self.layout.state / "worker/codex/auth.json").exists())
         atomic_write(home / "root-only-state", b"root-private", 0o600)
         change(self.manager, self.params("native"))
         self.assertEqual((self.layout.state / "worker/codex/auth.json").read_bytes(), original)
+        self.assertEqual((self.layout.state / "worker/codex/auth.json").stat().st_uid, 65534)
+        self.assertFalse((home / "auth.json").exists())
         self.assertEqual((home / "root-only-state").stat().st_uid, 0)
         self.assertEqual((home / "root-only-state").stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.system.active, {"gateway", "worker"})
         self.assertEqual(self.manager.verify()["executionMode"]["mode"], "native")
+        with patch("deploy.https_health.https_health", return_value={"configured": False}):
+            self.assertEqual(self.manager.status()["sharedChatgptAuth"]["ready"], True)
 
     def test_revoke_while_root_atomically_restores_native_and_denies_root(self):
         self.grant();change(self.manager, self.params("root"))
@@ -99,12 +106,91 @@ class ExecutionModeRootTests(unittest.TestCase):
         self.assertEqual(snapshot(self.layout), before);self.assertEqual(self.system.events, events)
         self.assertTrue(state(self.manager.config)["rootAllowed"])
 
+    def test_nonfile_target_store_is_rejected_before_stop_or_auth_migration(self):
+        from deploy.execution_mode import prepare_home
+        from deploy.shared_auth import DIRECTORY
+        self.grant()
+        prepare_home(self.layout, {**self.manager.config, "executionMode": "root"})
+        path = self.layout.state / "worker-root/codex/config.toml"
+        atomic_write(path, b'cli_auth_credentials_store = "keyring"\n', 0o600)
+        events, before = list(self.system.events), snapshot(self.layout)
+        with self.assertRaises(DeployError) as error:
+            change(self.manager, self.params("root"))
+        self.assertEqual(error.exception.code, "auth_store_unsupported")
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(snapshot(self.layout), before)
+        self.assertFalse((self.layout.state / DIRECTORY).exists())
+        self.assertEqual(path.read_bytes(), b'cli_auth_credentials_store = "keyring"\n')
+        operation = "11111111-1111-4111-8111-111111111111"
+        with self.assertRaises(DeployError) as preflight:
+            self.manager.dispatch({"method": "execution-mode/write", "params": self.params("root"), "operationId": operation})
+        self.assertEqual(preflight.exception.code, "auth_store_unsupported")
+        self.assertFalse((self.layout.state / "receipts" / (operation + ".json")).exists())
+
     def test_start_failure_restores_exact_previous_definitions_and_policy(self):
         self.grant();before=snapshot(self.layout);self.system.fail_start=True
         with self.assertRaisesRegex(DeployError, "One-time start failure"):change(self.manager, self.params("root"))
         self.assertEqual(snapshot(self.layout), before);self.assertEqual(self.system.active, {"gateway", "worker"})
         self.manager.require_update_ready(persist=False)
         self.assertEqual(self.manager.verify()["executionMode"]["mode"], "native")
+
+    def test_first_root_to_native_migration_prefers_current_login_and_retains_other(self):
+        from deploy.execution_mode import prepare_home
+        from deploy.shared_auth import DIRECTORY
+        # An existing installation predates shared authentication and has two logins.
+        config = {**self.config, "executionMode": "root", "rootAllowed": True, "executionGeneration": "a" * 32}
+        prepare_home(self.layout, config)
+        atomic_write(self.layout.state / "worker-root/codex/auth.json", b'{"fixture":"current-root-login"}\n', 0o600)
+        write_json(paths(self.layout)["instance"], config)
+        write_json(paths(self.layout)["native"], native_settings(self.layout, config), mode=0o644)
+        atomic_write(paths(self.layout)["worker"], render_units(self.layout, config, config["codexRelative"])[self.layout.unit("worker")].encode(), 0o644)
+        atomic_write(paths(self.layout)["sudo"], sudo_rule(self.layout, config=config).encode(), 0o440)
+        self.manager.config = config
+        result = change(self.manager, self.params("native"))
+        self.assertEqual(result["sharedChatgptAuth"]["archivedLegacyModes"], ["native"])
+        self.assertFalse(result["sharedChatgptAuth"]["automaticRestore"])
+        self.assertEqual((self.layout.state / "worker/codex/auth.json").read_bytes(), b'{"fixture":"current-root-login"}\n')
+        retained = self.layout.state / DIRECTORY / "legacy-native.auth.json"
+        self.assertEqual(retained.read_bytes(), b'{"fixture":"private-native-login"}\n')
+        self.assertEqual((retained.stat().st_uid, retained.stat().st_mode & 0o777), (0, 0o600))
+
+    def test_failed_start_returns_refreshed_auth_not_the_pre_switch_snapshot(self):
+        self.grant()
+        original = self.system.start
+        refreshed = b'{"fixture":"refreshed-after-switch"}\n'
+        attempted = False
+        def start(units):
+            nonlocal attempted
+            if not attempted:
+                attempted = True
+                atomic_write(self.layout.state / "worker-root/codex/auth.json", refreshed, 0o600)
+                raise DeployError("health", "fixture failure after native refresh")
+            return original(units)
+        with patch.object(self.system, "start", side_effect=start), self.assertRaisesRegex(DeployError, "after native refresh"):
+            change(self.manager, self.params("root"))
+        selected = self.layout.state / "worker/codex/auth.json"
+        self.assertEqual(selected.read_bytes(), refreshed)
+        self.assertEqual(selected.stat().st_uid, 65534)
+        self.assertFalse((self.layout.state / "worker-root/codex/auth.json").exists())
+        self.manager.verify()
+
+    def test_failed_start_after_logout_keeps_both_modes_logged_out(self):
+        self.grant()
+        original = self.system.start
+        attempted = False
+        def start(units):
+            nonlocal attempted
+            if not attempted:
+                attempted = True
+                (self.layout.state / "worker-root/codex/auth.json").unlink()
+                raise DeployError("health", "fixture failure after logout")
+            return original(units)
+        with patch.object(self.system, "start", side_effect=start), self.assertRaisesRegex(DeployError, "after logout"):
+            change(self.manager, self.params("root"))
+        self.assertFalse((self.layout.state / "worker/codex/auth.json").exists())
+        self.assertFalse((self.layout.state / "worker-root/codex/auth.json").exists())
+        change(self.manager, self.params("root"))
+        self.assertFalse((self.layout.state / "worker-root/codex/auth.json").exists())
 
     def test_partial_publication_recovers_with_mixed_old_new_sudo_and_config(self):
         self.grant();before=snapshot(self.layout)
@@ -174,6 +260,44 @@ class ExecutionModeRootTests(unittest.TestCase):
 
     def test_terminal_failure_after_publication_does_not_compensate_committed_root(self):
         self.terminal_failure(published=True)
+
+    def test_real_launcher_pins_file_store_and_rejects_nonfile_before_native_dispatch(self):
+        from deploy.execution_mode import prepare_home
+        self.grant()
+        prepare_home(self.layout, {**self.manager.config, "executionMode": "root"})
+        write_json((self.layout.config / "providers/current").resolve() / "runtime.json",
+                   {"connections": [{"enabled": True, "modelProvider": "fixture_catalog"}]}, mode=0o640, uid=0, gid=65534)
+        for parent in [self.layout.state, self.layout.config, *self.layout.config.parents]:
+            if parent == self.root or self.root in parent.parents:
+                parent.chmod(0o755)
+        for mode in ("native", "root"):
+            with self.subTest(mode=mode):
+                config = {**self.manager.config, "executionMode": mode}
+                write_json(self.layout.config / "instance.json", config)
+                write_json(self.layout.config / "native.json", native_settings(self.layout, config), mode=0o644)
+                code = "import os,sys,json;from pathlib import Path;from deploy import native_launcher as n;from deploy.common import Layout;" + \
+                       "n.Layout=lambda _:Layout('fixture',Path(" + repr(str(self.root)) + "));" + \
+                       "n.supervise=lambda command,*args,**kwargs:(print(json.dumps(command)),0)[1];" + \
+                       ("os.setgroups([65534]);os.setgid(65534);os.setuid(65534);" if mode == "native" else "os.setgroups([0]);") + \
+                       "sys.argv=['native-launch',*sys.argv[1:]];n.native_main('fixture')"
+                result = subprocess.run([sys.executable, "-B", "-c", code, "app-server"], capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr.decode())
+                self.assertEqual(json.loads(result.stdout)[-2:], ["-c", 'cli_auth_credentials_store="file"'])
+                catalog = subprocess.run([sys.executable, "-B", "-c", code, "catalog-server", "fixture_catalog"], capture_output=True, timeout=10)
+                self.assertEqual(catalog.returncode, 0, catalog.stderr.decode())
+                self.assertIn('cli_auth_credentials_store="file"', json.loads(catalog.stdout))
+                self.assertEqual(json.loads(catalog.stdout)[-2:], ["-c", 'model_provider="fixture_catalog"'])
+                user_config = Path(native_settings(self.layout, config)["home"]) / "config.toml"
+                old = user_config.read_bytes()
+                uid = 0 if mode == "root" else 65534
+                atomic_write(user_config, b'cli_auth_credentials_store = "auto"\n', 0o600, uid, uid)
+                for arguments in (["app-server"], ["catalog-server", "fixture_catalog"]):
+                    denied = subprocess.run([sys.executable, "-B", "-c", code, *arguments], capture_output=True, timeout=10)
+                    self.assertEqual(denied.returncode, 1)
+                    self.assertEqual(denied.stdout, b"")
+                    self.assertIn("不会自动读取或迁移 keyring", denied.stderr.decode())
+                self.assertEqual(user_config.read_bytes(), b'cli_auth_credentials_store = "auto"\n')
+                atomic_write(user_config, old, 0o600, uid, uid)
 
     def test_real_uid_native_denied_root_private_project_root_allowed(self):
         self.grant()

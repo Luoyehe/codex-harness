@@ -38,6 +38,7 @@ const props = (s: ReturnType<typeof setup>) => ({
   epoch: 'epoch',
   threadId: 'thread',
   enabled: true,
+  shellEnabled: true,
   connected: true,
   idle: true,
   onChanged: vi.fn(),
@@ -76,6 +77,28 @@ it('lists native process identities and terminates only a discovered ID in the s
     processId: 'native-process',
   });
   expect(s.calls.some((c) => ['terminal/close', 'process/kill'].includes(c.method))).toBe(false);
+});
+it.each(['terminate', 'clean'] as const)('allows discovered %s without full history while new shell remains blocked', async (action) => {
+  const s = setup();
+  render(<ThreadTerminals {...props(s)} shellEnabled={false} />);
+  await ready();
+  fireEvent.click(screen.getByText('在当前会话运行一次 shell 命令', { selector: 'summary' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '会话 shell 命令' }), { target: { value: 'must not run' } });
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认以原生完整权限/ }));
+  const run = screen.getByRole('button', { name: '执行此会话 shell 命令' }) as HTMLButtonElement;
+  expect(run.disabled).toBe(true);
+  fireEvent.submit(run.closest('form')!);
+  if (action === 'terminate') {
+    fireEvent.click(screen.getByRole('checkbox', { name: '确认终止这个原生后台进程' }));
+    fireEvent.click(screen.getByRole('button', { name: '终止此后台进程' }));
+  } else {
+    fireEvent.click(screen.getByText('清理这个会话的所有原生后台终端', { selector: 'summary' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '确认清理当前会话的所有原生后台终端' }));
+    fireEvent.click(screen.getByRole('button', { name: '清理所有原生后台终端' }));
+  }
+  await waitFor(() => expect(s.calls.filter(call => call.operationId)).toHaveLength(1));
+  expect(s.calls.find(call => call.operationId)?.method).toBe(`thread/backgroundTerminals/${action}`);
+  expect(s.calls.some(call => ['thread/shellCommand', 'thread/resume', 'thread/history'].includes(call.method))).toBe(false);
 });
 it('requires full page review and explicit whole-thread cleanup consent without claiming OS proof', async () => {
   const s = setup((c) =>

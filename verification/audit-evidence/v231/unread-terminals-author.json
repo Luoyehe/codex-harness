@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "unread-background-terminal-author",
+  "complete": true,
+  "createdAt": "2026-11-01T10:45:49.6288016Z",
+  "files": [
+    {
+      "sha256": "cd915865948cb1127e76f220f3b5897312d52a6fbbd2271508cfca17c82ae477",
+      "path": "src/runtime/thread-terminals.ts"
+    },
+    {
+      "sha256": "fedbe4b5b4a73683b5535ad1cf92a65cb098851d430a2f8a047ba9c4476dd7c3",
+      "path": "tests/runtime/thread-terminals.test.ts"
+    },
+    {
+      "sha256": "8130da804be1aa229b07c68d2e8822176a0e2df65728c66b8dc79d8e00728201",
+      "path": "web/components/ThreadTerminals.tsx"
+    },
+    {
+      "sha256": "a7780f715fffd66ccb98a42f9f757d62a4768578baaeb176223b2a1acff0a470",
+      "path": "web/tests/thread-terminals.test.tsx"
+    }
+  ],
+  "change": "Remove full conversation-history requirement only from discovered background terminal termination and confirmed whole-thread cleanup. UI splits shellEnabled from base enabled; a new shell still requires loaded complete history, idle and unsandboxed consent.",
+  "validation": {
+    "webTypecheck": 0,
+    "passed": 22,
+    "report": ".work/test-results/run-mr5sbd/vitest.json",
+    "sha256": "8f6a80f65bf2fc0f2e71cf1681b8306491cf787fd439516e3d57af6e399f854b",
+    "files": 2,
+    "serverTypecheck": 0,
+    "failed": 0,
+    "skipped": 0,
+    "diffCheck": 0
+  },
+  "preserved": [
+    "Same-thread paginated process discovery and final owner beforeWrite guard",
+    "Malformed directory/cursor-loop rejection, refreshed consent and API/epoch/thread owner isolation",
+    "Unknown original receipt recovery without resend",
+    "Clean result says only cleanupRequested, never claims OS termination"
+  ],
+  "integration": {
+    "sha256": "b30f25e9539ba9be0f66e5716d969d3d4a8b61a4eff8eee5cf8c90766669942c",
+    "contract": "enabled uses connected/activity/no pending/error/realtime; shellEnabled retains workflowEnabled.",
+    "path": "web/Workspace.tsx",
+    "author": "root"
+  },
+  "limits": [
+    "Targeted fixture/DOM tests only; no full suite, browser, external MCP or live services.",
+    "Independent author review required; integration Workspace owned by root."
+  ],
+  "findings": []
+}

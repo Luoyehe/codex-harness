@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-01T10:54:16.577Z",
+  "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "sourceFiles": 1991,
+  "files": [
+    {
+      "path": "verification/audit-evidence/v231/previous-ledger.json",
+      "sha256": "1d4f52359766d46394352ac471a82c2a60d2064d8bf5b4913ed1369e854d53df",
+      "original": {
+        "path": "verification/audits.json",
+        "sha256": "1d4f52359766d46394352ac471a82c2a60d2064d8bf5b4913ed1369e854d53df"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/previous-authorization.json",
+      "sha256": "75f236197bc599cdcc57f382e21522ba175ffeb1016d771b1e37c77c9ee2b92d",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "75f236197bc599cdcc57f382e21522ba175ffeb1016d771b1e37c77c9ee2b92d"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round1-snapshot.json",
+      "sha256": "5971d156385ad6e126b90856da0e12b8813bea418275db12403775cc74dfd77e",
+      "original": {
+        "path": ".work/v231-round1-snapshot.json",
+        "sha256": "5971d156385ad6e126b90856da0e12b8813bea418275db12403775cc74dfd77e"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round1-root.json",
+      "sha256": "6d0d42df75b3d5e7fd70fefc9c0318acf22c89871bfc74f03eb4efb999122d08",
+      "original": {
+        "path": ".work/v231-round1-root.json",
+        "sha256": "6d0d42df75b3d5e7fd70fefc9c0318acf22c89871bfc74f03eb4efb999122d08"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round1-runtime.json",
+      "sha256": "d10b176a50e6bc47f4df0219fc860822207e6b9fbcaab9ceb67f8301374511a6",
+      "original": {
+        "path": ".work/v231-round1-runtime.json",
+        "sha256": "d10b176a50e6bc47f4df0219fc860822207e6b9fbcaab9ceb67f8301374511a6"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round1-web.json",
+      "sha256": "81f0158ec9984a67d2a42710d7e6364dfdb70efdb57a8e843dde2821273305f6",
+      "original": {
+        "path": ".work/v231-round1-web.json",
+        "sha256": "81f0158ec9984a67d2a42710d7e6364dfdb70efdb57a8e843dde2821273305f6"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round1-deployment.json",
+      "sha256": "fefc3b08fd15a7e41376d5c94cf54e63687549eb93a089e7752751f8719e5ac2",
+      "original": {
+        "path": ".work/v231-round1-deployment.json",
+        "sha256": "fefc3b08fd15a7e41376d5c94cf54e63687549eb93a089e7752751f8719e5ac2"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round2-snapshot.json",
+      "sha256": "4e7e0ebcde4af444642d8543241b68a07dc7b6acc48838e96cc9dd515c21da9d",
+      "original": {
+        "path": ".work/v231-round2-snapshot.json",
+        "sha256": "4e7e0ebcde4af444642d8543241b68a07dc7b6acc48838e96cc9dd515c21da9d"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round2-root.json",
+      "sha256": "b10a1e8cdd9af1b20d30a1123a899547e9477b198adf674ee5f59a0627e50020",
+      "original": {
+        "path": ".work/v231-round2-root.json",
+        "sha256": "b10a1e8cdd9af1b20d30a1123a899547e9477b198adf674ee5f59a0627e50020"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round2-runtime.json",
+      "sha256": "994e85510a892d4b84e8de05f2faca3f94ff84ac95a7854cc4a95e2a4a2221b0",
+      "original": {
+        "path": ".work/v231-round2-runtime.json",
+        "sha256": "994e85510a892d4b84e8de05f2faca3f94ff84ac95a7854cc4a95e2a4a2221b0"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round2-web.json",
+      "sha256": "a6dde87570b873ce73d74f4db9edaaf9bf2c13ac49c82ece241a2705147ed51b",
+      "original": {
+        "path": ".work/v231-round2-web.json",
+        "sha256": "a6dde87570b873ce73d74f4db9edaaf9bf2c13ac49c82ece241a2705147ed51b"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/round2-deployment.json",
+      "sha256": "337deacbbc72099a6dbf234ad218b311a143a466d6dc26376a9642d281da2aac",
+      "original": {
+        "path": ".work/v231-round2-deployment.json",
+        "sha256": "337deacbbc72099a6dbf234ad218b311a143a466d6dc26376a9642d281da2aac"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/account-recovery-author.json",
+      "sha256": "18a8751e37853c022f7e042d59a587d137b22839bae6aa2484996e262289cb31",
+      "original": {
+        "path": ".work/v231-account-recovery-repair.json",
+        "sha256": "18a8751e37853c022f7e042d59a587d137b22839bae6aa2484996e262289cb31"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/account-recovery-review.json",
+      "sha256": "f5ed24a52470d44b5173b0abc33b43bad3a227f36f21d035e351ef79391a2a72",
+      "original": {
+        "path": ".work/v231-account-recovery-review.json",
+        "sha256": "f5ed24a52470d44b5173b0abc33b43bad3a227f36f21d035e351ef79391a2a72"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/source-security.json",
+      "sha256": "a6df49c909fde235073e6d4f14623ca6e1914c9516838b4ee0697c33a5e81e50",
+      "original": {
+        "path": ".work/v231-round2-source-security.json",
+        "sha256": "a6df49c909fde235073e6d4f14623ca6e1914c9516838b4ee0697c33a5e81e50"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/history-security-reviewed.json",
+      "sha256": "27cb5f7a826560be12bed52eea5c97edec66063e00965d88f3fdaf5911ed49e2",
+      "original": {
+        "path": ".work/history-security-reviewed.json",
+        "sha256": "27cb5f7a826560be12bed52eea5c97edec66063e00965d88f3fdaf5911ed49e2"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/builtin-mcp-freshness.json",
+      "sha256": "66dfa5f66442a657d9ca33f10c95b09793d2b9585a1f99cd705ee02d1f64f33f",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-2e71ce48-2de9-4560-8829-304c2029ebb5.json",
+        "sha256": "66dfa5f66442a657d9ca33f10c95b09793d2b9585a1f99cd705ee02d1f64f33f"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/provider-switch-review.json",
+      "sha256": "95c7b31a86fc60eb22e4bc1520856e6b98260fa4101ab85d5c050f19f0fbf2c8",
+      "original": {
+        "path": ".work/v231-provider-switch-review.json",
+        "sha256": "fa72f7fc43d7c382744e77d80f4d8f2c24d45d2f7d385afaff2c6db6fa281feb"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/provider-switch-author.json",
+      "sha256": "5cc8c5289df9a4cc4073a1f96c4d99f173cf881f4cf43d61a5b4e4cdf1a7da45",
+      "original": {
+        "path": ".work/v231-cold-provider-repair.json",
+        "sha256": "5cc8c5289df9a4cc4073a1f96c4d99f173cf881f4cf43d61a5b4e4cdf1a7da45"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/native-fixture-identity.json",
+      "sha256": "0b8375180677ef0b96b58fe63570d2149c5362edd0217a6f2fb2e2290a3f3c75",
+      "original": {
+        "path": ".work/v231-provider-switch-child-close-repair.json",
+        "sha256": "0b8375180677ef0b96b58fe63570d2149c5362edd0217a6f2fb2e2290a3f3c75"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/shared-auth-author.json",
+      "sha256": "32c3c84419e7fc5cee1fd39c5c1e9f885118ded97befb33c178ed66e2a51698f",
+      "original": {
+        "path": ".work/post-v230-shared-auth-implementation.json",
+        "sha256": "32c3c84419e7fc5cee1fd39c5c1e9f885118ded97befb33c178ed66e2a51698f"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/shared-auth-review.json",
+      "sha256": "351d9e8358e734b07af4d4b78a0c95c3cbcab92f8c23723f53083dc6e231fa66",
+      "original": {
+        "path": ".work/post-v230-shared-auth-independent-review.json",
+        "sha256": "351d9e8358e734b07af4d4b78a0c95c3cbcab92f8c23723f53083dc6e231fa66"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/unread-controls-review.json",
+      "sha256": "28d96c4f3ed039fe4add6497927fbd0edb1db11450811a5af7b551b0f33c1cbf",
+      "original": {
+        "path": ".work/v231-unread-controls-review.json",
+        "sha256": "28d96c4f3ed039fe4add6497927fbd0edb1db11450811a5af7b551b0f33c1cbf"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/unread-delete-author.json",
+      "sha256": "d07bbcb7f40d202b8757bed9438bf82774b24c517c4e3d22e7c9c81676299568",
+      "original": {
+        "path": ".work/post-v230-unread-delete-runtime.json",
+        "sha256": "6f4a48eb3612766f14aa9035fa9fdfe626fcab8f0bc2d0769a97b4f38e843384"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/unread-terminals-author.json",
+      "sha256": "c61c98104ec35a2ff3f4bb1a88c7300e790ef332b1d9359ebd08ba095bfc7803",
+      "original": {
+        "path": ".work/post-v230-unread-terminals-implementation.json",
+        "sha256": "cbbb0a180c08664e70db82820abd8c33a80386579fc4c9249f84fdc0942d284a"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/proxy-enable-author.json",
+      "sha256": "b35e3fcb9759764db60a4ae26745be6a4bff9abbadda81ebc10844f06d9c077f",
+      "original": {
+        "path": ".work/post-v230-proxy-enable-implementation.json",
+        "sha256": "b35e3fcb9759764db60a4ae26745be6a4bff9abbadda81ebc10844f06d9c077f"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/proxy-enable-review.json",
+      "sha256": "736856a9d5c770fe8e9e8094c4ff505dc7a5c8cc2dff1a13b77ae10d2aa08ce5",
+      "original": {
+        "path": ".work/post-v230-proxy-enable-review.json",
+        "sha256": "40abff55e6d7fe65bdf8f4bb15b998ba5e9dc026bd65970e46e4b3a36be30120"
+      }
+    },
+    {
+      "path": "verification/audit-evidence/v231/provider-kind-review.json",
+      "sha256": "873540c02176364cf84bfd8195977a3bd77e0debe50d5b1adbb83433e758e345",
+      "original": {
+        "path": ".work/post-v230-provider-kind-independent-review.json",
+        "sha256": "873540c02176364cf84bfd8195977a3bd77e0debe50d5b1adbb83433e758e345"
+      }
+    }
+  ],
+  "limits": [
+    "Local targeted logs referenced by individual reports remain local evidence. Actual full cross-platform reports will be produced by CI.",
+    "No live credential reads, paid inference or external MCP tool requests."
+  ]
+}

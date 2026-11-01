@@ -9,17 +9,18 @@ export function useResume(api: Api, threadId: string, epoch: string, onLoaded: (
     key: string;
     defaults?: Record<string, unknown>;
     requiresResume?: boolean;
+    requiresContinuationConfirmation?: boolean;
     error?: string;
   }>();
   useEffect(() => {
     if (!threadId) return;
     const controller = new AbortController();
     api
-      .call('thread/session', { threadId }, controller.signal)
+      .call('thread/session', { threadId, checkContinuation: true }, controller.signal)
       .then((value) => {
         if (controller.signal.aborted) return;
         if (value.requiresResume === true) {
-          setResult({ key, requiresResume: true });
+          setResult({ key, requiresResume: true, requiresContinuationConfirmation: value.requiresContinuationConfirmation !== false });
           return;
         }
         if (value.requiresResume !== false || object(value.thread).id !== threadId)
@@ -37,6 +38,9 @@ export function useResume(api: Api, threadId: string, epoch: string, onLoaded: (
     resumedThread: current?.defaults ? threadId : '',
     threadDefaults: current?.defaults,
     requiresResume: current?.requiresResume === true,
+    requiresContinuationConfirmation: current?.requiresContinuationConfirmation === true,
+    requireContinuationConfirmation: () => setResult(previous => previous?.key === key && previous.requiresResume
+      ? { ...previous, requiresContinuationConfirmation: true } : previous),
     loading: Boolean(threadId) && !current,
     error: current?.error ?? '',
   };

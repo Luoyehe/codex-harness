@@ -665,6 +665,90 @@ it('uses native ancestry and direct-input capability without inventing controls'
   fireEvent.click(screen.getAllByRole('button', { name: '查看结果' })[0]!);
   expect(props.onOpenThread).toHaveBeenCalledWith('child');
 });
+it.each(['item/completed', 'thread/started'])('coalesces related agent events after %s without refreshing unrelated workflows', async (method) => {
+  let children: object[] = [];
+  const call = vi.fn(async (name: string) => ({ data: name === 'thread/agents/list' ? children : [], nextCursor: null }));
+  const props = taskProps({ call, mutate: vi.fn() } as unknown as Api);
+  render(<TaskPanel {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Agents' }));
+  await screen.findByText('没有已记录的子 Agent。');
+  const reads = () => call.mock.calls.filter(([name]) => name === 'thread/agents/list').length;
+  const publish = (name: string, params: object) => props.events.publish({ type: 'notification', data: { method: name, params } });
+  vi.useFakeTimers();
+  try {
+    children = [{ id: 'child', parentThreadId: 't', name: 'Worker', status: { type: 'active' } }];
+    act(() => {
+      for (let index = 0; index < 8; index++) publish(method, method === 'thread/started'
+        ? { thread: children[0] }
+        : { threadId: 't', item: { type: 'collabAgentToolCall', tool: 'spawnAgent', receiverThreadIds: ['child'] } });
+      publish('thread/status/changed', { threadId: 'child', status: { type: 'active' } });
+    });
+    expect(reads()).toBe(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(reads()).toBe(2);
+    expect(screen.getByText('Worker')).toBeTruthy();
+    act(() => publish('thread/status/changed', { threadId: 'unrelated' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(reads()).toBe(2);
+    children = [{ id: 'child', parentThreadId: 't', name: 'Worker', status: { type: 'idle' } }];
+    act(() => {
+      publish('turn/completed', { threadId: 'child' });
+      publish('thread/status/changed', { threadId: 'child', status: { type: 'idle' } });
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(reads()).toBe(3);
+    expect(screen.getByText('空闲')).toBeTruthy();
+    expect(call.mock.calls.filter(([name]) => name === 'thread/queue/list')).toHaveLength(1);
+    expect(props.api.mutate).not.toHaveBeenCalled();
+  } finally { vi.useRealTimers(); }
+});
+it('waits for an outstanding agent read and cancels deferred refresh on hidden tabs, owner change and unmount', async () => {
+  let finish!: (value: unknown) => void, treeReads = 0;
+  const children = [{ id: 'child', parentThreadId: 't', name: 'Worker' }];
+  const call = vi.fn(async (name: string) => {
+    if (name === 'thread/agents/list' && ++treeReads === 2) return new Promise(resolve => { finish = resolve; });
+    return name === 'thread/goal/get' ? { goal } : { data: name === 'thread/agents/list' ? children : [], nextCursor: null };
+  });
+  const props = taskProps({ call, mutate: vi.fn() } as unknown as Api);
+  const view = render(<TaskPanel {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Agents' }));
+  await screen.findByText('Worker');
+  const notify = () => props.events.publish({ type: 'notification', data: {
+    method: 'thread/status/changed', params: { threadId: 'child' },
+  } });
+  vi.useFakeTimers();
+  try {
+    act(notify);
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(treeReads).toBe(2);
+    act(notify);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
+    expect(treeReads).toBe(2);
+    await act(async () => finish({ data: children, nextCursor: null }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(treeReads).toBe(3);
+    act(notify);
+    fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    act(notify);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(treeReads).toBe(3);
+    fireEvent.click(screen.getByRole('button', { name: 'Agents' }));
+    await act(async () => {});
+    expect(treeReads).toBe(4);
+    act(notify);
+    view.rerender(<TaskPanel {...props} threadId="other" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(treeReads).toBe(4);
+    fireEvent.click(screen.getByRole('button', { name: 'Agents' }));
+    await act(async () => {});
+    expect(treeReads).toBe(5);
+    act(notify);
+    view.unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(treeReads).toBe(5);
+  } finally { vi.useRealTimers(); }
+});
 it('forks before an edited message, preserves the source draft and never automatically starts a turn', async () => {
   const mutate = vi.fn().mockResolvedValue({ thread: { id: 'new-child' } }),
     props = branchProps({ mutate } as unknown as Api);

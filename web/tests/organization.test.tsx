@@ -327,10 +327,10 @@ it('does not retry a stale read-state update and uses a freshly read revision on
     calls.filter((call) => call.method === 'thread/readState/update')[1]?.params.expectedRevision,
   ).toBe('read-v2');
 });
-it('preserves read-only browsing and requires readiness plus explicit permanent deletion confirmation', async () => {
+it('permits deleting an idle conversation with explicit confirmation without requiring its full history', async () => {
   const { api, calls } = setup(),
     props = threadProps(api);
-  const view = render(<ThreadOrganization {...props} ready={false} />);
+  render(<ThreadOrganization {...props} ready={false} />);
   await screen.findByRole('button', { name: '停止订阅此会话' });
   fireEvent.click(screen.getByRole('button', { name: '停止订阅此会话' }));
   await waitFor(() =>
@@ -341,10 +341,6 @@ it('preserves read-only browsing and requires readiness plus explicit permanent 
   await screen.findByText('永久删除此会话历史');
   fireEvent.click(screen.getByText('永久删除此会话历史'));
   fireEvent.click(screen.getByRole('checkbox', { name: /确认永久删除当前会话/ }));
-  expect(
-    (screen.getByRole('button', { name: '永久删除会话历史' }) as HTMLButtonElement).disabled,
-  ).toBe(true);
-  view.rerender(<ThreadOrganization {...props} ready />);
   fireEvent.click(await enabledButton({ name: '永久删除会话历史' }));
   await waitFor(() => expect(props.onDeleted).toHaveBeenCalledOnce());
   expect(calls.find((call) => call.method === 'thread/delete')?.params).toEqual({

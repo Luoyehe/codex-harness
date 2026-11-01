@@ -276,13 +276,14 @@ class Manager:
 
     def status(self) -> dict:
         from .execution_identity import state
+        from .shared_auth import status as shared_auth_status
         from .service_proxy import status as proxy_status
         roles = ["gateway", "worker"]
         if (self.layout.config / "https.json").exists() or (self.layout.config / "https.json").is_symlink():
             roles.append("caddy")
         from .https_health import https_health
         return {"instance": self.layout.instance, "release": self.selected(), "previous": self.selected("previous"), "executionMode": state(self.config),
-                "providerConfigLayer": self.config.get("providerConfigLayer", "legacy"),
+                "providerConfigLayer": self.config.get("providerConfigLayer", "legacy"), "sharedChatgptAuth": shared_auth_status(self.layout, self.config),
                 "origin": self.config["origin"], "nodeVersion": NODE_VERSION, "pnpmVersion": PNPM_VERSION, "codexVersion": CODEX_VERSION,
                 "services": {role: self.system.state(self.layout.unit(role)) for role in roles},
                 "https": https_health(self, connect_address="127.0.0.1", timeout=3), "serviceProxy": proxy_status(self)}
@@ -327,8 +328,10 @@ class Manager:
 
     def verify(self, *, https_probe: bool = True, service_recovery: Path | None = None) -> dict:
         from .execution_identity import managed, native_settings, require_application, state
+        from .shared_auth import verify as verify_shared_auth
         from .service_proxy import enabled as proxy_enabled, ready as proxy_ready, selection as proxy_selection, verify_selection
         verify_selection(self.layout, self.config)
+        shared_auth = verify_shared_auth(self.layout, self.config)
         release = self.selected()
         require(release is not None, "No active release", "not_installed")
         result = self.verify_release(release)
@@ -387,7 +390,7 @@ class Manager:
             proxy.update(proxy_ready(self))
         roles = ("gateway", "worker", "caddy") if https["configured"] else ("gateway", "worker")
         return {**result, "executionMode": state(self.config), "permissions": True, "managedUnits": True, "unitPolicy": unit_policy,
-                "sudoPolicy": sudo_policy, "accountBootstrap": account_bootstrap,
+                "sudoPolicy": sudo_policy, "accountBootstrap": account_bootstrap, "sharedChatgptAuth": shared_auth,
                 "providerRevision": settings["revision"], "https": https, "serviceProxy": proxy,
                 "services": {role: self.system.state(self.layout.unit(role)) for role in roles}}
 
@@ -674,7 +677,9 @@ class Manager:
         if method == "execution-mode/write":
             from .execution_mode import validate_write
             from .candidate_archive import require_idle
+            from .auth_storage_policy import require_mode_stores
             validate_write(self.config, params)
+            require_mode_stores(self.layout, self.config)
             require_idle(self)
         elif method == "provider/write":
             self.providers.validate_change(params, self.providers.read())

@@ -132,7 +132,7 @@ def parser() -> argparse.ArgumentParser:
     root.add_argument("--instance", default="main")
     subs = root.add_subparsers(dest="command", required=True)
     subs.add_parser("proxy-status", help="Server-only: inspect this instance's optional service proxy")
-    for command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-direct-domains"):
+    for command in ("proxy-configure", "proxy-enable", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-direct-domains"):
         proxy = subs.add_parser(command, help="Server-only, journaled service proxy operation")
         proxy.add_argument("--confirm-restart", action="store_true")
         if command in ("proxy-configure", "proxy-core-update"):
@@ -302,7 +302,7 @@ def execute(args: argparse.Namespace) -> dict:
             elif args.command == "proxy-status":
                 from .service_proxy import status
                 result = status(manager)
-            elif args.command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-direct-domains"):
+            elif args.command in ("proxy-configure", "proxy-enable", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-direct-domains"):
                 from .proxy_transaction import change
                 result = change(manager, action=args.command.removeprefix("proxy-"), confirm_restart=args.confirm_restart,
                                 input_file=getattr(args, "config_file", None), version=getattr(args, "version", None),

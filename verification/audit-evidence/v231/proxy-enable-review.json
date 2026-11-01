@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-proxy-enable-review",
+  "reviewerId": "v230_audit_runtime",
+  "complete": true,
+  "createdAt": "2026-11-01T10:44:38.0837264Z",
+  "files": [
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "16f27781ea5f78790af15f2cd603beef44a94a645de0d9807f14049bb3e7ad8d"
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "f54947251348d19c5a59f4f8927c1efb4fcf472b14304ed0255ce2d786b673c0"
+    },
+    {
+      "path": "deploy/operator.py",
+      "sha256": "3afa177957fb3ea4b8a176ec902eee58b7d46d89032dc7aaa440cd72ab965600"
+    },
+    {
+      "path": "tests/deploy/test_proxy_transaction.py",
+      "sha256": "ba38e7ee4bf43286ed5d08b6d1afc21ba5d916f43593f58e148735aba68a3640"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "0ffe691c008a0f76464fb68175bd39e8c176583667ed375d1f3f74a9e7444433"
+    },
+    {
+      "path": "tests/deploy/test_operator.py",
+      "sha256": "a16ee71d2e65c13f83fdda65c3d13f49a687c1492b3ff3326cc087685a7f9b99"
+    }
+  ],
+  "findings": [],
+  "method": "Fresh read of all changed production/test diff, complete proxy_transaction state machine and CLI lock/dispatch/menu caller boundaries; every six current file hashes and author evidence hashes verified. No test repetition.",
+  "checks": [
+    "enable only retains selected core/configuration/port/directDomains and flips enabled; no import/download/preparation calls.",
+    "Current canonical selection and capability validation precede no-op/journal; saved enabled is no-op; unconfigured rejects before preparation/stop.",
+    "Existing private journal snapshots, idle checks, core/prerequisite checks, generated unit verification, compensation and old/candidate recovery remain unchanged.",
+    "CLI enable accepts confirmation only; server-only manager allowlist excludes it. Menu reuses saved materials with explicit confirmation; already enabled/missing config never write.",
+    "Tests cover disabled direct-list edit retained through enable, no-op, rollback, preflight refusal and failed start compensation."
+  ],
+  "evidence": [
+    {
+      "sha256": "b35e3fcb9759764db60a4ae26745be6a4bff9abbadda81ebc10844f06d9c077f",
+      "path": ".work/post-v230-proxy-enable-implementation.json"
+    },
+    {
+      "path": ".work/post-v230-proxy-enable-windows.json",
+      "passed": 58,
+      "sha256": "eddb7beb67f16e6409976a82facd88ef712a9dfa108487e2a272c35601b1c2a3"
+    },
+    {
+      "path": ".work/post-v230-proxy-enable-linux-tests-2.json",
+      "passed": 21,
+      "sha256": "e367ee669a005642d11048dcda1980c9caa27dbeff82669559d9ef4e80e6f8cc"
+    }
+  ],
+  "limits": [
+    "Static independent delta review, not a complete repository audit.",
+    "Retained existing services/nft/upstream substitutions; no new real Xray check or online mutation.",
+    "Original one fixture failure remains in author report and is not relabeled.",
+    "Shared-auth operator wording checked against public contract; this does not independently review my own shared-auth implementation."
+  ]
+}

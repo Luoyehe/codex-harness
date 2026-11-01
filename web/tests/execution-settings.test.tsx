@@ -118,45 +118,42 @@ it.each([false, true])('uses the current thread provider for identical model IDs
   ]} />);
   await screen.findByText('model / beta-native');
   if (turn) fireEvent.click(screen.getByRole('button', { name: '仅当前回合' }));
-  const selector = screen.getByRole('combobox', { name: '模型' });
-  expect(within(selector).queryByRole('option', { name: 'Alpha only' })).toBeNull();
-  expect(within(selector).getAllByRole('option')).toHaveLength(2);
+  expect(screen.queryByRole('combobox', { name: '模型' })).toBeNull();
+  expect(screen.getByText(/下一次发送的模型与思考强度在输入框选择/)).toBeTruthy();
   const efforts = screen.getByRole('combobox', { name: '推理强度' });
   expect(within(efforts).queryByRole('option', { name: 'high' })).toBeNull();
   expect(within(efforts).getByRole('option', { name: 'max' })).toBeTruthy();
-  choose('模型', 'model');
   choose('推理强度', 'max');
   choose('服务档位', 'beta-tier');
   await submit(turn);
   await waitFor(() => expect(s.calls.find(c => c.method === (turn ? 'turn/settings/update' : 'thread/settings/update'))?.params).toEqual({
-    threadId: 'thread', ...(turn ? { turnId: 'turn' } : {}), model: 'model', effort: 'max', serviceTier: 'beta-tier',
+    threadId: 'thread', ...(turn ? { turnId: 'turn' } : {}), effort: 'max', serviceTier: 'beta-tier',
   }));
 });
-it('retains a removed provider model and blocks submission despite another provider having the same ID', async () => {
+it('retains an effort for a removed provider model and blocks submission despite another provider having the same ID', async () => {
   const s = setup(), inherited = { ...model, modelProvider: 'provider' },
     foreign = { ...model, modelProvider: 'foreign' };
   const view = render(<ThreadExecutionSettings {...props(s.api, s.events)} models={[foreign, inherited]} />);
   await ready();
-  choose('模型', 'model');
   choose('推理强度', 'high');
   view.rerender(<ThreadExecutionSettings {...props(s.api, s.events)} models={[foreign]} />);
-  expect((screen.getByRole('combobox', { name: '模型' }) as HTMLSelectElement).selectedOptions[0]?.textContent).toContain('原模型已不可用');
   expect((screen.getByRole('combobox', { name: '推理强度' }) as HTMLSelectElement).selectedOptions[0]?.textContent).toContain('原强度已不可用');
   await submit();
   expect(s.calls.some(c => c.operationId)).toBe(false);
 });
-it('does not reinterpret selected model settings under a different provider after a snapshot refresh', async () => {
-  let provider = 'provider';
-  const s = setup(c => c.method === 'thread/session' ? { ...snapshot, modelProvider: provider } : undefined);
+it.each(['provider', 'model'])('does not reinterpret selected model settings after the snapshot %s changes', async (field) => {
+  let provider = 'provider', selectedModel = 'model';
+  const s = setup(c => c.method === 'thread/session' ? { ...snapshot, modelProvider: provider, model: selectedModel } : undefined);
   render(<ThreadExecutionSettings {...props(s.api, s.events)} models={[
     { ...model, modelProvider: 'provider' }, { ...model, modelProvider: 'other' },
+    { ...model, model: 'other-model', modelProvider: 'provider' },
   ]} />);
   await ready();
-  choose('模型', 'model');
   choose('推理强度', 'high');
-  provider = 'other';
+  if (field === 'provider') provider = 'other';
+  else selectedModel = 'other-model';
   fireEvent.click(screen.getByRole('button', { name: '重新读取设置' }));
-  await screen.findByText('model / other');
+  await screen.findByText(`${selectedModel} / ${provider}`);
   await submit();
   expect(s.calls.some(c => c.operationId)).toBe(false);
   expect(screen.getByRole('alert').textContent).toContain('所选设置已不在当前目录');
@@ -277,7 +274,6 @@ it('blocks stale model choices and pages permission profiles with the returned c
   expect(s.calls.filter((c) => c.method === 'permissionProfile/list')[1]?.params.cursor).toBe(
     'next',
   );
-  choose('模型', 'model');
   choose('服务档位', 'fast');
   view.rerender(<ThreadExecutionSettings {...props(s.api, s.events)} models={[]} />);
   expect(await screen.findByText(/所选设置已不在当前目录/)).toBeTruthy();

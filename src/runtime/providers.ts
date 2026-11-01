@@ -3,6 +3,7 @@ import { DeliveryError, integer, object, onlyKeys, string, type JsonObject, type
 
 type NativeCall = (method: string, params: JsonObject) => Promise<JsonValue>;
 type Connection = JsonObject & { id: string; modelProvider: string; enabled: boolean; kind: string; name: string; models: JsonObject[] };
+export interface ProviderSwitchPlan { sourceProvider: string; modelProvider: string; model: string; config: JsonObject; options: JsonObject }
 
 /** Public root-managed metadata. Credentials never cross this boundary. */
 export class ManagedProviders {
@@ -42,7 +43,7 @@ export class ManagedProviders {
     const selected = modelProvider === undefined ? this.connections.find(row => row.id === this.defaultId)! :
       this.connections.find(row => this.matches(row, modelProvider) && row.enabled);
     if (!selected) throw new DeliveryError('provider_unavailable', '所选模型供应商不存在或已停用，请重新选择。');
-    if (turn) return ordinary; // Provider is immutable for an existing native thread.
+    if (turn) return ordinary; // turn/start has no provider field; switching uses a confirmed native reload.
     const model = ordinary.model ?? selected.model ?? selected.models[0]?.id;
     const metadata = selected.models.find(row => row.id === model);
     const configuredEffort = model === selected.model ? selected.effort : undefined;
@@ -55,6 +56,34 @@ export class ManagedProviders {
     const row = this.connections.find(value => this.matches(value, modelProvider) && value.enabled);
     return typeof row?.catalogPath === 'string' ? { model_catalog_json: row.catalogPath } : {};
   }
+  resumeSelection(input: JsonValue): JsonObject {
+    const value = object(input, 'options'); onlyKeys(value, ['modelProvider', 'model', 'effort']);
+    string(value.modelProvider, 'modelProvider', 80);
+    if (!this.connections.some(row => row.enabled && this.matches(row, value.modelProvider)))
+      throw new DeliveryError('provider_unavailable', '所选模型供应商不存在或已停用，请重新选择。');
+    const selected = this.selection(value, false)!;
+    string(selected.model, 'model', 256);
+    if (selected.effort === undefined) selected.effort = null;
+    return selected;
+  }
+  switchPlan(provider: JsonValue | undefined, input: JsonValue | undefined): ProviderSwitchPlan | null {
+    const value = input === undefined ? {} : object(input, 'options');
+    const requested = value.modelProvider;
+    const actual = this.connections.find(row => this.matches(row, provider));
+    if (requested === undefined || requested === provider || actual && this.matches(actual, requested)) {
+      this.assertThread(provider, input); return null;
+    }
+    const target = this.connections.find(row => row.enabled && this.matches(row, requested));
+    if (!target) throw new DeliveryError('provider_unavailable', '所选模型供应商不存在或已停用，请重新选择。');
+    const selected = this.selection(value, false)!;
+    // Missing effort on a different provider means its native default, not
+    // the previous provider's saved effort. Preserve explicit null as well.
+    if (selected.effort === undefined) selected.effort = null;
+    const model = string(selected.model, 'model', 256);
+    const config = this.catalogOverride(target.modelProvider);
+    config.model_reasoning_effort = selected.effort;
+    return { sourceProvider: string(provider, 'current provider', 80), modelProvider: target.modelProvider, model, config, options: selected };
+  }
   accountProvider(): string | undefined {
     const rows = this.connections.filter(row => row.enabled && (row.kind === 'chatgpt' || row.kind === 'chatgpt-gateway'));
     return rows.some(row => row.modelProvider === this.nativeProvider) ? undefined : rows[0]?.modelProvider;
@@ -62,9 +91,9 @@ export class ManagedProviders {
   assertThread(provider: JsonValue | undefined, options: JsonValue | undefined): void {
     const requested = options === undefined ? undefined : object(options).modelProvider;
     const actual = this.connections.find(row => row.enabled && this.matches(row, provider));
-    if (requested !== undefined && requested !== provider && !(actual && this.matches(actual, requested))) throw new DeliveryError('provider_mismatch', '已有对话不能切换模型供应商，请新建对话。');
+    if (requested !== undefined && requested !== provider && !(actual && this.matches(actual, requested))) throw new DeliveryError('provider_mismatch', '模型供应商尚未切换完成，请核对会话后继续。');
     if (this.connections.length && !actual)
-      throw new DeliveryError('provider_unavailable', '此对话的模型供应商已停用或移除，请恢复该供应商后继续。');
+      throw new DeliveryError('provider_unavailable', '此对话的模型供应商已停用或移除，请选择可用模型后加载会话。');
   }
   async list(params: JsonObject, native: NativeCall, other?: (provider: string, usesChatgpt: boolean, includeHidden: boolean) => Promise<JsonObject[]>): Promise<JsonValue> {
     onlyKeys(params, ['cursor', 'limit', 'includeHidden', 'modelProvider']);

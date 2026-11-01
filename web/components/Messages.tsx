@@ -60,6 +60,7 @@ type Props = {
   onMore: () => void;
   focusTarget?: { turnId: string; itemId: string };
   onAction?: (turn: Turn, action: 'fork' | 'edit' | 'revert') => void;
+  onOpenThread?: (id: string) => void;
   actionsDisabled?: boolean;
   active?: boolean;
 };
@@ -74,6 +75,7 @@ export function Messages({
   onMore,
   focusTarget,
   onAction,
+  onOpenThread,
   actionsDisabled = false,
   active = false,
 }: Props) {
@@ -204,6 +206,7 @@ export function Messages({
                 }}
               >
                 <MessageItem item={row.item} api={api} threadId={threadId} project={project}
+                  onOpenThread={onOpenThread}
                   reasoningFinished={reasoningFinished.has(row.turnId)} />
               </div>
             );

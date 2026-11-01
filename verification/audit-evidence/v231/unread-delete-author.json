@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "unread-thread-delete-author",
+  "complete": true,
+  "createdAt": "2026-11-01T10:43:57.5241747Z",
+  "files": [
+    {
+      "sha256": "40fe15d7d5b2c368110945663c7b58a3c58e7bb463214376cab6c65df6cf13bf",
+      "path": "src/runtime/workflows.ts"
+    },
+    {
+      "sha256": "bd44e1cdd5f1f66a83d59a20d249f778892fb7435e57f27b38747aaf1fd2d311",
+      "path": "tests/runtime/workflows.test.ts"
+    }
+  ],
+  "change": "Remove only thread/delete full-history admission; retain native thread read/identity, idle/goal/queue/voice and durable beforeWrite guards. Send and resume still require complete history.",
+  "validation": {
+    "failed": 0,
+    "report": ".work/test-results/run-w2QZP6/vitest.json",
+    "passed": 39,
+    "testFiles": 1,
+    "sha256": "a277167ea3de12b3d2f74414e07ee8c15595fe487ef3689e8392c2442c2dab8d",
+    "skipped": 0
+  },
+  "limits": [
+    "Targeted RuntimeService with local Native fixture; no full suite, real CLI delete, browser or online execution.",
+    "Author evidence; independent review is required.",
+    "UI change is owned separately by root."
+  ],
+  "findings": []
+}
