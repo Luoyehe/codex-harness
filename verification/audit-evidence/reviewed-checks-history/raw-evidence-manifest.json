@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-ci-original-download-manifest",
+  "archives": [
+    {
+      "path": ".work/historical-ci-run-40232786765.zip",
+      "sha256": "ce6030ba153e335761eeac44e02abab662a4dfa11c518decb5dee3d21b57c7eb",
+      "bytes": 7913
+    },
+    {
+      "path": ".work/historical-ci-run-40232786814.zip",
+      "sha256": "7e19ab75222881b038bb112c543d575b4fd8ae06a146c36985ade5157a439427",
+      "bytes": 8017
+    },
+    {
+      "path": ".work/historical-ci-run-40298008326.zip",
+      "sha256": "c75d72884fceb2bf916d484a0e3ad072d7f99a8d8d9ce615e0034867815d6c3f",
+      "bytes": 7086
+    },
+    {
+      "path": ".work/historical-ci-run-40299290026.zip",
+      "sha256": "de4bfc68888b3eb5f3fae461511d3183261afb14e8213df5d495152c083808ef",
+      "bytes": 5734
+    },
+    {
+      "path": ".work/historical-ci-run-40300576409.zip",
+      "sha256": "a8fc1e7bb3de3f9ae4565d766095236ee8f55e54758842bdf7944a2194f485df",
+      "bytes": 32585
+    },
+    {
+      "path": ".work/historical-ci-run-40302281637.zip",
+      "sha256": "656ec61d1bb679afa3d622c9ffb29c6b118c51cce4af49c5a5179eb929c1b56d",
+      "bytes": 31942
+    },
+    {
+      "path": ".work/historical-ci-run-40302433930.zip",
+      "sha256": "2e7cb9e6f2c0b020cfa1677793ee30a79d83e46c9f81d6a040e741081650f028",
+      "bytes": 90890
+    },
+    {
+      "path": ".work/historical-ci-run-40305525588.zip",
+      "sha256": "da30e129a25b9403b79d49ee16c9af4f4ed4b3b42897e765bb63146ddd9dc791",
+      "bytes": 64190
+    },
+    {
+      "path": ".work/historical-ci-run-40305525963.zip",
+      "sha256": "112fcae0a03655bd62bceb60b37bda3605e1f482fb4313d2fd672f1893d36832",
+      "bytes": 61347
+    },
+    {
+      "path": ".work/historical-ci-run-40308175474.zip",
+      "sha256": "5c818337fc26d6a344db98aebcdaebec45cb2843a853ee954811837a66ac1f45",
+      "bytes": 95895
+    },
+    {
+      "path": ".work/historical-ci-run-40309785986.zip",
+      "sha256": "d9eca7f5c09104ce563a8e0b6a5bc424ea798f22eaf56ddc0d160cb525311cd2",
+      "bytes": 16278
+    },
+    {
+      "path": ".work/historical-ci-run-40955613895.zip",
+      "sha256": "5dffb66909f3598ff9e7755efd63f1da3cfbfdd9f710173bb0d895c56178d41f",
+      "bytes": 82768
+    },
+    {
+      "path": ".work/historical-ci-run-41145274221.zip",
+      "sha256": "452f0f6719cab09127d87ff7a2b5661da118cf47be38744c741571047890be7c",
+      "bytes": 143870
+    }
+  ],
+  "caseArtifacts": [
+    {
+      "path": ".work/historical-ci-artifact-13021401114.zip",
+      "sha256": "88f61f6d84d03a943cff4c69c696e314eeda6260595ff904df76cb313f7a63d9",
+      "bytes": 34802
+    },
+    {
+      "path": ".work/historical-ci-artifact-13021635497.zip",
+      "sha256": "fbeefaa2ff6b552c2d38fee0c4e14d8223c66b868ef4cd73d87a31f6d92eeaf4",
+      "bytes": 33872
+    }
+  ],
+  "rawFilesCommitted": false,
+  "boundary": "Original downloads remain in ignored .work. Job/member ranges and hashes are in the retained reviews. Public GitHub run links are reproducible while GitHub retains logs; local hashes bind inspected bytes but do not make ignored files available to a fresh clone. Private runner environments, signed download URLs and raw logs are not published."
+}

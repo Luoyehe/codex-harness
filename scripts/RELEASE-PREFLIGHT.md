@@ -22,6 +22,10 @@ The result is `.work/release-preflight.json`. `ready-for-ci` means these precond
 
 ## Lessons behind these checks
 
+The [complete historical failure review](../verification/reports/reviewed-checks-history.md) indexes workflow runs 1–59, including the former Affected checks name: 26 failures and 3 cancellations reviewed separately. Read its cause-specific evidence and remaining limits before selecting tests. This is a fixed historical snapshot, not an automatically refreshed dashboard.
+
+The selector is a manual mapping, not a complete dependency graph. For shared fixtures, search imports, direct construction, `setUp()` composition, instance method replacements and cleanup, then add every actual affected consumer to the targeted plan. Known unmapped edges include control-update fixtures consumed by root configuration/lifecycle tests, root lifecycle setup consumed by candidate-archive tests, execution-mode setup consumed by proxy-transaction tests, and journal-schema fixtures consumed by root journal-recovery tests. Test-only edits and hand-picked targets also do not inherit the full Web partition. Before another candidate, explicitly map each previous failed assertion to its preserved review, repair, consumer checks and actual verification; the preflight does not currently enforce that mapping. Record the root system Python separately from the standard matrix's exact Python pin. These are required manual checks, not claims that the remaining automation gaps have been implemented.
+
 ### Required review of every failed Reviewed checks run
 
 Before submitting the next candidate, retain a failure review with the failed commit, run URL/ID, attempt, job IDs and complete-log evidence. Distinguish actual failed assertions from intentionally failing subprocess fixtures, upstream job failures and downstream jobs that correctly refuse incomplete evidence. Do not invent a test count or coverage result when the aggregation did not finish.
@@ -34,7 +38,7 @@ For each distinct cause, record:
 4. A concrete prevention measure, such as a regression assertion, a broader affected-test selection or an explicit preflight rule. "Be more careful" and "rerun CI" are not prevention measures.
 5. The exact targeted verification, untested platforms/integrations and the next candidate's eventual CI result. Keep the original failed run and its evidence even after the repair passes.
 
-Before choosing affected tests, consult the retained reviews and the rules below. Preserve expected behavior, privilege boundaries, recovery assertions and platform coverage. Do not solve fixture failures by dropping cases, broadly mocking validation, increasing timeouts, adding sleeps or retries, or suppressing a failed gate. Reopen the source-bound audit/authorization when a repair changes its snapshot; rerun the authorized full matrix only after that gate is satisfied. These records belong in repository audit evidence; the user README should remain deployment and usage guidance.
+Before choosing affected tests, consult the retained reviews and the rules below. Preserve expected behavior, privilege boundaries, recovery assertions and platform coverage. Do not solve fixture failures by dropping cases, broadly mocking validation, increasing timeouts, adding arbitrary sleeps or retries, or suppressing a failed gate. Waiting for an evidenced protocol prerequisite, such as the pinned CLI's activation-key guard, must be tied to the observed protocol state and documented separately from timeout inflation. Reopen the source-bound audit/authorization when a repair changes its snapshot; rerun the authorized full matrix only after that gate is satisfied. These records belong in repository audit evidence; the user README should remain deployment and usage guidance.
 
 ### v2.3.2 candidate: missed fixture dependencies
 

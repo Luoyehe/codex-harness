@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-historical-ci-early-document-review",
+  "reviewerId": "/root/v220_final_deploy",
+  "reviewedAt": "2026-11-01T16:02:00.320703+00:00",
+  "complete": true,
+  "clean": true,
+  "files": [
+    {
+      "path": "verification/reports/reviewed-checks-history.md",
+      "sha256": "51ada8f62792d6a015f89a364ba2830299d451abf162bcf95e09eae67b3a7333"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "5a8057e617cfd3f99a6fc4ae157a8a89b28d1a68a4806c5f1ce9f19a1226ea60"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "9de401308407270acb6844d810f5b77524d1333f773b8174f2d93b4a339135e2"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/early-gates.json",
+      "sha256": "bbc6d86d3c1b70a7df44ed3a79ff2ac0df72c42a684220b537fc56ac64203426"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/early-platforms.json",
+      "sha256": "0e84aa28fd1a21e83c8c8a286e3323b7e64b49c2c627dd90f967db571125062b"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/prevention.json",
+      "sha256": "0464eccd02b4eb30d0b852a5105984cb9d263a54b3669cf36f62549a28149d40"
+    },
+    {
+      "path": ".work/historical-ci-early-platform-review.json",
+      "sha256": "0e1a6ffd880201d2fedba42795a5db3e81c05df1c5e94064733fe629bb2b9f03"
+    },
+    {
+      "path": ".work/historical-ci-prevention-review.json",
+      "sha256": "0464eccd02b4eb30d0b852a5105984cb9d263a54b3669cf36f62549a28149d40"
+    }
+  ],
+  "scope": {
+    "reviewed": [
+      "history report: first nine failed runs",
+      "history report: four current prevention boundaries",
+      "AGENTS.md new manual review obligation",
+      "RELEASE-PREFLIGHT.md new manual checks and their surrounding rules"
+    ],
+    "depth": "Read all three documents. First five gate summaries checked against the retained early-gates report, not newly re-audited original logs; last four platform summaries checked against my original raw/Git-backed review. All eleven local report links exist. Re-read both corrected sentences. Public prevention is semantically identical to my original; public early-platform changes only one quoted hosted-runner home prefix plus explicit publicationSanitization metadata.",
+    "notPerformed": [
+      "tests",
+      "network requests",
+      "production access",
+      "source changes",
+      "fresh full audit"
+    ]
+  },
+  "confirmed": [
+    {
+      "item": "Guardian",
+      "evidence": "history report lines 31 and 82",
+      "conclusion": "Correctly calls the pinned CLI activation-key window a protocol precondition, not an arbitrary delay. First-run exact phase remains qualified."
+    },
+    {
+      "item": "Windows",
+      "evidence": "history report line 31; early-platforms sameHostControlledComparison",
+      "conclusion": "Same-job old/restricted-path discovery failures versus explicit-import production successes support mechanism; no unsupported Node-version causation."
+    },
+    {
+      "item": "Root Python",
+      "evidence": "history report line 97; preflight line 27",
+      "conclusion": "Current root system interpreter versus standard exact pin is explicitly only an environment boundary; no historical failure is attributed to it."
+    },
+    {
+      "item": "Four current gaps",
+      "evidence": "history report lines 94-97; preflight line 27; AGENTS line 11",
+      "conclusion": "Accurately retains incomplete manual dependency mapping, test-only/manual target partition limits, non-machine-enforced failed-run review and different root Python pinning. New obligations are manual checks, not claims automation was implemented."
+    },
+    {
+      "item": "First five gate rows",
+      "conclusion": "Faithfully summarize retained cause/confidence boundaries, including missing initial plan, unknown first added history match, and inherited history classification rather than rereading retired implementation."
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "This is document consistency review, not independent verification of every historical run in the full 59-run inventory.",
+    "No new product defect identified; findings are wording clarifications."
+  ],
+  "initialReview": {
+    "path": ".work/historical-ci-early-doc-review-initial.json",
+    "sha256": "9846e3083ab278119d22b8fe80f54a071f96c07303edab83c5e0b4cfdde8621d"
+  },
+  "resolvedFindings": [
+    {
+      "id": "DOC-EARLY-SCOPE",
+      "severity": "low",
+      "path": "verification/reports/reviewed-checks-history.md",
+      "line": 29,
+      "issue": "The phrase 同提交的不同选测范围 is placed in the 40305525588 row and can imply its paired run has a different selection. Both 40305525588 and 40305525963 have identical HEAD/base and authorized-full 169-file inventory.",
+      "recommendation": "Use 同提交重复运行 or remove the range comparison here; retain the general scope-difference lesson where actual selected/full differences are evidenced.",
+      "status": "resolved",
+      "resolution": "Parent changed the row to explicitly state both runs have the same base and 169-file full plan; checked final line 29."
+    },
+    {
+      "id": "DOC-PROTOCOL-WAIT",
+      "severity": "low",
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "line": 41,
+      "issue": "The unqualified adding sleeps ban could be read as contradicting the documented Guardian protocol wait. The history document itself correctly distinguishes it.",
+      "recommendation": "Qualify arbitrary sleeps used to hide readiness failures; explicitly allow waiting for a documented protocol activation window while preserving observed-state checks.",
+      "status": "resolved",
+      "resolution": "Parent qualified arbitrary sleeps and explicitly preserved evidenced protocol prerequisites tied to observed state; checked final preflight line 41."
+    }
+  ],
+  "publicationSanitizationReview": {
+    "verified": true,
+    "changedDiagnosticValues": 1,
+    "allowedChange": "One <redacted-source-home-prefix> prefix in quoted dubious-ownership diagnostic becomes <runner-home>.",
+    "metadata": "publicationSanitization explicitly distinguishes sanitized quotations from original bytes.",
+    "originalHashesAndFilesPreserved": true,
+    "causeStatementsUnchanged": true
+  },
+  "publicationSanitization": {
+    "originalReview": {
+      "path": ".work/historical-ci-early-doc-review.json",
+      "sha256": "7142591acef2df8f206668bfae946679d067c29d4146c5bc3e5c0f19e26adfaf"
+    },
+    "scope": "Only the runner home prefix quoted while describing prior sanitization is replaced by a redacted-source-home-prefix marker. Reviewed file hashes, conclusions and original review bytes remain unchanged."
+  }
+}
