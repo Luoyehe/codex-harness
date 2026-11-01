@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "kind": "current-codeql-inventory-and-source-review",
+  "reviewerId": "root",
+  "complete": true,
+  "findings": [],
+  "completedAt": "2026-11-01T14:40:30.524Z",
+  "headObserved": "b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb",
+  "openAlerts": 19,
+  "closedAlerts": 2,
+  "newAlertIds": [],
+  "reviewedCurrentAlerts": 16,
+  "legacyInventoryOnlyIds": [
+    2,
+    3,
+    4
+  ],
+  "inventory": {
+    "path": ".work/v232-copy-codeql-ui.txt",
+    "sha256": "4ed289c57c2306bc25dcf99d4266f8eb92620cab5514026e74a9179a64b2e8e7"
+  },
+  "prior": {
+    "path": ".work/v231-codeql-final-review.json",
+    "sha256": "0764c89f453316a9673131ab3adaf08d8c30ef503ecf110ebb430545268868b7"
+  },
+  "currentAnchor": {
+    "id": 17,
+    "url": "https://github.com/Luoyehe/codex-harness/blob/b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb/src/runtime/service.ts#L816-L816",
+    "sink": "in-memory defaults cache key"
+  },
+  "alerts": [
+    {
+      "id": 21,
+      "source": {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0"
+      },
+      "priorSha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+      "unchanged": true,
+      "disposition": "This is a negative assertion over six fixed URLs observed by an injected in-memory reader. startsWith rejects that entire prefix rather than authorizing a destination; the fixture Map also rejects all unexpected sources. Production validateContract requires exact four document URLs before I/O, fixed npm URLs are constructed internally, redirects are rejected and no MCP endpoint is called. No production host validation or SSRF defense relies on this assertion.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete URL substring sanitization\nHigh\nTest\n#21 opened  • Detected by CodeQL in tests/tooling/builtin-mcp.test.ts :24",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 20,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "priorSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Bad HTML filtering regexp\nHigh\n#20 opened  • Detected by CodeQL in scripts/check-builtin-mcp.mjs :63",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 19,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "priorSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete multi-character sanitization\nHigh\n#19 opened  • Detected by CodeQL in scripts/check-builtin-mcp.mjs :63",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 18,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "priorSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete multi-character sanitization\nHigh\n#18 opened  • Detected by CodeQL in scripts/check-builtin-mcp.mjs :63",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 17,
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2"
+      },
+      "priorSha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef",
+      "unchanged": false,
+      "disposition": "Current sink service.ts:816 hashes canonical cwd, selected model/permission options, configuration and generation only as a bounded in-memory defaults cache/in-flight key. It is not a password verifier, is not persisted or returned, and remains capped16 and invalidated by generation. Reviewed current method and callers; new conversion orchestration does not use this value as authentication.",
+      "depth": "Fresh current hash inputs/uses/cache limits and new account/provider response/notification boundaries read.",
+      "codePoints": [
+        {
+          "path": "src/runtime/service.ts",
+          "line": 821,
+          "purpose": "actual current cache identity hash"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 855,
+          "purpose": "bounded memory-only cache"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 468,
+          "purpose": "ChatGPT account probe response boundary"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 225,
+          "purpose": "account generation invalidation"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 262,
+          "purpose": "existing notification redaction"
+        }
+      ],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#17 opened  • Detected by CodeQL in src/runtime/service.ts :821",
+      "reviewDepth": "Current changed source and affected input/sink/callers reread by root."
+    },
+    {
+      "id": 11,
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+      },
+      "priorSha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d",
+      "unchanged": true,
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#11 opened  • Detected by CodeQL in src/runtime/workspace-witness.ts :100",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 10,
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+      },
+      "priorSha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+      "unchanged": true,
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#10 opened  • Detected by CodeQL in src/runtime/input-context.ts :22",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 9,
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+      },
+      "priorSha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+      "unchanged": true,
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#9 opened  • Detected by CodeQL in src/runtime/imports.ts :6",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 8,
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+      },
+      "priorSha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+      "unchanged": true,
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#8 opened  • Detected by CodeQL in src/runtime/attachments.ts :126",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 7,
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+      },
+      "priorSha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "unchanged": true,
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#7 opened  • Detected by CodeQL in src/core/validation.ts :40",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 16,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "priorSha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "unchanged": true,
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of insecure SSL/TLS version\nHigh\nTest\n#16 opened  • Detected by CodeQL in tests/deploy/test_https_health.py :240",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 15,
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+      },
+      "priorSha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a",
+      "unchanged": true,
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of a broken or weak cryptographic hashing algorithm on sensitive data\nHigh\n#15 opened  • Detected by CodeQL in deploy/install_recovery.py :186",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 14,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "priorSha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "unchanged": true,
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of insecure SSL/TLS version\nHigh\nTest\n#14 opened  • Detected by CodeQL in tests/deploy/test_https_health.py :170",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 13,
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+      },
+      "priorSha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+      "unchanged": true,
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Clear-text storage of sensitive information\nHigh\nTest\n#13 opened  • Detected by CodeQL in tests/deploy/test_dns_tls.py :33",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 5,
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126"
+      },
+      "priorSha256": "9b30c65bb2e654ff538d5de54e428134927ec22d43325022e9c187aa94f80c06",
+      "unchanged": false,
+      "disposition": "Current native_launcher.py:352 writes the enabled managed Bedrock token only to the credential-helper stdout protocol and immediately returns. Reviewed provider-env root ownership/mode, actual native UID and enabled-provider selection before this sink. Added thread-history fixed verb dispatches before secret loading; app-server fixed unload/file-store options do not log credentials. The sink remains a required private helper protocol, not diagnostics.",
+      "depth": "Fresh current source/sink and added credential-policy boundary read, with separately bound independent review for reviewer-authored additions.",
+      "codePoints": [
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 306,
+          "purpose": "trusted actual execution identity"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 332,
+          "purpose": "protected provider environment and enabled helper selection"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 348,
+          "purpose": "intentional helper token protocol sink"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 365,
+          "purpose": "new managed file-store gate"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 379,
+          "purpose": "static or generic diagnostics only"
+        }
+      ],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Clear-text logging of sensitive information\nHigh\n#5 opened  • Detected by CodeQL in deploy/native_launcher.py :348",
+      "reviewDepth": "Current changed source and affected input/sink/callers reread by root."
+    },
+    {
+      "id": 3,
+      "pathQuery": "/Luoyehe/codex-harness/security/code-scanning?query=is%3Aopen+branch%3Amain+path%3Ascripts%2Fprovider-transaction.test.mjs",
+      "disposition": "Legacy inventory-only alert whose source path is outside the current rewrite tree. No archived repository or prior checkout source was opened; no new semantic dismissal, suppression or current-scan fix claim. Retain the last actual review inventory-only limitation.",
+      "depth": "metadata inventory only",
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete URL substring sanitization\nHigh\n#3 opened  • Detected by CodeQL in scripts/provider-transaction.tes... :111"
+    },
+    {
+      "id": 2,
+      "pathQuery": "/Luoyehe/codex-harness/security/code-scanning?query=is%3Aopen+branch%3Amain+path%3Aapps%2Fgateway%2Fsrc%2Findex.ts",
+      "disposition": "Legacy inventory-only alert whose source path is outside the current rewrite tree. No archived repository or prior checkout source was opened; no new semantic dismissal, suppression or current-scan fix claim. Retain the last actual review inventory-only limitation.",
+      "depth": "metadata inventory only",
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Missing rate limiting\nHigh\n#2 opened  • Detected by CodeQL in apps/.../src/index.ts :83"
+    },
+    {
+      "id": 6,
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      "priorSha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "unchanged": true,
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Improper code sanitization\nMedium\nTest\n#6 opened  • Detected by CodeQL in tests/deploy/vision_stdio_probe.mjs :16",
+      "reviewDepth": "Exact byte-identical source; prior semantic review inherited."
+    },
+    {
+      "id": 4,
+      "pathQuery": "/Luoyehe/codex-harness/security/code-scanning?query=is%3Aopen+branch%3Amain+path%3Aapps%2Fgateway%2Ftest%2Frpc.test.ts",
+      "disposition": "Legacy inventory-only alert whose source path is outside the current rewrite tree. No archived repository or prior checkout source was opened; no new semantic dismissal, suppression or current-scan fix claim. Retain the last actual review inventory-only limitation.",
+      "depth": "metadata inventory only",
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Improper code sanitization\nMedium\nTest\n#4 opened  • Detected by CodeQL in apps/.../test/rpc.test.ts :501"
+    }
+  ],
+  "limits": [
+    "19 alerts remain open; no zero-alert or dismissal claim.",
+    "The current source alert files are bound by hashes; CI2 must bind its exact head and completed security workflow separately.",
+    "Legacy IDs are inventory only; no archival product source was opened.",
+    "The failed full matrix is separate and has not passed."
+  ]
+}

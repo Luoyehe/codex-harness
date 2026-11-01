@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "exact-byte-inherited-builtin-mcp-semantic-review",
+  "complete": true,
+  "clean": true,
+  "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+  "sourceFiles": 2004,
+  "completedAt": "2026-11-01T14:47:04.980Z",
+  "findings": [],
+  "freshness": {
+    "path": ".work/builtin-mcp-freshness-29dd218f-72d6-48f9-9fb8-0e059fe4513d.json",
+    "sha256": "8c8df1d656622579f7e8a5988450e16746852bbc7cbd897ee18d9ad92b27c2b5"
+  },
+  "priorSemanticReview": {
+    "path": ".work/v232-copy-mcp-semantic-review.json",
+    "sha256": "cefae25d19b177a72aa857cbf7c4722e63881e283535be487f5d5a273fb52791"
+  },
+  "priorFreshness": {
+    "path": ".work/builtin-mcp-freshness-6954484b-f57b-481c-9fcd-8e1ec1b2cce2.json",
+    "sha256": "1e256f4a4a5abcac835d4b59ce42358c51c48dd001c59de3b500cc701cd29cf1"
+  },
+  "files": [
+    {
+      "path": "reference/BUILTIN-MCP-CONTRACT.json",
+      "sha256": "3a582f66a34def5b146c1d9fb60d5ee4bc0dbd4f6ed9247b1d682a75462b8f3c"
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "c06f314a13ca7797915da0d47d6744d2d672364ca49a2b41f75f8a2bd5f29488"
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "bd13c48a5271b36cb72f384d4c9dfc5cf83e276c39b7f51a025c49561c8bbe45"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126"
+    },
+    {
+      "path": "package.json",
+      "sha256": "a87422cbbfd0e5b3382fe436c53d1fc75d99d6936444e1afe2a3ee7e3970cae6"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "55c7a42ea77ca4130aa1373c4b0c119909d6fe0bd300f837f90faab869a027eb"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e77964d5f1476df649e0a8303cd27682cb6e0858582f97ecd75655abd253b963"
+    }
+  ],
+  "method": "Fresh public read on final source: all six official document/package source byte hashes match the preceding semantic review exactly. All managed renderer/launcher files match too. Inherit that explicit semantic and offline compatibility review; no claim of newly rereading unchanged pages.",
+  "limits": [
+    "Public documentation and package metadata only; no credential or live MCP connection/tool call.",
+    "Token matching detects drift but does not replace semantic documentation review or offline renderer/stdio compatibility tests.",
+    "User-defined MCP and ZAI global configuration are outside this builtin CN contract. No automatic dependency update."
+  ]
+}

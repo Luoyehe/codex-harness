@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "author": "v230_audit_runtime",
+  "complete": true,
+  "status": "targeted-passed",
+  "baseHead": "b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb",
+  "files": [
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "a9f0eb03b2c7f181b26a59cb38659e3280c5b7b42a3f53068e9c744e6fd72cf1"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "a473a5e4e581c1e6ee3ebe1c2bbd79b61bb80227f2ffd96551db2052e338b3f7"
+    },
+    {
+      "path": "tests/runtime/windows-job.test.ts",
+      "sha256": "f79070f3892361720faa38f9bdc524cd979ae8bd66974ed7de2aee2d6015db80"
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "ae0ab7fa6cd47f83f501c27edbe2e647bbf8f332f71e67d0d2fb6a660cdb71b9"
+    }
+  ],
+  "productionChanges": false,
+  "diagnosis": [
+    {
+      "area": "defaults-lifecycle delayed fixture",
+      "actualPlatforms": [
+        "linux",
+        "windows"
+      ],
+      "cause": "node --eval combines with appended Codex -c; Node parses -c as --check and exits immediately. Direct pinned Node reproduction exited1 with either --check or --eval can be used, not both. Not a cleanup timeout.",
+      "whyMissed": "The fixed Codex -c flag was reviewed on official CLI conversion tests, but custom Node --eval startup consumers were omitted from targeted validation.",
+      "prevention": "Trace nativeCommand consumers and custom executable argument parsing whenever fixed native flags change; use file-script fixtures and keep real delayed readiness/cleanup checks."
+    },
+    {
+      "area": "web defaults override fixture",
+      "actualPlatforms": [
+        "linux",
+        "windows"
+      ],
+      "cause": "Legacy fixture omits provider identity from thread/session while current product correctly requires current-provider model selection. Old change event selects a row unavailable under that contract.",
+      "whyMissed": "Current-provider UI filtering was validated in conversion/model-picker tests, but the older defaults integration fixture lacked provider metadata and was not included.",
+      "prevention": "Audit shared thread/session/catalog fixture completeness when model admission changes; include existing defaults override flows and assert the exact selected provider/model before submitting."
+    },
+    {
+      "area": "windows-job exact argv fixture",
+      "actualPlatforms": [
+        "windows"
+      ],
+      "cause": "Two assertions omit newly fixed -c thread_unload_delay_secs=0 arguments; original escaped argv are preserved. Failure occurs before cleanup assertion, not evidence of broken cleanup.",
+      "whyMissed": "Windows controller implementation was unchanged, so its exact argv consumer tests were omitted despite launcher argument changes.",
+      "prevention": "Include Windows argv/escaping/controller ownership consumers for launcher changes; assert original arguments plus fixed overrides without weakening process-tree cleanup."
+    }
+  ],
+  "changes": [
+    "Delayed Node fixture uses a temporary .mjs script, preserving real1200ms delay/readiness/process-identity and cleanup assertions; no increased timeout or retry.",
+    "Web fixture supplies one consistent current provider across thread/session/defaults/catalog. Exact provider+model+effort+approval+sandbox submission and stale-settings hiding/refresh remain asserted.",
+    "Windows job fixture expects exact original escaping arguments plus fixed native -c override. Process-tree/owner-death/backpressure/cleanup-failure tests remain unchanged.",
+    "Real official CLI conversion test now explicitly checks no parent/fork link, distinct sessionId/newheader session_id, no history_base, distinct path/device+inode while retaining original deletion/restart/new continuation proof."
+  ],
+  "validation": [
+    {
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-c2R6Vk/vitest.json",
+        "sha256": "652e6b22982b225a530ef1b2df3cc37afa1fdf31b1e48decce179762d03b23b1"
+      },
+      "log": {
+        "path": ".work/v232-ci1-defaults-targeted.log",
+        "sha256": "092316f12b684cbcbe77df2fdca02390dc3d8e3cfc24fa0ca0af768cb2a7a210"
+      }
+    },
+    {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-XnfQ9R/vitest.json",
+        "sha256": "43e4f2da6739cfefe39480cca94bc274b4fc0d26a28acb8fe7f4c7718d2b73f8"
+      },
+      "log": {
+        "path": ".work/v232-ci1-independence-targeted.log",
+        "sha256": "b86b1f66aacc92bac5ec4bb1c0ddbeeef452e31859286ac9e55f6db0c908ba1a"
+      },
+      "scope": "Final sessionId assertions"
+    },
+    {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-pZP4hG/vitest.json",
+        "sha256": "cc8b1718647f5aa7767840ba612ad139cad9e071a61f714f1d26549f6f3582b9"
+      },
+      "log": {
+        "path": ".work/v232-ci1-windows-argv-targeted.log",
+        "sha256": "7bb0ae05f4afd0a6bc46359db228c0fb91e10501634f806da51e3c4dad932c20"
+      }
+    }
+  ],
+  "adjacentReview": "Searched all tests/fixtures for NativeRpc/nativeCommand/RuntimeService executable args, --input-type/-e and exact argv expectations. Remaining eval callers directly use spawn/windowsJob/process APIs, not nativeCommand. Existing managed launcher exact args are unchanged; ordinary file-script fixtures safely receive -c as script arguments.",
+  "prevention": "The launcher flag change affects custom executable substitutes as well as official CLI. Its next targeted selection must include argument consumers and delayed-start wrappers, and shared UI fixtures must provide current thread provider metadata; do not change production contracts to accommodate stale fixtures.",
+  "limits": [
+    "Windows targeted only. Linux delayed fixture fix not separately rerun; root explicitly deferred it to new-head full CI after direct cross-platform Node argument proof. No environment/cache installation or120 mutation occurred.",
+    "29 unique targeted cases passed; the native case was repeated once solely for requested sessionId assertions, not counted as another distinct case.",
+    "No full suite, live credentials, paid inference, external MCP or production mutation."
+  ],
+  "failureEvidence": {
+    "path": ".work/v232-ci1-monitor-summary.json",
+    "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+  }
+}

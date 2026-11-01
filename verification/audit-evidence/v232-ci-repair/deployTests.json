@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-ci-deployment-fixture-repair-review",
+  "reviewerId": "v220_final_deploy",
+  "completedAt": "2026-11-01T14:44:29.006178+00:00",
+  "complete": true,
+  "clean": true,
+  "findings": [],
+  "skipped": [],
+  "sourceDigest": "7dfd2712b4218a5e11bc0bfebbf916b56af2631e246a4b0894c6ed5f8a77d967",
+  "sourceFiles": 2004,
+  "sourceSnapshot": {
+    "path": ".work/v232-ci2-snapshot.json",
+    "sha256": "b027c0ac333592f172f8e1731ef4a3fb1428fb4c57e7d784ec76989feb6c6339"
+  },
+  "files": [
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "beforeSha256": "ce6f68ea4dab05554eed9d760d670161b7fe52b69fbb8867ce62d7cd1828ddbc",
+      "sha256": "f4486e0ff825b495922c5baa11ae143e4bdf703c0d7d9ebe83faf01e52a21127"
+    },
+    {
+      "path": "tests/deploy/root/test_journal_recovery.py",
+      "beforeSha256": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+      "sha256": "f8da45b771bb0eee4d8e0d4d3f712314711dad40320a55c7f9fd3eea6a5de080"
+    },
+    {
+      "path": "tests/deploy/root/test_management_boundaries.py",
+      "beforeSha256": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+      "sha256": "71e22105cf7124e64c187b95a958cba31f35a1e050bf1bc4adce58fa494637ee"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "beforeSha256": "ba4156d209a89a1616419b035636b01561991a5249f7ae4d5318c7bd3e238493",
+      "sha256": "a49ed9303d6270aa9983713064bc99589d6dbdba6d1038e6e9d8ac1d25244d93"
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "beforeSha256": "6d0a9a326bf67c77dc1bcd4e3a9058a8de1d4e1b235a447fc64a61da590da2b1",
+      "sha256": "1c4ae691690245e7384e91ff17c1f8752660e05d67991b7536385e772b956539"
+    }
+  ],
+  "failedCandidate": "b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb",
+  "method": [
+    "Read all five precise fixture diffs, enclosing setup and affected transaction/recovery assertions; compared before bytes to the failed candidate Git blobs.",
+    "Read actual root and ordinary failure paths, Manager.release_accounts/require_account_compatibility, execution_identity.require_application/capability checks and build package requirements.",
+    "Verified actual per-case Linux results, all selected and transitive source hashes, compiled core and author/raw evidence hashes. Did not rerun tests.",
+    "Rehashed all 2004 final snapshot files to bind current inventory; only nine tests differ from the previous audit. This hash check does not claim a new line-by-line full repository review."
+  ],
+  "conclusions": [
+    "Adding real minimal package.json before release hashing correctly models legacy installed releases; it does not advertise history capability 2 or bypass require_application.",
+    "The ordinary fixtures isolate only release_accounts=False for their explicitly token-only releases. Root ownership/account downgrade behavior remains production code and has unchanged real root assertions, while the ordinary transaction stop/order/recovery assertions remain intact.",
+    "No assertion, exception guard, production capability or integrity check was weakened. All deploy production bytes match the previously independently reviewed frozen source.",
+    "Root29 and ordinary83 cover 112 distinct targeted cases, not full CI. The root run preceded two unrelated ordinary fixture edits; no root rerun is claimed."
+  ],
+  "supportingFiles": [
+    {
+      "path": "deploy/manager.py",
+      "sha256": "14559992cf6b31bf057aba2847eca46dbf611e2a92a1f56f288208786d2cadde"
+    },
+    {
+      "path": "deploy/execution_identity.py",
+      "sha256": "9e928abd9463180f907278e8fca364b93507e22349392ce022073a77e7c5d01f"
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "b106e57369c02561c3a58e2ed9d54b17ed40cb2e782d257ffe353ce5abc6cd2a"
+    },
+    {
+      "path": "tests/deploy/root/test_service_lifecycle.py",
+      "sha256": "22fd31ed178d371b4d5be5353000ba176f7473186023f28a4fc53221eac7d9f3"
+    },
+    {
+      "path": "tests/deploy/test_journal_schema.py",
+      "sha256": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "3d5ba260b1db68be82505309df962b87c384c1ecf3ca7d9ab3791c81af68d7f3"
+    }
+  ],
+  "productionUnchanged": {
+    "deployFiles": 70,
+    "prior": {
+      "path": ".work/v232-converted-copy-snapshot.json",
+      "sha256": "e6e91df4aec055d1f99500c6a41b35380a596064cc3b9d45a2c7e74199082881"
+    }
+  },
+  "validation": [
+    {
+      "target": "root",
+      "uid": 0,
+      "files": 3,
+      "cases": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "report": {
+        "path": ".work/v232-ci-root-fixture-linux-1.json",
+        "sha256": "6e9ae58a2de3de123ad72a7896277fddd8baeb0f14ff38a188dcfa5cd7fcc8b6",
+        "kind": "actual Linux isolated test result and per-case log"
+      },
+      "selectedAndTransitiveSourceHashesCurrent": true,
+      "byFile": {
+        "tests/deploy/root/test_candidate_archive.py": 15,
+        "tests/deploy/root/test_journal_recovery.py": 4,
+        "tests/deploy/root/test_management_boundaries.py": 10
+      },
+      "actualCaseStatusCounts": {
+        "passed": 29
+      },
+      "allPackedSourceHashesCompared": 179,
+      "laterChangedUnselectedUnimportedFixtures": [
+        "tests/deploy/test_deployment.py",
+        "tests/deploy/test_install_recovery.py"
+      ]
+    },
+    {
+      "target": "ordinary",
+      "uid": 65534,
+      "files": 2,
+      "cases": 83,
+      "passed": 83,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "report": {
+        "path": ".work/v232-ci-ordinary-fixture-linux-1.json",
+        "sha256": "562b67e90419c42bcb04133809b97d86bd9f14f79e7f7d8321f0f55ade97f56c",
+        "kind": "actual Linux isolated test result and per-case log"
+      },
+      "selectedAndTransitiveSourceHashesCurrent": true,
+      "byFile": {
+        "tests/deploy/test_deployment.py": 61,
+        "tests/deploy/test_install_recovery.py": 22
+      },
+      "actualCaseStatusCounts": {
+        "passed": 83
+      },
+      "allPackedSourceHashesCompared": 179,
+      "laterChangedUnselectedUnimportedFixtures": []
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v232-ci-deployment-fixture-repair.json",
+      "sha256": "a4bc2254e79a1ff239dbc8214e72f87edc099c0eac2468af55074ccee348024d"
+    },
+    {
+      "path": ".work/v232-copy-ci-root-raw.txt",
+      "sha256": "5b3ee0e449df92b55f12689c59c24fcdae29055777e128fadcbc8b31ef7805c5",
+      "kind": "preserved actual root CI: 336 total,329 passed,7 failed,0 skipped"
+    },
+    {
+      "path": ".work/v232-copy-ci-linux-raw.txt",
+      "sha256": "b34ba30255afd6cb2542512f79b78a403821d5cdaeb7c5d7b549c3c35e71d6fd",
+      "kind": "preserved complete ordinary Linux CI: deploy606 total,589 passed,16 failed,1 skipped; JS failures owned separately"
+    },
+    {
+      "path": ".work/v232-ci-ordinary-fixture-probe.json",
+      "sha256": "cdc8ab2b194d993f657ef8136854c8db06ea060cc33e1b4589b1972b889bb7db",
+      "kind": "actual ordinary UID failure cause, not guessed from missing service events"
+    },
+    {
+      "path": ".work/v232-ci-root-fixture-linux-1.py",
+      "sha256": "ed400165781230602c40d5564dea310933fa65ab9103a6d79f40fb8f81f0e978",
+      "kind": "fresh isolated root runner with actual current Ledger and pinned Node private copy"
+    },
+    {
+      "path": ".work/v232-ci-ordinary-fixture-linux-1.py",
+      "sha256": "242b894b91368a85768d85efce418a0d53d84c842fc4cd87c33d9a2c2a5b0005",
+      "kind": "fresh isolated nobody runner, two exact modules"
+    },
+    {
+      "path": ".work/v232-ci-deployment-fixture-repair.diff",
+      "sha256": "5512692a5a226f5b876870f9024293a00de4c4eeb0dd6436a9ba076b1c837f48",
+      "kind": "five test fixture files only"
+    },
+    {
+      "path": ".work/v232-converted-copy-deploy-core-review.json",
+      "sha256": "d098a9a5a9bd58b435d3797a2a2316a04028cdf352877947efd0dde36a75538f"
+    }
+  ],
+  "limits": [
+    "Review only; no new tests, network, server access, production write or deployment.",
+    "The previous CI failure and obsolete staging remain preserved. This targeted review is not a replacement for the next full source-bound CI.",
+    "Windows is not dynamically revalidated by this Linux-only targeted repair evidence."
+  ],
+  "endSnapshot": {
+    "all2004FileHashesMatch": true,
+    "changedPathsFromPrior": [
+      "tests/deploy/root/test_candidate_archive.py",
+      "tests/deploy/root/test_journal_recovery.py",
+      "tests/deploy/root/test_management_boundaries.py",
+      "tests/deploy/test_deployment.py",
+      "tests/deploy/test_install_recovery.py",
+      "tests/runtime/defaults-lifecycle.test.ts",
+      "tests/runtime/provider-switch-native.test.ts",
+      "tests/runtime/windows-job.test.ts",
+      "web/tests/defaults.test.tsx"
+    ],
+    "productionChanged": []
+  }
+}

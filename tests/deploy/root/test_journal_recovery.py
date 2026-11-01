@@ -68,6 +68,10 @@ class JournalManagementRecoveryTests(unittest.TestCase):
         self.manager.verify_release = Mock()
         self.manager.healthy = Mock()
         self.old, self.candidate = "a" * 64, "b" * 64
+        for release in (self.old, self.candidate):
+            package = self.layout.app / "releases" / release / "app/package.json"
+            mkdir(package.parent)
+            write_json(package, {"name": "synthetic-legacy-application"}, mode=0o644)
         self.manager.select(self.old)
 
     def verify_reopened(self):

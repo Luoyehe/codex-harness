@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-01T14:47:04.992Z",
+  "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+  "sourceFiles": 2004,
+  "entries": {
+    "manifest": {
+      "path": "verification/audit-evidence/v232-ci-repair/manifest.json",
+      "sha256": "33288c63e1502dc6008d999a93b11a16f2ea93719c216ae2c5535f0a833f019c",
+      "original": {
+        "path": ".work/v232-ci2-final-snapshot.json",
+        "sha256": "33288c63e1502dc6008d999a93b11a16f2ea93719c216ae2c5535f0a833f019c"
+      }
+    },
+    "preDocsManifest": {
+      "path": "verification/audit-evidence/v232-ci-repair/preDocsManifest.json",
+      "sha256": "b027c0ac333592f172f8e1731ef4a3fb1428fb4c57e7d784ec76989feb6c6339",
+      "original": {
+        "path": ".work/v232-ci2-snapshot.json",
+        "sha256": "b027c0ac333592f172f8e1731ef4a3fb1428fb4c57e7d784ec76989feb6c6339"
+      }
+    },
+    "webTestsAndDocs": {
+      "path": "verification/audit-evidence/v232-ci-repair/webTestsAndDocs.json",
+      "sha256": "556e656420abfb291feea56f4b4b928240de2d94ba9dd553ecda1c7f8ea58f28",
+      "original": {
+        "path": ".work/v232-ci-js-session-independent-review.json",
+        "sha256": "556e656420abfb291feea56f4b4b928240de2d94ba9dd553ecda1c7f8ea58f28"
+      }
+    },
+    "deployTests": {
+      "path": "verification/audit-evidence/v232-ci-repair/deployTests.json",
+      "sha256": "27cde110db5ef41307822b3874583fd082d60eb783c140899df25f7cb6ba13db",
+      "original": {
+        "path": ".work/v232-copy-ci-deploy-fixture-review.json",
+        "sha256": "27cde110db5ef41307822b3874583fd082d60eb783c140899df25f7cb6ba13db"
+      }
+    },
+    "conversationReview": {
+      "path": "verification/audit-evidence/v232-ci-repair/conversationReview.json",
+      "sha256": "fe9639d3a810b772defd0daa9ed4780af68d248c8f0dd035aa9ce1294bc5dea5",
+      "original": {
+        "path": ".work/v232-conversion-independence-review.json",
+        "sha256": "fe9639d3a810b772defd0daa9ed4780af68d248c8f0dd035aa9ce1294bc5dea5"
+      }
+    },
+    "additionalConversationReview": {
+      "path": "verification/audit-evidence/v232-ci-repair/additionalConversationReview.json",
+      "sha256": "6f2b6955cd5ec9533874653baedc65e7eb94f00a7f135cea05ebe7aeb1995889",
+      "original": {
+        "path": ".work/v232-user-session-independent-review.json",
+        "sha256": "6f2b6955cd5ec9533874653baedc65e7eb94f00a7f135cea05ebe7aeb1995889"
+      }
+    },
+    "retainedNativeProof": {
+      "path": "verification/audit-evidence/v232-ci-repair/retainedNativeProof.json",
+      "sha256": "a5d8e860e544285206dd8e675e3ea4aa4edaf393a0331b05253ad5caa10e0116",
+      "original": {
+        "path": ".work/v232-conversion-independence-retained-fixture.json",
+        "sha256": "a5d8e860e544285206dd8e675e3ea4aa4edaf393a0331b05253ad5caa10e0116"
+      }
+    },
+    "jsAuthor": {
+      "path": "verification/audit-evidence/v232-ci-repair/jsAuthor.json",
+      "sha256": "1ce84e3f4717dafda0817ecab6c534dd86213829040d3faaeb6fbb59b15f5bba",
+      "original": {
+        "path": ".work/v232-ci1-js-fixture-repair.json",
+        "sha256": "8d7b051300e75196cbd3986b73d5bc344345a1f28c6560eac5415f56cdca815c"
+      }
+    },
+    "deploymentAuthor": {
+      "path": "verification/audit-evidence/v232-ci-repair/deploymentAuthor.json",
+      "sha256": "a4bc2254e79a1ff239dbc8214e72f87edc099c0eac2468af55074ccee348024d",
+      "original": {
+        "path": ".work/v232-ci-deployment-fixture-repair.json",
+        "sha256": "a4bc2254e79a1ff239dbc8214e72f87edc099c0eac2468af55074ccee348024d"
+      }
+    },
+    "failedCiReview": {
+      "path": "verification/audit-evidence/v232-ci-repair/failedCiReview.json",
+      "sha256": "781c9f715ad1d17c77e3f76316d3af5fe709f90a368a81d801c053877c92fa33",
+      "original": {
+        "path": ".work/v232-ci1-monitor-summary.json",
+        "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v232-ci-repair/freshness.json",
+      "sha256": "8c8df1d656622579f7e8a5988450e16746852bbc7cbd897ee18d9ad92b27c2b5",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-29dd218f-72d6-48f9-9fb8-0e059fe4513d.json",
+        "sha256": "8c8df1d656622579f7e8a5988450e16746852bbc7cbd897ee18d9ad92b27c2b5"
+      }
+    },
+    "mcp": {
+      "path": "verification/audit-evidence/v232-ci-repair/mcp.json",
+      "sha256": "1f7d6eb4f018cb6414746f0395d34f7595fffa40a0a1b6d3e98520e485081bbf",
+      "original": {
+        "path": ".work/v232-ci2-mcp-semantic-review.json",
+        "sha256": "1f7d6eb4f018cb6414746f0395d34f7595fffa40a0a1b6d3e98520e485081bbf"
+      }
+    },
+    "sourceScan": {
+      "path": "verification/audit-evidence/v232-ci-repair/sourceScan.json",
+      "sha256": "19a8d8b93fffe9608764e8bf825949a145158e5e36b2e4df1daf4dbdebbf319f",
+      "original": {
+        "path": ".work/v232-ci2-final-source-security.json",
+        "sha256": "19a8d8b93fffe9608764e8bf825949a145158e5e36b2e4df1daf4dbdebbf319f"
+      }
+    },
+    "codeqlReview": {
+      "path": "verification/audit-evidence/v232-ci-repair/codeqlReview.json",
+      "sha256": "a28e5a6bc36f1adbc80138bd18fdce66aa6c9cc2978b9afc72b4c373161af0b7",
+      "original": {
+        "path": ".work/v232-copy-codeql-review.json",
+        "sha256": "a28e5a6bc36f1adbc80138bd18fdce66aa6c9cc2978b9afc72b4c373161af0b7"
+      }
+    },
+    "blocked-authorization": {
+      "path": "verification/audit-evidence/v232-ci-repair/blocked-authorization.json",
+      "sha256": "4bf267192f3cc25b140817a68e0487438c7b79240611ef06587b1768748ae47c",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "4bf267192f3cc25b140817a68e0487438c7b79240611ef06587b1768748ae47c"
+      }
+    }
+  },
+  "canonicalization": "LF archive; original hashes retained. Failed and superseded evidence preserved."
+}

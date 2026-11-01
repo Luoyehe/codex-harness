@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "kind": "ci-deployment-legacy-fixture-repair",
+  "reviewerId": "v230_audit_gateway_tooling-author",
+  "complete": true,
+  "status": "targeted-passed-awaiting-independent-review",
+  "completedAt": "2026-11-01T14:38:38.178638+00:00",
+  "failedCandidate": "b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb",
+  "failedSourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+  "files": [
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "beforeSha256": "ce6f68ea4dab05554eed9d760d670161b7fe52b69fbb8867ce62d7cd1828ddbc",
+      "sha256": "f4486e0ff825b495922c5baa11ae143e4bdf703c0d7d9ebe83faf01e52a21127"
+    },
+    {
+      "path": "tests/deploy/root/test_journal_recovery.py",
+      "beforeSha256": "468010869f95e6ad5a9eda383c7a549acc2ebb8ad79f05d1d7320f47f9e5fd4c",
+      "sha256": "f8da45b771bb0eee4d8e0d4d3f712314711dad40320a55c7f9fd3eea6a5de080"
+    },
+    {
+      "path": "tests/deploy/root/test_management_boundaries.py",
+      "beforeSha256": "9a78e784870ffc653754aa94b89a2808a8537ed8d095b3cd3aa5b4bbc2f95bc5",
+      "sha256": "71e22105cf7124e64c187b95a958cba31f35a1e050bf1bc4adce58fa494637ee"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "beforeSha256": "ba4156d209a89a1616419b035636b01561991a5249f7ae4d5318c7bd3e238493",
+      "sha256": "a49ed9303d6270aa9983713064bc99589d6dbdba6d1038e6e9d8ac1d25244d93"
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "beforeSha256": "6d0a9a326bf67c77dc1bcd4e3a9058a8de1d4e1b235a447fc64a61da590da2b1",
+      "sha256": "1c4ae691690245e7384e91ff17c1f8752660e05d67991b7536385e772b956539"
+    }
+  ],
+  "rootCauses": [
+    {
+      "scope": "root 7 errors",
+      "evidence": "Actual CI paths identify four CandidateArchiveRootTests, one JournalManagementRecoveryTests and two ManagementBoundaryTests errors. All failed in require_application reading absent app/package.json.",
+      "change": "Add mandatory minimal legacy package metadata before release manifest hashing or activation. No capability is fabricated; no existing test assertion removed."
+    },
+    {
+      "scope": "ordinary install 12 errors and 1 failure",
+      "evidence": "InstallationRecoveryTests constructed only releases directory and mocked verify_release, leaving a/b/c package metadata absent. Real admission failed before intended installation/recovery state.",
+      "change": "Create the three legacy package files. Preserve original journal, stop/enable, pointer and error assertions."
+    },
+    {
+      "scope": "ordinary transaction 3 failures",
+      "evidence": "Unlike missing-package fixtures, TransactionTests already supplied package files. A new actual UID65534 single-call probe proved integrity/Unsafe release compatibility metadata: ordinary-owned files cannot satisfy root-only account metadata ownership. Broad intentional exception assertions hid that early rejection; recorded service sequences then differed.",
+      "change": "For these two ordinary transaction/installation fixtures, explicitly substitute only release_accounts=False for their token-only legacy releases, consistent with existing release-integrity/service-ownership substitutions. Real require_application/capability checks remain; real root account downgrade tests retain original assertions and pass."
+    }
+  ],
+  "productionUnchanged": {
+    "deployFrozenFilesMatched": 70,
+    "reference": {
+      "path": ".work/v232-converted-copy-snapshot.json",
+      "sha256": "e6e91df4aec055d1f99500c6a41b35380a596064cc3b9d45a2c7e74199082881",
+      "kind": "prior candidate production source hashes"
+    },
+    "capability2GateWeakened": false
+  },
+  "validation": [
+    {
+      "target": "root",
+      "uid": 0,
+      "files": 3,
+      "cases": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "report": {
+        "path": ".work/v232-ci-root-fixture-linux-1.json",
+        "sha256": "6e9ae58a2de3de123ad72a7896277fddd8baeb0f14ff38a188dcfa5cd7fcc8b6",
+        "kind": "actual Linux isolated test result and per-case log"
+      },
+      "selectedAndTransitiveSourceHashesCurrent": true,
+      "byFile": {
+        "tests/deploy/root/test_candidate_archive.py": 15,
+        "tests/deploy/root/test_journal_recovery.py": 4,
+        "tests/deploy/root/test_management_boundaries.py": 10
+      }
+    },
+    {
+      "target": "ordinary",
+      "uid": 65534,
+      "files": 2,
+      "cases": 83,
+      "passed": 83,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "report": {
+        "path": ".work/v232-ci-ordinary-fixture-linux-1.json",
+        "sha256": "562b67e90419c42bcb04133809b97d86bd9f14f79e7f7d8321f0f55ade97f56c",
+        "kind": "actual Linux isolated test result and per-case log"
+      },
+      "selectedAndTransitiveSourceHashesCurrent": true,
+      "byFile": {
+        "tests/deploy/test_deployment.py": 61,
+        "tests/deploy/test_install_recovery.py": 22
+      }
+    }
+  ],
+  "serverBuild": {
+    "exitCode": 0,
+    "stdout": "",
+    "command": "Pinned Node v24.22.1 node_modules/typescript/bin/tsc -p tsconfig.server.json",
+    "purpose": "Actual compiled Ledger plus all core child modules used for cross-language root journal verification; no DDL substitute. Observed successful tool result, empty output."
+  },
+  "diffCheck": "passed",
+  "testsAddedOrAssertionsRemoved": false,
+  "evidence": [
+    {
+      "path": ".work/v232-copy-ci-root-raw.txt",
+      "sha256": "5b3ee0e449df92b55f12689c59c24fcdae29055777e128fadcbc8b31ef7805c5",
+      "kind": "preserved actual root CI: 336 total,329 passed,7 failed,0 skipped"
+    },
+    {
+      "path": ".work/v232-copy-ci-linux-raw.txt",
+      "sha256": "b34ba30255afd6cb2542512f79b78a403821d5cdaeb7c5d7b549c3c35e71d6fd",
+      "kind": "preserved complete ordinary Linux CI: deploy606 total,589 passed,16 failed,1 skipped; JS failures owned separately"
+    },
+    {
+      "path": ".work/v232-ci-ordinary-fixture-probe.json",
+      "sha256": "cdc8ab2b194d993f657ef8136854c8db06ea060cc33e1b4589b1972b889bb7db",
+      "kind": "actual ordinary UID failure cause, not guessed from missing service events"
+    },
+    {
+      "path": ".work/v232-ci-root-fixture-linux-1.py",
+      "sha256": "ed400165781230602c40d5564dea310933fa65ab9103a6d79f40fb8f81f0e978",
+      "kind": "fresh isolated root runner with actual current Ledger and pinned Node private copy"
+    },
+    {
+      "path": ".work/v232-ci-ordinary-fixture-linux-1.py",
+      "sha256": "242b894b91368a85768d85efce418a0d53d84c842fc4cd87c33d9a2c2a5b0005",
+      "kind": "fresh isolated nobody runner, two exact modules"
+    },
+    {
+      "path": ".work/v232-ci-deployment-fixture-repair.diff",
+      "sha256": "5512692a5a226f5b876870f9024293a00de4c4eeb0dd6436a9ba076b1c837f48",
+      "kind": "five test fixture files only"
+    }
+  ],
+  "limits": [
+    "No full suite, new CI or production changes. Previous frozen audit/staging stays historical and cannot authorize changed source.",
+    "No production service command, nft change, online instance read, auth content, model request or MCP call. Fixture services are existing substitutes; root filesystem/locks and Ledger recovery remain real.",
+    "The root result was obtained before two unrelated ordinary fixture changes; its selected modules, imported parent fixtures, compiled Ledger and all deploy module hashes still match. No repeated root test run claimed.",
+    "Root and ordinary targeted runs cover112 distinct cases across5 files, not full CI; Windows was not rerun here. Broader runtime/web failures are owned and reported separately."
+  ]
+}

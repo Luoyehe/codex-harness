@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-conversion-storage-and-lifecycle-review",
+  "reviewerId": "v220_final_deploy",
+  "completedAt": "2026-11-01T14:44:29.006178+00:00",
+  "complete": true,
+  "clean": true,
+  "findings": [],
+  "skipped": [],
+  "sourceDigest": "7dfd2712b4218a5e11bc0bfebbf916b56af2631e246a4b0894c6ed5f8a77d967",
+  "sourceFiles": 2004,
+  "sourceSnapshot": {
+    "path": ".work/v232-ci2-snapshot.json",
+    "sha256": "b027c0ac333592f172f8e1731ef4a3fb1428fb4c57e7d784ec76989feb6c6339"
+  },
+  "files": [
+    {
+      "path": "src/runtime/thread-conversion.ts",
+      "sha256": "8b7c612aa55bcb1c750f16cbe6bd1b4662c568e577f1b6c231c80d6fce394419"
+    },
+    {
+      "path": "src/runtime/thread-history-compatibility.ts",
+      "sha256": "2d89da3295080c81240e3adaa172ccb1986c82a72c995a075a889670a08a94a5"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2"
+    },
+    {
+      "path": "src/runtime/session-snapshots.ts",
+      "sha256": "0d4ae99c3eacd6849e9a2bbc660d02a497e19c15401e2624ac18105034c8cbe6"
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6"
+    },
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "f8f39a0a8e65fd4cbd580f8ca6428b90ab8b38e23a9b7b6c950abfd5287fb784"
+    },
+    {
+      "path": "protocol/ts/v2/Thread.ts",
+      "sha256": "1f9dc096a3c6735956ce38cbb7527e35b13e9ed663254ee13dba7414eab6d28c"
+    },
+    {
+      "path": "protocol/ts/v2/ThreadStartParams.ts",
+      "sha256": "dc8bebec4181a5502fc141b0122cc48e066b3b5c77d9fd2a4de875fcd6d66a68"
+    },
+    {
+      "path": "tests/runtime/thread-conversion.test.ts",
+      "sha256": "2a4b61fe1886f18eac9a8153f826b23ed9eb3c78909ea1f5c50dce474a5b405d"
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "ae0ab7fa6cd47f83f501c27edbe2e647bbf8f332f71e67d0d2fb6a660cdb71b9"
+    }
+  ],
+  "method": [
+    "Reread complete conversion orchestrator and helper bridge, native target creation and copy publication, service conversion admission/close/normal-send integration, snapshot/activity lifecycle, current native integration test and official generated Thread/ThreadStartParams contracts.",
+    "Compared unchanged production hashes to the prior audit; reused its full helper/capability and adjacent pipeline review rather than claiming every unchanged file was reread.",
+    "Read only headers and SQLite metadata of the retained synthetic native fixture, with read-only/query-only access. No real user history or credentials were read.",
+    "Reviewed the new native test assertions for null parent/fork, self session identity, distinct path/inode and absent history_base. Read run-XnfQ9R actual1/1 for this final test version, independently supplied by the author; earlier run-YE0CVb remains historical evidence and does not prove execution of those later-added assertions."
+  ],
+  "conclusions": [
+    "Creation calls official thread/start with a fresh ID and no fork/parent/source-thread argument. The original is closed normally; all history repair and copy writes address the new distinct empty target.",
+    "The helper preserves the newly created target header, rejects inherited history_base, requires source and target witnesses and native writer locks, and atomically replaces only the target. The copied body has no on-demand dependency on the source rollout.",
+    "Actual retained target headers have their own session_id and no history_base/fork/parent keys. SQLite has no original source row and no thread_spawn_edges; the historical native test continues the new thread after original deletion and runtime restart.",
+    "Copied old thread/turn/tool IDs are historical data; they do not create a native active parent/fork or copy live goal, queue, process or child-agent ownership. No new tool dispatch or input occurs during conversion.",
+    "Source pending state blocks concurrent resume/send during conversion. Close invalidates source subscription/history proof; returning later loads its original provider/settings through the normal resume path. Target remains pending/unknown until verified publication or explicit receipt recovery.",
+    "The normal fresh thread/start protocol has no caller-controlled parent/fork linkage and the current official native fixture corroborates independence. No concrete normal path requiring another production lineage guard was found."
+  ],
+  "evidence": [
+    {
+      "path": ".work/v232-conversion-independence-retained-fixture.json",
+      "sha256": "a5d8e860e544285206dd8e675e3ea4aa4edaf393a0331b05253ad5caa10e0116"
+    },
+    {
+      "path": ".work/test-results/run-YE0CVb/vitest.json",
+      "sha256": "722450ee2bde9da1866a8b88d3e0aa38f5c100ce107236892ab344a9a6afb210"
+    },
+    {
+      "path": ".work/test-results/run-XnfQ9R/vitest.json",
+      "sha256": "43e4f2da6739cfefe39480cca94bc274b4fc0d26a28acb8fe7f4c7718d2b73f8"
+    },
+    {
+      "path": "verification/audit-evidence/v232-converted-copy/runtimeAuthor.json",
+      "sha256": "616d16d97e14d9de3e42f49e608bfa92b28236d1e926e75e51d5df71e571a59b"
+    },
+    {
+      "path": ".work/v232-copy-control-review.json",
+      "sha256": "a64e6d0d906190b0732d13f684784f719b3c266aa81a0452325b0a56719a9d7a"
+    },
+    {
+      "path": ".work/v232-user-session-independent-review.json",
+      "sha256": "6f2b6955cd5ec9533874653baedc65e7eb94f00a7f135cea05ebe7aeb1995889"
+    },
+    {
+      "path": ".work/v232-converted-copy-runtime-audit.json",
+      "sha256": "eb1bbb5695081c9216f93a0973ac73eb28b39ec47b4ec95b8c07c60d7609c7f5"
+    }
+  ],
+  "latestNativeValidation": {
+    "report": {
+      "path": ".work/test-results/run-XnfQ9R/vitest.json",
+      "sha256": "43e4f2da6739cfefe39480cca94bc274b4fc0d26a28acb8fe7f4c7718d2b73f8"
+    },
+    "file": {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "ae0ab7fa6cd47f83f501c27edbe2e647bbf8f332f71e67d0d2fb6a660cdb71b9"
+    },
+    "cases": 1,
+    "passed": 1,
+    "failed": 0,
+    "authorExecutedNotReviewerRerun": true
+  },
+  "limits": [
+    "Source byte immutability starts after normal native close/flush and the resulting witness; no claim that the entire pre-click source file is byte-identical to the post-close file.",
+    "New and original conversations intentionally share their chosen project filesystem and external services; this is not a worktree snapshot or undo of commands/files/external effects.",
+    "The retained native fixture did not spawn real child agents. Retained historical child/tool IDs are not active storage lineage; this is not a dynamic replay test for every possible historical tool kind.",
+    "No new test, model inference, external MCP, network request or server change was performed by this independent review. The actual native test uses synthetic loopback responses, not paid model or external MCP calls; new full CI remains required."
+  ],
+  "productionUnchanged": [
+    {
+      "path": "src/runtime/thread-conversion.ts",
+      "sha256": "8b7c612aa55bcb1c750f16cbe6bd1b4662c568e577f1b6c231c80d6fce394419"
+    },
+    {
+      "path": "src/runtime/thread-history-compatibility.ts",
+      "sha256": "2d89da3295080c81240e3adaa172ccb1986c82a72c995a075a889670a08a94a5"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2"
+    },
+    {
+      "path": "src/runtime/session-snapshots.ts",
+      "sha256": "0d4ae99c3eacd6849e9a2bbc660d02a497e19c15401e2624ac18105034c8cbe6"
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "db1e05dfb094966ed4a036b21aea701e99cdab0ce2d9da3fece81502d3eb8ca6"
+    },
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "f8f39a0a8e65fd4cbd580f8ca6428b90ab8b38e23a9b7b6c950abfd5287fb784"
+    },
+    {
+      "path": "protocol/ts/v2/Thread.ts",
+      "sha256": "1f9dc096a3c6735956ce38cbb7527e35b13e9ed663254ee13dba7414eab6d28c"
+    },
+    {
+      "path": "protocol/ts/v2/ThreadStartParams.ts",
+      "sha256": "dc8bebec4181a5502fc141b0122cc48e066b3b5c77d9fd2a4de875fcd6d66a68"
+    }
+  ],
+  "endSnapshot": {
+    "all2004FileHashesMatch": true
+  }
+}

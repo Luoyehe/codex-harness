@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-js-fixture-session-and-failure-policy-review",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "clean": true,
+  "findings": [],
+  "baseHead": "b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb",
+  "binding": "Exact files only. The intermediate 7dfd snapshot was reopened for the two policy documents; this report does not claim a final whole-repository source digest.",
+  "scopes": [
+    "Four JS test changes",
+    "Focused current session frontend call paths and regression fixtures",
+    "Two maintainer failure-review policy document changes"
+  ],
+  "files": [
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "a9f0eb03b2c7f181b26a59cb38659e3280c5b7b42a3f53068e9c744e6fd72cf1"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "a473a5e4e581c1e6ee3ebe1c2bbd79b61bb80227f2ffd96551db2052e338b3f7"
+    },
+    {
+      "path": "tests/runtime/windows-job.test.ts",
+      "sha256": "f79070f3892361720faa38f9bdc524cd979ae8bd66974ed7de2aee2d6015db80"
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "ae0ab7fa6cd47f83f501c27edbe2e647bbf8f332f71e67d0d2fb6a660cdb71b9"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "f697808d2bc3fe570efae47350d28bb6317ae5938853a601003c393365e2fa24"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "c93eb2f3bf3a94554b5a97c384e53e8669f83501326b7295593915ffc6524a54"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "2dc882d67c4123682a7d0a142a592835362bad9f67b2555d05043d388ff66c63",
+      "unchangedFromHead": true,
+      "readDepth": "Selected model/options submission, conversion navigation, draft ownership, sidebar invalidation and automatic-load guards."
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "sha256": "7b2fee7072c3b9697cf35e6aa1e83d2bc75b896a85fc682aecffc77be2a7dc63",
+      "unchangedFromHead": true,
+      "readDepth": "Full component: exact provider/model identity, same-provider filtering and effort selection."
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "b7fcb7499852f9dd2edb8310358ae43ed61569505590f887fdae205fb7278a82",
+      "unchangedFromHead": true,
+      "readDepth": "Model settings validation, ModelPicker props and turn submission boundary."
+    },
+    {
+      "path": "web/components/ThreadConversionDialog.tsx",
+      "sha256": "72bf9f531fe12ac5d729fe977c520f30c8955bb21e35703b490a2d6b2b95d7d7",
+      "unchangedFromHead": true,
+      "readDepth": "Full component: two-step confirmation, scope binding, busy lifecycle and distinct-target handoff."
+    },
+    {
+      "path": "web/hooks/useSidebarRefresh.ts",
+      "sha256": "7a31400acefb4eebceadd3ead3b4e0e2ba816068524cff81daae80ad6e125b76",
+      "unchangedFromHead": true,
+      "readDepth": "Full hook: mutation/lifecycle subscriptions, synchronous project invalidation and bounded refresh cleanup."
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "sha256": "18053ab9fad25b79eeb048449c8805447a3b15e2c72417dba012cd8d17ac7030",
+      "unchangedFromHead": true,
+      "readDepth": "Full hook: pending/unknown operation state and receipt reconciliation."
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "sha256": "9bffd195afa540308d09af1c86875697aae765f62ee274739baa619b201f6c9a",
+      "unchangedFromHead": true,
+      "readDepth": "useExtensionAction and ExtensionStatus: scoped callbacks and receipt queries without mutation replay."
+    },
+    {
+      "path": "web/lib/provider-models.ts",
+      "sha256": "7893aac071b69baedd8ccd9d8e59e78122d23cb081c4888f73975f0addeb82f9",
+      "unchangedFromHead": true,
+      "readDepth": "Full module: provider aliases and exact model selection keys."
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "sha256": "fc108afbc6110b44daa292b6762efc21d9651d80bd8af3073890fcd34f1e43b5",
+      "unchangedFromHead": true,
+      "readDepth": "executionOptions and modelSettingsIssue implementations."
+    },
+    {
+      "path": "web/hooks/useDraft.ts",
+      "sha256": "3230897a67fb463a1520b880f9278278cf0cbb4ef4c9f6dd677c9997114ea07f",
+      "unchangedFromHead": true,
+      "readDepth": "Draft ownership/save state and canLeave handoff predicate."
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "5625bccfb6d09cc6d01333d9f66f7f94a308bd58884843e3988a95906d889c14",
+      "unchangedFromHead": true,
+      "readDepth": "beginMutation persistence, success/unknown classification and accepted conversion receipt retention."
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "8435069050b87577433ed225432a049cc53a5ebefedab2b43d198eaf143837ab",
+      "unchangedFromHead": true,
+      "readDepth": "Pending deduplication and consumeThreadOperations draft handling."
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "45c633db0f02bcabba09363661f6c14bca7a601a7e90085e3a451c6eabd0cf16",
+      "unchangedFromHead": true,
+      "readDepth": "Fixed native argument construction and custom executable boundary."
+    },
+    {
+      "path": "web/tests/thread-conversion.test.tsx",
+      "sha256": "bc08b26c57a572094f65ad110c9ae81d98647f71505cb81389f382fdbafa34ed",
+      "unchangedFromHead": true,
+      "readDepth": "Full current conversion UI regression fixture."
+    },
+    {
+      "path": "web/tests/sidebar-refresh.test.tsx",
+      "sha256": "374fcc3c9eab70af636b7e3d82e85067cad37c9a7c0e224738104567d5026aa9",
+      "unchangedFromHead": true,
+      "readDepth": "Full current refresh lifecycle regression fixture."
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "29530a8cb98dfc0b1afef4655e92305b1c1fc1247cc1a2af811aed2e1b4351d5",
+      "unchangedFromHead": true,
+      "readDepth": "Saved/unsaved draft conversion handoff, provider alias/foreign selection and pending/unknown automatic-load cases."
+    }
+  ],
+  "method": [
+    "Independently read all four final test diffs and the adjacent executable/UI contracts; no production or test edits and no test execution in this review.",
+    "Rechecked current session paths listed in contextFiles at the stated depth; unchanged bytes were compared directly with b1ffa. This is a focused supplementary review, not another complete repository audit.",
+    "Read both policy document diffs, compared their failed-run identity and failure/coverage claims with the retained CI1 summary, and verified author/file/evidence hashes and parsed actual Vitest totals."
+  ],
+  "conclusions": [
+    {
+      "area": "Delayed native lifecycle fixture",
+      "result": "The temporary .mjs wrapper preserves the intended delay, real readiness and cleanup checks while allowing appended Codex -c arguments to remain script arguments. It removes Node eval/check parsing incompatibility without timeout increases or retries."
+    },
+    {
+      "area": "Model/provider/effort fixture and current UI",
+      "result": "The fixture now supplies consistent provider identity in thread, session, defaults and catalog. Tuple selection and submitted modelProvider/model/effort remain asserted. The current picker and executionOptions preserve exact same-provider model and supported effort; stale or incompatible settings are rejected."
+    },
+    {
+      "area": "Independent converted conversation",
+      "result": "Added native assertions require no parent/fork link, new session ID/header identity, no history_base, and distinct path/inode. Existing original deletion, process restart and continuation proof remains. UI conversion submits no draft input; accepted handoff requires a distinct target and current navigation/draft ownership. Unknown receipt queries do not replay conversion."
+    },
+    {
+      "area": "Windows controller fixture",
+      "result": "Exact argv expectations now include the fixed native override. Original escaping and descendant/owner-death/backpressure/cleanup assertions remain; production controller logic is unchanged."
+    },
+    {
+      "area": "Sidebar and automatic loading",
+      "result": "Relevant accepted/unknown mutations and thread events refresh the sidebar without changing selection. Project invalidation is synchronous; refresh cleanup is scope-bound. Pending or unknown conversion and active conversion busy state block automatic source resume; scoped handoff preserves the source draft and does not steal a later user navigation."
+    },
+    {
+      "area": "Failure review policy",
+      "result": "The two docs require retained complete failure evidence, distinction between product/fixture/environment causes, missed-check analysis, analogous-consumer inspection, concrete prevention and honest remaining limits. The CI1 table matches the retained failed run and does not claim Linux success or zero coverage gaps. Existing audit authorization remains required."
+    }
+  ],
+  "validationEvidence": [
+    {
+      "path": ".work/test-results/run-c2R6Vk/vitest.json",
+      "sha256": "652e6b22982b225a530ef1b2df3cc37afa1fdf31b1e48decce179762d03b23b1",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "tests/runtime/defaults-lifecycle.test.ts",
+          "cases": 16
+        },
+        {
+          "path": "tests/runtime/provider-switch-native.test.ts",
+          "cases": 1
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "cases": 4
+        }
+      ]
+    },
+    {
+      "path": ".work/test-results/run-XnfQ9R/vitest.json",
+      "sha256": "43e4f2da6739cfefe39480cca94bc274b4fc0d26a28acb8fe7f4c7718d2b73f8",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "tests/runtime/provider-switch-native.test.ts",
+          "cases": 1
+        }
+      ]
+    },
+    {
+      "path": ".work/test-results/run-pZP4hG/vitest.json",
+      "sha256": "cc8b1718647f5aa7767840ba612ad139cad9e071a61f714f1d26549f6f3582b9",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "tests/runtime/windows-job.test.ts",
+          "cases": 8
+        }
+      ]
+    }
+  ],
+  "uniqueTargetedCases": 29,
+  "evidence": [
+    {
+      "path": ".work/v232-ci1-js-fixture-repair.json",
+      "sha256": "8d7b051300e75196cbd3986b73d5bc344345a1f28c6560eac5415f56cdca815c"
+    },
+    {
+      "path": ".work/v232-ci1-monitor-summary.json",
+      "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+    },
+    {
+      "path": ".work/v232-user-session-independent-review.json",
+      "sha256": "6f2b6955cd5ec9533874653baedc65e7eb94f00a7f135cea05ebe7aeb1995889"
+    },
+    {
+      "path": ".work/v232-converted-copy-runtime-audit.json",
+      "sha256": "eb1bbb5695081c9216f93a0973ac73eb28b39ec47b4ec95b8c07c60d7609c7f5"
+    }
+  ],
+  "limits": [
+    "No tests, browser, network, production mutation or new model/MCP call was executed by this independent review.",
+    "Author validation is Windows targeted: 21 cases, then one repeated native case for final sessionId assertions, plus 8 Windows job cases. The repeat is not a thirtieth distinct case.",
+    "Linux delayed lifecycle fixture was not separately rerun; its actual Linux result remains for the next exact-head full CI. The failed b1ffa full run is retained and has not become passing.",
+    "Current frontend semantic review covers the listed functions/components and selected regression bodies, not a fresh line-by-line reading of all web/runtime files. Previously audited unchanged runtime behavior is referenced explicitly.",
+    "This review is not the independent approval of the five deployment fixtures authored by this reviewer; those have a separate reviewer."
+  ]
+}

@@ -22,6 +22,33 @@ The result is `.work/release-preflight.json`. `ready-for-ci` means these precond
 
 ## Lessons behind these checks
 
+### Required review of every failed Reviewed checks run
+
+Before submitting the next candidate, retain a failure review with the failed commit, run URL/ID, attempt, job IDs and complete-log evidence. Distinguish actual failed assertions from intentionally failing subprocess fixtures, upstream job failures and downstream jobs that correctly refuse incomplete evidence. Do not invent a test count or coverage result when the aggregation did not finish.
+
+For each distinct cause, record:
+
+1. What failed and the evidence establishing the cause. Separate a product defect, an invalid fixture, an environment mismatch and an external failure; mark an unconfirmed explanation as unconfirmed.
+2. Why the previous affected-test selection, review or preflight missed it.
+3. The repair and the search for analogous callers, fixtures and supported environments.
+4. A concrete prevention measure, such as a regression assertion, a broader affected-test selection or an explicit preflight rule. "Be more careful" and "rerun CI" are not prevention measures.
+5. The exact targeted verification, untested platforms/integrations and the next candidate's eventual CI result. Keep the original failed run and its evidence even after the repair passes.
+
+Before choosing affected tests, consult the retained reviews and the rules below. Preserve expected behavior, privilege boundaries, recovery assertions and platform coverage. Do not solve fixture failures by dropping cases, broadly mocking validation, increasing timeouts, adding sleeps or retries, or suppressing a failed gate. Reopen the source-bound audit/authorization when a repair changes its snapshot; rerun the authorized full matrix only after that gate is satisfied. These records belong in repository audit evidence; the user README should remain deployment and usage guidance.
+
+### v2.3.2 candidate: missed fixture dependencies
+
+The first independent-conversation-copy candidate (commit `b1ffa2517112c9a61f0d6db05e9f9dbc10f1eafb`, Reviewed checks run `41316151654`) exposed gaps in affected-test selection. Its Security checks passed, but its test matrix failed; it was not deployable. The coverage job correctly rejected failed Linux evidence. The repairs below change fixtures and strengthen independence assertions; they do not establish a Linux pass until the subsequent Linux run completes.
+
+| Change that affected fixtures | Why it escaped earlier checks | Prevention before another candidate |
+| --- | --- | --- |
+| Native launch adds fixed Codex `-c` arguments | A lifecycle fixture launched Node with `-e`, so the appended `-c` became Node's conflicting `--check`; Windows job fixtures also asserted the obsolete argument list. | For launcher-argument changes, search every launcher caller and command wrapper. Run lifecycle and exact-argument/escaping tests, including Windows descendants and cleanup. Use a script file when the fake executable must accept arbitrary CLI arguments. Preserve delays, cleanup and quoting assertions. |
+| Candidate installation now validates application capability metadata | Synthetic legacy packages lacked `app/package.json`; root-only verification also missed ordinary-UID ownership assumptions. | Trace archive, install, update, migration, recovery and journal fixture builders when package validation changes. Give synthetic packages explicit valid legacy metadata before sealing. Exercise affected ordinary/root pairs with real file ownership. Keep malformed-package and downgrade rejection tests. |
+| Existing conversations filter models by their bound provider | A default-settings UI fixture supplied model IDs without the provider metadata now required by the real response contract. | For a filtering/selection change, inspect all mock catalog, thread and session responses against the protocol. Test defaults, inherited selection and outgoing model/effort together, including loading and missing metadata; do not remove the filter just to satisfy an incomplete fixture. |
+| Failed upstream test jobs reach coverage aggregation | A downstream red check can be mistaken for another product or coverage defect. | Read the complete upstream job results first. Preserve coverage's refusal of missing or failed inputs; report incomplete deduplication/coverage as unavailable, never as zero gaps. |
+
+The detailed retained CI1 review binds the complete job logs, API results, repair evidence and limitations. Subsequent failures must add their own review and update these rules when they reveal another reusable cause; this table is not a substitute for reviewing each run.
+
 v2.2.0's failures fell into distinct categories. Ordinary-user deployment fixtures incorrectly assumed root ownership or mocked `chown` when the implementation used `fchown`; malformed saved profiles no longer represented valid inputs. Several UI tests waited for visible text while preview consent, IndexedDB acceptance or a later operation-list read was still pending. Fix those with controlled promises, awaited `act`, actual enabled-state/fresh-consent assertions, and completion of the real mutation promise—not sleeps, retries, global timeout increases or relaxed assertions.
 
 An automation interruption also exposed a real runtime history/lifecycle consistency gap; the exact hosted interleaving was not reproduced. Windows native worker crashes prompted alignment with the already pinned deployment Node runtime; upstream fixes were verified, but no crash dump established the exact historical cause. Preserve those distinctions when diagnosing a new red run.

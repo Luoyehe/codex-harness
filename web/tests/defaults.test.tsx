@@ -29,7 +29,7 @@ it('refreshes inherited thread settings after an accepted override and hides old
   let resumed = 0,
     finishResume!: () => void;
   const sent: Record<string, unknown>[] = [];
-  const thread = { id: 't', name: 'Current', cwd: '/p', status: { type: 'idle' } };
+  const thread = { id: 't', name: 'Current', cwd: '/p', modelProvider: 'fixture-provider', status: { type: 'idle' } };
   vi.stubGlobal(
     'fetch',
     vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
@@ -48,14 +48,15 @@ it('refreshes inherited thread settings after an accepted override and hides old
         case 'model/list':
           return ok({
             data: [
-              { id: 'thread-original' },
-              { id: 'selected', supportedReasoningEfforts: [{ reasoningEffort: 'high' }] },
+              { id: 'thread-original', modelProvider: 'fixture-provider' },
+              { id: 'selected', modelProvider: 'fixture-provider', supportedReasoningEfforts: [{ reasoningEffort: 'high' }] },
             ],
             nextCursor: null,
           });
         case 'defaults/read':
           return ok({
             model: 'project-default',
+            modelProvider: 'fixture-provider',
             reasoningEffort: 'medium',
             approvalPolicy: 'on-request',
             sandbox: { type: 'workspaceWrite' },
@@ -81,6 +82,7 @@ it('refreshes inherited thread settings after an accepted override and hides old
               requiresResume: false,
               thread,
               model: 'thread-original',
+              modelProvider: 'fixture-provider',
               reasoningEffort: 'low',
               approvalPolicy: 'on-request',
               sandbox: { type: 'workspaceWrite' },
@@ -92,6 +94,7 @@ it('refreshes inherited thread settings after an accepted override and hides old
                   requiresResume: false,
                   thread,
                   model: 'selected',
+                  modelProvider: 'fixture-provider',
                   reasoningEffort: 'high',
                   approvalPolicy: 'never',
                   sandbox: { type: 'readOnly' },
@@ -131,9 +134,12 @@ it('refreshes inherited thread settings after an accepted override and hides old
     ),
   );
   fireEvent.click(screen.getByText((_, element) => element?.getAttribute('aria-label') === '选择模型与思考强度'));
+  const selection = JSON.stringify(['fixture-provider', 'selected']);
+  await waitFor(() => expect(Array.from((screen.getByRole('combobox', { name: '模型' }) as HTMLSelectElement).options).some(option => option.value === selection)).toBe(true));
   fireEvent.change(screen.getByRole('combobox', { name: '模型' }), {
-    target: { value: 'selected' },
+    target: { value: selection },
   });
+  expect((screen.getByRole('combobox', { name: '模型' }) as HTMLSelectElement).value).toBe(selection);
   fireEvent.click(screen.getByRole('button', { name: '对话设置' }));
   fireEvent.change(screen.getByRole('combobox', { name: '思考强度' }), {
     target: { value: 'high' },
@@ -157,6 +163,7 @@ it('refreshes inherited thread settings after an accepted override and hides old
   await waitFor(() => expect(resumed).toBeGreaterThan(before));
   expect(sent[0]?.options).toEqual({
     model: 'selected',
+    modelProvider: 'fixture-provider',
     effort: 'high',
     approvalPolicy: 'never',
     sandbox: 'read-only',
