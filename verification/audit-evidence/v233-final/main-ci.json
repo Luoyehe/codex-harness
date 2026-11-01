@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "result": "passed",
+  "requiredChecksPassed": true,
+  "fullGatePassed": false,
+  "scope": "main-push-selected-required-checks",
+  "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "branch": "main",
+  "event": "push",
+  "attempt": 1,
+  "testRun": 41339050083,
+  "securityRun": 41339050092,
+  "runs": [
+    {
+      "id": 41339050083,
+      "name": "Reviewed checks",
+      "head_sha": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+      "head_branch": "main",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T18:55:07Z",
+      "updated_at": "2026-11-01T18:59:17Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050083"
+    },
+    {
+      "id": 41339050092,
+      "name": "Security checks",
+      "head_sha": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+      "head_branch": "main",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T18:55:07Z",
+      "updated_at": "2026-11-01T18:58:06Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050092"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 124944945949,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050083/job/124944945949"
+    },
+    {
+      "id": 124945128774,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050083/job/124945128774"
+    },
+    {
+      "id": 124945128821,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050083/job/124945128821"
+    },
+    {
+      "id": 124945130350,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050083/job/124945130350"
+    },
+    {
+      "id": 124945928963,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050083/job/124945928963"
+    },
+    {
+      "id": 124944946014,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050092/job/124944946014"
+    },
+    {
+      "id": 124944946133,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050092/job/124944946133"
+    },
+    {
+      "id": 124944946245,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41339050092/job/124944946245"
+    }
+  ],
+  "observedAt": "2026-11-01T19:00:25.788427+00:00",
+  "publicEvidence": {
+    "name": "v233-main-final-observation-20261101T190025788427Z.json",
+    "sha256": "e0207c9ea78615bd3f915a9ec2d258072bb4c2cd1dc00c11d9f3b04b9d88f3fe"
+  },
+  "selection": {
+    "basis": "Exact fd3c to 424 commit change selector and release preflight; no downloaded main case artifacts are claimed.",
+    "mode": "selected",
+    "files": 92,
+    "rootFixturesRequired": false
+  },
+  "separateFullTestEvidence": {
+    "sha256": "5de7a768b3d75188a3cfaedbb4515909322aa5dd3632510e54d15b1568cd1e29",
+    "run": 41337968648,
+    "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+    "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+    "files": 269,
+    "cases": 3160,
+    "coverageGaps": [],
+    "name": "v233-ci3-complete.json",
+    "publicSummary": {
+      "path": "ci.json",
+      "sha256": "663e836e92dd10f16e13c02c0cc370a6c936fce4ffd07d55340664932afc5d99",
+      "bytes": 9061
+    }
+  },
+  "limits": [
+    "Actual main required workflow and job success is verified by public API. Root deployment fixtures are correctly skipped for this selected UI-only delta.",
+    "Full case reconciliation belongs to the separately verified exact-head CI3 dispatch and is not relabeled as this main push run.",
+    "No rerun, new test, deployment operation or full artifact download was performed by this reviewer."
+  ],
+  "publicEvidenceOrigin": {
+    "name": "v233-main-final-summary.json",
+    "sha256": "0ee68d4dba12fbcd6006831084d04b87938814faae4c59249cde46305cd4a38d",
+    "bytes": 4592
+  },
+  "publicEvidencePreparation": {
+    "networkPerformed": false,
+    "publicationPerformed": false,
+    "localEvidencePathsReducedToBasenames": true,
+    "credentialValuesIncluded": false
+  }
+}

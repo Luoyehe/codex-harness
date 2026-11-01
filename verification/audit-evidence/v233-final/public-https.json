@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-upgrade-anonymous-public-https-verification",
+  "commit": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "runId": "1bba95b0a9834bd482bf904741f8bd6f",
+  "origin": "https://cloudark.org.cn:10000",
+  "afterEvidence": {
+    "pathName": "v233-acceptance-after-20261101T185817Z.json",
+    "sha256": "2a52e8c26383c985f949473e8fd7b3a3a3a3b26c388d54723ccc3631642a60a1"
+  },
+  "startedAt": "2026-11-01T18:58:32.184Z",
+  "complete": true,
+  "status": "passed",
+  "route": "Explicit loopback HTTP CONNECT proxy at127.0.0.1:10808; external egress location is not independently proven",
+  "trust": "Explicit Node bundled public root certificates; rejectUnauthorized=true; TLS>=1.2; fixed SNI and hostname",
+  "expectedBuildAssets": {
+    "pathName": "v233-ci3-public-assets.json",
+    "sha256": "67329aee8ad713e11c3f308bb66a73fc55b9c799988c1803b80e1125b619d8e4",
+    "release": "bbb8b45d8ffdaeaa0d083f1e8e2d3562c2f942fa8dd6119154d33cd84e16b57a"
+  },
+  "certificates": [
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "endpoint": "/health",
+      "status": 200,
+      "bytes": 11,
+      "sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93",
+      "contentType": "application/json; charset=utf-8",
+      "contentEncoding": "identity"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/session",
+      "status": 200,
+      "bytes": 95,
+      "sha256": "71879560b76e73df20982a9bd8bb13213d1f7ac381ffd63c3c5c4f0e3f52b6fb",
+      "contentType": "application/json; charset=utf-8",
+      "contentEncoding": "identity"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/",
+      "status": 200,
+      "bytes": 409,
+      "sha256": "cd7754be6554b472137d6b4b36aef2ea2cfb6f395cc70ce9f617753930fbcd30",
+      "contentType": "text/html; charset=utf-8",
+      "contentEncoding": "identity"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/assets/index-DEz4IPXW.js",
+      "status": 200,
+      "bytes": 1389980,
+      "sha256": "fdf75d4b9d16be097e02dd7f4bf5f6b99c40e5da1821d5b1e768ff83d3e1bb2f",
+      "contentType": "text/javascript; charset=utf-8",
+      "contentEncoding": "identity"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/assets/index-BC3Trruw.css",
+      "status": 200,
+      "bytes": 55670,
+      "sha256": "4039a9fc8b493bf13ba7622294a641b67a36b2e33680c7209c8460adb4e63389",
+      "contentType": "text/css; charset=utf-8",
+      "contentEncoding": "identity"
+    }
+  ],
+  "checks": {
+    "localProxyListenerReachable": true,
+    "health": {
+      "status": 200,
+      "ok": true
+    },
+    "anonymousSession": {
+      "status": 200,
+      "authenticationMode": "account",
+      "initialized": true,
+      "authenticated": false
+    },
+    "home": {
+      "status": 200,
+      "utf8Html": true,
+      "directAssetsFetched": 2
+    },
+    "currentBuildAssetHashes": {
+      "matched": true,
+      "index": true,
+      "directAssets": 2
+    },
+    "publicCAHostnameAndValidity": true
+  },
+  "error": null,
+  "limits": [
+    "Anonymous public GET only; authentication, WS and interactive UI are separate operator acceptance.",
+    "No direct-route availability or model/provider connectivity claim.",
+    "No credential or browser cookie read, session creation/revocation, RPC, external MCP or model call."
+  ],
+  "completedAt": "2026-11-01T18:58:32.298Z",
+  "helper": {
+    "pathName": "v233-followup-public-readonly.mjs",
+    "sha256": "5ad556232536d66620c762f8341638d3130c4e97e819c6f77fe7554be82573c3"
+  },
+  "transportHelper": {
+    "pathName": "v233-public-transport.mjs",
+    "sha256": "af91fe827344d683225f71d2a7daf634afb9b0658b33b34d71b0be649932951e"
+  },
+  "publicEvidenceOrigin": {
+    "name": "v233-ci3-public-result.json",
+    "sha256": "55a8b819b3850d694a695c20d335d36ec8579cd52be57d313459501c6284d6eb",
+    "bytes": 6080
+  },
+  "publicEvidencePreparation": {
+    "networkPerformed": false,
+    "publicationPerformed": false,
+    "localEvidencePathsReducedToBasenames": true,
+    "credentialValuesIncluded": false
+  }
+}

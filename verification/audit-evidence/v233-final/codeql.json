@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "kind": "current-candidate-codeql-inventory-and-source-review",
+  "headObserved": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "completedAt": "2026-11-01T18:52:15.703838+00:00",
+  "sourceEvidence": {
+    "fileName": "v233-codeql-ci3.json",
+    "sha256": "52d21cccf52d135d0103e059e253dc2d9e8ab524d571eb9b1fdda119585ee54b",
+    "bytes": 26337
+  },
+  "sourceReviewComplete": true,
+  "findings": [],
+  "candidateBranchOpenIds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+  ],
+  "candidateBranchFilteredClosedCount": 0,
+  "priorMainOpenIds": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+  ],
+  "legacyMainOnlyInventoryIds": [
+    2,
+    3,
+    4
+  ],
+  "newCurrentAlertIds": [],
+  "alerts": [
+    {
+      "id": 16,
+      "rule": "Use of insecure SSL/TLS version",
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "previousSha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "tests/deploy/test_https_health.py",
+        "line": 240
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 15,
+      "rule": "Use of a broken or weak cryptographic hashing algorithm on sensitive data",
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+      },
+      "previousSha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "deploy/install_recovery.py",
+        "line": 186
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 14,
+      "rule": "Use of insecure SSL/TLS version",
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "previousSha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "tests/deploy/test_https_health.py",
+        "line": 170
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 13,
+      "rule": "Clear-text storage of sensitive information",
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+      },
+      "previousSha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "line": 33
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 5,
+      "rule": "Clear-text logging of sensitive information",
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126"
+      },
+      "previousSha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "Current native_launcher.py:352 writes the enabled managed Bedrock token only to the credential-helper stdout protocol and immediately returns. Reviewed provider-env root ownership/mode, actual native UID and enabled-provider selection before this sink. Added thread-history fixed verb dispatches before secret loading; app-server fixed unload/file-store options do not log credentials. The sink remains a required private helper protocol, not diagnostics.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "deploy/native_launcher.py",
+        "line": 352
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 21,
+      "rule": "Incomplete URL substring sanitization",
+      "source": {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0"
+      },
+      "previousSha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "This is a negative assertion over six fixed URLs observed by an injected in-memory reader. startsWith rejects that entire prefix rather than authorizing a destination; the fixture Map also rejects all unexpected sources. Production validateContract requires exact four document URLs before I/O, fixed npm URLs are constructed internally, redirects are rejected and no MCP endpoint is called. No production host validation or SSRF defense relies on this assertion.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "line": 24
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 20,
+      "rule": "Bad HTML filtering regexp",
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "previousSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "line": 63
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 19,
+      "rule": "Incomplete multi-character sanitization",
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "previousSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "line": 63
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 18,
+      "rule": "Incomplete multi-character sanitization",
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "previousSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "line": 63
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 17,
+      "rule": "Use of password hash with insufficient computational effort",
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "0e11f738c892fe38f8c85089249c03808ea778b7d928e63080e48ead258ce615"
+      },
+      "previousSha256": "0e11f738c892fe38f8c85089249c03808ea778b7d928e63080e48ead258ce615",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "SHA-256 identifies a bounded in-memory defaults cache/in-flight probe by cwd, selected thread options, effective config and generation. It is not a password verifier, password-derived key or persisted credential hash. Generation changes invalidate the cache; cache capacity is 16. No weak password-storage finding at this sink.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "src/runtime/service.ts",
+        "line": 828
+      },
+      "previousReviewDepth": "Independently re-read current defaults/invalidateDefaults/probeDefaults, lines 806-866, and exact Git blob/local SHA-256; no suppression or source change."
+    },
+    {
+      "id": 11,
+      "rule": "Use of password hash with insufficient computational effort",
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+      },
+      "previousSha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "src/runtime/workspace-witness.ts",
+        "line": 100
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 10,
+      "rule": "Use of password hash with insufficient computational effort",
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+      },
+      "previousSha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "src/runtime/input-context.ts",
+        "line": 22
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 9,
+      "rule": "Use of password hash with insufficient computational effort",
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+      },
+      "previousSha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "src/runtime/imports.ts",
+        "line": 6
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 8,
+      "rule": "Use of password hash with insufficient computational effort",
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+      },
+      "previousSha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "src/runtime/attachments.ts",
+        "line": 126
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 7,
+      "rule": "Use of password hash with insufficient computational effort",
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+      },
+      "previousSha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "src/core/validation.ts",
+        "line": 40
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    },
+    {
+      "id": 6,
+      "rule": "Improper code sanitization",
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      "previousSha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "unchangedFromPreviousSemanticReview": true,
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text.",
+      "depth": "CI3 exact Git blob and local SHA-256 checked against completed CI2 source review; displayed rule/path/line and all 16 IDs match. Byte-identical semantic disposition inherited; no new full source reread claimed.",
+      "displayedLocation": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "line": 16
+      },
+      "previousReviewDepth": "Exact candidate Git blob/local SHA-256 checked; byte-identical prior semantic disposition inherited at its recorded depth."
+    }
+  ],
+  "securityRun": 41337984727,
+  "securityRunNumber": 43,
+  "securityRunConclusion": "success",
+  "securityJobs": [
+    {
+      "name": "dependencies",
+      "id": 124941775932,
+      "conclusion": "success",
+      "evidenceBasis": "Saved workflow summary UI: successful dependencies node and successful two-job CodeQL matrix."
+    },
+    {
+      "name": "codeql (python)",
+      "id": 124941775700,
+      "conclusion": "success",
+      "evidenceBasis": "Saved workflow summary UI: successful dependencies node and successful two-job CodeQL matrix."
+    },
+    {
+      "name": "codeql (javascript-typescript)",
+      "id": 124941775847,
+      "conclusion": "success",
+      "evidenceBasis": "Saved workflow summary UI: successful dependencies node and successful two-job CodeQL matrix."
+    }
+  ],
+  "evidence": {
+    "candidateInventoryDom": {
+      "fileName": "v233-ci3-codeql-dom.txt",
+      "sha256": "a9bc80f6f14c15aeb8c2b37e3087e79fa783a62e8871d865146f37bb0e599aba"
+    },
+    "securityWorkflowDom": {
+      "fileName": "v233-ci3-security-dom.txt",
+      "sha256": "0154bc9ec78888cd243be1151fcec1deda15fcb936511aec34e1d31955bc5459"
+    },
+    "previousSemanticReview": {
+      "fileName": "v233-codeql-ci2.json",
+      "sha256": "bd92151b807d5a5cc79e6e8185c42e14278a2f10482330360684133024585eaa"
+    },
+    "deploymentPinsAtReview": {
+      "fileName": "v233-ci3-deployment-pins.json",
+      "sha256": "55bedf25b637922976d647c16a37a8064ea78c6e9457dadddb90a634ca88d75e"
+    },
+    "mainBefore": {
+      "fileName": "v233-codeql-before.json",
+      "sha256": "15791e98587c0c7ed288fd14970c05d80718aee4715034906da6c23fe1a66505"
+    }
+  },
+  "limits": [
+    "The candidate branch still has 16 open alerts. No zero-alert, dismissal or closure claim; their unchanged exact source and displayed locations inherit completed CI2 semantic dispositions.",
+    "Security workflow success is observed in saved GitHub UI, not a newly fetched API response. No synthetic job timestamps or individual step-log review is claimed.",
+    "Main-before has three additional legacy-only IDs 2/3/4. Absence from the candidate filter is not a closure claim; final main inventory remains separate.",
+    "Full Reviewed checks, deployment admission and final publication are separate gates. This report does not mark them passed.",
+    "This local finalizer read saved evidence and exact source blobs only. It made no network request, changed no alert state and modified no tracked source."
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "result": "passed",
+  "kind": "actual-bundle-isolated-browser-initial-identity-race",
+  "sourceEvidence": {
+    "fileName": "v233-root-initial-browser.json",
+    "sha256": "7a80465b32108a9045e36877fc5f0801f10ad5748870f49578135cbda5334ea8",
+    "bytes": 3160
+  },
+  "scenario": "initial-root-project-before-identity",
+  "chronology": {
+    "webSocketOpenedAt": "2026-11-01T18:48:18.452Z",
+    "firstProjectResponseAt": "2026-11-01T18:48:18.453Z",
+    "rootIdentitySentAt": "2026-11-01T18:48:19.475Z",
+    "projectBeforeIdentityMs": 1022,
+    "webSocketBeforeIdentityMs": 1023,
+    "laterProjectReads": [
+      "2026-11-01T18:48:19.482Z"
+    ]
+  },
+  "browserObservation": {
+    "reportedBy": "/root via actual CUA browser acceptance",
+    "freshAuthenticatedTab": true,
+    "initialConnectionWaitCleared": true,
+    "projectAutomaticallySelected": "设计工作室",
+    "rootConfirmed": true,
+    "staleIdentityError": false,
+    "manualReloadNeeded": false,
+    "temporaryDraftEnabledSend": true,
+    "draftThenCleared": true,
+    "sendNeverClicked": true
+  },
+  "mutationRequests": 0,
+  "acceptedMutations": 0,
+  "mutationEvidence": "Fixture rejects operationId and all non-read-allowlisted RPCs; rejectedMutations is empty and parent observed no Send action. No worker or external service exists behind the fixture.",
+  "screenshot": {
+    "fileName": "v233-root-initial-browser.png",
+    "sha256": "6c6a575423718d070b305ab06a3b16d07f757c18499b2261f055e432e5b1e673"
+  },
+  "bundle": {
+    "htmlSha256": "cd7754be6554b472137d6b4b36aef2ea2cfb6f395cc70ce9f617753930fbcd30",
+    "asset": "index-DEz4IPXW.js",
+    "assetSha256": "fdf75d4b9d16be097e02dd7f4bf5f6b99c40e5da1821d5b1e768ff83d3e1bb2f"
+  },
+  "shutdown": {
+    "status": "stopped",
+    "ownershipVerified": true,
+    "stoppedAt": "2026-11-01T18:49:51.4142324Z",
+    "listenerPresent": false
+  },
+  "scope": "Actual production web/dist bundle against isolated localhost read-only fixture. This is a browser check of the first-project/ROOT identity race, not a production backend or model-inference test.",
+  "limits": [
+    "Isolated localhost read-only data served the actual built web assets. No deployed backend, model inference or external MCP business acceptance is claimed by this record.",
+    "Parent agent performed the CUA browser actions; fixture counters and hashes were independently read from localhost. No task was submitted."
+  ]
+}

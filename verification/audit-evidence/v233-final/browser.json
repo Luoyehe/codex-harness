@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "result": "passed",
+  "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "origin": "https://cloudark.org.cn:10000/",
+  "verifiedAt": "2026-11-01T18:58:49.466Z",
+  "assets": [
+    "/assets/index-DEz4IPXW.js",
+    "/assets/index-BC3Trruw.css"
+  ],
+  "freshRootTab": {
+    "automaticProjectSelection": true,
+    "identityConfirmed": true,
+    "noStaleError": true,
+    "noManualReread": true,
+    "sendEnabledWithTemporaryDraft": true,
+    "draftCleared": true,
+    "noMessageSent": true
+  },
+  "desktop": {
+    "width": 1280,
+    "height": 720,
+    "scrollWidth": 1280,
+    "rootSingleRowRight": true,
+    "sortRefreshSameRow": true,
+    "redundantRecentHeadingAbsent": true
+  },
+  "history": {
+    "recordsObserved": 1,
+    "acceptedRecordVisible": true,
+    "acknowledgeButtonAbsent": true,
+    "automaticProcessedLimit": 500,
+    "pendingRetained": true
+  },
+  "mobile": [
+    {
+      "height": 844,
+      "inputFont": "16px",
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "height": 740,
+      "inputFont": "16px",
+      "scrollWidth": 320,
+      "width": 320
+    }
+  ],
+  "mobileNavigationAndSettingsOpened": true,
+  "screenshots": [
+    "v233-final-desktop.png",
+    "v233-final-history.png",
+    "v233-final-history-mobile.png",
+    "v233-final-mobile-390.png",
+    "v233-final-navigation-mobile.png",
+    "v233-final-mobile-320.png"
+  ],
+  "limits": [
+    "Authenticated public UI and local draft entry only; no message/project/terminal/configuration operation submitted.",
+    "Responsive desktop browser viewports do not prove physical iOS keyboard behavior.",
+    "No new paid model, image-generation or external MCP call."
+  ],
+  "viewportReset": true,
+  "screenshotEvidence": [
+    {
+      "name": "v233-final-desktop.png",
+      "sha256": "45b57ef666be230cfce2f08b4664dd9a42f8fc1ef7beadbae05b417003597283",
+      "bytes": 34156
+    },
+    {
+      "name": "v233-final-history.png",
+      "sha256": "4a7f919afb0b3f3841efd52878fa71bad40525f763c463a44342ac4e9358d34e",
+      "bytes": 32772
+    },
+    {
+      "name": "v233-final-history-mobile.png",
+      "sha256": "097b05ffe0051a35992b43b26de37326c2421c4109cba7e6a6150db58129e097",
+      "bytes": 20675
+    },
+    {
+      "name": "v233-final-mobile-390.png",
+      "sha256": "d0493dc4a468e8da35ee77afd56cd53b3f6802c083e8c3cde090ffb53888cf3e",
+      "bytes": 15158
+    },
+    {
+      "name": "v233-final-navigation-mobile.png",
+      "sha256": "fe5f9cb3ab5ed7a623a370ed38d8e93f337a7b41cec44b47a1884da802432721",
+      "bytes": 15865
+    },
+    {
+      "name": "v233-final-mobile-320.png",
+      "sha256": "bcb36d43a3bc6d9a1afcc6a2be16e755fbea2b18262fb25e94fbb25943af45cb",
+      "bytes": 13974
+    }
+  ],
+  "screenshotContentsPublished": false,
+  "publicEvidenceOrigin": {
+    "name": "v233-final-browser.json",
+    "sha256": "b5d7b45f0f35810cdb49095d79588deeaa240e18953c244916ea376af6cc46fc",
+    "bytes": 1839
+  },
+  "publicEvidencePreparation": {
+    "networkPerformed": false,
+    "publicationPerformed": false,
+    "localEvidencePathsReducedToBasenames": true,
+    "credentialValuesIncluded": false
+  }
+}

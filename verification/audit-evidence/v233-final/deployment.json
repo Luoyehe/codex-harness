@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "result": "passed",
+  "recordedAt": "2026-11-01T18:58:43.859954+00:00",
+  "commit": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "version": "2.3.3",
+  "currentRelease": "bbb8b45d8ffdaeaa0d083f1e8e2d3562c2f942fa8dd6119154d33cd84e16b57a",
+  "previousRelease": "3a5a36fa295d0eea59cb3c908eb3ee747dae442ef5fe382d1cd726dc4c08be30",
+  "ci": {
+    "fullGatePassed": true,
+    "files": 269,
+    "cases": 3160,
+    "coverageGaps": [],
+    "testRun": 41337968648,
+    "securityRun": 41337984727
+  },
+  "limits": [
+    "Read-only baseline completed before control update; metadata fingerprints cover all eight subsequent deployment phases.",
+    "Account/project/unknown-receipt fingerprints and ownership/mode/inode checks do not prove every historical conversation file or credential value is byte-identical; no conversation bodies or credential contents were read.",
+    "No model inference, MCP tool call, conversation mutation or publication is performed by this finalizer or observer.",
+    "Strict cached-certificate verification does not prove a future DNS API renewal will succeed.",
+    "Public HTTPS evidence retains its actual route and trust boundary; external egress geography is not inferred.",
+    "Authenticated browser UI acceptance is a separate root-owned artifact and is not claimed by this report."
+  ],
+  "publicationPerformed": false,
+  "kind": "public-v233-deployment-summary",
+  "phases": [
+    {
+      "phase": "control-update",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:56:05.846642+00:00"
+    },
+    {
+      "phase": "config-layer-migrate",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:56:10.188471+00:00"
+    },
+    {
+      "phase": "candidate-archive",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:56:42.354091+00:00"
+    },
+    {
+      "phase": "application-update",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:57:41.023793+00:00"
+    },
+    {
+      "phase": "verify",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:57:47.960390+00:00"
+    },
+    {
+      "phase": "status",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:57:53.043546+00:00"
+    },
+    {
+      "phase": "proxy-status",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:57:57.253743+00:00"
+    },
+    {
+      "phase": "candidate-list",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T18:58:08.359164+00:00"
+    }
+  ],
+  "services": {
+    "worker": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "gateway": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "caddy": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "proxy": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "static"
+    },
+    "proxy-routes": {
+      "ActiveState": "active",
+      "SubState": "exited",
+      "UnitFileState": "static"
+    }
+  },
+  "executionMode": {
+    "mode": "root",
+    "effectiveUid": 0,
+    "rootAllowed": true
+  },
+  "strictVerification": {
+    "integrity": true,
+    "permissions": true,
+    "unitPolicy": "current",
+    "sudoPolicy": "current",
+    "https": true,
+    "publicAssetHashes": true
+  },
+  "preserved": {
+    "accountProjectUnknownReceiptMetadata": true,
+    "protectedOwnershipModeInodes": true,
+    "executionPolicy": true,
+    "historicalUnknownReceipts": true
+  },
+  "evidence": [
+    {
+      "name": "v233-deploy-1bba95b0a9834bd482bf904741f8bd6f-gate.json",
+      "sha256": "33ee9b9549b88a90fb794f1bede725d0c3ebd202a80f763a230d0e7768ee1760"
+    },
+    {
+      "name": "v233-ci3-complete.json",
+      "sha256": "5de7a768b3d75188a3cfaedbb4515909322aa5dd3632510e54d15b1568cd1e29"
+    },
+    {
+      "name": "v233-observe-20261101T185507Z.json",
+      "sha256": "b55dbc42578ee2241d287cf10e3426a6ad93a92d64e8e61271860f31474a9e07"
+    },
+    {
+      "name": "v233-stage-424e8f5ab267-result.json",
+      "sha256": "ac067b197a30e6160ac6607b5f2f81c0e7ff7970584218ab4ef28524a5302930"
+    },
+    {
+      "name": "v233-acceptance-baseline-20261101T185534Z.json",
+      "sha256": "326f931cfa5e729fd6fc6631160e67f95bee803b8ec4005f90d8662cdf2862e4"
+    },
+    {
+      "name": "v233-acceptance-after-20261101T185817Z.json",
+      "sha256": "2a52e8c26383c985f949473e8fd7b3a3a3a3b26c388d54723ccc3631642a60a1"
+    },
+    {
+      "name": "v233-ci3-public-result.json",
+      "sha256": "55a8b819b3850d694a695c20d335d36ec8579cd52be57d313459501c6284d6eb"
+    },
+    {
+      "name": "v233-ci3-public-assets.json",
+      "sha256": "67329aee8ad713e11c3f308bb66a73fc55b9c799988c1803b80e1125b619d8e4"
+    },
+    {
+      "name": "v233-deploy-1bba95b0a9834bd482bf904741f8bd6f-control-update-local-started.json",
+      "sha256": "42531661000b06031b14dcaa1d75f35e66933ebc0741ad9ea586f99e3f09fa25"
+    },
+    {
+      "name": "v233-ci3-build.json",
+      "sha256": "aac9f2d01aeeb6ede96c5846ca743352ee86c543783eaa73a8dafaa28076bb45"
+    },
+    {
+      "name": "v233-codeql-ci3.json",
+      "sha256": "52d21cccf52d135d0103e059e253dc2d9e8ab524d571eb9b1fdda119585ee54b"
+    }
+  ],
+  "publicEvidenceOrigin": {
+    "name": "v233-deployment-1bba95b0a9834bd482bf904741f8bd6f-public.json",
+    "sha256": "fbf85b01486717c83ff57418072b2666f0e5012a90d47abef7a97b8209347a4a",
+    "bytes": 5286
+  },
+  "publicEvidencePreparation": {
+    "networkPerformed": false,
+    "publicationPerformed": false,
+    "localEvidencePathsReducedToBasenames": true,
+    "credentialValuesIncluded": false
+  }
+}

@@ -104,3 +104,21 @@
 - v2.3.2 CI1 修复说明对真实 root 账户降级验证的措辞过宽。当时的 112 项定向验证没有运行组合依赖的 AccountRecoveryTests；CI2 正是暴露此漏项。后续三文件分组和真实 root 回归才补上，不能用 CI1 的局部绿色提前声称完整闭环。
 
 今后的入口是 [维护预检](../../scripts/RELEASE-PREFLIGHT.md) 和 `AGENTS.md`，用户 README 继续专注部署和使用。新增失败应追加其独立记录并更新这份索引的范围，保留旧失败和未证实结论。
+
+## v2.3.3 增量：第 61–64 次运行、最终 main 与网页验收修复
+
+本节追加此次发布的结果，不改写此前第 1–59 次复盘的范围和计数。第 60 次不在本节复盘范围内，不能据此声称第 1–64 次已全部重新核查。
+
+| 运行 / 候选 | 实际结果与证据边界 |
+| --- | --- |
+| [#61 / 41334305304](https://github.com/Luoyehe/codex-harness/actions/runs/41334305304) · `0523873bda28` | **失败，attempt 1。** Linux、Windows 各出现相同的五项 prediction 失败，属于同一个夹具契约遗漏。模拟 Native 没有实现 `thread/items/list`，以 `{}` 代替合法空页，在原有业务断言前被严格分页校验拒绝。Root/Security 通过不改变整体失败，覆盖作业正确拒绝失败平台。保留[原失败证据](../audit-evidence/v233-final/ci1-failure.json)。 |
+| [#62 / 41335749136](https://github.com/Luoyehe/codex-harness/actions/runs/41335749136) · `fd3c8c9d780e` | **完整验证通过，attempt 1。** 源 `091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a`：269 文件、3,157 个独立用例、覆盖缺口为零，保留各平台原始跳过和适用平台通过记录。此结果只属于修复启动提示之前的候选。 |
+| [#63 / 41336966118](https://github.com/Luoyehe/codex-harness/actions/runs/41336966118) · `fd3c8c9d780e` / main | **运行通过，attempt 1。** main push 的 Linux、Windows、Linux-root 和覆盖作业均成功；独立 Security 运行 `41336966123` 也成功。这里记录真实终态，不将 #62 的独立完整制品核对重新冠名为 main 制品核对。 |
+| [#64 / 41337968648](https://github.com/Luoyehe/codex-harness/actions/runs/41337968648) · `424e8f5ab267` | **完整验证通过，attempt 1。** 实际 Linux、Windows、Linux-root 制品及 hosted/local 覆盖核对一致：269 文件、3,160 个独立用例、覆盖缺口为空，各平台跳过仍按原样保留；Security 运行 `41337984727` 通过。见[当前完整 CI 证据](../audit-evidence/v233-final/ci.json)。 该结果绑定源 `15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940`，独立于 #62 的旧源统计。 |
+| [最终 main / 41339050083](https://github.com/Luoyehe/codex-harness/actions/runs/41339050083) · `424e8f5ab267` | **所需检查通过，attempt 1。** 选择 92 个 Web 文件，Linux、Windows、覆盖作业成功；root 部署夹具按此次差异正确跳过。独立 [Security 41339050092](https://github.com/Luoyehe/codex-harness/actions/runs/41339050092) 通过。[真实 main 终态证据](../audit-evidence/v233-final/main-ci.json) 与 #64 的完整制品核对分开保留，不把本次选测称为全量。 |
+
+#61 的修复仅补上官方空页响应 `{data: [], nextCursor: null, backwardsCursor: null}`，未改生产分页边界、断言、超时或重试。18 个实际历史消费者、186 例定向全部通过。遗漏发生于人工缩小的定向选择，自动选测原本已包含该文件。今后共享历史读取变更必须追踪 `RuntimeService` 的间接消费者，并核对回合、条目和时间线模拟响应；记录文件哈希或只看导入关系不能证明契约兼容。这一经验已写入[维护预检](../../scripts/RELEASE-PREFLIGHT.md)。
+
+随后实际网页验收发现另一项产品缺陷：新 ROOT 标签先收到项目列表、尚未收到执行身份时，自动选择项目触发了面向手动导航的错误提示。身份后来已确认、发送已经可用，错误条仍残留。**这是网页验收发现的问题，不是 #62 或 #63 的 CI 失败。** 修复让自动项目同步等待身份确认，并在门禁解除后使用最新项目数据重试；保留真实身份变化和草稿保护。新增空草稿、已有 ROOT 草稿、已有项目选择三个案例；七个相关文件、70 例与类型检查均通过，[独立增量审计](../audit-evidence/v233-initial-identity-repair/audit.json)重新绑定源，并要求新的完整 CI。
+
+实际新版 bundle 的本地浏览器验收还将 ROOT 状态故意延迟到首次项目响应后 1,022 ms，确认无需手动重读就能自动就绪；只输入后清空临时草稿，没有发送任务。预防重点是覆盖“新标签、无 sessionStorage 项目、相同 ROOT 身份延迟确认”的真实初始化顺序，而不只测已打开页面里的模式切换。旧通过、旧失败和修复后的新结果分别保留；不靠重试、隐藏警告或放宽权限门禁制造通过。

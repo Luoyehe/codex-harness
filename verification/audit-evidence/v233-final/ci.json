@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "result": "passed",
+  "fullGatePassed": true,
+  "verifiedAt": "2026-11-01T18:54:45.763Z",
+  "event": "workflow_dispatch",
+  "branch": "Luoyehe/root-execution-mode",
+  "attempt": 1,
+  "testRun": 41337968648,
+  "securityRun": 41337984727,
+  "sourceEvidence": {
+    "fileName": "v233-ci3-complete.json",
+    "sha256": "5de7a768b3d75188a3cfaedbb4515909322aa5dd3632510e54d15b1568cd1e29",
+    "bytes": 17845
+  },
+  "authorizationSha256": "dfa9326c1020a7ba0d75ecdad49a3317f0e9622e6fe02faae10601bedb84fc74",
+  "authorizationCommittedAt": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "ciBase": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "authorizationBase": "fd3c8c9d780e0dbcebc0f164113d402e6f6ee81f",
+  "runs": [
+    {
+      "id": 41337968648,
+      "name": "Reviewed checks",
+      "head_sha": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+      "head_branch": "Luoyehe/root-execution-mode",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337968648"
+    },
+    {
+      "id": 41337984727,
+      "name": "Security checks",
+      "head_sha": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+      "head_branch": "Luoyehe/root-execution-mode",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337984727"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 124941726006,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337968648/job/124941726006"
+    },
+    {
+      "id": 124941887287,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337968648/job/124941887287"
+    },
+    {
+      "id": 124941887294,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337968648/job/124941887294"
+    },
+    {
+      "id": 124941887306,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337968648/job/124941887306"
+    },
+    {
+      "id": 124944511242,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337968648/job/124944511242"
+    },
+    {
+      "id": 124941775700,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337984727/job/124941775700"
+    },
+    {
+      "id": 124941775847,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337984727/job/124941775847"
+    },
+    {
+      "id": 124941775932,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41337984727/job/124941775932"
+    }
+  ],
+  "plan": {
+    "mode": "authorized-full",
+    "base": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+    "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+    "files": 269,
+    "targets": [
+      "linux",
+      "windows",
+      "linux-root"
+    ]
+  },
+  "sourceSecurity": {
+    "line": 210,
+    "status": "passed-with-reviewed-historical-patterns",
+    "scannedFiles": 5887,
+    "findings": [],
+    "skipped": [],
+    "reviewedHistoricalPatterns": 32,
+    "rawScannerStatus": "blocked"
+  },
+  "platforms": [
+    {
+      "target": "linux",
+      "files": 246,
+      "cases": 2824,
+      "counts": {
+        "passed": 2807,
+        "skipped": 17
+      },
+      "exitCode": 3,
+      "sourceDigestAfter": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940"
+    },
+    {
+      "target": "windows",
+      "files": 246,
+      "cases": 2824,
+      "counts": {
+        "passed": 2720,
+        "skipped": 104
+      },
+      "exitCode": 3,
+      "sourceDigestAfter": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940"
+    },
+    {
+      "target": "linux-root",
+      "files": 23,
+      "cases": 336,
+      "counts": {
+        "passed": 336
+      },
+      "exitCode": 0,
+      "sourceDigestAfter": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940"
+    }
+  ],
+  "coverage": {
+    "status": "passed",
+    "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+    "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+    "files": 269,
+    "cases": 3160,
+    "coverageGaps": [],
+    "note": "All observed cases passed on an appropriate platform; individual skips remain recorded.",
+    "localMatchesHosted": true,
+    "method": "Actual downloaded platform JSON reconciled locally by scripts/ci-checks.mjs, then independently compared with hosted JSON and complete coverage log. IDs deduplicated across all three targets; individual platform skips remain recorded.",
+    "local": {
+      "fileName": "reconciled.json",
+      "sha256": "b4180130fc8ee2805d3d60869439c8663bb92661b66e38dd51f0354b27205df1",
+      "bytes": 321
+    },
+    "hosted": {
+      "fileName": "reconciled.json",
+      "sha256": "b4180130fc8ee2805d3d60869439c8663bb92661b66e38dd51f0354b27205df1",
+      "bytes": 321
+    }
+  },
+  "artifacts": [
+    {
+      "archiveName": "v233-ci3-plan.zip",
+      "archiveSha256": "51fd6d4370e26cfc5f0abc7a463f993e60f75795e867e1c8bbf8aa9ff1d81941",
+      "archiveBytes": 8614,
+      "member": "ci-plan.json",
+      "sha256": "179d15f081ac5430d0a5305e87cd6ba9e63e12c920a78d9d5a8d0fb777c53284",
+      "bytes": 213628
+    },
+    {
+      "archiveName": "v233-ci3-root.zip",
+      "archiveSha256": "14f9d4cabbe10471d1008dd076192a7abf692a307f9f1dee679701f63ff204b8",
+      "archiveBytes": 17292,
+      "member": "result-linux-root.json",
+      "sha256": "84fb8aa8fa37ef86632de9a88320c4fb40b28fb86bc81c8bdc818f2a3ddda1ee",
+      "bytes": 173451
+    },
+    {
+      "archiveName": "v233-ci3-linux.zip",
+      "archiveSha256": "60af0a8d0a4bfe0976b679bae76ea0953f5ea03f94fdf095e0bae7b1efaff293",
+      "archiveBytes": 166049,
+      "member": "result-linux.json",
+      "sha256": "c5add3ba5058f5fc78c6cf6fb4f3fb6f3ca7d2ff9c0e69ced79274998e1a4ea7",
+      "bytes": 1384932
+    },
+    {
+      "archiveName": "v233-ci3-windows.zip",
+      "archiveSha256": "d4ed40752d73227457069f7c7d34815e97490c4d9a8465b918ea740ecf774c44",
+      "archiveBytes": 166942,
+      "member": "result-windows.json",
+      "sha256": "c1f4b79ed8fd67c60aeb7ebd41fb4540b1126bb0e8681b3788c6b0bc43b0bf9b",
+      "bytes": 1398452
+    },
+    {
+      "archiveName": "v233-ci3-coverage.zip",
+      "archiveSha256": "8f829acf37995006614fb9239afcbb586743900c70078196f3ce3b68a9616d26",
+      "archiveBytes": 371,
+      "member": "reconciled.json",
+      "sha256": "b4180130fc8ee2805d3d60869439c8663bb92661b66e38dd51f0354b27205df1",
+      "bytes": 321
+    }
+  ],
+  "retainedLogHashes": {
+    "plan": {
+      "fileName": "v233-ci3-plan-raw.log",
+      "sha256": "405783b0906a10d80189beaa713779eb292f4f81934d273571717b5387633f2c",
+      "bytes": 30614,
+      "completeJobBoundaries": true
+    },
+    "root": {
+      "fileName": "v233-ci3-root-raw.log",
+      "sha256": "ecbb4cd492de31f3b0e38740e67ab259be2848a75bfcf0ac5dc7c4438f8109d5",
+      "bytes": 102553,
+      "completeJobBoundaries": true
+    },
+    "linux": {
+      "fileName": "v233-ci3-linux-raw.log",
+      "sha256": "491ef390cc0f6375952379b6728513514bcfe659b63f7937bdb0b2745cb69ce4",
+      "bytes": 230056,
+      "completeJobBoundaries": true
+    },
+    "windows": {
+      "fileName": "v233-ci3-windows-raw.log",
+      "sha256": "c3ab0ade45a9510c09dfb5dfa56b81be5ca7cc726ac08bf7facfe46e678d2d12",
+      "bytes": 250396,
+      "completeJobBoundaries": true
+    },
+    "coverage": {
+      "fileName": "v233-ci3-coverage-raw.log",
+      "sha256": "61398f000867216a2de001a7a100a7b024a30e27cf0f34bec9a58520595977fa",
+      "bytes": 26195,
+      "completeJobBoundaries": true
+    }
+  },
+  "limits": [
+    "Security workflow success does not imply zero CodeQL alerts; alert inventory review is separate.",
+    "Root fixtures used the hosted system /usr/bin/python3, separately from standard matrix CPython 3.12.10.",
+    "No paid model inference or external MCP business acceptance is claimed.",
+    "This proves the topic workflow_dispatch run only; a later main push run must be identified and verified separately."
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "result": "passed",
+  "recordedAt": "2026-11-01T19:03:30.709Z",
+  "version": "2.3.3",
+  "head": "424e8f5ab26711541445c659a2ea64b2a7a5421f",
+  "sourceDigest": "15a740ee49afed60d1828287f5cbf3f15d44d652f22f957e8b77f14314092940",
+  "sourceFiles": 2013,
+  "source": {
+    "audit": {
+      "name": "audit.json",
+      "sha256": "d3553cbffab562983da1b29fbeb43708073b4b78425d17d1355539fd5fbb058e",
+      "bytes": 2471,
+      "path": "../v233-initial-identity-repair/audit.json"
+    },
+    "scope": "Source-bound full audit with explicit inspection depths plus independent review of subsequent fixture and ROOT initialization repairs; no fabricated full reread."
+  },
+  "fullValidation": {
+    "path": "ci.json",
+    "testRun": 41337968648,
+    "securityRun": 41337984727,
+    "files": 269,
+    "cases": 3160,
+    "coverageGaps": [],
+    "fullGatePassed": true
+  },
+  "mainValidation": {
+    "path": "main-ci.json",
+    "testRun": 41339050083,
+    "securityRun": 41339050092,
+    "requiredChecksPassed": true,
+    "scope": "selected",
+    "selectedFiles": 92,
+    "rootFixturesRequired": false,
+    "rootFixturesConclusion": "skipped",
+    "fullGatePassed": false
+  },
+  "deployment": {
+    "path": "deployment.json",
+    "release": "bbb8b45d8ffdaeaa0d083f1e8e2d3562c2f942fa8dd6119154d33cd84e16b57a",
+    "origin": "https://cloudark.org.cn:10000/",
+    "servicesRemainRunning": true,
+    "strictPublicHttps": {
+      "path": "public-https.json",
+      "passed": true
+    },
+    "authenticatedUi": {
+      "path": "browser.json",
+      "passed": true
+    },
+    "initialIdentityRace": {
+      "path": "initial-browser.json",
+      "passed": true,
+      "scope": "isolated actual bundle with delayed ROOT identity; no submitted task"
+    }
+  },
+  "readyForPublication": true,
+  "publication": {
+    "performed": false,
+    "status": "pending-github-release-ui",
+    "plannedTag": "v2.3.3",
+    "note": "These records authorize publication after validation. The subsequent GitHub Release page action is not claimed as completed by this evidence."
+  },
+  "evidence": [
+    {
+      "name": "browser.json",
+      "sha256": "f2052d8697690bd0e677575b0531ee66bb33df9bbc98b8345ce8e9a8ef5cd76a",
+      "bytes": 3244,
+      "path": "browser.json"
+    },
+    {
+      "name": "ci.json",
+      "sha256": "663e836e92dd10f16e13c02c0cc370a6c936fce4ffd07d55340664932afc5d99",
+      "bytes": 9061,
+      "path": "ci.json"
+    },
+    {
+      "name": "ci1-failure.json",
+      "sha256": "b43fa5948848a1936f8f8eafe3a90a301a501f70d0c9ccc942239a57a822850f",
+      "bytes": 4940,
+      "path": "ci1-failure.json"
+    },
+    {
+      "name": "codeql.json",
+      "sha256": "c28d40a0933f9a79cac63d2216874bf6245878cdfe780a614a986c5e8a52ac2e",
+      "bytes": 22915,
+      "path": "codeql.json"
+    },
+    {
+      "name": "deployment.json",
+      "sha256": "9146e5c3288a9552ab5298567cf31161c471420aa96069987b98be348c3b0490",
+      "bytes": 5687,
+      "path": "deployment.json"
+    },
+    {
+      "name": "initial-browser.json",
+      "sha256": "386d1f3f8d3757034b5c63c1bc17f23f6041a0e91a5678a9ffd2a49f1a1b627d",
+      "bytes": 2614,
+      "path": "initial-browser.json"
+    },
+    {
+      "name": "public-https.json",
+      "sha256": "ade4d8f9590c460d17817b7e607b85fb58408c0003f9c445d375718d117379c4",
+      "bytes": 6440,
+      "path": "public-https.json"
+    },
+    {
+      "name": "main-ci.json",
+      "sha256": "29d391fefbe5d64d19fc76716c8e405bfced035c7525b5960fc9a2e8ddf1d522",
+      "bytes": 5108,
+      "path": "main-ci.json"
+    }
+  ],
+  "limits": [
+    "CI1 remains a failed historical run; repairs and later exact-source successes do not rewrite it.",
+    "Main selected checks and the separate exact-head full CI3 reconciliation retain distinct scopes and platform skips.",
+    "CodeQL retains 16 reviewed open current-source alerts; no zero-alert or dismissal claim.",
+    "No new paid inference, paid image generation or external MCP business call was performed.",
+    "Generated image browser support is bounded to 8 MiB per image and the native 12 MiB frame boundary; original CLI history remains unchanged.",
+    "Public HTTPS verification retains its explicit proxy route and certificate trust boundary; future DNS renewal was not retested.",
+    "Responsive desktop viewports do not establish physical iOS keyboard behavior; deployed UI acceptance submitted no task.",
+    "Deployment preservation checks cover recorded metadata and permissions; no claim is made that every historical conversation or secret value was reread."
+  ]
+}

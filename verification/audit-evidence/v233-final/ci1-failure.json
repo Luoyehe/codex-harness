@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "result": "failed",
+  "fullGatePassed": false,
+  "head": "0523873bda28dc6b1df55481475467dcd6397260",
+  "sourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+  "sourceFiles": 2013,
+  "runId": 41334305304,
+  "attempt": 1,
+  "sourceEvidence": {
+    "fileName": "v233-ci1-final-failure-review.json",
+    "sha256": "d57f54d3f0c75a783ea7bb3b256b765f1aebc9baf7303e8b2607f29e59f09351",
+    "bytes": 12817
+  },
+  "jobs": [
+    {
+      "id": 124930763151,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124930922195,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 124930922198,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124930922229,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 124933678552,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 124930791340,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124930791461,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124930791526,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "uniqueFailureCause": "A test Native mock omitted thread/items/list after history switched to bounded per-item reads. Both standard platforms failed the same five prediction cases before their intended assertions; the coverage job correctly rejected their failed result artifact.",
+  "failedAssertions": 5,
+  "ciFailedJobs": 3,
+  "localReconciliation": {
+    "executed": true,
+    "testsExecuted": false,
+    "accepted": false,
+    "rejection": "Incomplete or failed evidence for linux",
+    "matchesHostedRefusal": true
+  },
+  "repairSourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+  "repairReview": {
+    "fileName": "v233-ci1-repair-independent-review.json",
+    "sha256": "1ee40d50829a78fb1bacba2f4d923a93417ec78c8a8c46947ac0cca5633de99a",
+    "bytes": 5296
+  },
+  "prevention": "The selector already covered predictions; a manually narrowed target subset did not. Trace indirect RuntimeService history consumers and native mock responses, execute the complete affected consumer plan, and preserve malformed-page validation. The lesson is now in scripts/RELEASE-PREFLIGHT.md.",
+  "artifacts": [
+    {
+      "archiveName": "v233-ci1-plan.zip",
+      "archiveSha256": "a480768427f24aa1297cfee6c33f9a6d98b3ce2c9cc83937e6880f58f90970e5",
+      "member": "ci-plan.json",
+      "sha256": "d476e70f49ab91f6526f365ceeabc47b9d71ee2add62e36a59d9d548aa43b837",
+      "bytes": 210066
+    },
+    {
+      "archiveName": "v233-ci1-linux.zip",
+      "archiveSha256": "fc5a4c68b288fba726160207f486c7fb4da7d3f35cc7c672220fe8ef21319389",
+      "member": "result-linux.json",
+      "sha256": "5fb5974aa2f1213bcf36b27a919d62971d0428e13761b71f37dafd34d514aea3",
+      "bytes": 325162
+    },
+    {
+      "archiveName": "v233-ci1-windows.zip",
+      "archiveSha256": "f469d190a71c30ff2f3100354eb28a459f1108a8840127ec54b93437e382bce0",
+      "member": "result-windows.json",
+      "sha256": "f64df0c47354061fde50a5514a2a271b8e11df8d606b94d85043991f3481544f",
+      "bytes": 338704
+    },
+    {
+      "archiveName": "v233-ci1-root.zip",
+      "archiveSha256": "be60f82ee145038bbaf3bfa32bf07a3f2cf967cc622963adab980fb232f5505d",
+      "member": "result-linux-root.json",
+      "sha256": "fe90b432a89f007848935def79176a040b3b102cbe9d7c9e0131b01f672d755a",
+      "bytes": 173451
+    }
+  ],
+  "retainedLogHashes": {
+    "linux": {
+      "fileName": "v233-ci1-linux-raw.txt",
+      "sha256": "6cc463deb3d68f8daf801227db42839e02e7a1a500e3e147480e530a21e3df56",
+      "bytes": 238044
+    },
+    "windows": {
+      "fileName": "v233-ci1-windows-raw.txt",
+      "sha256": "4998e7e29c9613cc2009e31cfa6d871e9dec27a4327b09e4efc775e94d30ec12",
+      "bytes": 256845
+    },
+    "coverage": {
+      "fileName": "v233-ci1-coverage-raw.txt",
+      "sha256": "3f90ad397c0a78b4d4e289e4f1b9919905b5782129fed1b9c0b8400dd35027b9",
+      "bytes": 24225
+    }
+  },
+  "limits": [
+    "This run remains failed and cannot authorize deployment. A new exact-head/source-bound full run is required.",
+    "Failed JavaScript groups intentionally produced no passing case aggregation, so the 631 cases retained in each standard platform artifact are only Python/Go and are not a complete suite. No deduplicated full pass count is claimed.",
+    "Security checks success is workflow completion only, not a claim of zero CodeQL alerts."
+  ]
+}
