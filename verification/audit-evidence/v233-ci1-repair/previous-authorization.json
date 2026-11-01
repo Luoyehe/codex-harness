@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+  "sourceFiles": 2013,
+  "baseCommit": "0f51720452443561c3ab8277a27ebef0631b22e8",
+  "version": "2.3.3",
+  "approvedAt": "2026-11-01T17:56:53.465Z",
+  "userInstruction": "进行一轮完整审计，修复发现的问题，无新问题后进行全量测试，发布 v2.3.3 并更新 120 上的部署，保持服务运行。",
+  "auditWaiverInstruction": "用户明确要求本轮一轮完整审计并修复，无新问题后进入全量测试与发布部署；覆盖仓库默认三轮要求。本轮两份有问题的候选不计清洁轮，最终完整分区审阅与交叉复核无未决发现后记录一轮。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v233-final-clean",
+      "sourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+      "sourceFiles": 2013,
+      "completedAt": "2026-11-01T17:56:53.434Z",
+      "evidence": "verification/audit-evidence/v233-audit/audit.json",
+      "sha256": "7b0862723b2f702a6b847b7ad865dd3ed365342f89449a3c7b89753bad3f1abc"
+    }
+  ],
+  "previousAuthorization": {
+    "path": "verification/audit-evidence/v233-audit/previous-authorization.json",
+    "sha256": "274c597e649f14f2f9a65d63bb17e72680af62819815ba4dd7eb014b0fbcb87f"
+  }
+}

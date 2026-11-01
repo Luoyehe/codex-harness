@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "kind": "builtin-mcp-freshness",
+  "checkedAt": "2026-11-01T18:12:01.216Z",
+  "completedAt": "2026-11-01T18:12:03.235Z",
+  "sourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+  "sourceFiles": 2013,
+  "files": [
+    {
+      "path": "reference/BUILTIN-MCP-CONTRACT.json",
+      "sha256": "3a582f66a34def5b146c1d9fb60d5ee4bc0dbd4f6ed9247b1d682a75462b8f3c"
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "c06f314a13ca7797915da0d47d6744d2d672364ca49a2b41f75f8a2bd5f29488"
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "bd13c48a5271b36cb72f384d4c9dfc5cf83e276c39b7f51a025c49561c8bbe45"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126"
+    },
+    {
+      "path": "package.json",
+      "sha256": "22324b6c15073f0dd84bf46ffe01a019d8f5f4dc496281ef0119a83f263c1414"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "55c7a42ea77ca4130aa1373c4b0c119909d6fe0bd300f837f90faab869a027eb"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e77964d5f1476df649e0a8303cd27682cb6e0858582f97ecd75655abd253b963"
+    }
+  ],
+  "contract": {
+    "schemaVersion": 1,
+    "providerKind": "zhipu-coding",
+    "region": "CN",
+    "credential": "same-enabled-provider-api-key",
+    "browserOAuth": false,
+    "servers": [
+      {
+        "name": "web-search-prime",
+        "transport": "streamable-http",
+        "url": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp",
+        "authorization": "Bearer",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/search-mcp-server"
+      },
+      {
+        "name": "web-reader",
+        "transport": "streamable-http",
+        "url": "https://open.bigmodel.cn/api/mcp/web_reader/mcp",
+        "authorization": "Bearer",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/reader-mcp-server"
+      },
+      {
+        "name": "zread",
+        "transport": "streamable-http",
+        "url": "https://open.bigmodel.cn/api/mcp/zread/mcp",
+        "authorization": "Bearer",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/zread-mcp-server"
+      },
+      {
+        "name": "zai-mcp-server",
+        "transport": "stdio",
+        "package": "@z_ai/mcp-server",
+        "version": "0.1.6",
+        "integrity": "sha512-RmsCfM7m87dC9JqWmbUcitDvwiFE6oEWNJUoBmqediKt7TIPM2J9h7b4o+BZmPgltLXSlKN+BToBSfbskiAytg==",
+        "keyEnvironment": "Z_AI_API_KEY",
+        "modeEnvironment": "Z_AI_MODE",
+        "mode": "ZHIPU",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/vision-mcp-server"
+      }
+    ]
+  },
+  "complete": true,
+  "status": "current",
+  "pinned": {
+    "version": "0.1.6",
+    "integrity": "sha512-RmsCfM7m87dC9JqWmbUcitDvwiFE6oEWNJUoBmqediKt7TIPM2J9h7b4o+BZmPgltLXSlKN+BToBSfbskiAytg==",
+    "deprecated": false
+  },
+  "latest": {
+    "version": "0.1.6",
+    "integrity": "sha512-RmsCfM7m87dC9JqWmbUcitDvwiFE6oEWNJUoBmqediKt7TIPM2J9h7b4o+BZmPgltLXSlKN+BToBSfbskiAytg==",
+    "deprecated": false
+  },
+  "sources": [
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/reader-mcp-server",
+      "status": 200,
+      "sha256": "1b6f04964e62baa3bd22e9aa69bcac8110de29b1a09a301f2d9e6ff5994fc33c",
+      "bytes": 225713
+    },
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/search-mcp-server",
+      "status": 200,
+      "sha256": "2c1ac7a5ce928ea652c4ed6e245c85fb3279a152c194a55f520d6b7b2bde8f38",
+      "bytes": 218607
+    },
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/vision-mcp-server",
+      "status": 200,
+      "sha256": "f27183c12ba126c20c05f9e747f5b0fd44d0cec6aa55eb229cab54fcd67cc7ab",
+      "bytes": 258522
+    },
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/zread-mcp-server",
+      "status": 200,
+      "sha256": "349ef4c9b0651d7f3099b396265d8444788ddc19223c2e855c116bb2eb0be28b",
+      "bytes": 221899
+    },
+    {
+      "url": "https://registry.npmjs.org/@z_ai/mcp-server/0.1.6",
+      "status": 200,
+      "sha256": "96deedfe15eded3674d8135ce02ce9ef46745abc6c0829ffae3577bdb360087f",
+      "bytes": 2205
+    },
+    {
+      "url": "https://registry.npmjs.org/@z_ai/mcp-server/latest",
+      "status": 200,
+      "sha256": "96deedfe15eded3674d8135ce02ce9ef46745abc6c0829ffae3577bdb360087f",
+      "bytes": 2205
+    }
+  ],
+  "issues": [],
+  "limits": [
+    "Public documentation and package metadata only; no credential or live MCP connection/tool call.",
+    "Token matching detects drift but does not replace semantic documentation review or offline renderer/stdio compatibility tests.",
+    "User-defined MCP and ZAI global configuration are outside this builtin CN contract. No automatic dependency update."
+  ]
+}

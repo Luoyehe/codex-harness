@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v233-ci1-fixture-repair-clean",
+  "completedAt": "2026-11-01T18:15:05.539Z",
+  "complete": true,
+  "clean": true,
+  "sourceDigest": "091ada4bcbd908ca9e25ebe37612cb9b218c4ca574109c1dade30d29ed66829a",
+  "sourceFiles": 2013,
+  "findings": [],
+  "scopes": [
+    "gateway-core",
+    "runtime-protocol",
+    "web-ux",
+    "deployment-release"
+  ],
+  "sourceSnapshot": {
+    "path": "verification/audit-evidence/v233-ci1-repair/source-snapshot.json",
+    "sha256": "87a50ca5b1cf79b77d3e8899a35eed438fb58c955bd05fbbcae949a34f036170"
+  },
+  "priorAudit": {
+    "path": "verification/audit-evidence/v233-audit/audit.json",
+    "sha256": "7b0862723b2f702a6b847b7ad865dd3ed365342f89449a3c7b89753bad3f1abc"
+  },
+  "supporting": [
+    {
+      "path": "verification/audit-evidence/v233-ci1-repair/independent-review.json",
+      "sha256": "1ee40d50829a78fb1bacba2f4d923a93417ec78c8a8c46947ac0cca5633de99a"
+    },
+    {
+      "path": "verification/audit-evidence/v233-ci1-repair/repair.json",
+      "sha256": "f3c6e9e2848f89a733f0b5c5f4c364f80ad98f344fdc5f0d1654b8c2e81ca370"
+    },
+    {
+      "path": "verification/audit-evidence/v233-ci1-repair/ci1-failure.json",
+      "sha256": "03908094abfe0bb3449db1337445d0825d48c9a06a4007bd3895edc9ee03b28f"
+    },
+    {
+      "path": "verification/audit-evidence/v233-ci1-repair/builtin-mcp.json",
+      "sha256": "d0a3bd7c9e6774744584069013e453a4e50e74c5d9591329588c2ab1d306fc32"
+    },
+    {
+      "path": "verification/audit-evidence/v233-ci1-repair/previous-authorization.json",
+      "sha256": "a83e80a8c64849dde6476f72182a01db53532a51e14345098f5017eff24d0a6f"
+    }
+  ],
+  "changedFiles": [
+    "scripts/RELEASE-PREFLIGHT.md",
+    "tests/runtime/predictions.test.ts"
+  ],
+  "unchangedFiles": 2011,
+  "method": "Complete inventory and all four prior audit partitions rebound byte-for-byte; semantic review of both changes and coupled native history reader, followed by 18 affected history consumers / 186 passing cases and independent review. Unchanged inspection depths are inherited explicitly, not claimed as a second line-by-line reread. CI1 failure invalidated its release gate and remains failed. This is one clean post-repair review for the latest user-authorized gate.",
+  "limitations": [
+    "Fresh full tests are pending.",
+    "No paid inference or real external MCP calls."
+  ]
+}
