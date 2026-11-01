@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-ci1-codeql-alert-review",
+  "complete": true,
+  "reviewerId": "root",
+  "completedAt": "2026-10-30T23:58:41.198Z",
+  "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
+  "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+  "securityRun": 41145274215,
+  "evidence": [
+    {
+      "path": ".work/v230-ci1-codeql-list-ui.txt",
+      "sha256": "280784ae271440b554b7dafdae1b5ba3676c968084e11f25740d72c47b946d87"
+    },
+    {
+      "path": ".work/v230-ci1-codeql-alert-details.json",
+      "sha256": "8888e03920e592d20637ee8a766fba3755a73404d298a4f1df0d08eec105a286"
+    },
+    {
+      "path": ".work/v230-ci1-codeql-5-paths-loaded-ui.txt",
+      "sha256": "ace7411a1254c0b9ba734367397c9268869cee800507de02681d3651254657e9"
+    },
+    {
+      "path": ".work/v220-codeql-official-external-bearer.rs",
+      "sha256": "042f90f639dd6b4524fa678540a8d2c68667381d2d8082ed5a097513453c5688"
+    }
+  ],
+  "actualOpenAlerts": 15,
+  "actualClosedAlerts": 1,
+  "currentRewriteAlertsReviewed": 12,
+  "alerts": [
+    {
+      "id": 5,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/5",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "9b30c65bb2e654ff538d5de54e428134927ec22d43325022e9c187aa94f80c06"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-5-ui.txt",
+        "sha256": "5124a7625e50f1ed5bb7de52a228b29f1816df139674bed81ee8265e9fd50fa1"
+      },
+      "disposition": "Credential-helper stdout is the pinned official consumer protocol, not diagnostic logging. Freshly read the current native launcher identity/grant/credential checks and inspected all five actual UI path steps. Saved official v0.164.0 external bearer consumer uses piped stdout and trims it into a token; this is source evidence, not a fresh network fetch or proof of the live process descriptors. Full authorized host Root intentionally can access host secrets.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 6,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/6",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-6-ui.txt",
+        "sha256": "3a0bdf0b232dc2efef915a5c333e17303d83f8b05e88c7445a8d7e93b523dce3"
+      },
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 7,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/7",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-7-ui.txt",
+        "sha256": "3b9a38cf76dffc611ad3ba836ee18af5c8bceccd7b945944e1d217eced851a3d"
+      },
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 8,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/8",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-8-ui.txt",
+        "sha256": "688ac83844c11d3f202232644ce3441ce5308174daf8bbd77347a620a60fe1e5"
+      },
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 9,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/9",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-9-ui.txt",
+        "sha256": "226ecbdd4b28f3203e70112edf83b5ba2612c1505a6faccf40fe31574d5863a6"
+      },
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 10,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/10",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-10-ui.txt",
+        "sha256": "f206cb48c0fd6702561585ab472de4a3d447c43cdf48a34d17ed84291956fd1d"
+      },
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 11,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/11",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-11-ui.txt",
+        "sha256": "b11a31c3cf22da01b9f0bd0b7ba4338900a493370c51ae1413081aded9e8fd50"
+      },
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 12,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/12",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "3fbfe10fbbf8dd518a07ee50ca071fa337cc49dc8b90fff1d89578a8dbae5ffd"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-12-ui.txt",
+        "sha256": "0db10b15446feb90fb16a8457766c6eb8463ec30d0e476951e293a3637dd28f3"
+      },
+      "disposition": "The current sink hashes cwd/options/config for the effective-defaults cache key, not a human password verifier. This does not claim that arbitrary configuration values are safe to log.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 13,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/13",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-13-ui.txt",
+        "sha256": "9abca121b9ce9f6ba764ec47b3e590000aa1f01015ebf90d899b6f17de66627e"
+      },
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 14,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/14",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-14-ui.txt",
+        "sha256": "d95b500f027759e2ec4d0fc67800cc00f677bd4382e0d0eff5d053c0922e6a53"
+      },
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 15,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/15",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-15-ui.txt",
+        "sha256": "49797a10c064d1335e7e2796817e840b946e7a66058b8f624997606b6ad7a73b"
+      },
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    },
+    {
+      "id": 16,
+      "url": "https://github.com/Luoyehe/codex-harness/security/code-scanning/16",
+      "observedHead": "930614562a98889f63cfb1e853b1f5caaa362001",
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "evidence": {
+        "path": ".work/v230-ci1-codeql-16-ui.txt",
+        "sha256": "f9348f57857df87323308dfc637a32d2fe478f466c0d244f207c227c0ba439bf"
+      },
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection.",
+      "newActionableDefectEstablished": false,
+      "dismissed": false
+    }
+  ],
+  "humanPasswordImplementation": {
+    "path": "src/gateway/auth-crypto.ts",
+    "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea"
+  },
+  "humanPasswordReview": "Fresh current code uses salted scrypt with N32768,r8,p3; generic SHA256 identity digests are not the account password verifier.",
+  "pythonObservation": {
+    "python": "3.12.14",
+    "openssl": "3.5.8",
+    "serverMinimum": "TLSv1_2",
+    "clientMinimum": "TLSv1_2",
+    "scope": "Direct local pinned interpreter observation, not a fresh runner measurement"
+  },
+  "limitations": [
+    "Legacy IDs2,3,4 were seen in the alert inventory only; archived pre-rewrite code was not opened or re-audited.",
+    "GitHub shows a stale tool-configuration warning. Current Python and JavaScript workflow jobs succeeded, but an independent aggregate CodeQL check was not observed.",
+    "No alerts were dismissed, suppressed or reclassified in GitHub, and no scanner gates were relaxed. Open-alert count is not zero.",
+    "This records actual first-run annotation inspection and current sink review, not a new full audit or a claim that the failed first full CI passed.",
+    "Next source push requires inspecting its actual annotation changes."
+  ],
+  "findings": []
+}

@@ -87,7 +87,10 @@ def outbound(value):
 
 def configuration(value, port):
     require(type(port) is int and 1024 <= port <= 65534, "Proxy port must leave room for its adjacent HTTP listener")
-    sniff = {"enabled": True, "destOverride": ["http", "tls"], "routeOnly": True}
+    # Replace a locally resolved destination with its HTTP Host/TLS SNI. Keep
+    # unmatched domains unresolved here so poisoned local DNS cannot route them
+    # through the literal-IP direct rules instead of the remote VLESS resolver.
+    sniff = {"enabled": True, "destOverride": ["http", "tls"], "routeOnly": False}
     return {"log": {"loglevel": "none", "access": "none", "error": "none"},
             "inbounds": [{"tag": "tcp4", "listen": "127.0.0.1", "port": port, "protocol": "dokodemo-door",
                           "settings": {"network": "tcp", "followRedirect": True}, "sniffing": sniff},
@@ -95,7 +98,7 @@ def configuration(value, port):
                           "settings": {"network": "tcp", "followRedirect": True}, "sniffing": sniff},
                          {"tag": "http", "listen": "127.0.0.1", "port": port + 1, "protocol": "http", "settings": {}}],
             "outbounds": [outbound(value), {"tag": "direct", "protocol": "freedom", "settings": {}}],
-            "routing": {"domainStrategy": "IPIfNonMatch", "rules": [
+            "routing": {"domainStrategy": "AsIs", "rules": [
                 {"type": "field", "domain": ["domain:localhost", "domain:bigmodel.cn"], "outboundTag": "direct"},
                 {"type": "field", "domain": ["geosite:cn"], "outboundTag": "direct"},
                 {"type": "field", "ip": ["geoip:private", "geoip:cn"], "outboundTag": "direct"}]}}
@@ -134,7 +137,16 @@ def verify_configuration(layout, value):
     data = private_file(config_path(layout, value["configuration"]))
     require(hashlib.sha256(data).hexdigest() == value["configuration"], "Proxy configuration digest changed", "integrity")
     document = json.loads(data)
-    require(canonical(configuration(document, value["port"])) + b"\n" == data,
+    current = configuration(document, value["port"])
+    current_bytes = canonical(current) + b"\n"
+    # Retain exactly the previously generated policy for control upgrades and
+    # transaction recovery. New preparation always uses the corrected policy;
+    # accepting arbitrary combinations would weaken the fixed-policy boundary.
+    for inbound in current["inbounds"][:2]:
+        inbound["sniffing"]["routeOnly"] = True
+    current["routing"]["domainStrategy"] = "IPIfNonMatch"
+    legacy_bytes = canonical(current) + b"\n"
+    require(data in (current_bytes, legacy_bytes),
             "Proxy configuration is not the fixed generated policy", "integrity")
 
 

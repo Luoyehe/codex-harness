@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "kind": "transparent-proxy-dns-policy-repair",
+  "createdAt": "2026-11-01T06:21:25.640359+00:00",
+  "complete": true,
+  "status": "implementation-and-targeted-tests-complete-real-xray-and-production-acceptance-pending",
+  "files": [
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "acb97c3ddcc453f1f43cabf810f48495a3834a3fde9164b9d180599ed52a9883",
+      "bytes": 23897
+    },
+    {
+      "path": "tests/deploy/test_service_proxy.py",
+      "sha256": "09c2eacb5939e6ce5d4ff78034d15599c5ba716224437c6f569fc06775d219f9",
+      "bytes": 19735
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "f882078959549485217825f0f74d643275a7db52a988563a06eb1558e04bede0",
+      "bytes": 19635
+    }
+  ],
+  "diagnosis": {
+    "nativeError": "workspace routing discovery failed (-32603); this generic error does not establish expired login.",
+    "actualWorkerComparison": "Same Python TLS/SNI/endpoint/context: transparent TLS EOF after 530ms; same-core HTTP CONNECT verified TLS1.3 and anonymous HTTP401 after 782ms.",
+    "dnsEvidence": "At Oct31 comparison chatgpt.com resolved to 31.13.69.169 and 2a03:2880:f10d:183:face:b00c:0:25de; Nov1 refresh returned 162.125.32.10 and 2001::45ab:ea30. The prior transparent socket destination was not packet-captured.",
+    "productDefect": "routeOnly=true retains locally resolved original destination while sniffed Host/SNI only influences routing. IPIfNonMatch can additionally turn an unmatched domain into a locally resolved geoip direct decision.",
+    "accountValidity": "Unverified. Anonymous HTTP401 is expected and does not prove account validity; no credential refresh or paid inference was performed.",
+    "invalidFirstProbe": "Initial CLI probe omitted the worker mount namespace and cannot establish a production startup failure; corrected probes verified mount/cgroup/UID."
+  },
+  "change": {
+    "newPreparation": {
+      "routeOnly": false,
+      "domainStrategy": "AsIs"
+    },
+    "routing": "HTTP Host/TLS SNI replaces original IP; known localhost/bigmodel.cn/geosite:cn domains stay direct, literal-IP private/CN routing stays direct, unmatched domains use first VLESS outbound without local DNS routing resolution.",
+    "legacyAcceptance": "After exact selection SHA verification accept only full canonical new policy or unique previous routeOnly=true+IPIfNonMatch generated policy. Mixed policies, arbitrary rules, listeners and mismatched digest remain rejected.",
+    "transactions": "Old selection is readable during control update; both old/new private generations validate in proxy journal; configure creates new SHA; rollback and recovery retain old bytes.",
+    "notChanged": [
+      "nft rules/membership/private bypass",
+      "VLESS import boundary",
+      "identity/native/rootAllowed",
+      "HTTP CONNECT readiness behavior",
+      "runtime service.ts"
+    ]
+  },
+  "validation": [
+    {
+      "path": ".work/v230-proxy-dns-windows-tests.json",
+      "sha256": "b37c2f6c91aed0876861fdbe0becb274b866ed15e50f008add701ab98eeff041",
+      "bytes": 6630,
+      "exitCode": 0,
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/v230-proxy-dns-linux-tests.json",
+      "sha256": "77309099ae2c89c206a96172c818618dc8ca119d2af810623aeaf6ef943e3bae",
+      "bytes": 34755,
+      "exitCode": 0,
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "rootTestScope": "Real isolated Linux UID0 ownership/private files/Manager.verify/selection/journals; service manager, nft, core download/execution and live upstream substituted except separate local TLS deadline test.",
+  "newCases": [
+    "Exact current/legacy policy and digest admission; mixed/asymmetric/unrelated policies rejected",
+    "Selected legacy configuration to new configuration on same core, exact journal validation and rollback",
+    "Interrupted selected legacy-to-new upgrade recovered to both old and candidate"
+  ],
+  "integrationReview": [
+    "deploy/control_update.py validate_proxy_selection delegates exact verify_selection",
+    "deploy/proxy_transaction.py validate_journal validates both bound generations; previous_selection verifies retained rollback configuration"
+  ],
+  "evidence": [
+    {
+      "path": ".work/v230-chatgpt-account-message-result.json",
+      "sha256": "2930fd12682bd34dd02465121b000db044ab42a75c07b0a58074cc71285de4ed",
+      "bytes": 3316
+    },
+    {
+      "path": ".work/v230-chatgpt-anonymous-route-result.json",
+      "sha256": "6bff3d5ea586c918e21b390e9ba4aa4fce8b11d0c67a61121fe3748236dae1e0",
+      "bytes": 1526
+    },
+    {
+      "path": ".work/v230-chatgpt-http-proxy-route-result.json",
+      "sha256": "de18d5a4fd79b7b59cff12c017a0c78696e4ea50a4604492635b99eba23364d2",
+      "bytes": 2205
+    },
+    {
+      "path": ".work/v230-proxy-dns-readonly-20261101.json",
+      "sha256": "b1f3aafc26696fee91bb9e555ab797a1775381b1f01b1d0c742984b19a024acc",
+      "bytes": 8600
+    }
+  ],
+  "primaryReferences": [
+    "https://xtls.github.io/config/inbound.html",
+    "https://xtls.github.io/config/routing.html"
+  ],
+  "applyOrder": [
+    "Update trusted control tools to the dual-policy verifier.",
+    "Run proxy-configure with the existing private outbound configuration and selected pinned core version/port to prepare and select new policy. core-update alone retains the old configuration SHA.",
+    "Verify actual worker transparent anonymous TLS and native read-only catalog/account behavior after deployment.",
+    "Rollback can select retained old policy but restores its DNS risk. Restore old policy before selecting old control tools that only recognize the legacy policy."
+  ],
+  "limits": [
+    "No full tests, online configuration changes, service restarts, real credentials, model inference or external MCP calls in this fix.",
+    "Real Xray controlled DNS regression is running separately and is not claimed by these test counts.",
+    "Existing readiness upstreamTlsVerified means HTTP CONNECT upstream TLS only; it does not attest transparent redirection or authenticated account/catalog success.",
+    "Private addresses bypass nft before sniffing. This patch does not correct DNS answers that resolve into those intentional private bypass ranges.",
+    "Production policy remains legacy until an authorized deployment/configure transaction; account/catalog success remains pending."
+  ],
+  "remainingFindings": []
+}

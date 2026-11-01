@@ -88,6 +88,58 @@ class ProxyTransactionRootTests(unittest.TestCase):
     def configure(self):
         return transaction.change(self.manager, action="configure", confirm_restart=True, input_file=self.input, version="26.10.1")
 
+    def configure_legacy(self):
+        current = service_proxy.configuration
+        def legacy(value, port):
+            document = current(value, port)
+            document["routing"]["domainStrategy"] = "IPIfNonMatch"
+            for inbound in document["inbounds"][:2]: inbound["sniffing"]["routeOnly"] = True
+            return document
+        with patch.object(service_proxy, "configuration", side_effect=legacy):
+            return self.configure()
+
+    def test_selected_legacy_policy_upgrades_and_rolls_back_with_exact_private_generations(self):
+        self.configure_legacy()
+        previous = self.manager.config["serviceProxy"].copy()
+        previous_path = service_proxy.config_path(self.layout, previous["configuration"])
+        original = previous_path.read_bytes()
+        self.manager.verify()
+        result = self.configure()
+        following = self.manager.config["serviceProxy"].copy()
+        self.assertNotEqual(previous["configuration"], following["configuration"])
+        self.assertEqual(previous["core"], following["core"])
+        document = read_json(service_proxy.config_path(self.layout, following["configuration"]))
+        self.assertEqual(document["routing"]["domainStrategy"], "AsIs")
+        self.assertTrue(all(row["sniffing"]["routeOnly"] is False for row in document["inbounds"][:2]))
+        journal_path = self.layout.state / "transactions" / result["transaction"] / "state.json"
+        old, candidate, _ = transaction.validate_journal(self.manager, journal_path, read_json(journal_path))
+        self.assertEqual(old["serviceProxy"], previous)
+        self.assertEqual(candidate["serviceProxy"], following)
+        transaction.change(self.manager, action="rollback", confirm_restart=True)
+        self.assertEqual(self.manager.config["serviceProxy"], previous)
+        self.assertEqual(previous_path.read_bytes(), original)
+        self.assertTrue(service_proxy.config_path(self.layout, following["configuration"]).is_file())
+        self.manager.verify()
+        self.assertEqual(self.system.active, {"worker", "gateway", "proxy", "proxy-routes"})
+
+    def test_interrupted_legacy_policy_upgrade_recovers_either_bound_generation(self):
+        self.configure_legacy()
+        previous = self.manager.config["serviceProxy"].copy()
+        for target in ("old", "candidate"):
+            observed = []
+            def crash(path, value, **kwargs):
+                write_json(path, value, **kwargs)
+                if value.get("kind") == "service-proxy" and value.get("phase") == "selected":
+                    observed.append(path); raise PowerLoss()
+            with self.subTest(target=target):
+                with patch.object(transaction, "write_json", side_effect=crash), self.assertRaises(PowerLoss):
+                    self.configure()
+                candidate = read_json(observed[0])["candidateConfig"]["serviceProxy"]
+                self.assertNotEqual(candidate["configuration"], previous["configuration"])
+                self.assertEqual(self.manager.repair(target=target)["direction"], target)
+                self.assertEqual(self.manager.config["serviceProxy"], previous if target == "old" else candidate)
+                self.manager.require_update_ready(persist=False); self.manager.verify()
+
     def test_configure_update_disable_and_rollback_preserve_private_data_and_old_cores(self):
         auth = self.layout.state / "worker/codex/auth.json"; original = auth.read_bytes()
         first = self.configure(); self.assertTrue(first["changed"])

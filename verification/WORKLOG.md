@@ -531,3 +531,10 @@ The first full CI run [41145274221](https://github.com/Luoyehe/codex-harness/act
 The edge identity fixture, real Git racy-index behavior, web catalog/draft handling and CI diagnostic reporting have separate author and independent-review records. Fresh whole-source v230-round7 is complete and clean for `b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f` (1975 files), under the user's one-clean-round exception. Rounds1..6 and all original failed/clean findings remain intact. Archive policy: semantic records LF canonical; exact originals retained in sidecars when needed.
 
 The second full-platform run is pending. Online upgrade, fresh public/browser acceptance and publication are still pending; this evidence operation executes no test, inference or deployment.
+
+
+## 2026-11-01 — v2.3.0 live repair verification boundary
+
+CI2 run 41147896211 passed for 13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1: 247 files, 2789 distinct cases, no gaps. Its successful deployment and partial live browser acceptance are retained separately; they do not verify the repaired source. CI1 remains failed in history. Independent defaults and proxy repair reviews bind the final files; v230-round10 covers 1975 files at 045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717. Round8 and round9 were not completed as clean repository audits and is not retrospectively marked passed.
+
+Only CI3 is newly authorized under the existing one-clean-round user instruction. Updated deployment, browser acceptance and publication remain pending. No paid inference or external MCP task was performed; production ROOT remained disabled. CodeQL has 15 open reviewed/inventoried alerts, not zero alerts; retained records describe current versus legacy review limits.

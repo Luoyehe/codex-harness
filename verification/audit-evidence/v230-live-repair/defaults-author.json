@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "kind": "defaults-concurrency-repair",
+  "complete": true,
+  "author": "/root/v230_audit_gateway_tooling",
+  "completedAt": "2026-10-31T00:40:24.062279+00:00",
+  "baseHead": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+  "files": [
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "ccc6ac1c1057e921b1fcb006d97b6afeb747008a8400b509fef92c184034cf30"
+    },
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "9924fa833ebd43a2b3de9ae6fb09815c715cb3966ca300602627cf5c771ac6c3"
+    }
+  ],
+  "problem": {
+    "confirmed": true,
+    "priority": "P2",
+    "trigger": "A current useResource refresh aborts/invalidates its previous frontend generation while the original RuntimeService defaults probe is still running. An identical new read receives global capacity, then the older success is ignored. The error remains until another refresh.",
+    "locations": [
+      "src/runtime/service.ts:705 (before repair)",
+      "web/hooks/useResource.ts:19-40",
+      "web/Workspace.tsx:375-391",
+      "web/Workspace.tsx:1378-1380"
+    ],
+    "before": {
+      "path": ".work/v230-defaults-race-repro-result.json",
+      "sha256": "c99c5663a0bf0e22ecf55d12487f216a3425d5829c06ef3eb053bc9d003ed75b"
+    },
+    "beforeVitest": {
+      "path": ".work/v230-defaults-race-repro-vitest.json",
+      "sha256": "0ef4dced060229daea2d18213501db9df8001db3e580b66a3ee2b501e77fb520"
+    }
+  },
+  "implementation": [
+    "One RuntimeService-local in-flight probe promise. The complete cwd/selected options/current config/invalidation-generation key shares its positive result or exact failure only with identical callers.",
+    "Different keys await the active probe cleanup without consuming its result, then reread identity-owned project accessibility, options and config before recomputing the key. No parallel defaults probe or unbounded FIFO is created.",
+    "At most LIMITS.pending=64 defaults callers are admitted before config/read. Every caller has a 30000ms total deadline. Each native initialization/thread-start timeout is capped by the initiating request remainder, and all callers independently bound their wait.",
+    "All three existing defaults cache invalidations now advance a local generation; an older completed probe neither refills that cache nor returns as a current result. Both original and joined consumers recheck generation/admission before return.",
+    "Probe process closure remains the cleanup acknowledgement. The one-probe slot survives caller timeout/abort until cleanup settles. Failed cleanup retains unknown+fatal; queued work cannot start in that state. Same-key shutdown consumers preserve native runtime_lost/unknown; unrelated queued callers fail runtime_unavailable without a new child.",
+    "No web source, CI selection, production deployment, commit, push, tag or release was changed."
+  ],
+  "validation": {
+    "finalLifecycle": {
+      "evidence": {
+        "path": ".work/test-results/run-mYm5I3/vitest.json",
+        "sha256": "1def85220f280085d7706274df04ccbe1dee57632878963030e85ab5a347726f"
+      },
+      "log": {
+        "path": ".work/v230-defaults-repair-lifecycle-final.log",
+        "sha256": "9ac60fe94b2804f654986f29ff42ecde5e5be2300191c099daaa2023d9650714"
+      },
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    "retainedOtherAffectedSuites": {
+      "evidence": {
+        "path": ".work/test-results/run-78PA5b/vitest.json",
+        "sha256": "80a60a5b053cec320d7d2d05a7330591a3397f6b3230e72fdb2261b30cd67bad"
+      },
+      "servicePassed": 61,
+      "workflowsPassed": 34,
+      "note": "These two unchanged suites passed on the same final product bytes. The run as a whole failed because the new lifecycle shutdown test lacked a join barrier; that failure is retained below, not relabeled as an all-pass run."
+    },
+    "firstRepairRun": {
+      "evidence": {
+        "path": ".work/test-results/run-78PA5b/vitest.json",
+        "sha256": "80a60a5b053cec320d7d2d05a7330591a3397f6b3230e72fdb2261b30cd67bad"
+      },
+      "log": {
+        "path": ".work/v230-defaults-repair-targeted.log",
+        "sha256": "1bb3adb1cedbd813220c3ebbd3b21ed27f983af4faa9fc3773dd74cc0993942c"
+      },
+      "passed": 107,
+      "failed": 1,
+      "explanation": "The fake main config callback incremented reads before its consumers resumed/joined the flight. Shutdown therefore legitimately rejected the not-yet-joined second caller as not_sent. A setImmediate barrier now establishes the intended joined state; expectations were not weakened."
+    },
+    "intermediateLifecycle": {
+      "evidence": {
+        "path": ".work/test-results/run-sPYAcz/vitest.json",
+        "sha256": "1fe1cace719bc88a991e0c1a864242db763c4001158831905201432755d3432a"
+      },
+      "passed": 13,
+      "failed": 0,
+      "note": "After the synchronization fix; final adds the config-only isolation control."
+    },
+    "originalUiRaceAfterRepair": {
+      "evidence": {
+        "path": ".work/v230-defaults-race-repair-result.json",
+        "sha256": "2ceae9e8d14056ae9e07a18bb9bf68cb2cd1828e7de85806e238470940a90e2e"
+      },
+      "vitest": {
+        "path": ".work/v230-defaults-race-repair-vitest-final.json",
+        "sha256": "c7990f5e7dd4c234e45b26798347eac7e4a23077615b4f4dec1b1c61224d34b6"
+      },
+      "test": {
+        "path": ".work/v230-defaults-race-repair.test.ts",
+        "sha256": "f84490b8a52d38ebb73fd5b5c8d3ca52c8e7ca7edbc6502966b61fac851349c6"
+      },
+      "config": {
+        "path": ".work/v230-defaults-race-repair.config.mjs",
+        "sha256": "68ec00178ba9de1eda26b65346b6c3fae8461009f1f3d7b200f3587cf252869a"
+      },
+      "passed": 1,
+      "failed": 0,
+      "observed": "Actual RuntimeService + actual NativeRpc child + actual useResource hook. Old frontend AbortSignal is aborted, both same-key service calls succeed, new hook generation receives fixture-default, error empty/loading false, exactly one probe, runtimeUnknown=false."
+    },
+    "initialReproducerSetupFailure": {
+      "evidence": {
+        "path": ".work/v230-defaults-race-repro-setup-failure.json",
+        "sha256": "1ffc9a6d1b43c68d5022e3f215463440271044f6f44447fde410f5af6f998601"
+      },
+      "stack": {
+        "path": ".work/v230-defaults-race-repro-setup-stack.log",
+        "sha256": "dda38f39d3839b2e10ae01984ef4113f73669a4a7567b6dd6424fdaae8b223cb"
+      },
+      "testsExecuted": 0,
+      "explanation": "Vite jsdom environment rewrote server import.meta.url to a browser URL, so metadata loading failed before any test. The reproducer uses Node module loading plus an isolated JSDOM for only the real hook; corrected before-repair run passed two bug assertions."
+    },
+    "serverTsc": {
+      "status": "passed",
+      "command": "pinned Node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "log": {
+        "path": ".work/v230-defaults-repair-tsc.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "gitDiffCheck": "passed"
+  },
+  "coverage": [
+    "Identical-key concurrency and subsequent cache hit",
+    "Different cwd/options never share; second real child starts only after first PID is dead",
+    "Config changes while waiting force reread/key recalculation",
+    "Config-only changes isolate a second result with otherwise identical request",
+    "Account invalidation generation discards old result and prevents stale repopulation",
+    "Shared native rejection remains not_sent and clears the in-flight slot",
+    "Close during initialize/thread-start, including startup delay; shared/queued close boundary",
+    "64-reader cap before config/read and release after success",
+    "Total deadline for a blocked config/read prevents a late child",
+    "Injected lost cleanup acknowledgement still sets runtime unknown/fatal and blocks successor",
+    "Original frontend-refresh race succeeds without cancelling the shared child"
+  ],
+  "limits": [
+    "Local Windows targeted tests only; no full audit or full platform/full suite was run.",
+    "Actual defaults probe children speak a local deterministic JSON-RPC fixture, not the commercial Codex CLI; the main config/read is a local substitute.",
+    "Root/native Linux launcher resolution is retained in code but not dynamically rerun here; execution identity remains scoped to a RuntimeService instance.",
+    "The UI bridge invokes the actual hook and service directly; no live browser, gateway HTTP, paid inference or external MCP call is claimed.",
+    "Waiters can still receive explicit capacity at 64 or timeout at 30 seconds; there is no unlimited retry. An individual frontend abort does not cancel shared probe work.",
+    "Cleanup failure test injects an acknowledgement error after actual process termination; it verifies fail-closed state semantics rather than simulating an OS inability to kill.",
+    "Independent review, new whole-repository audit/full CI and any deployment/publication are owned by root; the deployed 13cef candidate was not modified by this task."
+  ],
+  "findings": []
+}

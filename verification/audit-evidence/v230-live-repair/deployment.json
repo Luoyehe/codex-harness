@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "deploymentComplete": true,
+  "completedAt": "2026-10-31T00:25:17.885240+00:00",
+  "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+  "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
+  "sourceFiles": 1975,
+  "version": "2.3.0",
+  "release": "884a0dc8d5d5bab378d9990cda89c8827630e8a8cf215f5363f543f65ffe4d9d",
+  "previousRelease": "4ea12107e774e9c5a4f525d73b9a23ad56dc2782e39f1de438909d2e128e3a7b",
+  "ciFullPassed": true,
+  "ciFiles": 247,
+  "ciCases": 2789,
+  "coverageGaps": [],
+  "stage": "/root/codex-harness-v230-20261031-13cef300c9b0-edaa5c636a23",
+  "applicationArchiveSha256": "e8bd78c11a9158e2e3b6a6a6337cfb018af5bf2a9fc02797d9f42daba9350a31",
+  "authorization": {
+    "path": ".work/v230-final-deploy-authorization-13cef300c9b0-active.json",
+    "sha256": "184d0e90722ab77996bd41550c918fde851f24f8421dd74dbae982edaf36ecf0"
+  },
+  "disabledAuthorizationPreserved": {
+    "path": ".work/v230-final-deploy-authorization-13cef300c9b0-disabled-before-ci2.json",
+    "sha256": "3ebb08569f269b332ff50898f51c4c0b999df0b9cdc8e179904e69d03bb0ca6a"
+  },
+  "stagingOnlyAuthorizationPreserved": {
+    "path": ".work/v230-final-deploy-authorization-13cef300c9b0-staging-only.json",
+    "sha256": "c17609d070dec138a41c424e419bc6e6783e60cab18675fa24b838232539d8de"
+  },
+  "ciEvidence": {
+    "path": ".work/v230-ci2-monitor-summary.json",
+    "sha256": "beed90f0e81226d1b0195bc69cdc90ed65960930488bc31460c59d20b6a0cf37"
+  },
+  "stageEvidence": {
+    "path": ".work/v230-stage-13cef300c9b0-result.json",
+    "sha256": "7697ff2a3a0459f864932cfbadf434db612ba326add4361f2ff906ca60b1d92b"
+  },
+  "independentReviews": [
+    {
+      "path": ".work/v230-stage-13cef300c9b0-review.json",
+      "sha256": "cd9d08beb5b1746df405ff8bc5cf1651e064642c73ddd06ba48f4f2f2edc0353"
+    },
+    {
+      "path": ".work/v230-final-deploy-independent-13cef300c9b0.json",
+      "sha256": "1037cb9dd6c7224165d94a7d1e0f1a6b674d71a3dc9c5bf32f8dba97d7179bce"
+    }
+  ],
+  "freshPreflight": {
+    "path": ".work/v230-final-deploy-preflight-20261031T001954Z.json",
+    "sha256": "e47e4a1a862ec9731d04c175cd106d0b906e232a626023da34ddec6aa2937d78"
+  },
+  "phases": {
+    "control-update": {
+      "phase": "control-update",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:20:07.699666+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "config-layer-migrate": {
+      "phase": "config-layer-migrate",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:20:22.546346+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "candidate-archive": {
+      "phase": "candidate-archive",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:20:57.963694+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "application-update": {
+      "phase": "application-update",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "release": "884a0dc8d5d5bab378d9990cda89c8827630e8a8cf215f5363f543f65ffe4d9d",
+      "changed": true,
+      "completedAt": "2026-10-31T00:22:04.889789+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "proxy-configure": {
+      "phase": "proxy-configure",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:22:28.152656+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "legacy-proxy-retire": {
+      "phase": "legacy-proxy-retire",
+      "exitCode": 0,
+      "legacyFilesRetained": true,
+      "legacyUnitDisabled": true,
+      "legacyRoutesRemoved": true,
+      "newTable": "chp22dc5040d7b4",
+      "credentialsEmitted": false
+    },
+    "verify": {
+      "phase": "verify",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:22:52.496178+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "status": {
+      "phase": "status",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:23:00.287564+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "proxy-status": {
+      "phase": "proxy-status",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:23:04.247935+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    },
+    "candidate-list": {
+      "phase": "candidate-list",
+      "exitCode": 0,
+      "commit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+      "completedAt": "2026-10-31T00:23:13.367170+00:00",
+      "privateOutputRetained": true,
+      "credentialsEmitted": false
+    }
+  },
+  "finalObservation": {
+    "path": ".work/v230-final-deploy-observation.json",
+    "sha256": "6260f5f3f657554b33204810e890f87e84e47f2d473c69df384e1bc82a7e7fff"
+  },
+  "publicAssets": {
+    "path": ".work/v230-final-public-assets.json",
+    "sha256": "f30af5c00093cdb3e13ebc387b7b6a08897c63feb164a118507dafaced40dd5c"
+  },
+  "independentPublicProbe": {
+    "path": ".work/v230-public-readonly-13cef300c9b0-result.json",
+    "sha256": "5b46bc86f3e4e7adcef3e72619f1aee1a6a6a9969a8fd42204b694b51040c34c"
+  },
+  "executionMode": {
+    "mode": "native",
+    "rootAllowed": false,
+    "revision": "113103dc9b52fac46f97b41ccedafb346d69e6005d844f337c173b1f33c2d3de",
+    "effectiveUid": 990,
+    "requiresRestart": true
+  },
+  "verification": {
+    "release": "884a0dc8d5d5bab378d9990cda89c8827630e8a8cf215f5363f543f65ffe4d9d",
+    "files": 20375,
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "unitPolicy": "current",
+    "sudoPolicy": "current",
+    "https": {
+      "configured": true,
+      "ready": true,
+      "tlsVerified": true,
+      "instanceVerified": true,
+      "certificate": {
+        "notAfter": "2027-01-27T19:27:54+00:00",
+        "notBefore": "2026-10-29T19:27:55+00:00",
+        "daysRemaining": 88.8,
+        "issuer": [
+          {
+            "name": "countryName",
+            "value": "US"
+          },
+          {
+            "name": "organizationName",
+            "value": "Let's Encrypt"
+          },
+          {
+            "name": "commonName",
+            "value": "YE1"
+          }
+        ],
+        "subjectAlternativeNames": [
+          {
+            "type": "DNS",
+            "value": "cloudark.org.cn"
+          }
+        ]
+      },
+      "failure": null,
+      "vantage": {
+        "source": "deployment-host",
+        "independentPublicAcceptance": false,
+        "route": "fixed-address"
+      },
+      "origin": "https://cloudark.org.cn:10000",
+      "tlsMode": "acme",
+      "connectionPort": 10000,
+      "validation": {
+        "challenge": "dns-01",
+        "dnsProvider": "alidns",
+        "publicRoutes": [],
+        "requiredPublicRoutes": "none",
+        "requirements": "The authoritative DNS zone must be managed by the selected Alibaba Cloud DNS (AliDNS) account. Caddy creates and removes temporary _acme-challenge TXT records through its retained DNS API credentials. Public inbound 80/443 are not required for validation; outbound DNS, the provider API and CA HTTPS access are required.",
+        "publicReachabilityVerified": false,
+        "dnsApiAccessVerified": false,
+        "provider": {
+          "name": "alidns",
+          "label": "Alibaba Cloud DNS (AliDNS)",
+          "credentialFields": [
+            "accessKeyId",
+            "accessKeySecret"
+          ],
+          "credentials": "A dedicated RAM AccessKey with DNS discovery and challenge record permissions.",
+          "documentation": "https://help.aliyun.com/zh/dns/alibaba-cloud-dns-custom-permission-policy-reference-dns",
+          "credentialFile": "Absolute UTF-8 JSON file, root-owned mode 0600; never put values in argv or logs."
+        }
+      },
+      "renewal": {
+        "manager": "caddy",
+        "automatic": true,
+        "challenge": "dns-01",
+        "dnsProvider": "alidns",
+        "mechanism": "acme",
+        "futureSuccessVerified": false,
+        "evidence": "configuration-only",
+        "requirements": [
+          "Keep the selected DNS API credentials active with the required zone permissions.",
+          "Keep Caddy running, its data directory persistent and writable, and outbound DNS/HTTPS available.",
+          "A working cached certificate does not validate a new DNS key; confirm API permissions and later issuance/renewal logs."
+        ]
+      },
+      "trust": "system-ca",
+      "diagnostics": []
+    },
+    "serviceProxy": {
+      "configured": true,
+      "enabled": true,
+      "ready": true,
+      "cgroupScoped": true,
+      "upstreamTlsVerified": false
+    }
+  },
+  "services": {
+    "worker": {
+      "MainPID": "794615",
+      "ControlPID": "0",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-worker.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/codex-harness-crtest-rw-20261025-worker.service",
+      "UnitFileState": "enabled"
+    },
+    "gateway": {
+      "MainPID": "794628",
+      "ControlPID": "0",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-gateway.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/codex-harness-crtest-rw-20261025-gateway.service",
+      "UnitFileState": "enabled"
+    },
+    "caddy": {
+      "MainPID": "790535",
+      "ControlPID": "0",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-caddy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/codex-harness-crtest-rw-20261025-caddy.service",
+      "UnitFileState": "enabled"
+    },
+    "proxy": {
+      "MainPID": "794501",
+      "ControlPID": "0",
+      "ControlGroup": "/system.slice/codex-harness-crtest-rw-20261025-proxy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/codex-harness-crtest-rw-20261025-proxy.service",
+      "UnitFileState": "static"
+    },
+    "proxy-routes": {
+      "MainPID": "0",
+      "ControlPID": "0",
+      "ControlGroup": "",
+      "ActiveState": "active",
+      "SubState": "exited",
+      "FragmentPath": "/etc/systemd/system/codex-harness-crtest-rw-20261025-proxy-routes.service",
+      "UnitFileState": "static"
+    },
+    "retiredLegacy": {
+      "MainPID": "0",
+      "ControlPID": "0",
+      "ControlGroup": "",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "FragmentPath": "/etc/systemd/system/harness-vless-crtest.service",
+      "UnitFileState": "disabled"
+    },
+    "retiredLegacyRoutes": {
+      "MainPID": "0",
+      "ControlPID": "0",
+      "ControlGroup": "",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "FragmentPath": "/etc/systemd/system/harness-vless-rules-crtest.service",
+      "UnitFileState": "static"
+    },
+    "unrelatedHistoricalProxy": {
+      "MainPID": "1910300",
+      "ControlPID": "0",
+      "ControlGroup": "/system.slice/codex-harness-proxy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/codex-harness-proxy.service",
+      "UnitFileState": "enabled"
+    }
+  },
+  "activity": {
+    "connected": true,
+    "restarting": false,
+    "activeThreadCount": 0,
+    "unknown": false,
+    "pendingStarts": 0,
+    "terminals": 0,
+    "subscriptions": 0,
+    "processes": 0,
+    "knownIdle": true
+  },
+  "pendingTransactions": [],
+  "serviceProxy": {
+    "configured": true,
+    "enabled": true,
+    "coreVersion": "26.10.29",
+    "core": "8a5f3e6a1057e4bd0f8a7c57c9d91204b4be0b74222a6e210d070603101163c2",
+    "configuration": "265642680a67393034f36695e29aa835ff69be43a39ff6fa650a2e7f6db97d77",
+    "port": 18793,
+    "transport": "tcp",
+    "scope": "instance-worker-gateway-management-cgroups",
+    "directDomain": "bigmodel.cn",
+    "services": {
+      "proxy": {
+        "MainPID": "794501",
+        "ControlPID": "0",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "running",
+        "stopped": false
+      },
+      "proxy-routes": {
+        "MainPID": "0",
+        "ControlPID": "0",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "stopped": false
+      }
+    }
+  },
+  "proxyPreservation": {
+    "selectedOutboundEqualsLatestLegacy": true,
+    "exactLatestEndpointMatches": true,
+    "oldTableAbsent": true,
+    "unrelated18790SamePid": true,
+    "legacyMaterials": [
+      {
+        "path": "/etc/harness-vless-crtest/xray.json",
+        "device": 64512,
+        "inode": 4492078,
+        "mode": "0o600",
+        "uid": 0,
+        "gid": 0,
+        "links": 1,
+        "size": 2702,
+        "mtimeNs": 1793337807742791324,
+        "symlink": false,
+        "sha256": "f1d966253244d0336cff3654ba8247d31934a0bea3fffc54c91615cb55d05db3"
+      },
+      {
+        "path": "/etc/systemd/system/harness-vless-crtest.service",
+        "device": 64512,
+        "inode": 262841,
+        "mode": "0o644",
+        "uid": 0,
+        "gid": 0,
+        "links": 1,
+        "size": 877,
+        "mtimeNs": 1793337951611080575,
+        "symlink": false,
+        "sha256": "9d2dac5b2ac03968d910b3d7f6497ea0aa0493046c3a12b1613ecf1ab3bcbb05"
+      },
+      {
+        "path": "/etc/systemd/system/harness-vless-rules-crtest.service",
+        "device": 64512,
+        "inode": 263876,
+        "mode": "0o644",
+        "uid": 0,
+        "gid": 0,
+        "links": 1,
+        "size": 435,
+        "mtimeNs": 1793338198189272089,
+        "symlink": false,
+        "sha256": "a7ce5d5f2000d1f3e2928ccb01af56416895e7c2ab0f344c9b1eca2bfa660431"
+      },
+      {
+        "path": "/usr/local/lib/harness-vless-crtest/routing.py",
+        "device": 64512,
+        "inode": 6457765,
+        "mode": "0o755",
+        "uid": 0,
+        "gid": 0,
+        "links": 1,
+        "size": 2725,
+        "mtimeNs": 1793337951611080575,
+        "symlink": false,
+        "sha256": "7e69db6f327784d0741e0c29745a0e4357be69d62b968ff21dc0f8ce47bb017b"
+      }
+    ]
+  },
+  "preservationComparisons": [
+    {
+      "path": "/etc/codex-harness/crtest-rw-20261025/gateway-token",
+      "identityModeOwnerUnchanged": true
+    },
+    {
+      "path": "/etc/codex-harness/crtest-rw-20261025/auth-bootstrap.json",
+      "identityModeOwnerUnchanged": true
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/worker",
+      "identityModeOwnerUnchanged": true
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/worker/codex",
+      "identityModeOwnerUnchanged": true
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/worker/projects",
+      "identityModeOwnerUnchanged": true
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/caddy",
+      "identityModeOwnerUnchanged": true
+    },
+    {
+      "path": "/etc/codex-harness/crtest-rw-20261025/management.lock",
+      "identityModeOwnerUnchanged": true
+    },
+    {
+      "path": "/etc/codex-harness/.crtest-rw-20261025-initialize.lock",
+      "identityModeOwnerUnchanged": true
+    }
+  ],
+  "candidateCount": 8,
+  "candidateLimit": 8,
+  "operatorCommand": "sudo sh /root/codex-harness-v230-20261031-13cef300c9b0-edaa5c636a23/source/harness.sh --instance crtest-rw-20261025 manage",
+  "findings": [],
+  "failedPhases": [],
+  "unknownPhases": [],
+  "limits": [
+    "Browser acceptance and release publication are owned and recorded separately by the root agent.",
+    "No root execution was enabled; no model inference was sent.",
+    "Proxy and proxy-routes are static dependency units; worker, gateway and caddy remain active and enabled.",
+    "Account/project content was preserved by the supported upgrade; private conversation or credential content was not exported."
+  ],
+  "credentialValuesEmitted": false,
+  "unrelated18790Untouched": true
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-public-browser-acceptance",
+  "status": "partial",
+  "head": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+  "sourceDigest": "b96b81a1ab49fb4ba6d562307cfa055f8809c8ab1bf9074f34a235b62379719f",
+  "rootAllowed": false,
+  "paidInference": false,
+  "externalMcp": false,
+  "completedAt": "2026-10-31T00:42:26Z",
+  "checks": [
+    {"name":"Authenticated page reconnects to upgraded gateway, current asset names match the deployed build", "status":"passed"},
+    {"name":"Server status shows native UID 990 and ungranted, disabled ROOT option", "status":"passed"},
+    {"name":"Create ./v230-accept-20261031-0830// shows and creates one canonical relative directory", "status":"passed"},
+    {"name":"Own project shell executes only id -u && pwd and confirms UID 990 and canonical directory; terminal then closed", "status":"passed"},
+    {"name":"Absolute /root project creation is denied with actual permission reason and server authorization / ROOT guidance; no project created", "status":"passed"},
+    {"name":"The intentional not-sent receipt can be acknowledged without blocking navigation", "status":"passed"},
+    {"name":"Project grouping, visible management menu, remove-project explanation preserving files and history", "status":"passed"},
+    {"name":"Existing completed answers show completed marker, copy action and collapsed turn actions; unloaded-session action guards preserved", "status":"passed"},
+    {"name":"Model refresh can leave a persistent effective-defaults capacity error; one manual retry recovers", "status":"failed"},
+    {"name":"ChatGPT catalog reads fail before model/list at native account/read; investigation pending", "status":"failed"},
+    {"name":"Current public responsive viewport acceptance", "status":"not-run"}
+  ],
+  "limitations": [
+    "This is not final release acceptance. The live defaults race requires a product repair and renewed validation.",
+    "No existing user session was resumed, no message submitted and no commercial model or external MCP task executed.",
+    "IAB viewport override did not alter the actual 1280x720 viewport and was reset; this attempt is not mobile evidence. Earlier source-bound controlled 320/390 Chromium fixtures are retained separately, not claimed as physical iOS or current public mobile testing.",
+    "The own acceptance project is retained for post-repair navigation checks; the remove-project modal was cancelled."
+  ],
+  "evidence": [
+    ".work/v230-live-native-shell.png",
+    ".work/v230-live-path-permission.png",
+    ".work/v230-live-turn-footer.png",
+    ".work/v230-defaults-race-repro-result.json"
+  ]
+}

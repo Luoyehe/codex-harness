@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-ci2-codeql-delta-review",
+  "complete": true,
+  "reviewerId": "root",
+  "completedAt": "2026-10-31T00:06:36.455Z",
+  "head": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+  "securityRun": 41147945392,
+  "priorActualReview": {
+    "path": ".work/v230-ci1-codeql-review.json",
+    "sha256": "0555f6859c21429a213d778f2801b341fcf94acb3408a8d690fba57ccf1087d6"
+  },
+  "actualUiEvidence": [
+    {
+      "path": ".work/v230-ci2-codeql-list-ui.json",
+      "sha256": "115bd0afd0b76fa7ffd833a351e778e3d1ad2f6dfd335d54e118db883dc7c9dc"
+    },
+    {
+      "path": ".work/v230-ci2-codeql-source-ui.json",
+      "sha256": "1ebac57b5f902f783c77c5ff1e80041af61bc0c6c9a394fe9dc465977a794693"
+    }
+  ],
+  "openAlerts": 15,
+  "closedAlerts": 1,
+  "newAlertIds": [],
+  "reviewedCurrentAlerts": 12,
+  "allCurrentAnnotationPathsAndSourceBytesUnchanged": true,
+  "method": "After the current security workflow succeeded, read the actual main alert inventory, opened every current rewrite alert detail, and verified all 12 annotations point to this exact new head. Their source bytes match the first-run source/sink review; those semantic dispositions are explicitly carried forward, not presented as a second fresh full source review.",
+  "dispositions": [
+    {
+      "id": 5,
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "9b30c65bb2e654ff538d5de54e428134927ec22d43325022e9c187aa94f80c06"
+      },
+      "disposition": "Credential-helper stdout is the pinned official consumer protocol, not diagnostic logging. Freshly read the current native launcher identity/grant/credential checks and inspected all five actual UI path steps. Saved official v0.164.0 external bearer consumer uses piped stdout and trims it into a token; this is source evidence, not a fresh network fetch or proof of the live process descriptors. Full authorized host Root intentionally can access host secrets."
+    },
+    {
+      "id": 6,
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text."
+    },
+    {
+      "id": 7,
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+      },
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier."
+    },
+    {
+      "id": 8,
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+      },
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier."
+    },
+    {
+      "id": 9,
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+      },
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier."
+    },
+    {
+      "id": 10,
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+      },
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier."
+    },
+    {
+      "id": 11,
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+      },
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier."
+    },
+    {
+      "id": 12,
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "3fbfe10fbbf8dd518a07ee50ca071fa337cc49dc8b90fff1d89578a8dbae5ffd"
+      },
+      "disposition": "The current sink hashes cwd/options/config for the effective-defaults cache key, not a human password verifier. This does not claim that arbitrary configuration values are safe to log."
+    },
+    {
+      "id": 13,
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+      },
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets."
+    },
+    {
+      "id": 14,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation."
+    },
+    {
+      "id": 15,
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+      },
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier."
+    },
+    {
+      "id": 16,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection."
+    }
+  ],
+  "limitations": [
+    "The three legacy alert entries are inventory-only; no pre-rewrite code was opened.",
+    "Open alerts remain open; no GitHub dismissal, suppression, scanner changes or claim of zero alerts.",
+    "Workflow language-job success, aggregate check absence and dependency results are separately recorded by the CI monitor.",
+    "No new inference, live secrets, external MCP or production mutation."
+  ],
+  "findings": []
+}

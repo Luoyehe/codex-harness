@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-transparent-proxy-dns-repair-review",
+  "reviewerId": "root",
+  "complete": true,
+  "completedAt": "2026-11-01T06:29:50.540Z",
+  "authorReport": {
+    "path": ".work/v230-proxy-dns-repair.json",
+    "sha256": "bf6e1787d2ac7053b19cd62576c2f460ec8fa8de07fa4a44ce657fa04d26f675"
+  },
+  "reviewedFileHashes": [
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "acb97c3ddcc453f1f43cabf810f48495a3834a3fde9164b9d180599ed52a9883"
+    },
+    {
+      "path": "tests/deploy/test_service_proxy.py",
+      "sha256": "09c2eacb5939e6ce5d4ff78034d15599c5ba716224437c6f569fc06775d219f9"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "f882078959549485217825f0f74d643275a7db52a988563a06eb1558e04bede0"
+    }
+  ],
+  "findings": [],
+  "remainingFindings": [],
+  "method": "Read the complete three-file diff and adjacent fixed-policy reconstruction, control-update verifier and proxy transaction journal/recovery paths. Independently inspected actual targeted JSON results and the real Xray harness destination receiver, ClientHello/Host construction, isolated network setup, routing configuration and child cleanup. No successful test was rerun.",
+  "checks": [
+    "New preparation replaces visible HTTP/TLS destinations and uses AsIs. The real pinned core emits the sniffed domain rather than the erroneous original public IP; removing only routeOnly is insufficient, as the IPIfNonMatch control concretely misroutes a synthetic China DNS answer.",
+    "Exact selected configuration SHA and full canonical document reconstruction remain mandatory. Only the new whole policy and the unique prior whole policy are accepted; arbitrary listeners, rules, mixed or asymmetric sniff settings remain rejected.",
+    "Old/new journals validate both immutable generations. Actual isolated-root file/Manager verification tests cover old-to-new on the same core, rollback and interrupted selected recovery to both targets. Core update alone intentionally does not regenerate proxy policy.",
+    "Existing cgroup/nft/private bypass and VLESS credential import are unchanged. The isolated real-core experiment confirms bigmodel/geosite-China and literal private/China direct controls; no current host routing or service selection was changed.",
+    "The deployment guide and architecture distinguish HTTP CONNECT readiness from actual transparent/account acceptance, mention private bypass and old-policy rollback behavior, and accurately describe candidate recovery scope."
+  ],
+  "evidence": [
+    {
+      "path": ".work/v230-proxy-dns-windows-tests.json",
+      "sha256": "b37c2f6c91aed0876861fdbe0becb274b866ed15e50f008add701ab98eeff041",
+      "passed": 31
+    },
+    {
+      "path": ".work/v230-proxy-dns-linux-tests.json",
+      "sha256": "77309099ae2c89c206a96172c818618dc8ca119d2af810623aeaf6ef943e3bae",
+      "passed": 44
+    },
+    {
+      "path": ".work/v230-xray-dns-regression-result.json",
+      "sha256": "f77a572f0ca7b136adb5b07dcd5aaab60dae1aa04911240eddfcb514bd435766"
+    },
+    {
+      "path": ".work/v230-xray-dns-regression-report.json",
+      "sha256": "034d90957b29c1c2e823e98c58aa857404483914cc36b72b14f9cbcfbe712e6b"
+    },
+    {
+      "path": ".work/v230-xray-dns-regression.py",
+      "sha256": "c4d227cc419b705b9c42164c0f3d2d8631ad55b9c6e3d684d6ed6956934ff2dc"
+    },
+    {
+      "path": ".work/v230-run-xray-dns-regression.py",
+      "sha256": "c08125bc8b761a11610376972698baa16e126bd2a153b4d34825184a823d1a87"
+    }
+  ],
+  "limits": [
+    "Real Xray means its installed pinned core and geodata ran in a loopback-only namespace; VLESS receiver and DNS mappings were controlled substitutes, not a commercial provider acceptance.",
+    "The fixture uses a fixed original destination, not production nft SO_ORIGINAL_DST. Private DNS answers bypassed before the real transparent listener remain outside this repair.",
+    "Current 120 still has the old selected policy until deployment. Actual worker TLS, native account/model directory and public browser checks remain required after the full-suite gate.",
+    "No model inference, real external MCP task, credential refresh, source mutation or production restart was performed by this independent review."
+  ]
+}
