@@ -25,6 +25,20 @@ test('the one-stop shell entry retains deployment and operator journey coverage'
   expect(plan.requiresFullAudit).toEqual([]);
 });
 
+test.each(['tests/runtime/mcp-oauth-fixture.mjs', 'tests/runtime/native-fixture.mjs'])('shared runtime helper %s retains runtime and gateway consumers', changed => {
+  const gateway = 'tests/gateway/mcp-oauth.test.ts';
+  const inventory = [...available, gateway];
+  const plan = selectTests([changed], inventory);
+  const unit = ['tests/gateway/auth.test.ts', gateway, 'tests/runtime/native.test.ts'].sort();
+  const native = [...nativeTestFiles].sort();
+  expect(plan.status).toBe('selected');
+  expect(plan.requiresFullAudit).toEqual([]);
+  expect(plan.groups).toEqual({ unit, native, deploy: [], 'deploy-root': [], go: [] });
+  expect(plan.mappings).toEqual([{ path: changed, reason: 'runtime-fixture', tests: [...unit, ...native].sort() }]);
+  expect(selectTests(['tests/runtime/native.test.ts'], inventory).groups.unit).toEqual(['tests/runtime/native.test.ts']);
+  expect(selectTests(['tests/runtime/README.md'], inventory).noBehaviorChange).toEqual([{ path: 'tests/runtime/README.md', reason: 'documentation-or-audit-evidence-only' }]);
+});
+
 test('builtin MCP contract/checker changes retain offline vision and both managed credential render paths', () => {
   const required = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vision-compat.test.ts', 'tests/deploy/test_provider_registry.py', 'tests/deploy/root/test_provider_extended.py'];
   for (const changed of ['scripts/check-builtin-mcp.mjs', 'reference/BUILTIN-MCP-CONTRACT.json', 'tests/deploy/vision_stdio_probe.mjs']) {

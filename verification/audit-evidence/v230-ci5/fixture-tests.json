@@ -1,0 +1,792 @@
+{
+  "numTotalTestSuites": 5,
+  "numPassedTestSuites": 5,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 63,
+  "numPassedTests": 63,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1793521422934,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "actual runtime to gateway Ledger persistence, replay, operation read and export never retain OAuth URL",
+          "status": "passed",
+          "title": "actual runtime to gateway Ledger persistence, replay, operation read and export never retain OAuth URL",
+          "duration": 113.43279999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "gateway records fresh bearerToken OAuth rejection as not_sent without starting native login",
+          "status": "passed",
+          "title": "gateway records fresh bearerToken OAuth rejection as not_sent without starting native login",
+          "duration": 27.550999999999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "gateway records fresh unsupported OAuth rejection as not_sent without starting native login",
+          "status": "passed",
+          "title": "gateway records fresh unsupported OAuth rejection as not_sent without starting native login",
+          "duration": 26.272699999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "gateway records fresh unknown OAuth rejection as not_sent without starting native login",
+          "status": "passed",
+          "title": "gateway records fresh unknown OAuth rejection as not_sent without starting native login",
+          "duration": 26.765000000000043,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "thread-scoped OAuth requires an explicitly loaded MCP connection before discovery or native login",
+          "status": "passed",
+          "title": "thread-scoped OAuth requires an explicitly loaded MCP connection before discovery or native login",
+          "duration": 23.2663,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "service client disconnect revokes handoff without replaying a native login",
+          "status": "passed",
+          "title": "service client disconnect revokes handoff without replaying a native login",
+          "duration": 23.716099999999983,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "service gateway disconnect revokes handoff without replaying a native login",
+          "status": "passed",
+          "title": "service gateway disconnect revokes handoff without replaying a native login",
+          "duration": 24.365499999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "service native disconnect revokes handoff without replaying a native login",
+          "status": "passed",
+          "title": "service native disconnect revokes handoff without replaying a native login",
+          "duration": 23.7423,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "historical accepted URL receipts are redacted on read, replay and new export while original database evidence remains",
+          "status": "passed",
+          "title": "historical accepted URL receipts are redacted on read, replay and new export while original database evidence remains",
+          "duration": 25.327999999999975,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "legacy OAuth error bodies are hidden on public reads and exports without changing unknown state or the original row",
+          "status": "passed",
+          "title": "legacy OAuth error bodies are hidden on public reads and exports without changing unknown state or the original row",
+          "duration": 25.487799999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "an owner guard that rejects before native dispatch stays not_sent and releases its reservation",
+          "status": "passed",
+          "title": "an owner guard that rejects before native dispatch stays not_sent and releases its reservation",
+          "duration": 20.9538,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "real NativeRpc pipe and RuntimeService keep rejected owner guards not_sent, then complete one usable local OAuth handoff",
+          "status": "passed",
+          "title": "real NativeRpc pipe and RuntimeService keep rejected owner guards not_sent, then complete one usable local OAuth handoff",
+          "duration": 64.40190000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793521423252,
+      "endTime": 1793521423677.4019,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/gateway/mcp-oauth.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization projects fixed root management results and nested saved profiles without future secret fields",
+          "status": "passed",
+          "title": "projects fixed root management results and nested saved profiles without future secret fields",
+          "duration": 2.434599999999989,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization refuses malformed management proof and unsupported system receipt kinds",
+          "status": "passed",
+          "title": "refuses malformed management proof and unsupported system receipt kinds",
+          "duration": 0.9524999999999864,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization preserves the 64 Unicode character saved-profile name contract",
+          "status": "passed",
+          "title": "preserves the 64 Unicode character saved-profile name contract",
+          "duration": 0.654200000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization account receipts preserve redemption outcome and OAuth handoff identity without private authorization links",
+          "status": "passed",
+          "title": "account receipts preserve redemption outcome and OAuth handoff identity without private authorization links",
+          "duration": 0.24430000000000973,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization environment and native pairing receipts exclude credentials and pairing codes",
+          "status": "passed",
+          "title": "environment and native pairing receipts exclude credentials and pairing codes",
+          "duration": 0.14450000000002206,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization voice receipts retain session identity without SDP, transcript or native transport details",
+          "status": "passed",
+          "title": "voice receipts retain session identity without SDP, transcript or native transport details",
+          "duration": 0.11189999999999145,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization recovery receipts keep source and target identities while excluding backup contents",
+          "status": "passed",
+          "title": "recovery receipts keep source and target identities while excluding backup contents",
+          "duration": 0.29820000000000846,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization organizational receipts contain identities without associated payloads or private names",
+          "status": "passed",
+          "title": "organizational receipts contain identities without associated payloads or private names",
+          "duration": 0.17010000000001924,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization MCP receipts retain recovery identity and native errors without storing tool bodies",
+          "status": "passed",
+          "title": "MCP receipts retain recovery identity and native errors without storing tool bodies",
+          "duration": 0.3826999999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization extension receipts retain readiness-relevant status and omit authentication links and configuration payloads",
+          "status": "passed",
+          "title": "extension receipts retain readiness-relevant status and omit authentication links and configuration payloads",
+          "duration": 0.3042999999999836,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization retains task workflow identities without queued text, goal objectives or review findings",
+          "status": "passed",
+          "title": "retains task workflow identities without queued text, goal objectives or review findings",
+          "duration": 0.20600000000001728,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization does not turn unavailable settings targets or unread revisions into empty success",
+          "status": "passed",
+          "title": "does not turn unavailable settings targets or unread revisions into empty success",
+          "duration": 0.14760000000001128,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization stores stable first-send identity without native bodies, previews or instructions",
+          "status": "passed",
+          "title": "stores stable first-send identity without native bodies, previews or instructions",
+          "duration": 0.2609000000000208,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization fails uncertain instead of acknowledging an unusable native turn response",
+          "status": "passed",
+          "title": "fails uncertain instead of acknowledging an unusable native turn response",
+          "duration": 0.1897999999999911,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization preserves valid long project paths and attachment MIME metadata",
+          "status": "passed",
+          "title": "preserves valid long project paths and attachment MIME metadata",
+          "duration": 0.14090000000001623,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "durable receipt data minimization"
+          ],
+          "fullName": "durable receipt data minimization does not persist new upstream fields in login or attachment results",
+          "status": "passed",
+          "title": "does not persist new upstream fields in login or attachment results",
+          "duration": 0.26329999999998677,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793521423143,
+      "endTime": 1793521423150.2632,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/gateway/receipt-result.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "fresh bearerToken status blocks OAuth before dispatch without retaining an uncertain login",
+          "status": "passed",
+          "title": "fresh bearerToken status blocks OAuth before dispatch without retaining an uncertain login",
+          "duration": 52.93289999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "fresh unsupported status blocks OAuth before dispatch without retaining an uncertain login",
+          "status": "passed",
+          "title": "fresh unsupported status blocks OAuth before dispatch without retaining an uncertain login",
+          "duration": 0.5520999999999958,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "fresh unknown status blocks OAuth before dispatch without retaining an uncertain login",
+          "status": "passed",
+          "title": "fresh unknown status blocks OAuth before dispatch without retaining an uncertain login",
+          "duration": 0.3860000000000241,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "fresh apiKey status blocks OAuth before dispatch without retaining an uncertain login",
+          "status": "passed",
+          "title": "fresh apiKey status blocks OAuth before dispatch without retaining an uncertain login",
+          "duration": 0.45669999999995525,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "fresh notLoggedIn permits OAuth and binds discovery to the exact thread and server",
+          "status": "passed",
+          "title": "fresh notLoggedIn permits OAuth and binds discovery to the exact thread and server",
+          "duration": 0.32229999999998427,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "fresh oAuth permits OAuth and binds discovery to the exact thread and server",
+          "status": "passed",
+          "title": "fresh oAuth permits OAuth and binds discovery to the exact thread and server",
+          "duration": 0.15980000000001837,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "failed, missing or ambiguous status never becomes a login unknown or sends authorization",
+          "status": "passed",
+          "title": "failed, missing or ambiguous status never becomes a login unknown or sends authorization",
+          "duration": 0.5627000000000066,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "the discovery reservation excludes concurrent login and disconnect prevents delayed discovery dispatch",
+          "status": "passed",
+          "title": "the discovery reservation excludes concurrent login and disconnect prevents delayed discovery dispatch",
+          "duration": 1.7323999999999842,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "RuntimeService rejects non-OAuth before its mutation gate and still retains genuine dispatched unknown activity",
+          "status": "passed",
+          "title": "RuntimeService rejects non-OAuth before its mutation gate and still retains genuine dispatched unknown activity",
+          "duration": 11.82850000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "identity-only receipts and owner/channel/epoch-bound handoffs with correlated private completion",
+          "status": "passed",
+          "title": "identity-only receipts and owner/channel/epoch-bound handoffs with correlated private completion",
+          "duration": 9.259500000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "complete before a delayed response never revives its URL",
+          "status": "passed",
+          "title": "complete before a delayed response never revives its URL",
+          "duration": 59.365099999999984,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "disconnect before a delayed response never revives its URL",
+          "status": "passed",
+          "title": "disconnect before a delayed response never revives its URL",
+          "duration": 62.152000000000044,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "gateway before a delayed response never revives its URL",
+          "status": "passed",
+          "title": "gateway before a delayed response never revives its URL",
+          "duration": 61.91300000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "close before a delayed response never revives its URL",
+          "status": "passed",
+          "title": "close before a delayed response never revives its URL",
+          "duration": 62.127700000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "disconnection before dispatch prevents any native login and does not consume the target forever",
+          "status": "passed",
+          "title": "disconnection before dispatch prevents any native login and does not consume the target forever",
+          "duration": 0.5026000000000295,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "expiration removes URLs but keeps uncertain reservations and never sends an invented cancellation RPC",
+          "status": "passed",
+          "title": "expiration removes URLs but keeps uncertain reservations and never sends an invented cancellation RPC",
+          "duration": 1.8425999999999476,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "legacy loginId undefined supports a usable handoff but cannot replace an ambiguously correlated attempt",
+          "status": "passed",
+          "title": "legacy loginId undefined supports a usable handoff but cannot replace an ambiguously correlated attempt",
+          "duration": 0.30709999999999127,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "legacy loginId null supports a usable handoff but cannot replace an ambiguously correlated attempt",
+          "status": "passed",
+          "title": "legacy loginId null supports a usable handoff but cannot replace an ambiguously correlated attempt",
+          "duration": 0.1893000000000029,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a dispatched unsafe response cannot be retried and does not echo upstream URL details",
+          "status": "passed",
+          "title": "a dispatched unsafe response cannot be retried and does not echo upstream URL details",
+          "duration": 0.46119999999996253,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a dispatched oversize response cannot be retried and does not echo upstream URL details",
+          "status": "passed",
+          "title": "a dispatched oversize response cannot be retried and does not echo upstream URL details",
+          "duration": 0.21439999999995507,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a dispatched unknown response cannot be retried and does not echo upstream URL details",
+          "status": "passed",
+          "title": "a dispatched unknown response cannot be retried and does not echo upstream URL details",
+          "duration": 0.14080000000001291,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a dispatched false-not-sent response cannot be retried and does not echo upstream URL details",
+          "status": "passed",
+          "title": "a dispatched false-not-sent response cannot be retried and does not echo upstream URL details",
+          "duration": 0.12749999999994088,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a dispatched invalid response cannot be retried and does not echo upstream URL details",
+          "status": "passed",
+          "title": "a dispatched invalid response cannot be retried and does not echo upstream URL details",
+          "duration": 0.1533999999999196,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "bounded capacity counts unresolved reservations after expiry; thread targets remain distinct",
+          "status": "passed",
+          "title": "bounded capacity counts unresolved reservations after expiry; thread targets remain distinct",
+          "duration": 0.6634999999999991,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "confirmed completion frees capacity for a different target without evicting unresolved attempts",
+          "status": "passed",
+          "title": "confirmed completion frees capacity for a different target without evicting unresolved attempts",
+          "duration": 0.6747000000000298,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "HTTP self-hosted authorization stays supported while embedded credentials are rejected",
+          "status": "passed",
+          "title": "HTTP self-hosted authorization stays supported while embedded credentials are rejected",
+          "duration": 0.29719999999997526,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793521423253,
+      "endTime": 1793521423582.297,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/mcp-oauth.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "fresh tool discovery validates arguments, retains native isError, and separates receipt identity from owner-only result",
+          "status": "passed",
+          "title": "fresh tool discovery validates arguments, retains native isError, and separates receipt identity from owner-only result",
+          "duration": 347.40590000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "MCP never resumes unloaded threads and rechecks owner plus active work after asynchronous discovery",
+          "status": "passed",
+          "title": "MCP never resumes unloaded threads and rechecks owner plus active work after asynchronous discovery",
+          "duration": 178.87099999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "resources must match fresh discovered URIs, templates or an observed native origin in this thread/server",
+          "status": "passed",
+          "title": "resources must match fresh discovered URIs, templates or an observed native origin in this thread/server",
+          "duration": 16.668199999999956,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "subscriptions route to their exact connection, block configuration, and disconnect waits for stop",
+          "status": "passed",
+          "title": "subscriptions route to their exact connection, block configuration, and disconnect waits for stop",
+          "duration": 35.253700000000094,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "unconfirmed subscription stop closes the native process before reporting cleanup complete",
+          "status": "passed",
+          "title": "unconfirmed subscription stop closes the native process before reporting cleanup complete",
+          "duration": 1.766399999999976,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "disconnect before stream dispatch removes reservation and prevents a late stream from starting",
+          "status": "passed",
+          "title": "disconnect before stream dispatch removes reservation and prevents a late stream from starting",
+          "duration": 2.0837999999999965,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "owner loss before tool dispatch prevents transmission",
+          "status": "passed",
+          "title": "owner loss before tool dispatch prevents transmission",
+          "duration": 84.5743,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "disconnect waits for an in-flight subscription start before stopping its registered identity",
+          "status": "passed",
+          "title": "disconnect waits for an in-flight subscription start before stopping its registered identity",
+          "duration": 78.84130000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a completed tool result is discarded after owner loss while its response was in flight",
+          "status": "passed",
+          "title": "a completed tool result is discarded after owner loss while its response was in flight",
+          "duration": 122.79560000000015,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793521423252,
+      "endTime": 1793521424120.7957,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/mcp.test.ts"
+    }
+  ]
+}

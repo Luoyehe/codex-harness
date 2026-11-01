@@ -90,7 +90,7 @@ export function selectTests(changed, available) {
       // Privileged integration helpers have no safe automatic local substitute.
       plan.requiresFullAudit.push({ path: name, reason: 'deployment-integration-helper-needs-isolated-review' });
     } else if (name.startsWith('web/')) add(name, domain('web/tests/'), 'browser-behavior-and-shared-ui');
-    else if (name.startsWith('tests/runtime/') && !documentation.has(name)) add(name, domain('tests/runtime/'), 'runtime-fixture');
+    else if (name.startsWith('tests/runtime/') && !documentation.has(name)) add(name, [...domain('tests/runtime/'), ...domain('tests/gateway/')], 'runtime-fixture');
     else if (name === 'scripts/release-audit.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'release-scanner-and-dependent-gates');
     else if (name === 'scripts/reviewed-history.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/reviewed-history.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts'], 'immutable-historical-pattern-review');
     else if (name === 'scripts/select-tests.mjs') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/go-tests.test.ts'], 'affected-test-selection-and-runner');

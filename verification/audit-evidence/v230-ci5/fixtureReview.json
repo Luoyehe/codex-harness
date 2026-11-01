@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "ci4-oauth-fixture-independent-review",
+  "reviewerId": "root",
+  "authorId": "v230_audit_runtime",
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-11-01T08:25:14.216Z",
+  "files": [
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth-fixture.mjs",
+      "sha256": "0c41addabbd0addd40ae954436816a11ca6b3400141cb4f30b55dd2fd41a9c50"
+    }
+  ],
+  "findings": [],
+  "authorReport": {
+    "path": ".work/v230-ci4-mcp-oauth-fixture-repair.json",
+    "sha256": "d3852449e1473979c9e63af2e189e87e9c054f13ea9ed98dd420607b6d88d222"
+  },
+  "validation": {
+    "command": "pinned Node scripts/run-tests.mjs --targeted tests/gateway/mcp-oauth.test.ts tests/runtime/mcp-oauth.test.ts tests/runtime/mcp.test.ts tests/gateway/receipt-result.test.ts",
+    "node": "v24.22.1",
+    "report": {
+      "path": ".work/test-results/run-2ufNeZ/vitest.json",
+      "sha256": "b0ca84b5a34bdc379b91b8f999eae7bae90933f7f49e0880dddbb1bdbbe41583"
+    },
+    "files": 4,
+    "passed": 63,
+    "failed": 0,
+    "skipped": 0
+  },
+  "method": "Independent full reading of both changed fixtures and production OAuth admission, runtime MCP loaded-thread requirement, receipt redaction and exact targeted assertions. No repeated execution after author tests passed.",
+  "observations": [
+    "Fresh notLoggedIn page satisfies the official response schema without weakening the production gate. Explicit thread/start establishes the required MCP connection scope.",
+    "Existing SQL/export secrecy, replay count, owner disconnection, beforeWrite and pipe completion assertions remain. New non-OAuth and unloaded cases verify not_sent with no native login or global unknown, then a fresh allowed attempt.",
+    "The genuine provider key path and external MCP endpoints are unchanged. The failure was stale integration setup and incomplete manually chosen test scope; it is not reclassified as a provider failure."
+  ],
+  "limits": [
+    "Local fake/stdio protocol tests only; no paid model or external MCP call.",
+    "CI4 remains failed; this is a targeted repair review, not full-suite or deployment acceptance."
+  ]
+}
