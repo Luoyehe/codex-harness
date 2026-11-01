@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+  "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
   "sourceFiles": 1984,
   "baseCommit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
   "version": "2.3.0",
-  "approvedAt": "2026-11-01T08:29:08.005Z",
+  "approvedAt": "2026-11-01T08:52:46.810Z",
   "userInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。用户指定发布 v2.3.0，更新 120 并保持服务运行；最终路径规则为 / 开头绝对路径，否则相对路径，普通和 ROOT 模式一致。",
   "auditWaiverInstruction": "完成后同样一轮审计无问题后进行收尾和部署发布；不要求仓库默认的连续三轮无问题。",
   "repairsReviewed": true,
@@ -17,26 +17,26 @@
   "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "v230-round14",
-      "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
-      "completedAt": "2026-11-01T08:29:08.005Z",
+      "roundId": "v230-round15",
+      "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
+      "completedAt": "2026-11-01T08:52:46.810Z",
       "files": 1984,
       "reviewers": [
         {
-          "id": "v230-round14-team",
+          "id": "v230-round15-team",
           "scopes": [
             "gateway-core",
             "runtime-protocol",
             "web-ux",
             "deployment-release"
           ],
-          "evidence": "verification/audit-evidence/v230-ci5/round14-team.json",
-          "sha256": "f065f5ce363ea0b8f3c42ca32977f8483aa8d66b16606e8319c22d5ab8b5d883"
+          "evidence": "verification/audit-evidence/v230-ci6/round15-team.json",
+          "sha256": "8ac819f9ecaf49b2a87e080772e51face70171232b0f5e10e315613c908d1a9e"
         }
       ]
     }
   ],
-  "note": "One-clean-round standing user instruction applies. Round14 current source may enter full tests; CI4 remains failed and deployment/publication remain pending.",
+  "note": "Standing user one-clean-round instruction applies. Round15 may enter full tests; CI5 remains failed. Deployment/publication pending.",
   "priorFailedCiAuthorization": {
     "path": "verification/audit-evidence/v230-ci1-repairs/failed-ci1-authorization.json",
     "sha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763"
@@ -118,11 +118,11 @@
     "sha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
   },
   "previousAuthorization": {
-    "path": "verification/audit-evidence/v230-ci5/ci4-authorization.json",
-    "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba",
+    "path": "verification/audit-evidence/v230-ci6/ci5-authorization.json",
+    "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8",
     "original": {
       "path": "verification/audit-evidence/release-closeout/authorization.json",
-      "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba"
+      "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8"
     }
   },
   "ci4Evidence": {
@@ -470,6 +470,88 @@
       "original": {
         "path": "verification/audit-evidence/release-closeout/authorization.json",
         "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba"
+      }
+    }
+  },
+  "ci6Evidence": {
+    "scan": {
+      "path": "verification/audit-evidence/v230-ci6/source-scan.json",
+      "sha256": "2d78d9f92c4c7f89edebc1be223d2d151135f1b5f620eafd4efaadfe0e646417",
+      "original": {
+        "path": ".work/v230-round15-source-scan.json",
+        "sha256": "2d78d9f92c4c7f89edebc1be223d2d151135f1b5f620eafd4efaadfe0e646417"
+      }
+    },
+    "snapshot": {
+      "path": "verification/audit-evidence/v230-ci6/snapshot.json",
+      "sha256": "68fc634917ac02c2e25a3bc682c5db76b6786ab1ec281f35798fa8a2f948690c",
+      "original": {
+        "path": ".work/v230-round15-snapshot.json",
+        "sha256": "68fc634917ac02c2e25a3bc682c5db76b6786ab1ec281f35798fa8a2f948690c"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v230-ci6/builtin-mcp-freshness.json",
+      "sha256": "92efc447068876414b3e5a3f001f505d53d080c200d57542d58e5dfdabfb0f8e",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-2f514aa5-7ea1-482c-9e25-1b29e14b6a71.json",
+        "sha256": "92efc447068876414b3e5a3f001f505d53d080c200d57542d58e5dfdabfb0f8e"
+      }
+    },
+    "author": {
+      "path": "verification/audit-evidence/v230-ci6/identity-author.json",
+      "sha256": "f5c01ce58e30aabad1c74985be3ba822215a89124b3429639d901efcff73a6a0",
+      "original": {
+        "path": ".work/v230-ci5-defaults-identity-repair.json",
+        "sha256": "f5c01ce58e30aabad1c74985be3ba822215a89124b3429639d901efcff73a6a0"
+      }
+    },
+    "review": {
+      "path": "verification/audit-evidence/v230-ci6/identity-review.json",
+      "sha256": "8e95faa2cdb8435d9db8a45099c8bd50bc2f2eebcc71e0675515a1c00bf6b5b5",
+      "original": {
+        "path": ".work/v230-ci5-defaults-identity-review.json",
+        "sha256": "8e95faa2cdb8435d9db8a45099c8bd50bc2f2eebcc71e0675515a1c00bf6b5b5"
+      }
+    },
+    "targeted": {
+      "path": "verification/audit-evidence/v230-ci6/targeted-tests.json",
+      "sha256": "4105fd6e3677357ca28463dde242c1a7da74c82103024365d25dcb0f19bf04e4",
+      "original": {
+        "path": ".work/test-results/run-O9HekY/vitest.json",
+        "sha256": "a43bbe1bb6d4170bfdabbbf52f0e57e3a41f0bda93561f2211f86a636b4a66db"
+      }
+    },
+    "ci5": {
+      "path": "verification/audit-evidence/v230-ci6/ci5-failure.json",
+      "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a",
+      "original": {
+        "path": ".work/v230-ci5-monitor-summary.json",
+        "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a"
+      }
+    },
+    "ci5Codeql": {
+      "path": "verification/audit-evidence/v230-ci6/ci5-codeql.json",
+      "sha256": "d7732f458f1a182ddfabaf431b0ae75f01c1d982b9396b28bd9f3d8e18df15e2",
+      "original": {
+        "path": ".work/v230-ci5-codeql-review.json",
+        "sha256": "d7732f458f1a182ddfabaf431b0ae75f01c1d982b9396b28bd9f3d8e18df15e2"
+      }
+    },
+    "oldLedger": {
+      "path": "verification/audit-evidence/v230-ci6/previous-ledger.json",
+      "sha256": "a74b7bab831b13387a70acbaaa74f1d4ba53b2533d59de0d49961c7f236528ab",
+      "original": {
+        "path": "verification/audits.json",
+        "sha256": "a74b7bab831b13387a70acbaaa74f1d4ba53b2533d59de0d49961c7f236528ab"
+      }
+    },
+    "oldAuth": {
+      "path": "verification/audit-evidence/v230-ci6/ci5-authorization.json",
+      "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8"
       }
     }
   }

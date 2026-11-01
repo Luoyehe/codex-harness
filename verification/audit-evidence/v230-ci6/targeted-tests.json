@@ -1,0 +1,329 @@
+{
+  "numTotalTestSuites": 3,
+  "numPassedTestSuites": 3,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 24,
+  "numPassedTests": 24,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1793522845429,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "closing the service awaits its actual defaults child held at initialize with 0 ms startup delay",
+          "status": "passed",
+          "title": "closing the service awaits its actual defaults child held at initialize with 0 ms startup delay",
+          "duration": 1328.9942999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "closing the service awaits its actual defaults child held at thread/start with 0 ms startup delay",
+          "status": "passed",
+          "title": "closing the service awaits its actual defaults child held at thread/start with 0 ms startup delay",
+          "duration": 1258.5439,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "closing the service awaits its actual defaults child held at thread/start with 1200 ms startup delay",
+          "status": "passed",
+          "title": "closing the service awaits its actual defaults child held at thread/start with 1200 ms startup delay",
+          "duration": 2450.7798000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "held readiness diagnoses early probe failure and waits for a complete PID record",
+          "status": "passed",
+          "title": "held readiness diagnoses early probe failure and waits for a complete PID record",
+          "duration": 3.4729999999999563,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a config read completing after shutdown cannot create a new defaults process",
+          "status": "passed",
+          "title": "a config read completing after shutdown cannot create a new defaults process",
+          "duration": 1.3579999999992651,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "the identity guard rejects a live predecessor and cleanup preserves the observed request rejection",
+          "status": "passed",
+          "title": "the identity guard rejects a live predecessor and cleanup preserves the observed request rejection",
+          "duration": 1952.2065000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "Windows identity lookup distinguishes absent processes from failed queries",
+          "status": "passed",
+          "title": "Windows identity lookup distinguishes absent processes from failed queries",
+          "duration": 466.9966000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "concurrent identical defaults share one actual child and its completed cache",
+          "status": "passed",
+          "title": "concurrent identical defaults share one actual child and its completed cache",
+          "duration": 1012.6045000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "different cwd and options wait for cleanup and reread changed configuration before choosing a cache key",
+          "status": "passed",
+          "title": "different cwd and options wait for cleanup and reread changed configuration before choosing a cache key",
+          "duration": 2233.219000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "account invalidation cannot share or repopulate an older defaults generation",
+          "status": "passed",
+          "title": "account invalidation cannot share or repopulate an older defaults generation",
+          "duration": 2214.1000999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a changed config value alone does not reuse an in-flight or cached defaults result",
+          "status": "passed",
+          "title": "a changed config value alone does not reuse an in-flight or cached defaults result",
+          "duration": 2245.9590000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "a definitive shared probe rejection releases capacity and is not cached",
+          "status": "passed",
+          "title": "a definitive shared probe rejection releases capacity and is not cached",
+          "duration": 2219.5962999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "close rejects shared active reads with their native outcome and never starts a queued different key",
+          "status": "passed",
+          "title": "close rejects shared active reads with their native outcome and never starts a queued different key",
+          "duration": 1224.8999000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "defaults request capacity is bounded before config reads and reusable after shared completion",
+          "status": "passed",
+          "title": "defaults request capacity is bounded before config reads and reusable after shared completion",
+          "duration": 1021.0214999999989,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "the total defaults deadline ends a blocked config read without starting a late probe",
+          "status": "passed",
+          "title": "the total defaults deadline ends a blocked config read without starting a late probe",
+          "duration": 3.151799999999639,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "unconfirmed probe cleanup still marks unknown and prevents the waiting key from starting",
+          "status": "passed",
+          "title": "unconfirmed probe cleanup still marks unknown and prevents the waiting key from starting",
+          "duration": 1019.9317999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793522845757,
+      "endTime": 1793522866413.932,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/defaults-lifecycle.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership keeps the real native controller cache disabled with parent override undefined",
+          "status": "passed",
+          "title": "keeps the real native controller cache disabled with parent override undefined",
+          "duration": 957.4244,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership keeps the real native controller cache disabled with parent override PSModuleAnalysisCachePath",
+          "status": "passed",
+          "title": "keeps the real native controller cache disabled with parent override PSModuleAnalysisCachePath",
+          "duration": 782.9495999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership keeps the real native controller cache disabled with parent override PSMODULEANALYSISCACHEPATH",
+          "status": "passed",
+          "title": "keeps the real native controller cache disabled with parent override PSMODULEANALYSISCACHEPATH",
+          "duration": 794.2331000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership close confirms detached descendants are gone after spawn",
+          "status": "passed",
+          "title": "close confirms detached descendants are gone after spawn",
+          "duration": 780.1213000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership close confirms detached descendants are gone after spawn-exit",
+          "status": "passed",
+          "title": "close confirms detached descendants are gone after spawn-exit",
+          "duration": 514.7840999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership shutdown remains responsive while native stdin is backpressured",
+          "status": "passed",
+          "title": "shutdown remains responsive while native stdin is backpressured",
+          "duration": 817.9283,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership owner process death kills its controller and detached descendants",
+          "status": "passed",
+          "title": "owner process death kills its controller and detached descendants",
+          "duration": 614.4558000000006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows job ownership"
+          ],
+          "fullName": "Windows job ownership controller failure kills the job but never reports a cleanup acknowledgement",
+          "status": "passed",
+          "title": "controller failure kills the job but never reports a cleanup acknowledgement",
+          "duration": 4040.050000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793522845648,
+      "endTime": 1793522854951.05,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/tests/runtime/windows-job.test.ts"
+    }
+  ]
+}

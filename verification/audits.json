@@ -7576,6 +7576,37 @@
         }
       ],
       "method": "Complete inventory and current independent repair review; unchanged byte-identical semantic evidence is explicitly inherited. CI4 fixture failures are preserved, not relabeled passed. This is not a new line-by-line reading of all generated protocol files."
+    },
+    {
+      "id": "v230-round15",
+      "sequence": 74,
+      "digest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-11-01T08:48:55.588Z",
+      "completedAt": "2026-11-01T08:52:46.810Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round15-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-ci6/round15-team.json",
+          "sha256": "8ac819f9ecaf49b2a87e080772e51face70171232b0f5e10e315613c908d1a9e"
+        }
+      ],
+      "method": "Complete inventory and independently reviewed lifecycle test repair. Unchanged semantic review is explicitly inherited by byte identity; this does not claim a new line-by-line reading of every unchanged generated file. CI5 Windows failure remains failed; historical PID reuse is unproven."
     }
   ],
   "fullTests": {
@@ -7667,26 +7698,26 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+  "currentAuditSourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
   "currentAuditGate": {
     "status": "passed",
-    "round": "v230-round14",
-    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+    "round": "v230-round15",
+    "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
     "sourceFiles": 1984,
     "requiredCleanRounds": 1,
     "userOverride": true
   },
   "v230FullTests": {
     "status": "pending",
-    "attempt": 5,
-    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+    "attempt": 6,
+    "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
     "sourceFiles": 1984,
     "previousFailure": {
-      "path": "verification/audit-evidence/v230-ci5/ci4-failure.json",
-      "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce",
+      "path": "verification/audit-evidence/v230-ci6/ci5-failure.json",
+      "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a",
       "original": {
-        "path": ".work/v230-ci4-monitor-summary.json",
-        "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce"
+        "path": ".work/v230-ci5-monitor-summary.json",
+        "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a"
       }
     }
   },
@@ -7694,7 +7725,7 @@
     "status": "pending",
     "target": "120",
     "version": "2.3.0",
-    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+    "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
     "previousDeployment": {
       "path": "verification/audit-evidence/v230-ci4/ci3-deployment.json",
       "sha256": "499b9b37a0b4d97a8e439a94fce4b94520059b4e2654b7d644e78add514f9483",
@@ -7793,6 +7824,23 @@
         }
       },
       "note": "Linux and Windows each failed the same six stale OAuth integration cases. Coverage correctly refused. Root and security passed; no whole-suite pass or deployment."
+    },
+    {
+      "attempt": 5,
+      "status": "failed",
+      "head": "e5e4454548fbd03bcf80b3c8e11de454e0d5f531",
+      "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+      "run": 41289149450,
+      "securityRun": 41289175555,
+      "evidence": {
+        "path": "verification/audit-evidence/v230-ci6/ci5-failure.json",
+        "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a",
+        "original": {
+          "path": ".work/v230-ci5-monitor-summary.json",
+          "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a"
+        }
+      },
+      "note": "Windows bare-PID lifecycle assertion failed and a pending cleanup rejection was unobserved. Linux, Root and security passed; coverage correctly refused Windows. Historical PID reuse is not established. No deployment."
     }
   ],
   "v230LiveAcceptanceHistory": [
@@ -8110,7 +8158,7 @@
   ],
   "v230BrowserAcceptance": {
     "status": "pending",
-    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+    "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
     "previousAcceptance": {
       "path": "verification/audit-evidence/v230-ci4/ci3-postdeployment-unknown.json",
       "sha256": "86109d659ef6d96f0a22b0e103b9ca7d1a2ab7de62fb03b4bc62dbffb1840cb1",

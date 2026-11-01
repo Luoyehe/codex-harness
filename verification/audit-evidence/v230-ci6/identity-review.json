@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "ci5-defaults-identity-independent-review",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "status": "reviewed-no-actionable-findings",
+  "completedAt": "2026-11-01T08:51:30.407092+00:00",
+  "reviewedFileHashes": [
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "edc632a1a44a200097032c4af240c029674913a4b4d6044bfebece8e6e349ab4"
+    }
+  ],
+  "authorReport": {
+    "path": ".work/v230-ci5-defaults-identity-repair.json",
+    "sha256": "f5c01ce58e30aabad1c74985be3ba822215a89124b3429639d901efcff73a6a0"
+  },
+  "diff": {
+    "path": ".work/v230-ci5-defaults-identity-repair.diff",
+    "sha256": "f5407bd66c743722e9e08cc5729a36f288a605daa67878b6e59eb6bbb8b65a97"
+  },
+  "findings": [],
+  "method": [
+    "Read all current changes, processIdentity/held/stopped/read helper bodies, both new cases and all affected callsites against original CI5 commit. Freshly inspected NativeRpc Windows stop acknowledgement, Job Object active==0 and relay joins, and probeDefaults close-before-cache/finally cleanup. Remaining production bytes match the prior full semantic review.",
+    "Verified exact final source and author/targeted result hashes. Read both saved suites and all24 passing assertion statuses; no duplicate test, browser, network or process experiment by reviewer."
+  ],
+  "conclusions": [
+    "Identity is captured while the original fixture child is held, by index rather than PID alone. Same live PID plus unchanged creation time still fails stopped(); absent or a different creation identity after close passes. UTC ticks remain invariant decimal text, avoiding JavaScript numeric truncation.",
+    "Only an absent GetProcessById result maps to null on Windows. StartTime/query/launcher/time-budget/malformed-output failures reject; POSIX accepts only ESRCH as absent. Fixed PowerShell path, validated numeric PID, no profile, sanitized module environment,10second/1024byte bounds prevent dynamic command or unbounded output exposure.",
+    "New real-process regression proves a live original is rejected by stopped, close changes/removes that captured identity, and the original pending request still rejects runtime_lost/unknown after an event-loop turn. Another Windows case distinguishes a genuinely absent PID from a real out-of-range query failure.",
+    "Immediate catch observes rejection without replacing the original pending promise or relaxing assertions. The settlement observer uses both then handlers instead of creating another ignored rejecting finally promise. Original cache/capacity/generation/unknown and retry assertions remain.",
+    "Production teardown remains unchanged: controller confirms empty job and relay completion, NativeRpc requires zero controller exit, defaults flight awaits close before completion; unconfirmed close remains fatal unknown. No production relaxation or test skip replacement."
+  ],
+  "reviewedValidation": {
+    "evidence": {
+      "path": ".work/test-results/run-O9HekY/vitest.json",
+      "sha256": "a43bbe1bb6d4170bfdabbbf52f0e57e3a41f0bda93561f2211f86a636b4a66db"
+    },
+    "platform": "win32",
+    "total": 24,
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "suites": {
+      "defaults-lifecycle": 16,
+      "windows-job": 8
+    },
+    "executedByReviewer": false,
+    "errorEvidenceLimit": "Saved Vitest success:true and all24 assertions passed plus author successful run. JSON has no separate unhandled-error counter; no fabricated counter asserted here."
+  },
+  "historicalEvidence": {
+    "ci5Failed": {
+      "path": ".work/v230-ci5-monitor-summary.json",
+      "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a"
+    },
+    "windowsObservation": {
+      "path": ".work/v230-ci5-windows-failure-analysis.json",
+      "sha256": "91786acf685947b5339e09b709c7e38e38ecfc7651c97b87426129b658486734"
+    }
+  },
+  "contextSourceHashes": [
+    {
+      "path": "src/runtime/native.ts",
+      "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+      "headMatches": true
+    },
+    {
+      "path": "src/runtime/windows-job.ts",
+      "sha256": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0",
+      "headMatches": true
+    },
+    {
+      "path": "src/runtime/windows-process.ts",
+      "sha256": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2",
+      "headMatches": true
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef",
+      "headMatches": true
+    }
+  ],
+  "limits": [
+    "CI5 remains failed. Historical PID reuse or survival cannot be established from its bare PID log; this repair improves identity observation without claiming a reproduced historical cause.",
+    "No actual access-denied query was forced; static fail-closed branch and actual other query error are distinguished.",
+    "Windows-only identity query test is explicitly skipped on other systems; Linux was not rerun in this review. No full-suite or deployment approval.",
+    "This independent review is for test evidence quality and unchanged teardown contract, not a new exhaustive production audit."
+  ]
+}

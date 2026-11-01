@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "id": "v230-ci5-defaults-identity-repair",
+  "author": "v230_audit_runtime",
+  "createdAt": "2026-11-01T08:49:29.103Z",
+  "complete": true,
+  "source": {
+    "head": "e5e4454548fbd03bcf80b3c8e11de454e0d5f531",
+    "priorDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+    "currentDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
+    "files": 1984
+  },
+  "historicalFailure": {
+    "runId": "41289149450",
+    "platform": "windows",
+    "evidence": {
+      "path": ".work/v230-ci5-windows-raw.txt",
+      "sha256": "37ccd4aa962ab28d297ee2749b5aae8576a64c2f236cea8762ea4c1562225e73"
+    },
+    "lines": [
+      921,
+      960
+    ],
+    "status": "failed",
+    "case": "a definitive shared probe rejection releases capacity and is not cached",
+    "primary": "The old bare process.kill(previous.pid, 0) assertion did not throw after a successor had started.",
+    "secondary": "The unobserved retry promise was rejected by afterEach service.close, producing one unhandled runtime_lost rejection.",
+    "limitation": "The CI log contains neither original creation times nor retained process handles; it does not establish that the number was reused, nor that the original child survived."
+  },
+  "diagnosis": {
+    "classification": "Test process-identity observation and delayed rejection-handler defects; no production cleanup defect found.",
+    "productionContract": [
+      "Windows controller owns the child through a process handle and non-breakaway Job Object; TerminateJobObject is followed by active==0 and relay joins before success.",
+      "NativeRpc.close waits for the controller close and requires its exitCode to be 0; missing acknowledgement rejects.",
+      "probeDefaults awaits close in both normal completion and finally before the shared flight completes and capacity can start a successor."
+    ],
+    "files": [
+      {
+        "path": "src/runtime/native.ts",
+        "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+        "headMatches": true
+      },
+      {
+        "path": "src/runtime/windows-job.ts",
+        "sha256": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0",
+        "headMatches": true
+      },
+      {
+        "path": "src/runtime/windows-process.ts",
+        "sha256": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2",
+        "headMatches": true
+      },
+      {
+        "path": "src/runtime/service.ts",
+        "sha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef",
+        "headMatches": true
+      }
+    ]
+  },
+  "change": {
+    "file": "tests/runtime/defaults-lifecycle.test.ts",
+    "beforeSha256": "9924fa833ebd43a2b3de9ae6fb09815c715cb3966ca300602627cf5c771ac6c3",
+    "afterSha256": "edc632a1a44a200097032c4af240c029674913a4b4d6044bfebece8e6e349ab4",
+    "diff": {
+      "path": ".work/v230-ci5-defaults-identity-repair.diff",
+      "sha256": "f5407bd66c743722e9e08cc5729a36f288a605daa67878b6e59eb6bbb8b65a97"
+    },
+    "details": [
+      "Capture Windows creation time while the fixture is held; subsequent checks reject the same PID plus creation-time identity, while a reused numeric PID is distinct.",
+      "Keep invariant-culture UTC DateTime ticks as decimal text (100 ns representation); never convert them to a JavaScript Number. Each query uses a new Process object and disposes it.",
+      "Only GetProcessById ArgumentException (absent PID) becomes null; start-time lookup, access/query failure, malformed output, timeout and launcher error reject. Non-Windows preserves signal-0 observation and accepts only ESRCH as absent.",
+      "Observe each pending read immediately without replacing the original rejecting promise; replace the extra rejecting finally chain with two fulfilled settlement handlers.",
+      "Retain real process exit assertions, all shared cache/capacity/generation/retry assertions, and existing unknown-outcome cleanup guards. No production edits or sleeps/retries added."
+    ]
+  },
+  "validation": {
+    "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted tests/runtime/defaults-lifecycle.test.ts tests/runtime/windows-job.test.ts",
+    "node": "v24.22.1",
+    "platform": "win32",
+    "evidence": {
+      "path": ".work/test-results/run-O9HekY/vitest.json",
+      "sha256": "a43bbe1bb6d4170bfdabbbf52f0e57e3a41f0bda93561f2211f86a636b4a66db"
+    },
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "files": [
+      {
+        "path": "tests/runtime/defaults-lifecycle.test.ts",
+        "cases": 16,
+        "status": "passed",
+        "durationMs": 20656.931884765625
+      },
+      {
+        "path": "tests/runtime/windows-job.test.ts",
+        "cases": 8,
+        "status": "passed",
+        "durationMs": 9303.050048828125
+      }
+    ],
+    "newMeaningfulChecks": [
+      "Repeated observations of the held process return the identical creation-time string; the stop guard rejects that still-live predecessor.",
+      "Actual close makes the captured predecessor identity disappear; after an event-loop turn the original request still rejects with runtime_lost/unknown without an unhandled error.",
+      "A real Windows query of an absent PID returns null; an out-of-Int32 query error rejects instead of becoming absent.",
+      "The original retry-after-definitive-rejection case passes; the Windows Job ownership suite passes, including detached descendants, backpressure, owner death and unacknowledged controller failure."
+    ],
+    "diffCheck": "passed"
+  },
+  "limits": [
+    "This is targeted Windows verification, not a new full-suite pass; CI5 remains historically failed.",
+    "The failure was not reproduced with retained historical process identity; PID reuse is a possibility, not a proven historical event.",
+    "No actual access-denied process query was forced. Its fail-closed branch was inspected; an actual other query error was exercised.",
+    "No Linux rerun was performed for this Windows-specific identity repair; the non-Windows liveness mechanism is unchanged.",
+    "No commit, CI trigger, network request, deployment, credentials or inference performed."
+  ],
+  "remainingFindings": []
+}

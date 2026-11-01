@@ -552,3 +552,10 @@ v230-round13 covers 1984 files at c0ea20705603907dc6bdc459b6e0b137725650ab05a5ed
 CI4 41287733396 failed six gateway OAuth cases on both platforms: obsolete test doubles lacked fresh status and explicit thread loading. The production guard was correct. The author had manually omitted the cross-layer consumer from targeted verification. Fixtures are repaired (63/63 targeted), and runtime helper selection now also includes gateway consumers (19/19 targeted). Neither test assertions nor result criteria were weakened. Complete failure logs and current CodeQL dispositions are retained.
 
 Round14 covers 1984 files at 99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641, using explicit unchanged-byte semantic inheritance and independent current repair reviews. Official builtin MCP sources were freshly fetched and are byte-identical to the reviewed contract. One clean round is complete under the user override; CI5 full tests, deployment, browser acceptance and publication are pending.
+
+
+## 2026-11-01 — v2.3.0 CI5 correction and CI6 preparation
+
+CI5 41289149450 failed one Windows lifecycle assertion and its cleanup emitted an unobserved rejection. Bare PID evidence cannot establish whether the old identity survived or the numeric PID was reused. Production cleanup/serialization was independently inspected with no defect found. The test now records Windows creation time, keeps fail-closed query errors and observes the original request promise immediately. Targeted Windows checks passed 24/24, including a live-predecessor negative guard and the original retry scenario. No production logic changed.
+
+Round15 covers 1984 files at 2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74; unchanged semantic evidence is explicitly inherited and the changed test independently reviewed. Builtin MCP official sources were freshly fetched and byte-identical to the reviewed contract. Full CI6, deployment, browser acceptance and publication remain pending.
