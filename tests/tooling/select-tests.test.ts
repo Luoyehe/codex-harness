@@ -97,6 +97,24 @@ test('project path fixtures retain real native/root filesystem identity coverage
   }
 });
 
+test('installation fixture changes retain composed account recovery and release reuse coverage', () => {
+  const ordinary = 'tests/deploy/test_install_recovery.py';
+  const privileged = ['tests/deploy/root/test_account_recovery.py', 'tests/deploy/root/test_release_reuse.py'];
+  const companions = [ordinary, ...privileged], inventory = [...available, ...companions];
+  for (const changed of companions) {
+    const plan = selectTests([changed], inventory);
+    expect(plan.status).toBe('selected');
+    expect(plan.requiresFullAudit).toEqual([]);
+    expect(plan.groups).toEqual({ unit: [], deploy: [ordinary], 'deploy-root': privileged, native: [], go: [] });
+    expect(plan.mappings).toEqual([{ path: changed, reason: 'changed-test', tests: [...companions].sort() }]);
+    for (const missing of companions.filter(name => name !== changed)) {
+      const incomplete = selectTests([changed], inventory.filter(name => name !== missing));
+      expect(incomplete.status).toBe('requires-full-audit');
+      expect(incomplete.requiresFullAudit).toEqual([{ path: missing, reason: 'missing-deployment-identity-coverage' }]);
+    }
+  }
+});
+
 test('the privileged group cannot disappear from execution or convert an unavailable interpreter to a pass', () => {
   const root = fixture();
   const ordinary = 'tests/deploy/test_https.py'; const privileged = 'tests/deploy/root/test_https.py';

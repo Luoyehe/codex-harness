@@ -32,7 +32,8 @@ const deploymentPairs = [
   ['tests/deploy/test_proxy_core.py', 'tests/deploy/root/test_proxy_core.py', 'tests/deploy/test_proxy_transaction.py', 'tests/deploy/root/test_proxy_transaction.py'],
   ['tests/deploy/test_control_update.py', 'tests/deploy/root/test_control_update.py'],
   ['tests/deploy/test_https.py', 'tests/deploy/root/test_https.py'],
-  ['tests/deploy/test_install_recovery.py', 'tests/deploy/root/test_release_reuse.py'],
+  // Account recovery composes InstallationRecoveryTests.setUp() and restores real root readers.
+  ['tests/deploy/test_install_recovery.py', 'tests/deploy/root/test_release_reuse.py', 'tests/deploy/root/test_account_recovery.py'],
   ['tests/deploy/test_management_boundaries.py', 'tests/deploy/root/test_management_boundaries.py'],
   ['tests/deploy/test_request_spool.py', 'tests/deploy/root/test_request_spool.py'],
   ['tests/deploy/test_provider_layers.py', 'tests/deploy/test_provider_gateway.py', 'tests/deploy/test_provider_bedrock.py', 'tests/deploy/root/test_provider_layers.py', 'tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_provider_extended.py'],

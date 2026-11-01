@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-01T15:02:21.121Z",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceFiles": 2004,
+  "entries": {
+    "independent": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/independent.json",
+      "sha256": "f7993704e9f3e5601e7be159e5dd30ebc45b274e232044ba64013a1bc0814037",
+      "original": {
+        "path": ".work/v232-ci2-account-fixture-repair-review.json",
+        "sha256": "f7993704e9f3e5601e7be159e5dd30ebc45b274e232044ba64013a1bc0814037"
+      }
+    },
+    "author": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/author.json",
+      "sha256": "768ea6d5d9ed781b8c930b462be20c29490b12daa1cbaf8215840c1324c4a18f",
+      "original": {
+        "path": ".work/v232-ci2-account-fixture-repair.json",
+        "sha256": "768ea6d5d9ed781b8c930b462be20c29490b12daa1cbaf8215840c1324c4a18f"
+      }
+    },
+    "diagnosis": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/diagnosis.json",
+      "sha256": "7f1a756f25604533b3c66cb00ddaaa2e51e8a19dc6d8c1d2a7fc4204e0041cfe",
+      "original": {
+        "path": ".work/v232-ci2-fixture-independent-diagnosis.json",
+        "sha256": "7f1a756f25604533b3c66cb00ddaaa2e51e8a19dc6d8c1d2a7fc4204e0041cfe"
+      }
+    },
+    "failedCiReview": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/failedCiReview.json",
+      "sha256": "5e0c95c0ac87328eb56926819f8e2f5d66d32ca7afd3a35d7e672b8faef9b9d9",
+      "original": {
+        "path": ".work/v232-ci2-monitor-summary.json",
+        "sha256": "5e0c95c0ac87328eb56926819f8e2f5d66d32ca7afd3a35d7e672b8faef9b9d9"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/freshness.json",
+      "sha256": "42ab0bebbac2f9c8f4f06ef6fe853d4592bc417aafd384c994d7067727ce4d59",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-ecdd1f99-e595-4709-b66e-0cfd9c7cfaf8.json",
+        "sha256": "42ab0bebbac2f9c8f4f06ef6fe853d4592bc417aafd384c994d7067727ce4d59"
+      }
+    },
+    "mcp": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/mcp.json",
+      "sha256": "ed9ecb655da078cdc8df3a536f4ccb036d53b41e59fe6f989c8ccc71991bb449",
+      "original": {
+        "path": ".work/v232-ci3-mcp-semantic-review.json",
+        "sha256": "ed9ecb655da078cdc8df3a536f4ccb036d53b41e59fe6f989c8ccc71991bb449"
+      }
+    },
+    "sourceScan": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/sourceScan.json",
+      "sha256": "65d4786390654a3a6976d43e7c965dd5b9da7ee8aeb82079a9fc1b212716e9b7",
+      "original": {
+        "path": ".work/v232-ci3-source-security.json",
+        "sha256": "65d4786390654a3a6976d43e7c965dd5b9da7ee8aeb82079a9fc1b212716e9b7"
+      }
+    },
+    "conversationSelfReview": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/conversationSelfReview.json",
+      "sha256": "d0422d25ff6b2bf18f2a8308cba677a60d35710a59877a312a7363f42f281ccb",
+      "original": {
+        "path": ".work/v232-session-core-author-self-review.json",
+        "sha256": "d0422d25ff6b2bf18f2a8308cba677a60d35710a59877a312a7363f42f281ccb"
+      }
+    },
+    "blocked-authorization": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/blocked-authorization.json",
+      "sha256": "df5f5c3a0a26af38923a7516b8415c05024fca5ca8b5988fb080881b27a3d6f3",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "df5f5c3a0a26af38923a7516b8415c05024fca5ca8b5988fb080881b27a3d6f3"
+      }
+    }
+  },
+  "canonicalization": "LF archive with original hashes; past failures and reviews retained unchanged."
+}

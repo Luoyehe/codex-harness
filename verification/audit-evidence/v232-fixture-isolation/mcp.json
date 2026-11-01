@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "exact-byte-inherited-builtin-mcp-semantic-review",
+  "complete": true,
+  "clean": true,
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceFiles": 2004,
+  "completedAt": "2026-11-01T15:02:21.113Z",
+  "findings": [],
+  "freshness": {
+    "path": ".work/builtin-mcp-freshness-ecdd1f99-e595-4709-b66e-0cfd9c7cfaf8.json",
+    "sha256": "42ab0bebbac2f9c8f4f06ef6fe853d4592bc417aafd384c994d7067727ce4d59"
+  },
+  "priorSemanticReview": {
+    "path": ".work/v232-ci2-mcp-semantic-review.json",
+    "sha256": "1f7d6eb4f018cb6414746f0395d34f7595fffa40a0a1b6d3e98520e485081bbf"
+  },
+  "priorFreshness": {
+    "path": ".work/builtin-mcp-freshness-29dd218f-72d6-48f9-9fb8-0e059fe4513d.json",
+    "sha256": "8c8df1d656622579f7e8a5988450e16746852bbc7cbd897ee18d9ad92b27c2b5"
+  },
+  "files": [
+    {
+      "path": "reference/BUILTIN-MCP-CONTRACT.json",
+      "sha256": "3a582f66a34def5b146c1d9fb60d5ee4bc0dbd4f6ed9247b1d682a75462b8f3c"
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "c06f314a13ca7797915da0d47d6744d2d672364ca49a2b41f75f8a2bd5f29488"
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "bd13c48a5271b36cb72f384d4c9dfc5cf83e276c39b7f51a025c49561c8bbe45"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126"
+    },
+    {
+      "path": "package.json",
+      "sha256": "a87422cbbfd0e5b3382fe436c53d1fc75d99d6936444e1afe2a3ee7e3970cae6"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "55c7a42ea77ca4130aa1373c4b0c119909d6fe0bd300f837f90faab869a027eb"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e77964d5f1476df649e0a8303cd27682cb6e0858582f97ecd75655abd253b963"
+    }
+  ],
+  "method": "Fresh official reads on final frozen source; all six public document/package byte hashes and all renderer/launcher source files exactly match the prior semantic review. Inherit that review explicitly, without claiming a new read of unchanged document prose.",
+  "limits": [
+    "Public documentation and package metadata only; no credential or live MCP connection/tool call.",
+    "Token matching detects drift but does not replace semantic documentation review or offline renderer/stdio compatibility tests.",
+    "User-defined MCP and ZAI global configuration are outside this builtin CN contract. No automatic dependency update."
+  ]
+}

@@ -17,8 +17,10 @@ class AccountRecoveryTests(unittest.TestCase):
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         self.layout, self.manager, self.system = fixture.layout, fixture.manager, fixture.system
-        # Use full real release manifests; only system/process execution is fake.
+        # The ordinary fixture replaces release/account readers for token-only
+        # packages. Restore both real boundaries for these root-owned releases.
         self.manager.verify_release = Manager.verify_release.__get__(self.manager)
+        self.manager.release_accounts = Manager.release_accounts.__get__(self.manager)
         self.started = []
         original = self.system.start
         def start(units):
