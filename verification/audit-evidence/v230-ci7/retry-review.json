@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "root",
+  "complete": true,
+  "status": "reviewed-no-actionable-findings",
+  "completedAt": "2026-11-01T09:09:25.301Z",
+  "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+  "reviewedFileHashes": [
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "72c35cf387e887f2997c2bdd3999b7f0ead74149ded37613c2578d156b287edd"
+    }
+  ],
+  "authorReport": {
+    "path": ".work/v230-ci6-defaults-retry-repair.json",
+    "sha256": "2b1bfd6005b224ad152d268ee5b5eb4a7dae67dfaeeb39248523f8b2ea205ccc"
+  },
+  "targeted": {
+    "path": ".work/test-results/run-y36sqg/vitest.json",
+    "sha256": "f7246dee7580603ce735a843d94a6edba8114da5c6a1d048dbccdf72626d9a8b"
+  },
+  "findings": [],
+  "method": "Root read the entire final test diff and surrounding case, original Linux failure DOM/stack, useResource key/generation handling, and Workspace defaults/retry/loading consumers. No duplicate test run.",
+  "conclusions": [
+    "Original failure text did not identify which options generation failed. The revised fixture explicitly holds both model-only and high-effort requests and asserts exact parameters before releasing either failure.",
+    "The test verifies that changing resource key detaches the old retry button, clears stale error and blocks send. Only the final settings failure is the precondition for clicking retry. Immediate busy/disabled duplicate-click, exact two read requests, draft/options retention and unknown-runtime send blocking are preserved.",
+    "No production changes, timeout increases, sleeps, assertion removal, or automatic retry were introduced. Three adjacent cases have independent response/readiness witnesses."
+  ],
+  "limits": [
+    "Unchanged local baseline passed; the historical Linux scheduling trace is unavailable. This is a demonstrated fixture precondition gap, not a claim that a product bug or precise historical interleaving was reproduced.",
+    "Targeted seven cases passed on Windows. Linux full validation remains pending."
+  ]
+}

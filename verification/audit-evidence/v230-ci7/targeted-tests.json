@@ -1,0 +1,132 @@
+{
+  "numTotalTestSuites": 3,
+  "numPassedTestSuites": 3,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 7,
+  "numPassedTests": 7,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1793523984350,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "refreshes inherited thread settings after an accepted override and hides old values during that read",
+          "status": "passed",
+          "title": "refreshes inherited thread settings after an accepted override and hides old values during that read",
+          "duration": 326.66409999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "labels new-thread fallback as project defaults and hides stale values while loading",
+          "status": "passed",
+          "title": "labels new-thread fallback as project defaults and hides stale values while loading",
+          "duration": 9.121999999999844,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "waits for fresh defaults after resetting an explicit provider before submitting a collaboration mode",
+          "status": "passed",
+          "title": "waits for fresh defaults after resetting an explicit provider before submitting a collaboration mode",
+          "duration": 940.8925000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "retries failed defaults directly without refreshing the catalog, changing the draft, or bypassing readiness",
+          "status": "passed",
+          "title": "retries failed defaults directly without refreshing the catalog, changing the draft, or bypassing readiness",
+          "duration": 1052.7628,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793523985712,
+      "endTime": 1793523988040.7627,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/web/tests/defaults.test.tsx"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "resource generations"
+          ],
+          "fullName": "resource generations does not allow a slow old selection to replace a newer page result",
+          "status": "passed",
+          "title": "does not allow a slow old selection to replace a newer page result",
+          "duration": 86.27190000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "resource generations"
+          ],
+          "fullName": "resource generations keeps an unrelated slow resource from blocking an independent read",
+          "status": "passed",
+          "title": "keeps an unrelated slow resource from blocking an independent read",
+          "duration": 76.09029999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        },
+        {
+          "ancestorTitles": [
+            "resource generations"
+          ],
+          "fullName": "resource generations never exposes the prior value as current during refresh or a new-key render",
+          "status": "passed",
+          "title": "never exposes the prior value as current during refresh or a new-key render",
+          "duration": 1.5984000000000833,
+          "failureMessages": [],
+          "meta": {},
+          "tags": [],
+          "benchmarks": []
+        }
+      ],
+      "startTime": 1793523985282,
+      "endTime": 1793523985445.5984,
+      "status": "passed",
+      "message": "",
+      "name": "D:/Document/ChatGPT/codex-harness/rewrite-20261025/web/tests/resources.test.tsx"
+    }
+  ]
+}
