@@ -294,12 +294,45 @@ test('malformed continuation readback keeps global maintenance blocked', async (
   await expect.poll(() => object(object(service.status()).activity).unknown).toBe(true);
   expect(object(object(service.status()).activity).activeThreads).toContain('t');
 });
-test('known unsubscribe prevents work without implicit resubscription and delete requires history', async () => {
+test('known unsubscribe prevents work without implicit resubscription', async () => {
   const { service, native } = setup(); await hydrate(service); await service.call('thread/unsubscribe', { threadId: 't' }, context);
   await expect(service.call('turn/start', { threadId: 't', text: 'cannot lose events' }, context)).rejects.toMatchObject({ code: 'session_not_loaded' });
   await expect(service.call('thread/queue/add', { threadId: 't', text: 'not yet', clientUserMessageId: 'id' }, context)).rejects.toMatchObject({ code: 'session_not_loaded' });
   expect(native.calls.some(item => item.method === 'thread/resume')).toBe(false);
-  await expect(service.call('thread/delete', { threadId: 'unseen' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
+});
+
+test('an unread idle thread can be deleted without enabling send or resume', async () => {
+  const { service, native } = setup();
+  await expect(service.call('turn/start', { threadId: 'unseen', text: 'not loaded' }, context)).rejects.toMatchObject({ code: 'history_incomplete', delivery: 'not_sent' });
+  await expect(service.call('thread/resume', { threadId: 'unseen' }, context)).rejects.toMatchObject({ code: 'history_incomplete', delivery: 'not_sent' });
+  let writes = 0;
+  await expect(service.call('thread/delete', { threadId: 'unseen' }, { ...context, beforeWrite: () => { writes++; } })).resolves.toEqual({});
+  expect(writes).toBe(1);
+  expect(native.calls.map(item => item.method)).toEqual(['thread/read', 'thread/delete']);
+  expect(native.calls.at(-1)?.params).toEqual({ threadId: 'unseen' });
+});
+
+test.each(['turn', 'goal', 'queue'] as const)('unread deletion still refuses a retained active %s', async activity => {
+  const { service, native } = setup();
+  if (activity === 'turn') native.active = true;
+  if (activity === 'goal') native.emit('notification', { method: 'thread/goal/updated', params: { threadId: 't', goal: goal() } });
+  if (activity === 'queue') {
+    native.queue.push({ id: 'waiting', input: [], clientUserMessageId: 'queued' });
+    native.emit('notification', { method: 'thread/queue/changed', params: { threadId: 't' } });
+  }
+  let writes = 0;
+  await expect(service.call('thread/delete', { threadId: 't' }, { ...context, beforeWrite: () => { writes++; } })).rejects.toMatchObject({ code: 'thread_busy', delivery: 'not_sent' });
+  expect(writes).toBe(0);
+  expect(native.calls.some(item => item.method === 'thread/delete')).toBe(false);
+});
+
+test('unread deletion verifies the native thread identity before its write', async () => {
+  const { service, native, cwd } = setup();
+  native.responseOverride = { method: 'thread/read', value: { thread: thread('different', cwd), readState: null } };
+  let writes = 0;
+  await expect(service.call('thread/delete', { threadId: 'unseen' }, { ...context, beforeWrite: () => { writes++; } })).rejects.toMatchObject({ code: 'invalid_native_response', delivery: 'not_sent' });
+  expect(writes).toBe(0);
+  expect(native.calls.map(item => item.method)).toEqual(['thread/read']);
 });
 test('task settings reject conflicting permission profiles, deprecated flags and stale live-turn targets before native writes', async () => {
   const { service, native } = setup();

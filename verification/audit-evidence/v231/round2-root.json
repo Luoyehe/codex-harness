@@ -1,0 +1,525 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v231-round2",
+  "reviewerId": "root-core-gateway-tooling-docs",
+  "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "sourceFiles": 1991,
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-11-01T10:53:32.581Z",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "1bf09ac7aa77483d2a6007d105e24ed6b9db15c6515fb5b0b7e15899e92f71aa"
+    },
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "caa953de087e91ff28cdef5a810ba4da7e8ca6fb1e5688d2631db8a6ba718799"
+    },
+    {
+      "path": ".github/workflows/compatibility.yml",
+      "sha256": "b78dea2aa061b52fbdaed997b4bb28b45aa8eeedbdfc666ded21fe3209188069"
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "7387ff5dfaa60e438ef9eb57f3965edd0c96b7e60a03c32813ae5920f8e3cee5"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "c24ba9f44fb5ac5c39af31bc2dbb5d4e8ca92bd777d9f2184d32c316c8ab480c"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "90b29a05a944190c723ed70f891b7c3a207df3e3d6b4081150758e6b7de75cb7"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "563375e3033d8ebfba52af293725995c2a501686a24e8c503ce094e5af1cf7c2"
+    },
+    {
+      "path": "FEATURES.md",
+      "sha256": "0e30bebc586870e0bbd4c4eba1c38be2c9770422ae06097c0840cc1c709eb7f9"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "98e0ca7419f338882af4a463a8e92d58b95da2f808c6084bd1715bcaaf640e7d"
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "00c34f665a19b4d1f87636f1ed573696820b530bab66867adb30dbe6fb938364"
+    },
+    {
+      "path": "PROBLEM-ACCEPTANCE.md",
+      "sha256": "11d7e950c6cf8a495a1281f7f960bb270797a53f690a444197befb8828bdb95e"
+    },
+    {
+      "path": "README.md",
+      "sha256": "85e92160ea1a1381f202dd6e44022ef77885048eca91bfa8d06061d9027bb2ea"
+    },
+    {
+      "path": "package.json",
+      "sha256": "b9c5cc9ba71d74d5d485880bee4182025c9d11b940bbb800b8a9e2e6c0e1425f"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "55c7a42ea77ca4130aa1373c4b0c119909d6fe0bd300f837f90faab869a027eb"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e77964d5f1476df649e0a8303cd27682cb6e0858582f97ecd75655abd253b963"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "fb23c0d7e61ef3a33200c1fabf3457871a3164317c064c4e065f7bb8035c9dc7"
+    },
+    {
+      "path": "scripts/check-builtin-mcp.mjs",
+      "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "72ae8b7305ee6153d39b50adcdd241534b4588b5eb7ec448b03a30b7ced5170b"
+    },
+    {
+      "path": "scripts/compatibility-watch.mjs",
+      "sha256": "a474298e01e90fd87f364327e99f336e77f33d2398faaca9c2744ef98aa3bf6f"
+    },
+    {
+      "path": "scripts/go-tests.mjs",
+      "sha256": "56a3556da7833399f4979b5011b1f0ee3a81af4ea055aac76481992e8b721a45"
+    },
+    {
+      "path": "scripts/prepare-ci-go.py",
+      "sha256": "2ec71bcdb84ebe9a912b3ba58cb73b277346febfc69e51c709f899ec5cda8a4f"
+    },
+    {
+      "path": "scripts/prepare-ci-native.mjs",
+      "sha256": "330ac0475fde81efd586d525127e74b3e2f833980df53e3089ae58fcc323925d"
+    },
+    {
+      "path": "scripts/python-tests.py",
+      "sha256": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab"
+    },
+    {
+      "path": "scripts/release-audit.mjs",
+      "sha256": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b"
+    },
+    {
+      "path": "scripts/release-authorization.mjs",
+      "sha256": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e"
+    },
+    {
+      "path": "scripts/release-preflight.mjs",
+      "sha256": "5a8f85ebfd4e47bec037e4b94f47ee57059dd2697ea90728694398183d8721e4"
+    },
+    {
+      "path": "scripts/reviewed-history.mjs",
+      "sha256": "a7f5201a2ece3bbf15b526f8e6c60cc288e8c7a066fa87af5504979efc31a4e2"
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "f922d6caeb89fb7631071b4b1f8c5e521c5dd83d8afe0436f111ab264fde2a40"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "42163357e91a0f14315331b8b60c3d9d98cc13c069288e71b39c19e547b9737f"
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432"
+    },
+    {
+      "path": "scripts/test-environment.mjs",
+      "sha256": "156ce382187684f60bf3f08c7f12f1acfe13110ec7b21a230f21a3d09e4cffe4"
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d"
+    },
+    {
+      "path": "src/core/automations.ts",
+      "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a"
+    },
+    {
+      "path": "src/core/budget.ts",
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b"
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5"
+    },
+    {
+      "path": "src/core/errors.ts",
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a"
+    },
+    {
+      "path": "src/core/execution-mode.ts",
+      "sha256": "3aeb8eb3ea729de0fbffcd74302d1c8b3a35395fae81025ba14bead24ff4ec0b"
+    },
+    {
+      "path": "src/core/extension-methods.ts",
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a"
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "fe23d36edf07ae235fad8ca695d0b58f1e3f96dcd3fa203fe05f78432ac638b9"
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "f17493bf533254f5b44c6d1501fadb322030df67c139f3c54fed0b95daba774f"
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad"
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "sha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b"
+    },
+    {
+      "path": "src/core/organization-methods.ts",
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4"
+    },
+    {
+      "path": "src/core/process-methods.ts",
+      "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f"
+    },
+    {
+      "path": "src/core/realtime-methods.ts",
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41"
+    },
+    {
+      "path": "src/core/remote-methods.ts",
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43"
+    },
+    {
+      "path": "src/core/schedule.ts",
+      "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a"
+    },
+    {
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+    },
+    {
+      "path": "src/core/worktrees.ts",
+      "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089"
+    },
+    {
+      "path": "src/gateway/auth-crypto.ts",
+      "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea"
+    },
+    {
+      "path": "src/gateway/auth.ts",
+      "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3"
+    },
+    {
+      "path": "src/gateway/automation-scheduler.ts",
+      "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9"
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "e1a069e97a908bfb81882c55118cd58a32f2c78885dcc34cfd2f65e8915d762a"
+    },
+    {
+      "path": "src/gateway/main.ts",
+      "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd"
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7"
+    },
+    {
+      "path": "src/gateway/organization-receipt.ts",
+      "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d"
+    },
+    {
+      "path": "src/gateway/receipt-maintenance.ts",
+      "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6"
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "9d04abb5b764a4cfa334630487974ae45dc718809ffa46117a98fc851599b072"
+    },
+    {
+      "path": "src/gateway/recovery-protocol.ts",
+      "sha256": "84995b1c4f70f1179b806248a3d84f5aab3522602fb8ea991f20ad04b8196505"
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360"
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "2720fdd6660b9d26aa6f9a321615ef5f20dc84d1302fe56a8fe2c00a0d036417"
+    },
+    {
+      "path": "src/gateway/workspace-ack.ts",
+      "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade"
+    },
+    {
+      "path": "tests/core/automation-retention.test.ts",
+      "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3"
+    },
+    {
+      "path": "tests/core/ledger-capacity.test.ts",
+      "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d"
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "sha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de"
+    },
+    {
+      "path": "tests/core/operation-retention.test.ts",
+      "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9"
+    },
+    {
+      "path": "tests/core/schedule.test.ts",
+      "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328"
+    },
+    {
+      "path": "tests/fixtures/native-env.ts",
+      "sha256": "3f2e70c6a85bf7e780ff3013e1d0844cb9118273f79c31551c03c9ad9cbf3c31"
+    },
+    {
+      "path": "tests/gateway/auth.test.ts",
+      "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679"
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5469b1d08c582d51e29cca45ad5d19e34fe10bf6d4a8fbc93508ed905a8785e4"
+    },
+    {
+      "path": "tests/gateway/automation-scheduler.test.ts",
+      "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5"
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "910497f430712ec777e85f714ecae6494cdea7a31813455d2b95126556307a5c"
+    },
+    {
+      "path": "tests/gateway/emergency-recovery.test.ts",
+      "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b"
+    },
+    {
+      "path": "tests/gateway/execution-mode.test.ts",
+      "sha256": "d5cbbd567b2b674e3fcb0d6cfc56088c3d7e7d3de073d65d7c08666a291718a7"
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877"
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091"
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492"
+    },
+    {
+      "path": "tests/gateway/receipt-maintenance.test.ts",
+      "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f"
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "9fbe2bbd3107514ae037de2a747db3c2c7e042cff1e307f806b832ed3c571cc5"
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "c28e54e7593375379dd4176fe792198be714dd94657e1b220c381ebd86cd4bfa"
+    },
+    {
+      "path": "tests/gateway/workspace-ack.test.ts",
+      "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b"
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "sha256": "facc579f89fa7178c50b953c42ab76d2ef19b8e8daa7aeebb887d41685c0e1c6"
+    },
+    {
+      "path": "tests/tooling/builtin-mcp.test.ts",
+      "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0"
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "fb2fcee7a12151ee1d64be00a0bb1ab9749ea7b393096fd8b5575aa72b3fe10e"
+    },
+    {
+      "path": "tests/tooling/compatibility-watch.test.ts",
+      "sha256": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89"
+    },
+    {
+      "path": "tests/tooling/go-tests.test.ts",
+      "sha256": "112457e214569432f5b2de19a0e79034cb4f88b0701914204fa44c78472881e4"
+    },
+    {
+      "path": "tests/tooling/prepare-ci-native.test.ts",
+      "sha256": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371"
+    },
+    {
+      "path": "tests/tooling/release-audit.test.ts",
+      "sha256": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4"
+    },
+    {
+      "path": "tests/tooling/release-preflight.test.ts",
+      "sha256": "9625389c2b122aed1603a8705afe3ee4c9729a72c3b2282eb708f3f40a5aade8"
+    },
+    {
+      "path": "tests/tooling/reviewed-history.test.ts",
+      "sha256": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5"
+    },
+    {
+      "path": "tests/tooling/run-tests.test.ts",
+      "sha256": "bed3c9a1c47770120417bc12cfec47ed076ceab89bc310dde20f69075b1f36ad"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "828acb976bf5812fc3acc97e94c8a78f5653586cc9c4f791614610afe16ad26c"
+    },
+    {
+      "path": "tests/tooling/test-environment.test.ts",
+      "sha256": "b4e0884156216c6a5a8442563c860b7d2963242595ba64af80943af07f4de7ea"
+    },
+    {
+      "path": "tests/tooling/vision-compat.test.ts",
+      "sha256": "24f1d6aa30e947764d0264b67fa30d3c353f5fe5562fa45a048508adbb5f3a99"
+    },
+    {
+      "path": "tests/tooling/windows-controller-preflight.test.ts",
+      "sha256": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e"
+    },
+    {
+      "path": "tsconfig.server.json",
+      "sha256": "848ce47eaea990c9cda7bf3efecd3aa561c31035fbf4936cfbbee11f4b71c558"
+    },
+    {
+      "path": "verification/feature-evidence/CAPABILITY-COVERAGE.md",
+      "sha256": "fb9d5942cf42146ffb625b00b66f15706a190959ba49797894d6e297e74fbb3d"
+    },
+    {
+      "path": "verification/feature-evidence/account-watch-index-boundaries.json",
+      "sha256": "2f948165437a7b6b9e0b80843e6773aca62c7821b48486540164786a83ed518d"
+    },
+    {
+      "path": "verification/feature-evidence/attachments-linux.json",
+      "sha256": "c082938f0e33b6edc80622db13295fad255bfc03079501e17ec336f310730360"
+    },
+    {
+      "path": "verification/feature-evidence/automation-scheduler.json",
+      "sha256": "fccf009866fd7e09300d29d6a5c08bac0856b3662967f7e52289f7a6fff7e5de"
+    },
+    {
+      "path": "verification/feature-evidence/capability-coverage.json",
+      "sha256": "f6ffcf29b4e1a1c16f0cd997789d0ede5196260bc2b9d9d5f63e0646eaafef98"
+    },
+    {
+      "path": "verification/feature-evidence/extensions-foundation.json",
+      "sha256": "59fade19360d539eecb7a88ccc31a85f10e1b11ee4aae84b9bffab871852cfc3"
+    },
+    {
+      "path": "verification/feature-evidence/linux-cli-crossuid.json",
+      "sha256": "00ad2f8976dc0ec547d38d7e8bf9e059f96ffc0566e139bca2d9eb10b8c301e8"
+    },
+    {
+      "path": "verification/feature-evidence/mcp-configuration.json",
+      "sha256": "c8b34bda9090a2b0a64cb39899768f886e8f7bf058dcd0ca3d6e34f4f814a3ec"
+    },
+    {
+      "path": "verification/feature-evidence/mcp-oauth-handoff.json",
+      "sha256": "0d5003f24e36316cadfe8204a63e8c18608c5b79ce932a2d9605a02d56a5b402"
+    },
+    {
+      "path": "verification/feature-evidence/migration-imports.json",
+      "sha256": "0efcf1987db43c0ba5525290ac3542f6605bce733151cbebf2fc5f8354eae327"
+    },
+    {
+      "path": "verification/feature-evidence/native-managed-config-probe.json",
+      "sha256": "f37043fede87a402f4e15a11ddd46e9c4f8c185c14581d33761fc5f022681e68"
+    },
+    {
+      "path": "verification/feature-evidence/prediction-cloud-native.json",
+      "sha256": "2aa2ade9a3f11c16fbc935e3cec41b06b5769fd9a51de955a5eecc6f801cb9f7"
+    },
+    {
+      "path": "verification/feature-evidence/private-account-media.json",
+      "sha256": "904643ba575d6cdf88a18bc37d8e16b5e4a6a17fbec14e52adc72bd43fbc333e"
+    },
+    {
+      "path": "verification/feature-evidence/process-remote-search-ui.json",
+      "sha256": "d9161855872476f9f58769a2b210d087ac72b936d437351d2823d2ddaff78739"
+    },
+    {
+      "path": "verification/feature-evidence/provider-boundary-and-host-check.json",
+      "sha256": "b4b0bb77f7c52c0f9186373c4a72e686444410920f7ed8b3abd4f365b34b3edf"
+    },
+    {
+      "path": "verification/feature-evidence/runtime-guardian-cli-audio.json",
+      "sha256": "a996da07fc37936341316032e16062903d6c926651123b73209ad812412157a9"
+    },
+    {
+      "path": "verification/feature-evidence/sharing-feedback-and-trust.json",
+      "sha256": "f392937d40772657aeb05b0544c4d2a28343bc31eeee8fc0f365d02e2277f6fb"
+    },
+    {
+      "path": "verification/feature-evidence/timeline-wire-contract.json",
+      "sha256": "93a76c298224852aafeecabb0df59a629195e1023a742da78543a677806d3bca"
+    },
+    {
+      "path": "verification/feature-evidence/workspace-foundation-linux.json",
+      "sha256": "46bdb5fa5c92230b17189f966264c75e8f00fe7e54d6bd2c558ed067ae558ac9"
+    },
+    {
+      "path": "verification/feature-evidence/workspace-positive-witness.json",
+      "sha256": "2bd493a00e26a41c2a693db310b85def2d14fb60d7e944e81bc1ba6f4b6429a1"
+    },
+    {
+      "path": "verification/feature-evidence/worktree-registration.json",
+      "sha256": "26b024802688c5a142ce579155dd2f43ff038095a31082d3b67b10a4223a0d69"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "31c85d49d547840df538d032953a2cabd13271d768cefb8fbcc8d7687082037f"
+    }
+  ],
+  "findings": [],
+  "skipped": [],
+  "method": "Full partition hash/inventory and affected-contract review after the only two account recovery changes. The round1 root partition remains byte-identical; its semantic review is retained explicitly. Account recovery changes were independently reviewed by root, including useResource invalidation and mutation guards.",
+  "checks": [
+    "No root-partition source changed. Existing mutation validation and account/login/logout receipt identity handling remain compatible with allowing explicit recovery after a terminal account read error.",
+    "Read failure does not create a pending mutation; new input/queue/session-owner and system/root permission boundaries are unchanged.",
+    "Reviewed the replacement account error guidance and updated tests; no further user-facing dependency on successful account read remains in the explicit login/logout handlers.",
+    "Fresh source-bound builtin MCP check reports current, all public documents/package metadata available and no version drift. The round1 semantic renderer review and 93-case/offline pinned stdio compatibility evidence remain applicable to byte-identical backend source.",
+    "Current source scan has no findings. Complete pre-candidate Git object scan finished with only explicitly reviewed historical synthetic patterns; hosted candidate scan remains required."
+  ],
+  "evidence": [
+    {
+      "path": ".work/v231-round1-root.json",
+      "sha256": "6d0d42df75b3d5e7fd70fefc9c0318acf22c89871bfc74f03eb4efb999122d08"
+    },
+    {
+      "path": ".work/v231-account-recovery-review.json",
+      "sha256": "f5ed24a52470d44b5173b0abc33b43bad3a227f36f21d035e351ef79391a2a72"
+    },
+    {
+      "path": ".work/v231-round2-source-security.json",
+      "sha256": "a6df49c909fde235073e6d4f14623ca6e1914c9516838b4ee0697c33a5e81e50"
+    },
+    {
+      "path": ".work/history-security-reviewed.json",
+      "sha256": "27cb5f7a826560be12bed52eea5c97edec66063e00965d88f3fdaf5911ed49e2"
+    },
+    {
+      "path": ".work/history-security-raw.json",
+      "sha256": "4ea263084a801ccf5b69dadf00cd2dbbbc387e2ce7f3985140ccb5e13850bcd0"
+    },
+    {
+      "path": ".work/builtin-mcp-freshness-2e71ce48-2de9-4560-8829-304c2029ebb5.json",
+      "sha256": "66dfa5f66442a657d9ca33f10c95b09793d2b9585a1f99cd705ee02d1f64f33f"
+    }
+  ],
+  "limits": [
+    "No claim of rereading every unchanged line; unchanged semantic review and generated contracts are inherited with hash verification.",
+    "This partition alone is not the aggregate clean-round authorization.",
+    "Full tests, production deployment and release are pending."
+  ]
+}

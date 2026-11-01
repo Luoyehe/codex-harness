@@ -420,6 +420,9 @@ function McpPanelContent({
           </button>
         </div>
         <p className="small muted">
+          Agent 可按任务需要使用已启用且可用的 MCP，无需在此再次勾选。下方选择只用于查看服务或手动操作，不改变 Agent 的可用服务。
+        </p>
+        <p className="small muted">
           {threadReady && threadId
             ? `当前已加载会话：${threadId}`
             : '当前没有可执行的已加载会话。可查看服务；请返回会话明确加载并完成历史读取后调用工具。'}

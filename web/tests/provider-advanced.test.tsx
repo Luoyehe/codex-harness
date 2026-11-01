@@ -41,10 +41,10 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 test('gateway credential consent binds every displayed destination and keeps gateway configuration separate from API keys', async () => {
-  const { calls, api } = routed(() => ({ revision: 'r', kind: 'chatgpt' }));
+  const { calls, api } = routed(() => ({ revision: 'r', kind: 'chatgpt-gateway' }));
   render(<ProviderSettings api={api} epoch="one" onChanged={() => {}} />);
   await screen.findByRole('button', { name: '发现模型' });
-  fireEvent.change(screen.getByLabelText('供应商'), { target: { value: 'chatgpt-gateway' } });
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(true);
   for (const [label, value] of [
     ['网关 Codex Base URL', 'https://gateway.example/backend-api/codex'],
     ['OAuth 授权 URL', 'https://login.example/authorize'],
@@ -142,10 +142,10 @@ test('gateway catalog stays native and configuration readiness prevents writes',
 });
 
 test('changing the Bedrock region clears an unsent key and submits the selected native provider without an arbitrary endpoint', async () => {
-  const { api, calls } = routed(() => ({ revision: 'r', kind: 'chatgpt' }));
+  const { api, calls } = routed(() => ({ revision: 'r', kind: 'bedrock-runtime' }));
   render(<ProviderSettings api={api} epoch="one" onChanged={() => {}} />);
   await screen.findByRole('button', { name: '发现模型' });
-  fireEvent.change(screen.getByLabelText('供应商'), { target: { value: 'bedrock-runtime' } });
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(true);
   fireEvent.change(screen.getByLabelText('AWS 区域'), { target: { value: 'us-east-1' } });
   fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'old-unsent-fixture' } });
   fireEvent.change(screen.getByLabelText('AWS 区域'), { target: { value: 'us-west-2' } });
@@ -175,7 +175,8 @@ test('initial provider read keeps editors unavailable until their baseline exist
   fireEvent.submit(screen.getByLabelText('供应商').closest('form')!);
   expect(mutate).not.toHaveBeenCalled();
   await act(async () => resolve({ revision: 'r', kind: 'chatgpt' }));
-  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(false);
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(true);
+  expect(screen.getByLabelText('默认模型 ID').matches(':disabled')).toBe(false);
 });
 
 test('the first exposed provider editor binds immediate input to its initialized revision', async () => {
@@ -189,7 +190,6 @@ test('the first exposed provider editor binds immediate input to its initialized
     if (edited || !screen.queryByRole('button', { name: '发现模型' })) return;
     edited = true;
     try {
-      fireEvent.change(screen.getByLabelText('供应商'), { target: { value: 'bedrock-runtime' } });
       fireEvent.change(screen.getByLabelText('AWS 区域'), { target: { value: 'us-east-1' } });
       fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'old-unsent-fixture' } });
       fireEvent.change(screen.getByLabelText('AWS 区域'), { target: { value: 'us-west-2' } });
@@ -200,7 +200,7 @@ test('the first exposed provider editor binds immediate input to its initialized
   observer.observe(document.body, { childList: true, subtree: true });
   try {
     render(<ProviderSettings api={{ call, mutate } as unknown as Api} epoch="one" onChanged={() => {}} />);
-    resolve({ revision: 'r', kind: 'chatgpt' });
+    resolve({ revision: 'r', kind: 'bedrock-runtime' });
     await waitFor(() => expect(edited).toBe(true));
     expect(interactionError).toBeUndefined();
     expect(clearedKey).toBe('');
@@ -223,7 +223,8 @@ test('an initial provider read failure keeps retry reachable outside the disable
   expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(true);
   fireEvent.click(retry);
   await waitFor(() => expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('saved-model'));
-  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(false);
+  expect(screen.getByLabelText('供应商').matches(':disabled')).toBe(true);
+  expect(screen.getByLabelText('默认模型 ID').matches(':disabled')).toBe(false);
 });
 
 test('keeps a provider save owned across its own maintenance and runtime restart', async () => {

@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-v230-proxy-enable-implementation",
+  "complete": true,
+  "status": "targeted-validation-passed",
+  "createdAt": "2026-11-01T10:44:06.981913+00:00",
+  "finding": {
+    "id": "POST-V230-PROXY-ENABLE-001",
+    "classification": "pre-audit usability/function gap",
+    "problem": "Disabling retained core/configuration but the menu had no direct way to enable the current saved selection. Reconfigure required a node file and core preparation; rollback after disabled direct-list edits could undo those edits.",
+    "resolution": "proxy-enable uses the existing journaled transaction with action enable and only changes enabled to true. Menu choice 7 reuses the saved node/core/direct list, with confirmation and no latest-version query/import/download."
+  },
+  "files": [
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "16f27781ea5f78790af15f2cd603beef44a94a645de0d9807f14049bb3e7ad8d"
+    },
+    {
+      "path": "deploy/cli.py",
+      "sha256": "f54947251348d19c5a59f4f8927c1efb4fcf472b14304ed0255ce2d786b673c0"
+    },
+    {
+      "path": "deploy/operator.py",
+      "sha256": "3afa177957fb3ea4b8a176ec902eee58b7d46d89032dc7aaa440cd72ab965600"
+    },
+    {
+      "path": "tests/deploy/test_proxy_transaction.py",
+      "sha256": "ba38e7ee4bf43286ed5d08b6d1afc21ba5d916f43593f58e148735aba68a3640"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "0ffe691c008a0f76464fb68175bd39e8c176583667ed375d1f3f74a9e7444433"
+    },
+    {
+      "path": "tests/deploy/test_operator.py",
+      "sha256": "a16ee71d2e65c13f83fdda65c3d13f49a687c1492b3ff3326cc087685a7f9b99"
+    }
+  ],
+  "diff": {
+    "path": ".work/post-v230-proxy-enable.diff",
+    "sha256": "d74dc683d82fbf495bce3e124caab761ea6c233d40d938d3add8ee6c4b981dc8"
+  },
+  "behavior": [
+    "Existing capability, readiness, idle, Manager.verify, canonical saved policy, exact core config, Linux prerequisites, refreshed idle, bounded journal, stop/restore/rollback/recovery checks are retained.",
+    "Unconfigured enable returns not_installed and menu guidance; already enabled is a no-op. CLI accepts no replacement config/version/direct-domain inputs on proxy-enable.",
+    "Operator execution-mode text reflects one active shared ChatGPT login transferred at stopped identity changes; history/default project directories remain separate; inactive legacy accounts are not automatically restored."
+  ],
+  "validation": [
+    {
+      "kind": "Windows portable Python",
+      "report": {
+        "path": ".work/post-v230-proxy-enable-windows.json",
+        "sha256": "eddb7beb67f16e6409976a82facd88ef712a9dfa108487e2a272c35601b1c2a3"
+      },
+      "log": {
+        "path": ".work/post-v230-proxy-enable-windows.log",
+        "sha256": "f92b138b51a1aa0dfe77db9b86d4233d227a90808fb0d330fc7d916ac90fcef2"
+      },
+      "files": [
+        "tests/deploy/test_operator.py",
+        "tests/deploy/test_proxy_transaction.py"
+      ],
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "Linux root isolated filesystem transaction",
+      "report": {
+        "path": ".work/post-v230-proxy-enable-linux-tests-2.json",
+        "sha256": "e367ee669a005642d11048dcda1980c9caa27dbeff82669559d9ef4e80e6f8cc"
+      },
+      "runner": {
+        "path": ".work/post-v230-proxy-enable-linux-tests-2.py",
+        "sha256": "25715eff3f966dee3a343d0e2d6b5a329b27526bfd5671a3756c8752585af38a"
+      },
+      "files": [
+        "tests/deploy/root/test_proxy_transaction.py"
+      ],
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "fixture": "/var/tmp/crtest-post-v230-proxy-enable-tests-591b9f09872e8649",
+      "uid": 0,
+      "sourceHashesVerified": true
+    },
+    {
+      "kind": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "preservedEarlierResult": {
+    "report": {
+      "path": ".work/post-v230-proxy-enable-linux-tests.json",
+      "sha256": "6444667d1f682a57f7b28d6fc881059ced990b291658aa2ff28d21f27118dc61"
+    },
+    "passed": 20,
+    "failed": 1,
+    "reason": "Existing root proxy fixture replaced execution-mode capabilities but omitted the new sharedChatgptAuth capability; old stopped-mode interaction case correctly refused. Test fixture updated to declare installed shared-auth support; no product check weakened."
+  },
+  "limits": [
+    "Targeted scope only; not a full repository audit or full suite.",
+    "Linux services/nft/upstream IO remain substituted by existing fixture; real Manager verification, root-owned files, journals, direct-domain generations and compensation are exercised.",
+    "No live instance/service change, core download, model inference or external MCP call. The isolated module includes its existing loopback TLS timeout fixture; no external endpoint.",
+    "No new real Xray routing test is required by this enabled-bit-only change: configuration/core bytes are retained and existing verification is reused."
+  ],
+  "review": "Implementation frozen for independent review; parent coordinates final source snapshot."
+}

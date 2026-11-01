@@ -1,11 +1,29 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { Api } from '../lib/api';
 import { Events } from '../lib/events';
 import { Settings } from '../components/Settings';
 import { AdminSettings } from '../components/AdminSettings';
 afterEach(cleanup);
+it('reads instance login sharing and retained legacy modes from system status without relying on a switch receipt', async () => {
+  let archived: string[] = ['native'];
+  const api = { call: vi.fn(async (method: string) => method === 'system/status' ? {
+    executionMode: { mode: 'root', effectiveUid: 0, revision: 'a'.repeat(64), requiresRestart: true, rootAllowed: true },
+    sharedChatgptAuth: { shared: true, activeMode: 'root', archivedLegacyModes: archived, automaticRestore: false },
+  } : { text: 'healthy' }), mutate: vi.fn() } as unknown as Api;
+  render(<AdminSettings api={api} epoch="shared-auth" />);
+  const sharing = within(screen.getByLabelText('实例 ChatGPT 登录'));
+  expect(await sharing.findByText(/普通账号模式原有的 ChatGPT 登录已保留为受限备份/)).toBeTruthy();
+  expect(sharing.getByText(/本实例共用一份 ChatGPT 登录，当前由ROOT 模式使用/)).toBeTruthy();
+  expect(sharing.getByText(/共享状态不代表已经登录/)).toBeTruthy();
+  expect(api.mutate).not.toHaveBeenCalled();
+  expect(api.call).not.toHaveBeenCalledWith('operation/read', expect.anything(), expect.anything());
+  archived = [];
+  fireEvent.click(screen.getByRole('button', { name: '刷新状态' }));
+  await waitFor(() => expect(sharing.queryByText(/原有的 ChatGPT 登录已保留/)).toBeNull());
+  await sharing.findByText(/本实例共用一份 ChatGPT 登录/);
+});
 it('serializes initial status and logs through a shared queue across refresh and remount', async () => {
   const pending: (() => void)[] = [];
   let inflight = 0,

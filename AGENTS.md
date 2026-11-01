@@ -4,6 +4,8 @@ This directory is a new implementation. Do not inspect, copy, adapt or import co
 
 Use narrow modules with explicit ownership. Never substitute a mock, placeholder or disabled feature for a required real workflow without documenting the incomplete work. Preserve single-administrator authentication, separate worker and control identities, persistent receipts, unknown outcomes, approval validation, bounded resources, and recovery after disconnection or restart.
 
+When replacing or removing behavior, remove its unused code, controls, styles and obsolete tests in the same change. Trace callers and shared dependencies first; keep still-needed validation and capabilities. New and changed flows must be consistent and usable on desktop and mobile.
+
 During implementation run only affected tests and necessary type/build/security checks. Do not run a full suite until three consecutive independent full-repository audits of an unchanged source snapshot report no new actionable issue. Any fix resets that count. Record scope, evidence, skips and untested integrations honestly. If full tests reveal a defect, fix it and repeat this gate.
 
 Do not read personal CODEX_HOME or credentials for tests; no paid inference or real external MCP calls in this run. Use isolated homes and local protocol substitutes. Linux/systemd tests use isolated paths/ports on 192.168.1.120; leave existing services running. Do not use the retired 110 deployment. No deployment or migration of an online instance as part of routine tests.

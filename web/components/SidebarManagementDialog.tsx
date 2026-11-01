@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
-import type { Events } from '../lib/events';
-import { composing, type Project, type Thread } from '../lib/types';
-import { useConversation } from '../hooks/useConversation';
+import { composing, object, type Project, type Thread } from '../lib/types';
+import { useResource } from '../hooks/useResource';
 import { Dialog } from './Dialog';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 
@@ -12,10 +11,9 @@ export type SidebarAction =
 
 // The parent keys this dialog by a frozen row/action, independently of navigation.
 export function SidebarManagementDialog({
-  api, events, epoch, selection, enabled, beforeSubmit, onAccepted, onClose,
+  api, epoch, selection, enabled, beforeSubmit, onAccepted, onClose,
 }: {
   api: Api;
-  events: Events;
   epoch: string;
   selection: SidebarAction;
   enabled: boolean;
@@ -31,9 +29,11 @@ export function SidebarManagementDialog({
   const [guardError, setGuardError] = useState('');
   const done = useRef(false), submitting = useRef(false);
   const action = useExtensionAction(api, enabled, () => {}, `${kind}:${target.id}:${intent}`);
-  // A delete requires complete history, but must never resume a queued task.
-  const history = useConversation(api, events, deleting && enabled ? target.id : '', epoch);
-  const ready = !deleting || (history.ready && !history.active && !history.realtimeActive);
+  // Deletion needs the current identity and activity, not the conversation's full content.
+  const state = useResource(`${epoch}:${target.id}`, signal => api.call('thread/read', { threadId: target.id }, signal), deleting && enabled);
+  const currentThread = object(state.data?.thread);
+  const threadIdle = ['idle', 'notLoaded'].includes(String(object(currentThread.status).type));
+  const ready = !deleting || (!state.loading && !state.error && currentThread.id === target.id && threadIdle);
   const frozen = action.busy || Boolean(action.operation && ['pending', 'unknown'].includes(action.operation.state));
   const complete = () => {
     if (done.current) return;
@@ -78,9 +78,9 @@ export function SidebarManagementDialog({
           {intent === 'unarchive' && <p>会话将回到此项目的“最近会话”列表。</p>}
           {deleting && <>
             <p>永久删除此会话的历史记录，无法恢复。工作目录中的文件不会删除，已执行的修改也不会撤销。</p>
-            <ReadState loading={history.loading} error={history.error} />
-            {!history.ready && !history.loading && <button type="button" className="button small" disabled={!enabled} onClick={history.refresh}>重新读取会话状态</button>}
-            {(history.active || history.realtimeActive) && <p role="status">请先结束此会话中正在运行的任务或语音会话。</p>}
+            <ReadState loading={state.loading} error={state.error} />
+            <button type="button" className="button small" disabled={!enabled || state.loading} onClick={state.refresh}>重新读取会话状态</button>
+            {currentThread.id === target.id && !threadIdle && <p role="status">请先结束此会话中正在运行的任务或语音会话。</p>}
             <label className="check-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />确认永久删除此会话历史</label>
           </>}
         </fieldset>

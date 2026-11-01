@@ -362,6 +362,10 @@ def native_main(instance: str) -> None:
             # the explicit region is also used by the native static catalog.
             environment.update(AWS_CONFIG_FILE="/dev/null", AWS_SHARED_CREDENTIALS_FILE="/dev/null", AWS_EC2_METADATA_DISABLED="true")
         arguments = [settings["bin"], "--version"] if sys.argv[1] == "version" else [settings["bin"], "app-server", "--listen", "stdio://"]
+        if sys.argv[1] == "app-server" or catalog:
+            from .auth_storage_policy import require_file_store
+            require_file_store(layout, Path(settings["home"]), settings["uid"])
+            arguments += ["-c", 'cli_auth_credentials_store="file"']
         registry_path = env_path.parent / "runtime.json"
         if catalog:
             registry = read_json(registry_path, 4 * 1024 * 1024)
@@ -372,6 +376,12 @@ def native_main(instance: str) -> None:
             if row.get("catalogPath"):
                 arguments += ["-c", "model_catalog_json=" + json.dumps(row["catalogPath"])]
         raise SystemExit(supervise(arguments, environment, settings["cwd"], streaming=sys.argv[1] == "app-server" or bool(catalog)))
+    except DeployError as error:
+        if error.code == "auth_store_unsupported":
+            sys.stderr.write(str(error) + "\n")
+        else:
+            sys.stderr.write("Native launcher failed its fixed identity or lifecycle check.\n")
+        raise SystemExit(1)
     except Exception:
         sys.stderr.write("Native launcher failed its fixed identity or lifecycle check.\n")
         raise SystemExit(1)

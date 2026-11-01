@@ -255,6 +255,8 @@ class ProviderStore:
             if "connections" in current:
                 from .provider_registry import change
                 return "provider", change(params, current)
+            require("kind" not in params or params["kind"] == current.get("kind"),
+                    "已有供应商不能更改类型，请通过“添加供应商”创建新的配置。", "provider_kind_immutable")
             return "provider", validate_provider(params, current)
         require(len(actions) == 1 and set(params) == {"expectedRevision", *actions},
                 "Profile actions cannot be mixed with provider fields")

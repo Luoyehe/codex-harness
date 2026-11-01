@@ -369,10 +369,11 @@ class ControlUpdater:
             self.require_account_guard(capabilities)
             self.require_dns_guard(capabilities)
         except DeployError as error:
-            if error.code not in ("authentication_downgrade", "dns_downgrade", "execution_unsupported", "proxy_unsupported"):
+            if error.code not in ("authentication_downgrade", "dns_downgrade", "execution_unsupported", "proxy_unsupported", "shared_auth_unsupported"):
                 raise
             feature = {"authentication_downgrade": "account guard", "dns_downgrade": "selected DNS challenge support",
-                       "execution_unsupported": "root execution support", "proxy_unsupported": "service proxy support"}[error.code]
+                       "execution_unsupported": "root execution support", "proxy_unsupported": "service proxy support",
+                       "shared_auth_unsupported": "shared ChatGPT authentication support"}[error.code]
             raise DeployError(error.code,
                               "Previous control tools lack " + feature + "; recovery has not changed services or selected code. "
                               "Correct any runtime prerequisite, then run control-recover --target candidate to validate and resume the original candidate.") from error
@@ -503,6 +504,8 @@ class ControlUpdater:
         require(isinstance(capabilities, dict), "Invalid retained control capabilities", "integrity")
         from .execution_identity import require_control
         require_control(capabilities, self.config)
+        from .shared_auth import require_control as require_shared_auth_control
+        require_shared_auth_control(self.layout, capabilities)
         selected_proxy = proxy_selection(self.config)
         if selected_proxy is not None:
             require(capabilities.get("serviceProxy") == 1,

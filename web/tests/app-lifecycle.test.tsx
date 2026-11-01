@@ -3,7 +3,7 @@ import { IDBObjectStore } from 'fake-indexeddb';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { enabledButton } from './enabled-button';
-import { Api } from '../lib/api';
+import { Api, RpcError } from '../lib/api';
 import * as operationStorage from '../lib/operations';
 import { App } from '../App';
 import { createOperation, listOperations, updateOperation } from '../lib/operations';
@@ -101,6 +101,7 @@ async function fixture(
   }),
   initialAuthenticated = true,
   override?: (call: { method: string; params: Record<string, unknown>; operationId?: string }) => unknown,
+  safeAutoLoad = false,
 ) {
   const sockets: Socket[] = [],
     calls: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
@@ -147,6 +148,8 @@ async function fixture(
       const request = JSON.parse(String(init?.body));
       calls.push(request);
       const overridden = await override?.(request);
+      if (overridden instanceof RpcError) return { ok: true, status: 200,
+        json: async () => ({ ok: false, error: { code: overridden.code, message: overridden.message, delivery: overridden.delivery } }) };
       if (overridden !== undefined) return ok(overridden);
       const thread = { id: 't', name: 'Current thread', cwd: '/p', status: { type: 'idle' } };
       switch (request.method) {
@@ -158,7 +161,7 @@ async function fixture(
             nextCursor: null,
           });
         case 'model/list':
-          return ok({ data: [{ id: 'fixture-model', model: 'fixture-model', displayName: 'fixture-model',
+          return ok({ data: [{ id: 'fixture-model', model: 'fixture-model', modelProvider: 'harness_fixture', displayName: 'fixture-model',
             supportedReasoningEfforts: [{ reasoningEffort: 'medium' }], defaultReasoningEffort: 'medium' }], nextCursor: null });
         case 'system/provider/read':
           return ok({ revision: 'provider-fixture', defaultProviderId: 'fixture-provider', profiles: [], connections: [{
@@ -184,7 +187,7 @@ async function fixture(
           return ok(
             loaded
               ? { requiresResume: false, thread, model: 'fixture-model' }
-              : { requiresResume: true },
+              : { requiresResume: true, requiresContinuationConfirmation: !safeAutoLoad },
           );
         case 'thread/resume':
           loaded = true;
@@ -287,9 +290,13 @@ async function fixture(
     sockets[0]!.onopen();
     state(true);
   });
-  if (requiresResume)
-    await screen.findByRole('button', { name: '加载并继续（可能恢复待执行任务）' });
-  else await loadedModelPicker();
+  if (requiresResume) {
+    await waitFor(() => expect(Boolean(screen.queryByRole('button', { name: '加载并继续（可能恢复待执行任务）' }) ||
+      screen.queryByRole('button', { name: '重新读取会话' }) ||
+      screen.queryByLabelText('选择模型与思考强度')?.textContent?.includes('fixture-model'))).toBe(true));
+  }
+  if (!screen.queryByRole('button', { name: '加载并继续（可能恢复待执行任务）' }) &&
+      !screen.queryByRole('button', { name: '重新读取会话' })) await loadedModelPicker();
   return {
     sockets,
     calls,
@@ -392,6 +399,50 @@ it('requires explicit continuation before loading a stored thread that may resum
   expect(
     (screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value,
   ).toBe('Waiting draft');
+});
+it('automatically loads an ordinary stored conversation without sending or interrupting work', async () => {
+  writeDraft({ ...emptyDraft('t'), text: 'kept while loading' });
+  const f = await fixture(false, true, undefined, true, undefined, true);
+  await loadedModelPicker();
+  expect(f.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
+  expect(f.calls.find(call => call.method === 'thread/resume')?.params).toEqual({ threadId: 't', automatic: true });
+  expect(f.count('turn/start')).toBe(0);
+  expect(f.count('turn/interrupt')).toBe(0);
+  expect(screen.queryByRole('button', { name: '加载并继续（可能恢复待执行任务）' })).toBeNull();
+  expect(screen.getByRole('textbox', { name: '给 Codex 的消息' })).toHaveProperty('value', 'kept while loading');
+  await act(async () => { f.state(true); });
+  expect(f.count('thread/resume')).toBe(1);
+});
+it('offers explicit continuation when queued work appears after the automatic-load check', async () => {
+  const f = await fixture(false, true, undefined, true, call => call.method === 'thread/resume' && call.params.automatic === true
+    ? new RpcError('新增待执行任务，需要确认继续。', 'continuation_confirmation_required', 'not_sent') : undefined, true);
+  const confirm = await screen.findByRole('button', { name: '加载并继续（可能恢复待执行任务）' });
+  expect(f.calls.filter(call => call.method === 'thread/resume').map(call => call.params)).toEqual([{ threadId: 't', automatic: true }]);
+  fireEvent.click(await enabledButton({ name: '加载并继续（可能恢复待执行任务）' }));
+  await loadedModelPicker();
+  expect(f.calls.filter(call => call.method === 'thread/resume').map(call => call.params)).toEqual([
+    { threadId: 't', automatic: true }, { threadId: 't' },
+  ]);
+  expect(confirm.isConnected).toBe(false);
+  expect(f.count('turn/start')).toBe(0);
+});
+it('loads the same stored conversation with an explicitly chosen model after its former provider was removed', async () => {
+  writeDraft({ ...emptyDraft('t'), text: 'keep the existing chat draft' });
+  const f = await fixture(false, true, undefined, true, call => call.method === 'thread/resume' && !call.params.options
+    ? new RpcError('原供应商已停用，请选择可用模型。', 'provider_disabled', 'not_sent') : undefined, true);
+  await screen.findByText('原供应商已停用，请选择可用模型。');
+  const picker = screen.getByLabelText('选择模型与思考强度');
+  fireEvent.click(picker);
+  const models = await screen.findByRole('combobox', { name: '模型' });
+  await waitFor(() => expect(models.matches(':disabled')).toBe(false));
+  fireEvent.change(models, { target: { value: JSON.stringify(['harness_fixture', 'fixture-model']) } });
+  await waitFor(() => expect(f.calls.filter(call => call.method === 'thread/resume')).toHaveLength(2));
+  expect(f.calls.filter(call => call.method === 'thread/resume')[1]?.params).toEqual({ threadId: 't', automatic: true,
+    options: { modelProvider: 'harness_fixture', model: 'fixture-model' } });
+  await enabledButton({ name: '发送消息' });
+  expect(f.count('turn/start')).toBe(0);
+  expect(f.count('conversation/start')).toBe(0);
+  expect(screen.getByRole('textbox', { name: '给 Codex 的消息' })).toHaveProperty('value', 'keep the existing chat draft');
 });
 it('closes the action menu and gives each tool the main region while retaining pending answers', async () => {
   const f = await fixture();

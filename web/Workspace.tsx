@@ -1,6 +1,6 @@
 import { uuid } from './lib/ids';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Api } from './lib/api';
+import { Api, RpcError } from './lib/api';
 import { Events } from './lib/events';
 import { consumeThreadOperations, listOperations, reconcileOperation } from './lib/operations';
 import {
@@ -643,7 +643,7 @@ export function Workspace({
     }
   };
   const modalNavigation = navigation.current;
-  const loadThread = async () => {
+  const loadThread = async (automatic = false) => {
     if (
       !threadId ||
       pending ||
@@ -661,10 +661,22 @@ export function Workspace({
     setBusy((current) => new Set([...current, key]));
     setError('');
     try {
-      await api.mutate('thread/resume', { threadId: target });
+      let modelOptions: Record<string, unknown> | undefined;
+      if (options.model && options.modelProvider) {
+        const selected = models.items.find(row => (row.model ?? row.id) === options.model && row.modelProvider === options.modelProvider);
+        if (!selected || models.loading) throw new Error('请从当前模型目录选择可用模型，再加载会话。');
+        if (options.effort && !selected.supportedReasoningEfforts?.some(row => row.reasoningEffort === options.effort))
+          throw new Error('所选思考强度已不适用于当前模型，请重新选择或恢复模型默认强度。');
+        modelOptions = { modelProvider: options.modelProvider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
+      }
+      await api.mutate('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) });
       if (navigation.current === nav) setResumeRevision((v) => v + 1);
     } catch (e) {
-      if (navigation.current === nav) setError(message(e));
+      if (navigation.current === nav) {
+        if (e instanceof RpcError && e.code === 'continuation_confirmation_required')
+          resume.requireContinuationConfirmation();
+        setError(message(e));
+      }
     } finally {
       setBusy((current) => {
         const next = new Set(current);
@@ -673,6 +685,18 @@ export function Workspace({
       });
     }
   };
+  const autoLoadAttempt = useRef('');
+  useEffect(() => {
+    const attempt = JSON.stringify([threadId, resourceEpoch, resumeRevision, options.modelProvider, options.model, options.effort]);
+    if (!active || !threadId || selectedArchived === true || !resume.requiresResume || resume.requiresContinuationConfirmation ||
+      autoLoadAttempt.current === attempt || pending || isBusy || !conversation.ready || operations.error ||
+      Boolean(options.model && options.modelProvider && models.loading) ||
+      network.connection !== 'connected' || !network.runtimeConnected || !network.activityReady) return;
+    autoLoadAttempt.current = attempt;
+    void loadThread(true);
+  }, [threadId, resourceEpoch, resumeRevision, active, selectedArchived, resume.requiresResume, resume.requiresContinuationConfirmation,
+    options.modelProvider, options.model, options.effort, models.loading,
+    pending, isBusy, conversation.ready, operations.error, network.connection, network.runtimeConnected, network.activityReady]);
   const workflowChanged = () => {
     threads.refresh();
     if (navigation.current === modalNavigation) {
@@ -802,16 +826,20 @@ export function Workspace({
               <span className="crumb-divider">/</span>
               <strong>{title}</strong>
             </div>
-            <div
-              className={`connection ${network.connection}`}
-              title={network.connection === 'connected' ? '实时连接正常' : '正在恢复连接'}
-            >
-              <span />
-              {network.connection === 'connected'
-                ? '已连接'
-                : network.connection === 'connecting'
-                  ? '连接中'
-                  : '已离线'}
+            <div className="runtime-status">
+              <div
+                className={`connection ${network.connection}`}
+                title={network.connection === 'connected' ? '实时连接正常' : '正在恢复连接'}
+              >
+                <span />
+                {network.connection === 'connected'
+                  ? '已连接'
+                  : network.connection === 'connecting'
+                    ? '连接中'
+                    : '已离线'}
+              </div>
+              <RootExecutionNotice identity={runtimeNetwork.executionMode} confirmed={runtimeNetwork.executionModeConfirmed}
+                onSettings={() => setModal('settings-admin')} />
             </div>
             {conversation.usage !== undefined && (
               <UsagePopover usage={conversation.usage} />
@@ -958,8 +986,6 @@ export function Workspace({
               )}
             </div>
           </header>
-          <RootExecutionNotice identity={runtimeNetwork.executionMode} confirmed={runtimeNetwork.executionModeConfirmed}
-            onSettings={() => setModal('settings-admin')} />
           <div className="status-area">
             {executionBlocked && <p className="connection-banner" role="status">
               {modeChanged ? '执行身份已切换。当前草稿仍属于原模式；安全保存后将退出原会话，并打开新模式的独立草稿。' : '正在确认实际执行身份，当前输入保留，暂不发送或继续原会话。'}
@@ -993,7 +1019,9 @@ export function Workspace({
             {threadId && resume.requiresResume && (
               <div className="resume-notice">
                 <p>
-                  此会话尚未加载。可以查看历史、搜索和导出；继续加载可能恢复已保存的队列或持续目标。
+                  {resume.requiresContinuationConfirmation
+                    ? `此会话有待确认的队列或持续目标。历史仍可查看；确认后将${options.model && options.modelProvider ? `使用所选模型 ${options.model}` : '沿用会话模型'}恢复执行。`
+                    : '正在自动加载会话。若原模型已不可用，可在输入框选择其它模型继续，历史会保留。'}
                 </p>
                 <button
                   className="button primary small"
@@ -1006,9 +1034,9 @@ export function Workspace({
                     !network.runtimeConnected ||
                     !network.activityReady
                   }
-                  onClick={() => void loadThread()}
+                  onClick={() => void loadThread(!resume.requiresContinuationConfirmation)}
                 >
-                  {isBusy ? '正在加载…' : '加载并继续（可能恢复待执行任务）'}
+                  {isBusy ? '正在加载…' : resume.requiresContinuationConfirmation ? '加载并继续（可能恢复待执行任务）' : '重新加载会话'}
                 </button>
               </div>
             )}
@@ -1151,7 +1179,9 @@ export function Workspace({
                   connected={
                     active && network.connection === 'connected' && network.runtimeConnected
                   }
-                  enabled={workflowEnabled}
+                  enabled={active && network.connection === 'connected' && network.runtimeConnected &&
+                    network.activityReady && !pending && !operations.error && !conversation.realtimeActive}
+                  shellEnabled={workflowEnabled}
                   idle={!conversation.active && !conversation.realtimeActive}
                   onChanged={workflowChanged}
                   onLocate={(itemId) => {
@@ -1287,6 +1317,7 @@ export function Workspace({
               <>
                 {threadId ? (
                   <Messages
+                    onOpenThread={workflowOpenThread}
                     key={threadId}
                     api={api}
                     threadId={threadId}
@@ -1517,7 +1548,6 @@ export function Workspace({
               <SidebarManagementDialog
                 key={sidebarManagement.key}
                 api={api}
-                events={events}
                 epoch={resourceEpoch}
                 selection={sidebarManagement.selection}
                 enabled={active && network.connection === 'connected' &&

@@ -472,7 +472,7 @@ export function ThreadOrganization({
                   </label>
                   <button
                     className="button danger"
-                    disabled={action.disabled || !ready || !idle || !deleteConsent}
+                    disabled={action.disabled || !idle || !deleteConsent}
                     onClick={async () => {
                       if (await action.run('thread/delete', { threadId })) onDeleted();
                     }}

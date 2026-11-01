@@ -1,5 +1,8 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
+import type { CollabAgentTool } from '../../protocol/ts/v2/CollabAgentTool';
+import type { CollabAgentStatus } from '../../protocol/ts/v2/CollabAgentStatus';
+import type { SubAgentActivityKind } from '../../protocol/ts/v2/SubAgentActivityKind';
 import { textContent } from '../lib/history';
 import { array, object, type Item, type Project } from '../lib/types';
 import { MessageMedia } from './MessageMedia';
@@ -15,6 +18,8 @@ const itemNames: Record<string, string> = {
   plan: '工作计划',
   contextCompaction: '上下文压缩',
   imageView: '查看图片',
+  collabAgentToolCall: '子智能体协作',
+  subAgentActivity: '子智能体动态',
 };
 const statusNames: Record<string, string> = {
   inProgress: '进行中', completed: '已完成', failed: '失败', declined: '已拒绝',
@@ -22,6 +27,50 @@ const statusNames: Record<string, string> = {
 const phaseNames: Record<string, string> = {
   commentary: '进度', partial_answer: '部分回答', final_answer: '最终回答',
 };
+const agentTools: Record<CollabAgentTool, string> = {
+  spawnAgent: '创建子智能体', sendInput: '发送指令', resumeAgent: '恢复子智能体', wait: '等待子智能体',
+  closeAgent: '关闭子智能体', sendMessage: '发送消息', followupTask: '安排后续任务',
+  interruptAgent: '中断子智能体', listAgents: '查看工作树',
+};
+const agentStatuses: Record<CollabAgentStatus, string> = {
+  pendingInit: '等待初始化', running: '工作中', interrupted: '已中断', completed: '任务已完成',
+  errored: '执行出错', shutdown: '已关闭', notFound: '未找到',
+};
+const agentActivities: Record<SubAgentActivityKind, string> = {
+  started: '已启动', interacted: '有新交互', interrupted: '已中断', completed: '任务已完成',
+};
+function AgentActivity({ item, onOpenThread }: { item: Item; onOpenThread?: (id: string) => void }) {
+  const call = item.type === 'collabAgentToolCall';
+  const states = object(item.agentsStates);
+  const ids = [...new Set(call ? [...array<unknown>(item.receiverThreadIds).filter((id): id is string =>
+    typeof id === 'string' && Boolean(id)), ...Object.keys(states)] :
+    typeof item.agentThreadId === 'string' && item.agentThreadId ? [item.agentThreadId] : [])];
+  const title = call ? agentTools[item.tool as CollabAgentTool] ?? '子智能体协作' : '子智能体动态';
+  const status = call ? ({ inProgress: '调用进行中', completed: '调用已完成', failed: '调用失败', interrupted: '调用已中断' }[String(item.status)] ?? '调用状态未知')
+    : agentActivities[item.kind as SubAgentActivityKind] ?? '动态状态未知';
+  return <details className={`tool-card agent-activity ${item.status === 'failed' ? 'tool-error' : ''}`}>
+    <summary><strong>{title}</strong><span className="badge">{status}</span></summary>
+    <div className="tool-body stack">
+      {typeof item.agentPath === 'string' && <p className="small">子智能体：{item.agentPath}</p>}
+      {typeof item.model === 'string' && <p className="small muted">模型：{item.model}{typeof item.reasoningEffort === 'string' ? ` · 思考强度：${item.reasoningEffort}` : ''}</p>}
+      {typeof item.prompt === 'string' && item.prompt && <div><strong>任务 / 指令</strong><PlainText text={item.prompt} /></div>}
+      <ul className="agent-activity-targets">
+        {ids.slice(0, 100).map(id => {
+          const state = object(states[id]);
+          return <li key={id}>
+            <div className="inline wrap"><span className="agent-activity-id">{id}</span>
+              {call && <span className="badge">{agentStatuses[state.status as CollabAgentStatus] ?? '状态尚未确认'}</span>}
+              {onOpenThread && <button className="button small" onClick={() => onOpenThread(id)}>查看子会话</button>}
+            </div>
+            {typeof state.message === 'string' && state.message && <PlainText text={state.message} />}
+          </li>;
+        })}
+      </ul>
+      {ids.length > 100 && <p className="small muted">此条涉及 {ids.length} 个子智能体，先显示前 100 个；可在任务工具的 Agents 工作树中继续查看。</p>}
+      <details><summary>完整条目</summary><PlainText text={JSON.stringify(item, null, 2)} /></details>
+    </div>
+  </details>;
+}
 
 function ReasoningSummary({ item, finished }: { item: Item; finished: boolean }) {
   const [open, setOpen] = useState(!finished);
@@ -54,12 +103,14 @@ export const MessageItem = memo(function MessageItem({
   threadId,
   project,
   reasoningFinished = false,
+  onOpenThread,
 }: {
   item: Item;
   api?: Api;
   threadId?: string;
   project?: Project;
   reasoningFinished?: boolean;
+  onOpenThread?: (id: string) => void;
 }) {
   // Reasoning has a dedicated public-summary channel. The generic snapshot,
   // mixed delta buffer, content and raw item must never be a display fallback.
@@ -85,6 +136,8 @@ export const MessageItem = memo(function MessageItem({
         )}
       </article>
     );
+  if (item.type === 'collabAgentToolCall' || item.type === 'subAgentActivity')
+    return <AgentActivity item={item} onOpenThread={onOpenThread} />;
   if (item.type === 'hookPrompt')
     return (
       <details className="tool-card">

@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "author": "/root/v230_audit_runtime",
+  "complete": true,
+  "status": "targeted-verified-not-deployed",
+  "createdAt": "2026-11-01T10:40:07.907416+00:00",
+  "files": [
+    {
+      "path": "deploy/shared_auth.py",
+      "sha256": "c3c2d1d4979da54bf3caacf4733330e81d83cb66abfc6dfecd3d3d656afd2c61"
+    },
+    {
+      "path": "deploy/auth_storage_policy.py",
+      "sha256": "8d5fb24357c604c8672f0a9e3483bcaa83e43964cc6008765bd5089c53f10a30"
+    },
+    {
+      "path": "deploy/execution_mode.py",
+      "sha256": "2c1a58c619a16624f77f86f5c9f088a8013d81373abdabad0a9f7970a09d40c4"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "5d9159bf4cdf827dae5301404f103a1f8d666d440d81f322cd820f9c43405006"
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "a7a775f490e696eddc176a7b829e5f76be87e4b61cdd1ed7725f5e8a9678b26f"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "81b049c60704de75413b94edb6e3450df96dfc85af5788dc6ccf8075d382dfd8"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "78b61c735fd9ffab0ca95216621b456c7bf4bbe4c2f7d29e829b0269d0c8ccde"
+    },
+    {
+      "path": "tests/deploy/root/test_shared_auth.py",
+      "sha256": "443947ba9977153c531be1acb0a6d7d90aee530369f9a7edaabcdc726172d1ab"
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "de0e86b8db2ea730cdd82dfe64e2ccf0ac6e4f186ecb2d9d09aa64901f974f52"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "ed27f0489b16f931e8bcacf0d10f94640f093ffc6d35136c7c0ef38626bf12a4"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "ea706cf2ccbca186051ab81900aa8baae79903cde038c70bd11d67ecb2460ea4"
+    },
+    {
+      "path": "tests/deploy/test_auth_storage_policy.py",
+      "sha256": "773c00c8d91d3c5f00054f58730d95f8f6c35a71703559ae53f411fd4c23bf80"
+    }
+  ],
+  "design": {
+    "authority": "One active CODEX_HOME/auth.json, transferred during stopped execution-mode transactions; independent writable homes remain.",
+    "activation": "First actual mode change; granting ROOT without selecting it does not initialize shared auth. Current mode wins, including no-login/logout.",
+    "legacy": "Inactive auth is renamed once to root:root0700 state/shared-chatgpt-auth/legacy-<mode>.auth.json0600; never automatically restored.",
+    "lifecycle": "In-place refresh and unlink logout stay native. Latest data/inode/mtime or absence moves; compensation does not restore stale tokens.",
+    "recovery": "Root-private mode/transaction/inode journal, descriptor-relative renameat2 NOREPLACE, fsync and ownership transfer. Old recovery directly restores the old home without requiring publication into a broken candidate home.",
+    "control": "sharedChatgptAuth=1 capability; once shared state exists, incompatible control selection/rollback/recovery is denied before stop.",
+    "storage": "Managed app-server/catalog-server rejects explicit non-file root/profile configuration and then pins -c file. No keyring read or automatic conversion. Manager mutation preflight checks before receipt/stop. Unmanaged local runtime unchanged.",
+    "budgets": "4MiB existing generated-layer budget for system config/requirements and namespace views;1MiB user/host-managed/project TOML."
+  },
+  "frontEnd": {
+    "path": "system/status result.sharedChatgptAuth",
+    "beforeActivation": {
+      "shared": false
+    },
+    "readyFields": [
+      "shared",
+      "ready",
+      "activeMode",
+      "archivedLegacyModes",
+      "automaticRestore",
+      "message"
+    ],
+    "pending": {
+      "shared": true,
+      "ready": false,
+      "automaticRestore": false,
+      "message": "Fixed recovery explanation without credential content"
+    },
+    "alsoReturnedBy": [
+      "execution-mode/write",
+      "execution-mode recovery",
+      "manager.verify"
+    ],
+    "note": "Keep at status top level: executionMode identity parser strips extra fields."
+  },
+  "upstream": {
+    "version": "0.164.0",
+    "provenance": {
+      "path": ".work/v230-shared-auth-official-0164/provenance.json",
+      "sha256": "cc10424d6a46466215f626bf69e4fad8feb2ac97ec7300a35b109c2c5e7fc368"
+    },
+    "facts": [
+      "FileAuthStorage.save truncates/create0600 then writes/flushes; delete unlinks auth.json.",
+      "Keyring key hashes canonical CODEX_HOME."
+    ],
+    "source": "https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/login/src/auth/storage.rs"
+  },
+  "verification": {
+    "latestPerFile": {
+      "passed": 162,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "tests/deploy/test_execution_mode.py",
+          "sha256": "cc4aa78f1bd7bdcda06590d16b1115be287a4827bac71a6f7157fa35ebbf90a9",
+          "passed": 16,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        },
+        {
+          "path": "tests/deploy/test_control_update.py",
+          "sha256": "ea706cf2ccbca186051ab81900aa8baae79903cde038c70bd11d67ecb2460ea4",
+          "passed": 16,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        },
+        {
+          "path": "tests/deploy/test_auth_storage_policy.py",
+          "sha256": "773c00c8d91d3c5f00054f58730d95f8f6c35a71703559ae53f411fd4c23bf80",
+          "passed": 6,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/root/test_shared_auth.py",
+          "sha256": "443947ba9977153c531be1acb0a6d7d90aee530369f9a7edaabcdc726172d1ab",
+          "passed": 10,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/root/test_execution_mode.py",
+          "sha256": "de0e86b8db2ea730cdd82dfe64e2ccf0ac6e4f186ecb2d9d09aa64901f974f52",
+          "passed": 17,
+          "report": ".work/v230-shared-auth-linux-tests-8.json"
+        },
+        {
+          "path": "tests/deploy/root/test_control_update.py",
+          "sha256": "ed27f0489b16f931e8bcacf0d10f94640f093ffc6d35136c7c0ef38626bf12a4",
+          "passed": 63,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        },
+        {
+          "path": "tests/deploy/test_provider_registry.py",
+          "sha256": "fda5c55ae54612fb1705bd3d23b61e54dace34eb869c8c79cc427bf048ea9e16",
+          "passed": 20,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/test_provider_lifecycle.py",
+          "sha256": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+          "passed": 8,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/root/test_provider_extended.py",
+          "sha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+          "passed": 6,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        }
+      ],
+      "meaning": "Deduplicated latest passing results for current test bytes, not a single full-suite run."
+    },
+    "reports": [
+      {
+        "path": ".work/v230-shared-auth-linux-tests-3.json",
+        "sha256": "a533a0f78955d860856db6db3627d6a2c7af759b5d4ff2a2f6f28646070478e2"
+      },
+      {
+        "path": ".work/v230-shared-auth-linux-tests-4.json",
+        "sha256": "eff270f50cfacf3186fcc75570b4bb5b1dfc25fed0b9dca3e9bfa3c2ecb104db"
+      },
+      {
+        "path": ".work/v230-shared-auth-linux-tests-8.json",
+        "sha256": "872ed4aad61156966776ac41788322e1c2a3179b5420e9809d06c79ea228bc57"
+      }
+    ],
+    "allOwnedHashesMatchFinalRemoteSnapshot": true,
+    "astAllOwned": "passed",
+    "gitDiffCheck": "passed",
+    "rootRequestedProviderTests": {
+      "registry": 20,
+      "lifecycle": 8,
+      "report": {
+        "path": ".work/v230-shared-auth-linux-tests-4.json",
+        "sha256": "eff270f50cfacf3186fcc75570b4bb5b1dfc25fed0b9dca3e9bfa3c2ecb104db"
+      }
+    }
+  },
+  "history": [
+    {
+      "report": {
+        "path": ".work/v230-shared-auth-linux-tests-1.json",
+        "sha256": "ee4a43cb397ff9b8314cb4eac1eb10d8daade9b91e43782c8856e291fc0ee15b"
+      },
+      "outcome": "Initial119passed; superseded implementation, not final coverage."
+    },
+    {
+      "report": {
+        "path": ".work/v230-shared-auth-linux-tests-2.json",
+        "sha256": "64f0750782b922938d24a17e666663ef8dcdf9b1e39707014428ef936bdf9835"
+      },
+      "outcome": "SSH255; read-only listing confirmed no second fixture."
+    },
+    {
+      "report": {
+        "path": ".work/v230-shared-auth-linux-tests-3.json",
+        "sha256": "a533a0f78955d860856db6db3627d6a2c7af759b5d4ff2a2f6f28646070478e2"
+      },
+      "outcome": "160passed1fixture error: isolated pack omitted MCP contract JSON; later supplied."
+    },
+    {
+      "report": {
+        "path": ".work/v230-shared-auth-linux-tests-4.json",
+        "sha256": "eff270f50cfacf3186fcc75570b4bb5b1dfc25fed0b9dca3e9bfa3c2ecb104db"
+      },
+      "outcome": "60passed1fixture error: test atomic_write used symlink parent; fixed to resolved immutable generation."
+    },
+    {
+      "reports": [
+        {
+          "path": ".work/v230-shared-auth-linux-tests-5.json",
+          "sha256": "a5b548cf4c0f26c8a03afe6511ceb5ac3a73f3a6bb9ebec6d4555f06584c0510"
+        },
+        {
+          "path": ".work/v230-shared-auth-linux-tests-6.json",
+          "sha256": "edfae8b85d87fd61093bfbae4607d5ae103736e32682c55d165feb2213a3d2bf"
+        },
+        {
+          "path": ".work/v230-shared-auth-linux-tests-7.json",
+          "sha256": "cf0270af2b408fb56faa54250246c29d2fe6452c3187579f0020167c8ec5d113"
+        }
+      ],
+      "outcome": "SSH banner/transport failures; known fixture absent and exclusive mkdir prevents duplicate execution. File-stdin transport completed once in run8."
+    }
+  ],
+  "resolvedIndependentFinding": {
+    "issue": "Initial1MiB guard rejected valid generated layers supporting4MiB.",
+    "reproduction": {
+      "path": ".work/post-v230-shared-auth-budget-repro.json",
+      "sha256": "0da7e128064c96e0e63fdd952ba2090d6b8a709a1d69bc19248d8b264a863d62"
+    },
+    "fixCheck": {
+      "path": ".work/post-v230-shared-auth-budget-fixed.json",
+      "sha256": "c34253995d982fd400ea18d851ce01bafe6e10e78fad6d00ae41e1b90443718b"
+    },
+    "fix": "Use provider_layers.LAYER_LIMIT; tests read full>1MiB TOML and still reject keyring."
+  },
+  "authorReview": [
+    "Current-mode priority and inactive quarantine even when current is logged out.",
+    "Refresh survives failed startup rollback; logout absence survives rollback and future switches.",
+    "Crashes after each rename/archive; transaction identity, inode replacement, duplicate, symlink and hardlink rejection.",
+    "Control guard before stop; candidate recovery; public pending status.",
+    "Actual UID0/65534 launcher security/config/argv admission for app-server and catalog-server; final supervise substituted.",
+    "Existing config UI editable allowlist excludes cli_auth_credentials_store."
+  ],
+  "limits": [
+    "No full suite, CI, commit, publication or deployment.",
+    "No live credentials, personal CODEX_HOME, production account paths, inference or external MCP.",
+    "No real OAuth network login/refresh: pinned official storage source plus real-UID save/truncate/unlink fixtures.",
+    "Deployment service manager, health/idle IO and final native executable dispatch substituted; no live service/NFT changes.",
+    "Author verification, not independent whole-source audit."
+  ],
+  "remainingFindings": []
+}

@@ -18,14 +18,17 @@ function deferred() {
   const promise = new Promise<Record<string, unknown>>((done) => { resolve = done; });
   return { promise, resolve };
 }
-function fixture() {
+function fixture(savedProvider = provider) {
   const call = vi.fn().mockImplementation(async (method: string) => {
-    if (method === 'system/provider/read') return provider;
+    if (method === 'system/provider/read') return savedProvider;
     if (method === 'mcp/config/read') return config;
     if (method === 'remoteControl/status/read') return { status: 'disabled', serverName: 'local', environmentId: null };
     return { data: [], nextCursor: null };
   });
-  const api = { csrf: 'account-a', call, mutate: vi.fn().mockResolvedValue({}) } as unknown as Api;
+  const api = {
+    csrf: 'account-a', call, mutate: vi.fn().mockResolvedValue({}),
+    onAuthenticationLost: vi.fn(() => () => {}),
+  } as unknown as Api;
   const props = {
     api, events: new Events(), epoch: 'epoch', runtimeEpoch: 'runtime', connectionId: 'connection',
     projects: [{ id: 'project', name: 'Project', cwd: '/project' }], projectId: 'project',
@@ -105,11 +108,11 @@ it('retains remote registration text while clearing token and consent and stoppi
 });
 
 it('retains public gateway OAuth fields across settings tabs without keeping credential consent', async () => {
-  const f = fixture();
+  const f = fixture({ ...provider, kind: 'chatgpt-gateway' });
   render(<Settings {...f.props} />);
   tab('模型供应商');
   await waitFor(() => expect(value('默认模型 ID')).toBe('saved-model'));
-  change('供应商', 'chatgpt-gateway');
+  expect(screen.getByLabelText('供应商')).toHaveProperty('disabled', true);
   change('网关 Codex Base URL', 'https://gateway.example/codex');
   change('OAuth 授权 URL', 'https://gateway.example/authorize');
   change('OAuth Token URL', 'https://gateway.example/token');

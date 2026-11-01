@@ -122,6 +122,20 @@ class ControlBoundaryTests(unittest.TestCase):
                     with patch("deploy.service_proxy.private_file", return_value=data):
                         updater.require_dns_guard({"serviceProxy": 1})
 
+    def test_shared_auth_state_requires_capable_control_even_when_logged_out(self):
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder)); layout.config.mkdir(parents=True)
+            write_json(layout.config / "instance.json", {})
+            updater = ControlUpdater(layout)
+            updater.require_dns_guard({})
+            (layout.state / "shared-chatgpt-auth").mkdir(parents=True)
+            # Presence also protects an interrupted initialization before state.json.
+            for marker in (None, 0, True, "1", 2):
+                with self.subTest(marker=marker), self.assertRaises(DeployError) as error:
+                    updater.require_dns_guard({"sharedChatgptAuth": marker})
+                self.assertEqual(error.exception.code, "shared_auth_unsupported")
+            updater.require_dns_guard({"sharedChatgptAuth": 1})
+
     def test_nonempty_direct_hosts_require_exact_capability_for_enabled_and_disabled_proxy(self):
         from deploy.service_proxy import configuration
         with tempfile.TemporaryDirectory() as folder:
@@ -190,6 +204,7 @@ class ControlBoundaryTests(unittest.TestCase):
             self.assertEqual(read_json(destination / "capabilities.json")["dnsChallenge"], "caddy-dns-v1")
             self.assertEqual(read_json(destination / "capabilities.json")["dnsProviders"], list(PROVIDERS))
             self.assertEqual(read_json(destination / "capabilities.json")["serviceProxyDirectDomains"], 1)
+            self.assertEqual(read_json(destination / "capabilities.json")["sharedChatgptAuth"], 1)
             from deploy.dns_caddy_build import source_material
             for name, data in source_material().items():
                 self.assertEqual((destination / "deploy/caddy_dns_source" / name).read_bytes(), data)

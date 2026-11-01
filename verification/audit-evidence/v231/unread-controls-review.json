@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-unread-control-review",
+  "reviewerId": "root",
+  "complete": true,
+  "clean": true,
+  "sourceDigest": "bae691fa63cbc1ee1040cd2f4557834ea2a8e5e2007193f16421d05de53b705c",
+  "sourceFiles": 1991,
+  "completedAt": "2026-11-01T10:48:55.435Z",
+  "findings": [],
+  "files": [
+    {
+      "path": "src/runtime/workflows.ts",
+      "sha256": "40fe15d7d5b2c368110945663c7b58a3c58e7bb463214376cab6c65df6cf13bf"
+    },
+    {
+      "path": "src/runtime/thread-terminals.ts",
+      "sha256": "cd915865948cb1127e76f220f3b5897312d52a6fbbd2271508cfca17c82ae477"
+    },
+    {
+      "path": "tests/runtime/workflows.test.ts",
+      "sha256": "bd44e1cdd5f1f66a83d59a20d249f778892fb7435e57f27b38747aaf1fd2d311"
+    },
+    {
+      "path": "tests/runtime/thread-terminals.test.ts",
+      "sha256": "fedbe4b5b4a73683b5535ad1cf92a65cb098851d430a2f8a047ba9c4476dd7c3"
+    },
+    {
+      "path": "web/components/ThreadTerminals.tsx",
+      "sha256": "8130da804be1aa229b07c68d2e8822176a0e2df65728c66b8dc79d8e00728201"
+    },
+    {
+      "path": "web/tests/thread-terminals.test.tsx",
+      "sha256": "a7780f715fffd66ccb98a42f9f757d62a4768578baaeb176223b2a1acff0a470"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/post-v230-unread-delete-runtime.json",
+      "sha256": "6f4a48eb3612766f14aa9035fa9fdfe626fcab8f0bc2d0769a97b4f38e843384"
+    },
+    {
+      "path": ".work/post-v230-unread-terminals-implementation.json",
+      "sha256": "cbbb0a180c08664e70db82820abd8c33a80386579fc4c9249f84fdc0942d284a"
+    }
+  ],
+  "checks": [
+    "thread/delete removes only history:true; mode idle still admits current thread identity and rejects active turns/goals/queued work. History invalidation and durable receipt semantics remain.",
+    "Terminate keeps bounded paginated same-thread process discovery, final live ownership guard and native terminated:false. Clean still requires explicit confirmation and only reports cleanupRequested.",
+    "Shell start retains full history and direct-input checks; frontend shellEnabled remains the former workflowEnabled, separate from the stop/clean basic connection/activity gate.",
+    "UI confirmation ownership remains scoped to current API/epoch/thread and refreshed process listing. Unknown actions query the original receipt and do not retry mutations.",
+    "Reviewed author results: 39 runtime workflows and 22 runtime/UI terminal cases passed, including unread controls and adjacent disallowed new work."
+  ],
+  "limits": [
+    "Independent semantic and evidence review, no duplicate test execution or production deletion/process termination. Root-authored Workspace/Sidebar changes are reviewed separately by the web reviewer."
+  ]
+}

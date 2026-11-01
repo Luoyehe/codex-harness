@@ -56,6 +56,45 @@ class ProviderRegistryTests(unittest.TestCase):
         self.assertEqual(selected(changed, row["id"])["settings"]["apiKey"], "")
         self.assertEqual(selected(changed)["settings"]["kind"], "chatgpt")
 
+    def test_existing_provider_identity_cannot_be_reused_for_a_different_kind(self):
+        current = self.add(self.current)
+        before = json.dumps(current, sort_keys=True)
+        for ident, kind in (("default", "zhipu-coding"), (entries(current)[1]["id"], "chatgpt")):
+            with self.subTest(ident=ident), self.assertRaises(DeployError) as caught:
+                change({"expectedRevision": current["revision"], "providerId": ident,
+                        "kind": kind, "name": "Changed", "apiKey": "fixture-other"}, current)
+            self.assertEqual(caught.exception.code, "provider_kind_immutable")
+            self.assertEqual(json.dumps(current, sort_keys=True), before)
+        with self.assertRaises(DeployError) as caught:
+            ProviderStore(self.layout, 1).validate_change(
+                {"expectedRevision": current["revision"], "kind": "responses", "baseUrl": "https://different.invalid/v1"}, current)
+        self.assertEqual(caught.exception.code, "provider_kind_immutable")
+        added = self.add(current, kind="zhipu-coding", apiKey="fixture-plan", baseUrl="https://open.bigmodel.cn/api/coding/paas/v4")
+        self.assertEqual(len(entries(added)), 3)
+        self.assertEqual(selected(added, "default")["settings"]["kind"], "chatgpt")
+
+    def test_existing_provider_name_and_enabled_state_can_change_without_retyping(self):
+        current = self.add(self.current)
+        ident = entries(current)[1]["id"]
+        changed = change({"expectedRevision": current["revision"], "providerId": ident,
+                          "name": "Renamed", "enabled": False}, current)
+        self.assertEqual(selected(changed, ident)["name"], "Renamed")
+        self.assertFalse(selected(changed, ident)["enabled"])
+        self.assertEqual(selected(changed, ident)["settings"], selected(current, ident)["settings"])
+
+    def test_legacy_default_provider_cannot_change_type_through_the_old_write_shape(self):
+        store = ProviderStore(self.layout, 1)
+        with self.assertRaises(DeployError) as caught:
+            store.validate_change({"expectedRevision": self.current["revision"], "kind": "responses",
+                                   "baseUrl": "https://other.invalid/v1"}, self.current)
+        self.assertEqual(caught.exception.code, "provider_kind_immutable")
+        _, unchanged = store.validate_change({"expectedRevision": self.current["revision"], "kind": "chatgpt",
+                                              "model": "fixture-model"}, self.current)
+        self.assertEqual(unchanged["kind"], "chatgpt")
+        _, added = store.validate_change({"expectedRevision": self.current["revision"], "providerId": "new",
+                                         "kind": "responses", "baseUrl": "https://other.invalid/v1"}, self.current)
+        self.assertEqual(len(entries(added)), 2)
+
     def test_disabled_and_removed_defaults_choose_an_enabled_alternative(self):
         current = self.add(self.current)
         custom = entries(current)[1]["id"]

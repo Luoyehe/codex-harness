@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "authorId": "v220-final-deploy",
+  "completedAt": "2026-11-01T10:44:25.064Z",
+  "sourceHashes": [
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "8c944b5230a6563cfabec5ad4e3afa465cafaea86752b1ee82efdc31f28c9b3e"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "44b04fcf1e68529e2e634ee007aaabe516c15c114c4d5fb1ee72fa3116faf904"
+    },
+    {
+      "path": "tests/runtime/providers.test.ts",
+      "sha256": "c395c37edc4ff3325f390b7d4275b4a579809350e1949fb56e3d224bc31ba5da"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "57845062bb06d7068e65999513127b650a296a8e53a991ef621d1690c0e18c2d"
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "e21a91732c6443e48b5d5aa62383428a1bfcb3c3d1c659fc323f7d8f5b5c5aca"
+    }
+  ],
+  "finding": {
+    "id": "cold-provider-unavailable",
+    "trigger": "Stop or remove the original provider, which restarts the runtime, then open one of its historical conversations.",
+    "before": "The old provider assertion prevented resume, and the composer disabled selection while waiting for a loaded snapshot. The allowed provider switch plan was unreachable.",
+    "after": "An explicit enabled provider/model may be selected for same-thread cold resume without recreating the old provider or sending a message."
+  },
+  "contract": {
+    "method": "thread/resume",
+    "params": "{threadId, automatic?:boolean, options?:{modelProvider:string, model?:string, effort?:ReasoningEffort|null}}",
+    "result": "Unchanged full ThreadResumeResponse",
+    "automatic": "Persisted goal/queue checked under the workflow mutation lock and continuation generation checked again before native write; active or queued continuation requires confirmation.",
+    "explicit": "When automatic is omitted, the user may explicitly authorize continuing saved goal/queue with the selected model. Current live turns still block model reload.",
+    "permissions": "Only model/provider/effort are accepted as selection options; no cwd, permission or instruction overrides. Native restores persisted permissions. Same thread/cwd/provider/model and known executor selection are verified; cold null executor metadata may expand only through the existing Environments identity/root checks.",
+    "failure": "No fallback to the old provider and no input resend. Positive resume followed by invalid confirmation remains unknown."
+  },
+  "tests": [
+    {
+      "path": ".work/test-results/run-v6cZFv/vitest.json",
+      "sha256": "9d39abbc0e73926d7e356357ee4cb0fb3c5bc564f32692b14bc956222e1f78e1",
+      "files": 2,
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": ".work/test-results/run-syq0bd/vitest.json",
+      "sha256": "266735905a710bb3f1bb3ce1a42a783ed2c51beed4b189c99c459a982aecdd0b",
+      "files": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "kind": "Real official CLI 0.164.0 and RuntimeService, isolated Windows home and loopback Responses only"
+    },
+    {
+      "path": ".work/v231-cold-provider-source-scan.json",
+      "sha256": "ce2e5b553ffb1c2b7e271c3579c3d74d55b9156c3c223f9b4bfca97f373a951b",
+      "kind": "selected source scan",
+      "files": 5
+    },
+    {
+      "kind": "Server TypeScript and git diff whitespace check",
+      "exitCode": 0,
+      "toolOutputChunk": "76775b"
+    }
+  ],
+  "nativeEvidence": [
+    "Warm A to B to A still sends exactly to the chosen loopback route with preserved history and settings.",
+    "A genuine process restart establishes an ordinary cold-resume baseline before changing providers.",
+    "The old native provider definition is removed from fixture config and public registry; ordinary resume rejects unavailable provider, explicit safe selection resumes the same thread on B.",
+    "Cold loading makes zero model requests; a subsequent explicit user turn produces the fourth request on B.",
+    "Approval, sandbox, reviewer, active permission profile, workspace roots, disabled plugins and service tier match the ordinary cold baseline. Catalog base, global developer and collaboration plan instructions remain on the subsequent request.",
+    "All three native fixture processes and loopback server are closed."
+  ],
+  "historicalFailures": [
+    {
+      "path": ".work/test-results/run-JVOCHo/vitest.json",
+      "sha256": "8cc6dace856bbf5221875918d9cfc925a8ca9771a04475e394077c84039d32d2",
+      "reason": "New fake goal notification omitted required protocol fields; fixture fixed, validation unchanged."
+    },
+    {
+      "path": ".work/test-results/run-4oKlWf/vitest.json",
+      "sha256": "20e1a3947fb952db74f0fdfbbe11ebd0ed0a9e1ddfbdc1a5b67e01ad81f82177",
+      "reason": "Real cold thread/read reports environments:null; initial exact-null comparison rejected the later concrete local executor."
+    },
+    {
+      "path": ".work/test-results/run-AWkpSN/vitest.json",
+      "sha256": "11afb9965a36f432e8ee1b2664702ead6ffba87716c611441b3c80fe20092ed5",
+      "reason": "Narrow diagnostic captured only fixture thread metadata to confirm null-to-local semantics."
+    },
+    {
+      "path": ".work/v230-cold-provider-native-diagnostic.json",
+      "sha256": "e0049e0e993adaa1bcb710703f9581c9ef91224f4c95582cefa56a64608f1253",
+      "kind": "sanitized fixture-only native metadata"
+    },
+    {
+      "path": ".work/test-results/run-aficJW/vitest.json",
+      "sha256": "5cecfd7fab4ad0c6cfccdeff5e5586242e43b8ffb9def7a3c5371c4121207015",
+      "reason": "Real native cold restart reports null priority tier for this custom provider. A normal cold-resume control now verifies the same native persistence behavior before the provider change; no production tier overwrite was introduced."
+    }
+  ],
+  "limitations": [
+    "No online changes, external provider request, paid inference, live account, real MCP or Linux launcher test.",
+    "The real native fixture uses deterministic loopback Responses. Explicit saved-goal/queue continuation is tested through actual RuntimeService with protocol fixtures, not live inference.",
+    "The official CLI restores only settings it persisted. Its custom-provider cold priority-tier behavior is distinguished from in-process switching; no claim of preserving arbitrary unsupported ephemeral third-party overrides.",
+    "This repair report supplements the earlier warm-switch author evidence without rewriting its original hashes or failures. A fresh independent review and whole-source audit are still required."
+  ],
+  "findings": []
+}

@@ -45,7 +45,7 @@ class ProxyTransactionRootTests(unittest.TestCase):
         self.system = ProxySystem(self.layout); self.manager.system = self.system
         self.manager.recover_control = lambda: self.system.events.append("recover-receipts")
         self.manager.healthy = lambda: self.system.events.append("health")
-        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "serviceProxy": 1,
+        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "sharedChatgptAuth": 1, "providerConfigLayer": "system-v1", "serviceProxy": 1,
                                                             "serviceProxyDirectDomains": 1}, mode=0o644)
         self.input = self.root / "node.json"; write_json(self.input, vless())
         self.cores = {version: self.core(version) for version in ("26.10.1", "26.10.2")}
@@ -217,6 +217,50 @@ class ProxyTransactionRootTests(unittest.TestCase):
                 self.assertEqual(service_proxy.configured_direct_domains(self.layout, self.manager.config["serviceProxy"]),
                                  ["old.example"] if target == "old" else ["candidate.example"])
                 self.manager.require_update_ready(persist=False); self.manager.verify()
+
+    def test_enable_saved_proxy_keeps_disabled_edits_and_never_imports_or_downloads(self):
+        self.configure(["old.example"])
+        transaction.change(self.manager, action="disable", confirm_restart=True)
+        transaction.change(self.manager, action="direct-domains", confirm_restart=True, direct_domains=["current.example"])
+        saved = self.manager.config["serviceProxy"].copy()
+        with patch("deploy.proxy_core.prepare_core") as download, patch.object(transaction, "prepare_configuration") as imported, \
+             patch.object(transaction, "prepare_direct_domains") as edit:
+            result = transaction.change(self.manager, action="enable", confirm_restart=True)
+            download.assert_not_called(); imported.assert_not_called(); edit.assert_not_called()
+        self.assertTrue(result["enabled"]); self.assertTrue(result["changed"])
+        self.assertEqual(result["directDomains"], ["current.example"])
+        self.assertEqual(self.manager.config["serviceProxy"], {**saved, "enabled": True})
+        self.assertEqual(self.system.active, {"worker", "gateway", "proxy", "proxy-routes"})
+        self.assertIsNotNone(self.kernel)
+        self.manager.verify()
+        events = list(self.system.events)
+        records = list((self.layout.state / "transactions").glob("*/state.json"))
+        self.assertFalse(transaction.change(self.manager, action="enable", confirm_restart=True)["changed"])
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(list((self.layout.state / "transactions").glob("*/state.json")), records)
+        transaction.change(self.manager, action="rollback", confirm_restart=True)
+        self.assertEqual(self.manager.config["serviceProxy"], saved)
+        self.assertEqual(self.system.active, {"worker", "gateway"}); self.assertIsNone(self.kernel)
+
+    def test_enable_saved_proxy_preflight_and_failed_start_keep_disabled_policy(self):
+        self.configure(["current.example"])
+        transaction.change(self.manager, action="disable", confirm_restart=True)
+        before = transaction.snapshot(self.manager)
+        events = list(self.system.events)
+        records = list((self.layout.state / "transactions").glob("*/state.json"))
+        for name in ("check_core_config", "prerequisites"):
+            with self.subTest(check=name), patch.object(transaction, name, side_effect=DeployError("fixture", "preflight refused")), \
+                 self.assertRaisesRegex(DeployError, "preflight refused"):
+                transaction.change(self.manager, action="enable", confirm_restart=True)
+            self.assertEqual(self.system.events, events)
+            self.assertEqual(list((self.layout.state / "transactions").glob("*/state.json")), records)
+        self.system.fail_start = True
+        with self.assertRaisesRegex(DeployError, "One-time start failure"):
+            transaction.change(self.manager, action="enable", confirm_restart=True)
+        self.assertEqual(transaction.snapshot(self.manager), before)
+        self.assertEqual(self.system.active, {"worker", "gateway"}); self.assertIsNone(self.kernel)
+        self.assertEqual(service_proxy.status(self.manager)["directDomains"], ["current.example"])
+        self.manager.require_update_ready(persist=False); self.manager.verify()
 
     def test_direct_host_invalid_and_unconfigured_requests_never_stop_or_create_journal(self):
         for domains in (None, ["https://api.example"], ["api.example"] * 65, []):

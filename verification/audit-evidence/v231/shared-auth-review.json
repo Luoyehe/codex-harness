@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-change-review",
+  "reviewer": "v230_audit_gateway_tooling",
+  "complete": true,
+  "status": "reviewed-with-resolved-pre-audit-finding",
+  "scope": "Shared ChatGPT auth implementation and direct install/control/execution/native launcher integration only; not a whole-repository or deployment partition clean audit.",
+  "authorReport": {
+    "path": ".work/post-v230-shared-auth-implementation.json",
+    "sha256": "32c3c84419e7fc5cee1fd39c5c1e9f885118ded97befb33c178ed66e2a51698f"
+  },
+  "files": [
+    {
+      "path": "deploy/shared_auth.py",
+      "sha256": "c3c2d1d4979da54bf3caacf4733330e81d83cb66abfc6dfecd3d3d656afd2c61"
+    },
+    {
+      "path": "deploy/auth_storage_policy.py",
+      "sha256": "8d5fb24357c604c8672f0a9e3483bcaa83e43964cc6008765bd5089c53f10a30"
+    },
+    {
+      "path": "deploy/execution_mode.py",
+      "sha256": "2c1a58c619a16624f77f86f5c9f088a8013d81373abdabad0a9f7970a09d40c4"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "5d9159bf4cdf827dae5301404f103a1f8d666d440d81f322cd820f9c43405006"
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "a7a775f490e696eddc176a7b829e5f76be87e4b61cdd1ed7725f5e8a9678b26f"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "81b049c60704de75413b94edb6e3450df96dfc85af5788dc6ccf8075d382dfd8"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "78b61c735fd9ffab0ca95216621b456c7bf4bbe4c2f7d29e829b0269d0c8ccde"
+    },
+    {
+      "path": "tests/deploy/root/test_shared_auth.py",
+      "sha256": "443947ba9977153c531be1acb0a6d7d90aee530369f9a7edaabcdc726172d1ab"
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "de0e86b8db2ea730cdd82dfe64e2ccf0ac6e4f186ecb2d9d09aa64901f974f52"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "ed27f0489b16f931e8bcacf0d10f94640f093ffc6d35136c7c0ef38626bf12a4"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "ea706cf2ccbca186051ab81900aa8baae79903cde038c70bd11d67ecb2460ea4"
+    },
+    {
+      "path": "tests/deploy/test_auth_storage_policy.py",
+      "sha256": "773c00c8d91d3c5f00054f58730d95f8f6c35a71703559ae53f411fd4c23bf80"
+    }
+  ],
+  "method": [
+    "Read entire shared_auth.py/auth_storage_policy.py and current execution-mode change/recover; reviewed current native_main fixed UID admission and added file-store branches, manager status/verify/preflight, control capability guard callsites/update/rollback/recovery and stage_control capability publication.",
+    "Read focused test bodies for real file lifecycle, logout/refresh compensation, partial rename recovery, legacy backup, stopped-service barriers, no old-control downgrade and real UID launcher policy/argv. Other unchanged test bodies are execution evidence only, not a claim of full new semantic review.",
+    "Checked cached official 0.164 FileAuthStorage truncate/create0600/unlink implementation and provenance hash; no new network/credentials read.",
+    "Ran only local disposable synthetic compose_layers/check_file reproduction and post-fix require_file_store check. No full/remote test, live mutation or source edit in reviewed backend files."
+  ],
+  "semanticConclusions": [
+    "First actual mode change prioritizes current mode including logged-out absence, quarantines the other login once, preserves separate home/config/history.",
+    "File moves retain latest content; compensation after startup failure transfers the current file/absence rather than restoring old credential bytes. Pending transaction and inode identity are checked before completing or reversing transfer.",
+    "Management lock, persistent start barriers and confirmed service shutdown precede transfer; ownership normalization is root control only. Ordinary launcher keeps fixed uid/gid/capability admission and gains no privilege.",
+    "Non-file auth configuration is refused explicitly before mutation receipt/service stop in execution preflight and before app/catalog dispatch in launcher. No keyring migration is attempted.",
+    "Control generations require sharedChatgptAuth=1 once retained shared state exists, including logged-out/pending state; old incompatible recovery is refused before service change with candidate recovery guidance.",
+    "System/status exposes safe ready/pending/backup metadata; arbitrary credential bytes never enter shared metadata or public summary."
+  ],
+  "preAuditFindings": [
+    {
+      "id": "AUTH-STORAGE-001",
+      "priority": "P2",
+      "status": "resolved",
+      "path": "deploy/auth_storage_policy.py",
+      "trigger": "Valid host TOML 1048504 bytes composes to a 1048813-byte generated layer under the existing 4MiB provider-layer budget. Original new auth guard imposed 1MiB on generated and namespace views.",
+      "impact": "A valid existing configuration could fail app-server/catalog startup after upgrade or block mode transition.",
+      "originalEvidence": {
+        "path": ".work/post-v230-shared-auth-budget-repro.json",
+        "sha256": "0da7e128064c96e0e63fdd952ba2090d6b8a709a1d69bc19248d8b264a863d62"
+      },
+      "closureEvidence": {
+        "path": ".work/post-v230-shared-auth-budget-fixed.json",
+        "sha256": "c34253995d982fd400ea18d851ce01bafe6e10e78fad6d00ae41e1b90443718b"
+      },
+      "resolution": "Generated layer and bound namespace views now share provider_layers.LAYER_LIMIT; user/managed/project files remain 1MiB. Independent check accepts original compose output and still rejects non-file store and >4MiB."
+    }
+  ],
+  "remainingFindings": [],
+  "validation": {
+    "latestPerFile": {
+      "passed": 162,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "tests/deploy/test_execution_mode.py",
+          "sha256": "cc4aa78f1bd7bdcda06590d16b1115be287a4827bac71a6f7157fa35ebbf90a9",
+          "passed": 16,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        },
+        {
+          "path": "tests/deploy/test_control_update.py",
+          "sha256": "ea706cf2ccbca186051ab81900aa8baae79903cde038c70bd11d67ecb2460ea4",
+          "passed": 16,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        },
+        {
+          "path": "tests/deploy/test_auth_storage_policy.py",
+          "sha256": "773c00c8d91d3c5f00054f58730d95f8f6c35a71703559ae53f411fd4c23bf80",
+          "passed": 6,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/root/test_shared_auth.py",
+          "sha256": "443947ba9977153c531be1acb0a6d7d90aee530369f9a7edaabcdc726172d1ab",
+          "passed": 10,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/root/test_execution_mode.py",
+          "sha256": "de0e86b8db2ea730cdd82dfe64e2ccf0ac6e4f186ecb2d9d09aa64901f974f52",
+          "passed": 17,
+          "report": ".work/v230-shared-auth-linux-tests-8.json"
+        },
+        {
+          "path": "tests/deploy/root/test_control_update.py",
+          "sha256": "ed27f0489b16f931e8bcacf0d10f94640f093ffc6d35136c7c0ef38626bf12a4",
+          "passed": 63,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        },
+        {
+          "path": "tests/deploy/test_provider_registry.py",
+          "sha256": "fda5c55ae54612fb1705bd3d23b61e54dace34eb869c8c79cc427bf048ea9e16",
+          "passed": 20,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/test_provider_lifecycle.py",
+          "sha256": "abc7710e255d57b5f056d91a6cdb142dc1be00ee9507f3715efc7814a6d042e6",
+          "passed": 8,
+          "report": ".work/v230-shared-auth-linux-tests-4.json"
+        },
+        {
+          "path": "tests/deploy/root/test_provider_extended.py",
+          "sha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+          "passed": 6,
+          "report": ".work/v230-shared-auth-linux-tests-3.json"
+        }
+      ],
+      "meaning": "Deduplicated latest passing results for current test bytes, not a single full-suite run."
+    },
+    "reports": [
+      {
+        "path": ".work/v230-shared-auth-linux-tests-3.json",
+        "sha256": "a533a0f78955d860856db6db3627d6a2c7af759b5d4ff2a2f6f28646070478e2"
+      },
+      {
+        "path": ".work/v230-shared-auth-linux-tests-4.json",
+        "sha256": "eff270f50cfacf3186fcc75570b4bb5b1dfc25fed0b9dca3e9bfa3c2ecb104db"
+      },
+      {
+        "path": ".work/v230-shared-auth-linux-tests-8.json",
+        "sha256": "872ed4aad61156966776ac41788322e1c2a3179b5420e9809d06c79ea228bc57"
+      }
+    ],
+    "independentVerification": "Actual case IDs/counts and selected test file hashes verified. Run3:160pass1fixture-error; run4:60pass1fixture-error; run8:17pass. Latest per-file union162pass/0skip is not one all-green aggregate run. Run8 sourceHashes match all12 current reviewed files. Earlier reports retain explicit source differences.",
+    "historicalFailuresRetained": true
+  },
+  "limitations": [
+    "Latest real Linux tests use isolated source/temp roots and synthetic file credentials. They do not perform OAuth network login/token refresh.",
+    "Real UID0/65534 native_main validates app-server/catalog argv and rejects auto store; final supervise is substituted, so not an actual Codex network/session test.",
+    "Service manager, health and idle IO are substituted in transaction tests; no live instance, nftables or service change.",
+    "The later operator-copy inconsistency and saved-proxy-enable UX observation belong to the separate upcoming deployment review/implementation, not this narrow auth approval."
+  ]
+}

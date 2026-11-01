@@ -76,6 +76,8 @@ def validate_journal(manager, journal):
             ("prepared", "stopped", "selected", "recovering", "recovering-candidate", "committed", "recovered") and
             isinstance(journal.get("active"), list) and len(journal["active"]) == len(set(journal["active"])) and set(journal["active"]) <= set(ROLES),
             "Invalid execution transaction", "corrupt_state")
+    require("sharedChatgptAuth" not in journal or type(journal["sharedChatgptAuth"]) is int and journal["sharedChatgptAuth"] == 1,
+            "Invalid shared authentication transaction", "corrupt_state")
     old = decoded(journal["before"])
     before, candidate = json.loads(old["instance"]), journal.get("candidateConfig")
     require(isinstance(candidate, dict) and {k: v for k, v in before.items() if k not in FIELDS} ==
@@ -115,6 +117,8 @@ def apply_candidate(manager, config):
 
 def recover(manager, journal_path, journal, *, candidate=False):
     from .config_layer import barriers, stop, restore_activity
+    from .shared_auth import handoff, present as shared_auth_present
+    from .auth_storage_policy import require_mode_stores
     before, next_config, old = validate_journal(manager, journal)
     if state(before)["rootAllowed"] != state(next_config)["rootAllowed"]:
         from .operator_origin import require_external_operator
@@ -127,10 +131,18 @@ def recover(manager, journal_path, journal, *, candidate=False):
     if candidate:
         require_application(manager.layout, manager.selected(), next_config, enabling=True)
         require_control(read_json(manager.layout.control / "capabilities.json"), next_config, enabling=True)
+    require_mode_stores(manager.layout, before)
     barriers(manager)
     stop(manager)
     journal["phase"] = "recovering-candidate" if candidate else "recovering"
     write_json(journal_path, journal)
+    target = next_config if candidate else before
+    prepare_home(manager.layout, target)
+    # Only transactions created by shared-auth aware control initialize it.
+    # Older pending identity transactions retain their original semantics.
+    shared_auth = None
+    if journal.get("sharedChatgptAuth") == 1 or shared_auth_present(manager.layout):
+        shared_auth = handoff(manager.layout, before, state(target)["mode"], journal_path.parent.name)
     if candidate:
         apply_candidate(manager, next_config)
     else:
@@ -151,12 +163,15 @@ def recover(manager, journal_path, journal, *, candidate=False):
     journal["phase"] = "committed" if candidate else "recovered"
     write_json(journal_path, journal)
     return {**state(manager.config), "recovered": True, "transaction": journal_path.parent.name,
-            "servicesRestored": True, "direction": "candidate" if candidate else "old"}
+            "servicesRestored": True, "direction": "candidate" if candidate else "old",
+            **({"sharedChatgptAuth": shared_auth} if shared_auth is not None else {})}
 
 
 def change(manager, params=None, *, root_allowed=None, confirm_restart=False):
     from .candidate_archive import require_idle
     from .config_layer import ROLES, active_services, barriers, stop, restore_activity
+    from .shared_auth import handoff, present as shared_auth_present
+    from .auth_storage_policy import require_mode_stores
     current = state(manager.config)
     if root_allowed is None:
         validate_write(manager.config, params)
@@ -172,6 +187,10 @@ def change(manager, params=None, *, root_allowed=None, confirm_restart=False):
     require(manager.config.get("providerConfigLayer") == "system-v1", "Migrate the managed provider layer before execution identity changes", "execution_unsupported")
     require_application(manager.layout, manager.selected(), manager.config, enabling=True)
     require_control(read_json(manager.layout.control / "capabilities.json"), manager.config, enabling=True)
+    shared_capability = read_json(manager.layout.control / "capabilities.json").get("sharedChatgptAuth")
+    require(type(shared_capability) is int and shared_capability == 1,
+            "Update control tools before sharing ChatGPT login across execution modes", "shared_auth_unsupported")
+    require_mode_stores(manager.layout, manager.config)
     require_idle(manager)
     manager.verify(https_probe={"gateway", "worker"} <= set(active_services(manager)))
     require(sum(read_json(p).get("kind") == "execution-mode" for p in (manager.layout.state / "transactions").glob("*/state.json")) < 128,
@@ -181,15 +200,19 @@ def change(manager, params=None, *, root_allowed=None, confirm_restart=False):
     atomic_write(pending, sudo_rule(manager.layout, config=config).encode(), 0o440)
     run(["/usr/sbin/visudo", "-cf", str(pending)])
     active, before = active_services(manager), snapshot(manager.layout)
+    transfer_auth = mode != current["mode"] or shared_auth_present(manager.layout)
     transaction = manager.layout.state / "transactions" / uuid.uuid4().hex
     mkdir(transaction, 0o700)
-    journal = {"kind": "execution-mode", "phase": "prepared", "before": before, "candidateConfig": config, "active": active}
+    journal = {"kind": "execution-mode", "phase": "prepared", "before": before, "candidateConfig": config, "active": active,
+               **({"sharedChatgptAuth": 1} if transfer_auth else {})}
     write_json(transaction / "state.json", journal)
     barriers(manager)
     stop(manager)
     journal["phase"] = "stopped"
     write_json(transaction / "state.json", journal)
     try:
+        prepare_home(manager.layout, config)
+        shared_auth = handoff(manager.layout, manager.config, mode, transaction.name) if transfer_auth else {"shared": False}
         apply_candidate(manager, config)
         journal["phase"] = "selected"
         write_json(transaction / "state.json", journal)
@@ -200,4 +223,5 @@ def change(manager, params=None, *, root_allowed=None, confirm_restart=False):
         raise
     journal["phase"] = "committed"
     write_json(transaction / "state.json", journal)
-    return {**state(config), "changed": True, "transaction": transaction.name, "servicesRestored": True}
+    return {**state(config), "changed": True, "transaction": transaction.name, "servicesRestored": True,
+            "sharedChatgptAuth": shared_auth}

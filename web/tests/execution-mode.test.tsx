@@ -28,6 +28,28 @@ afterEach(async () => {
   await act(async () => { for (const drain of drains.splice(0)) await drain(); });
   cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
+it('does not claim login sharing or retained credentials from incomplete status', () => {
+  const f = fixture();
+  const view = render(<ExecutionModeSettings {...f} value={native} loading={false} enabled sharedChatgptAuth={{ shared: false }} />);
+  expect(screen.getByText(/实例登录共享尚未初始化/)).toBeTruthy();
+  view.rerender(<ExecutionModeSettings {...f} value={native} loading={false} enabled
+    sharedChatgptAuth={{ shared: true, activeMode: 'native', archivedLegacyModes: ['other'], automaticRestore: false }} />);
+  expect(screen.getByText('实例登录共享状态尚未确认，请刷新服务状态。')).toBeTruthy();
+  expect(screen.queryByText(/本实例共用一份 ChatGPT 登录/)).toBeNull();
+  expect(f.mutations).not.toHaveBeenCalled();
+});
+it('shows fixed recovery guidance for a pending login transfer without echoing arbitrary server text', () => {
+  const f = fixture();
+  render(<ExecutionModeSettings {...f} value={native} loading={false} enabled sharedChatgptAuth={{
+    shared: true, ready: false, activeMode: 'root', archivedLegacyModes: ['native'], automaticRestore: false,
+    message: 'untrusted server detail must not be displayed',
+  }} />);
+  expect(screen.getByText('ChatGPT 登录转交尚未完成。请由服务器管理员恢复执行权限事务后刷新状态；不会自动恢复旧账号。')).toBeTruthy();
+  expect(screen.queryByText(/本实例共用一份 ChatGPT 登录/)).toBeNull();
+  expect(screen.queryByText(/原有的 ChatGPT 登录已保留/)).toBeNull();
+  expect(screen.queryByText(/untrusted server detail/)).toBeNull();
+  expect(f.mutations).not.toHaveBeenCalled();
+});
 it('requires valid mode/UID and an explicit server root authorization, without a web authorization write', () => {
   const f = fixture();
   const view = render(<ExecutionModeSettings {...f} value={{ ...native, rootAllowed: false }} loading={false} enabled />);
@@ -129,17 +151,16 @@ it('queries only the original receipt after an uncertain switch and never repeat
   expect(f.calls.filter(call => call.method === 'system/execution-mode/write')).toHaveLength(1);
   expect(f.mutations).toHaveBeenCalledTimes(1);
 });
-it('keeps a ROOT warning readable and offers service settings without a privilege mutation', () => {
+it('keeps a compact ROOT status and opens full permission settings without a privilege mutation', () => {
   const onSettings = vi.fn();
   const view = render(<RootExecutionNotice identity={{ mode: 'root', effectiveUid: 0 }} confirmed onSettings={onSettings} />);
   const warning = screen.getByRole('status', { name: 'ROOT 执行权限' });
-  expect(within(warning).getByText(/ROOT 执行模式已启用/)).toBeTruthy();
-  expect(warning.textContent).toContain('Harness 自身');
-  expect(warning.textContent).toContain('沙箱和审批设置不改变执行账号');
-  fireEvent.click(within(warning).getByRole('button', { name: '查看执行权限' }));
+  expect(warning.textContent?.trim()).toBe('ROOT');
+  expect(warning.classList.contains('workspace-warning')).toBe(false);
+  fireEvent.click(within(warning).getByRole('button', { name: 'ROOT 模式已启用，查看执行权限' }));
   expect(onSettings).toHaveBeenCalledTimes(1);
   view.rerender(<RootExecutionNotice identity={{ mode: 'root', effectiveUid: 0 }} confirmed={false} onSettings={onSettings} />);
-  expect(screen.getByText(/不能据此认定已经切回普通账号/)).toBeTruthy();
+  expect(within(warning).getByRole('button', { name: 'ROOT 执行身份待确认，查看执行权限' }).textContent?.trim()).toBe('ROOT ?');
   view.rerender(<RootExecutionNotice identity={{ mode: 'native', effectiveUid: 990 }} confirmed onSettings={onSettings} />);
   expect(screen.queryByRole('status')).toBeNull();
 });

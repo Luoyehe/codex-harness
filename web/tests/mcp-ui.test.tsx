@@ -90,6 +90,19 @@ async function invoke() {
   fireEvent.click(screen.getByRole('checkbox', { name: '确认向此服务调用所选工具与上述参数' }));
   fireEvent.click(screen.getByRole('button', { name: '调用 Echo' }));
 }
+it('describes the selector as inspection/manual use and never toggles Agent configuration on selection', async () => {
+  const { api, events, calls } = setup();
+  render(<McpPanel {...panelProps(api, events)} />);
+  expect(screen.getByText(/无需在此再次勾选/).textContent).toContain('选择只用于查看服务或手动操作');
+  await screen.findByRole('option', { name: /local · 已连接/ });
+  const select = screen.getByRole('combobox', { name: '选择 MCP 服务' });
+  fireEvent.change(select, { target: { value: 'local' } });
+  expect(screen.getByText('Local service')).toBeTruthy();
+  fireEvent.change(select, { target: { value: '' } });
+  expect(screen.queryByText('Local service')).toBeNull();
+  expect(calls.every(call => call.operationId === undefined)).toBe(true);
+  expect(calls.some(call => ['mcp/config/write', 'mcp/tool/call', 'mcp/oauth/login'].includes(call.method))).toBe(false);
+});
 it('calls only a discovered tool with explicit confirmation and renders MCP isError separately', async () => {
   const { api, events, calls } = setup((call) =>
     call.method === 'mcp/tool/call'

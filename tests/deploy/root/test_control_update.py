@@ -135,7 +135,7 @@ class ControlUpdateTests(unittest.TestCase):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
         write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
                                                       "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1", "serviceProxy": 1,
-                                                      "serviceProxyDirectDomains": 1}, mode=0o644)
+                                                      "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1}, mode=0o644)
 
     def configure_proxy(self, direct_domains=None, enabled=True):
         document = configuration({"protocol": "vless", "settings": {}}, 18793, direct_domains)
@@ -233,6 +233,38 @@ class ControlUpdateTests(unittest.TestCase):
                 path = self.layout.control / "capabilities.json"
                 capabilities = read_json(path); capabilities.pop("serviceProxyDirectDomains", None)
                 write_json(path, capabilities, mode=0o644)
+
+    def test_shared_auth_rejects_old_control_rollback_before_any_service_change(self):
+        updated = self.updater.update()
+        mkdir(self.layout.state / "shared-chatgpt-auth", 0o700)
+        events, active = list(self.system.events), set(self.system.active)
+        before = self.current()
+        with self.assertRaises(DeployError) as error:
+            self.updater.update(updated["transaction"])
+        self.assertEqual(error.exception.code, "shared_auth_unsupported")
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(self.system.active, active)
+        self.assertEqual(self.current(), before)
+        self.assertFalse(self.updater.pending())
+
+    def test_shared_auth_old_recovery_rejects_before_guard_and_new_candidate_recovers(self):
+        mkdir(self.layout.state / "shared-chatgpt-auth", 0o700)
+        save = self.updater.save
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "installed": raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss):
+            self.updater.update()
+        events, before = list(self.system.events), self.current()
+        with self.assertRaises(DeployError) as error:
+            self.updater.recover(target="old")
+        self.assertEqual(error.exception.code, "shared_auth_unsupported")
+        self.assertIn("candidate", str(error.exception))
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(self.current(), before)
+        self.assertTrue(self.updater.pending())
+        self.assertEqual(self.updater.recover(target="candidate")["target"], "candidate")
+        self.assertFalse(self.updater.pending())
 
     def test_direct_hosts_reject_newly_staged_old_control_before_journal_and_stop(self):
         self.configure_proxy(["api.example"])

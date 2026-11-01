@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-warm-cold-provider-review",
+  "reviewerId": "v230_audit_runtime",
+  "complete": true,
+  "createdAt": "2026-11-01T10:48:09.787031+00:00",
+  "files": [
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "8c944b5230a6563cfabec5ad4e3afa465cafaea86752b1ee82efdc31f28c9b3e"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "44b04fcf1e68529e2e634ee007aaabe516c15c114c4d5fb1ee72fa3116faf904"
+    },
+    {
+      "path": "tests/runtime/providers.test.ts",
+      "sha256": "c395c37edc4ff3325f390b7d4275b4a579809350e1949fb56e3d224bc31ba5da"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "57845062bb06d7068e65999513127b650a296a8e53a991ef621d1690c0e18c2d"
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "1728ad1e94336e9d405c55d5ef54caa58e80bc26a6de8f9c5e6abb21ac99e7ff"
+    },
+    {
+      "path": "src/runtime/thread-provider-switch.ts",
+      "sha256": "1ffcf031eca963b04cab4bf8a4e14244fc5da365ad70a488c13999ed08accfd9"
+    },
+    {
+      "path": "tests/runtime/provider-switch.test.ts",
+      "sha256": "1e4be838eab57a7b56b6693613b6a320824f5844cf028dd41940a9b1fdd5df13"
+    }
+  ],
+  "findings": [],
+  "method": "Fresh complete read of providers and thread-provider-switch modules; complete current service dispatch/provider switch/history/continuation/configuration/closure boundaries; complete new switch unit/native tests and changed service/provider tests. Inspect actual local test evidence, no test repetition.",
+  "checks": [
+    "Warm same-thread switch acquires pending lock, reads goal/queue/thread, refuses continuing work before detach; owns partial outcome and never replays user input.",
+    "Resume verifies provider/model/cwd/permission/workspace roots/plugins/executor identity; private owner hydrates history before actual turn.",
+    "Cold explicit selection accepts only provider/model/effort, retains existing permissions and project identity, and lets an enabled target replace disabled or removed historical providers.",
+    "Automatic cold load reads continuation under lock and checks generation again before dispatch; explicit continuation authorizes persisted work but current running turn still blocks model reload.",
+    "Positive resume postvalidation errors remain unknown; selected-provider mismatch/foreign environment cannot be promoted to ready.",
+    "Latest native fixture binds cleanup to each original RuntimeService/ChildProcess close event, not a later bare PID. NativeRpc.close awaits that same child close plus controller cleanup."
+  ],
+  "evidence": [
+    {
+      "path": ".work/v230-provider-switch-implementation.json",
+      "sha256": "d2a2e4387d9d217d96bbbb2fd8521248bf2745c4028be3f28f8146a1ad4ade3d"
+    },
+    {
+      "path": ".work/v231-cold-provider-repair.json",
+      "sha256": "5cc8c5289df9a4cc4073a1f96c4d99f173cf881f4cf43d61a5b4e4cdf1a7da45"
+    },
+    {
+      "path": ".work/v231-provider-switch-child-close-repair.json",
+      "sha256": "0b8375180677ef0b96b58fe63570d2149c5362edd0217a6f2fb2e2290a3f3c75"
+    },
+    {
+      "path": ".work/test-results/run-v6cZFv/vitest.json",
+      "sha256": "9d39abbc0e73926d7e356357ee4cb0fb3c5bc564f32692b14bc956222e1f78e1"
+    },
+    {
+      "path": ".work/test-results/run-ujiZFH/vitest.json",
+      "sha256": "dd67283c00f13074903377627361941e925428936c00414f06046739a0a81a6d"
+    }
+  ],
+  "validation": {
+    "portableCases": 88,
+    "actualPinnedCliLoopbackCases": 1,
+    "repeatedByReviewer": false
+  },
+  "limits": [
+    "Existing old source hashes and failed diagnostic runs remain historical; current native test is bound by final incremental report.",
+    "Native behavior verified in author evidence using official 0.164.0 on isolated Windows home and loopback Responses; no claim of real account, paid provider, external MCP or Linux launcher test.",
+    "No observed PID reuse in this fixture; final change removes an unreliable pattern without asserting it occurred.",
+    "UI caller review is owned by another reviewer; shared-auth deployment is outside this independent review."
+  ]
+}

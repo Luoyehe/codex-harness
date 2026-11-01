@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "v2.3.0-root-paths-mobile-proxy-closeout",
+  "phase": "v2.3.1-shared-providers-and-workflow-repair",
   "consecutiveClean": 1,
   "rounds": [
     {
@@ -7638,6 +7638,92 @@
         }
       ],
       "method": "Complete inventory and independent review of the defaults-retry fixture synchronization. Unchanged semantic review explicitly inherited by byte identity, not a new line-by-line reading of unchanged generated files. CI6 Linux failure remains failed; exact historical scheduling is not claimed as reproduced."
+    },
+    {
+      "id": "v231-round1",
+      "digest": "bae691fa63cbc1ee1040cd2f4557834ea2a8e5e2007193f16421d05de53b705c",
+      "complete": true,
+      "clean": false,
+      "startedAt": "2026-11-01T10:47:11.934Z",
+      "completedAt": "2026-11-01T10:54:16.521Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "WEB001",
+          "priority": "P2",
+          "title": "A failed account read disables the explicit authentication recovery actions",
+          "file": "web/components/AccountSettings.tsx",
+          "line": 205,
+          "relatedLines": [
+            58,
+            469,
+            476
+          ],
+          "trigger": "The connected account/read request completes with an error, for example native workspace-routing or authentication discovery failure.",
+          "observedContract": "accountReady requires a successful read; both perform(login/logout) and both buttons reject when it is false. The new device-login test explicitly expects login to remain disabled after a terminal read error.",
+          "impact": "An administrator cannot explicitly re-login or sign out to repair invalid account state; repeating the same read is the only available account action. A failed read does not itself represent an unresolved mutation.",
+          "evidence": [
+            "web/components/AccountSettings.tsx",
+            "web/hooks/useResource.ts",
+            "web/tests/device-login.test.tsx",
+            "src/runtime/service.ts: readAccount and account mutation callers"
+          ],
+          "recommendedFix": "Permit explicit login/logout after a terminal read failure while retaining the in-flight-read, global admission, pending/unknown receipt, loginId and missing-identity guards. Do not login automatically.",
+          "disposition": "Confirmed by root; repair authorized after this frozen NONCLEAN report. No repair is represented as part of this snapshot."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v231-round1-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v231/round1-team.json",
+          "sha256": "60412ead2723b14f2828cfae487de72789c226f6729bcbb133ee638dd2738d90"
+        }
+      ],
+      "method": "Complete partition inventory with fresh changed-source and workflow reviews. Unchanged semantic review is explicitly inherited by exact byte identity; no claim of re-reading every unchanged generated line. Round1 WEB001 is preserved as nonclean; Round2 binds its independent repair review.",
+      "sequence": 76
+    },
+    {
+      "id": "v231-round2",
+      "digest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-11-01T10:52:49.336Z",
+      "completedAt": "2026-11-01T10:54:16.568Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v231-round2-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v231/round2-team.json",
+          "sha256": "11657dcd3722cc2610d44beb7c06aacc1e6b578ea7c5555bdbbc63250f19ffd8"
+        }
+      ],
+      "method": "Complete partition inventory with fresh changed-source and workflow reviews. Unchanged semantic review is explicitly inherited by exact byte identity; no claim of re-reading every unchanged generated line. Round1 WEB001 is preserved as nonclean; Round2 binds its independent repair review.",
+      "sequence": 77
     }
   ],
   "fullTests": {

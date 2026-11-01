@@ -10,7 +10,6 @@ import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionContr
 
 type CatalogModel = Model & { serviceTiers?: { id: string; name: string; description: string }[] };
 type Changes = {
-  model: string;
   effort: string;
   summary: string;
   serviceTier: string;
@@ -19,7 +18,6 @@ type Changes = {
   permissions: string;
 };
 const empty = (): Changes => ({
-  model: '',
   effort: '',
   summary: '',
   serviceTier: '',
@@ -115,7 +113,7 @@ export function ThreadExecutionSettings({
     <Dialog title="会话与回合设置" wide onClose={onClose}>
       <div className="stack">
         <p className="muted">
-          只修改明确选择的字段。这里保存的会话设置与输入框中的下一次发送选项相互独立；输入框的显式选项仍可覆盖会话设置。
+          下一次发送的模型与思考强度在输入框选择。这里可修改会话默认推理强度或当前回合的设置；输入框的显式选项仍可覆盖会话默认值。
         </p>
         <div className="section-heading">
           <h3>当前会话快照</h3>
@@ -133,7 +131,7 @@ export function ThreadExecutionSettings({
         <ReadState {...session} />
         {snapshot?.requiresResume === true && (
           <p className="workspace-warning">
-            此会话尚未加载。关闭本窗口，先明确选择“加载并继续”才能修改设置；读取设置不会自动加载任务。
+            此会话尚未加载。请关闭本窗口，等待会话加载完成后再修改设置；读取设置不会自动加载任务。
           </p>
         )}
         {snapshot?.requiresResume === false && (
@@ -192,10 +190,7 @@ export function ThreadExecutionSettings({
             api={api}
             threadId={threadId}
             turnId={scope === 'turn' ? activeTurnId : ''}
-            models={snapshot?.requiresResume === false
-              ? models.filter(row => !row.modelProvider || row.modelProvider === snapshot.modelProvider ||
-                  row.providerAliases?.includes(String(snapshot.modelProvider)))
-              : []}
+            models={snapshot?.requiresResume === false ? models : []}
             moreModels={moreModels}
             modelsLoading={modelsLoading}
             onMoreModels={onMoreModels}
@@ -253,12 +248,14 @@ function ExecutionForm({
   onChanged: () => void;
 }) {
   const [changes, setChanges] = useState(empty),
-    [selectionProvider, setSelectionProvider] = useState(''),
+    [selectionIdentity, setSelectionIdentity] = useState(''),
     [confirmed, setConfirmed] = useState(false),
     [result, setResult] = useState('');
   const submitting = useRef(false);
   const action = useExtensionAction(api, enabled, onChanged);
-  const candidates = models.filter((row) => (row.model ?? row.id) === (changes.model || baseModel));
+  const identity = JSON.stringify([baseProvider, baseModel]);
+  const candidates = models.filter((row) => (row.model ?? row.id) === baseModel &&
+    (!row.modelProvider || row.modelProvider === baseProvider || row.providerAliases?.includes(baseProvider)));
   const model = candidates.length === 1 ? candidates[0] : undefined;
   const efforts = array<{ reasoningEffort: string; description?: string }>(
     model?.supportedReasoningEfforts,
@@ -266,9 +263,8 @@ function ExecutionForm({
   const tiers = array<{ id: string; name: string; description: string }>(model?.serviceTiers);
   const profile = profiles.find((row) => row.id === changes.permissions && row.allowed === true);
   const valid =
-    (!(changes.model || changes.effort || changes.serviceTier) ||
-      (!modelsLoading && selectionProvider === baseProvider)) &&
-    (!changes.model || Boolean(model)) &&
+    (!(changes.effort || changes.serviceTier) ||
+      (!modelsLoading && selectionIdentity === identity)) &&
     (!changes.effort || efforts.some((row) => row.reasoningEffort === changes.effort)) &&
     (!changes.serviceTier ||
       changes.serviceTier === '__clear__' ||
@@ -276,13 +272,12 @@ function ExecutionForm({
     (!changes.permissions || (Boolean(profile) && !profilesLoading && !profilesError));
   const selected = Object.values(changes).some(Boolean);
   const change = (field: keyof Changes, value: string) => {
-    if (['model', 'effort', 'serviceTier'].includes(field)) setSelectionProvider(baseProvider);
+    if (['effort', 'serviceTier'].includes(field)) setSelectionIdentity(identity);
     setConfirmed(false);
     setResult('');
     setChanges((previous) => ({
       ...previous,
       [field]: value,
-      ...(field === 'model' ? { effort: '', serviceTier: '' } : {}),
     }));
   };
   const apply = async () => {
@@ -326,20 +321,6 @@ function ExecutionForm({
       </p>
       <fieldset disabled={action.busy} className="submission-fields stack">
         <div className="settings-grid">
-          <label className="field">
-            模型
-            <select value={changes.model} onChange={(event) => change('model', event.target.value)}>
-              <option value="">保持不变</option>
-              {changes.model && !models.some(row => (row.model ?? row.id) === changes.model) && (
-                <option value={changes.model} disabled>{changes.model}（原模型已不可用）</option>
-              )}
-              {models.map((row) => (
-                <option key={`${row.modelProvider ?? ''}:${row.model ?? row.id}`} value={row.model ?? row.id}>
-                  {row.displayName ?? row.model ?? row.id}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="field">
             推理强度
             <select

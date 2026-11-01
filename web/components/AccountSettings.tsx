@@ -55,8 +55,11 @@ function OwnedAccountSettings({
 }) {
   const record = useRef(cacheFor(owner)).current,
     [identity, setIdentity] = useState<IdentityCache>({ ...record });
-  const account = useResource(epoch, (signal) => api.call('account/read', {}, signal), connected),
-    limits = useResource(epoch, (signal) => api.call('account/rateLimits', {}, signal), connected);
+  const account = useResource(epoch, (signal) => api.call('account/read', {}, signal), connected);
+  const accountReady = connected && !account.loading && !account.error && Boolean(account.data);
+  const accountSettled = connected && !account.loading && Boolean(account.data || account.error);
+  const authenticated = accountReady && object(account.data?.account).type === 'chatgpt';
+  const limits = useResource(epoch, (signal) => api.call('account/rateLimits', {}, signal), authenticated);
   const [handoff, setHandoff] = useState<Handoff>(),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -134,7 +137,7 @@ function OwnedAccountSettings({
         !Number.isSafeInteger(result.expiresAt) ||
         Number(result.expiresAt) <= Date.now()
       )
-        throw new Error('设备码已过期或交接内容无效，请重新读取或取消原登录。');
+        throw new Error('本地登录交接已到期或内容无效，请读取原登录状态或取消原登录。');
       setHandoff({
         loginId,
         verificationUrl: url,
@@ -146,7 +149,7 @@ function OwnedAccountSettings({
       if (!current() || generation !== handoffRead.current) return;
       clearCode();
       if (e instanceof RpcError && e.code === 'not_found')
-        finishLogin('原设备码已撤销或过期。已关闭交接，请核对当前账户。');
+        finishLogin('原登录交接已撤销或到期，请核对当前账户。');
       else setError(message(e));
     }
   };
@@ -203,6 +206,7 @@ function OwnedAccountSettings({
       unresolved ||
       pending ||
       restartRequired ||
+      (method !== 'account/login/cancel' && !accountSettled) ||
       (method === 'account/login' && record.loginId) ||
       (method === 'account/logout' && record.loginId)
     )
@@ -310,7 +314,7 @@ function OwnedAccountSettings({
     const timer = setTimeout(
       () => {
         clearCode();
-        if (current()) setStatus('设备码已到期，请读取原登录状态。');
+        if (current()) setStatus('本地登录交接已到期，设备码已隐藏；请读取原登录状态。');
       },
       Math.max(1, Math.min(2147483647, handoff.expiresAt - Date.now())),
     );
@@ -392,6 +396,8 @@ function OwnedAccountSettings({
       ) : account.error ? (
         <p role="alert" className="error">
           {account.error}
+          <br />
+          无法确认当前账户。可以重新读取，或在没有待确认操作时明确重新登录或退出模型账户；不会自动登录。
         </p>
       ) : (
         <div className="info-card">
@@ -448,7 +454,7 @@ function OwnedAccountSettings({
           >
             打开验证页面 ↗
           </a>
-          <p className="small">有效至 {new Date(handoff.expiresAt).toLocaleString()}</p>
+          <p className="small">本地登录交接保留至 {new Date(handoff.expiresAt).toLocaleString()}。设备码是否有效以验证页面为准。</p>
         </div>
       )}
       {identity.loginId && (
@@ -463,26 +469,28 @@ function OwnedAccountSettings({
       <div className="inline">
         <button
           className="button primary"
-          disabled={disabled || Boolean(identity.loginId)}
+          disabled={disabled || !accountSettled || Boolean(identity.loginId)}
           onClick={() => void perform('account/login')}
         >
           使用 ChatGPT 登录
         </button>
         <button
           className="button"
-          disabled={disabled || Boolean(identity.loginId) || !account.data?.account}
+          disabled={disabled || !accountSettled || Boolean(identity.loginId) || (!account.error && !account.data?.account)}
           onClick={() => void perform('account/logout')}
         >
           退出模型账户
         </button>
       </div>
       <h3>用量与限额</h3>
-      {limits.loading && <p role="status">读取用量中…</p>}
-      {limits.error ? (
-        <p className="error">{limits.error}</p>
-      ) : (
-        <pre className="raw">{JSON.stringify(limits.data, null, 2)}</pre>
-      )}
+      {!authenticated ? <p className="small muted">确认已登录 ChatGPT 后显示用量与限额。</p> : <>
+        {limits.loading && <p role="status">读取用量中…</p>}
+        {limits.error ? (
+          <p className="error">{limits.error}</p>
+        ) : (
+          <pre className="raw">{JSON.stringify(limits.data, null, 2)}</pre>
+        )}
+      </>}
     </section>
   );
 }

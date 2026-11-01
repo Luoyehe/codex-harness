@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-provider-kind-review",
+  "status": "passed",
+  "complete": true,
+  "reviewerId": "v230_audit_gateway_tooling",
+  "observedAt": "2026-11-01T10:46:10.340985+00:00",
+  "files": [
+    {
+      "path": "deploy/provider.py",
+      "sha256": "c06f314a13ca7797915da0d47d6744d2d672364ca49a2b41f75f8a2bd5f29488"
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "bd13c48a5271b36cb72f384d4c9dfc5cf83e276c39b7f51a025c49561c8bbe45"
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "sha256": "96e059f9ac58db555426623a437711dcfdb8e5f178988de4166661138ff72fef"
+    }
+  ],
+  "originalFinding": {
+    "id": "POST-V230-PROVIDER-KIND-001",
+    "priority": "P2",
+    "path": "deploy/provider.py",
+    "boundary": "ProviderStore.validate_change legacy singleton provider/write path",
+    "evidence": {
+      "path": ".work/post-v230-provider-kind-legacy-repro.json",
+      "sha256": "9157f9c04a0bfc55a7a59b4a14fdc6c37cdb5c956db0357cb161db3b8e8c0063"
+    },
+    "impact": "Legacy current without connections accepted a direct kind change despite immutable identity rule on registry edits.",
+    "resolved": true
+  },
+  "method": [
+    "Read exact new legacy guard and adjacent routing into provider_registry.change, validate_provider and explicit profile restoration.",
+    "Read new rejection/same-kind edit/explicit new provider test and existing registry guard tests; confirmed manager preflight uses validate_change before mutation dispatch.",
+    "Repeated original pure validation input against current code: provider_kind_immutable. No fixture directory or network used for this check.",
+    "Ran exact registry and lifecycle modules once under UID/GID65534 in a new isolated Linux source tree; source hashes before/after bound to current files."
+  ],
+  "validation": {
+    "report": {
+      "path": ".work/post-v230-provider-kind-closure-linux-tests-2.json",
+      "sha256": "5c005742435898d6491c839d6ca062bbf6ced277b86a74360d1d895ad7767283"
+    },
+    "runner": {
+      "path": ".work/post-v230-provider-kind-closure-linux.py",
+      "sha256": "4d380207d24dfdbc8242836ada0bb6db1ef7853c0885d3284e2cc8078616d707"
+    },
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0,
+    "uid": 65534,
+    "servicesControlled": false,
+    "externalNetworkOrModelRequest": false
+  },
+  "remainingFindings": [],
+  "limitations": [
+    "Narrow independent review only, not a whole deployment audit.",
+    "Saved-profile restoration is a separate explicit whole-configuration action and is retained; this guard constrains editing an existing provider identity.",
+    "No live instance or paid model validation."
+  ]
+}

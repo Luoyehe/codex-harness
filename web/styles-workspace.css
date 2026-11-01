@@ -315,15 +315,24 @@
 .workspace-worktrees .info-card {
   overflow-wrap: anywhere;
 }
-.root-execution-notice {
+.runtime-status {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
 }
-.root-execution-notice > span {
-  flex: 1 1 360px;
-  min-width: 0;
-  overflow-wrap: anywhere;
+.root-execution-notice {
+  display: inline-flex;
+}
+.root-execution-notice button {
+  padding: 3px 6px;
+  min-height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--danger);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
 }

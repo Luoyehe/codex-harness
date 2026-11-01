@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "completedAt": "2026-11-01T10:46:59.543Z",
+  "authorId": "v220-final-deploy",
+  "sourceHashes": [
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "1728ad1e94336e9d405c55d5ef54caa58e80bc26a6de8f9c5e6abb21ac99e7ff"
+    }
+  ],
+  "change": "Replace deferred bare PID liveness checks with captured ChildProcess close events and exitCode/signalCode. Every cleanup owns its original RuntimeService instance. No product change.",
+  "priorReport": {
+    "path": ".work/v231-cold-provider-repair.json",
+    "sha256": "5cc8c5289df9a4cc4073a1f96c4d99f173cf881f4cf43d61a5b4e4cdf1a7da45"
+  },
+  "test": {
+    "path": ".work/test-results/run-ujiZFH/vitest.json",
+    "sha256": "dd67283c00f13074903377627361941e925428936c00414f06046739a0a81a6d",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "initialPrerequisite": "First invocation did not provide HARNESS_TEST_CODEX_BIN and ran zero tests (prerequisite skipped); corrected environment used the pinned existing official CLI 0.164.0.",
+  "limits": [
+    "Isolated Windows official CLI with loopback Responses only; no external model or online service.",
+    "No observed PID reuse in this fixture; removes a known unreliable assertion pattern."
+  ],
+  "findings": []
+}

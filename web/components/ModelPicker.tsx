@@ -19,10 +19,8 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
   const inheritedProvider = typeof defaults?.modelProvider === 'string' ? defaults.modelProvider : undefined;
   const provider = options.modelProvider ?? inheritedProvider;
   const id = options.model ?? (typeof defaults?.model === 'string' ? defaults.model : undefined);
-  const waitingDefaults = Boolean(defaultsLoading && (existingThread || !options.model || !options.modelProvider));
-  const available = waitingDefaults && existingThread ? [] : existingThread && inheritedProvider
-    ? models.filter(row => matchesProvider(row, inheritedProvider)) : models;
-  const candidates = waitingDefaults ? [] : available.filter(row => (row.model ?? row.id) === id && matchesProvider(row, provider));
+  const waitingDefaults = Boolean(defaultsLoading && (!options.model || !options.modelProvider));
+  const candidates = waitingDefaults ? [] : models.filter(row => (row.model ?? row.id) === id && matchesProvider(row, provider));
   const selected = candidates.length === 1 ? candidates[0] : undefined;
   const efforts = selected?.supportedReasoningEfforts ?? [];
   const nativeEffort = selected && object(selected).defaultReasoningEffort;
@@ -30,7 +28,7 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
     ? defaults?.reasoningEffort : nativeEffort;
   const effort = options.effort ?? (typeof inheritedEffort === 'string' ? inheritedEffort : undefined);
   const title = waitingDefaults ? '读取模型设置…' : selected?.displayName ?? selected?.model ?? selected?.id ?? (existingThread && id ? id : loading ? '读取模型…' : '选择模型');
-  const groups = [...new Set(available.map(row => row.modelProvider ?? ''))];
+  const groups = [...new Set(models.map(row => row.modelProvider ?? ''))];
   const selection = options.model && selected ? modelSelection(selected) : options.model ? '__unavailable__' : '';
   useEffect(() => {
     const close = (event: PointerEvent) => {
@@ -45,15 +43,17 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
     <summary aria-label="选择模型与思考强度"><span>{title}</span>{effort && efforts.length > 0 && <small>{effortName(effort)}</small>}<span aria-hidden="true">⌄</span></summary>
     <section className="model-picker-panel stack" aria-label="模型与思考强度">
       <label className="field">模型
-        <select disabled={disabled || loading || waitingDefaults && existingThread || available.length === 0} value={selection} onChange={(event) => {
-          const next = available.find(row => modelSelection(row) === event.target.value);
+        <select disabled={disabled || loading || models.length === 0} value={selection} onChange={(event) => {
+          if (disabled || loading) return;
+          const next = models.find(row => modelSelection(row) === event.target.value);
+          if (event.target.value && !next) return;
           onOptions({ ...options, model: next ? next.model ?? next.id : undefined,
             modelProvider: next?.modelProvider, effort: undefined });
         }}>
-          <option value="">{defaultsLoading ? '正在读取默认设置…' : available.length ? existingThread ? '沿用会话模型' : '使用默认模型' : loading ? '正在读取模型…' : '尚无可选模型'}</option>
+          <option value="">{defaultsLoading ? '正在读取默认设置…' : models.length ? existingThread ? '沿用会话模型' : '使用默认模型' : loading ? '正在读取模型…' : '尚无可选模型'}</option>
           {selection === '__unavailable__' && <option value="__unavailable__" disabled>当前模型不在目录：{options.model}</option>}
-          {groups.map(group => <optgroup key={group} label={available.find(row => (row.modelProvider ?? '') === group)?.providerName ?? (group || '模型')}>
-            {available.filter(row => (row.modelProvider ?? '') === group).map(row => <option key={modelSelection(row)} value={modelSelection(row)}>{row.displayName ?? row.model ?? row.id}</option>)}
+          {groups.map(group => <optgroup key={group} label={models.find(row => (row.modelProvider ?? '') === group)?.providerName ?? (group || '模型')}>
+            {models.filter(row => (row.modelProvider ?? '') === group).map(row => <option key={modelSelection(row)} value={modelSelection(row)}>{row.displayName ?? row.model ?? row.id}</option>)}
           </optgroup>)}
         </select>
       </label>
@@ -64,7 +64,7 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
           {efforts.map(row => <option key={row.reasoningEffort} value={row.reasoningEffort}>{effortName(row.reasoningEffort)}</option>)}
         </select>
       </label>
-      {available.length === 0 && !loading && !waitingDefaults && <p className="small muted">先添加供应商并完成所需登录，再读取模型目录。</p>}
+      {models.length === 0 && !loading && !waitingDefaults && <p className="small muted">先添加供应商并完成所需登录，再读取模型目录。</p>}
       {disabled && <p className="small muted">排队或追加指令沿用会话设置，不能修改本次模型。</p>}
       <div className="inline wrap">
         {onRefresh && <button className="button small" disabled={loading || refreshDisabled} onClick={onRefresh}>刷新模型目录</button>}
