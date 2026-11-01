@@ -325,3 +325,14 @@ Round15 covers 1984 files at 2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09
 CI6 41290757916 failed one Linux defaults-retry UI assertion; Windows, Root and security passed. The test waited for a shared failure message without establishing that the final model/provider/effort request had failed. It now controls both response generations, verifies stale error/button removal and readiness, then releases the exact final failure before retrying. All existing assertions remain. Targeted checks passed 7/7 and Web typechecking passed. The unchanged baseline also passed locally; no precise historical scheduling reproduction or production bug is claimed.
 
 Round16 covers 1984 files at 1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081; unchanged semantic evidence is explicitly inherited and the changed test independently reviewed. Official builtin MCP sources were freshly fetched and match the reviewed contract. Full CI7, deployment, browser acceptance and publication remain pending.
+
+
+## 2026-11-01 — v2.3.0 published and deployment complete
+
+The tested and deployed tag `v2.3.0` points to `historical-commit-024`, source `1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081` (1984 files). One clean complete audit, Round16, satisfies the user override; unchanged-byte semantic review inheritance remains explicit. [CI7](https://github.com/Luoyehe/codex-harness/actions/runs/41292416084) and security jobs passed: **252 test files, 2897 distinct cases, coverageGaps=[]**. Applicable-platform skips remain recorded; earlier failed runs are retained. Individual raw case artifacts were not downloaded; actual hosted reconciliation output and platform logs are the evidence boundary.
+
+
+
+[Formal Release](https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.0) is published as Latest. This final default-branch commit changes only declared non-executable verification records; the tested application/source digest remains unchanged. [Machine-readable closeout](audit-evidence/v230-release/closeout.json) binds CI, deployment, public HTTPS, browser and publication evidence separately. [CI lessons](reports/v230-ci-lessons.md) document concrete fixture/selection failures without calling them product defects or replacing real validation.
+
+Limits: no new paid inference or real external MCP tool task; builtin MCP status/configuration is not provider business acceptance. Live viewport override did not apply and was reset; mobile component/320–390 layout evidence is retained, with no physical iOS acceptance claimed. Automatic DNS-01 renewal configuration is preserved, but future renewal and current DNS API permissions were not retested. CodeQL remains 19 open/2 closed: 16 current-source dispositions retained for unchanged bytes and 3 legacy inventory entries; no zero-alert claim. An incorrectly reused pre-deployment observer failed after upgrade, and the correct after observer passed without replaying deployment.
