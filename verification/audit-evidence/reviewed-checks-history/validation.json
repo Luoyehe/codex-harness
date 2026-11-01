@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-ci-retrospective-validation",
+  "checkedAt": "2026-11-01T16:04:22.822Z",
+  "headBeforeDocs": "f3909bbce01ab5d311dc3754377059d1b01acbed",
+  "source": {
+    "files": 2004,
+    "digest": "062b2776eee251d049b82a938985400eeeccb7d92d849e76e6d3feda1e639bc5"
+  },
+  "outcome": "passed-documentation-and-evidence-checks",
+  "counts": {
+    "total": 59,
+    "success": 30,
+    "failure": 26,
+    "cancelled": 3,
+    "failedRunsReviewed": 26,
+    "cancelledRunsReviewed": 3,
+    "rerunAttemptsObserved": 0
+  },
+  "hashedInputFilesVerified": 56,
+  "markdownLinksChecked": 11,
+  "selection": {
+    "status": "no-behavior-change",
+    "changed": [
+      "AGENTS.md",
+      "scripts/RELEASE-PREFLIGHT.md",
+      "verification/WORKLOG.md",
+      "verification/audit-evidence/reviewed-checks-history/early-gates.json",
+      "verification/audit-evidence/reviewed-checks-history/early-platforms.json",
+      "verification/audit-evidence/reviewed-checks-history/inventory.json",
+      "verification/audit-evidence/reviewed-checks-history/prevention.json",
+      "verification/audit-evidence/reviewed-checks-history/raw-evidence-manifest.json",
+      "verification/audit-evidence/reviewed-checks-history/review-archive.json",
+      "verification/audit-evidence/reviewed-checks-history/review-early.json",
+      "verification/audit-evidence/reviewed-checks-history/v211-v220.json",
+      "verification/audit-evidence/reviewed-checks-history/v230-v232.json",
+      "verification/audit-evidence/reviewed-checks-history/validation.json",
+      "verification/reports/reviewed-checks-history.md"
+    ],
+    "groups": {
+      "unit": [],
+      "deploy": [],
+      "deploy-root": [],
+      "native": [],
+      "go": []
+    },
+    "mappings": [],
+    "requiresFullAudit": [],
+    "noBehaviorChange": [
+      {
+        "path": "AGENTS.md",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "scripts/RELEASE-PREFLIGHT.md",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/WORKLOG.md",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/early-gates.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/early-platforms.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/inventory.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/prevention.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/raw-evidence-manifest.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/review-archive.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/review-early.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/v211-v220.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/v230-v232.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/audit-evidence/reviewed-checks-history/validation.json",
+        "reason": "documentation-or-audit-evidence-only"
+      },
+      {
+        "path": "verification/reports/reviewed-checks-history.md",
+        "reason": "documentation-or-audit-evidence-only"
+      }
+    ],
+    "checks": [
+      "typecheck",
+      "build",
+      "source-security"
+    ]
+  },
+  "sourceScan": {
+    "mode": "source",
+    "status": "clean",
+    "scannedFiles": 2981,
+    "scannedBytes": 66206176,
+    "findings": [],
+    "artifacts": [],
+    "unreadable": [],
+    "skipped": [],
+    "evidence": {
+      "path": ".work/historical-ci-retrospective-source-scan.json",
+      "sha256": "0c9016cb018f0b9401d2de33f22a8bee4d597003893fe24918a056a09086d134"
+    }
+  },
+  "reviewedFiles": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "5a8057e617cfd3f99a6fc4ae157a8a89b28d1a68a4806c5f1ce9f19a1226ea60"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "9de401308407270acb6844d810f5b77524d1333f773b8174f2d93b4a339135e2"
+    },
+    {
+      "path": "verification/WORKLOG.md",
+      "sha256": "14d7c8efe00d4b8c81ae0d5ab0d605c39e48615524ecc683a0cc6c1804987694"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/early-gates.json",
+      "sha256": "bbc6d86d3c1b70a7df44ed3a79ff2ac0df72c42a684220b537fc56ac64203426"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/early-platforms.json",
+      "sha256": "0e84aa28fd1a21e83c8c8a286e3323b7e64b49c2c627dd90f967db571125062b"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/inventory.json",
+      "sha256": "034c76d8e28567fed43c7a9ab1065c97f2e6ca9a9b21c6b6af3bb138e9675918"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/prevention.json",
+      "sha256": "0464eccd02b4eb30d0b852a5105984cb9d263a54b3669cf36f62549a28149d40"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/raw-evidence-manifest.json",
+      "sha256": "f914467e638ff3d9561546389aff618a1d8690f5e5cd8cb56d74875cb1a96d9d"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/review-archive.json",
+      "sha256": "111e4ab9440c423adb117bb0e1f3ee89835686a4e99662c17769a3cb44abf6e3"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/review-early.json",
+      "sha256": "0e2d9759d4d16ff4988f70cad6f9bd615a1bc751453c67c7f0dbf7cd3d893bae"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/v211-v220.json",
+      "sha256": "e257ec92020206f3595574c6c27bd46993326542cd999811d1fcf6bb8dea2e02"
+    },
+    {
+      "path": "verification/audit-evidence/reviewed-checks-history/v230-v232.json",
+      "sha256": "fc0d907c51b4f5433ebb62c99902041b68591bacec5349741f9b33248ff499fd"
+    },
+    {
+      "path": "verification/reports/reviewed-checks-history.md",
+      "sha256": "51ada8f62792d6a015f89a364ba2830299d451abf162bcf95e09eae67b3a7333"
+    }
+  ],
+  "testsExecuted": false,
+  "fullSuiteExecuted": false,
+  "runtimeChanged": false,
+  "workflowChanged": false,
+  "deploymentChanged": false,
+  "boundary": "Evidence and documentation validation only. The original failed runs remain failed; no new release, full-test authorization, historical replay or production acceptance is asserted. Source-covered documentation changes the source digest. Ignored raw evidence is unavailable in a fresh clone."
+}

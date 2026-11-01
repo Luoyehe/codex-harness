@@ -1,0 +1,2248 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-reviewed-checks-failure-review",
+  "reviewerId": "/root/v230_audit_gateway_tooling",
+  "complete": true,
+  "scope": {
+    "eras": [
+      "v2.1.1 public HTTPS follow-up",
+      "v2.2.0"
+    ],
+    "failedRunCount": 10,
+    "cancelledRunCount": 1,
+    "reassignedEarlierFailures": [
+      40232786765,
+      40232786814,
+      40298008326,
+      40299290026,
+      40300576409,
+      40302433930,
+      40305525588,
+      40305525963,
+      40308175474
+    ],
+    "reassignment": "Parent split the original19-run scope: first5 early runs reviewed by root, next4 by v220_final_deploy. This report closes only the remaining10 failures plus the v211 cancelled run.",
+    "notIncluded": [
+      "Security/CodeQL workflows",
+      "Local full-attempt failures without a hosted Reviewed checks run identity",
+      "Post-CI deployment/transport operational failures",
+      "v2.3.x failures assigned to other reviewers"
+    ]
+  },
+  "method": [
+    "Read current-repository archived repair/review/hosted summaries and the referenced original CI raw assertion/stack regions; cross-check every run/head/job/step against parent-saved actual GitHub API JSON.",
+    "No network requests, tests, old checkout reads, production actions, Git mutations or tracked-file edits performed by this task.",
+    "Use direct logs to establish symptoms; distinguish deterministic reproductions, controlled permitted orderings and unknown historical causality. Later success does not retroactively change any failed conclusion.",
+    "The missed-check and prevention assessments are explicitly retrospective inferences unless the retained report names the omission. Reused case counts are not summed across repeated/overlapping suites."
+  ],
+  "evidenceStrengthLegend": {
+    "direct": "Original assertion/stack or actual API status; demonstrates the observed symptom, not necessarily cause.",
+    "controlled": "A recorded deterministic local ordering/probe proves a feasible fixture or product failure mode; does not prove identical hosted interleaving.",
+    "reviewed": "Archived source/independent review explains the mechanism within its stated scope.",
+    "unknown": "No definitive causal trace; non-recurrence and mitigation are not proof."
+  },
+  "failedRuns": [
+    {
+      "runId": 40955613895,
+      "runNumber": 18,
+      "head": "363b5aa4daa156911ffef876aff798846546e3e6",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-10-29T21:11:19Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 123734817415,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-29T21:11:23Z",
+          "completed_at": "2026-10-29T21:11:56Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123735127260,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-29T21:11:59Z",
+          "completed_at": "2026-10-29T21:18:26Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 11,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 123735127314,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-29T21:12:00Z",
+          "completed_at": "2026-10-29T21:17:24Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 8,
+              "name": "Prepare pinned Go and authenticated public modules",
+              "conclusion": "failure"
+            },
+            {
+              "number": 10,
+              "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+              "conclusion": "failure"
+            },
+            {
+              "number": 12,
+              "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 123735127345,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-29T21:11:59Z",
+          "completed_at": "2026-10-29T21:12:36Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123738383661,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-29T21:18:29Z",
+          "completed_at": "2026-10-29T21:18:40Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v211-automation-readiness",
+          "file": "web/tests/automations.test.tsx",
+          "assertion": "preserves unedited native options and requires explicit rebase after a conflicting version: expected 2 update calls, observed 1 (line 230).",
+          "classification": "fixture",
+          "rootCause": "Conflict/rebase UI can publish before the independent useOperations IndexedDB read releases the pending-operation save lock. The original synchronous Save click is ignored while disabled.",
+          "evidenceStrength": "Retained hosted assertion plus source ordering and controlled real Api/IndexedDB read-publication proof; identical hosted timing was not reproduced.",
+          "missedEarlierChecks": {
+            "assessment": "Visible conflict text was treated as mutation readiness; the separately subscribed operation-state read was not awaited.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Await the existing positive enabledButton state before the one explicit click; preserve all options/revision assertions and deadlines.",
+            "Controlled test holds delivery of the real not_sent read: Save stays disabled and no second write occurs until release."
+          ],
+          "targetedValidation": "21 affected cases passed; 1 controlled scheduling probe passed. No production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v211-release/ci-followup.json"
+            },
+            {
+              "path": ".work/v211-automation-ci-diagnosis.json"
+            },
+            {
+              "path": ".work/v211-linux-ci-assertion.txt"
+            },
+            {
+              "path": ".work/v211-linux-ci-failure-location.txt"
+            }
+          ],
+          "limitations": [
+            "Controlled probe ran on Windows; it proves a permitted ordering, not the historical Linux elapsed-time trace."
+          ],
+          "platform": "linux",
+          "jobIds": [
+            123735127260
+          ]
+        },
+        {
+          "id": "v211-go-preparation",
+          "file": "scripts/prepare-ci-go.py",
+          "assertion": "Windows step 8 failed before tests: Go preparation refused: Go preparation command failed: mod. Required controller-preflight/platform artifacts were then absent.",
+          "classification": "environment-or-tooling-unknown",
+          "rootCause": "The newly retrieved complete original log narrows the failure to the go mod command family, but not its subcommand, return code, module/network problem or output budget. Exact cause remains unknown.",
+          "evidenceStrength": "Direct original 403-line job log (line343), job API and contemporaneous repair report; no precise underlying failure trace is established.",
+          "missedEarlierChecks": {
+            "assessment": "Failure diagnostics did not identify the command/phase/reason or retain bounded allowlisted logs.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Report exact command and exit code or output-budget failure; retain three allowlisted Go logs.",
+            "No retry, verification bypass or relaxed security check; preserve unknown historical cause."
+          ],
+          "targetedValidation": "15 Go-preparation targeted cases passed. The next Windows run prepared Go successfully in 22 seconds; that is non-recurrence, not a root-cause proof.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v211-release/ci-followup.json"
+            },
+            {
+              "path": ".work/v211-ci-go-diagnostic-security-review.json"
+            },
+            {
+              "path": ".work/historical-ci-run-40955613895.zip"
+            }
+          ],
+          "limitations": [
+            "Do not classify this as a proven network outage, resource exhaustion or fixed download defect."
+          ],
+          "platform": "windows",
+          "jobIds": [
+            123735127314
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 123738383661,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        },
+        {
+          "jobId": 123735127314,
+          "steps": [
+            10,
+            12
+          ],
+          "classification": "cascaded-artifact-absence",
+          "reason": "Go preparation failed before required diagnostic/platform output existed; artifact upload failures are secondary."
+        }
+      ],
+      "closureRef": "v211-followup",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-40955613895.json"
+        }
+      ]
+    },
+    {
+      "runId": 40959593986,
+      "runNumber": 19,
+      "head": "10356ef43231034bb8dfaf15b031970a7f84b854",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-10-29T21:39:13Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 123748567657,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-29T21:39:17Z",
+          "completed_at": "2026-10-29T21:39:46Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123748822988,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-29T21:39:49Z",
+          "completed_at": "2026-10-29T21:44:14Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123748822991,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-29T21:39:49Z",
+          "completed_at": "2026-10-29T21:40:19Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123748823090,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-29T21:39:49Z",
+          "completed_at": "2026-10-29T21:45:53Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 123751695577,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-29T21:45:56Z",
+          "completed_at": "2026-10-29T21:46:06Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v211-openssl-expiry",
+          "file": "tests/deploy/test_https_health.py",
+          "assertion": "Hosted Windows OpenSSL rejected x509 -days -1 while creating expired.pem, before the HTTPS health class ran.",
+          "classification": "fixture-environment-portability",
+          "rootCause": "Expired-certificate fixture relied on a negative-days CLI argument rejected by the hosted OpenSSL version.",
+          "evidenceStrength": "Direct hosted failure capture plus explicit fixture repair and real expired-certificate verification.",
+          "missedEarlierChecks": {
+            "assessment": "The fixture-generation command was not portable across the actual OpenSSL implementations; a certificate with ordered past dates had not been required.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Use fixture-local openssl ca with notBefore < notAfter < now.",
+            "Assert a real trusted-host TLS handshake fails specifically with X509_V_ERR_CERT_HAS_EXPIRED (10)."
+          ],
+          "targetedValidation": "17 Windows fallback cases and 17 Linux/OpenSSL 3.0.13 cases passed; no production source or assertion relaxation.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v211-release/https-fixture-followup.json"
+            },
+            {
+              "path": ".work/v211-ci-followup-windows-failure.txt"
+            }
+          ],
+          "limitations": [],
+          "platform": "windows",
+          "jobIds": [
+            123748823090
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 123751695577,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v211-followup",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-40959593986.json"
+        }
+      ]
+    },
+    {
+      "runId": 41019301457,
+      "runNumber": 23,
+      "head": "8f5f966364406693702700b70940c18a660cf600",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-10-30T07:18:39Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 123942720684,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T07:18:43Z",
+          "completed_at": "2026-10-30T07:19:17Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123942916951,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T07:19:20Z",
+          "completed_at": "2026-10-30T07:20:03Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123942916959,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T07:19:20Z",
+          "completed_at": "2026-10-30T07:25:37Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 123942917049,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T07:19:20Z",
+          "completed_at": "2026-10-30T07:28:52Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 123945982798,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T07:28:55Z",
+          "completed_at": "2026-10-30T07:29:09Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci1-composer-collapsed",
+          "file": "web/tests/input-context.test.tsx",
+          "assertion": "allows reference-only messages but blocks wrong-project references and schema on queued input: accessible combobox 发送方式 was absent.",
+          "classification": "fixture-stale-ui-contract",
+          "rootCause": "The intentionally collapsed, inert composer settings are not accessible until the real 对话设置 control is opened.",
+          "evidenceStrength": "Direct failing logs and deterministic local red reproduction (1 failed / 7 passed).",
+          "missedEarlierChecks": {
+            "assessment": "The changed accessibility flow was not propagated to this adjacent test consumer.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Assert settings start collapsed and the selector is inaccessible; open the real button and assert aria-expanded before selecting.",
+            "Retain queued-input/schema/wrong-project admission assertions and ordinary-send restoration."
+          ],
+          "targetedValidation": "Input-context plus composer: 13 passed, web typecheck passed; production unchanged.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/composer-fixture.json"
+            }
+          ],
+          "limitations": [],
+          "platform": "both",
+          "jobIds": [
+            123942916959,
+            123942917049
+          ]
+        },
+        {
+          "id": "v220-ci1-candidate-root-admission",
+          "file": "tests/deploy/test_candidate_archive.py",
+          "assertion": "CandidateArchiveTests raised Unsafe candidate directory before intended transaction assertions; e.g. expected already exists/release changed/incomplete/escaped/alive, observed Unsafe candidate directory.",
+          "classification": "fixture-platform-identity",
+          "rootCause": "Ordinary-UID fixtures used ordinary-owned paths against genuine root-only admission; Windows/local conditions did not exercise the Linux ownership boundary.",
+          "evidenceStrength": "Direct stack to ordinary_directory plus reproduced Linux UID65534 baseline and repaired ordinary/root regressions.",
+          "missedEarlierChecks": {
+            "assessment": "Root-only admission and ordinary transaction fault tests were conflated; platform privilege coverage was incomplete.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Ordinary fixture substitutes only the root-ownership predicate while retaining real lstat/type/inode/inventory/rename and transaction failures.",
+            "Add separate root tests proving foreign owners reject before stop; do not weaken production admission."
+          ],
+          "targetedValidation": "Combined candidate/provider fixture baseline Linux UID65534: 35 cases, 8 failures and 11 errors. Fixed combined suites: Windows 35 passed, Linux ordinary 35 passed, root 13 passed.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/deploy-fixtures.json"
+            },
+            {
+              "path": ".work/v220-ci1-linux-raw.txt",
+              "lines": "1752-1892,1962-2065"
+            }
+          ],
+          "limitations": [],
+          "platform": "linux",
+          "jobIds": [
+            123942916959
+          ]
+        },
+        {
+          "id": "v220-ci1-fchown-mock",
+          "file": "tests/deploy/test_provider_registry.py",
+          "assertion": "Generation and advanced-provider subcases raised PermissionError at os.fchown in atomic_write.",
+          "classification": "fixture-platform-identity",
+          "rootCause": "The fixture patched os.chown but the actual atomic writer uses os.fchown; a Linux ordinary user reached a privileged ownership change.",
+          "evidenceStrength": "Direct failing stack and Linux ordinary-user reproduction.",
+          "missedEarlierChecks": {
+            "assessment": "The mock intercepted a former/irrelevant API, not the current called primitive; a Windows pass could not exercise POSIX fchown.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Patch the actual fchown call only in ordinary tests.",
+            "Keep real root registry/environment ownership and permission assertions in root tests."
+          ],
+          "targetedValidation": "Included in the combined 35 ordinary / 13 root fixture checks above; do not sum overlapping suites as new unique cases.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/deploy-fixtures.json"
+            },
+            {
+              "path": ".work/v220-ci1-linux-raw.txt",
+              "lines": "1911-1959"
+            }
+          ],
+          "limitations": [],
+          "platform": "linux",
+          "jobIds": [
+            123942916959
+          ]
+        },
+        {
+          "id": "v220-ci1-edge-profile-kind",
+          "file": "tests/deploy/test_edge_diagnostics.py",
+          "assertion": "test_only_fixed_edge_log_unit_is_allowed_and_known_secrets_are_redacted: KeyError kind in provider_registry.entries.",
+          "classification": "fixture-invalid-domain-record",
+          "rootCause": "A synthetic saved profile omitted the required provider kind; real saved profiles use the validated schema.",
+          "evidenceStrength": "Direct stack plus repaired fixture built through real Profiles.save.",
+          "missedEarlierChecks": {
+            "assessment": "The fixture bypassed the real profile writer and drifted from the multi-provider schema.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Build complete legacy and multi-provider profiles through Profiles.save.",
+            "Verify active and disabled credentials are redacted and preserve fixed-unit allowlist rejection."
+          ],
+          "targetedValidation": "Windows 11 passed / 2 platform skips; Linux 13 passed. No production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/edge-fixture.json"
+            },
+            {
+              "path": ".work/v220-ci1-linux-raw.txt",
+              "lines": "1894-1908"
+            }
+          ],
+          "limitations": [],
+          "platform": "both",
+          "jobIds": [
+            123942916959,
+            123942917049
+          ]
+        },
+        {
+          "id": "v220-ci1-extension-readiness",
+          "file": "web/tests/extensions.test.tsx",
+          "assertion": "requires reviewing the selected plugin and submits the exact preview hash: expected false to be true; final install control was disabled and no install dispatched.",
+          "classification": "fixture-synchronization",
+          "rootCause": "Preview arrival can reset hash-bound consent in an effect; the original test did not establish that preview/effect completion preceded consent and click.",
+          "evidenceStrength": "Direct CI assertion/DOM and concrete controlled boundary; original hosted failure not reproduced by bounded local attempts.",
+          "missedEarlierChecks": {
+            "assessment": "A visible preview was used as a proxy for completion of its consent-reset lifecycle.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Resolve preview inside awaited act, then require fresh consent and an enabled control.",
+            "Retain exact preview-hash and disabled-before-consent assertions, plus negative clicks while not ready."
+          ],
+          "targetedValidation": "Part of 3-file 28-case repaired web suite on both pinned Node versions; no production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/web-fixtures.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/web-review.json"
+            },
+            {
+              "path": ".work/v220-ci1-windows-raw.txt",
+              "lines": "962-1195"
+            }
+          ],
+          "limitations": [
+            "Not proof that the historical hosted event order was captured."
+          ],
+          "platform": "windows",
+          "jobIds": [
+            123942917049
+          ]
+        },
+        {
+          "id": "v220-ci1-windows-worker-crash",
+          "file": "web/tests/preview-server.test.ts",
+          "assertion": "Vitest worker exited unexpectedly with 3221226505 (0xC0000409) while the file was running.",
+          "classification": "native-worker-crash-unknown",
+          "rootCause": "No crash dump or native stack establishes the cause. Same file passed the second complete Windows run; later local probes did not reproduce this exit.",
+          "evidenceStrength": "Direct worker-exit log; root cause undetermined.",
+          "missedEarlierChecks": {
+            "assessment": "No causal conclusion can be made from a passing local run; the historical failure lacked a crash dump/native stack.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Keep the original worker crash and require later full execution without skip/filter/retry.",
+            "Separately found and fixed a fixture hazard: Fetch forbids some dynamically allocated Windows ports; use an owned bounded node:http client. This is not proven to explain 0xC0000409."
+          ],
+          "targetedValidation": "All 15 preview HTTP/TCP/WebSocket assertions retained; included in 28-case targeted suite. 14 bounded crash probes did not reproduce it.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/web-fixtures.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/web-review.json"
+            },
+            {
+              "path": ".work/v220-ci1-windows-raw.txt",
+              "lines": "1660-1680"
+            }
+          ],
+          "limitations": [
+            "Do not relabel the crash as proven bad-port policy, resource exhaustion, keep-alive defect or repaired product bug."
+          ],
+          "platform": "windows",
+          "jobIds": [
+            123942917049
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 123945982798,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci6",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41019301457.json"
+        }
+      ]
+    },
+    {
+      "runId": 41020016075,
+      "runNumber": 24,
+      "head": "8f5f966364406693702700b70940c18a660cf600",
+      "event": "pull_request",
+      "attempt": 1,
+      "createdAt": "2026-10-30T07:25:36Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 123944948571,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T07:25:40Z",
+          "completed_at": "2026-10-30T07:26:14Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123945151485,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T07:26:17Z",
+          "completed_at": "2026-10-30T07:34:06Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 123945151490,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T07:26:17Z",
+          "completed_at": "2026-10-30T07:26:55Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123945151513,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T07:26:17Z",
+          "completed_at": "2026-10-30T07:33:11Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 123947648188,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T07:34:09Z",
+          "completed_at": "2026-10-30T07:34:24Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci1-composer-collapsed",
+          "file": "web/tests/input-context.test.tsx",
+          "assertion": "allows reference-only messages but blocks wrong-project references and schema on queued input: accessible combobox 发送方式 was absent.",
+          "classification": "fixture-stale-ui-contract",
+          "rootCause": "The intentionally collapsed, inert composer settings are not accessible until the real 对话设置 control is opened.",
+          "evidenceStrength": "Direct failing logs and deterministic local red reproduction (1 failed / 7 passed).",
+          "missedEarlierChecks": {
+            "assessment": "The changed accessibility flow was not propagated to this adjacent test consumer.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Assert settings start collapsed and the selector is inaccessible; open the real button and assert aria-expanded before selecting.",
+            "Retain queued-input/schema/wrong-project admission assertions and ordinary-send restoration."
+          ],
+          "targetedValidation": "Input-context plus composer: 13 passed, web typecheck passed; production unchanged.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/composer-fixture.json"
+            }
+          ],
+          "limitations": [],
+          "platform": "both",
+          "jobIds": [
+            123945151485,
+            123945151513
+          ]
+        },
+        {
+          "id": "v220-ci1-candidate-root-admission",
+          "file": "tests/deploy/test_candidate_archive.py",
+          "assertion": "CandidateArchiveTests raised Unsafe candidate directory before intended transaction assertions; e.g. expected already exists/release changed/incomplete/escaped/alive, observed Unsafe candidate directory.",
+          "classification": "fixture-platform-identity",
+          "rootCause": "Ordinary-UID fixtures used ordinary-owned paths against genuine root-only admission; Windows/local conditions did not exercise the Linux ownership boundary.",
+          "evidenceStrength": "Direct stack to ordinary_directory plus reproduced Linux UID65534 baseline and repaired ordinary/root regressions.",
+          "missedEarlierChecks": {
+            "assessment": "Root-only admission and ordinary transaction fault tests were conflated; platform privilege coverage was incomplete.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Ordinary fixture substitutes only the root-ownership predicate while retaining real lstat/type/inode/inventory/rename and transaction failures.",
+            "Add separate root tests proving foreign owners reject before stop; do not weaken production admission."
+          ],
+          "targetedValidation": "Combined candidate/provider fixture baseline Linux UID65534: 35 cases, 8 failures and 11 errors. Fixed combined suites: Windows 35 passed, Linux ordinary 35 passed, root 13 passed.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/deploy-fixtures.json"
+            },
+            {
+              "path": ".work/v220-ci1-linux-raw.txt",
+              "lines": "1752-1892,1962-2065"
+            }
+          ],
+          "limitations": [],
+          "platform": "linux",
+          "jobIds": [
+            123945151513
+          ]
+        },
+        {
+          "id": "v220-ci1-fchown-mock",
+          "file": "tests/deploy/test_provider_registry.py",
+          "assertion": "Generation and advanced-provider subcases raised PermissionError at os.fchown in atomic_write.",
+          "classification": "fixture-platform-identity",
+          "rootCause": "The fixture patched os.chown but the actual atomic writer uses os.fchown; a Linux ordinary user reached a privileged ownership change.",
+          "evidenceStrength": "Direct failing stack and Linux ordinary-user reproduction.",
+          "missedEarlierChecks": {
+            "assessment": "The mock intercepted a former/irrelevant API, not the current called primitive; a Windows pass could not exercise POSIX fchown.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Patch the actual fchown call only in ordinary tests.",
+            "Keep real root registry/environment ownership and permission assertions in root tests."
+          ],
+          "targetedValidation": "Included in the combined 35 ordinary / 13 root fixture checks above; do not sum overlapping suites as new unique cases.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/deploy-fixtures.json"
+            },
+            {
+              "path": ".work/v220-ci1-linux-raw.txt",
+              "lines": "1911-1959"
+            }
+          ],
+          "limitations": [],
+          "platform": "linux",
+          "jobIds": [
+            123945151513
+          ]
+        },
+        {
+          "id": "v220-ci1-edge-profile-kind",
+          "file": "tests/deploy/test_edge_diagnostics.py",
+          "assertion": "test_only_fixed_edge_log_unit_is_allowed_and_known_secrets_are_redacted: KeyError kind in provider_registry.entries.",
+          "classification": "fixture-invalid-domain-record",
+          "rootCause": "A synthetic saved profile omitted the required provider kind; real saved profiles use the validated schema.",
+          "evidenceStrength": "Direct stack plus repaired fixture built through real Profiles.save.",
+          "missedEarlierChecks": {
+            "assessment": "The fixture bypassed the real profile writer and drifted from the multi-provider schema.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Build complete legacy and multi-provider profiles through Profiles.save.",
+            "Verify active and disabled credentials are redacted and preserve fixed-unit allowlist rejection."
+          ],
+          "targetedValidation": "Windows 11 passed / 2 platform skips; Linux 13 passed. No production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/edge-fixture.json"
+            },
+            {
+              "path": ".work/v220-ci1-linux-raw.txt",
+              "lines": "1894-1908"
+            }
+          ],
+          "limitations": [],
+          "platform": "both",
+          "jobIds": [
+            123945151485,
+            123945151513
+          ]
+        },
+        {
+          "id": "v220-ci1-completion-count-readiness",
+          "file": "web/tests/operation-history.test.tsx",
+          "assertion": "requires review again when a new completed result arrives before bulk clearing: expected false to be true.",
+          "classification": "fixture-synchronization",
+          "rootCause": "Total record count includes pending operations; create publishes that count before a separate completion update/read. Waiting for total=2 did not establish completed=2.",
+          "evidenceStrength": "Direct failing assertion plus storage ordering reviewed and explicit completion-state test repair.",
+          "missedEarlierChecks": {
+            "assessment": "The test synchronized on a different observable from the completed-results condition that revokes bulk-clear consent.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Observe two records/one completed before completion, then explicitly wait for two completed.",
+            "Retain consent revocation, disabled clear and no-deletion assertions."
+          ],
+          "targetedValidation": "Part of the 3-file 28-case web suite; no production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/web-fixtures.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-repair/web-review.json"
+            },
+            {
+              "path": ".work/v220-ci1-pr-windows-raw.txt",
+              "lines": "1326-1343"
+            }
+          ],
+          "limitations": [],
+          "platform": "windows",
+          "jobIds": [
+            123945151485
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 123947648188,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci6",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41020016075.json"
+        }
+      ]
+    },
+    {
+      "runId": 41048935437,
+      "runNumber": 26,
+      "head": "b09836245bc25494728085a678f664054e764b2c",
+      "event": "pull_request",
+      "attempt": 1,
+      "createdAt": "2026-10-30T11:33:35Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124039886878,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T11:33:38Z",
+          "completed_at": "2026-10-30T11:34:05Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124040086660,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T11:34:08Z",
+          "completed_at": "2026-10-30T11:34:48Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124040086698,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T11:34:08Z",
+          "completed_at": "2026-10-30T11:40:59Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 124040086702,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T11:34:07Z",
+          "completed_at": "2026-10-30T11:42:03Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124043250076,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T11:42:06Z",
+          "completed_at": "2026-10-30T11:42:16Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci2-memory-readiness",
+          "file": "web/tests/memory-settings.test.tsx",
+          "assertion": "preserves choices across revision conflict and requires comparison and a fresh explicit confirmation: expected write {expectedVersion:v2, memories.use_memories:false}, actual params undefined.",
+          "classification": "fixture-synchronization",
+          "rootCause": "Conflict text can render before the second configuration read and reset effect complete; the test tried adoption/confirmation without proving that the new version had been adopted.",
+          "evidenceStrength": "Direct CI assertion plus controlled second-read promise; unchanged local 4-case baseline passed, so exact hosted order remains untraced.",
+          "missedEarlierChecks": {
+            "assessment": "The fixture awaited visible conflict rather than positive adopt/save state and completion of version adoption.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Hold second read and assert no write while pending; resolve v2 inside awaited act.",
+            "Require comparison, enabled adopt, conflict disappearance and renewed unchecked consent before exactly one v2 leaf write."
+          ],
+          "targetedValidation": "4 targeted cases passed on both Node versions; no production source change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-memory/ci2-failure.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-memory/repair.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-memory/review.json"
+            },
+            {
+              "path": ".work/v220-ci2-linux-raw.txt",
+              "lines": "840-841,1011"
+            }
+          ],
+          "limitations": [],
+          "platform": "linux",
+          "jobIds": [
+            124040086698
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 124043250076,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci6",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41048935437.json"
+        }
+      ]
+    },
+    {
+      "runId": 41050526424,
+      "runNumber": 28,
+      "head": "adfefc0cd53e9e49c0056afe0c0208dc4992dd63",
+      "event": "pull_request",
+      "attempt": 1,
+      "createdAt": "2026-10-30T11:46:48Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124045139792,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T11:46:51Z",
+          "completed_at": "2026-10-30T11:47:21Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124045363425,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T11:47:24Z",
+          "completed_at": "2026-10-30T11:54:23Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 124045363479,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T11:47:24Z",
+          "completed_at": "2026-10-30T11:48:01Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124045363578,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T11:47:24Z",
+          "completed_at": "2026-10-30T11:53:40Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124048153609,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T11:54:27Z",
+          "completed_at": "2026-10-30T11:54:40Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci3-history-lifecycle",
+          "file": "tests/runtime/automation-native.test.ts",
+          "assertion": "scheduled runs use actual worker leases and official CLI after the browser disconnects, with local Responses only: expected completed, received interrupted.",
+          "classification": "product-gap-confirmed-historical-cause-unproven",
+          "rootCause": "Independent official-source and deterministic tests proved that non-atomic native history can show synthetic interrupted for the exact known live turn, and a traversal crossing lifecycle changes can grant a mixed completeness proof. This gap is real, but the original hosted scheduling was not reproduced.",
+          "evidenceStrength": "Direct original assertion; independently confirmed product gap with 17 deterministic cases and real CLI checks; no exact historical causal trace.",
+          "missedEarlierChecks": {
+            "assessment": "History completeness and live lifecycle had been checked separately; exact-turn terminal-before-accept and cross-page lifecycle transitions were not fully covered.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Fence history traversal by retained Activity identity, lifecycle revision and uncertainty.",
+            "Project only an exact known live turn or bounded exact terminal notification, preserving native items/cursors and cold interrupted statuses.",
+            "Clear bounded terminal evidence on lifecycle removal/revert/epoch; never clear unknown or fabricate turns."
+          ],
+          "targetedValidation": "Service 56 passed including 17 new deterministic cases; real CLI automation 1 Windows + 1 isolated Linux passed.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-history/summary.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-history/production-review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-history/regression.json"
+            },
+            {
+              "path": ".work/v220-ci3-linux-raw.txt",
+              "lines": "845-846"
+            }
+          ],
+          "limitations": [
+            "Do not claim this patch proves the sole cause of the original hosted interrupted result.",
+            "One parallel exploratory probe failed during native startup, not at the scheduler assertion; that is separate and undetermined."
+          ],
+          "platform": "linux",
+          "jobIds": [
+            124045363425
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 124048153609,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci6",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41050526424.json"
+        }
+      ]
+    },
+    {
+      "runId": 41056493419,
+      "runNumber": 29,
+      "head": "6052085f095bdb0f7a0681501febfce8362a57c9",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-10-30T12:35:29Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124065221577,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:35:33Z",
+          "completed_at": "2026-10-30T12:36:03Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124065449625,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T12:36:06Z",
+          "completed_at": "2026-10-30T12:38:43Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 124065449899,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:36:06Z",
+          "completed_at": "2026-10-30T12:37:31Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124065452638,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-30T12:36:04Z",
+          "completed_at": "2026-10-30T12:36:03Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124066574094,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T12:38:46Z",
+          "completed_at": "2026-10-30T12:38:56Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci4-windows-worker-crash",
+          "file": "tests/gateway/http.test.ts",
+          "assertion": "Vitest worker exited unexpectedly with 3221226505 (0xC0000409); no business assertion identified the native failure.",
+          "classification": "native-worker-crash-unknown",
+          "rootCause": "The captured output has no native stack/crash dump. A scoped source review did not establish an application or cleanup defect.",
+          "evidenceStrength": "Direct worker-exit log; precise cause unknown.",
+          "missedEarlierChecks": {
+            "assessment": "Existing local assertion passes cannot diagnose native worker termination; CI Node differed from the deployed pinned version.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Align CI Node to already pinned production 24.22.1 and retain the original failure.",
+            "Official upstream review confirmed included Windows TCP fixes, but no attribution of this crash to those fixes.",
+            "No automatic action retry, skip or timeout relaxation."
+          ],
+          "targetedValidation": "HTTP25 + preview15 = 40 targeted passed on 24.22.1; tooling12 passed/1 Linux-only skip. Subsequent full CI6 passed.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-runtime/carry-forward.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-runtime/independent-review.json"
+            },
+            {
+              "path": ".work/v220-ci4-push-windows-raw.txt",
+              "lines": "550-570"
+            }
+          ],
+          "limitations": [
+            "Runtime alignment is validated mitigation, not a proven native-crash root-cause repair."
+          ],
+          "platform": "windows",
+          "jobIds": [
+            124065449625
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 124066574094,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci6",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41056493419.json"
+        }
+      ],
+      "scopeNote": "Affected push. root_deploy was skipped by selection, not a failed root test. Same-head full PR is separate run41056500121."
+    },
+    {
+      "runId": 41056500121,
+      "runNumber": 30,
+      "head": "6052085f095bdb0f7a0681501febfce8362a57c9",
+      "event": "pull_request",
+      "attempt": 1,
+      "createdAt": "2026-10-30T12:35:33Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124065244374,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:35:36Z",
+          "completed_at": "2026-10-30T12:36:06Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124065466562,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:36:09Z",
+          "completed_at": "2026-10-30T12:45:58Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124065466635,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:36:09Z",
+          "completed_at": "2026-10-30T12:36:51Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124065466737,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T12:36:09Z",
+          "completed_at": "2026-10-30T12:46:12Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 124069790722,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T12:46:14Z",
+          "completed_at": "2026-10-30T12:49:30Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci4-credit-preview",
+          "file": "web/tests/credit-nudge.test.tsx",
+          "assertion": "uncertain email delivery queries its original receipt and never resends: recovery button absent; captured consent unchecked and send disabled.",
+          "classification": "fixture-synchronization",
+          "rootCause": "The test awaited an already-rendered button instead of account preview completion. Early confirmation binds an empty preview hash and correctly cannot send.",
+          "evidenceStrength": "Direct CI DOM/assertion plus controlled pending-preview proof; historical timing not reproduced in unchanged local baseline.",
+          "missedEarlierChecks": {
+            "assessment": "The selected DOM element did not certify account/preview identity readiness for hash-bound consent.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Use an explicitly held preview, assert no send/consent while pending, release in awaited act and require fresh confirmation.",
+            "Preserve reason-change revocation/cooldown, exactly one email mutation and only original-ID receipt reads with no auto-query."
+          ],
+          "targetedValidation": "2 targeted cases passed; no production change or real email.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-runtime/credit-fixture-repair.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-runtime/credit-fixture-review.json"
+            },
+            {
+              "path": ".work/v220-ci4-linux-raw.txt",
+              "lines": "849-860"
+            }
+          ],
+          "limitations": [],
+          "platform": "linux",
+          "jobIds": [
+            124065466737
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 124069790722,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci6",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41056500121.json"
+        }
+      ]
+    },
+    {
+      "runId": 41058861511,
+      "runNumber": 32,
+      "head": "37881beb7234fc257889f62184f6b88d6f0df24d",
+      "event": "pull_request",
+      "attempt": 1,
+      "createdAt": "2026-10-30T12:54:05Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124073200807,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:54:08Z",
+          "completed_at": "2026-10-30T12:54:35Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124073420462,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T12:54:38Z",
+          "completed_at": "2026-10-30T13:01:34Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 124073420531,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:54:39Z",
+          "completed_at": "2026-10-30T12:55:15Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124073420543,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T12:54:38Z",
+          "completed_at": "2026-10-30T13:02:09Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124076731613,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T13:02:12Z",
+          "completed_at": "2026-10-30T13:02:19Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci5-accepted-read-publication",
+          "file": "web/tests/automations.test.tsx",
+          "assertion": "keeps an edited-then-restored draft after update recovery and requires explicit rebase for a newer record: onSaved expected once, observed zero.",
+          "classification": "fixture-synchronization",
+          "rootCause": "The accepted notice can publish before useOperations receives the real accepted IndexedDB read; its earlier unknown record correctly keeps the global save lock. Notice/rebase/preview visibility did not prove that Save was enabled at the click.",
+          "evidenceStrength": "Direct CI assertion plus controlled delivery gate around real listOperations; identical hosted timing not traced.",
+          "missedEarlierChecks": {
+            "assessment": "The earlier v2.1.1 not_sent automation fix covered one click, but related accepted-recovery paths still treated local notices as readiness. This is a concrete same-family prevention gap.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Hold publication of real accepted data, prove disabled/no second mutation, then release and await enabledButton before a single click.",
+            "Retain original receipt query, preserved draft and explicit newer-version rebase/confirmation; assert exactly two total attempts and revision6.",
+            "Scan analogous positive create/update paths: 12 other immediate success clicks now await the same observable readiness."
+          ],
+          "targetedValidation": "29 targeted cases passed; web typecheck passed; no production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-automation/ci5-failure.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-automation/repair.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-automation/independent-review.json"
+            },
+            {
+              "path": ".work/v220-ci5-linux-raw.txt",
+              "lines": "876-877,1271"
+            }
+          ],
+          "limitations": [
+            "Model defaults were not the established cause in this scenario; identity keys did not change.",
+            "A contemplated cancellation was explicitly withdrawn: both selected push and full PR actually ran."
+          ],
+          "platform": "linux",
+          "jobIds": [
+            124073420462
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 124076731613,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci6",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41058861511.json"
+        }
+      ]
+    },
+    {
+      "runId": 41109209531,
+      "runNumber": 41,
+      "head": "610f929e190e0a95f7791ee3d0833006cdc46da7",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-10-30T18:42:37Z",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 124246935538,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T18:42:41Z",
+          "completed_at": "2026-10-30T18:43:06Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124247176847,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-30T18:43:09Z",
+          "completed_at": "2026-10-30T18:43:37Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 124247176932,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T18:43:09Z",
+          "completed_at": "2026-10-30T18:48:00Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 124247177070,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T18:43:09Z",
+          "completed_at": "2026-10-30T18:46:19Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 12,
+              "name": "Run exact selection and retain platform skips for reconciliation",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 124249536245,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-30T18:48:03Z",
+          "completed_at": "2026-10-30T18:48:13Z",
+          "unsuccessfulSteps": [
+            {
+              "number": 5,
+              "name": "Require all identities and complement every skipped case",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ],
+      "failures": [
+        {
+          "id": "v220-ci10-pairing",
+          "file": "web/tests/process-remote.test.tsx",
+          "assertion": "pairing secrets are owner reads, survive status refresh, never persist, and clear on disconnect: first private-pair-code textarea absent",
+          "classification": "fixture-synchronization-historical-cause-unproven",
+          "rootCause": "Pairing consent is environment-identity-bound and an asynchronous read can reset it. Captured DOM had unchecked consent/disabled creation, but no trace of the earlier click.",
+          "evidenceStrength": "Controlled pending environment read proves fresh consent is required after identity publication; exact historical order unknown.",
+          "missedEarlierChecks": {
+            "assessment": "The test relied on UI find deadlines covering a real durable transaction and its subscribed React updates; no complete phase trace was retained.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Hold real prerequisite read, release in act, require fresh consent/enabled action and await the real beginMutation result. Assert exactly one write, owner-only original-ID read, refresh retention, no localStorage secret and disconnect clearing."
+          ],
+          "targetedValidation": "Three affected files: unchanged local baseline76 passed; repaired76 passed; web typecheck passed. No production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-feedback-tests/author.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-feedback-tests/review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-release/hosted-ci10.json"
+            },
+            {
+              "path": ".work/v220-ci10-push-linux-raw.txt",
+              "lines": "826"
+            }
+          ],
+          "limitations": [
+            "The same-head full PR passed; that does not erase this selected push failure or prove the exact failed scheduling."
+          ],
+          "platform": "linux",
+          "jobIds": [
+            124247177070
+          ]
+        },
+        {
+          "id": "v220-ci10-oauth",
+          "file": "web/tests/app-lifecycle.test.tsx",
+          "assertion": "retains owner-only OAuth handoff after configuration refresh without starting it on open: first owner authorization link absent",
+          "classification": "fixture-synchronization-historical-cause-unproven",
+          "rootCause": "OAuth consent depends on the gateway provider read; rendered generic controls do not prove provider identity or durable mutation completion. Historical DOM was truncated before the relevant account panel.",
+          "evidenceStrength": "Controlled pending provider read and unmocked Api result establish correct ordering; historical dispatch phase unknown.",
+          "missedEarlierChecks": {
+            "assessment": "The test relied on UI find deadlines covering a real durable transaction and its subscribed React updates; no complete phase trace was retained.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Hold provider read; early confirmation cannot dispatch. Resolve identity in act, reconfirm and await real durable mutation result; retain original owner handoff through refresh with one login."
+          ],
+          "targetedValidation": "Three affected files: unchanged local baseline76 passed; repaired76 passed; web typecheck passed. No production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-feedback-tests/author.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-feedback-tests/review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-release/hosted-ci10.json"
+            },
+            {
+              "path": ".work/v220-ci10-push-windows-raw.txt",
+              "lines": "881"
+            }
+          ],
+          "limitations": [
+            "The same-head full PR passed; that does not erase this selected push failure or prove the exact failed scheduling."
+          ],
+          "platform": "windows",
+          "jobIds": [
+            124247176932
+          ]
+        },
+        {
+          "id": "v220-ci10-project-handoff",
+          "file": "web/tests/project-handoff.test.tsx",
+          "assertion": "adding a project respects its destination and the prior draft (new): new project row absent",
+          "classification": "fixture-synchronization-historical-cause-unproven",
+          "rootCause": "The old test already awaited enabled Save, but did not explicitly await the full real Api.mutate transaction before navigation assertions. The log cannot distinguish admission, RPC, receipt persistence and React navigation.",
+          "evidenceStrength": "Source transaction ordering and repaired actual-promise synchronization; exact historical failing phase not proven.",
+          "missedEarlierChecks": {
+            "assessment": "The test relied on UI find deadlines covering a real durable transaction and its subscribed React updates; no complete phase trace was retained.",
+            "basis": "Retrospective inference from the documented fixture/ordering and repair evidence; not a claim that all prior reviewers or test selections are known."
+          },
+          "repairAndPrevention": [
+            "Spy without replacing Api.mutate, assert exactly one correct create/add, await its actual result in act, then inspect navigation. Retain new/existing/storage-failure branches and prior drafts; drain outstanding real promises before teardown."
+          ],
+          "targetedValidation": "Three affected files: unchanged local baseline76 passed; repaired76 passed; web typecheck passed. No production change.",
+          "evidence": [
+            {
+              "path": "verification/audit-evidence/v220-ci-feedback-tests/author.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-ci-feedback-tests/review.json"
+            },
+            {
+              "path": "verification/audit-evidence/v220-release/hosted-ci10.json"
+            },
+            {
+              "path": ".work/v220-ci10-push-windows-raw.txt",
+              "lines": "1231"
+            }
+          ],
+          "limitations": [
+            "The same-head full PR passed; that does not erase this selected push failure or prove the exact failed scheduling."
+          ],
+          "platform": "windows",
+          "jobIds": [
+            124247176932
+          ]
+        }
+      ],
+      "cascadedFailures": [
+        {
+          "jobId": 124249536245,
+          "name": "Verified case coverage",
+          "classification": "cascaded-evidence-reconciliation",
+          "reason": "Required platform failed or did not produce complete evidence. This is not an independent application root cause."
+        }
+      ],
+      "closureRef": "v220-ci11",
+      "evidence": [
+        {
+          "path": ".work/historical-ci-runs-page1.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-41109209531.json"
+        }
+      ],
+      "scopeNote": "Selected push221files failed. Same-head full PR41109219699 independently passed232files/2468cases/gaps[]; do not merge their outcomes."
+    }
+  ],
+  "cancelledRuns": [
+    {
+      "runId": 40961314393,
+      "runNumber": 20,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "event": "push",
+      "attempt": 1,
+      "conclusion": "cancelled",
+      "jobs": [
+        {
+          "id": 123754497050,
+          "name": "plan",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "started_at": "2026-10-29T21:52:01Z",
+          "completed_at": "2026-10-29T21:52:34Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123754781337,
+          "name": "root_deploy",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "started_at": "2026-10-29T21:52:35Z",
+          "completed_at": "2026-10-29T21:52:34Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123754781804,
+          "name": "standard",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "started_at": "2026-10-29T21:52:35Z",
+          "completed_at": "2026-10-29T21:52:34Z",
+          "unsuccessfulSteps": []
+        },
+        {
+          "id": 123754782089,
+          "name": "Verified case coverage",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "started_at": "2026-10-29T21:52:35Z",
+          "completed_at": "2026-10-29T21:52:34Z",
+          "unsuccessfulSteps": []
+        }
+      ],
+      "classification": "deliberate-workflow-supersession",
+      "rootCause": "Workflow concurrency superseded the one-fixture push with explicit all-followup workflow_dispatch40961333197 from base363b5aa. No failed assertion is inferred from cancellation.",
+      "evidenceStrength": "API confirms cancelled; contemporaneous hosted summary records the supersession reason.",
+      "evidence": [
+        {
+          "path": "verification/audit-evidence/v211-release/hosted-ci.json"
+        },
+        {
+          "path": ".work/historical-ci-jobs-40961314393.json"
+        }
+      ],
+      "closureRef": "v211-followup"
+    }
+  ],
+  "closureEvidence": {
+    "v211-followup": {
+      "runId": 40961333197,
+      "head": "26de21edd8606cf7539f39b61194d821aa5d54fe",
+      "status": "success",
+      "scope": "All five follow-up changed files selected across Windows/Linux/root; affected run, NOT a new full suite.",
+      "selectedFiles": 61,
+      "distinctCases": 708,
+      "coverageGaps": [],
+      "evidence": [
+        {
+          "path": "verification/audit-evidence/v211-release/hosted-ci.json"
+        }
+      ],
+      "limits": [
+        "Original Windows Go preparation cause remains unknown despite successful later preparation.",
+        "Prior local full210/2148 belongs to source99521cf; it is not substituted for this affected hosted scope."
+      ]
+    },
+    "v220-ci6": {
+      "runId": 41061463665,
+      "head": "cf3bf6fe1fbff07f03409f8c9379e5ccd156b963",
+      "status": "success",
+      "scope": "Later complete full PR candidate after CI1-CI5 repairs; original failures remain failed.",
+      "selectedFiles": 227,
+      "distinctCases": 2362,
+      "coverageGaps": [],
+      "evidence": [
+        {
+          "path": "verification/audit-evidence/v220-release/hosted-ci6.json"
+        }
+      ],
+      "limits": [
+        "Later pass verifies this candidate, not historical root cause for unknown worker crashes or the original interrupted scheduling."
+      ]
+    },
+    "v220-ci11": {
+      "runId": 41111953956,
+      "head": "363e2fd9f8961b45a806bbde5307d36dad80dd19",
+      "status": "success",
+      "scope": "Later full PR after three fixture changes; independent selected push41111944101 also passed3files/76cases.",
+      "selectedFiles": 232,
+      "distinctCases": 2468,
+      "coverageGaps": [],
+      "evidence": [
+        {
+          "path": "verification/audit-evidence/v220-release/hosted-ci11.json"
+        }
+      ],
+      "limits": [
+        "hosted-ci11 pushReconciliation.boundary contains stale CI10 failure wording. Actual summary and API both report success; this review preserves that discrepancy instead of altering history."
+      ]
+    }
+  },
+  "crossRunLessons": [
+    {
+      "lesson": "Readiness is the exact positive admission/completion condition, not merely visible text or existence of a button.",
+      "cases": [
+        "v211-automation-readiness",
+        "v220-ci1-extension-readiness",
+        "v220-ci2-memory-readiness",
+        "v220-ci4-credit-preview",
+        "v220-ci5-accepted-read-publication"
+      ],
+      "prevention": "Gate real read publication deterministically; assert blocked/no write before release; await enabled state and one actual durable mutation result. Scan all positive calls in the affected form, not only the first failed line."
+    },
+    {
+      "lesson": "Fix the reverse consumers and identity boundary of a fixture, not production permission checks.",
+      "cases": [
+        "v220-ci1-candidate-root-admission",
+        "v220-ci1-fchown-mock",
+        "v220-ci1-edge-profile-kind",
+        "v220-ci1-composer-collapsed"
+      ],
+      "prevention": "Build domain records through real validated writers where practical; isolate ordinary transaction logic from root ownership and retain true root-negative tests; patch the primitive actually called; trace adjacent UI consumers after intentional layout changes."
+    },
+    {
+      "lesson": "A native worker crash needs native evidence; do not label it a flake or proven environmental fix merely because another run passed.",
+      "cases": [
+        "v220-ci1-windows-worker-crash",
+        "v220-ci4-windows-worker-crash",
+        "v211-go-preparation"
+      ],
+      "prevention": "Retain original status and bounded phase-specific diagnostics; align pinned runtime intentionally; no automatic rerun/skip to manufacture success."
+    },
+    {
+      "lesson": "Lifecycle consistency is a product invariant across history pages and scheduler acceptance.",
+      "cases": [
+        "v220-ci3-history-lifecycle"
+      ],
+      "prevention": "Test exact IDs, early terminal notifications, transitions during traversal and unknown preservation; keep the confirmed gap separate from unproven historical causality."
+    },
+    {
+      "lesson": "Count run identities, full-vs-selected scopes and cascades separately.",
+      "cases": [
+        "v220-ci10-pairing",
+        "v220-ci10-oauth",
+        "v220-ci10-project-handoff"
+      ],
+      "prevention": "A same-head full pass does not erase a selected failure; coverage refusal is a propagated gate, not an extra application defect; deliberate concurrency cancellation is not a failed case."
+    }
+  ],
+  "recordQualityNotes": [
+    "Expected python-tests runner self-tests emit test_empty.py and broken setUpClass errors; those are negative metatest output, not additional deploy failures.",
+    "CI5 contemplated duplicate-run cancellation was withdrawn and performed=false; it is not in the cancelled set.",
+    "v220-ci11 pushReconciliation.boundary has stale failure wording despite a concrete passed3/76 summary; actual result retained above.",
+    "The root cause of original Windows Go preparation and two native worker exits remains unresolved. The historical native automation interrupted failure likewise has no exact interleaving proof despite a separately confirmed repaired product gap."
+  ],
+  "newlyRetrievedOriginalLog": {
+    "archive": {
+      "path": ".work/historical-ci-run-40955613895.zip"
+    },
+    "members": [
+      {
+        "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+        "sha256": "52232d1962f0cc570b99c9aaf4e5ae38c56fde52e8fafd98e5c2e529a44eec95",
+        "observed": "403 lines: step329-344, generic go mod failure at343; no detailed Go stderr in the archive."
+      },
+      {
+        "entry": "3_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+        "sha256": "7e1b1e06de7011cac6bcd4f561ece82b934a520b0a69cf829c48aa6da9c17ad9",
+        "observed": "808-809: original automation assertion expected2 update calls, got1."
+      }
+    ]
+  },
+  "limits": [
+    "This is a retrospective evidence review, not a new source audit or test execution.",
+    "Archived independent reviews and directed results retain their original source boundaries; no current-source pass is asserted.",
+    "No claim of zero future failures, full actual-provider business coverage or production inference testing."
+  ],
+  "evidence": [
+    {
+      "path": "verification/audit-evidence/v211-release/ci-followup.json",
+      "sha256": "f02472fc07427d2eabe4e8090e7df6035ebb6a96e93f20d68d7f25d87f28a0b0",
+      "bytes": 3347
+    },
+    {
+      "path": ".work/v211-automation-ci-diagnosis.json",
+      "sha256": "5959f2d28df654adf80f7fa5b095ba8a9f5cb8d7f642a2720d75e90b6a433afc",
+      "bytes": 10271
+    },
+    {
+      "path": ".work/v211-linux-ci-assertion.txt",
+      "sha256": "c4df083306f9d1b2f5576782a89695fdf63d1cb9106058649f228596c6dc5760",
+      "bytes": 9520
+    },
+    {
+      "path": ".work/v211-linux-ci-failure-location.txt",
+      "sha256": "222b3dbba9fc3fdfc5c829e7c0563c07c0f9fc085a65ec52545df35cfdbcfb54",
+      "bytes": 6423
+    },
+    {
+      "path": ".work/v211-ci-go-diagnostic-security-review.json",
+      "sha256": "4413f7d1ef3f77b0817f4f2dbc578dd6d93a81f2ae3d9a505fe3783a36a6bdfc",
+      "bytes": 3818
+    },
+    {
+      "path": ".work/historical-ci-run-40955613895.zip",
+      "sha256": "5dffb66909f3598ff9e7755efd63f1da3cfbfdd9f710173bb0d895c56178d41f",
+      "bytes": 82768
+    },
+    {
+      "path": "verification/audit-evidence/v211-release/https-fixture-followup.json",
+      "sha256": "0db8f79cef67309de6bdba3bb56824f0db701823034bcf04f0c3c30c88e99f97",
+      "bytes": 1760
+    },
+    {
+      "path": ".work/v211-ci-followup-windows-failure.txt",
+      "sha256": "07776c0fe2bdb3206e98f88eb39cfe3de4967dc681b05b757d3c8928b4df063b",
+      "bytes": 19357
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/first-attempts.json",
+      "sha256": "19d965126094430d2fc7235854f870b4c6c2424dc2040ead588a84e6dc393292",
+      "bytes": 1889
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/fixture-review.json",
+      "sha256": "c54177b4941977c106ed3327fe3dc2c1d885c710d4d24d7cd5477677bac58682",
+      "bytes": 6377
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/composer-fixture.json",
+      "sha256": "d2ea59e0cd0f2379752f1dba75ec1f95b7612a475a9f84b562f177dbd1063d29",
+      "bytes": 1603
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/deploy-fixtures.json",
+      "sha256": "66eb3d251edb251f8fbf42c89935d26fc5abea64e9859c984c94a76c4b96d6a1",
+      "bytes": 4038
+    },
+    {
+      "path": ".work/v220-ci1-linux-raw.txt",
+      "sha256": "7f180483ccafc9a267eaae253f4d45f071078d79bc890390f66c7aba635fba65",
+      "bytes": 242967
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/edge-fixture.json",
+      "sha256": "2ad6075a19d492745a539ac5b372a22db954364ca7ef26cd866a03951614ea9e",
+      "bytes": 819
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/web-fixtures.json",
+      "sha256": "57246247bfd22e2b643b8f36a4669f329fa800cacd78765d1d108bf787afe64f",
+      "bytes": 6886
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/web-review.json",
+      "sha256": "1348efa7e398e0ba1244c61a35def644453405e3cdf6075c08a0640b29734213",
+      "bytes": 4928
+    },
+    {
+      "path": ".work/v220-ci1-windows-raw.txt",
+      "sha256": "86efb9626ba0bf8343569a5b7c251a2f78b8555f8b15b1ef1a3320829ebc65af",
+      "bytes": 252815
+    },
+    {
+      "path": ".work/v220-ci1-pr-windows-raw.txt",
+      "sha256": "4a62e2a1cee01f6b72c5be7391b68153603db87629a56a5d5cd0cd0c5a408c2d",
+      "bytes": 225352
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-memory/ci2-failure.json",
+      "sha256": "6ecb20adc5fcb7749b63bce45cbefb7556a577ed62152b1b80f182b269f584b7",
+      "bytes": 67813
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-memory/repair.json",
+      "sha256": "51dfb16842d344fe5125bd759f4899b34d2eb0fa67066cc9adcaf7ca5f11e4ea",
+      "bytes": 4808
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-memory/review.json",
+      "sha256": "352619f2554e376dbd666007564ed96b8ffa3c599081291df85cf9839d53da99",
+      "bytes": 5095
+    },
+    {
+      "path": ".work/v220-ci2-linux-raw.txt",
+      "sha256": "f906884269092d15f727ee01a29dfd11177a929e237bb671ccc4b44b14c558fe",
+      "bytes": 193735
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-history/summary.json",
+      "sha256": "65b4e040656a9c6d8e436265cdacbc0a3c5a0b28636b7ce9810784f20b7b85ce",
+      "bytes": 2249
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-history/production-review.json",
+      "sha256": "23fd58d3252386b38903a7ec16b2614bfe4674879c532da2ff8e534787e69273",
+      "bytes": 3133
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-history/regression.json",
+      "sha256": "b7f6bd16744ffe8345b92796259d8f787001fb9dd71e2fcd60053911818f4e30",
+      "bytes": 4397
+    },
+    {
+      "path": ".work/v220-ci3-linux-raw.txt",
+      "sha256": "fcf3fa2c561872c871d247a778603bf78c18b9cf39828cb33be6f6861cd20942",
+      "bytes": 183501
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-runtime/carry-forward.json",
+      "sha256": "176490b0664a0c7bf7e82655255ab66e6d41700579ffca0affb52f198b59b6e8",
+      "bytes": 4556
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-runtime/independent-review.json",
+      "sha256": "7616ac6031fcb10767f6f040d9aa23bfd529d154a141bb7cd4af00163eb14abc",
+      "bytes": 9746
+    },
+    {
+      "path": ".work/v220-ci4-push-windows-raw.txt",
+      "sha256": "be3cdfa1d432b8f3f2fcb5227470b3a2651fb5db550abada170d3808879dba6a",
+      "bytes": 58746
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-runtime/credit-fixture-repair.json",
+      "sha256": "f0c15cfb3c1334528bfc421abe42b52d80b37c66617b30f79e68d91d0e08f874",
+      "bytes": 3021
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-runtime/credit-fixture-review.json",
+      "sha256": "bbb0a91d44554a9117e1d9d5b945fcce00b788bf9a9d461537e9d7935fbe56a0",
+      "bytes": 3778
+    },
+    {
+      "path": ".work/v220-ci4-linux-raw.txt",
+      "sha256": "e4440cbd252764f2ef6860b3f3682791a352a84bea20884b78d2f1a4b9d33043",
+      "bytes": 191046
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-automation/ci5-failure.json",
+      "sha256": "afe6da77ab330a79bec5bd0f34b8b8e6380b6861828148424e073e9566ee04b1",
+      "bytes": 14274
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-automation/repair.json",
+      "sha256": "75d3a6ca494754cda89b0a2834f4306889bd844f5a47b7ab0cc5829678309516",
+      "bytes": 4554
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-automation/independent-review.json",
+      "sha256": "d358fd4342fb154ac84bbf81ce776bc119c75f82fb1c0bef403ba975b79a3092",
+      "bytes": 7802
+    },
+    {
+      "path": ".work/v220-ci5-linux-raw.txt",
+      "sha256": "874be40d250875e55fdf856ab1dfed33f33d991cfa38e4882c9aee25509210c0",
+      "bytes": 214203
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-feedback-tests/author.json",
+      "sha256": "074bfe7e5e5350dd603734afa48f0bf2def2b26226d5a901438c698bd7be2c1f",
+      "bytes": 7481
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-feedback-tests/review.json",
+      "sha256": "ac311d53c0d8ad8f903aa5a7d91c773b979975c9a219809d8a41fc916c01faaa",
+      "bytes": 6877
+    },
+    {
+      "path": "verification/audit-evidence/v220-release/hosted-ci10.json",
+      "sha256": "164507e8d433007a46d5d5e07a6d21174fba4e739b523dac2da4b5570c360986",
+      "bytes": 32374
+    },
+    {
+      "path": ".work/v220-ci10-push-linux-raw.txt",
+      "sha256": "30ca8bdc1b7d12f403c1946ecc7757242447e46e0d60837b59dfed6288dfba07",
+      "bytes": 214055
+    },
+    {
+      "path": ".work/v220-ci10-push-windows-raw.txt",
+      "sha256": "a783072fd0e790ad2ae6ae26867710cf184fa85e028f8acadb4d029e3ddea6be",
+      "bytes": 249550
+    },
+    {
+      "path": "verification/audit-evidence/v211-release/hosted-ci.json",
+      "sha256": "b6e240ed533d9ff41595db2ed67bfbce63960332bad7ad01bb99bd0f71a71c8b",
+      "bytes": 7612
+    },
+    {
+      "path": "verification/audit-evidence/v220-release/hosted-ci6.json",
+      "sha256": "993330f88dba608b4f869046623f866d712af2389c2c95d24145651fdbd3e1a6",
+      "bytes": 18526
+    },
+    {
+      "path": "verification/audit-evidence/v220-release/hosted-ci11.json",
+      "sha256": "a206a428ddee035a943652c9f9c1c7733bbc6591a4e1b4c55df5ebe34e5e1a59",
+      "bytes": 33014
+    },
+    {
+      "path": ".work/historical-ci-jobs-40955613895.json",
+      "sha256": "a767aa8ed00cccb986bd52895a19d1df064f180c0463c48e6bf9a6d924ae8330",
+      "bytes": 16496
+    },
+    {
+      "path": ".work/historical-ci-runs-page1.json",
+      "sha256": "006cbf665df3f57e9d584a007c9573313d59a4badce7f1d0d19393015585d812",
+      "bytes": 738844
+    },
+    {
+      "path": ".work/historical-ci-jobs-40959593986.json",
+      "sha256": "a2a5d157bd7426c136ea645abea89de65c5bfd02f0151de05382202715df24c1",
+      "bytes": 16846
+    },
+    {
+      "path": ".work/historical-ci-jobs-41019301457.json",
+      "sha256": "1f1da3a4cc77a9fce12efa6b083d0af0fcbe25ab1ef1b003aa27b71c8dc9a30d",
+      "bytes": 16966
+    },
+    {
+      "path": ".work/historical-ci-jobs-41020016075.json",
+      "sha256": "8362d5911b3ed7930b5fbb80dbb36c490a31c6a82f6e384b83d32c4565f67047",
+      "bytes": 16966
+    },
+    {
+      "path": ".work/historical-ci-jobs-41048935437.json",
+      "sha256": "907cde5438c9e4e90d83175852a0122e5636f824d8b337da88a2761a24163d63",
+      "bytes": 16966
+    },
+    {
+      "path": ".work/historical-ci-jobs-41050526424.json",
+      "sha256": "3b8c5b5ca5d249870379e33e278adb6712358348ab14873b2501b27791b27565",
+      "bytes": 16966
+    },
+    {
+      "path": ".work/historical-ci-jobs-41056493419.json",
+      "sha256": "47322a71dcc27469401934604f402bd1f35e41e1918248ac9079042a7324ca84",
+      "bytes": 14998
+    },
+    {
+      "path": ".work/historical-ci-jobs-41056500121.json",
+      "sha256": "289c27338a41a5b8075d305e62599c9d84fe427af6d5a2f0d6b664462b2a977e",
+      "bytes": 16966
+    },
+    {
+      "path": ".work/historical-ci-jobs-41058861511.json",
+      "sha256": "804c48fe9327f0259fc61f40546d29319ea3fc5bb53666c57e164cc4a7fc0d55",
+      "bytes": 16966
+    },
+    {
+      "path": ".work/historical-ci-jobs-41109209531.json",
+      "sha256": "1563713d6b6b8f5a7a059cb80605af020c2609f86b1ed47101f0c917a24f281f",
+      "bytes": 16966
+    },
+    {
+      "path": ".work/historical-ci-jobs-40961314393.json",
+      "sha256": "741c6e5678d72ae6490a699ee0fe993ff0a78bc12c83e1dbe5440bb38e944972",
+      "bytes": 5424
+    },
+    {
+      "path": ".work/v220-ci1-pr-linux-raw.txt",
+      "sha256": "8c66e2476ae6ff071509756ad6af1f06375577b7b117b4a2871442bb417e0f46",
+      "bytes": 247646
+    },
+    {
+      "path": "verification/audit-evidence/v220-ci-repair/carry-forward.json",
+      "sha256": "3e114f8e1433bc781907cb746608d124de635e8ff198c67a6f93bb6d46760740",
+      "bytes": 4698
+    }
+  ]
+}

@@ -1,0 +1,1226 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-ci-early-platform-review",
+  "reviewerId": "/root/v220_final_deploy",
+  "createdAt": "2026-11-01T15:53:15.421841+00:00",
+  "complete": true,
+  "currentHead": "f3909bbce01ab5d311dc3754377059d1b01acbed",
+  "scope": {
+    "runs": [
+      "40302433930",
+      "40305525588",
+      "40305525963",
+      "40308175474"
+    ],
+    "source": "Current rewrite repository Git history only; no archived implementation.",
+    "actions": "Read complete failed assertion/traceback sections in original downloaded ZIP entries; compare actual terminal job metadata and repair diffs; write ignored evidence only.",
+    "notPerformed": [
+      "tests",
+      "build",
+      "network request",
+      "production or 120 access",
+      "source edit",
+      "rerun/cancel/push"
+    ]
+  },
+  "evidenceInputs": [
+    {
+      "path": ".work/historical-ci-jobs-summary.json",
+      "sha256": "ccba0582525ac46bd84498ba9ddc18db015bdf6f264089d2b424550ed38f54c0",
+      "bytes": 21223
+    },
+    {
+      "path": ".work/historical-ci-early-errors.json",
+      "sha256": "2233d959bce427873cb4178f717c56f1c375116f03ed0db69fd1c3dac08f1057",
+      "bytes": 133726
+    },
+    {
+      "path": ".work/historical-ci-prevention-review.json",
+      "sha256": "0464eccd02b4eb30d0b852a5105984cb9d263a54b3669cf36f62549a28149d40",
+      "bytes": 41852
+    }
+  ],
+  "method": [
+    "Use job/step terminal status and top-level runner summaries, not substring Traceback/FAIL alone.",
+    "Bind original ZIP bytes and each numbered top-level job log; line ranges are 1-based inclusive, section hashes use decoded UTF-8 LF only.",
+    "Read full assertion sections including failure DOM where needed, plus structured preflight/PTY diagnostics. Excerpts are navigation aids, not the sole evidence.",
+    "Map the observed failure to exact current-repository repair commits and retained guards. Later green by itself is not accepted as a causal explanation.",
+    "Separate real product defects, fixture assumptions, environment/evidence failures, and downstream coverage rejection. Duplicate runs of one candidate are not unique root causes."
+  ],
+  "runs": [
+    {
+      "runId": "40302433930",
+      "conclusion": "failure",
+      "head": "9a2e43e70105d82276de3cb085eb8c18de8fa8b8",
+      "base": "2672e97bfe1d088961ad6910c9b85ee86f726c5e",
+      "plan": {
+        "mode": "authorized-full",
+        "files": 167,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ],
+        "evidence": {
+          "runId": "40302433930",
+          "entry": "4_plan.txt",
+          "startLine": 239,
+          "endLine": 239,
+          "sectionUtf8LfSha256": "1ad90fe0461b7b7c6a644b3e5d33992260efad7553e6ae6077a0d2fd0e865cc8"
+        }
+      },
+      "jobsObserved": 5,
+      "unsuccessfulJobs": [
+        {
+          "id": 121503475976,
+          "name": "root_deploy",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Run root fixtures only on the disposable hosted runner",
+            "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+          ]
+        },
+        {
+          "id": 121503477603,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "conclusion": "failure",
+          "failedSteps": "Run exact selection and retain platform skips for reconciliation"
+        },
+        {
+          "id": 121503477698,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "conclusion": "failure",
+          "failedSteps": "Run exact selection and retain platform skips for reconciliation"
+        },
+        {
+          "id": 121506505608,
+          "name": "Verified case coverage",
+          "conclusion": "failure",
+          "failedSteps": "Require all identities and complement every skipped case"
+        }
+      ],
+      "finalRawSummaries": [
+        {
+          "entry": "0_Verified case coverage.txt",
+          "line": 235,
+          "text": "2026-10-26T09:56:15.1184660Z CI validation refused: Every expected platform report is required exactly once"
+        },
+        {
+          "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "line": 956,
+          "text": "2026-10-26T09:55:48.8928599Z  Test Files  18 failed | 117 passed (135)"
+        },
+        {
+          "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "line": 957,
+          "text": "2026-10-26T09:55:48.8939500Z       Tests  34 failed | 1107 passed | 3 skipped (1144)"
+        },
+        {
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 756,
+          "text": "2026-10-26T09:50:58.2178241Z  Test Files  3 failed | 130 passed | 2 skipped (135)"
+        },
+        {
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 757,
+          "text": "2026-10-26T09:50:58.2187621Z       Tests  3 failed | 1127 passed | 14 skipped (1144)"
+        },
+        {
+          "entry": "3_root_deploy.txt",
+          "line": 370,
+          "text": "2026-10-26T09:49:27.5024931Z Ran 73 tests in 4.135s"
+        },
+        {
+          "entry": "3_root_deploy.txt",
+          "line": 373,
+          "text": "2026-10-26T09:49:27.5261478Z CI validation refused: Command failed: git rev-parse --show-toplevel"
+        },
+        {
+          "entry": "3_root_deploy.txt",
+          "line": 374,
+          "text": "2026-10-26T09:49:27.5262446Z fatal: detected dubious ownership in repository at '<runner-home>/work/codex-harness/codex-harness'"
+        }
+      ],
+      "archive": {
+        "path": ".work/historical-ci-run-40302433930.zip",
+        "sha256": "2e7cb9e6f2c0b020cfa1677793ee30a79d83e46c9f81d6a040e741081650f028",
+        "bytes": 90890,
+        "entries": [
+          {
+            "entry": "0_Verified case coverage.txt",
+            "sha256": "6d19ffa9bc301ab12fb02c382b6d33103946115a6da385a5f22b53f46934da9d",
+            "bytes": 23128,
+            "lines": 252
+          },
+          {
+            "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+            "sha256": "ab15c94a351bb3b10041a2dbc40adbea34a084c9ca193455d38894f858bd95a1",
+            "bytes": 153747,
+            "lines": 1269
+          },
+          {
+            "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+            "sha256": "f91ee7b97a20c926cda5fbab7612a06261d381e99d5762b51da5766accdf9126",
+            "bytes": 125306,
+            "lines": 1070
+          },
+          {
+            "entry": "3_root_deploy.txt",
+            "sha256": "c3db2c1ac41525b8482089a892f7ed23ed4521df8dce38662c45c70499a0d7c6",
+            "bytes": 43480,
+            "lines": 410
+          },
+          {
+            "entry": "4_plan.txt",
+            "sha256": "300a2571b4140f65da91528f92b0433af9d6cc24f0e1aa4ed1c0847fbeafc089",
+            "bytes": 30109,
+            "lines": 286
+          }
+        ]
+      }
+    },
+    {
+      "runId": "40305525588",
+      "conclusion": "failure",
+      "head": "35f2bc280703755b4b1ba1b736089ca099546199",
+      "base": "9a2e43e70105d82276de3cb085eb8c18de8fa8b8",
+      "plan": {
+        "mode": "authorized-full",
+        "files": 169,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ],
+        "evidence": {
+          "runId": "40305525588",
+          "entry": "4_plan.txt",
+          "startLine": 239,
+          "endLine": 239,
+          "sectionUtf8LfSha256": "681a2443677c7a679dde1ce88fbf37ed60e08ebc7fd5dfa4411e6cfd17356678"
+        }
+      },
+      "jobsObserved": 5,
+      "unsuccessfulJobs": [
+        {
+          "id": 121513796598,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Verify isolated Windows process controllers before native tests",
+            "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+          ]
+        },
+        {
+          "id": 121513796688,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "conclusion": "failure",
+          "failedSteps": "Run exact selection and retain platform skips for reconciliation"
+        },
+        {
+          "id": 121514811247,
+          "name": "Verified case coverage",
+          "conclusion": "failure",
+          "failedSteps": "Require all identities and complement every skipped case"
+        }
+      ],
+      "finalRawSummaries": [
+        {
+          "entry": "0_Verified case coverage.txt",
+          "line": 240,
+          "text": "2026-10-26T10:15:10.4800458Z CI validation refused: Every expected platform report is required exactly once"
+        },
+        {
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 694,
+          "text": "2026-10-26T10:14:30.0330707Z  Test Files  1 failed | 134 passed | 2 skipped (137)"
+        },
+        {
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 695,
+          "text": "2026-10-26T10:14:30.0340857Z       Tests  1 failed | 1136 passed | 14 skipped (1151)"
+        },
+        {
+          "entry": "3_root_deploy.txt",
+          "line": 380,
+          "text": "2026-10-26T10:13:05.7455287Z Ran 73 tests in 5.252s"
+        }
+      ],
+      "archive": {
+        "path": ".work/historical-ci-run-40305525588.zip",
+        "sha256": "da30e129a25b9403b79d49ee16c9af4f4ed4b3b42897e765bb63146ddd9dc791",
+        "bytes": 64190,
+        "entries": [
+          {
+            "entry": "0_Verified case coverage.txt",
+            "sha256": "5d3d6881cf6350adf95d8f7454eff7742bde082a3f4c9a8040e598bd8646e582",
+            "bytes": 23919,
+            "lines": 257
+          },
+          {
+            "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+            "sha256": "148df0d5f2cc7eea03212e7a9f9fd9a7db8c10a39c24db7b52d5e880b6af7dd3",
+            "bytes": 35655,
+            "lines": 410
+          },
+          {
+            "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+            "sha256": "aceea4cf0127444d612a2542e6bf9eb888f63a522f3f12dcb68fc3be0ab0a769",
+            "bytes": 120531,
+            "lines": 1008
+          },
+          {
+            "entry": "3_root_deploy.txt",
+            "sha256": "14fb760ff461f47c4dc15599b5fbb87618feb749249a1c91ac5f512a454eeec6",
+            "bytes": 44757,
+            "lines": 425
+          },
+          {
+            "entry": "4_plan.txt",
+            "sha256": "8958739169b3f8b4a3bda1bdd2f50f0dcc64a8d9eab4872f731e9c35905c82a6",
+            "bytes": 30094,
+            "lines": 286
+          }
+        ]
+      }
+    },
+    {
+      "runId": "40305525963",
+      "conclusion": "failure",
+      "head": "35f2bc280703755b4b1ba1b736089ca099546199",
+      "base": "9a2e43e70105d82276de3cb085eb8c18de8fa8b8",
+      "plan": {
+        "mode": "authorized-full",
+        "files": 169,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ],
+        "evidence": {
+          "runId": "40305525963",
+          "entry": "4_plan.txt",
+          "startLine": 239,
+          "endLine": 239,
+          "sectionUtf8LfSha256": "6e4e291cc260d58c4bc5c98d60ea5b986173fb8a52edaa1c29027fb66e9e6aad"
+        }
+      },
+      "jobsObserved": 5,
+      "unsuccessfulJobs": [
+        {
+          "id": 121513798788,
+          "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Verify isolated Windows process controllers before native tests",
+            "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+          ]
+        },
+        {
+          "id": 121513798887,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "conclusion": "failure",
+          "failedSteps": "Run exact selection and retain platform skips for reconciliation"
+        },
+        {
+          "id": 121514562936,
+          "name": "Verified case coverage",
+          "conclusion": "failure",
+          "failedSteps": "Require all identities and complement every skipped case"
+        }
+      ],
+      "finalRawSummaries": [
+        {
+          "entry": "0_Verified case coverage.txt",
+          "line": 240,
+          "text": "2026-10-26T10:14:34.4524669Z CI validation refused: Every expected platform report is required exactly once"
+        },
+        {
+          "entry": "2_root_deploy.txt",
+          "line": 379,
+          "text": "2026-10-26T10:13:06.5848443Z Ran 73 tests in 5.523s"
+        },
+        {
+          "entry": "3_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 631,
+          "text": "2026-10-26T10:13:55.8186082Z  Test Files  1 failed | 134 passed | 2 skipped (137)"
+        },
+        {
+          "entry": "3_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 632,
+          "text": "2026-10-26T10:13:55.8191932Z       Tests  1 failed | 1136 passed | 14 skipped (1151)"
+        }
+      ],
+      "archive": {
+        "path": ".work/historical-ci-run-40305525963.zip",
+        "sha256": "112fcae0a03655bd62bceb60b37bda3605e1f482fb4313d2fd672f1893d36832",
+        "bytes": 61347,
+        "entries": [
+          {
+            "entry": "0_Verified case coverage.txt",
+            "sha256": "cbef4fcd721192f573b6cb2448c04e91c9c619c8521178463f78e4b017b61e13",
+            "bytes": 23919,
+            "lines": 257
+          },
+          {
+            "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+            "sha256": "1a1de28dfd48909d55fd557b7768a677453068931a6a211890b5b65f8e21afb3",
+            "bytes": 35576,
+            "lines": 409
+          },
+          {
+            "entry": "2_root_deploy.txt",
+            "sha256": "dd8ea28b919c752796c22dfb186e8a7dd1fa63a27a069606b82698ffae7e1d19",
+            "bytes": 44674,
+            "lines": 424
+          },
+          {
+            "entry": "3_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+            "sha256": "4a236cad1a1c7c4ad2f9800f8544d66a7f4885cb32c20fc9d7c079afae638eb5",
+            "bytes": 112415,
+            "lines": 945
+          },
+          {
+            "entry": "4_plan.txt",
+            "sha256": "c3161b5751adeba668af106f5b6c683a39c7442de64f01d355ba339b740f6a55",
+            "bytes": 30095,
+            "lines": 286
+          }
+        ]
+      }
+    },
+    {
+      "runId": "40308175474",
+      "conclusion": "failure",
+      "head": "7af7dafb5d348800526fb326a4363e11bf360986",
+      "base": "35f2bc280703755b4b1ba1b736089ca099546199",
+      "plan": {
+        "mode": "authorized-full",
+        "files": 170,
+        "targets": [
+          "linux",
+          "windows",
+          "linux-root"
+        ],
+        "evidence": {
+          "runId": "40308175474",
+          "entry": "4_plan.txt",
+          "startLine": 239,
+          "endLine": 239,
+          "sectionUtf8LfSha256": "64d88bbba3123da6ded8b95c0d46b37f9769b801e85def19f4ef1e8bef2f556b"
+        }
+      },
+      "jobsObserved": 5,
+      "unsuccessfulJobs": [
+        {
+          "id": 121522596131,
+          "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+          "conclusion": "failure",
+          "failedSteps": "Run exact selection and retain platform skips for reconciliation"
+        },
+        {
+          "id": 121524216325,
+          "name": "Verified case coverage",
+          "conclusion": "failure",
+          "failedSteps": "Require all identities and complement every skipped case"
+        }
+      ],
+      "finalRawSummaries": [
+        {
+          "entry": "0_Verified case coverage.txt",
+          "line": 245,
+          "text": "2026-10-26T10:36:40.0237166Z CI validation refused: Incomplete or failed evidence for linux"
+        },
+        {
+          "entry": "1_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 1348,
+          "text": "2026-10-26T10:34:36.6975222Z  Test Files  2 failed | 134 passed | 2 skipped (138)"
+        },
+        {
+          "entry": "1_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "line": 1349,
+          "text": "2026-10-26T10:34:36.6975882Z       Tests  2 failed | 1137 passed | 15 skipped (1154)"
+        },
+        {
+          "entry": "2_root_deploy.txt",
+          "line": 379,
+          "text": "2026-10-26T10:33:06.4202394Z Ran 73 tests in 4.865s"
+        },
+        {
+          "entry": "3_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "line": 753,
+          "text": "2026-10-26T10:36:11.9117982Z  Test Files  138 passed (138)"
+        },
+        {
+          "entry": "3_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "line": 754,
+          "text": "2026-10-26T10:36:11.9127463Z       Tests  1151 passed | 3 skipped (1154)"
+        }
+      ],
+      "archive": {
+        "path": ".work/historical-ci-run-40308175474.zip",
+        "sha256": "5c818337fc26d6a344db98aebcdaebec45cb2843a853ee954811837a66ac1f45",
+        "bytes": 95895,
+        "entries": [
+          {
+            "entry": "0_Verified case coverage.txt",
+            "sha256": "bb91cb68b51b5de1adb19086e9ff6665f641c8967b3b6bd883a701b9f55eecac",
+            "bytes": 24711,
+            "lines": 262
+          },
+          {
+            "entry": "1_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+            "sha256": "801efca6a0a5c1881cfeffde197b40b01f7bcceefb591d7e48a1c1659603e296",
+            "bytes": 167919,
+            "lines": 1662
+          },
+          {
+            "entry": "2_root_deploy.txt",
+            "sha256": "075781fbee9211cc2253b17889fccfa0da0b5cceca499ee57e864f3e0c40fdde",
+            "bytes": 44674,
+            "lines": 424
+          },
+          {
+            "entry": "3_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+            "sha256": "858962c628ba5d18123769e149a9a0c726ac16131820cd3236a2d121752ac75b",
+            "bytes": 136151,
+            "lines": 1067
+          },
+          {
+            "entry": "4_plan.txt",
+            "sha256": "c16216fc7b5a14632d671a416de17153f2e66560bdd9584ebf5bcce8f1b46a14",
+            "bytes": 30108,
+            "lines": 286
+          }
+        ]
+      }
+    }
+  ],
+  "causeFamilies": [
+    {
+      "id": "EARLY-WINDOWS-MODULE-DISCOVERY",
+      "category": "production portability / bounded bootstrap",
+      "runs": [
+        "40302433930",
+        "40305525588",
+        "40305525963",
+        "40308175474"
+      ],
+      "confidence": "high for bootstrap class; first-run per-test attribution bounded",
+      "actual": "Run 40302433930 has 18 failing Vitest files / 34 failing tests including native launcher shutdown/startup, process ownership and broad native RPC timeouts. Both 403055* runs fail before the Windows test matrix in the dedicated 10-second PowerShell/controller preflight. They are two observations of the same 35f2bc candidate, not two independently established causes.",
+      "cause": "With PowerShell disk module cache deliberately disabled, cmdlet auto-discovery does not finish within the bounded startup budget. Restricting PSModulePath alone still fails; explicit inbox Utility/Management imports with autoload disabled succeed. This is directly contrasted in the same later hosted Windows job, not inferred only from a later green matrix.",
+      "repair": "7af7daf changes both protocol and standalone controllers and their stop-signal subprocesses; the environment removes all case spellings of caller module/cache paths. Preflight distinguishes legacy / restricted-path comparisons from all four required production probes.",
+      "evidence": [
+        {
+          "runId": "40302433930",
+          "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "startLine": 711,
+          "endLine": 957,
+          "sectionUtf8LfSha256": "ebc0c94f2fc223e01dba2baa050f5170267ced74b26756f32bb5ddde731acd80"
+        },
+        {
+          "runId": "40305525588",
+          "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "startLine": 325,
+          "endLine": 340,
+          "sectionUtf8LfSha256": "b8197956937522b5a03722b2218c9e6ad0e7847650a719680eaa953f26505c84"
+        },
+        {
+          "runId": "40305525963",
+          "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "startLine": 324,
+          "endLine": 339,
+          "sectionUtf8LfSha256": "8e2fc701b84e9978aa8d961f9450e7c9da54c032e4223e058d5c88aa11ffc8be"
+        },
+        {
+          "runId": "40308175474",
+          "entry": "3_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "startLine": 338,
+          "endLine": 338,
+          "sectionUtf8LfSha256": "f12b94477789ea0496d2e7d1f6a6f47830bcf46aa503bcd9d6cd64fff3b28239"
+        }
+      ],
+      "sameHostControlledComparison": {
+        "status": "passed",
+        "comparisons": [
+          {
+            "stage": "legacy-module-discovery",
+            "status": "failed",
+            "elapsedMs": 10027,
+            "powershellStartedMs": 2180,
+            "lastBootstrapStage": "before-json",
+            "exitCode": null,
+            "failure": "legacy-module-discovery timeout after 10000ms"
+          },
+          {
+            "stage": "restricted-path-auto-discovery",
+            "status": "failed",
+            "elapsedMs": 10023,
+            "powershellStartedMs": 185,
+            "lastBootstrapStage": "before-json",
+            "exitCode": null,
+            "failure": "restricted-path-auto-discovery timeout after 10000ms"
+          }
+        ],
+        "results": [
+          {
+            "stage": "powershell-ci-environment",
+            "status": "passed",
+            "elapsedMs": 1541,
+            "powershellStartedMs": 178,
+            "lastBootstrapStage": "after-json",
+            "exitCode": 0
+          },
+          {
+            "stage": "powershell-sparse-environment",
+            "status": "passed",
+            "elapsedMs": 297,
+            "powershellStartedMs": 171,
+            "lastBootstrapStage": "after-json",
+            "exitCode": 0
+          },
+          {
+            "stage": "windows-job",
+            "status": "passed",
+            "elapsedMs": 1594,
+            "powershellStartedMs": 232,
+            "lastBootstrapStage": "after-add-type",
+            "compileStartedMs": 397,
+            "compileMs": 762,
+            "childReadyMs": 1314,
+            "signalElapsedMs": 261,
+            "exitCode": 0
+          },
+          {
+            "stage": "windows-process",
+            "status": "passed",
+            "elapsedMs": 716,
+            "powershellStartedMs": 175,
+            "lastBootstrapStage": "after-add-type",
+            "compileStartedMs": 300,
+            "compileMs": 90,
+            "childReadyMs": 461,
+            "signalElapsedMs": 251,
+            "exitCode": 0
+          }
+        ]
+      },
+      "limits": [
+        "The four runs use Node 24.15.0; these logs do not establish a Node-upgrade cause.",
+        "The first run predates bootstrap stage diagnostics, so each of its 34 failing tests is not independently proven to have the identical internal cause.",
+        "No particular third-party module or machine-wide Windows defect is identified by the available raw logs."
+      ]
+    },
+    {
+      "id": "EARLY-LINUX-PIPELINED-TRANSPORT",
+      "category": "production resource lifecycle",
+      "runs": [
+        "40302433930",
+        "40305525588",
+        "40305525963"
+      ],
+      "confidence": "high",
+      "actual": "The slow-socket HTTP test first retains two unfinished responses after client close; the next two runs time out after 15 seconds waiting for ServerResponse close events.",
+      "cause": "Queued HTTP pipelined ServerResponse objects can have no assigned socket and never emit finish/close when the underlying request transport closes. Listening only to each response leaves retained output/request accounting unsettled.",
+      "repairSequence": [
+        "35f2bc changes the fixture from graceful destroy to TCP reset and awaits response close, but does not repair product ownership; both 403055* runs still fail.",
+        "7af7daf explicitly owns req.socket close, destroys and settles queued responses, releases retained output, and keeps unresolved backend work charged until actual completion. Its additional real HTTP case constructs three pipelined responses and verifies the first backend remains charged."
+      ],
+      "evidence": [
+        {
+          "runId": "40302433930",
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 692,
+          "endLine": 712,
+          "sectionUtf8LfSha256": "e2c838e6461f7da8c1b9fa1ec8f144c271e9d857b42561d7a60ae96d7713d3a5"
+        },
+        {
+          "runId": "40305525588",
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 678,
+          "endLine": 695,
+          "sectionUtf8LfSha256": "e3cca6e661c611769291f27e81b5fcb2428398ca63bc21784246dc57a7ec374b"
+        },
+        {
+          "runId": "40305525963",
+          "entry": "3_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 617,
+          "endLine": 632,
+          "sectionUtf8LfSha256": "e7845f1325fa0a5770d377726a462d90726cfa1b0b2a85da5b3690aa231598db"
+        }
+      ],
+      "limits": [
+        "This is not classified as merely slow CI or fixed by increasing a test timeout.",
+        "No test or reproduction was executed during this retrospective."
+      ]
+    },
+    {
+      "id": "EARLY-NATIVE-GUARDIAN-CONFIRMATION",
+      "category": "test interaction / pinned native contract",
+      "runs": [
+        "40302433930",
+        "40308175474"
+      ],
+      "confidence": "high for the instrumented 403081 failure; first-run exact phase less specific",
+      "actual": "The first run fails the native hook trust flow assertion. After intermediate PTY transcript handling, 403081 shows the real review menu fully visible and unchanged for 10 seconds after immediate Enter; runtime remains connected with one owned terminal and no pending RPC budget.",
+      "cause": "The fixture immediately presses legacy Enter after a menu transition. The follow-up repair records the pinned CLI 0.164.0 activation-key guard which deliberately ignores another legacy Enter within one second; the test now waits from observed menu visibility and sends a single new user press.",
+      "repairSequence": [
+        "35f2bc introduces a streaming PTY transcript parser, queues cursor-query answers until terminal ID exists and waits for complete fresh menus. This alone does not fix the 403081 failure.",
+        "0466fb adds monotonic menu-observation timing and a one-second contract wait, preserving native review/trust/cleanup assertions; it is not generic retries or an increased global test timeout."
+      ],
+      "evidence": [
+        {
+          "runId": "40302433930",
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 716,
+          "endLine": 729,
+          "sectionUtf8LfSha256": "adbf8ad6c2e99770b933c6d7e900dccad1f81f5dafb58dd871f972eca57b67a7"
+        },
+        {
+          "runId": "40308175474",
+          "entry": "1_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 542,
+          "endLine": 542,
+          "sectionUtf8LfSha256": "ae4f705b9d8689a1b8a23829289fc0adcfdb22b496a4d896b367025af18e5e2f"
+        },
+        {
+          "runId": "40308175474",
+          "entry": "1_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 676,
+          "endLine": 696,
+          "sectionUtf8LfSha256": "16f8c91d3893a92608ea9294959445d256af3b477af8aebad3d44d4c57713362"
+        }
+      ],
+      "instrumentedState": {
+        "fixture": "guardian-native-hook-pty",
+        "phases": [
+          {
+            "phase": "initial-screen",
+            "at": 1793010838076,
+            "outputLength": 791,
+            "hasReview": false,
+            "hasTrustAll": false
+          },
+          {
+            "phase": "before-hooks",
+            "at": 1793010838077,
+            "outputLength": 791,
+            "hasReview": false,
+            "hasTrustAll": false
+          },
+          {
+            "phase": "before-review-enter",
+            "at": 1793010839809,
+            "outputLength": 2492,
+            "hasReview": true,
+            "hasTrustAll": false
+          },
+          {
+            "phase": "failure",
+            "at": 1793010849836,
+            "outputLength": 2492,
+            "hasReview": true,
+            "hasTrustAll": false
+          }
+        ],
+        "runtime": {
+          "epoch": "2ed3de90-a84c-4ec5-bf42-3b6e2650efc8",
+          "connected": true,
+          "activity": {
+            "activeThreads": [],
+            "pendingStarts": 0,
+            "terminals": 1,
+            "subscriptions": 0,
+            "processes": 0,
+            "unknown": false
+          },
+          "budget": {
+            "pending": 0,
+            "retainedBytes": 0
+          },
+          "prompts": 0
+        },
+        "terminalFacts": {
+          "Hooks need review": true,
+          "1. Review hooks": true,
+          "Trust all and continue": true
+        }
+      },
+      "limits": [
+        "The official source URL and exact guard line references are recorded in the historical/current test; this retrospective did not make another network fetch or native CLI call.",
+        "The uninstrumented first-run failure does not independently prove which cursor/menu phase failed."
+      ]
+    },
+    {
+      "id": "EARLY-AUTOMATION-HOST-TIMEZONE",
+      "category": "fixture environment assumption",
+      "runs": [
+        "40302433930"
+      ],
+      "confidence": "high",
+      "actual": "Both Linux and Windows expect the previous preview to disappear after changing the timezone to UTC, but the rendered preview still says UTC.",
+      "cause": "The original test depends on browser default timezone and changes it to UTC. On UTC runners that is not a schedule identity change, so retaining the valid UTC preview is correct.",
+      "repair": "35f2bc explicitly establishes two different zones, checks the outgoing old-zone request, covers both Asia/Shanghai→UTC and UTC→Asia/Shanghai, then preserves assertions that the late result cannot enable create or submit work.",
+      "evidence": [
+        {
+          "runId": "40302433930",
+          "entry": "2_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 733,
+          "endLine": 751,
+          "sectionUtf8LfSha256": "4f7ef130a3623d598665195400c5cb770db0af4452b1dbc1e46988bce50f8b62"
+        },
+        {
+          "runId": "40302433930",
+          "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+          "startLine": 933,
+          "endLine": 948,
+          "sectionUtf8LfSha256": "ce4c8f6727c40a565aa74cc5f484fe6f27ca4c7aea4d4c79ce51e74c179e8e91"
+        }
+      ],
+      "limits": [
+        "No production automation logic change is needed or shown in that repair."
+      ]
+    },
+    {
+      "id": "EARLY-SETTINGS-INDEPENDENT-READS",
+      "category": "fixture asynchronous UI contract",
+      "runs": [
+        "40308175474"
+      ],
+      "confidence": "high",
+      "actual": "The test observes a new settings version, acknowledges comparison and clicks save, but no settings/write occurs; the failure DOM shows the save button disabled.",
+      "cause": "Adopting the settings version does not settle the independent configRequirements/read request. The production save gate correctly remains disabled until that read succeeds. The old fixture waited only for one read and attempted the disabled click.",
+      "repair": "0466fb uses separately controlled settings and requirements promises for both completion orders, asserts disabled clicks never write, then waits for enabled state and explicitly clicks once. Draft content, expectedVersion=v2 and exact changed model assertions remain.",
+      "evidence": [
+        {
+          "runId": "40308175474",
+          "entry": "1_standard (ubuntu-24.04, linux, 0.164.0-linux-x64).txt",
+          "startLine": 700,
+          "endLine": 1345,
+          "sectionUtf8LfSha256": "662de47241c99af122fcf502cea13d5e6e1568096aef9f0fd7e62cc0ec47c040"
+        }
+      ],
+      "limits": [
+        "This report does not claim general timing flakiness or a production settings-save defect from this assertion."
+      ]
+    },
+    {
+      "id": "EARLY-ROOT-NATIVE-IMPORT",
+      "category": "fixture UID / filesystem traversal",
+      "runs": [
+        "40302433930"
+      ],
+      "confidence": "high",
+      "actual": "The fixed native token helper test drops to UID/GID 65534 and fails with ModuleNotFoundError: No module named deploy; 73 root tests run with one failure.",
+      "cause": "The child imports the checkout from a hosted runner home that need not be traversable by the native UID. This fixture did not mirror the readable root-owned deployed control layout.",
+      "repair": "35f2bc stages actual reviewed control files via stage_control into the private installation fixture and invokes from that control path; it does not chmod the hosted runner home or bypass the token authorization check.",
+      "evidence": [
+        {
+          "runId": "40302433930",
+          "entry": "3_root_deploy.txt",
+          "startLine": 346,
+          "endLine": 372,
+          "sectionUtf8LfSha256": "b5c3818fdaeef85913592ef97d3ddf6473cdc984820d8794c61f7aa99d25f59b"
+        }
+      ],
+      "limits": [
+        "The raw traceback proves import failure; the exact host parent-directory mode is explained by the matching fixture repair, not a captured historical stat dump."
+      ]
+    },
+    {
+      "id": "EARLY-ROOT-GIT-OWNERSHIP-REPORT",
+      "category": "CI execution environment / evidence generation",
+      "runs": [
+        "40302433930"
+      ],
+      "confidence": "high",
+      "actual": "After the root fixture failure, report generation invokes Git as root inside the runner-owned checkout with a sterile environment and Git refuses dubious ownership. result-linux-root.json is absent and artifact upload fails.",
+      "cause": "The root runner entry was executed in a checkout owned by the ordinary runner; the isolated root environment does not share the checkout action temporary HOME/safe-directory configuration.",
+      "repair": "35f2bc reconstructs exact reviewed source and required built dependencies in a fresh root-owned disposable checkout, executes there, and copies the actual result report back even for failed tests. It does not weaken global Git ownership protection.",
+      "evidence": [
+        {
+          "runId": "40302433930",
+          "entry": "3_root_deploy.txt",
+          "startLine": 373,
+          "endLine": 394,
+          "sectionUtf8LfSha256": "d357a2926f7ee88c9655fbc8540bdcad6f8edb545a2b5f2bbc4eb59c51f4c89e"
+        }
+      ],
+      "limits": [
+        "This is separate from the native UID import error, although both occur in the same root job."
+      ]
+    }
+  ],
+  "repairCommits": [
+    {
+      "commit": "35f2bc280703755b4b1ba1b736089ca099546199",
+      "subject": "Make hosted test isolation and terminal interactions deterministic",
+      "committedAt": "2026-10-26T18:11:57+08:00",
+      "diff": {
+        "path": ".work/historical-ci-early-repair-35f2bc280703.diff",
+        "sha256": "082447991d499c064d796ddd3d74bb2025ba0b46ccb72f98469255aecfc95676",
+        "bytes": 20016
+      },
+      "files": [
+        {
+          "path": ".github/workflows/affected.yml",
+          "gitBlob": "875fd1a6568033423a032a48a02aa15b7be397b5",
+          "sha256": "6d79cb4e93c8a178cfdd4ed4c807abcfe44e4cebbaa4358666cfc852922e4695",
+          "bytes": 9565
+        },
+        {
+          "path": "tests/deploy/root/test_provider_extended.py",
+          "gitBlob": "c7be948343ceff759e8e9a737ecf953b6f8f25f8",
+          "sha256": "be08a560c1f44730755a0305bf702093d6deb059f76396a4c868f2d866628c49",
+          "bytes": 4638
+        },
+        {
+          "path": "tests/gateway/http.test.ts",
+          "gitBlob": "2150d50842412082173b59afb8f55427f33407bd",
+          "sha256": "1398c3b816bade094e0008689c1849fa09990197b8c4471e3628d438cf553c6b",
+          "bytes": 21384
+        },
+        {
+          "path": "tests/runtime/guardian-native.test.ts",
+          "gitBlob": "9ff1cdadfe71f0766a6462e034a3b061e6d38f21",
+          "sha256": "f1d42d2c3ee3488e1850628329f800919af8a95621afb1a73e14e6d55a13f2b1",
+          "bytes": 13694
+        },
+        {
+          "path": "tests/runtime/pty-transcript.ts",
+          "gitBlob": "49cdcca516a89ca124fa15ef36befef6a8ea1fc7",
+          "sha256": "9f63572096722063c78773a2c07f9719bf587a97f7558196128e7376b25754a4",
+          "bytes": 1451
+        },
+        {
+          "path": "web/tests/automations.test.tsx",
+          "gitBlob": "de003c6e0ed0ca6fcce843d42ee2f94eeec40c75",
+          "sha256": "f69ec16f661915f47249741ad5d8a959fb78b0cff8969f86d2697fc01b143689",
+          "bytes": 30277
+        }
+      ]
+    },
+    {
+      "commit": "7af7dafb5d348800526fb326a4363e11bf360986",
+      "subject": "fix: settle pipelined transports and isolate PowerShell module bootstrap",
+      "committedAt": "2026-10-26T18:32:07+08:00",
+      "diff": {
+        "path": ".work/historical-ci-early-repair-7af7dafb5d34.diff",
+        "sha256": "f5df5f6a91ca345e5307a84f06ed927c74ecba2fbb37363fcc51ea459c0eba96",
+        "bytes": 32082
+      },
+      "files": [
+        {
+          "path": "src/gateway/server.ts",
+          "gitBlob": "f1bd5200bdc73af86a2a09600da06f68341f088b",
+          "sha256": "28d2f38947f673092c26b432045117b9a84c5f2d4c8df757ce2ece21638de185",
+          "bytes": 19568
+        },
+        {
+          "path": "tests/gateway/http.test.ts",
+          "gitBlob": "8ba51c1d541274646ceb128b44d6fa226e5a040a",
+          "sha256": "4d8a83ae395a2bd8183f97c25413cbe10987d7beb7b30e3eed205235700c5714",
+          "bytes": 23742
+        },
+        {
+          "path": "src/runtime/windows-job.ts",
+          "gitBlob": "f6fcf9dd4cd3058d2c7fdc28752b604d68f251a3",
+          "sha256": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0",
+          "bytes": 12947
+        },
+        {
+          "path": "src/runtime/windows-process.ts",
+          "gitBlob": "138fd7ae74115ec2bff51f0f0a6991c2b6af7c15",
+          "sha256": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2",
+          "bytes": 9397
+        },
+        {
+          "path": "scripts/windows-controller-preflight.mjs",
+          "gitBlob": "12d9ea32d282c02f9af83a259d7bf293b6295d44",
+          "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d",
+          "bytes": 13256
+        },
+        {
+          "path": "tests/runtime/windows-module-bootstrap.test.ts",
+          "gitBlob": "4ac916739b21ebd6f3294edb2be5289017ac8155",
+          "sha256": "1395a5d73cc88f2ba1af87e28b44445eba07315b9d68b5ae42f08c26766ca03a",
+          "bytes": 4815
+        }
+      ]
+    },
+    {
+      "commit": "0466fb96a7b389e3631c060572cd0761db213f6d",
+      "subject": "test: synchronize native confirmation and settings policy reads",
+      "committedAt": "2026-10-26T18:44:40+08:00",
+      "diff": {
+        "path": ".work/historical-ci-early-repair-0466fb96a7b3.diff",
+        "sha256": "f78bb62eca6369ee010cf7ee82bc47b9150193a19bbc98958299ab0472280dc2",
+        "bytes": 10998
+      },
+      "files": [
+        {
+          "path": "tests/runtime/guardian-native.test.ts",
+          "gitBlob": "f897193edf26d7f628bd7a46d0fc519eb681fd27",
+          "sha256": "59df6685d111e872c1fcd0997874c7bc4a35421e7d25f50858efd4db45ed95d5",
+          "bytes": 14547
+        },
+        {
+          "path": "web/tests/extensions.test.tsx",
+          "gitBlob": "42b97ecdf79c568a04a82ed60a7bb47a5e0e512d",
+          "sha256": "1bdd5aa6e8fae67181891ebef32d3a7ec93690e2991fe7a45ce1d4eef7b81b4a",
+          "bytes": 16821
+        }
+      ]
+    }
+  ],
+  "currentRetainedGuards": [
+    {
+      "path": "src/runtime/windows-job.ts",
+      "lines": [
+        8,
+        18,
+        21,
+        122,
+        127
+      ],
+      "guard": "case-insensitive caller module environment removal; explicit inbox imports for launch and signal"
+    },
+    {
+      "path": "src/runtime/windows-process.ts",
+      "lines": [
+        77,
+        79
+      ],
+      "guard": "same protected bootstrap for standalone launch and signal"
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "lines": [
+        129,
+        138
+      ],
+      "guard": "legacy diagnostic comparisons separate from required production probes"
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "lines": [
+        149,
+        186
+      ],
+      "guard": "explicit request transport ownership for pipelined response settlement"
+    },
+    {
+      "path": "tests/runtime/guardian-native.test.ts",
+      "lines": [
+        78,
+        104
+      ],
+      "guard": "observed menu / monotonic activation-key guard; native interaction remains real"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "lines": [
+        316,
+        352
+      ],
+      "guard": "explicit distinct old/new timezone identity"
+    },
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "lines": [
+        250,
+        317
+      ],
+      "guard": "both independent read completion orders; disabled clicks do not write"
+    },
+    {
+      "path": "web/components/ConfigSettings.tsx",
+      "lines": [
+        352,
+        362
+      ],
+      "guard": "save remains disabled for requirements loading/error"
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "lines": [
+        20,
+        27,
+        52
+      ],
+      "guard": "stage actual control helper and execute dropped UID from installed control path"
+    },
+    {
+      "path": ".github/workflows/affected.yml",
+      "lines": [
+        178,
+        210
+      ],
+      "guard": "root-owned disposable reviewed checkout, ordinary identity excluded from root tests"
+    }
+  ],
+  "currentFiles": [
+    {
+      "path": "src/runtime/windows-job.ts",
+      "sha256": "f94e7aa8352cd371012112db745c22b524794cd1f14edccb122d4d65956338d0",
+      "bytes": 12947
+    },
+    {
+      "path": "src/runtime/windows-process.ts",
+      "sha256": "dc0ce0772920ce14f176c281cd79d355458e60822ba8fd012792e7f40f1df5b2",
+      "bytes": 9397
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360",
+      "bytes": 24279
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d",
+      "bytes": 13256
+    },
+    {
+      "path": "tests/runtime/windows-module-bootstrap.test.ts",
+      "sha256": "1395a5d73cc88f2ba1af87e28b44445eba07315b9d68b5ae42f08c26766ca03a",
+      "bytes": 4815
+    },
+    {
+      "path": "tests/runtime/guardian-native.test.ts",
+      "sha256": "51ea412a29765fc37170a0e56b2ee1fcc122746de3ef5d00b16364e14d245d02",
+      "bytes": 15642
+    },
+    {
+      "path": "tests/runtime/pty-transcript.ts",
+      "sha256": "9f63572096722063c78773a2c07f9719bf587a97f7558196128e7376b25754a4",
+      "bytes": 1451
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877",
+      "bytes": 37398
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "5a53610ecb7786323c769bc1b80e25fd159b6a95dfb9dc531c03af605e74efce",
+      "bytes": 41292
+    },
+    {
+      "path": "web/tests/extensions.test.tsx",
+      "sha256": "42f18a6a7cb8d30ff777d26d0ca69022d6908bca37a87aa10e8fe74fc3051528",
+      "bytes": 17207
+    },
+    {
+      "path": "web/components/ConfigSettings.tsx",
+      "sha256": "0c797872c69089d432f94463bf32a3a02ee132a2eac067e2f8fb9ea2342406f4",
+      "bytes": 18080
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "ef254ee6d80ac9088f5a0f34d530e5eddd74b0fcbd3ba7e28b55685ed6a0ffe2",
+      "bytes": 7739
+    },
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "caa953de087e91ff28cdef5a810ba4da7e8ca6fb1e5688d2631db8a6ba718799",
+      "bytes": 10309
+    },
+    {
+      "path": "tests/tooling/run-tests.test.ts",
+      "sha256": "bed3c9a1c47770120417bc12cfec47ed076ceab89bc310dde20f69075b1f36ad",
+      "bytes": 10921
+    }
+  ],
+  "excludedNegativeFixtureOutput": {
+    "evidence": {
+      "runId": "40302433930",
+      "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+      "startLine": 505,
+      "endLine": 542,
+      "sectionUtf8LfSha256": "51f401b640ccbdf434d2e0d0007f591496efd68e03c86a3359d5cd1973540643"
+    },
+    "messages": [
+      "Selected test file is empty: tests/deploy/test_empty.py",
+      "RuntimeError('broken fixture')",
+      "unavailable fixture"
+    ],
+    "reason": "tests/tooling/run-tests.test.ts deliberately invokes subprocess runners with empty/failed/skipped fixtures, asserts correct rejection/status, and its enclosing 12-test file passes in this raw log. Nested FAILED(errors=1) is expected output, not another root or deploy test failure.",
+    "currentContract": {
+      "path": "tests/tooling/run-tests.test.ts",
+      "startLine": 102,
+      "endLine": 117
+    }
+  },
+  "coverageAndMissingArtifacts": {
+    "classification": "consequences / fail-closed evidence gate, not separate product root causes",
+    "rows": [
+      {
+        "runId": "40302433930",
+        "reason": "root report missing after dubious ownership; Windows and Linux also contain failed cases",
+        "evidence": {
+          "runId": "40302433930",
+          "entry": "0_Verified case coverage.txt",
+          "startLine": 230,
+          "endLine": 242,
+          "sectionUtf8LfSha256": "efde1fe585937ef8618380b31af959cbf519ff9fb519ae29b2c0192a93b907f3"
+        }
+      },
+      {
+        "runId": "40305525588",
+        "reason": "Windows preflight stops before test report; Linux also fails HTTP case",
+        "evidence": {
+          "runId": "40305525588",
+          "entry": "0_Verified case coverage.txt",
+          "startLine": 233,
+          "endLine": 243,
+          "sectionUtf8LfSha256": "eb2ebed8c361f165c9d5880c6d9a060eecccc817e9d262de603208b788394cf2"
+        }
+      },
+      {
+        "runId": "40305525963",
+        "reason": "same candidate/conditions as preceding run; missing platform report is rejected",
+        "evidence": {
+          "runId": "40305525963",
+          "entry": "0_Verified case coverage.txt",
+          "startLine": 233,
+          "endLine": 243,
+          "sectionUtf8LfSha256": "4f90878daeb932af7b36486f6cedb257feb6df65a5f7a3f4fd045ef20c4b3e2a"
+        }
+      },
+      {
+        "runId": "40308175474",
+        "reason": "all reports present but Linux contains two failed cases",
+        "evidence": {
+          "runId": "40308175474",
+          "entry": "0_Verified case coverage.txt",
+          "startLine": 238,
+          "endLine": 248,
+          "sectionUtf8LfSha256": "8ac1e60486f51604ec3ff3a8f450b50cacb08ef1384057f37513cb2ffd71d96a"
+        }
+      }
+    ]
+  },
+  "conclusion": {
+    "historicalRunFailuresPreserved": 4,
+    "distinctCauseFamiliesReviewed": 7,
+    "productionDefects": [
+      "EARLY-WINDOWS-MODULE-DISCOVERY",
+      "EARLY-LINUX-PIPELINED-TRANSPORT"
+    ],
+    "notAllFixtureFlakiness": true,
+    "notAllDistinctRunFailuresDistinctBugs": true,
+    "newCurrentProductFindingFromThisRetrospective": false
+  },
+  "limits": [
+    "This is a historical cause/evidence review, not a fresh full source audit or test pass.",
+    "No claim that static test selection discovers every dependency; the separate prevention review records concrete reverse-dependency gaps.",
+    "Detailed exact internal cause for every broad Windows timeout in the first uninstrumented run remains bounded as noted per family.",
+    "A later green status alone is not used to claim closure; repair diffs and same-host diagnostics supply the causal evidence.",
+    "Historical source and logs remain unchanged; raw logs and original failed runs are not overwritten or relabeled."
+  ],
+  "publicationSanitization": {
+    "runnerHomeOccurrences": 1,
+    "replacement": "<runner-home>",
+    "boundary": "Only hosted runner home prefixes in quoted diagnostics are redacted. Original evidence hashes and files remain unchanged; quoted excerpts are sanitized, not byte-identical source logs."
+  }
+}

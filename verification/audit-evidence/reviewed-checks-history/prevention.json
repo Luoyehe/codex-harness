@@ -1,0 +1,953 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-reviewed-checks-prevention-review",
+  "reviewerId": "v220_final_deploy",
+  "complete": true,
+  "result": "completed-with-explicit-prevention-gaps",
+  "reviewedAt": "2026-11-01T15:44:37.045180+00:00",
+  "head": "f3909bbce01ab5d311dc3754377059d1b01acbed",
+  "method": "Read-only current-checkout review of selector/preflight/CI execution contracts, tests/tooling assertions and import declarations, v230/v231/v232 retained lessons, and concrete Python fixture composition plus repaired UI lifecycle excerpts. Static reasoning only; no module execution, test run, build, source edit or remote access.",
+  "scope": "Prevention mechanism assessment, not a new full-repository product audit or revalidation of historical CI results.",
+  "summary": {
+    "mechanismsReviewed": 11,
+    "explicitGaps": 4,
+    "highestPriority": "Complete the demonstrated reverse fixture consumer selection; do not generalize the one repaired account-recovery trio into complete dependency coverage.",
+    "currentReleaseInvalidated": false,
+    "meaning": "No new current product failure established; remaining gaps concern future targeted coverage and how prevention claims are stated."
+  },
+  "coverage": [
+    {
+      "id": "P01",
+      "category": "fixture reverse dependencies",
+      "historicalFailureType": "v230 MCP OAuth cross-layer fixtures; v232 composed root account-recovery setup",
+      "existingGuard": "Named ordinary/root groups are selected together, missing named companions require full audit. The account-recovery three-file group is now bidirectional. Non-test runtime fixture changes select all runtime and gateway tests.",
+      "locations": [
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 23,
+          "endLine": 40
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 76,
+          "endLine": 83
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 100,
+          "endLine": 100
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "line": 28,
+          "endLine": 39
+        },
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "line": 71,
+          "endLine": 115
+        }
+      ],
+      "remainingBoundary": "This is a manually maintained first-match table, not reverse-import, composition, inheritance, or transitive dependency analysis. See concrete unlisted edges in G01.",
+      "recommendation": "Add the demonstrated fixture consumer edges and closure regression; keep import/instantiation/setUp/rebinding/cleanup review for dynamic dependencies."
+    },
+    {
+      "id": "P02",
+      "category": "UID and boundary branch fidelity",
+      "historicalFailureType": "v230 missing fixed native IDs; v232 package metadata and ordinary/root ownership assumptions; composed release_accounts substitution",
+      "existingGuard": "CI rejects the wrong execution identity and separates ordinary Linux from Linux root. Root source is reconstructed in a disposable root-owned checkout; temporary ancestors allow intentional dropped-UID tests. Account recovery explicitly restores both real Manager readers and asserts authentication_downgrade and service/journal outcomes.",
+      "locations": [
+        {
+          "path": "scripts/ci-checks.mjs",
+          "line": 131,
+          "endLine": 146
+        },
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 178,
+          "endLine": 210
+        },
+        {
+          "path": "scripts/test-environment.mjs",
+          "line": 4,
+          "endLine": 12
+        },
+        {
+          "path": "tests/deploy/root/test_account_recovery.py",
+          "line": 15,
+          "endLine": 23
+        },
+        {
+          "path": "tests/deploy/root/test_account_recovery.py",
+          "line": 55,
+          "endLine": 81
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/ci-checks.test.ts",
+          "line": 37,
+          "endLine": 42
+        },
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "line": 183,
+          "endLine": 207
+        },
+        {
+          "path": "tests/tooling/test-environment.test.ts",
+          "line": 52,
+          "endLine": 66
+        }
+      ],
+      "remainingBoundary": "A real process UID does not prove every fixture exercised real ownership readers. Ordinary fixtures intentionally replace readers; setup composition can transfer those replacements. Local --targeted is not itself an ordinary/root matrix.",
+      "recommendation": "Preserve exact error-code and service-call assertions, explicitly restore real security readers in boundary consumers, and verify both relevant identities. Do not treat any thrown exception as the intended branch."
+    },
+    {
+      "id": "P03",
+      "category": "Windows lifecycle and process identity",
+      "historicalFailureType": "v230 PID-only cleanup assumption; v232 native argument change broke eval fixture and exact Windows argv",
+      "existingGuard": "Hosted standard tests run both Linux and Windows. Windows controller preflight executes the built ownership controllers with independent HOME, diagnostic hooks, bounded startup/cleanup, and fails on unknown controller shape. defaults-lifecycle records a live process creation identity before cleanup and compares it afterwards.",
+      "locations": [
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 70,
+          "endLine": 99
+        },
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 134,
+          "endLine": 150
+        },
+        {
+          "path": "scripts/windows-controller-preflight.mjs",
+          "line": 21,
+          "endLine": 46
+        },
+        {
+          "path": "tests/runtime/defaults-lifecycle.test.ts",
+          "line": 19,
+          "endLine": 39
+        },
+        {
+          "path": "tests/runtime/defaults-lifecycle.test.ts",
+          "line": 138,
+          "endLine": 177
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/windows-controller-preflight.test.ts",
+          "line": 5,
+          "endLine": 30
+        }
+      ],
+      "remainingBoundary": "A controller startup probe is not every launcher/caller contract. A changed command argument can still invalidate alternate fake executables and Windows escaping fixtures. Historical PID reuse was not established by the failed hosted logs.",
+      "recommendation": "For launcher changes review official CLI, script/eval substitute, Windows controller argv, descendant cleanup and actual held-process identity together; preserve case-specific failure causes."
+    },
+    {
+      "id": "P04",
+      "category": "asynchronous UI readiness",
+      "historicalFailureType": "v230 stale defaults failure/retry stage; v231 revoked handoff followed by account refresh; older preview/IndexedDB readiness",
+      "existingGuard": "The repaired cases now control exact promises and assert readiness transitions. Revoked-handoff waits for the second account read, verifies login remains disabled and unchanged login count, then releases it. Defaults retry binds the latest option key before enabling the retried failure.",
+      "locations": [
+        {
+          "path": "web/tests/device-login.test.tsx",
+          "line": 296,
+          "endLine": 323
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "line": 355,
+          "endLine": 392
+        },
+        {
+          "path": "scripts/RELEASE-PREFLIGHT.md",
+          "line": 37,
+          "endLine": 37
+        },
+        {
+          "path": "scripts/RELEASE-PREFLIGHT.md",
+          "line": 56,
+          "endLine": 56
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "line": 13,
+          "endLine": 18
+        }
+      ],
+      "remainingBoundary": "The selector does not inspect component state machines. Visible text alone is not quiescence; a TypeScript build cannot establish asynchronous acceptance. Repaired examples are localized regressions, not a repository-wide race detector.",
+      "recommendation": "Use controlled responses and awaited real mutation completion; assert disabled/read-count/owner/draft/unknown behavior at each phase. No sleeps, retries, or timeout inflation. See G02 for manual/test-only selection scope."
+    },
+    {
+      "id": "P05",
+      "category": "schema and semantic fixture contracts",
+      "historicalFailureType": "v230 OAuth status preflight omitted by fixture; v231 shared model selection expectation; v232 modelProvider missing from old default fixture",
+      "existingGuard": "Runtime shared fixture changes broaden to gateway consumers. Current defaults integration fixture explicitly binds thread, session and catalog provider identities. Typecheck/build run before CI execution; native prerequisite and real protocol fixtures are retained for runtime/core changes.",
+      "locations": [
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 84,
+          "endLine": 100
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 119,
+          "endLine": 123
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "line": 32,
+          "endLine": 85
+        },
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 104,
+          "endLine": 116
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "line": 28,
+          "endLine": 39
+        }
+      ],
+      "remainingBoundary": "Mock JSON in these UI fixtures is built through unknown-shaped results; static compilation is not validation of all response fields or provider semantics. Some protocol fields may be optional while the scenario requires them.",
+      "recommendation": "Use method-specific fixture builders where contracts are shared, and assert that intended model/effort/provider options exist and are selected before sending. Validate semantic scenario assumptions as well as schema shape."
+    },
+    {
+      "id": "P06",
+      "category": "trigger scope and duplicate matrices",
+      "historicalFailureType": "Historical topic push plus PR duplicates; repair-only push selecting fewer files than release full run",
+      "existingGuard": "Reviewed checks triggers only main push, PR and explicit dispatch. Preflight verifies this trigger shape and requires a release PR plan to be authorized-full. Explicit nonzero base/head and checkout matching are checked; PR uses the actual merge base. Workflow concurrency cancels prior runs for the same workflow/ref.",
+      "locations": [
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 3,
+          "endLine": 23
+        },
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 62,
+          "endLine": 68
+        },
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 143,
+          "endLine": 154
+        },
+        {
+          "path": "scripts/ci-checks.mjs",
+          "line": 36,
+          "endLine": 66
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/release-preflight.test.ts",
+          "line": 102,
+          "endLine": 110
+        },
+        {
+          "path": "tests/tooling/ci-checks.test.ts",
+          "line": 78,
+          "endLine": 110
+        },
+        {
+          "path": "tests/tooling/ci-checks.test.ts",
+          "line": 170,
+          "endLine": 178
+        }
+      ],
+      "remainingBoundary": "There is no cross-ref or cross-workflow deduplication of the same HEAD. A manually dispatched full run and later main push can both legitimately occur; Security is independent. Authorization presence alone does not turn a selected-only diff into a full matrix.",
+      "recommendation": "Keep one explicit reviewed release base for repair candidates, inspect actual plan files and targets, distinguish extra main-selected validation from the full gate, and do not mislabel cancelled superseded jobs as successful tests."
+    },
+    {
+      "id": "P07",
+      "category": "environment and tool pins",
+      "historicalFailureType": "Windows runtime alignment, native archive name/drive-letter extraction, host configuration contamination",
+      "existingGuard": "Preflight checks Node/pnpm/CLI pins, workflow Node values, standard exact Python declaration, and installed TypeScript/Vite versions. CI uses frozen install without package scripts. Native tar metadata and bytes are matched to fixed official SRI and basename before extraction. Test environments use an allowlist with isolated HOME/temporary/XDG/Git state.",
+      "locations": [
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 48,
+          "endLine": 68
+        },
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 93,
+          "endLine": 100
+        },
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 104,
+          "endLine": 117
+        },
+        {
+          "path": "scripts/prepare-ci-native.mjs",
+          "line": 8,
+          "endLine": 45
+        },
+        {
+          "path": "scripts/test-environment.mjs",
+          "line": 15,
+          "endLine": 38
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/prepare-ci-native.test.ts",
+          "line": 13,
+          "endLine": 55
+        },
+        {
+          "path": "tests/tooling/test-environment.test.ts",
+          "line": 19,
+          "endLine": 66
+        },
+        {
+          "path": "tests/tooling/release-preflight.test.ts",
+          "line": 102,
+          "endLine": 110
+        }
+      ],
+      "remainingBoundary": "Pins reduce drift but do not freeze the entire runner image. Local preflight does not reinstall all dependencies or verify a clean package tree. Root Python uses /usr/bin/python3 rather than the standard matrix 3.12.10 interpreter; see G04.",
+      "recommendation": "Record platform/interpreter versions per identity, retain frozen install and archive integrity checks, and document or close the root-Python pin difference rather than describing every environment as identical."
+    },
+    {
+      "id": "P08",
+      "category": "source and build evidence",
+      "historicalFailureType": "A green older candidate/build must not authorize later source; evidence line endings and Git stat cache",
+      "existingGuard": "Preflight compares inventory, raw no-filter Git blobs and executable bits to exact HEAD; authorization bytes must be committed. Build outputs are regenerated in fixed directories, hashed, and bound to a second unchanged-source check. Reuse requires the same source and output bytes; ready-for-ci explicitly is not test/release success.",
+      "locations": [
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 26,
+          "endLine": 45
+        },
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 103,
+          "endLine": 154
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/release-preflight.test.ts",
+          "line": 45,
+          "endLine": 99
+        }
+      ],
+      "remainingBoundary": "This proves byte/build consistency, not behavioral correctness, dependency supply-chain freshness, review quality, or a hosted pass. Evidence-only commits may correctly reuse the same source build.",
+      "recommendation": "Keep exact candidate/authorization/artifact hashes and separate local preflight, full CI, deployment and release outcomes."
+    },
+    {
+      "id": "P09",
+      "category": "fail-closed execution evidence and skips",
+      "historicalFailureType": "Failed group with cases:null; downstream coverage refusing failed Linux; summing platform totals double-counts cases",
+      "existingGuard": "CI requires one report per expected target, exact HEAD/source-before/source-after/file lists, no failures/duplicates, at least one case per selected file, and a pass somewhere for each observed case ID. Python attributes setup failures and skips to collected cases. Vitest refuses only/no-tests and exact selection drift. Group diagnostics retain missing evidence as null, not zero.",
+      "locations": [
+        {
+          "path": "scripts/ci-checks.mjs",
+          "line": 69,
+          "endLine": 95
+        },
+        {
+          "path": "scripts/ci-checks.mjs",
+          "line": 108,
+          "endLine": 128
+        },
+        {
+          "path": "scripts/run-tests.mjs",
+          "line": 98,
+          "endLine": 115
+        },
+        {
+          "path": "scripts/python-tests.py",
+          "line": 37,
+          "endLine": 64
+        },
+        {
+          "path": "scripts/python-tests.py",
+          "line": 98,
+          "endLine": 104
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/ci-checks.test.ts",
+          "line": 112,
+          "endLine": 167
+        },
+        {
+          "path": "tests/tooling/run-tests.test.ts",
+          "line": 97,
+          "endLine": 117
+        }
+      ],
+      "remainingBoundary": "coverageGaps=[] covers observed case IDs and selected files, not every possible branch, assertion quality, missing test definition or unselected dependency. Failed JS runs may lack aggregate case records and correctly block reconciliation.",
+      "recommendation": "Keep raw logs and source-bound case artifacts; preserve known failing case identities and legitimate skips. Never report a downstream refusal as a separate unexplained product bug or invent zero gaps for incomplete evidence."
+    },
+    {
+      "id": "P10",
+      "category": "failure retrospective and independent review",
+      "historicalFailureType": "Success retry obscuring a failed run or unconfirmed race explanation; previous composed-fixture miss",
+      "existingGuard": "AGENTS and RELEASE-PREFLIGHT require complete failed-run evidence, confirmed cause versus hypothesis, why missed, analogous consumers, concrete prevention and actual verification. Authorization demands repairsReviewed:true and empty unresolvedBlockers.",
+      "locations": [
+        {
+          "path": "AGENTS.md",
+          "line": 11,
+          "endLine": 11
+        },
+        {
+          "path": "scripts/RELEASE-PREFLIGHT.md",
+          "line": 25,
+          "endLine": 37
+        },
+        {
+          "path": "scripts/RELEASE-PREFLIGHT.md",
+          "line": 52,
+          "endLine": 54
+        },
+        {
+          "path": "scripts/release-authorization.mjs",
+          "line": 18,
+          "endLine": 24
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/ci-checks.test.ts",
+          "line": 57,
+          "endLine": 76
+        }
+      ],
+      "remainingBoundary": "The retrospective requirement is procedural. The current authorization/preflight does not enumerate prior failed workflow runs or require a hashed per-failure closure report; the repairsReviewed boolean is not proof of the content. See G03.",
+      "recommendation": "Before the next candidate, explicitly cross-reference the parent failed run and preserved review/repair/independent-review evidence. If automating later, validate those source-bound references without treating report existence as semantic review."
+    },
+    {
+      "id": "P11",
+      "category": "external contract and upgrade boundaries",
+      "historicalFailureType": "Pinned package retirement/config drift; legacy sudo and management-lock regressions after prior green CI",
+      "existingGuard": "AGENTS requires an explicit current-source builtin freshness review; checker tests reject missing/withdrawn metadata and contract drift without automatic upgrade. Deployment source maps the entire Python deployment partition. Maintainer guidance requires supported old-state upgrade/recovery checks instead of live permission patches.",
+      "locations": [
+        {
+          "path": "AGENTS.md",
+          "line": 17,
+          "endLine": 17
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 72,
+          "endLine": 74
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 87,
+          "endLine": 94
+        },
+        {
+          "path": "scripts/RELEASE-PREFLIGHT.md",
+          "line": 62,
+          "endLine": 62
+        }
+      ],
+      "regressionReferences": [
+        {
+          "path": "tests/tooling/builtin-mcp.test.ts",
+          "line": 20,
+          "endLine": 89
+        },
+        {
+          "path": "tests/tooling/vision-compat.test.ts",
+          "line": 11,
+          "endLine": 24
+        }
+      ],
+      "remainingBoundary": "Freshness and isolated real-system probes are explicit review activities, not automatically implied by selecting Python fixtures or by a green full matrix. A source token check is not proof of every third-party configuration semantic.",
+      "recommendation": "Bind current official-contract evidence and relevant isolated old-state journeys to the reviewed source; retain known limitations. No live models, credentials or production mutation are needed for this static review."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "G01",
+      "classification": "confirmed-static-selection-gap",
+      "priority": 1,
+      "title": "Existing reverse fixture dependencies remain outside the explicit pair table",
+      "proof": "For a single changed test the selector takes only deploymentPairs.find(...) or that file itself; it does not revisit selected consumers. The listed imports/compositions are present, but the corresponding consumers are absent from those first groups.",
+      "locations": [
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 23,
+          "endLine": 40
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 76,
+          "endLine": 80
+        }
+      ],
+      "examples": [
+        {
+          "changedFixture": "tests/deploy/test_control_update.py",
+          "omittedConsumer": "tests/deploy/root/test_config_layer.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_config_layer.py",
+            "line": 20,
+            "endLine": 20
+          },
+          "relationship": "previous_sudo_policy import"
+        },
+        {
+          "changedFixture": "tests/deploy/test_control_update.py",
+          "omittedConsumer": "tests/deploy/root/test_service_lifecycle.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_service_lifecycle.py",
+            "line": 19,
+            "endLine": 19
+          },
+          "relationship": "previous_sudo_policy import"
+        },
+        {
+          "changedFixture": "tests/deploy/root/test_service_lifecycle.py",
+          "omittedConsumer": "tests/deploy/root/test_candidate_archive.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_candidate_archive.py",
+            "line": 16,
+            "endLine": 16
+          },
+          "relationship": "fixture import and setUp composition at line 27"
+        },
+        {
+          "changedFixture": "tests/deploy/root/test_config_layer.py",
+          "omittedConsumer": "tests/deploy/root/test_execution_mode.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_execution_mode.py",
+            "line": 19,
+            "endLine": 19
+          },
+          "relationship": "FixtureSystem and PowerLoss import"
+        },
+        {
+          "changedFixture": "tests/deploy/root/test_config_layer.py",
+          "omittedConsumer": "tests/deploy/root/test_proxy_transaction.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_proxy_transaction.py",
+            "line": 23,
+            "endLine": 23
+          },
+          "relationship": "FixtureSystem and PowerLoss import"
+        },
+        {
+          "changedFixture": "tests/deploy/root/test_execution_mode.py",
+          "omittedConsumer": "tests/deploy/root/test_proxy_transaction.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_proxy_transaction.py",
+            "line": 22,
+            "endLine": 22
+          },
+          "relationship": "ExecutionModeRootTests.setUp composition at line 44"
+        },
+        {
+          "changedFixture": "tests/deploy/test_service_proxy.py",
+          "omittedConsumer": "tests/deploy/root/test_proxy_transaction.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_proxy_transaction.py",
+            "line": 24,
+            "endLine": 24
+          },
+          "relationship": "vless fixture import"
+        },
+        {
+          "changedFixture": "tests/deploy/test_journal_schema.py",
+          "omittedConsumer": "tests/deploy/root/test_journal_recovery.py",
+          "consumerLocation": {
+            "path": "tests/deploy/root/test_journal_recovery.py",
+            "line": 13,
+            "endLine": 13
+          },
+          "relationship": "CurrentJournalCompatibilityTests.create_current_journal at lines 56-57"
+        }
+      ],
+      "otherStaticExamples": [
+        {
+          "changed": "scripts/select-tests.mjs",
+          "omitted": "tests/tooling/ci-checks.test.ts",
+          "dependency": {
+            "path": "tests/tooling/ci-checks.test.ts",
+            "line": 9,
+            "endLine": 9
+          },
+          "mapping": {
+            "path": "scripts/select-tests.mjs",
+            "line": 103,
+            "endLine": 103
+          }
+        },
+        {
+          "changed": "src/runtime/windows-job.ts",
+          "omitted": "tests/tooling/windows-controller-preflight.test.ts",
+          "dependency": {
+            "path": "tests/tooling/windows-controller-preflight.test.ts",
+            "line": 3,
+            "endLine": 3
+          },
+          "mapping": {
+            "path": "scripts/select-tests.mjs",
+            "line": 86,
+            "endLine": 86
+          }
+        }
+      ],
+      "impact": "A targeted fixture-only or narrow source change can pass without exercising known consumers. This is not evidence of a currently failing product or of missing files in the already completed authorized full matrix.",
+      "recommendation": "Extend explicit dependency edges and compute a bounded union/closure, add exact-consumer and missing-companion regressions for these edges, and retain manual review for dynamic imports and semantic cross-layer dependencies. Do not claim a static graph is exhaustive."
+    },
+    {
+      "id": "G02",
+      "classification": "manual-scope-boundary",
+      "priority": 2,
+      "title": "Test-only and manually supplied targeted files do not inherit the whole UI partition",
+      "locations": [
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 76,
+          "endLine": 80
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 99,
+          "endLine": 99
+        },
+        {
+          "path": "scripts/run-tests.mjs",
+          "line": 67,
+          "endLine": 77
+        }
+      ],
+      "proof": "The changed-test branch precedes the web prefix branch. A changed web/tests/*.test.tsx selects itself, while a changed web component selects web/tests/. --targeted validates exact paths and prevents full-suite bypass, but does not check that the files cover the changed component consumers.",
+      "recommendation": "Phrase lessons accurately as web production changes selecting the partition. For central account/model/session fixture repairs retain explicit consumer/partition justification and the reviewed release base; do not assume a repair-only push or manual target list is full coverage."
+    },
+    {
+      "id": "G03",
+      "classification": "procedural-not-machine-enforced",
+      "priority": 2,
+      "title": "Failed-run retrospective existence and closure are not validated by release preflight",
+      "locations": [
+        {
+          "path": "scripts/RELEASE-PREFLIGHT.md",
+          "line": 25,
+          "endLine": 37
+        },
+        {
+          "path": "scripts/release-authorization.mjs",
+          "line": 18,
+          "endLine": 24
+        },
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 135,
+          "endLine": 154
+        }
+      ],
+      "proof": "The programs validate exact authorization bytes/source and a repairsReviewed boolean; they do not load prior run outcomes or hashed failed-run/repair-review references.",
+      "recommendation": "Keep an explicit per-candidate checklist mapping each failed job/assertion to preserved evidence, repair and independent review. A future narrow validation can require those references, but cannot mechanically prove review quality."
+    },
+    {
+      "id": "G04",
+      "classification": "environment-pin-limit",
+      "priority": 3,
+      "title": "Exact standard Python pin does not also pin the root-job interpreter",
+      "locations": [
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 97,
+          "endLine": 99
+        },
+        {
+          "path": ".github/workflows/affected.yml",
+          "line": 203,
+          "endLine": 206
+        },
+        {
+          "path": "scripts/release-preflight.mjs",
+          "line": 66,
+          "endLine": 68
+        },
+        {
+          "path": "scripts/select-tests.mjs",
+          "line": 167,
+          "endLine": 174
+        }
+      ],
+      "proof": "Standard jobs use setup-python 3.12.10; root job explicitly passes /usr/bin/python3 from the Ubuntu runner. Preflight checks one exact python-version declaration; pythonPrerequisite accepts Python 3.11 or later.",
+      "recommendation": "Report the distinction now; when exact reproducibility is required, bind/record the actual root interpreter or intentionally document the supported-version difference. No historical failure is attributed to this difference without evidence."
+    }
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "caa953de087e91ff28cdef5a810ba4da7e8ca6fb1e5688d2631db8a6ba718799",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "7387ff5dfaa60e438ef9eb57f3965edd0c96b7e60a03c32813ae5920f8e3cee5",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "f697808d2bc3fe570efae47350d28bb6317ae5938853a601003c393365e2fa24",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "0d27c8a78f5d45da4df8aca3e8343519b3f92dc65db61518ce9fa98a1a0f7948",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "72ae8b7305ee6153d39b50adcdd241534b4588b5eb7ec448b03a30b7ced5170b",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/prepare-ci-native.mjs",
+      "sha256": "330ac0475fde81efd586d525127e74b3e2f833980df53e3089ae58fcc323925d",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/python-tests.py",
+      "sha256": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/release-authorization.mjs",
+      "sha256": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/release-preflight.mjs",
+      "sha256": "5a8f85ebfd4e47bec037e4b94f47ee57059dd2697ea90728694398183d8721e4",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "f922d6caeb89fb7631071b4b1f8c5e521c5dd83d8afe0436f111ab264fde2a40",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "60ac66d1beb9e2126b1c841b33d0d150bce9836013cffde1194ec5e9068930e9",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/test-environment.mjs",
+      "sha256": "156ce382187684f60bf3f08c7f12f1acfe13110ec7b21a230f21a3d09e4cffe4",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "tests/deploy/root/test_account_recovery.py",
+      "sha256": "557ddac501d72495743ac88bf9fbc1cd6f5e536bea1c4a060e3cd3f2d6fbff09",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/root/test_candidate_archive.py",
+      "sha256": "f4486e0ff825b495922c5baa11ae143e4bdf703c0d7d9ebe83faf01e52a21127",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/root/test_config_layer.py",
+      "sha256": "32df9e73312ba80d218adccdbb985ded9c6ff8a81d4be4d003aea0535b43c101",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "fde60691469375c0c4e053bc4d730623b79f79cffd425ef269b0b4a88c94535e",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/root/test_journal_recovery.py",
+      "sha256": "f8da45b771bb0eee4d8e0d4d3f712314711dad40320a55c7f9fd3eea6a5de080",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "0ffe691c008a0f76464fb68175bd39e8c176583667ed375d1f3f74a9e7444433",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/root/test_service_lifecycle.py",
+      "sha256": "22fd31ed178d371b4d5be5353000ba176f7473186023f28a4fc53221eac7d9f3",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "3d5ba260b1db68be82505309df962b87c384c1ecf3ca7d9ab3791c81af68d7f3",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "a49ed9303d6270aa9983713064bc99589d6dbdba6d1038e6e9d8ac1d25244d93",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/test_install_recovery.py",
+      "sha256": "1c4ae691690245e7384e91ff17c1f8752660e05d67991b7536385e772b956539",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/test_journal_schema.py",
+      "sha256": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/deploy/test_service_proxy.py",
+      "sha256": "8d763a5db9068fc7ceca0ea2d8cdeb109d321e05d4a1ba07b987c65d48dd4995",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "a9f0eb03b2c7f181b26a59cb38659e3280c5b7b42a3f53068e9c744e6fd72cf1",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth-fixture.mjs",
+      "sha256": "0c41addabbd0addd40ae954436816a11ca6b3400141cb4f30b55dd2fd41a9c50",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/tooling/builtin-mcp.test.ts",
+      "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+      "reviewDepth": "test declaration and import inventory only"
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "fb2fcee7a12151ee1d64be00a0bb1ab9749ea7b393096fd8b5575aa72b3fe10e",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "tests/tooling/compatibility-watch.test.ts",
+      "sha256": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "tests/tooling/go-tests.test.ts",
+      "sha256": "112457e214569432f5b2de19a0e79034cb4f88b0701914204fa44c78472881e4",
+      "reviewDepth": "test declaration and import inventory only"
+    },
+    {
+      "path": "tests/tooling/prepare-ci-native.test.ts",
+      "sha256": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "tests/tooling/release-audit.test.ts",
+      "sha256": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+      "reviewDepth": "test declaration and import inventory only"
+    },
+    {
+      "path": "tests/tooling/release-preflight.test.ts",
+      "sha256": "9625389c2b122aed1603a8705afe3ee4c9729a72c3b2282eb708f3f40a5aade8",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "tests/tooling/reviewed-history.test.ts",
+      "sha256": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "tests/tooling/run-tests.test.ts",
+      "sha256": "bed3c9a1c47770120417bc12cfec47ed076ceab89bc310dde20f69075b1f36ad",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "e332594f2af229b5f443611f5245fb11f3a0be264325a948abf35bbb45922c1e",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "tests/tooling/test-environment.test.ts",
+      "sha256": "b4e0884156216c6a5a8442563c860b7d2963242595ba64af80943af07f4de7ea",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "tests/tooling/vision-compat.test.ts",
+      "sha256": "24f1d6aa30e947764d0264b67fa30d3c353f5fe5562fa45a048508adbb5f3a99",
+      "reviewDepth": "test declaration and import inventory only"
+    },
+    {
+      "path": "tests/tooling/windows-controller-preflight.test.ts",
+      "sha256": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "verification/reports/v230-ci-lessons.md",
+      "sha256": "aaf73811697f7bc1fb5a5a510c40dce7418f2d52ef99221f823e7f765c895d44",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "verification/reports/v231-ci-lessons.md",
+      "sha256": "851293207080c26d1b3236f5d34b67b776123cf8250b1b3ab6425e3a4ac8e6cd",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "verification/reports/v232-ci-lessons.md",
+      "sha256": "6d8648a5adaf7dbd059107d38863e87e6a1ff90f09665057bfd98aa4734e0578",
+      "reviewDepth": "full current prevention contract"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "a473a5e4e581c1e6ee3ebe1c2bbd79b61bb80227f2ffd96551db2052e338b3f7",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "sha256": "2585b7ba2ea50e16aebd9fb18c3a63b7eda550cecbddf3a72c14b4fab126b4da",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    },
+    {
+      "path": "web/tests/shared-model-directory.test.tsx",
+      "sha256": "cb08d6a96e5aa4941544e3736542c0f1702dfeaeb2237e3e584c2b10bd017f84",
+      "reviewDepth": "focused cited dependency/fixture behavior"
+    }
+  ],
+  "historicalClaims": {
+    "sources": [
+      "verification/reports/v230-ci-lessons.md",
+      "verification/reports/v231-ci-lessons.md",
+      "verification/reports/v232-ci-lessons.md"
+    ],
+    "rawHostedFailuresReplayed": false,
+    "pastPIDReuseOrExactSchedulerInterleavingClaimedProven": false,
+    "previousOwnReviewMiss": "The earlier v232 five-fixture review checked direct changes and ordinary/root results but missed AccountRecoveryTests calling InstallationRecoveryTests.setUp and retaining release_accounts substitution. The subsequent real-root failure and explicit trio repair remain retained; this review does not rewrite that earlier pass."
+  },
+  "recommendationOrder": [
+    "G01 explicit reverse fixture/tooling edges and regression closure",
+    "Apply P02/P04/P05 semantic fixture review before choosing narrow tests",
+    "G02 accurate targeted-versus-partition/full wording",
+    "G03 explicit failed-run evidence links before next candidate",
+    "G04 record root interpreter difference before claiming uniform exact pins"
+  ],
+  "limits": [
+    "No tests, network calls, server access, CI dispatch or source modifications were performed.",
+    "No general static import/composition graph can prove all dynamic or semantic dependencies; the concrete edge list is not exhaustive.",
+    "Test declarations/hashes identify scope but do not imply every test body was reread; per-file reviewDepth is explicit.",
+    "Existing guards can reject stale/failed/missing evidence but cannot prove fixture realism, review quality, all behavior branches or all missing tests.",
+    "The root agent owns the exhaustive historical run inventory and other agents own separate retrospectives; this report does not infer uninspected history."
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-ci-early-gate-review",
+  "source": "Fresh original archives plus current-rewrite history of CI tooling only; no retired checkout inspected.",
+  "runs": [
+    {
+      "run": 40232786765,
+      "category": "ci-orchestration",
+      "failure": "Select affected tests exited 2 for the large main-branch rewrite; output plan was redirected and shell errexit prevented cat. No tests were started.",
+      "cause": "The selector required a full audit for broad changes, but the old affected-only workflow had no source-bound full-closeout path. This is supported by the historical exit branches and changed build/shared files; the original plan JSON was not retained in that job.",
+      "confidence": "log-confirmed exit; exact rejected mapping not retained",
+      "missed": "First-release main/tag event semantics and broad selection were not dry-run before publish.",
+      "fix": "e1c232eb6e73 adds reviewed plan/full authorization workflow.",
+      "prevention": "Use current release-preflight on exact base/head, retain diagnostic output even when planning fails; do not interpret refusal as a product test failure.",
+      "evidence": {
+        "path": ".work/historical-ci-run-40232786765.zip",
+        "sha256": "ce6030ba153e335761eeac44e02abab662a4dfa11c518decb5dee3d21b57c7eb",
+        "entry": "2_affected.txt",
+        "entrySha256": "a5b2a4b4ee5f88fa659c667cb27e0bba48a9a4e3257f0f8c3e4b8521e6135fbc"
+      },
+      "laterClosure": {
+        "run": 40309851137,
+        "head": "0466fb96a7b3",
+        "status": "success",
+        "scope": "later actual full v2.0.1 closure; not a retroactive pass for original failures"
+      }
+    },
+    {
+      "run": 40232786814,
+      "category": "ci-orchestration",
+      "failure": "Same initial release tag run exited 2 with invalid-or-unreadable-change-selection.",
+      "cause": "CHANGE_BASE was 40 zeroes for the tag push; gitChanges explicitly rejected zero revisions.",
+      "confidence": "direct log plus historical selector",
+      "missed": "New tag events have no ordinary previous commit.",
+      "fix": "e1c232eb6e73 restricts push branches and introduces an explicit reviewed base / source-bound authorization; current workflow does not trigger tag pushes.",
+      "prevention": "Validate new-ref/tag/manual/PR events separately; never invent a base or silently skip a gate.",
+      "evidence": {
+        "path": ".work/historical-ci-run-40232786814.zip",
+        "sha256": "7e19ab75222881b038bb112c543d575b4fd8ae06a146c36985ade5157a439427",
+        "entry": "2_affected.txt",
+        "entrySha256": "d7006c46742952c4039bf6d049afdf9b69ed9abb7ff24884ed30ab020932282b"
+      },
+      "laterClosure": {
+        "run": 40309851137,
+        "head": "0466fb96a7b3",
+        "status": "success",
+        "scope": "later actual full v2.0.1 closure; not a retroactive pass for original failures"
+      }
+    },
+    {
+      "run": 40298008326,
+      "category": "security-review-inventory",
+      "failure": "Current source scan clean; complete Git-object scan reported 32 pattern findings and exited 1.",
+      "cause": "Historical immutable objects matched credential/path patterns; initial CI had no retained per-object semantic classifications. Later review classified synthetic fixtures/placeholders. No historical source was re-opened in this retrospective.",
+      "confidence": "direct original scanner output; semantic classifications inherited from retained reviewed-history metadata",
+      "missed": "Current-tree-only validation did not exercise the remote complete-history gate.",
+      "fix": "dbabbdb7319c adds reviewed-history classifications, expanded in a3ec164b7c4c.",
+      "prevention": "Keep raw scanner strict; examine complete fetched object inventory, use exact object/line/rule dispositions, never whitelist current-source matches.",
+      "evidence": {
+        "path": ".work/historical-ci-run-40298008326.zip",
+        "sha256": "c75d72884fceb2bf916d484a0e3ad072d7f99a8d8d9ce615e0034867815d6c3f",
+        "entry": "3_plan.txt",
+        "entrySha256": "8693072ecb2eb8ebd8fde7ec09b9f94308bed39bed6120e345fd8f196e60933f"
+      },
+      "laterClosure": {
+        "run": 40309851137,
+        "head": "0466fb96a7b3",
+        "status": "success",
+        "scope": "later actual full v2.0.1 closure; not a retroactive pass for original failures"
+      }
+    },
+    {
+      "run": 40299290026,
+      "category": "security-review-inventory",
+      "failure": "Security review blocked: An unreviewed finding or a current-source pattern blocks publication.",
+      "cause": "The first historical classification covered only a narrower immutable set; full fetched refs contained additional historical patterns. a3ec164b7c4c explicitly expands classifications across all remote branches/tags.",
+      "confidence": "direct block message and exact classifier repair diff; raw archive does not enumerate which single finding blocked first",
+      "missed": "Local object inventory differed from complete fetched hosted inventory.",
+      "fix": "a3ec164b7c4c expands exact immutable classifications; later plan logs show passed-with-reviewed-historical-patterns.",
+      "prevention": "Compare complete object universes before declaring scan closure; a local allowlist pass is not remote history acceptance.",
+      "evidence": {
+        "path": ".work/historical-ci-run-40299290026.zip",
+        "sha256": "de4bfc68888b3eb5f3fae461511d3183261afb14e8213df5d495152c083808ef",
+        "entry": "3_plan.txt",
+        "entrySha256": "95c77ab360c6193dfabeeb2fd5dfa8eedbf6ae345c13021a42132171dd8d2b73"
+      },
+      "laterClosure": {
+        "run": 40309851137,
+        "head": "0466fb96a7b3",
+        "status": "success",
+        "scope": "later actual full v2.0.1 closure; not a retroactive pass for original failures"
+      }
+    },
+    {
+      "run": 40300576409,
+      "category": "platform-ci-preparation",
+      "failure": "Windows Prepare independent official CLI failed; GNU tar reported Cannot connect to D: resolve failed. Upload lacked result-windows.json; coverage then rejected missing platform report.",
+      "cause": "GNU tar selected by Git Bash interpreted the colon in the absolute Windows drive path as a remote archive host.",
+      "confidence": "direct tar error plus exact e8f006961cb8 extraction repair",
+      "missed": "Local Windows tar implementation differed from hosted PATH-selected GNU tar.",
+      "fix": "e8f006961cb8 uses a verified archive basename with native cwd; current scripts/prepare-ci-native.mjs retains it.",
+      "prevention": "Test preparation tools on actual supported shells/PATH, retain basename/path validation, distinguish preparation failure from downstream artifact/coverage refusal.",
+      "evidence": {
+        "path": ".work/historical-ci-run-40300576409.zip",
+        "sha256": "a8fc1e7bb3de3f9ae4565d766095236ee8f55e54758842bdf7944a2194f485df",
+        "entry": "1_standard (windows-2025, windows, 0.164.0-win32-x64).txt",
+        "entrySha256": "501865618f1f55ee992e564c7da3015ae3db6cb28dfe193449852b1c30d7f2dd"
+      },
+      "laterClosure": {
+        "run": 40309851137,
+        "head": "0466fb96a7b3",
+        "status": "success",
+        "scope": "later actual full v2.0.1 closure; not a retroactive pass for original failures"
+      }
+    }
+  ],
+  "cancelled": [
+    {
+      "run": 40302281637,
+      "classification": "cancelled-not-added-to-failure-count",
+      "evidence": {
+        "path": ".work/historical-ci-run-40302281637.zip",
+        "sha256": "656ec61d1bb679afa3d622c9ffb29c6b118c51cce4af49c5a5179eb929c1b56d",
+        "entry": "0_Verified case coverage.txt",
+        "entrySha256": "af9022c43ebca866a0a14eff52e9a9b2aea3c033f675c14860f714a84f3b470d"
+      },
+      "observation": "Standard jobs cancelled; coverage refuses absent reports. This does not prove an independent product defect or identify who cancelled."
+    },
+    {
+      "run": 40309785986,
+      "classification": "cancelled-not-added-to-failure-count",
+      "evidence": {
+        "path": ".work/historical-ci-run-40309785986.zip",
+        "sha256": "d9eca7f5c09104ce563a8e0b6a5bc424ea798f22eaf56ddc0d160cb525311cd2",
+        "entry": "0_Verified case coverage.txt",
+        "entrySha256": "598f7476e035456109431460615fc518f7860094ec004e7103fdcca48ff5d2f6"
+      },
+      "observation": "Standard jobs cancelled; coverage refuses absent reports. This does not prove an independent product defect or identify who cancelled."
+    }
+  ]
+}
