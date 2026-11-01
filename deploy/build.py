@@ -29,7 +29,7 @@ CODEX_INTEGRITIES = {
 SOURCE_ROOTS = {"src", "web", "protocol"}
 SOURCE_FILES = {"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "tsconfig.server.json", "tsconfig.base.json"}
 MAX_LOCK_BYTES = 8 * 1024**2
-APPROVED_OVERRIDES = {"@z_ai/mcp-server@0.1.5>@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7"}
+APPROVED_OVERRIDES = {"@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7"}
 WORKSPACE_SETTINGS = {"packages": ["."], "minimumReleaseAge": 1440, "blockExoticSubdeps": True,
                       "trustPolicy": "no-downgrade", "strictDepBuilds": True, "ignoreScripts": True,
                       "overrides": APPROVED_OVERRIDES}

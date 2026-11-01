@@ -45,7 +45,8 @@ class ProxyTransactionRootTests(unittest.TestCase):
         self.system = ProxySystem(self.layout); self.manager.system = self.system
         self.manager.recover_control = lambda: self.system.events.append("recover-receipts")
         self.manager.healthy = lambda: self.system.events.append("health")
-        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "serviceProxy": 1}, mode=0o644)
+        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "serviceProxy": 1,
+                                                            "serviceProxyDirectDomains": 1}, mode=0o644)
         self.input = self.root / "node.json"; write_json(self.input, vless())
         self.cores = {version: self.core(version) for version in ("26.10.1", "26.10.2")}
         self.kernel = None
@@ -85,13 +86,14 @@ class ProxyTransactionRootTests(unittest.TestCase):
         service_proxy.verify_routes(self.layout, value, self.kernel)
         return {"enabled": True, "ready": True, "upstreamTlsVerified": bool(kwargs.get("upstream"))}
 
-    def configure(self):
-        return transaction.change(self.manager, action="configure", confirm_restart=True, input_file=self.input, version="26.10.1")
+    def configure(self, direct_domains=None):
+        return transaction.change(self.manager, action="configure", confirm_restart=True, input_file=self.input, version="26.10.1",
+                                  direct_domains=direct_domains)
 
     def configure_legacy(self):
         current = service_proxy.configuration
-        def legacy(value, port):
-            document = current(value, port)
+        def legacy(value, port, direct_domains=None):
+            document = current(value, port, direct_domains)
             document["routing"]["domainStrategy"] = "IPIfNonMatch"
             for inbound in document["inbounds"][:2]: inbound["sniffing"]["routeOnly"] = True
             return document
@@ -159,6 +161,110 @@ class ProxyTransactionRootTests(unittest.TestCase):
         self.assertEqual(self.system.events, [])
         self.assertEqual(list((self.layout.state / "transactions").glob("*/state.json")), [])
         self.assertNotIn("serviceProxy", self.manager.config)
+
+    def test_direct_hosts_persist_through_reconfigure_core_update_disable_and_rollback(self):
+        first = self.configure(["API.example."])
+        self.assertEqual(first["directDomains"], ["api.example"])
+        original = self.manager.config["serviceProxy"].copy()
+        self.assertFalse(self.configure()["changed"])
+        update = transaction.change(self.manager, action="core-update", confirm_restart=True, version="26.10.2")
+        self.assertEqual(update["directDomains"], ["api.example"])
+        self.assertEqual(self.manager.config["serviceProxy"]["configuration"], original["configuration"])
+        disabled = transaction.change(self.manager, action="disable", confirm_restart=True)
+        self.assertFalse(disabled["enabled"]); self.assertEqual(disabled["directDomains"], ["api.example"])
+        rollback = transaction.change(self.manager, action="rollback", confirm_restart=True)
+        self.assertTrue(rollback["enabled"]); self.assertEqual(rollback["directDomains"], ["api.example"])
+        cleared = self.configure([])
+        self.assertEqual(cleared["directDomains"], [])
+        self.assertNotEqual(cleared["configuration"], original["configuration"])
+        transaction.change(self.manager, action="rollback", confirm_restart=True)
+        self.assertEqual(service_proxy.configured_direct_domains(self.layout, self.manager.config["serviceProxy"]), ["api.example"])
+        self.manager.verify()
+
+    def test_direct_hosts_only_action_keeps_disabled_core_port_and_never_downloads(self):
+        self.configure(["first.example"])
+        transaction.change(self.manager, action="disable", confirm_restart=True)
+        previous = self.manager.config["serviceProxy"].copy()
+        with patch("deploy.proxy_core.prepare_core") as download, patch.object(transaction, "prepare_configuration") as imported:
+            result = transaction.change(self.manager, action="direct-domains", confirm_restart=True, direct_domains=["Other.example."])
+            download.assert_not_called(); imported.assert_not_called()
+        current = self.manager.config["serviceProxy"]
+        self.assertEqual({key: current[key] for key in ("core", "port", "enabled")},
+                         {key: previous[key] for key in ("core", "port", "enabled")})
+        self.assertEqual(result["directDomains"], ["other.example"])
+        self.assertEqual(self.system.active, {"worker", "gateway"}); self.assertIsNone(self.kernel)
+        self.assertFalse(transaction.change(self.manager, action="direct-domains", confirm_restart=True,
+                                           direct_domains=["other.example"])["changed"])
+        transaction.change(self.manager, action="rollback", confirm_restart=True)
+        self.assertEqual(self.manager.config["serviceProxy"], previous)
+        self.manager.verify()
+
+    def test_direct_hosts_selected_crash_recovers_exact_old_or_candidate_generation(self):
+        self.configure(["old.example"])
+        for target in ("old", "candidate"):
+            previous = self.manager.config["serviceProxy"].copy(); observed = []
+            def crash(path, value, **kwargs):
+                write_json(path, value, **kwargs)
+                if value.get("kind") == "service-proxy" and value.get("phase") == "selected":
+                    observed.append(path); raise PowerLoss()
+            with self.subTest(target=target):
+                with patch.object(transaction, "write_json", side_effect=crash), self.assertRaises(PowerLoss):
+                    transaction.change(self.manager, action="direct-domains", confirm_restart=True, direct_domains=["candidate.example"])
+                candidate = read_json(observed[0])["candidateConfig"]["serviceProxy"]
+                self.assertNotEqual(candidate["configuration"], previous["configuration"])
+                self.assertEqual(self.manager.repair(target=target)["direction"], target)
+                self.assertEqual(self.manager.config["serviceProxy"], previous if target == "old" else candidate)
+                self.assertEqual(service_proxy.configured_direct_domains(self.layout, self.manager.config["serviceProxy"]),
+                                 ["old.example"] if target == "old" else ["candidate.example"])
+                self.manager.require_update_ready(persist=False); self.manager.verify()
+
+    def test_direct_host_invalid_and_unconfigured_requests_never_stop_or_create_journal(self):
+        for domains in (None, ["https://api.example"], ["api.example"] * 65, []):
+            with self.subTest(domains=domains), self.assertRaises(DeployError):
+                transaction.change(self.manager, action="direct-domains", confirm_restart=True, direct_domains=domains)
+        self.assertEqual(self.system.events, [])
+        self.assertEqual(list((self.layout.state / "transactions").glob("*/state.json")), [])
+        self.assertNotIn("serviceProxy", self.manager.config)
+
+    def test_old_installed_control_cannot_select_nonempty_hosts_but_can_clear_them(self):
+        self.configure(["first.example"])
+        transaction.change(self.manager, action="disable", confirm_restart=True)
+        path = self.layout.control / "capabilities.json"
+        capabilities = read_json(path); capabilities.pop("serviceProxyDirectDomains")
+        write_json(path, capabilities, mode=0o644)
+        events = list(self.system.events); records = list((self.layout.state / "transactions").glob("*/state.json"))
+        for action in ("direct-domains", "configure"):
+            with self.subTest(action=action), patch("deploy.proxy_core.prepare_core") as download, self.assertRaisesRegex(DeployError, "trusted control tools"):
+                transaction.change(self.manager, action=action, confirm_restart=True, direct_domains=["new.example"],
+                                   input_file=self.input, version="26.10.2")
+            download.assert_not_called()
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(list((self.layout.state / "transactions").glob("*/state.json")), records)
+        cleared = transaction.change(self.manager, action="direct-domains", confirm_restart=True, direct_domains=[])
+        self.assertEqual(cleared["directDomains"], []); self.assertFalse(cleared["enabled"])
+        events = list(self.system.events)
+        with self.assertRaisesRegex(DeployError, "trusted control tools"):
+            transaction.change(self.manager, action="rollback", confirm_restart=True)
+        self.assertEqual(self.system.events, events)
+
+    def test_old_installed_control_rejects_nonempty_candidate_recovery_but_allows_empty_old(self):
+        self.configure()
+        previous = self.manager.config["serviceProxy"].copy()
+        def crash(path, value, **kwargs):
+            write_json(path, value, **kwargs)
+            if value.get("kind") == "service-proxy" and value.get("phase") == "selected": raise PowerLoss()
+        with patch.object(transaction, "write_json", side_effect=crash), self.assertRaises(PowerLoss):
+            transaction.change(self.manager, action="direct-domains", confirm_restart=True, direct_domains=["candidate.example"])
+        path = self.layout.control / "capabilities.json"
+        capabilities = read_json(path); capabilities.pop("serviceProxyDirectDomains")
+        write_json(path, capabilities, mode=0o644)
+        events = list(self.system.events)
+        with self.assertRaisesRegex(DeployError, "trusted control tools"):
+            self.manager.repair(target="candidate")
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(self.manager.repair(target="old")["direction"], "old")
+        self.assertEqual(self.manager.config["serviceProxy"], previous)
+        self.manager.require_update_ready(persist=False); self.manager.verify()
 
     def test_candidate_start_failure_recovers_original_no_proxy_state(self):
         original = transaction.snapshot(self.manager); self.system.fail_start = True

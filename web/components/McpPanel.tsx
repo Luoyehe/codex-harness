@@ -31,6 +31,14 @@ type PendingRequest = {
   label: string;
   controller: AbortController;
 };
+const authenticationLabel = (value: McpServerStatus['authStatus']) => ({
+  unknown: '认证方式待确认', unsupported: '无需浏览器授权', notLoggedIn: '需要浏览器授权',
+  bearerToken: '已配置 API Key', oAuth: '已通过浏览器授权',
+}[value] ?? '认证方式待确认');
+const connectionLabel = (server: McpServerStatus, threadReady: boolean) => server.runtimeStatus === null || server.runtimeStatus === undefined
+  ? threadReady ? '连接状态待确认' : '尚未加载会话'
+  : ({ notStarted: '尚未启动', starting: '连接中', connected: '已连接', authenticationRequired: '需要认证',
+    failed: '连接失败', cancelled: '已取消', disabled: '已停用' }[server.runtimeStatus] ?? '连接状态待确认');
 export function McpEventBridge({
   api,
   events,
@@ -441,7 +449,7 @@ function McpPanelContent({
             <option value="">选择已发现的服务</option>
             {displayedServers.map((server) => (
               <option key={server.name} value={server.name}>
-                {server.name} · {server.runtimeStatus ?? '状态未知'} · {server.authStatus}
+                {server.name} · {connectionLabel(server, threadReady)} · {authenticationLabel(server.authStatus)}
               </option>
             ))}
           </select>
@@ -459,12 +467,13 @@ function McpPanelContent({
             <div className="info-card stack">
               <strong>{server.serverInfo?.name ?? server.name}</strong>
               <p className="small">
-                连接：{server.runtimeStatus ?? '未知'} · 认证：{server.authStatus}
+                连接：{connectionLabel(server, threadReady)} · 认证：{authenticationLabel(server.authStatus)}
               </p>
               {server.httpOrigin && <p className="small path">{server.httpOrigin}</p>}
               {server.pluginId && <p className="small muted">来源插件：{server.pluginId}</p>}
               <McpAuthorization key={JSON.stringify([lease, epoch, runtimeEpoch, server.name, threadId, threadReady, connected])}
                 api={api} events={events} session={session} epoch={runtimeEpoch} name={server.name}
+                authStatus={server.authStatus}
                 threadId={threadReady && threadId ? threadId : null} connected={connected}
                 visible={visible && !servers.loading && !servers.error && servers.snapshotKey === key} />
             </div>

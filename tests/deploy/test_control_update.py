@@ -1,5 +1,6 @@
 """Unprivileged control maintenance interface checks."""
 import base64
+import hashlib
 import subprocess
 import tempfile
 import unittest
@@ -103,6 +104,7 @@ class ControlBoundaryTests(unittest.TestCase):
         self.assertFalse(any("main-other" in unit for unit in units))
 
     def test_proxy_selection_requires_capable_control_even_when_disabled(self):
+        from deploy.service_proxy import configuration
         with tempfile.TemporaryDirectory() as folder:
             layout = Layout("fixture", Path(folder))
             layout.config.mkdir(parents=True)
@@ -110,13 +112,34 @@ class ControlBoundaryTests(unittest.TestCase):
             updater = ControlUpdater(layout)
             updater.require_dns_guard({})
             for enabled in (False, True):
+                data = canonical(configuration({"protocol": "vless", "settings": {}}, 18793)) + b"\n"
                 updater.config["serviceProxy"] = {"enabled": enabled, "port": 18793,
-                                                  "core": "a" * 64, "configuration": "b" * 64}
+                                                  "core": "a" * 64, "configuration": hashlib.sha256(data).hexdigest()}
                 with self.subTest(enabled=enabled):
                     with self.assertRaises(DeployError) as failure:
                         updater.require_dns_guard({})
                     self.assertEqual(failure.exception.code, "proxy_unsupported")
-                    updater.require_dns_guard({"serviceProxy": 1})
+                    with patch("deploy.service_proxy.private_file", return_value=data):
+                        updater.require_dns_guard({"serviceProxy": 1})
+
+    def test_nonempty_direct_hosts_require_exact_capability_for_enabled_and_disabled_proxy(self):
+        from deploy.service_proxy import configuration
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder)); layout.config.mkdir(parents=True)
+            write_json(layout.config / "instance.json", {})
+            updater = ControlUpdater(layout)
+            data = canonical(configuration({"protocol": "vless", "settings": {}}, 18793, ["api.example"])) + b"\n"
+            for enabled in (False, True):
+                updater.config["serviceProxy"] = {"enabled": enabled, "port": 18793,
+                    "core": "a" * 64, "configuration": hashlib.sha256(data).hexdigest()}
+                with patch("deploy.service_proxy.private_file", return_value=data):
+                    for marker in (None, 0, True, "1", 2):
+                        with self.subTest(enabled=enabled, marker=marker), self.assertRaisesRegex(DeployError, "exact direct-host") as error:
+                            updater.require_dns_guard({"serviceProxy": 1, "serviceProxyDirectDomains": marker})
+                        self.assertEqual(error.exception.code, "proxy_unsupported")
+                    updater.require_dns_guard({"serviceProxy": 1, "serviceProxyDirectDomains": 1})
+                with patch("deploy.service_proxy.private_file", return_value=data + b" "), self.assertRaisesRegex(DeployError, "digest"):
+                    updater.require_dns_guard({"serviceProxy": 1, "serviceProxyDirectDomains": 1})
 
     def test_proxy_routes_snapshot_accepts_only_stable_oneshot_activity(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -166,6 +189,7 @@ class ControlBoundaryTests(unittest.TestCase):
             self.assertEqual(read_json(destination / "capabilities.json")["authenticationGuard"], "account-v1")
             self.assertEqual(read_json(destination / "capabilities.json")["dnsChallenge"], "caddy-dns-v1")
             self.assertEqual(read_json(destination / "capabilities.json")["dnsProviders"], list(PROVIDERS))
+            self.assertEqual(read_json(destination / "capabilities.json")["serviceProxyDirectDomains"], 1)
             from deploy.dns_caddy_build import source_material
             for name, data in source_material().items():
                 self.assertEqual((destination / "deploy/caddy_dns_source" / name).read_bytes(), data)

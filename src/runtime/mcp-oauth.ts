@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { DeliveryError, jsonBytes, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
+import { DeliveryError, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
 import { validateOfficial } from './validation.js';
 import type { NativeOptions } from './native.js';
 import type { DiagnosticRedactor } from './redaction.js';
@@ -17,11 +17,23 @@ function checked(schema: string, value: JsonValue): JsonObject {
   try { jsonBytes(value, 16384); validateOfficial(schema, value); return object(value); }
   catch { throw new DeliveryError('invalid_native_response', 'MCP OAuth response could not be verified', 'unknown'); }
 }
+function requireOauth(value: JsonValue, name: string): void {
+  let page: JsonObject;
+  try { jsonBytes(value, LIMITS.historyBytes); validateOfficial('ListMcpServerStatusResponse', value); page = object(value); }
+  catch { throw new DeliveryError('mcp_auth_unavailable', 'MCP authentication status could not be verified; reload server status before authorization'); }
+  if (!Array.isArray(page.data) || page.data.length !== 1 || object(page.data[0]).name !== name || page.nextCursor !== null)
+    throw new DeliveryError('mcp_auth_unavailable', 'The selected MCP server was not uniquely discovered; reload server status before authorization');
+  const status = object(page.data[0]).authStatus;
+  if (status === 'bearerToken' || status === 'unsupported')
+    throw new DeliveryError('mcp_oauth_unsupported', 'This MCP server uses its configured credentials or does not support browser OAuth');
+  if (status !== 'notLoggedIn' && status !== 'oAuth')
+    throw new DeliveryError('mcp_auth_unavailable', 'MCP authentication support is unknown; reload server status before authorization');
+}
 /** No native cancellation exists. Revoking a URL does not prove its login ended. */
 export class McpOauth {
   private logins = new Map<string, Login>();
   private closed = false;
-  constructor(private host: { epoch: string; redactor: DiagnosticRedactor; notify: (params: JsonObject, channel: string) => void }) {}
+  constructor(private host: { epoch: string; redactor: DiagnosticRedactor; serverStatus: (params: JsonObject) => Promise<JsonValue>; notify: (params: JsonObject, channel: string) => void }) {}
   private key(name: string, threadId: string | null): string { return JSON.stringify([name, threadId]); }
   private identity(login: Login): JsonObject { return { handoffId: login.handoffId, epoch: this.host.epoch, name: login.name, threadId: login.threadId }; }
   private revoke(login: Login): void { login.revoked = true; delete login.authorizationUrl; clearTimeout(login.timer); }
@@ -51,6 +63,10 @@ export class McpOauth {
       timer: setTimeout(() => this.revoke(login), Math.max(0, expiresAt - Date.now())), early: new Map() };
     login.timer.unref(); this.logins.set(key, login);
     try {
+      let status: JsonValue;
+      try { status = await this.host.serverStatus({ serverName: name, threadId, detail: 'toolsAndAuthOnly', limit: 100 }); }
+      catch { throw new DeliveryError('mcp_auth_unavailable', 'MCP authentication status is unavailable; reload server status before authorization'); }
+      requireOauth(status, name);
       const result = checked('McpServerOauthLoginResponse', await write('mcpServer/oauth/login', params, { beforeWrite: () => {
         if (this.closed || login.revoked || this.logins.get(key) !== login || Date.now() >= login.expiresAt) throw new DeliveryError('client_disconnected', 'MCP login owner or handoff expired before dispatch');
         login.dispatched = true;

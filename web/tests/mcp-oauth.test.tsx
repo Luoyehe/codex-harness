@@ -23,7 +23,7 @@ function setup(handler: (call: Call) => unknown = () => undefined) {
 }
 const props = (s: ReturnType<typeof setup>) => ({ api: s.api, events: s.events, epoch: 'resources-1', runtimeEpoch: 'runtime', lease: 'lease', connected: true, threadId: 'thread', threadReady: true, threadIdle: true, configurationReady: true, projectId: 'project' });
 async function select() {
-  await screen.findByRole('option', { name: /server · connected/ });
+  await screen.findByRole('option', { name: /server · 已连接/ });
   fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), { target: { value: 'server' } });
 }
 const start = () => fireEvent.click(screen.getByRole('button', { name: '请求此服务授权' }));
@@ -31,6 +31,17 @@ const link = () => screen.queryByRole('link', { name: '打开 MCP 授权页面 �
 const completion = (s: ReturnType<typeof setup>, patch = {}) => s.events.publish({ type: 'mcp', data: { type: 'oauth-completed', owned: true, ...identity, success: true, restartRequired: false, ...patch } });
 beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+it.each(['bearerToken', 'unsupported', 'unknown'])('never offers browser authorization for %s authentication', async authStatus => {
+  const s = setup(call => call.method === 'mcp/list' ? { data: [{ name: 'server', authStatus, runtimeStatus: null, tools: {}, resources: [], resourceTemplates: [] }], nextCursor: null } : undefined);
+  render(<McpPanel {...props(s)} threadReady={false} />);
+  await screen.findByRole('option', { name: /server · 尚未加载会话/ });
+  fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), { target: { value: 'server' } });
+  expect(screen.queryByRole('button', { name: '请求此服务授权' })).toBeNull();
+  expect(screen.queryByText(/状态未知/)).toBeNull();
+  expect(s.calls.filter(call => call.method === 'mcp/oauth')).toHaveLength(0);
+  if (authStatus === 'bearerToken') expect(screen.getByText(/无需浏览器二次授权/)).toBeTruthy();
+});
 
 it('McpPanel requests a scoped login then reads the private handoff; URL never enters persistent browser records or session cache', async () => {
   const s = setup(); render(<McpPanel {...props(s)} />); await select(); start();

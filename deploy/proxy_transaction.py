@@ -12,7 +12,8 @@ from .common import atomic_write, canonical, fsync_directory, mkdir, read_json, 
 from .ownership import present, regular, require_owned
 from .service_proxy import (PROXY_ROLES, active, apply_routes, check_core_config, config_path,
                             enabled, prepare_configuration, prerequisites, private_file,
-                            ready, remove_routes, selection, status, verify_configuration)
+                            ready, remove_routes, selection, status, verify_configuration,
+                            normalize_direct_domains, configured_direct_domains, prepare_direct_domains)
 from .units import render_units
 
 PHASES = ("prepared", "stopped", "selected", "recovering", "recovering-candidate", "committed", "recovered")
@@ -50,9 +51,13 @@ def proxy_activity(manager, config):
     return result
 
 
-def require_capability(manager):
-    require(read_json(manager.layout.control / "capabilities.json").get("serviceProxy") == 1,
+def require_capability(manager, *, direct_domains=False):
+    capabilities = read_json(manager.layout.control / "capabilities.json")
+    require(capabilities.get("serviceProxy") == 1,
             "Update trusted control tools before configuring the service proxy", "proxy_unsupported")
+    if direct_domains:
+        require(type(capabilities.get("serviceProxyDirectDomains")) is int and capabilities["serviceProxyDirectDomains"] == 1,
+                "Update trusted control tools before selecting a nonempty direct-host list", "proxy_unsupported")
 
 
 def validate_journal(manager, path, journal):
@@ -162,8 +167,8 @@ def recover(manager, path, journal, *, candidate=False):
     pending = [item for item in (manager.layout.state / "transactions").glob("*/state.json")
                if read_json(item).get("phase") not in ("committed", "recovered", "failed_first_start")]
     require(pending == [path], "Proxy recovery requires its sole unfinished transaction", "recovery_required")
-    require_capability(manager)
     target = following if candidate else old
+    require_capability(manager, direct_domains=bool(configured_direct_domains(manager.layout, selection(target))))
     if enabled(target):
         prerequisites()
         check_core_config(manager.layout, selection(target))
@@ -204,12 +209,17 @@ def previous_selection(manager):
     return sorted(eligible, key=lambda row: row[:2])[-1][2]
 
 
-def change(manager, *, action, confirm_restart, input_file=None, version=None, port=18793, download_proxy=None):
+def change(manager, *, action, confirm_restart, input_file=None, version=None, port=18793, download_proxy=None,
+           direct_domains=None):
     from .candidate_archive import require_idle
     from .config_layer import active_services
     from .proxy_core import prepare_core
     require(confirm_restart is True, "Confirm the proxy operation and brief restart of idle services", "confirmation_required")
-    require(action in ("configure", "disable", "core-update", "rollback"), "Invalid proxy operation")
+    require(action in ("configure", "disable", "core-update", "rollback", "direct-domains"), "Invalid proxy operation")
+    require(direct_domains is None or action in ("configure", "direct-domains"), "Direct domains require a configuration operation")
+    if direct_domains is not None:
+        direct_domains = normalize_direct_domains(direct_domains)
+    require(action != "direct-domains" or direct_domains is not None, "Provide the complete direct domain list or an explicit empty list")
     require_capability(manager)
     manager.require_update_ready(persist=False)
     require_idle(manager)
@@ -218,9 +228,16 @@ def change(manager, *, action, confirm_restart, input_file=None, version=None, p
     if action == "configure":
         prerequisites()
         require(input_file is not None and version is not None, "Proxy configuration file and exact core version are required")
-        ident = prepare_configuration(manager.layout, input_file, port)
+        domains = configured_direct_domains(manager.layout, current) if direct_domains is None else direct_domains
+        require_capability(manager, direct_domains=bool(domains))
+        ident = prepare_configuration(manager.layout, input_file, port, domains)
         core = prepare_core(manager.layout, version, download_proxy=download_proxy)
         following = {"enabled": True, "port": port, "core": core["core"], "configuration": ident}
+    elif action == "direct-domains":
+        require(current is not None, "Configure the proxy before changing its direct domains")
+        require_capability(manager, direct_domains=bool(direct_domains))
+        ident = prepare_direct_domains(manager.layout, current, direct_domains)
+        following = {**current, "configuration": ident}
     elif action == "core-update":
         require(current is not None and version is not None, "Configure the proxy before updating its core")
         core = prepare_core(manager.layout, version, download_proxy=download_proxy)
@@ -229,6 +246,8 @@ def change(manager, *, action, confirm_restart, input_file=None, version=None, p
         following = {**current, "enabled": False} if current is not None else None
     else:
         following = previous_selection(manager)
+    if following is not None:
+        require_capability(manager, direct_domains=bool(configured_direct_domains(manager.layout, following)))
     if following == current:
         return {**status(manager), "changed": False, "servicesRestored": True}
     if following is not None:

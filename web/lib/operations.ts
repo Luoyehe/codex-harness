@@ -5,10 +5,13 @@ import { operationTransaction, stored } from './operation-store';
 export type OperationState = 'pending' | 'unknown' | 'accepted' | 'not_sent';
 export type TerminalResult = { terminalId: string };
 export type TerminalOwner = { clientId: string; connectionId: string };
+export type RecoveryOperation = Readonly<{ id: string; method: string }>;
 export type Operation = {
   id: string; method: string; threadId?: string; projectId?: string; resourceId?: string;
   draftKey?: string; draftRevision?: string; createdAt: number; state: OperationState;
   resolvedThreadId?: string; terminalOwner?: TerminalOwner; terminalResult?: TerminalResult;
+  /** Captured atomically before a force recovery, without message bodies or credentials. */
+  recoveryOperations?: RecoveryOperation[];
   /** The destination thread has been loaded after this receipt was observed. */
   consumed?: true;
   /** Legacy JavaScript cannot join our transactions; retain its draft conservatively. */
@@ -41,6 +44,13 @@ function checkedOperation(value: unknown, id?: string): Operation {
         typeof record.terminalOwner.connectionId !== 'string' || !record.terminalOwner.connectionId)))
     throw new Error('操作恢复记录损坏，已暂停新操作。');
   if (record.terminalResult !== undefined) checkedTerminalResult(record.terminalResult);
+  if (record.recoveryOperations !== undefined && (record.method !== 'system/recover' ||
+      !Array.isArray(record.recoveryOperations) || record.recoveryOperations.length > 200 ||
+      new Set(record.recoveryOperations.map(row => row?.id)).size !== record.recoveryOperations.length ||
+      record.recoveryOperations.some(row => !row || row.id === record.id ||
+        typeof row.id !== 'string' || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(row.id) ||
+        typeof row.method !== 'string' || !row.method || row.method.length > 256 || row.method === 'system/recover')))
+    throw new Error('强制恢复的操作清单损坏，已保留原记录。');
   return record;
 }
 const legacyPrefix = 'harness.operation.v1.';
@@ -211,13 +221,18 @@ export async function createOperation(
       const removed = new Set(collectible.map((row) => row.id));
       records = records.filter((row) => !removed.has(row.id));
     }
-    if (records.length >= 200) throw new Error('恢复记录已达到 200 条上限。请在设置 → 操作记录中处理待确认或已完成的记录。');
+    // One reserved slot lets an explicit emergency recovery operate at the ordinary budget.
+    if (records.length >= (method === 'system/recover' ? 201 : 200)) throw new Error('恢复记录已达到 200 条上限。请在设置 → 操作记录中处理待确认或已完成的记录。');
     if (records.some((r) => ['pending', 'unknown'].includes(r.state) &&
       (r.method === method || (INPUT_METHODS.includes(r.method) && INPUT_METHODS.includes(method))) &&
       r.threadId === scope.threadId && r.projectId === scope.projectId && r.resourceId === scope.resourceId &&
       (method !== 'terminal/open' || (r.terminalOwner?.clientId === scope.terminalOwner?.clientId &&
         r.terminalOwner?.connectionId === scope.terminalOwner?.connectionId))))
       throw new Error('此操作还有待确认的请求。请先查询回执。');
+    if (method === 'system/recover') record.recoveryOperations = records
+      .filter(row => row.method !== 'system/recover' && ['pending', 'unknown'].includes(row.state))
+      .map(({ id: previousId, method: previousMethod }) => ({ id: previousId, method: previousMethod }));
+    checkedOperation(record);
     await stored(store.add(record));
     if (JSON.stringify(await stored(store.get(id))) !== JSON.stringify(record))
       throw new Error('无法持久保存操作标识，尚未发送请求。');

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-mcp-oauth-admission-review",
+  "complete": true,
+  "status": "passed",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "completedAt": "2026-11-01T07:41:13.939186+00:00",
+  "files": [
+    {
+      "path": "src/runtime/mcp-oauth.ts",
+      "sha256": "e29d02697dd02f43c06db11e4bd6bd9101deb7e6c9df7d4338d7823b525f84ea"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth.test.ts",
+      "sha256": "ff44fd95d08e09032090443694b75ba33582a66361b349f0905ee66ae933dfbe"
+    }
+  ],
+  "findings": [],
+  "authorReport": {
+    "path": ".work/v230-mcp-oauth-builtin-implementation.json",
+    "sha256": "be47d907562d7032bee699b60a08dafabe7adcc2ddd9ae9c56dc9005119e52e6"
+  },
+  "scope": "Only fresh exact MCP OAuth status admission and its RuntimeService callback/test. Excludes builtin checker, package upgrades, renderer, UI and full source audit.",
+  "reviewDepth": [
+    "Read complete current McpOauth module; exact changed service constructor and directMutation boundary; complete affected test file including delayed status/disconnect, terminal correlation, capacity and dispatched errors.",
+    "Read existing Mcp.list validation and pinned generated McpAuthStatus/ListMcpServerStatusParams/Response contract: exact serverName plus thread identity, maximum100 and complete null cursor, strict official OAuth statuses. The pagination completeness guard is retained.",
+    "Readonly status failures are normalized before login write and removed from the per-target reservation; unsupported/unknown/nonofficial auth statuses do not invoke directMutation. Post-dispatch uncertainty still retains reservation and suppresses unsafe retry. Existing owner/channel/epoch/TTL and beforeWrite checks remain authoritative."
+  ],
+  "evidence": [
+    {
+      "path": ".work/test-results/run-KWCXy6/vitest.json",
+      "sha256": "0a8272ea22dbe047e7f6046aadd8b26ec15c6abe4fc0c9d1fd63f98e34b73d99"
+    }
+  ],
+  "validation": {
+    "authorTestsParsed": {
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0
+    },
+    "testsRerunByReviewer": false,
+    "serverTypecheck": "Author reported pass; not rerun in this narrow review."
+  },
+  "contextFiles": [
+    {
+      "path": "src/runtime/mcp.ts",
+      "sha256": "a123f2b84aab63c509940f2c9b65ff5297bc8240ff52c96ea6d446e7c505989f"
+    },
+    {
+      "path": "protocol/ts/v2/McpAuthStatus.ts",
+      "sha256": "567dad6dbb3bc81cee7103965cf31fbfafec2d2e5c61bbc872630cbae9c380c8"
+    },
+    {
+      "path": "protocol/ts/v2/ListMcpServerStatusParams.ts",
+      "sha256": "8f769ff4fc224f9ac29ea76d568500bb07b3d959ecc3cc67abf203e753ea616e"
+    },
+    {
+      "path": "protocol/ts/v2/ListMcpServerStatusResponse.ts",
+      "sha256": "30a823dce1d1f7a8d94e03e4716c1a8bf7dab253d222286ee5316f2982c1df27"
+    }
+  ],
+  "limits": [
+    "No external MCP, paid model, personal credentials or live OAuth server was exercised. Tests use official-shape controlled native responses; no claim of every custom MCP implementation interoperability.",
+    "Current service file contains prior defaults changes; this review covers only the new callback plus its affected mutation boundary.",
+    "This is a narrow independent code review, not a complete audit/freshness authorization."
+  ]
+}

@@ -75,7 +75,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 async function selectTool() {
-  await screen.findByRole('option', { name: /local · connected/ });
+  await screen.findByRole('option', { name: /local · 已连接/ });
   fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), {
     target: { value: 'local' },
   });
@@ -508,7 +508,7 @@ it('sends only explicitly replaced secret groups and never persists their entere
 });
 
 async function streamDraft() {
-  await screen.findByRole('option', { name: /local · connected/ });
+  await screen.findByRole('option', { name: /local · 已连接/ });
   fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), {
     target: { value: 'local' },
   });
@@ -566,7 +566,7 @@ it.each(['thread', 'epoch', 'lease', 'connection'] as const)(
       />,
     );
     view.rerender(<McpPanel {...initial} />);
-    await screen.findByRole('option', { name: /local · connected/ });
+    await screen.findByRole('option', { name: /local · 已连接/ });
     fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), {
       target: { value: 'local' },
     });
@@ -950,7 +950,7 @@ it.each(['server', 'thread', 'epoch', 'lease', 'connection'] as const)(
         />,
       );
       view.rerender(<McpPanel {...props} />);
-      await screen.findByRole('option', { name: /local · connected/ });
+      await screen.findByRole('option', { name: /local · 已连接/ });
       fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), {
         target: { value: 'local' },
       });

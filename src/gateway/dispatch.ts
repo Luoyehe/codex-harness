@@ -13,16 +13,18 @@ import { ReceiptMaintenance } from './receipt-maintenance.js';
 import { executionModeState, validateExecutionModeWrite } from '../core/execution-mode.js';
 
 const readMethods = new Set(['thread/list', 'thread/read', 'thread/history', 'model/list', 'defaults/read', 'account/read', 'account/rateLimits', 'mcp/list', 'prompt/list', 'attachment/read', 'runtime/status', 'project/defaults']);
-const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/create', 'project/rename', 'project/remove', 'system/restart', 'system/provider/write', 'system/models/refresh', 'system/execution-mode/write']);
+const mutations = new Set(['conversation/start', 'thread/name/set', 'thread/archive', 'thread/unarchive', 'thread/compact', 'turn/start', 'account/login', 'account/login/cancel', 'account/logout', 'mcp/oauth', 'prompt/answer', 'attachment/upload', 'attachment/remove', 'terminal/open', 'project/add', 'project/create', 'project/rename', 'project/remove', 'system/restart', 'system/recover', 'system/provider/write', 'system/models/refresh', 'system/execution-mode/write']);
 const volatile = new Set(['turn/interrupt', 'terminal/write', 'terminal/resize', 'terminal/close']);
 const workMethods = new Set(['conversation/start', 'turn/start', 'thread/compact', 'terminal/open']);
 const systemReads = new Set(['system/status', 'system/logs', 'system/provider/read', 'system/execution-mode/read']);
 const projectMethods = new Set(['thread/list', 'conversation/start', 'defaults/read', 'terminal/open']);
 interface Activity { activeThreads: string[]; pendingStarts: number; terminals: number; subscriptions: number; processes: number; unknown: boolean }
+interface Maintenance { kind: 'root' | 'worker' | 'receipt' }
 export class Dispatcher extends EventEmitter {
   readonly workspaceAcknowledgements: WorkspaceAcknowledgements;
   readonly receiptMaintenance: ReceiptMaintenance;
-  #pendingWork = new Set<string>(); #maintenance = false;
+  #pendingWork = new Set<string>(); #maintenance: Maintenance | null = null;
+  #recoveryGeneration = 0;
   #automationHealth: JsonObject = { running: false, lastTickAt: null, lastError: null };
   #runtime: JsonValue = null; #activity: Activity = { activeThreads: [], pendingStarts: 0, terminals: 0, subscriptions: 0, processes: 0, unknown: true };
   constructor(readonly ledger: Ledger, readonly worker: WorkerPort, readonly manager: ManagerPort) { super(); this.workspaceAcknowledgements = new WorkspaceAcknowledgements(ledger, worker); this.receiptMaintenance = new ReceiptMaintenance(ledger); }
@@ -42,7 +44,7 @@ export class Dispatcher extends EventEmitter {
   disconnected(): void { this.workspaceAcknowledgements.reconnected(); this.#activity.unknown = true; this.emit('event', { type: 'state', data: { connected: false, activity: { ...this.#activity } } }); }
   status(): JsonValue {
     const runtime = this.#runtime && typeof this.#runtime === 'object' && !Array.isArray(this.#runtime) ? this.#runtime : {};
-    return { ...runtime, connected: this.worker.connected && runtime.connected === true, operationGeneration: this.ledger.operationGeneration(), activity: { ...this.#activity }, activityUncertain: this.ledger.getMeta('activityUncertain') === 'true', maintenance: this.#maintenance, automation: this.#automationHealth };
+    return { ...runtime, connected: this.worker.connected && runtime.connected === true, operationGeneration: this.ledger.operationGeneration(), activity: { ...this.#activity }, activityUncertain: this.ledger.getMeta('activityUncertain') === 'true', maintenance: this.#maintenance !== null, automation: this.#automationHealth };
   }
   automationHealth(value: JsonObject): void { this.#automationHealth = value; this.emit('event', { type: 'automation', data: { health: value } }); }
   private replay(receipt: Receipt): JsonValue {
@@ -54,13 +56,15 @@ export class Dispatcher extends EventEmitter {
     context.requireAuthorization?.();
     this.workspaceAcknowledgements.opportunistic(context);
     const { method, params } = call; const feature = featureMethod(method);
+    if (method === 'system/recover' && (Object.keys(params).length !== 1 || params.confirmStop !== true))
+      throw new HarnessError('invalid', '强制停止并恢复服务需要明确确认停止全部任务。');
     if (method === 'system/execution-mode/write') validateExecutionModeWrite(params);
     if (method === 'system/execution-mode/read' && Object.keys(params).length)
       throw new HarnessError('invalid', '执行权限查询不接受参数。');
     if (method.startsWith('operation/maintenance/')) {
       if (method !== 'operation/maintenance/rotate') return this.receiptMaintenance.call(method, params, context);
       const rotation = this.receiptMaintenance.validateRotation(params, context);
-      this.requireIdle(); this.#maintenance = true;
+      this.requireIdle(); const maintenance: Maintenance = { kind: 'receipt' }; this.#maintenance = maintenance;
       try {
         await this.workspaceAcknowledgements.drain(context);
         context.requireConnection?.();
@@ -70,7 +74,7 @@ export class Dispatcher extends EventEmitter {
         this.receiptMaintenance.validateRotation(params, context);
         context.requireAuthorization?.();
         const result = this.ledger.rotate(rotation); this.receiptMaintenance.forget(); return result;
-      } finally { this.#maintenance = false; this.emit('event', { type: 'state', data: this.status() }); }
+      } finally { if (this.#maintenance === maintenance) this.#maintenance = null; this.emit('event', { type: 'state', data: this.status() }); }
     }
     if (method === 'operation/retire') {
       if (Object.keys(params).some(key => key !== 'operationId')) throw new HarnessError('invalid', '阻止请求只接受操作编号。');
@@ -116,30 +120,45 @@ export class Dispatcher extends EventEmitter {
     const operationId = uuid(call.operationId); const scope = this.scope(method, params);
     const reserved = this.ledger.reserve(operationId, method, params, scope);
     if (!reserved.created) return this.replay(reserved.receipt);
+    const recoveryGeneration = this.#recoveryGeneration;
+    const forceRecovery = method === 'system/recover';
     const startsWork = workMethods.has(method) || feature?.activity === 'start';
     const isWork = startsWork || feature?.activity === 'continue' || feature?.activity === 'idle';
     const rootManagement = method.startsWith('system/');
     const localProject = method === 'project/remove' || method === 'project/rename';
     const management = rootManagement || feature?.activity === 'configuration';
+    let maintenance: Maintenance | undefined;
     let locked = false; let dispatched = false; let backendAcknowledged = false;
     try {
       // Recorded identities replay before connection admission. Only a new worker dispatch needs a live owner.
       if (!rootManagement && !localProject) context.requireConnection?.();
-      if ((isWork || management || feature?.access === 'write' || method.startsWith('account/') || method.startsWith('project/')) && this.#maintenance) throw new HarnessError('maintenance', '服务器正在变更配置，请稍后重试。');
+      if ((isWork || management || feature?.access === 'write' || method.startsWith('account/') || method.startsWith('project/')) &&
+          this.#maintenance && !(forceRecovery && this.#maintenance.kind === 'worker'))
+        throw new HarnessError('maintenance', '服务器正在变更配置，请稍后重试。');
       if (isWork && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台任务状态需要核对，暂不能开始新任务。');
       if (isWork && (this.#pendingWork.has(scope) || ((startsWork || feature?.activity === 'idle') && this.#activity.activeThreads.includes(String(params.threadId))))) throw new HarnessError('thread_busy', '此会话已有正在执行或等待确认的任务。');
       if (management) {
-        if (method !== 'system/restart' && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台状态未知，请先检查并恢复服务。');
+        if (method !== 'system/restart' && !forceRecovery && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台状态未知，请先检查并恢复服务。');
         // Explicit restart is the stop-confirmed recovery path, including when
         // the last worker snapshot still reports uncertain or active work.
-        // Never race a gateway submission that has not settled yet.
-        if (this.#pendingWork.size || (method !== 'system/restart' && (this.#activity.pendingStarts || this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes)))
+        // Ordinary restart waits for submitted work. Explicit force recovery
+        // fences queued writes and lets the manager confirm both cgroups empty.
+        if (!forceRecovery && (this.#pendingWork.size || (method !== 'system/restart' && (this.#activity.pendingStarts || this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes))))
           throw new HarnessError('activity_busy', '请先结束任务和网页终端，再变更服务配置。');
-        this.#maintenance = true; locked = true;
+        // Root transactions and receipt rotation cannot be preempted. Worker
+        // configuration can hang like any native operation, so recovery owns
+        // a new token and the old worker's finally must not release that token.
+        maintenance = { kind: rootManagement ? 'root' : 'worker' };
+        this.#maintenance = maintenance; locked = true;
+        if (forceRecovery) this.#recoveryGeneration++;
       } else if (isWork) { this.#pendingWork.add(scope); locked = true; }
       const recordDispatch = () => { if (!dispatched) { this.ledger.dispatch(operationId); dispatched = true; } };
       const beforeWrite = () => {
         context.requireAuthorization?.();
+        // An admitted request can resume after maintenance has already ended.
+        // It must never dispatch into the recovered runtime's new epoch.
+        if (!rootManagement && recoveryGeneration !== this.#recoveryGeneration)
+          throw new HarnessError('recovery_started', '服务恢复已开始，此前等待的操作未发出。请检查原操作记录。');
         if (method === 'system/execution-mode/write' && (!this.worker.connected || this.#activity.unknown ||
             this.ledger.getMeta('activityUncertain') === 'true' || this.#pendingWork.size || this.#activity.pendingStarts ||
             this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes))
@@ -222,8 +241,8 @@ export class Dispatcher extends EventEmitter {
       }
       throw new HarnessError(body.code, body.message, body.delivery ?? (dispatched ? 'unknown' : 'not_sent'), body.data);
     } finally {
-      if (locked && management) {
-        this.#maintenance = false;
+      if (locked && management && this.#maintenance === maintenance) {
+        this.#maintenance = null;
         this.emit('event', { type: 'state', data: this.status() });
       }
       if (locked && isWork) this.#pendingWork.delete(scope);
@@ -263,7 +282,7 @@ export class Dispatcher extends EventEmitter {
     this.emit('event', { type: 'receipt', data: { ...receipt } as unknown as JsonValue });
     this.emit('event', { type: 'state', data: this.status() });
   }
-  maintenanceActive(): boolean { return this.#maintenance; }
+  maintenanceActive(): boolean { return this.#maintenance !== null; }
   private requireIdle(locked = false): void {
     if ((!locked && this.#maintenance) || !this.worker.connected || this.#activity.unknown || this.ledger.getMeta('activityUncertain') === 'true' || this.#pendingWork.size || this.#activity.pendingStarts || this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes)
       throw new HarnessError('journal_busy', '请先结束后台任务并恢复所有未知状态，再轮换回执。');

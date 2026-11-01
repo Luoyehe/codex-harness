@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "probes": [
+    {
+      "proxyPort": 18794,
+      "url": "https://api.github.com/repos/XTLS/Xray-core/releases/tags/v26.10.29",
+      "tlsVerification": "Python default public trust, hostname verification required",
+      "startedAt": "2026-11-01T06:50:46.244229+00:00",
+      "requestCount": 1,
+      "success": false,
+      "httpStatus": 404,
+      "errorType": "HTTPError",
+      "rateLimit": {
+        "x-ratelimit-remaining": "50",
+        "x-ratelimit-reset": "1793518387",
+        "x-ratelimit-limit": "60"
+      },
+      "completedAt": "2026-11-01T06:50:47.346745+00:00"
+    }
+  ],
+  "cgroup": "0::/user.slice/user-0.slice/session-2563.scope",
+  "networkNamespace": "net:[4026531840]",
+  "scope": "Root SSH process, as with the failed CLI phase (not systemd manage RPC). Explicit loopback HTTP proxy supplies egress; no membership or namespace changes.",
+  "productPrepareOrChangeCalled": false,
+  "proxyConfigurationOrServiceChanged": false,
+  "bodyEmitted": false,
+  "credentialsEmitted": false
+}

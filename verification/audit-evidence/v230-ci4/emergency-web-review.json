@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-force-recovery-web-integration-review",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "status": "passed",
+  "completedAt": "2026-11-01T07:42:41.053584+00:00",
+  "files": [
+    {
+      "path": "web/components/EmergencyRecovery.tsx",
+      "sha256": "8a9d52dc6383fb335f96cbcc634139b4f474737c34900af6720a77f1dcab8c8f"
+    },
+    {
+      "path": "web/lib/emergency-recovery.ts",
+      "sha256": "226c23b6081bc7202602bcf33684b3f5edd8054675b22e15a7cff1c7d7768fa9"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "2afbaf26262736c8c2dcb82f3f7e150cb15f51d875b03e292ecb4c60715dbf40"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "c4a3e73a7f327ac71d54d88594c60f521bc53da22c0d5c100933b58b2d73ed3c"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "fdd259d8ba68b48eeff12c29d19ef51e1e9590664b4ccca273a611d56d1faf83"
+    },
+    {
+      "path": "web/components/Settings.tsx",
+      "sha256": "4500fd0f7dd55fd3c3004e1919087aada4853353aede1381d3b254b729c804d1"
+    },
+    {
+      "path": "web/components/AdminSettings.tsx",
+      "sha256": "25436ea7a17b6f4d29525d3b4a4ed8fd47a8383bf9dacb60e2a612937b8982d7"
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "9b013a2ea0c8c5cbed9e2803f5a91bc5207096d55ec2076220543416df56c2e8"
+    },
+    {
+      "path": "web/tests/emergency-recovery.test.tsx",
+      "sha256": "0073b9e1a6a3bc44e27d1bc98237d4b3db47916e28bc61727ddefcf88bbcd7ff"
+    },
+    {
+      "path": "web/tests/emergency-recovery.test.ts",
+      "sha256": "7682a5e4f2b72e6ef3a26c224362f8eed95c3b8c97d3667ac0604a5296e45f28"
+    },
+    {
+      "path": "web/tests/operation-storage.test.ts",
+      "sha256": "e8ff8144b268b660e2bc12dbf969b530f78a4fbb395efc28a5be20761d3c36a8"
+    }
+  ],
+  "findings": [],
+  "closedFindings": [
+    {
+      "id": "V230-FORCE-WEB-001",
+      "priority": "P2",
+      "finding": {
+        "path": ".work/v230-emergency-web-not-sent-finding.json",
+        "sha256": "bd508072f38ff41e16be10750218840f3fbc0cd7e03f83f8a6e6813693a2226d"
+      },
+      "additionalVariant": "A durable local not_sent created before any HTTP dispatch also occupied slot201 after reopening; an honest not_received server answer could not release it.",
+      "beforeAdditional": {
+        "path": ".work/v230-emergency-not-sent-reopen-before-vitest.json",
+        "sha256": "1909dba3cee1cdfc469d3170bd33695ddc5ddfa7e9a95f9aa39c548f01efe353"
+      },
+      "beforeAdditionalSource": {
+        "path": ".work/v230-emergency-web-local-not-sent-before.tsx",
+        "sha256": "01e822b2cd00ee4e70bb1d4061d0ae5ff35fce076f861a469ca9114bbca802d2"
+      },
+      "resolution": "Live not_sent and queried not_sent acknowledge only the original recovery before exposing a new explicit confirmation. Reopened durable local not_sent has an explicit local-close action with zero server requests. Failed storage acknowledgement retains original identity. Unknown/accepted snapshots are not collected by these branches.",
+      "after": {
+        "path": ".work/v230-emergency-web-repair-after-vitest.json",
+        "sha256": "3c4b3a5888b08055ac26095e8dcda27a9252ff41c745fa8d6966f1a523fecf99"
+      }
+    }
+  ],
+  "reviewDepth": [
+    "Read complete EmergencyRecovery component and its tests; current changed operations/API code plus transactional create/update/ack/unknown-close and synchronous prepare path. Read all changed Workspace, Settings, AdminSettings and Recovery integration lines with surrounding ownership/connection context.",
+    "Confirmed recoveryOperations is an atomic bounded id/method snapshot captured before the new recovery record, excludes every recover record, is validated on read, survives positive API response and reload, and is not reconstructed from timestamps. Ordinary capacity200 plus one emergency slot is bounded.",
+    "Positive restart result must contain exact restarted:true and 64lowerhex release. Queries bind original id/method. Missing/pending/dispatching/unknown recovery results do not imply success or retry. Post-proof old operations are readonly queried and only exact captured unknowns may close; accepted/not_sent outcomes follow normal workflow and drafts remain.",
+    "Checked cancellation, auth/API ownership, double-click guards, synchronous prepare fencing, storage failures and accepted receipt retention until closure. No later-created old-operation inference or automatic restart submission.",
+    "Read Dialog native top-layer ordering/focus restoration and CSS max-width/max-height/scroll/wrap. Workspace offline/not-ready banner and settings action remain outside activity admission. Static phone layout assessment only; real phone browser fixture is parent-owned and pending.",
+    "Read actual MCP lease cache and Workspace bridge/settings lease propagation; independent small fixture verifies an epoch/revision change creates empty new admission state while original unknown attempt remains unchanged."
+  ],
+  "independenceBoundary": {
+    "originalHelperAuthor": "This reviewer authored the original web/lib/emergency-recovery.ts and its six tests. This report independently covers parent integration, persistence, API retention, revised capture bound, UI and retry fixes; it does not mislabel the original helper as independently reviewed by its own author. Parent separately reviews original helper.",
+    "helperOriginalReport": {
+      "path": ".work/v230-emergency-local-closure-helper.json",
+      "sha256": "875811328e07c62624f403eaf74e6ef1c8499d03c1f2ed6c09f06a946a4fc00d"
+    }
+  },
+  "validation": {
+    "authorFinal": {
+      "passed": 72,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-nEoTn7/vitest.json",
+        "sha256": "ed78681e29594713e110ed5f2a3b2c5d02f509f1de008c3b8e3206adaad6d994"
+      },
+      "files": [
+        "D:/Document/ChatGPT/codex-harness/rewrite-20261025/web/tests/emergency-recovery.test.ts",
+        "D:/Document/ChatGPT/codex-harness/rewrite-20261025/web/tests/emergency-recovery.test.tsx",
+        "D:/Document/ChatGPT/codex-harness/rewrite-20261025/web/tests/operation-storage.test.ts",
+        "D:/Document/ChatGPT/codex-harness/rewrite-20261025/web/tests/operations.test.ts"
+      ]
+    },
+    "independentAfter": {
+      "passed": 3,
+      "failed": 0,
+      "evidence": {
+        "path": ".work/v230-emergency-web-repair-after-vitest.json",
+        "sha256": "3c4b3a5888b08055ac26095e8dcda27a9252ff41c745fa8d6966f1a523fecf99"
+      },
+      "test": {
+        "path": ".work/v230-emergency-web-repair-after.test.tsx",
+        "sha256": "1a4c1bf11b22d1b2e7fe888b9013d1525f6d8094aed71cf1dd1143eba440adcf"
+      },
+      "config": {
+        "path": ".work/v230-emergency-review-after.vitest.mjs",
+        "sha256": "f65b021c41a54bc6b2b2d7434f07fb9843e8cea80bf98200f09254c9a4cda650"
+      },
+      "scope": "Actual React component/Api/IndexedDB with controlled transport: retry after direct not_sent at200; reopen pre-dispatch not_sent closes locally with zero fetch; actual MCP lease cache replacement."
+    },
+    "beforeEvidence": [
+      {
+        "path": ".work/v230-emergency-not-sent-capacity-before-vitest.json",
+        "sha256": "7d85b7788bb39b8130864b902cb8f8bc156aea459d2e6a8fd0e5103a74dcb8bd"
+      },
+      {
+        "path": ".work/v230-emergency-not-sent-reopen-before-vitest.json",
+        "sha256": "1909dba3cee1cdfc469d3170bd33695ddc5ddfa7e9a95f9aa39c548f01efe353"
+      }
+    ],
+    "historicalMeaning": "Original bug assertions passing mean defects reproduced, not product clean. Author initial ordering assertion/ENOSPC attempts were not recast as successful final evidence.",
+    "webTypecheck": "Author reported current pass; not repeated by reviewer."
+  },
+  "contextFiles": [
+    {
+      "path": "web/components/Dialog.tsx",
+      "sha256": "0877f0f4bc27cbbee1e733bb53f8c7d73895cefaa600b9623a1ddf1f5b808af5"
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "c0b3c7b9aff7863da450be2ae84946797162fb4f8a5612217cfb55ee19e20dc2"
+    },
+    {
+      "path": "web/lib/operation-store.ts",
+      "sha256": "84471c85a2af28b1ae571fe5c4a1d2ca02d03c5206137e98aa58f6ecaf576e45"
+    },
+    {
+      "path": "web/lib/mcp-session.ts",
+      "sha256": "2203ce64e5844d5cd53c97563a0a95b2783b11e5da87a88aef66cd7e3ff6aad6"
+    }
+  ],
+  "limits": [
+    "Narrow integration review, not a full source audit. No production stop, external MCP, native model call, credentials, browser or full test suite used.",
+    "Unknown external work remains unknown; local closure is not server acceptance, cancellation proof for external side effects or draft deletion.",
+    "New operations not in persisted snapshot remain for normal/manual recovery; legacy recover records lacking a snapshot are honestly retained/manual.",
+    "Phone visual/touch behavior still requires the separate real-browser fixture.",
+    "Malformed storage remains fail-closed and may require operator recovery; bounded slot does not claim to repair arbitrary database corruption."
+  ]
+}

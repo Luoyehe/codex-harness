@@ -150,6 +150,33 @@ class ProviderRegistryTests(unittest.TestCase):
             self.assertEqual(servers["zai-mcp-server" + suffix]["args"], ["zai-server", row["id"]])
             self.assertEqual(environment(current)[servers["zread" + suffix]["bearer_token_env_var"]], row["settings"]["apiKey"])
 
+    def test_all_managed_cn_mcp_match_reviewed_contract_and_reuse_each_saved_plan_key(self):
+        contract = json.loads((Path(__file__).resolve().parents[2] / "reference/BUILTIN-MCP-CONTRACT.json").read_text())
+        self.assertEqual(contract["credential"], "same-enabled-provider-api-key")
+        self.assertFalse(contract["browserOAuth"])
+        current = self.current
+        for key in ("fixture-plan-one", "fixture-plan-two"):
+            current = change({"expectedRevision": current["revision"], "providerId": "new",
+                              "kind": contract["providerKind"], "apiKey": key}, current)
+        rows = entries(current)[1:]
+        servers, keys = configuration(current, self.layout)["mcp_servers"], environment(current)
+        self.assertEqual(len(servers), len(contract["servers"]) * len(rows))
+        for index, row in enumerate(rows):
+            suffix = "" if index == 0 else "-" + row["id"]
+            for definition in contract["servers"]:
+                rendered = servers[definition["name"] + suffix]
+                if definition["transport"] == "streamable-http":
+                    self.assertEqual(set(rendered), {"url", "bearer_token_env_var"})
+                    self.assertEqual(rendered["url"], definition["url"])
+                    self.assertEqual(keys[rendered["bearer_token_env_var"]], row["settings"]["apiKey"])
+                else:
+                    self.assertEqual(rendered, {"command": str(self.layout.control / "native-launch"),
+                                               "args": ["zai-server", row["id"]]})
+        disabled = change({"expectedRevision": current["revision"], "providerId": rows[1]["id"], "enabled": False}, current)
+        remaining = configuration(disabled, self.layout)["mcp_servers"]
+        self.assertEqual(set(remaining), {server["name"] for server in contract["servers"]})
+        self.assertNotIn("fixture-plan-two", environment(disabled).values())
+
     def test_bedrock_retains_native_catalog_and_scoped_bearer_helper(self):
         current = change({"expectedRevision": self.current["revision"], "providerId": "new",
                           "kind": "bedrock-runtime", "region": "us-east-1", "apiKey": "fixture-aws"}, self.current)

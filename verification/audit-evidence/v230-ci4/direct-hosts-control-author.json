@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "kind": "direct-domains-control-compatibility-repair",
+  "complete": true,
+  "status": "implementation-targeted-tests-passed-independent-review-pending",
+  "createdAt": "2026-11-01T07:19:03.546428+00:00",
+  "originalFinding": "serviceProxy:1 allowed selecting older control whose fixed-policy parser rejects new full: host rule, for enabled and retained disabled selections; a new reviewed checkout could also try creating such a list while installed helper still lacked support.",
+  "originalEvidence": {
+    "path": ".work/v230-direct-domains-control-compat-repro.json",
+    "sha256": "effdd93145e1c74c22aac286e247dd63646685ce77f4dd1c7d1e63efae3f0e4a",
+    "bytes": 1001
+  },
+  "files": [
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "ec53d9ef6bc19ebdb344f2ff4af1230370756dda03fd8554bf790ed7bb704a81",
+      "bytes": 39472
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "f6236061edbc81cf56a5e31a91903ee92f3ea02d89d58e86b7fe1cb3513de248",
+      "bytes": 9104
+    },
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "f5fdb0e63454d35c381dc3cf8d644ad6aa1d542b7ffda04acb125da789b66815",
+      "bytes": 16046
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "2a33115e851e649c8c84e540f0bf45d4a46c77437ffe289e0d148b64529d9fb9",
+      "bytes": 22533
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "9be3390770927674accd80be57aad118a01d3a2b23f5bc32a1840798892e7c1d",
+      "bytes": 56724
+    },
+    {
+      "path": "tests/deploy/test_proxy_transaction.py",
+      "sha256": "ad9d466752b675ec48eda253d521fb0780256fd3e4b690c52f68829df9def841",
+      "bytes": 16798
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "e41fbd20276b53661e1cff48b01941b31f895efdef3a38bcee5218b751b1d19b",
+      "bytes": 27599
+    }
+  ],
+  "changes": [
+    "stage_control advertises numeric serviceProxyDirectDomains:1 alongside existing serviceProxy:1.",
+    "Control admission derives the list only from exact verified saved configuration and requires the new capability for nonempty lists, regardless of enabled state. Missing/wrong/boolean marker fails proxy_unsupported; empty list remains compatible with older serviceProxy:1.",
+    "The existing common control guard protects retained rollback and old/candidate recovery before guard/stop; staged candidate is now explicitly checked before prepared journal or any stop.",
+    "Proxy writes/preparation and old/candidate recovery require installed control capability only for the target nonempty list. Explicit clear and empty old recovery remain possible; core/disable/rollback cannot select unsupported nonempty generations.",
+    "Root transaction fixtures now retain real canonical configuration files rather than fictitious selection hashes for new verified list reads; source side effects remain substituted."
+  ],
+  "validation": {
+    "windowsFinal": {
+      "path": ".work/v230-direct-domains-control-proxy-windows-tests.json",
+      "sha256": "a7a7c9520ce5401d8df6c38243b05f110709cde89cfe205b50c1c6904bbdb828",
+      "bytes": 10574,
+      "counts": {
+        "passed": 50
+      }
+    },
+    "linuxControl": {
+      "path": ".work/v230-direct-domains-control-linux-tests.json",
+      "sha256": "b2f5e12bb0b2749e0fda91dbced1052df673c4a2ad8af7a51c42445670f784f4",
+      "bytes": 48644,
+      "counts": {
+        "passed": 76
+      }
+    },
+    "linuxProxy": {
+      "path": ".work/v230-direct-domains-proxy-capability-linux-tests.json",
+      "sha256": "452e38f57b339cd4fa340791597004b1d97ae424ea88dd646e6b9cb553b7f450",
+      "bytes": 23917,
+      "counts": {
+        "passed": 19
+      }
+    },
+    "diffCheck": "passed",
+    "retainedFailedAttempt": {
+      "path": ".work/v230-direct-domains-control-proxy-windows-attempt1.json",
+      "sha256": "49fcfe44c1afc654638e4ff40c9ca62129dd9b0cca3f16a6991eceea737117d3",
+      "bytes": 10574,
+      "counts": {
+        "passed": 49,
+        "failed": 1
+      },
+      "reason": "The existing busy-after-preparation fixture returned fake b*64 configuration without a file. New verified target-list admission correctly tried reading it; fixture now writes a real canonical empty-list configuration. Original stop/idle/assertions retained.",
+      "notClaimedPass": true
+    }
+  },
+  "rootCases": [
+    "Nonempty enabled/disabled rollback to serviceProxy:1 fails before service events or launcher changes.",
+    "Newly staged candidate lacking direct-host capability fails before journal/stop.",
+    "Old control recovery refuses without additional changes; capable candidate recovery succeeds.",
+    "Candidate recovery to a bound older capability fails before stop.",
+    "Old installed helper cannot configure/replace nonempty list or rollback to it; no download/stop/journal; clear while disabled succeeds.",
+    "Old installed helper refuses nonempty proxy candidate recovery while empty old recovery succeeds."
+  ],
+  "retainedRoutingEvidence": {
+    "path": ".work/v230-xray-direct-hosts-regression-result.json",
+    "sha256": "afa949ed60dd5a658ed49ec269c27a2be6721de1d6ea49fdded84e1ef7bd5c9b",
+    "bytes": 17909,
+    "casesPassed": 18,
+    "serviceProxySha256": "b6433c9b7575e4c3eb113e2507f2c2c639cee396fd8eb027d80bdce1d8132d7a",
+    "sameServiceProxyBytes": true,
+    "scope": "Actual Xray routing evidence retained because service_proxy.py and generated configuration bytes did not change in compatibility fix; it is not rebound to a later whole-source digest."
+  },
+  "relatedImplementation": {
+    "path": ".work/v230-direct-domains-backend-implementation.json",
+    "sha256": "b7d2901786103b19b0d8fe21d14ca356f6bd44ed64a063f557a61d83ed649248",
+    "bytes": 7155
+  },
+  "limits": [
+    "No full tests, production configuration/deployment or real service changes.",
+    "Linux real root filesystem/transaction fixtures substitute systemd/nft/core download/health; only local TLS deadline fixture makes loopback calls.",
+    "Previous implementation report and original P2 reproduction remain unchanged; this report binds additional/current bytes, not a whole-repository clean audit.",
+    "Control Linux76 passed before the final proxy entry-gate addition; its four owned control files remain byte-identical. Final proxy Linux19 archive records every current listed file hash."
+  ],
+  "remainingFindings": []
+}

@@ -141,7 +141,7 @@ export class RuntimeService extends EventEmitter {
       }, failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: (operation, context) => this.configurationMutation(operation, context, false), available: () => this.admit(undefined, false, true), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.deviceLogin = new DeviceLogin({ native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor });
-    this.mcpOauth = new McpOauth({ epoch: this.epoch, redactor: this.redactor, notify: (params, channel) => this.emitEvent('mcp', { type: 'oauth-completed', ...params }, channel) });
+    this.mcpOauth = new McpOauth({ epoch: this.epoch, redactor: this.redactor, serverStatus: params => this.mcp.list(params), notify: (params, channel) => this.emitEvent('mcp', { type: 'oauth-completed', ...params }, channel) });
     this.predictions = new Predictions({ native: (method, params) => this.native.call(method, params), mutate: (operation, context) => this.workflowMutation(operation, context), revision: threadId => this.track(threadId).revision, emit: (data, channel) => this.emitEvent('prediction', data, channel), changed: () => this.emitState(), unknown: () => { this.unknown = true; this.emitState(); } });
     native.on('notification', (message: JsonObject) => {
       try { this.notification(message); }

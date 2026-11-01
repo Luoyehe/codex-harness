@@ -336,7 +336,7 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     for (const key of allowed) if (Object.hasOwn(input, key)) output[key] = input[key]!;
     return output;
   }
-  if (method === 'system/restart') {
+  if (method === 'system/restart' || method === 'system/recover') {
     object(input); if (input.restarted !== true) throw new Error('Unconfirmed service restart');
     return { restarted: true, release: hex(input.release, 64) };
   }

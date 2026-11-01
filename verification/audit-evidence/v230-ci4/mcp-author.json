@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "kind": "mcp-oauth-builtin-implementation",
+  "createdAt": "2026-11-01T07:37:01.446Z",
+  "complete": true,
+  "status": "implemented-targeted-validation-passed",
+  "sourceObservation": {
+    "files": 1984,
+    "digest": "8165004108d0c77a19c9e94b58de8cfb6a69941dec0f240c8b2b6fedb9d5e476"
+  },
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "1f54e6842c81cc084df4ada9a03a79dec3ed8fa11f4615dabf1e609532316d03"
+    },
+    {
+      "path": "src/runtime/mcp-oauth.ts",
+      "sha256": "e29d02697dd02f43c06db11e4bd6bd9101deb7e6c9df7d4338d7823b525f84ea"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth.test.ts",
+      "sha256": "ff44fd95d08e09032090443694b75ba33582a66361b349f0905ee66ae933dfbe"
+    },
+    {
+      "path": "reference/BUILTIN-MCP-CONTRACT.json",
+      "sha256": "3a582f66a34def5b146c1d9fb60d5ee4bc0dbd4f6ed9247b1d682a75462b8f3c"
+    },
+    {
+      "path": "scripts/check-builtin-mcp.mjs",
+      "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "a5f62c5dfd07fa999ec8444e27f3447b39a3e4d59bd7ea7d33812835afb475b0"
+    },
+    {
+      "path": "tests/tooling/builtin-mcp.test.ts",
+      "sha256": "b96a786bc3bfa8ae5c5a73441a45a3aab6175c461136b0bcecd8b25851b5241d"
+    },
+    {
+      "path": "tests/tooling/vision-compat.test.ts",
+      "sha256": "24f1d6aa30e947764d0264b67fa30d3c353f5fe5562fa45a048508adbb5f3a99"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "70c2ec35fb3b38f39b0d77c41dd0494dea770042f1d76a069fd46bd89a846d8a"
+    },
+    {
+      "path": "tests/deploy/test_provider_registry.py",
+      "sha256": "f6c3857711607ac59f01c1aeea89d8b8baa685768b2e271274b56f47b2ee9435"
+    },
+    {
+      "path": "package.json",
+      "sha256": "e0fe16c90bf819b1b604239b2638714a6c15ecfd9d7b6ec20130304b7592464a"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "55c7a42ea77ca4130aa1373c4b0c119909d6fe0bd300f837f90faab869a027eb"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e77964d5f1476df649e0a8303cd27682cb6e0858582f97ecd75655abd253b963"
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "b106e57369c02561c3a58e2ed9d54b17ed40cb2e782d257ffe353ce5abc6cd2a"
+    }
+  ],
+  "ownership": {
+    "service": "Only McpOauth constructor serverStatus callback was changed; other service logic belongs to prior authors.",
+    "provider": "No production provider renderer changed; existing same-connection key forwarding was verified and tested.",
+    "ui": "Parent owns UI; this is not the independent UI review."
+  },
+  "changes": {
+    "oauth": [
+      "Fresh exact serverName/threadId toolsAndAuthOnly status is required before the login write.",
+      "Only official notLoggedIn/oAuth are admitted. bearerToken/unsupported are unsupported; unknown or invalid future statuses are unavailable; all are not_sent without a retained login reservation.",
+      "Concurrent target reservation exists before readonly discovery; disconnect/expiry/close before actual write cannot dispatch.",
+      "Real dispatched failures remain unknown and retain the existing recovery requirement."
+    ],
+    "builtins": [
+      "Four CN managed MCP contracts remain same-provider-key without browser OAuth; custom MCP untouched.",
+      "Explicit public-only freshness check records sourceDigest/checkedAt/docs hashes/pinned+latest integrity and retirement/missing metadata. No network inside unit/full offline tests.",
+      "AGENTS requires complete audits to execute and semantically review source-bound freshness results.",
+      "Selector maps checker/contract/vision helper to offline checker, real stdio compatibility, ordinary renderer and root credential tests."
+    ],
+    "dependency": [
+      "Reviewed and pinned @z_ai/mcp-server 0.1.6; retained exact SDK1.32.2/Zod4.6.7 overrides.",
+      "Official package diff: 3 of 30 distributed files changed (version; avoid duplicate Bearer; default timeout300000 to600000ms). No tool/schema/endpoint/dependency declaration changed.",
+      "pnpm11.22.0 generated narrow lock change and frozen installation added1/removed1; lifecycle scripts disabled and 1440min release-age/trust policies retained."
+    ]
+  },
+  "tests": [
+    {
+      "path": ".work/test-results/run-KWCXy6/vitest.json",
+      "sha256": "0a8272ea22dbe047e7f6046aadd8b26ec15c6abe4fc0c9d1fd63f98e34b73d99",
+      "scope": "runtime mcp-oauth+mcp",
+      "passed": 35,
+      "failed": 0
+    },
+    {
+      "path": ".work/test-results/run-dddzj4/vitest.json",
+      "sha256": "07b75545b864375507a5bc70fbd741e6b88c8fe69aea7914233cf9308db9cddc",
+      "scope": "builtin checker8+selector17+real offline vision2",
+      "passed": 27,
+      "failed": 0
+    },
+    {
+      "path": ".work/v230-builtin-mcp-provider-tests.json",
+      "sha256": "8baec9b0a50007e2bfa35ee3e0bf3929fb9da6b4b3733df1448771928e5f0e4a",
+      "scope": "provider registry/discovery including four builtin rendered configs and two distinct keys",
+      "passed": 18,
+      "failed": 0
+    },
+    {
+      "path": ".work/v230-mcp-build-boundary-tests.json",
+      "sha256": "94f4da7c077cd0c31c8f2092c7dde121129a62fb85a886d1eb797f88960ff361",
+      "scope": "deployment dependency boundary only",
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "additionalChecks": {
+    "serverTypeScript": "tsc -p tsconfig.server.json --noEmit exit0 after final dependency installation",
+    "diffCheck": "git diff --check exit0",
+    "networkMcpToolCalls": 0,
+    "paidInferenceCalls": 0
+  },
+  "upstream": {
+    "firstDrift": {
+      "path": ".work/builtin-mcp-freshness-bf978179-b12f-4a86-84f8-bed3cfd4ed2f.json",
+      "sha256": "ef199fbeaf820979214c2260243bcef890513447c41e12cf0522f7bf4dc39d6d"
+    },
+    "freshness": {
+      "path": ".work/builtin-mcp-freshness-52627c34-66f9-4f70-8e16-a01762951691.json",
+      "sha256": "af0c98d03961f65a098cfb72e0e8c36fe31fb48431bfa014dc5bf27453518371"
+    },
+    "freshnessSourceMatchesObservation": false,
+    "officialPackage": {
+      "path": ".work/zai-mcp-0.1.6-review/package.tgz",
+      "sha256": "6cf67aedbd9f5ba50140cbf5d2b0ae2dae1117ec4b1540cf63eefdbee5401c52"
+    },
+    "metadata": {
+      "path": ".work/zai-mcp-0.1.6-review/metadata.json",
+      "sha256": "96deedfe15eded3674d8135ce02ce9ef46745abc6c0829ffae3577bdb360087f"
+    },
+    "distributedChanges": {
+      "path": ".work/zai-mcp-0.1.6-review/changes.json",
+      "sha256": "8d05e75cf8a286a38063857dfadb3b21c543710bc1ec4c44ed98e5cd33f61fcb"
+    },
+    "packageIntegrity": "sha512-RmsCfM7m87dC9JqWmbUcitDvwiFE6oEWNJUoBmqediKt7TIPM2J9h7b4o+BZmPgltLXSlKN+BToBSfbskiAytg==",
+    "note": "Upstream0.1.6 still reports serverInfo.version0.1.5 from its unchanged default constant; artifact identity is verified using package.json+registry/lock integrity, not that display field."
+  },
+  "interruptions": [
+    {
+      "event": "First lockfile-only process explicitly stopped for host ENOSPC before lock update.",
+      "outcome": "No dependency result was claimed from that interrupted run. Parent relocated independently hashed disposable caches, then resumed completed lock generation and frozen install."
+    }
+  ],
+  "limits": [
+    "Not an independent review or complete repository audit. No full suite/remote mutation/deployment performed.",
+    "No real credential/account/MCP endpoint request or external tool invocation; no claim that live builtin service account quotas/connectivity pass.",
+    "Remote official page token checks require human semantic review; documentation URLs/auth/env were independently read against official CN pages.",
+    "Root credential helper fixture was inspected and selected for future CI; it was not rerun on Linux in this author phase.",
+    "Full source observation can include concurrent team edits; final audit must bind its final frozen digest and fresh public check."
+  ]
+}

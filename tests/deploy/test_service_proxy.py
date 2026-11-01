@@ -44,7 +44,7 @@ class ServiceProxyTests(unittest.TestCase):
             self.assertEqual(proxy.roles({}, ("worker",)), ("worker",))
             self.assertEqual(proxy.worker_unit_fields(self.layout, {}), ("", ""))
             self.assertEqual(proxy.render_proxy_units(self.layout, {}), {})
-            self.assertEqual(proxy.status(manager), {"configured": False, "enabled": False, "coreVersion": None})
+            self.assertEqual(proxy.status(manager), {"configured": False, "enabled": False, "coreVersion": None, "directDomains": []})
             self.assertEqual(proxy.ready(manager), {"enabled": False, "ready": False})
         run.assert_not_called(); connect.assert_not_called(); manager.system.state.assert_not_called()
 
@@ -116,6 +116,72 @@ class ServiceProxyTests(unittest.TestCase):
                 proxy.outbound(value)
         for port in (True, 1, 65535, "18790"):
             with self.subTest(port=port), self.assertRaises(DeployError): proxy.configuration(vless(), port)
+
+    def test_exact_direct_hosts_are_normalized_bounded_and_precede_fixed_policy(self):
+        hosts = ["API.Example.COM.", "localhost", "api.example.com", "xn--fiqs8s.example"]
+        self.assertEqual(proxy.normalize_direct_domains(hosts), ["api.example.com", "localhost", "xn--fiqs8s.example"])
+        plain = proxy.configuration(vless(), 18790)
+        configured = proxy.configuration(vless(), 18790, hosts)
+        self.assertEqual(configured["routing"]["rules"][0], {"type": "field", "domain": [
+            "full:api.example.com", "full:localhost", "full:xn--fiqs8s.example"], "outboundTag": "direct"})
+        self.assertEqual(configured["routing"]["rules"][1:], plain["routing"]["rules"])
+        self.assertEqual(configured["routing"]["domainStrategy"], "AsIs")
+        self.assertEqual(configured["inbounds"], plain["inbounds"])
+        self.assertEqual(proxy.configuration(vless(), 18790, []), plain)
+        self.assertEqual(len(proxy.normalize_direct_domains([f"api{i}.example" for i in range(64)])), 64)
+        longest = ".".join(["a" * 63] * 3 + ["a" * 61])
+        self.assertEqual(len(longest), 253)
+        self.assertEqual(proxy.normalize_direct_domains([longest + "."]), [longest])
+
+    def test_direct_host_input_rejects_urls_credentials_wildcards_ips_and_budget_overflow(self):
+        for value in (None, "api.example", {}, [None], [True], [1], [""], ["example.."], ["api..example"],
+                      [" api.example"], ["api.example\n"], ["*.example"], ["domain:example"], ["full:example"],
+                      ["https://api.example/v1"], ["u:p@api.example"], ["api.example:443"], ["api/example"],
+                      ["127.0.0.1"], ["127.1"], ["2130706433"], ["::1"], ["10.0.0.0/8"], ["例子.cn"],
+                      ["a_b.example"], ["-a.example"], ["a-.example"], ["a" * 64 + ".example"],
+                      ["a." * 126 + "abc"], ["api.example"] * 65):
+            with self.subTest(value=value), self.assertRaises(DeployError):
+                proxy.normalize_direct_domains(value)
+
+    def test_saved_direct_hosts_require_the_entire_canonical_policy_and_never_import_routing(self):
+        current = proxy.configuration(vless(), 18790, ["api.example", "other.example"])
+        data = canonical(current) + b"\n"
+        value = {**selected(), "configuration": hashlib.sha256(data).hexdigest()}
+        with patch.object(proxy, "private_file", return_value=data):
+            self.assertEqual(proxy.configured_direct_domains(self.layout, value), ["api.example", "other.example"])
+        # Importing an outbound never implicitly accepts the source's routing.
+        self.assertEqual(proxy.configuration(current, 18790), proxy.configuration(vless(), 18790))
+        mutations = [lambda doc: doc["routing"]["rules"][0]["domain"].reverse(),
+                     lambda doc: doc["routing"]["rules"][0]["domain"].append("full:api.example"),
+                     lambda doc: doc["routing"]["rules"][0].update(domain=["full:API.example"]),
+                     lambda doc: doc["routing"]["rules"][0].update(domain=["full:api.example."]),
+                     lambda doc: doc["routing"]["rules"][0].update(domain=["domain:api.example"]),
+                     lambda doc: doc["routing"]["rules"][0].update(domain=["full:api.example", "geosite:cn"]),
+                     lambda doc: doc["routing"]["rules"][0].update(port="443"),
+                     lambda doc: doc["routing"]["rules"].reverse(),
+                     lambda doc: doc["routing"]["rules"].append(doc["routing"]["rules"][0]),
+                     lambda doc: doc["routing"]["rules"][0].update(domain=[]),
+                     lambda doc: doc["routing"].update(domainStrategy="IPIfNonMatch"),
+                     lambda doc: doc["inbounds"][0]["sniffing"].update(routeOnly=True)]
+        for mutate in mutations:
+            document = copy.deepcopy(current); mutate(document)
+            data = canonical(document) + b"\n"
+            value = {**selected(), "configuration": hashlib.sha256(data).hexdigest()}
+            with self.subTest(document=document), patch.object(proxy, "private_file", return_value=data), self.assertRaises(DeployError):
+                proxy.configured_direct_domains(self.layout, value)
+
+    def test_status_exposes_only_verified_explicit_hosts_and_keeps_disabled_selection(self):
+        document = proxy.configuration(vless(), 18790, ["api.example"])
+        data = canonical(document) + b"\n"
+        value = {**selected(enabled=False), "configuration": hashlib.sha256(data).hexdigest()}
+        manager = SimpleNamespace(config={"serviceProxy": value}, layout=self.layout, system=Mock())
+        with patch("deploy.proxy_core.verify_core", return_value={"version": "26.10.31"}), patch.object(proxy, "private_file", return_value=data):
+            result = proxy.status(manager)
+        self.assertEqual(result["directDomains"], ["api.example"])
+        self.assertFalse(result["enabled"])
+        self.assertNotIn("outbounds", result)
+        with patch("deploy.proxy_core.verify_core", return_value={"version": "26.10.31"}), patch.object(proxy, "private_file", return_value=data + b" "), self.assertRaises(DeployError):
+            proxy.status(manager)
 
     def test_private_input_is_bounded_ordinary_single_link_and_preserves_ownership_requirement(self):
         target = self.layout.root / "node.json"; target.write_bytes(b"{}"); target.chmod(0o600)

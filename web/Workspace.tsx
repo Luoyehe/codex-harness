@@ -50,6 +50,7 @@ import { Composer, type Attachment, type SendIntent } from './components/Compose
 import { Diff, Messages } from './components/Messages';
 import { Prompts } from './components/Prompts';
 import { Settings } from './components/Settings';
+import { EmergencyRecovery } from './components/EmergencyRecovery';
 import { RootExecutionNotice } from './components/ExecutionModeSettings';
 import { Dialog } from './components/Dialog';
 import { Icon } from './components/Icon';
@@ -88,6 +89,7 @@ export function Workspace({
 }) {
   const events = useMemo(() => new Events(), []),
     navigation = useRef(0);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [projectId, setProjectId] = useState(() => {
       try {
         return sessionStorage.getItem('harness.project') ?? '';
@@ -1025,16 +1027,18 @@ export function Workspace({
               </p>
             )}
             {network.connection !== 'connected' && (
-              <p className="connection-banner" role="status">
+              <div className="connection-banner" role="status">
                 连接恢复后会核对任务状态；不会自动重发请求。
-              </p>
+                <button className="button small" onClick={() => setRecoveryOpen(true)}>强制停止并恢复</button>
+              </div>
             )}
             {network.connection === 'connected' &&
               (!network.runtimeConnected || !network.activityReady) && (
-                <p className="connection-banner" role="status">
+                <div className="connection-banner" role="status">
                   {network.restarting ? '终端已退出，正在自动刷新后台环境…' : '后台尚未就绪，正在核对任务状态。'}
                   <button className="button small" onClick={() => setModal('settings-admin')}>查看服务与恢复</button>
-                </p>
+                  <button className="button small" onClick={() => setRecoveryOpen(true)}>强制停止并恢复</button>
+                </div>
               )}
             {draftState.error && (
               <p className="error-banner" role="alert">
@@ -1563,8 +1567,10 @@ export function Workspace({
                 }}
               />
             )}{' '}
+            {recoveryOpen && <EmergencyRecovery api={api} onClose={() => setRecoveryOpen(false)} />}
             {(modal === 'settings' || modal === 'settings-admin' || modal === 'settings-provider') && (
               <Settings
+                onRecover={() => setRecoveryOpen(true)}
                 initialTab={modal === 'settings-admin' ? 'admin' : modal === 'settings-provider' ? 'provider' : 'general'}
                 onOpenNativeTerminal={(id) => {
                   if (!navigate('', { projectId: id })) return;

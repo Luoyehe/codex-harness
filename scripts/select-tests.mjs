@@ -13,6 +13,7 @@ const nativeNames = new Set(nativeTestFiles);
 const testPattern = /^(?:tests|web\/tests)\/.+\.test\.tsx?$/;
 const pythonPattern = /^tests\/deploy\/(?:[^/]+\/)*test_[^/]+\.py$/;
 const dnsCaddyPythonTests = ['tests/deploy/test_dns_caddy_build.py', 'tests/deploy/root/test_dns_caddy_build.py'];
+const builtinMcpTests = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vision-compat.test.ts', 'tests/deploy/test_provider_registry.py', 'tests/deploy/root/test_provider_extended.py'];
 const deploymentPairs = [
   [...dnsCaddyPythonTests, goTestFile],
   ['tests/deploy/test_directory_durability.py', 'tests/deploy/root/test_directory_durability.py'],
@@ -61,6 +62,10 @@ export function selectTests(changed, available) {
   for (const name of [...new Set(changed.map(validateRelative))].sort()) {
     plan.changed.push(name);
     if (auditMetadata.has(name)) plan.requiresFullAudit.push({ path: name, reason: 'shared-build-or-dependency-metadata' });
+    else if (['scripts/check-builtin-mcp.mjs', 'reference/BUILTIN-MCP-CONTRACT.json', 'tests/deploy/vision_stdio_probe.mjs'].includes(name)) {
+      for (const required of builtinMcpTests) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-builtin-mcp-coverage' });
+      add(name, builtinMcpTests, 'builtin-mcp-contract-renderer-and-offline-vision-compatibility');
+    }
     else if (testPattern.test(name) || pythonPattern.test(name) || goTestPattern.test(name)) {
       if (inventory.has(name)) {
         const related = deploymentPairs.find(pair => pair.includes(name)) ?? [name];

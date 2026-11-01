@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-mcp016-deployment-build-review",
+  "reviewerId": "v220-final-deploy",
+  "complete": true,
+  "findings": [],
+  "completedAt": "2026-11-01T07:38:05.923078+00:00",
+  "authorReport": {
+    "path": ".work/v230-mcp-oauth-builtin-implementation.json",
+    "sha256": "be47d907562d7032bee699b60a08dafabe7adcc2ddd9ae9c56dc9005119e52e6"
+  },
+  "reviewedFileHashes": [
+    {
+      "path": "deploy/build.py",
+      "sha256": "b106e57369c02561c3a58e2ed9d54b17ed40cb2e782d257ffe353ce5abc6cd2a"
+    },
+    {
+      "path": "package.json",
+      "sha256": "e0fe16c90bf819b1b604239b2638714a6c15ecfd9d7b6ec20130304b7592464a"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "55c7a42ea77ca4130aa1373c4b0c119909d6fe0bd300f837f90faab869a027eb"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "e77964d5f1476df649e0a8303cd27682cb6e0858582f97ecd75655abd253b963"
+    }
+  ],
+  "supportingTestHashes": [
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "9bd073adf4e12cc3c440788e4005a6814076df86aff29a5ec542c9b8dd484932"
+    },
+    {
+      "path": "tests/tooling/vision-compat.test.ts",
+      "sha256": "24f1d6aa30e947764d0264b67fa30d3c353f5fe5562fa45a048508adbb5f3a99"
+    },
+    {
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+    }
+  ],
+  "method": [
+    "Read the exact build.py one-line allowlist change and package/workspace/entire narrow lock diff; traced dependency_workspace, dependency_lock, dependency_input, pnpm_command and source archive inclusion.",
+    "Fresh SHA256 verification of all four deployment-build inputs against author freeze; Python AST parsed; independently recomputed official tar SHA512 and matched metadata, author report and lock integrity; read package metadata from tar without executing it.",
+    "Read the six existing deployment BoundaryTests and real offline vision compatibility probes; read/count bound result JSON. No tests, install, network fetch, build or online operations executed by reviewer."
+  ],
+  "conclusions": [
+    "Package root/importer/snapshot pin exactly0.1.6; the override selector now matches that exact version and preserves SDK1.32.2 and Zod4.6.7. Registry integrity binds the new official artifact.",
+    "The workspace still permits only the reviewed single root JSON-subset object with minimumReleaseAge1440, ignoreScripts, strictDepBuilds, blockExoticSubdeps and trustPolicy no-downgrade; lock overrides must equal the exact trusted map. No generalized override acceptance was introduced.",
+    "Fetch/offline commands retain isolated project/workspace binding, ignored pnpm hooks, official registry, integrity check, explicit store/cache and copied imports. Application archive still includes package/lock/workspace.",
+    "Existing tests continue rejecting arbitrary hooks/catalogs/overrides/exotic resolutions and divergent lock overrides; compatibility probe initializes actual installed0.1.6 with controlled SDK/Zod and checks all8tool schemas without network/tool calls.",
+    "Upstream displayed serverInfo.version may remain0.1.5; package.json and registry/lock integrity supply artifact identity. No assertion was weakened to treat that display as trusted version evidence."
+  ],
+  "validationEvidence": [
+    {
+      "evidence": {
+        "path": ".work/v230-mcp-build-boundary-tests.json",
+        "sha256": "94f4da7c077cd0c31c8f2092c7dde121129a62fb85a886d1eb797f88960ff361"
+      },
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "evidence": {
+        "path": ".work/test-results/run-dddzj4/vitest.json",
+        "sha256": "07b75545b864375507a5bc70fbd741e6b88c8fe69aea7914233cf9308db9cddc"
+      },
+      "passed": 27,
+      "failed": 0
+    }
+  ],
+  "officialArtifactEvidence": {
+    "metadata": {
+      "path": ".work/zai-mcp-0.1.6-review/metadata.json",
+      "sha256": "96deedfe15eded3674d8135ce02ce9ef46745abc6c0829ffae3577bdb360087f"
+    },
+    "archive": {
+      "path": ".work/zai-mcp-0.1.6-review/package.tgz",
+      "sha256": "6cf67aedbd9f5ba50140cbf5d2b0ae2dae1117ec4b1540cf63eefdbee5401c52"
+    },
+    "computedSha512": "sha512-RmsCfM7m87dC9JqWmbUcitDvwiFE6oEWNJUoBmqediKt7TIPM2J9h7b4o+BZmPgltLXSlKN+BToBSfbskiAytg=="
+  },
+  "freshnessEvidence": {
+    "path": ".work/builtin-mcp-freshness-52627c34-66f9-4f70-8e16-a01762951691.json",
+    "sha256": "af0c98d03961f65a098cfb72e0e8c36fe31fb48431bfa014dc5bf27453518371"
+  },
+  "limits": [
+    "This is the deployment-build portion of the independent review; it does not claim complete audit of OAuth, freshness checker, provider renderer or entire upstream package.",
+    "Public freshness was performed by the author and is verified here as historical evidence; its sourceDigest differs from later author observation due to concurrent edits. The final complete audit must run a new source-bound freshness check per AGENTS.",
+    "No new Linux offline application build or live MCP connectivity was run. Author6BoundaryTests and27checker/selector/vision tests are evidence, not reviewer re-execution.",
+    "Original interrupted lockfile preparation due to host ENOSPC remains disclosed in the author report; no passing result is attributed to it."
+  ],
+  "sourceUnchangedDuringReview": true
+}

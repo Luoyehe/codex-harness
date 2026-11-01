@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-emergency-recovery-backend-review",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "completedAt": "2026-11-01T07:36:02.326760+00:00",
+  "status": "passed",
+  "fileHashes": [
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "e1a069e97a908bfb81882c55118cd58a32f2c78885dcc34cfd2f65e8915d762a"
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "9d04abb5b764a4cfa334630487974ae45dc718809ffa46117a98fc851599b072"
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "f91161cb2c032b3faeada5071748a2cf9157d24e73a6a1d89a12a9ad9edb2fe2"
+    },
+    {
+      "path": "tests/gateway/emergency-recovery.test.ts",
+      "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b"
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5469b1d08c582d51e29cca45ad5d19e34fe10bf6d4a8fbc93508ed905a8785e4"
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "9bd073adf4e12cc3c440788e4005a6814076df86aff29a5ec542c9b8dd484932"
+    }
+  ],
+  "authorReport": {
+    "path": ".work/v230-force-recovery-final.json",
+    "sha256": "7aa025b4e18e629d5850cfe5fe92718d4a69a37788a9d28fac44329a3728c1ca"
+  },
+  "findings": [],
+  "closedFindings": [
+    {
+      "id": "V230-FORCE-001",
+      "priority": "P2",
+      "original": "Shared maintenance boolean rejected explicit recovery during a dispatched and hung worker configuration call.",
+      "before": {
+        "path": ".work/v230-emergency-worker-maintenance-repro.json",
+        "sha256": "ff505163f7afa122c5054b5be964c5e72d5d498b82bde56f621778665a5117a6"
+      },
+      "after": {
+        "path": ".work/v230-emergency-worker-maintenance-after.json",
+        "sha256": "dac5b23014c9bdca69574c53bf1f5ca7956ba78e2e9b5fb48d1a1b43bc45bdd3"
+      },
+      "resolution": "Distinct root/worker/receipt ownership permits only worker preemption; identity-based finally release retains the recovery owner; prior-generation beforeWrite remains fenced."
+    }
+  ],
+  "reviewDepth": [
+    "Independent semantic review of all four changed production diffs and surrounding admission, positive acknowledgement, original operation proof, root receipt, restart, stop/cgroup and owner-drop journal paths. Current final ownership diff and 13 emergency test bodies read after repair. Earlier unchanged manager/client/authorization/deployment test body review retained; no claim of whole-repository audit.",
+    "Checked emergency exact confirmation and operation identity, authorization immediately before helper input, dedicated one-helper capacity, deadline/reply-before-close slot lifetime, protected real root management lock and non-preemptible root/receipt maintenance.",
+    "Verified stopped-cgroup evidence precedes journal reset; unknown receipts are preserved; root completion proof requires original id/method/digest and validated result; no reset from browser assertion alone."
+  ],
+  "independentExecution": {
+    "evidence": {
+      "path": ".work/v230-emergency-worker-maintenance-after.json",
+      "sha256": "dac5b23014c9bdca69574c53bf1f5ca7956ba78e2e9b5fb48d1a1b43bc45bdd3"
+    },
+    "runner": {
+      "path": ".work/v230-emergency-worker-maintenance-after.mjs",
+      "sha256": "33f21bc2be5b514821f53729c9098e61a021b64c105f993fa6bf1236621cd0f1"
+    },
+    "actual": "Freshly compiled current Dispatcher and in-memory SQLite Ledger. mcp/reload dispatches and waits; recover reaches manager once; old worker unknown finally does not release recovery maintenance; new write is not_sent; recovery accepted releases owner and old receipt stays unknown.",
+    "controlledPorts": true,
+    "noNativeOrNetwork": true
+  },
+  "reviewedAuthorValidation": {
+    "gatewayFinal": {
+      "passed": 67,
+      "failed": 0,
+      "evidence": {
+        "path": ".work/test-results/run-pZRiLO/vitest.json",
+        "sha256": "94c3d42c220cfafc54909b6edf251a94e131b2b3dc4c0dd8668408ff8af64800"
+      }
+    },
+    "managerClient": {
+      "passed": 18,
+      "failed": 0,
+      "evidence": {
+        "path": ".work/test-results/run-BhBkcc/vitest.json",
+        "sha256": "966f1436116964dac365be7b6c70f88c93606cf9f1c96d7df009d43400864155"
+      }
+    },
+    "linux": {
+      "passed": 61,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/v230-force-recovery-linux-1e25c59df1bc.json",
+        "sha256": "125cf743ae66bfa55aa89b5c3602cbf057d5ecc5c78e49ffdad9b7d20ea95bb5"
+      },
+      "systemdElapsedSeconds": 25.263603595085442,
+      "oldDescendantsGone": true,
+      "unknownPreserved": true,
+      "mainStatesPreserved": true,
+      "originalComplete": false,
+      "originalIncompleteReason": "Own removed unit files left failed/not-found tombstones after tests succeeded; original evidence retained.",
+      "cleanup": {
+        "path": ".work/v230-force-recovery-linux-cleanup.json",
+        "sha256": "af38627541380526287e089c8ec34fb046a6a40f8e995096a28bfea5804fb964"
+      }
+    },
+    "windowsPython": {
+      "passed": 54,
+      "skipped": 7,
+      "evidence": {
+        "path": ".work/test-results/python-hJ3ijH/cases.json",
+        "sha256": "3a9939a3d3ff1e7879329df573f948fc6ac343d1cf47ef04361a014175911a99"
+      }
+    },
+    "sourceAndEvidenceHashes": "8 current files and 14 author evidence references independently matched."
+  },
+  "limitations": [
+    "Backend-only review; root web integration and persistent closure snapshot require separate review.",
+    "Independent reproduction uses controlled ports; author isolated Linux proof uses real systemd/cgroups/SQLite but sleeping fixtures and substituted application health. No production service, native MCP or paid model invoked.",
+    "Existing root configuration transaction remains non-preemptible; dead gateway or kernel uninterruptible process cannot be claimed recovered.",
+    "Initial after-repro file creation failed ENOSPC and left an empty script; no test had run then. Failed-fixture cleanup request was automatically blocked, no deletion occurred. Parent freed unrelated verified redundant materials; final fresh reproduction is separately evidenced.",
+    "No full suite, deployment, Git mutation or complete audit authorization."
+  ],
+  "fullSuiteRun": false,
+  "sourceModified": false
+}

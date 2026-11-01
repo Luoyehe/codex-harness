@@ -34,7 +34,7 @@ const mcpProps = (api: Api, events: Events) => ({ api, events, projectId: projec
 beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 async function selectTool() {
-  await screen.findByRole('option', { name: /local · connected/ });
+  await screen.findByRole('option', { name: /local · 已连接/ });
   fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), { target: { value: 'local' } });
   fireEvent.change(screen.getByRole('combobox', { name: '选择工具' }), { target: { value: 'echo' } });
   fireEvent.click(screen.getByRole('checkbox', { name: /提供 Text/ }));
@@ -166,7 +166,7 @@ it.each(['api', 'projectId', 'threadId', 'epoch', 'runtimeEpoch', 'lease'] as co
     await selectTool();
     view.rerender(<McpPanel {...props} {...(field === 'api' ? { api: new Api() } : { [field]: 'other-owner' })} />);
     view.rerender(<McpPanel {...props} />);
-    await screen.findByRole('option', { name: /local · connected/ });
+    await screen.findByRole('option', { name: /local · 已连接/ });
     expect(screen.getByRole('combobox', { name: '选择 MCP 服务' })).toHaveProperty('value', '');
     fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), { target: { value: 'local' } });
     fireEvent.change(screen.getByRole('combobox', { name: '选择工具' }), { target: { value: 'echo' } });
@@ -186,7 +186,7 @@ it.each(['accepted', 'unknown'] as const)('retains the original %s MCP receipt a
   await act(async () => outcome === 'accepted' ? finish({ resultId: 'original-result', threadId: props.threadId, server: 'local', tool: 'echo', isError: false }) : fail(new Error('original unknown')));
   await waitFor(() => expect(mcpSession(api, props.lease).attempts[0]).toMatchObject({ state: outcome, threadId: props.threadId, name: 'echo' }));
   view.rerender(<McpPanel {...props} />);
-  await screen.findByRole('option', { name: /local · connected/ });
+  await screen.findByRole('option', { name: /local · 已连接/ });
   expect(calls.filter(call => call.method === 'mcp/tool/call')).toHaveLength(1);
   expect(calls.some(call => call.method === 'mcp/result/read')).toBe(false);
   expect(screen.getByRole('textbox', { name: /Text/ })).toHaveProperty('value', 'draft text');
@@ -203,7 +203,7 @@ it.each(['accepted', 'unknown'] as const)('retains a late %s OAuth receipt while
   await act(async () => outcome === 'accepted' ? finish({ handoffId: 'original-handoff', epoch: props.runtimeEpoch, name: 'local', threadId: props.threadId }) : fail(new Error('oauth response lost')));
   await waitFor(() => expect(mcpSession(api, props.lease).oauth[0]).toMatchObject({ state: outcome, name: 'local' }));
   view.rerender(<McpPanel {...props} />);
-  await screen.findByRole('option', { name: /local · connected/ });
+  await screen.findByRole('option', { name: /local · 已连接/ });
   expect(screen.getByRole('button', { name: '查询原 MCP 授权回执' })).toHaveProperty('disabled', false);
   expect(calls.filter(call => call.method === 'mcp/oauth')).toHaveLength(1);
   expect(calls.some(call => call.method === 'mcp/oauth/handoff')).toBe(false);

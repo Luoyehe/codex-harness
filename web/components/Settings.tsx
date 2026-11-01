@@ -24,6 +24,7 @@ export function Settings({
   theme,
   onTheme,
   onClose,
+  onRecover,
   onChanged,
   onProjectAction,
   onLogout,
@@ -62,6 +63,7 @@ export function Settings({
   theme: string;
   onTheme: (theme: string) => void;
   onClose: () => void;
+  onRecover?: () => void;
   onChanged: () => void;
   onProjectAction: (project: Project, action: 'rename' | 'remove') => void;
   onLogout: () => Promise<void>;
@@ -210,7 +212,7 @@ export function Settings({
           )}{' '}
           {tab === 'admin' && (
             <div className="stack">
-              <AdminSettings api={api} epoch={epoch} configurationReady={managementReady ?? (configurationReady && connected)} />
+              <AdminSettings api={api} epoch={epoch} configurationReady={managementReady ?? (configurationReady && connected)} onRecover={onRecover} />
               <CliDiagnosticsPanel
                 api={api}
                 epoch={runtimeEpoch}

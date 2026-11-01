@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "kind": "mcp-ui-independent-review",
+  "reviewerId": "v230_audit_runtime",
+  "completedAt": "2026-11-01T07:39:16.207463+00:00",
+  "complete": true,
+  "clean": true,
+  "findings": [],
+  "files": [
+    {
+      "path": "web/components/McpPanel.tsx",
+      "sha256": "c2519817fe6580fe98a5e8353621a45df11775c06a65a781b22fe47885d3ff1f"
+    },
+    {
+      "path": "web/components/McpAuthorization.tsx",
+      "sha256": "501526b8dc0c68b9bcb2f830498585bde85c3341c4f765443680d81e0d57b356"
+    },
+    {
+      "path": "web/tests/mcp-oauth.test.tsx",
+      "sha256": "f6c7258d197aa7b50269b66423245fd76a9bd19082bc1b9770dbfec4015bc48b"
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "fc431838e12add2fddca58b8d344d5c5eca8c6b93fc6573d7d1cf60666667e2e"
+    },
+    {
+      "path": "web/tests/extension-mcp-drafts.test.tsx",
+      "sha256": "178e1509059d15fed4c715b0438d3a5566d6f37450fe85debba63e2e16f909be"
+    },
+    {
+      "path": "README.md",
+      "sha256": "47c72e6ec95a2fd94fd09ee645435e91f58237ad0a822ed375974412b1ba7437"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "43e672073444eabde4bab0d19959ca3281832bf0e87fb18f70131395f07d62d9"
+    }
+  ],
+  "method": {
+    "McpAuthorization": "Fresh complete module and diff, including pre-dispatch permission ref and existing handoff/receipt ownership/TTL paths.",
+    "McpPanel": "Complete current diff and fresh semantic boundary read of labels, discovery snapshots, current selected server, loading/hidden guards, owner identity/remount, tool admission, and receipt paths; unchanged rendering bodies not represented as a new line-by-line audit.",
+    "tests": "New OAuth blocked-status cases fully read, all changed assertions inspected, existing fixture/ownership/hidden/unknown/receipt scenarios selectively read plus complete test structure inventory. Author result JSON independently checked; no redundant rerun.",
+    "documentation": "All changed README/deployREADME paragraphs read against official auth enum, managed-key renderer, exact current dependency pins, direct-host API and explicit recovery ownership contract.",
+    "crossBoundary": [
+      "protocol/ts/v2/McpAuthStatus.ts",
+      "protocol/ts/v2/McpServerStatus.ts",
+      "web/lib/api.ts beginMutation before-dispatch callback and not_sent conversion",
+      "Mcp session owner/read guards and current runtime admission implementation"
+    ]
+  },
+  "conclusions": [
+    "Only notLoggedIn/oAuth can show or dispatch new browser OAuth; unsupported/bearerToken/unknown do not create a login.",
+    "Permission is checked again after local intent persistence; changing page, visibility or auth capability before the wire request causes local not_sent. Runtime independently re-reads exact status.",
+    "Null connection status is rendered as unloaded or pending confirmation rather than false connection failure; actual failed remains failure.",
+    "Existing unknown login receipts remain readable and cannot be automatically retried; sensitive URLs remain ephemeral and owner-bound.",
+    "Managed-key help text is consistent with existing per-provider credential inheritance; custom MCP configuration editor semantics are untouched."
+  ],
+  "evidence": [
+    {
+      "artifact": {
+        "path": ".work/test-results/run-58iMW6/vitest.json",
+        "sha256": "3390232eea1f3f8006be0137ffbd88a04c2ba37031bd90ffcc04e26f4ade3324"
+      },
+      "reportedAndVerified": {
+        "passed": 78,
+        "failed": 0,
+        "success": true
+      },
+      "scope": "author targeted MCP/UI/draft/settings fixture results"
+    }
+  ],
+  "limits": [
+    "This is a narrow independent UI/docs delta review, not a final whole-repository audit.",
+    "No browser, remote service, actual OAuth, model or external MCP call was executed.",
+    "Reviewer authored runtime OAuth and dependency changes: those are not independently approved by this UI review.",
+    "Emergency recovery implementation has separate assigned independent reviewers; this review checks the new public wording against its stated and visible ownership contract."
+  ]
+}

@@ -5,10 +5,11 @@ import { acknowledgeOperation, isArchivedReceipt, reconcileOperation } from '../
 import { changedMcpSession, currentMcpSession, type McpOauthAttempt, type McpSession } from '../lib/mcp-session';
 import { message, object, safeUrl } from '../lib/types';
 import { useOperations } from './Recovery';
+import type { McpAuthStatus } from '../../protocol/ts/v2/McpAuthStatus';
 
 /** Only identities live in the session cache. URLs belong to this mounted owner. */
-export function McpAuthorization({ api, events, session, epoch, name, threadId, connected, visible = true }: {
-  api: Api; events: Events; session: McpSession; epoch: string; name: string; threadId: string | null; connected: boolean; visible?: boolean;
+export function McpAuthorization({ api, events, session, epoch, name, threadId, connected, authStatus, visible = true }: {
+  api: Api; events: Events; session: McpSession; epoch: string; name: string; threadId: string | null; connected: boolean; authStatus: McpAuthStatus; visible?: boolean;
 }) {
   const [, render] = useState(0), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [link, setLink] = useState<{ url: string; expiresAt: number }>();
@@ -17,6 +18,8 @@ export function McpAuthorization({ api, events, session, epoch, name, threadId, 
   if (shown.current !== visible) { shown.current = visible; revision.current++; }
   const completions = useRef(new Map<string, { success: boolean; restartRequired: boolean }>());
   online.current = connected;
+  const oauthSupported = authStatus === 'notLoggedIn' || authStatus === 'oAuth';
+  const permission = useRef(oauthSupported); permission.current = oauthSupported;
   const operations = useOperations(), record = session.oauth.find(item => item.name === name && item.threadId === threadId);
   const current = () => mounted.current && online.current && currentMcpSession(api, session) && !api.externalAuthenticationRequired;
   const clear = () => { revision.current++; setLink(undefined); };
@@ -61,7 +64,7 @@ export function McpAuthorization({ api, events, session, epoch, name, threadId, 
     else if (readHandoff) await read(attempt);
   };
   const start = async () => {
-    if (!current() || !shown.current || running.current || operations.error || operations.operations.some(item => ['pending', 'unknown'].includes(item.state)) || record && (['pending', 'unknown'].includes(record.state) || record.restartRequired || record.state === 'accepted' && (!record.status || record.status === 'pending'))) return;
+    if (!current() || !shown.current || !permission.current || running.current || operations.error || operations.operations.some(item => ['pending', 'unknown'].includes(item.state)) || record && (['pending', 'unknown'].includes(record.state) || record.restartRequired || record.state === 'accepted' && (!record.status || record.status === 'pending'))) return;
     if (!record && session.oauth.length >= 32) {
       const index = session.oauth.findIndex(item => item.state === 'not_sent' || item.state === 'accepted' && item.status && item.status !== 'pending' && !item.restartRequired);
       if (index < 0) { setError('当前连接已保留 32 笔授权身份，请完成原授权或明确重启服务。'); return; }
@@ -71,7 +74,10 @@ export function McpAuthorization({ api, events, session, epoch, name, threadId, 
     const visit = revision.current;
     let attempt: McpOauthAttempt | undefined;
     try {
-      const request = api.beginMutation('mcp/oauth', { name, ...(threadId ? { threadId } : {}) });
+      const request = api.beginMutation('mcp/oauth', { name, ...(threadId ? { threadId } : {}) }, () => {
+        if (!current() || !shown.current || !permission.current || visit !== revision.current)
+          throw new Error('服务认证方式或当前页面已变化，未发送浏览器授权请求。');
+      });
       attempt = { name, threadId, operationId: request.operationId, state: 'pending' };
       if (record) session.oauth.splice(session.oauth.indexOf(record), 1, attempt); else session.oauth.push(attempt);
       changed(); const result = await request.result;
@@ -119,7 +125,10 @@ export function McpAuthorization({ api, events, session, epoch, name, threadId, 
   }, [link]);
   const blocked = Boolean(record && (['pending', 'unknown'].includes(record.state) || record.restartRequired || record.state === 'accepted' && (!record.status || record.status === 'pending')));
   return <>
-    <button className="button small" disabled={!visible || !connected || busy || blocked || Boolean(operations.error) || operations.operations.some(item => ['pending', 'unknown'].includes(item.state))} onClick={() => void start()}>请求此服务授权</button>
+    {oauthSupported && <button className="button small" disabled={!visible || !connected || busy || blocked || Boolean(operations.error) || operations.operations.some(item => ['pending', 'unknown'].includes(item.state))} onClick={() => void start()}>请求此服务授权</button>}
+    {authStatus === 'bearerToken' && <p className="small muted">使用已配置的 API Key，无需浏览器二次授权。智谱内置服务会随 Coding Plan 供应商复用同一密钥。</p>}
+    {authStatus === 'unsupported' && <p className="small muted">此服务不使用浏览器授权；本地进程服务使用服务器已配置的环境或凭据。</p>}
+    {authStatus === 'unknown' && <p className="small muted">认证方式尚未确认，请先重新读取服务目录；不会尝试未知的授权方式。</p>}
     {record?.operationId && <button className="button small" disabled={!visible || !connected || busy} onClick={() => void recover()}>查询原 MCP 授权回执</button>}
     {record?.identity && <button className="button small" disabled={!visible || !connected || busy} onClick={() => void read(record)}>读取原授权交接</button>}
     {visible && connected && link && <a className="button" href={link.url} target="_blank" rel="noreferrer">打开 MCP 授权页面 ↗</a>}
