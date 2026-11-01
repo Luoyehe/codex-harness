@@ -18,8 +18,20 @@ const cleanup: (() => void | Promise<void>)[] = [];
 afterEach(async () => { for (const finish of cleanup.splice(0).reverse()) await finish(); });
 class Native extends EventEmitter {
   connected = true; budget = {}; calls = 0;
+  authStatus = 'notLoggedIn'; statusRequests: JsonValue[] = [];
   response: JsonValue = { authorizationUrl: url, loginId: 'login' };
-  async call(method: string, _params: JsonValue, options?: NativeOptions): Promise<JsonValue> { options?.beforeWrite?.(); if (method === 'mcpServer/oauth/login') { this.calls++; return this.response; } return {}; }
+  async call(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue> {
+    options?.beforeWrite?.();
+    if (method === 'thread/start') return { thread: { id: 'thread', historyMode: 'paginated', status: { type: 'idle' }, turns: [] } };
+    if (method === 'mcpServerStatus/list') {
+      this.statusRequests.push(params);
+      return { data: [{ name: object(params).serverName!, authStatus: this.authStatus, runtimeStatus: null, pluginId: null,
+        httpOrigin: 'https://mcp.example', serverInfo: null, serverCapabilities: null, toolListMeta: null,
+        tools: {}, toolsError: null, resources: [], resourceTemplates: [] }], nextCursor: null };
+    }
+    if (method === 'mcpServer/oauth/login') { this.calls++; return this.response; }
+    return {};
+  }
   async close() { this.connected = false; }
 }
 function setup(file?: string) {
@@ -43,11 +55,13 @@ async function archive(f: ReturnType<typeof setup>) {
 }
 test('actual runtime to gateway Ledger persistence, replay, operation read and export never retain OAuth URL', async () => {
   const f = setup(), operationId = randomUUID(), request = { method: 'mcp/oauth', params: { name: 'server', threadId: 'thread' }, operationId };
+  await f.service.call('thread/start', { cwd: f.cwd }, { clientId: 'owner', eventChannelId: 'channel' });
   const identity = object(await f.dispatcher.call(request, f.context));
   expect(identity).toEqual({ handoffId: expect.any(String), epoch: f.service.epoch, name: 'server', threadId: 'thread' });
   const handoff = await f.dispatcher.call({ method: 'mcp/oauth/handoff', params: { handoffId: identity.handoffId!, epoch: identity.epoch! } }, f.context);
   expect(handoff).toMatchObject({ authorizationUrl: url });
   expect(await f.dispatcher.call(request, f.context)).toEqual(identity); expect(f.native.calls).toBe(1);
+  expect(f.native.statusRequests).toEqual([{ serverName: 'server', threadId: 'thread', detail: 'toolsAndAuthOnly', limit: 100 }]);
   const read = await f.dispatcher.call({ method: 'operation/read', params: { operationId } }, f.context);
   expect(read).toMatchObject({ state: 'accepted', result: identity });
   const db = new DatabaseSync(join(f.cwd, 'journal.sqlite')); try { expect(JSON.stringify(db.prepare('SELECT * FROM receipts').all())).not.toContain('PRIVATE'); } finally { db.close(); }
@@ -56,6 +70,28 @@ test('actual runtime to gateway Ledger persistence, replay, operation read and e
   f.native.emit('notification', { method: 'mcpServer/oauthLogin/completed', params: { name: 'server', threadId: 'thread', loginId: 'login', success: true, error: url } });
   expect(f.events.at(-1)).toMatchObject({ type: 'mcp', eventChannelId: 'channel', data: { ...identity, type: 'oauth-completed', clientId: 'owner', success: true } });
   expect(JSON.stringify(f.events)).not.toContain('PRIVATE');
+});
+
+test.each(['bearerToken', 'unsupported', 'unknown'])('gateway records fresh %s OAuth rejection as not_sent without starting native login', async authStatus => {
+  const f = setup(), operationId = randomUUID(); f.native.authStatus = authStatus;
+  const request = { method: 'mcp/oauth', params: { name: 'server' }, operationId };
+  const code = authStatus === 'unknown' ? 'mcp_auth_unavailable' : 'mcp_oauth_unsupported';
+  await expect(f.dispatcher.call(request, f.context)).rejects.toMatchObject({ code, delivery: 'not_sent' });
+  expect(f.ledger.read(operationId)).toMatchObject({ state: 'not_sent', error: { code: 'mcp_oauth_error', delivery: 'not_sent' } });
+  expect(f.native.calls).toBe(0); expect(object(f.service.status()).activity).toMatchObject({ unknown: false });
+  expect(f.native.statusRequests).toEqual([{ serverName: 'server', threadId: null, detail: 'toolsAndAuthOnly', limit: 100 }]);
+  f.native.authStatus = 'notLoggedIn';
+  await expect(f.dispatcher.call({ ...request, operationId: randomUUID() }, f.context)).resolves.toMatchObject({ name: 'server' });
+  expect(f.native.calls).toBe(1);
+});
+
+test('thread-scoped OAuth requires an explicitly loaded MCP connection before discovery or native login', async () => {
+  const f = setup(), operationId = randomUUID();
+  await expect(f.dispatcher.call({ method: 'mcp/oauth', params: { name: 'server', threadId: 'thread' }, operationId }, f.context))
+    .rejects.toMatchObject({ code: 'mcp_auth_unavailable', delivery: 'not_sent' });
+  expect(f.ledger.read(operationId)).toMatchObject({ state: 'not_sent' });
+  expect(f.native.statusRequests).toEqual([]); expect(f.native.calls).toBe(0);
+  expect(object(f.service.status()).activity).toMatchObject({ unknown: false });
 });
 test.each(['client', 'gateway', 'native'] as const)('service %s disconnect revokes handoff without replaying a native login', async kind => {
   const f = setup(), identity = object(await f.dispatcher.call({ method: 'mcp/oauth', params: { name: 'server' }, operationId: randomUUID() }, f.context));
@@ -107,10 +143,12 @@ test('real NativeRpc pipe and RuntimeService keep rejected owner guards not_sent
   const context = { clientId: 'owner', eventChannelId: 'channel', beforeWrite: () => { throw new Error('owner event connection closed before write'); } };
   await expect(service.call('mcp/oauth', { name: 'server' }, context)).rejects.toMatchObject({ code: 'before_write', delivery: 'not_sent' });
   expect(await service.native.call('fixture/oauth/count', {})).toEqual({ starts: 0 });
+  expect(await service.native.call('fixture/oauth/status-requests', {})).toEqual({ requests: [{ serverName: 'server', threadId: null, detail: 'toolsAndAuthOnly', limit: 100 }] });
   const identity = object(await service.call('mcp/oauth', { name: 'server' }, { ...context, beforeWrite: () => {} }));
   const params = { handoffId: identity.handoffId!, epoch: identity.epoch! };
   expect(await service.call('mcp/oauth/handoff', params, context)).toMatchObject({ authorizationUrl: 'http://127.0.0.1:8888/authorize?state=PRIVATE-LOCAL-STATE', status: 'pending' });
   await service.native.call('fixture/oauth/complete', {});
   expect(await service.call('mcp/oauth/handoff', params, context)).toMatchObject({ status: 'completed', unavailable: true });
   expect(await service.native.call('fixture/oauth/count', {})).toEqual({ starts: 1 });
+  expect(await service.native.call('fixture/oauth/status-requests', {})).toEqual({ requests: Array(2).fill({ serverName: 'server', threadId: null, detail: 'toolsAndAuthOnly', limit: 100 }) });
 });

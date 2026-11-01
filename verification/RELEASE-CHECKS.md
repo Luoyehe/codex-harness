@@ -302,3 +302,10 @@ Only CI3 is newly authorized under the existing one-clean-round user instruction
 CI3 run 41281281789 passed for 6279cda9568d7d7b6afc61d7d85e951f4061bc52/045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717: 247 files, 2801 cases, coverageGaps=[]. Applicable-platform skips remain recorded. Its deployment/public acceptance succeeded after external core26.10.31 replaced withdrawn26.10.29; the first download failure and later real MCP OAuth unknown are preserved. Browser acceptance stayed partial; publication was not completed. CI1 failed and CI2 passed/partial histories remain untouched.
 
 v230-round13 covers 1984 files at c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70, with explicit unchanged-evidence inheritance and current independent repair review. Round11 scanner-fixture finding and Round12 HTTP response classification concern are retained as historical nonclean evidence, not renamed clean. Only new-source CI4 full tests are authorized. Deployment, browser/public acceptance and publication remain pending.
+
+
+## 2026-11-01 — v2.3.0 CI4 correction and CI5 preparation
+
+CI4 41287733396 failed six gateway OAuth cases on both platforms: obsolete test doubles lacked fresh status and explicit thread loading. The production guard was correct. The author had manually omitted the cross-layer consumer from targeted verification. Fixtures are repaired (63/63 targeted), and runtime helper selection now also includes gateway consumers (19/19 targeted). Neither test assertions nor result criteria were weakened. Complete failure logs and current CodeQL dispositions are retained.
+
+Round14 covers 1984 files at 99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641, using explicit unchanged-byte semantic inheritance and independent current repair reviews. Official builtin MCP sources were freshly fetched and are byte-identical to the reviewed contract. One clean round is complete under the user override; CI5 full tests, deployment, browser acceptance and publication are pending.

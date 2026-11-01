@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-ci4-codeql-delta-review",
+  "reviewerId": "root",
+  "complete": true,
+  "completedAt": "2026-11-01T08:16:42.765Z",
+  "head": "ff45dc166c177bc784291ebb97124907e2ecc5b3",
+  "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+  "securityRun": 41287797491,
+  "priorActualReview": {
+    "path": ".work/v230-ci3-codeql-review.json",
+    "sha256": "0333d6df0c4dfaccb51df8d8b05e6ba2134714158f454e76b0039f38d063d7ec"
+  },
+  "sourceInheritance": {
+    "path": ".work/v230-ci4-codeql-source-inheritance.json",
+    "sha256": "9d18391e317b6627e1065d9b1828319b4fc37dd0655663a55dc78085bd912847"
+  },
+  "actualUiEvidence": [
+    {
+      "path": ".work/v230-ci4-codeql-list-ui.json",
+      "sha256": "c83caff170a8dff93f23cac743983b46803c037ca0c87fbde647c65082594d7b"
+    },
+    {
+      "path": ".work/v230-ci4-codeql-delta-ui.json",
+      "sha256": "4a6fdb65c6b27e48b1925b33d35a4bfa539b13ea09c1f267b65b588300862333"
+    },
+    {
+      "path": ".work/v230-ci4-codeql-delta-complete-ui.json",
+      "sha256": "ce71638704e58df88120c6fa8908be913ebe91a098a63b72c5c9c4bac9236c12"
+    }
+  ],
+  "openAlerts": 19,
+  "closedAlerts": 2,
+  "newAlertIds": [
+    18,
+    19,
+    20,
+    21
+  ],
+  "automaticallyFixedAlertIds": [],
+  "reviewedCurrentAlerts": 16,
+  "allCurrentAnnotationPathsAndSourceBytesUnchanged": false,
+  "dispositions": [
+    {
+      "id": 5,
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "9b30c65bb2e654ff538d5de54e428134927ec22d43325022e9c187aa94f80c06"
+      },
+      "disposition": "Credential-helper stdout is the pinned official consumer protocol, not diagnostic logging. Freshly read the current native launcher identity/grant/credential checks and inspected all five actual UI path steps. Saved official v0.164.0 external bearer consumer uses piped stdout and trims it into a token; this is source evidence, not a fresh network fetch or proof of the live process descriptors. Full authorized host Root intentionally can access host secrets.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 6,
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 7,
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+      },
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 8,
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+      },
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 9,
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+      },
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 10,
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+      },
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 11,
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+      },
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 13,
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+      },
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 14,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 15,
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+      },
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 16,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection.",
+      "depth": "exact-source-hash inheritance from prior actual CI3 disposition"
+    },
+    {
+      "id": 17,
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef"
+      },
+      "disposition": "At service.ts:723, SHA256 hashes canonical cwd/selected options/current configuration/generation solely into an in-memory cache and in-flight equality key. The cache is capped at16 entries (757), generation invalidation clears it (701), and active key matching only coalesces identical defaults reads (725-740). It is neither a human password verifier nor a persisted authentication hash. The current MCP status callback at144 does not consume this hash.",
+      "depth": "fresh current defaults hash input and all cache/flight consumers inspected; no old code read"
+    },
+    {
+      "id": 18,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Root freshly read complete checker, all consumers/output boundaries and complete offline fixture; inspected actual hosted alert snippet/rule at current commit."
+    },
+    {
+      "id": 19,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Root freshly read complete checker, all consumers/output boundaries and complete offline fixture; inspected actual hosted alert snippet/rule at current commit."
+    },
+    {
+      "id": 20,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Root freshly read complete checker, all consumers/output boundaries and complete offline fixture; inspected actual hosted alert snippet/rule at current commit."
+    },
+    {
+      "id": 21,
+      "source": {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0"
+      },
+      "disposition": "This is a negative assertion over six fixed URLs observed by an injected in-memory reader. startsWith rejects that entire prefix rather than authorizing a destination; the fixture Map also rejects all unexpected sources. Production validateContract requires exact four document URLs before I/O, fixed npm URLs are constructed internally, redirects are rejected and no MCP endpoint is called. No production host validation or SSRF defense relies on this assertion.",
+      "depth": "Root freshly read complete checker, all consumers/output boundaries and complete offline fixture; inspected actual hosted alert snippet/rule at current commit."
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "Security job success is independently monitored; this report reviews current actual findings, not a zero-alert claim.",
+    "Three legacy open alerts remain inventory-only; archival source was not opened.",
+    "No alert dismissed/suppressed, no code changes, no additional tests or network requests by this metadata script.",
+    "Markup extraction is a coarse drift check, not a secure sanitizer or semantic documentation proof."
+  ]
+}

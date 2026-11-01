@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "kind": "ci4-mcp-oauth-fixture-repair",
+  "authorId": "v230_audit_runtime",
+  "complete": true,
+  "status": "targeted-passed-independent-review-pending",
+  "completedAt": "2026-11-01T08:24:41.893546+00:00",
+  "failedCandidate": {
+    "head": "ff45dc166c177bc784291ebb97124907e2ecc5b3",
+    "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+    "raw": {
+      "path": ".work/v230-ci4-linux-raw.txt",
+      "sha256": "4b04e05424ab813de8fb0b3aa5a1d3d6dcce854d14bc6581ff8956a232e0df51"
+    },
+    "failureLines": "901-994",
+    "failures": 6,
+    "testFile": "tests/gateway/mcp-oauth.test.ts"
+  },
+  "files": [
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth-fixture.mjs",
+      "sha256": "0c41addabbd0addd40ae954436816a11ca6b3400141cb4f30b55dd2fd41a9c50"
+    }
+  ],
+  "beforeFiles": [
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "83c0d7951907e9676dd4c89dacff63a691cb7770e31767bc66bdb113fa942a34"
+    },
+    {
+      "path": "tests/runtime/mcp-oauth-fixture.mjs",
+      "sha256": "17f5857d8ca6ac0495150aab3a74e1d34363e6b76594a763126f20abe84910bb"
+    }
+  ],
+  "productionUnchanged": [
+    {
+      "path": "src/runtime/mcp-oauth.ts",
+      "sha256": "e29d02697dd02f43c06db11e4bd6bd9101deb7e6c9df7d4338d7823b525f84ea"
+    },
+    {
+      "path": "src/runtime/mcp.ts",
+      "sha256": "a123f2b84aab63c509940f2c9b65ff5297bc8240ff52c96ea6d446e7c505989f"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef"
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad"
+    }
+  ],
+  "rootCause": [
+    "The in-process gateway Native fake and the real stdin/stdout OAuth fixture returned {} for newly required mcpServerStatus/list. Official response validation correctly rejected this before OAuth dispatch as mcp_auth_unavailable.",
+    "The first thread-scoped test additionally requested threadId=thread without explicitly starting/loading that thread. Mcp.list correctly enforces a loaded thread before reading its MCP connections.",
+    "The earlier manually chosen OAuth implementation tests covered runtime OAuth/MCP but omitted the existing gateway-to-RuntimeService integration consumer. This was insufficient targeted-test selection, not evidence of a production authentication regression."
+  ],
+  "repair": [
+    "Both fakes now return a complete official-shaped notLoggedIn status page with the requested exact server name and nextCursor:null. No product authentication/validation code changed.",
+    "The thread-scoped integration starts a real RuntimeService-managed fixture thread before OAuth and checks the precise thread/server/detail/limit preflight.",
+    "The real NativeRpc pipe fixture exposes recorded status requests for assertions; owner rejection still proves zero OAuth starts, followed by exactly one successful local handoff and completion.",
+    "Added gateway bearerToken/unsupported/unknown rejections and unloaded-thread rejection: ledger not_sent, zero native OAuth dispatch, no global unknown; a fresh allowed attempt proves the undispatched reservation was released.",
+    "All pre-existing replay, durable SQL/export URL secrecy, disconnect, unknown-state preservation and beforeWrite owner-guard assertions remain. Public ledger error code is explicitly expected to remain mcp_oauth_error under the existing redaction contract."
+  ],
+  "validation": {
+    "final": {
+      "command": "pinned Node scripts/run-tests.mjs --targeted tests/gateway/mcp-oauth.test.ts tests/runtime/mcp-oauth.test.ts tests/runtime/mcp.test.ts tests/gateway/receipt-result.test.ts",
+      "node": "v24.22.1",
+      "report": {
+        "path": ".work/test-results/run-2ufNeZ/vitest.json",
+        "sha256": "b0ca84b5a34bdc379b91b8f999eae7bae90933f7f49e0880dddbb1bdbbe41583"
+      },
+      "files": 4,
+      "passed": 63,
+      "failed": 0,
+      "skipped": 0
+    },
+    "intermediate": {
+      "report": {
+        "path": ".work/test-results/run-rMvT9V/vitest.json",
+        "sha256": "2b8435b639e89cca22887bf234c81fe04763773a935456cdccfe42d7487ed1c1"
+      },
+      "passed": 60,
+      "failed": 3,
+      "reason": "All original CI failures passed. Three newly added assertions incorrectly expected raw immediate error codes in the deliberately redacted public ledger; corrected those assertions to the existing mcp_oauth_error contract without changing production."
+    },
+    "diffCheck": {
+      "exitCode": 0
+    }
+  },
+  "adjacentInspection": [
+    "Repository search found tests/runtime/mcp-oauth-fixture.mjs is consumed only by the gateway OAuth integration test.",
+    "Runtime OAuth/MCP status fakes already provide valid status pages; their tests passed unchanged in the same targeted run. Receipt projection tests passed unchanged.",
+    "Web OAuth mocks operate at the public Api layer and do not stand in for native discovery; gateway emergency/receipt fixtures only seed historical receipts, not new OAuth admission.",
+    "Current src/runtime/* selector already includes both runtime and gateway domains. The separate non-test tests/runtime/* fixture branch lacked its gateway consumer; gateway_tooling owns that mapping fix and review is separate."
+  ],
+  "findings": [],
+  "limits": [
+    "This is a two-test-file fixture repair; it is not a product-source change, full test result or new clean whole-repository audit.",
+    "Only local isolated fakes and NativeRpc stdin/stdout were used; no real account credentials, paid inference, browser OAuth or external MCP invocation.",
+    "CI4 failure remains preserved and is not relabeled successful. Root performs independent repair review; final new-source audit/full gate is pending.",
+    "No commit, push, deployment or selector edit."
+  ]
+}

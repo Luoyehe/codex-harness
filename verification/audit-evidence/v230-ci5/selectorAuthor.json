@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "ci4-runtime-fixture-selection-repair",
+  "reviewerId": "v230_audit_gateway_tooling-author",
+  "complete": true,
+  "status": "implemented-targeted-passed-awaiting-independent-review",
+  "completedAt": "2026-11-01T08:25:15.908967+00:00",
+  "ciFailureContext": {
+    "head": "ff45dc166c177bc784291ebb97124907e2ecc5b3",
+    "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+    "analysis": {
+      "path": ".work/v230-ci4-linux-failure-analysis.json",
+      "sha256": "18fa11e264860e35464f81995851f7187c1f43347ea46d80ca5f2e0b9dcc55ef"
+    },
+    "distinction": "CI4 selected all252 files. Its six OAuth gateway failures came from old fixtures missing required status and loaded-thread setup. The selector gap is a separate future targeted-test omission, not the reason CI4 skipped or failed those tests."
+  },
+  "files": [
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "3d806cb3ff8f3602120e5832f151f6f5c67cb62f2adb0884e1178dbfc8ccb3a9"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "828acb976bf5812fc3acc97e94c8a78f5653586cc9c4f791614610afe16ad26c"
+    }
+  ],
+  "changes": [
+    "One selector line expands non-document runtime helper impact to runtime plus gateway tests. src/runtime production changes already selected both domains and are unchanged.",
+    "Two parameterized regression cases assert exact runtime/native/gateway groups for OAuth and native helpers, preserving narrow direct-test selection and explicit documentation classification."
+  ],
+  "evidence": {
+    "before": {
+      "path": ".work/v230-ci4-runtime-fixture-selection-before.json",
+      "sha256": "39388d645a71b748357414c67bdc5429b18391d8b74a6f59433a6adbcc3cf5f2"
+    },
+    "after": {
+      "path": ".work/v230-ci4-runtime-fixture-selection-after.json",
+      "sha256": "e2ffec0e6c8ed8192527bc9a200ad399885567b6baace72604e41791e5c9eea6"
+    },
+    "testLog": {
+      "path": ".work/v230-ci4-runtime-fixture-selection-tests.txt",
+      "sha256": "44e2d27bf4bea62609fbd324b66cabf12686f51e99ca49ea90b37bc9e1c5a5e5"
+    },
+    "testJson": {
+      "path": ".work/test-results/run-7vhtPc/vitest.json",
+      "sha256": "2aa6bf77ae3c8ef0ec5883ce55d9cd9b89b956075be63dcc7d866afc6f6961e5"
+    }
+  },
+  "validation": {
+    "command": "pinned Node scripts/run-tests.mjs --targeted tests/tooling/select-tests.test.ts",
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "files": 1,
+    "diffCheck": "passed for both owned files",
+    "actualInventoryBefore": {
+      "unit": 51,
+      "native": 14,
+      "gatewayOAuthSelected": false
+    },
+    "actualInventoryAfter": {
+      "gatewayOAuthSelected": true
+    },
+    "fullSuiteRun": false
+  },
+  "limits": [
+    "Only two owned selection/tooling test files modified. No production source, OAuth fixture, CI success criteria, skips, coverage counts or workflow modified.",
+    "No public request, browser, deployment, workflow trigger or retry for this repair. Existing CI4 failed evidence remains unchanged.",
+    "This is author validation, not independent approval. Broader full audit and full CI are parent-owned."
+  ]
+}

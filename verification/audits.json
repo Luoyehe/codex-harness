@@ -7545,6 +7545,37 @@
         }
       ],
       "method": "Complete current inventory and independent changed-boundary review; exact-byte unchanged semantic evidence is inherited explicitly. This does not claim fresh manual reading of every line or any new full-suite result."
+    },
+    {
+      "id": "v230-round14",
+      "sequence": 73,
+      "digest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-11-01T08:25:53.316Z",
+      "completedAt": "2026-11-01T08:29:08.005Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "v230-round14-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-ci5/round14-team.json",
+          "sha256": "f065f5ce363ea0b8f3c42ca32977f8483aa8d66b16606e8319c22d5ab8b5d883"
+        }
+      ],
+      "method": "Complete inventory and current independent repair review; unchanged byte-identical semantic evidence is explicitly inherited. CI4 fixture failures are preserved, not relabeled passed. This is not a new line-by-line reading of all generated protocol files."
     }
   ],
   "fullTests": {
@@ -7636,26 +7667,26 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+  "currentAuditSourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
   "currentAuditGate": {
     "status": "passed",
-    "round": "v230-round13",
-    "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+    "round": "v230-round14",
+    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
     "sourceFiles": 1984,
     "requiredCleanRounds": 1,
     "userOverride": true
   },
   "v230FullTests": {
     "status": "pending",
-    "attempt": 4,
-    "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+    "attempt": 5,
+    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
     "sourceFiles": 1984,
-    "previousPassed": {
-      "path": "verification/audit-evidence/v230-ci4/ci3.json",
-      "sha256": "82127869270b2d9ae45592637e5cc18ac22d1fd9d1728a1130219e1af5d26f1e",
+    "previousFailure": {
+      "path": "verification/audit-evidence/v230-ci5/ci4-failure.json",
+      "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce",
       "original": {
-        "path": ".work/v230-ci3-monitor-summary.json",
-        "sha256": "82127869270b2d9ae45592637e5cc18ac22d1fd9d1728a1130219e1af5d26f1e"
+        "path": ".work/v230-ci4-monitor-summary.json",
+        "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce"
       }
     }
   },
@@ -7663,7 +7694,7 @@
     "status": "pending",
     "target": "120",
     "version": "2.3.0",
-    "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
     "previousDeployment": {
       "path": "verification/audit-evidence/v230-ci4/ci3-deployment.json",
       "sha256": "499b9b37a0b4d97a8e439a94fce4b94520059b4e2654b7d644e78add514f9483",
@@ -7745,6 +7776,23 @@
         }
       },
       "note": "All cases passed on applicable platforms; legitimate platform skips are retained. Only the exact historical source passed CI3. Later live acceptance remained partial with an actual OAuth unknown receipt."
+    },
+    {
+      "attempt": 4,
+      "status": "failed",
+      "head": "ff45dc166c177bc784291ebb97124907e2ecc5b3",
+      "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+      "run": 41287733396,
+      "securityRun": 41287797491,
+      "evidence": {
+        "path": "verification/audit-evidence/v230-ci5/ci4-failure.json",
+        "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce",
+        "original": {
+          "path": ".work/v230-ci4-monitor-summary.json",
+          "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce"
+        }
+      },
+      "note": "Linux and Windows each failed the same six stale OAuth integration cases. Coverage correctly refused. Root and security passed; no whole-suite pass or deployment."
     }
   ],
   "v230LiveAcceptanceHistory": [
@@ -8062,7 +8110,7 @@
   ],
   "v230BrowserAcceptance": {
     "status": "pending",
-    "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+    "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
     "previousAcceptance": {
       "path": "verification/audit-evidence/v230-ci4/ci3-postdeployment-unknown.json",
       "sha256": "86109d659ef6d96f0a22b0e103b9ca7d1a2ab7de62fb03b4bc62dbffb1840cb1",

@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
+  "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
   "sourceFiles": 1984,
   "baseCommit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
   "version": "2.3.0",
-  "approvedAt": "2026-11-01T08:09:55.417Z",
+  "approvedAt": "2026-11-01T08:29:08.005Z",
   "userInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。用户指定发布 v2.3.0，更新 120 并保持服务运行；最终路径规则为 / 开头绝对路径，否则相对路径，普通和 ROOT 模式一致。",
   "auditWaiverInstruction": "完成后同样一轮审计无问题后进行收尾和部署发布；不要求仓库默认的连续三轮无问题。",
   "repairsReviewed": true,
@@ -17,26 +17,26 @@
   "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "v230-round13",
-      "sourceDigest": "c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70",
-      "completedAt": "2026-11-01T08:09:55.417Z",
+      "roundId": "v230-round14",
+      "sourceDigest": "99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead9209ba8971163641",
+      "completedAt": "2026-11-01T08:29:08.005Z",
       "files": 1984,
       "reviewers": [
         {
-          "id": "v230-round13-team",
+          "id": "v230-round14-team",
           "scopes": [
             "gateway-core",
             "runtime-protocol",
             "web-ux",
             "deployment-release"
           ],
-          "evidence": "verification/audit-evidence/v230-round13/team.json",
-          "sha256": "7b449a81466e28a1320799bd0200c204a9f8cbe584f0ffe8a8889f2a26771f37"
+          "evidence": "verification/audit-evidence/v230-ci5/round14-team.json",
+          "sha256": "f065f5ce363ea0b8f3c42ca32977f8483aa8d66b16606e8319c22d5ab8b5d883"
         }
       ]
     }
   ],
-  "note": "Existing explicit one-clean-round user authorization permits full tests only for this new source. CI3 passed a different source. New deployment, browser/public acceptance and publication remain pending.",
+  "note": "One-clean-round standing user instruction applies. Round14 current source may enter full tests; CI4 remains failed and deployment/publication remain pending.",
   "priorFailedCiAuthorization": {
     "path": "verification/audit-evidence/v230-ci1-repairs/failed-ci1-authorization.json",
     "sha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763"
@@ -118,11 +118,11 @@
     "sha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
   },
   "previousAuthorization": {
-    "path": "verification/audit-evidence/v230-ci4/ci3-authorization.json",
-    "sha256": "abc00454a2284e6e56221b7cd9c26d25079857123887d0eadf051c433cc95319",
+    "path": "verification/audit-evidence/v230-ci5/ci4-authorization.json",
+    "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba",
     "original": {
       "path": "verification/audit-evidence/release-closeout/authorization.json",
-      "sha256": "abc00454a2284e6e56221b7cd9c26d25079857123887d0eadf051c433cc95319"
+      "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba"
     }
   },
   "ci4Evidence": {
@@ -364,6 +364,112 @@
       "original": {
         "path": ".work/v230-ci3-unknown-oauth-metadata.json",
         "sha256": "86109d659ef6d96f0a22b0e103b9ca7d1a2ab7de62fb03b4bc62dbffb1840cb1"
+      }
+    }
+  },
+  "ci5Evidence": {
+    "scan": {
+      "path": "verification/audit-evidence/v230-ci5/source-scan.json",
+      "sha256": "43d49a435fc7c881031a9e549e9ba6b097c07c642b62bc83db28071ac7ec5eca",
+      "original": {
+        "path": ".work/v230-round14-source-scan.json",
+        "sha256": "43d49a435fc7c881031a9e549e9ba6b097c07c642b62bc83db28071ac7ec5eca"
+      }
+    },
+    "snapshot": {
+      "path": "verification/audit-evidence/v230-ci5/snapshot.json",
+      "sha256": "1f22d244cdd1280d9a1970014186ef48adf5f8a4968e70a0402786cba6465230",
+      "original": {
+        "path": ".work/v230-round14-snapshot.json",
+        "sha256": "1f22d244cdd1280d9a1970014186ef48adf5f8a4968e70a0402786cba6465230"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v230-ci5/builtin-mcp-freshness.json",
+      "sha256": "a97ba329440db11fc9ae8120561b1ddbeac6fbf630da00ad187bb1dc9c3d7302",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-62349b70-1eea-429e-a3e2-c6a3d75d23e4.json",
+        "sha256": "a97ba329440db11fc9ae8120561b1ddbeac6fbf630da00ad187bb1dc9c3d7302"
+      }
+    },
+    "fixtureAuthor": {
+      "path": "verification/audit-evidence/v230-ci5/fixtureAuthor.json",
+      "sha256": "d3852449e1473979c9e63af2e189e87e9c054f13ea9ed98dd420607b6d88d222",
+      "original": {
+        "path": ".work/v230-ci4-mcp-oauth-fixture-repair.json",
+        "sha256": "d3852449e1473979c9e63af2e189e87e9c054f13ea9ed98dd420607b6d88d222"
+      }
+    },
+    "fixtureReview": {
+      "path": "verification/audit-evidence/v230-ci5/fixtureReview.json",
+      "sha256": "cd977a3414634f39b5fdc42d71db189c85e3d0e701875d8b89d60920485260f5",
+      "original": {
+        "path": ".work/v230-ci4-mcp-oauth-fixture-review.json",
+        "sha256": "cd977a3414634f39b5fdc42d71db189c85e3d0e701875d8b89d60920485260f5"
+      }
+    },
+    "selectorAuthor": {
+      "path": "verification/audit-evidence/v230-ci5/selectorAuthor.json",
+      "sha256": "eb3d41202904af2ecc6674a3808ef87a04fb2eb379627019bc06d747fdc19ea5",
+      "original": {
+        "path": ".work/v230-ci4-runtime-fixture-selection-repair.json",
+        "sha256": "eb3d41202904af2ecc6674a3808ef87a04fb2eb379627019bc06d747fdc19ea5"
+      }
+    },
+    "selectorReview": {
+      "path": "verification/audit-evidence/v230-ci5/selectorReview.json",
+      "sha256": "d7f0919b04e7f2972186fe2cdf01e43e779551f28feb03c55538a64cdff7b552",
+      "original": {
+        "path": ".work/v230-ci4-runtime-fixture-selection-review.json",
+        "sha256": "d7f0919b04e7f2972186fe2cdf01e43e779551f28feb03c55538a64cdff7b552"
+      }
+    },
+    "fixtureTests": {
+      "path": "verification/audit-evidence/v230-ci5/fixture-tests.json",
+      "sha256": "20ad870e9f1236edcc64990e68a70215402c5958bb2ee5bbe4852097985f1390",
+      "original": {
+        "path": ".work/test-results/run-2ufNeZ/vitest.json",
+        "sha256": "b0ca84b5a34bdc379b91b8f999eae7bae90933f7f49e0880dddbb1bdbbe41583"
+      }
+    },
+    "selectorTests": {
+      "path": "verification/audit-evidence/v230-ci5/selector-tests.json",
+      "sha256": "9b6c06cfce720fddb7dc3f7c8a348460759ee3c1b53439c1ecb44872dd1ded20",
+      "original": {
+        "path": ".work/test-results/run-7vhtPc/vitest.json",
+        "sha256": "2aa6bf77ae3c8ef0ec5883ce55d9cd9b89b956075be63dcc7d866afc6f6961e5"
+      }
+    },
+    "ci4": {
+      "path": "verification/audit-evidence/v230-ci5/ci4-failure.json",
+      "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce",
+      "original": {
+        "path": ".work/v230-ci4-monitor-summary.json",
+        "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce"
+      }
+    },
+    "ci4Codeql": {
+      "path": "verification/audit-evidence/v230-ci5/ci4-codeql.json",
+      "sha256": "8bae22540f98210d02f660c5a4013c4d626bbee256fe4e417764e96ca9e61e3d",
+      "original": {
+        "path": ".work/v230-ci4-codeql-review.json",
+        "sha256": "8bae22540f98210d02f660c5a4013c4d626bbee256fe4e417764e96ca9e61e3d"
+      }
+    },
+    "oldLedger": {
+      "path": "verification/audit-evidence/v230-ci5/previous-ledger.json",
+      "sha256": "3768551f053e8f15a7696f4360526a5ebcc6be64624d94f5cb23cfb669fffdc2",
+      "original": {
+        "path": "verification/audits.json",
+        "sha256": "3768551f053e8f15a7696f4360526a5ebcc6be64624d94f5cb23cfb669fffdc2"
+      }
+    },
+    "oldAuth": {
+      "path": "verification/audit-evidence/v230-ci5/ci4-authorization.json",
+      "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba"
       }
     }
   }

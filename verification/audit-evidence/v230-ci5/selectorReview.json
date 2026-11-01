@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-runtime-fixture-selector-repair-review",
+  "reviewerId": "v230_audit_runtime",
+  "authorId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "clean": true,
+  "status": "passed",
+  "completedAt": "2026-11-01T08:26:17.050119+00:00",
+  "authorReport": {
+    "path": ".work/v230-ci4-runtime-fixture-selection-repair.json",
+    "sha256": "eb3d41202904af2ecc6674a3808ef87a04fb2eb379627019bc06d747fdc19ea5"
+  },
+  "files": [
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "3d806cb3ff8f3602120e5832f151f6f5c67cb62f2adb0884e1178dbfc8ccb3a9"
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "828acb976bf5812fc3acc97e94c8a78f5653586cc9c4f791614610afe16ad26c"
+    }
+  ],
+  "findings": [],
+  "method": [
+    "Read complete two-file diff, selector branch ordering and final unit/native classification/full-inventory guards, and both complete added parameterized regression bodies.",
+    "Verified exact file hashes and every bound author evidence hash; parsed actual19/19 result and before/after inventory plans without re-running tests.",
+    "Read actual gateway OAuth consumer path and current helper setup; source-runtime selection was already runtime+gateway, while non-test runtime helpers previously selected runtime only."
+  ],
+  "conclusions": [
+    "The one-line union includes gateway consumers of shared runtime fixtures and retains every formerly selected runtime/native test. Real native tests remain in their existing separate group.",
+    "Changed *.test.ts files are handled by the earlier exact-test branch, preserving narrow direct-test selection. tests/runtime/README.md remains excluded from helper matching and reaches documentation classification.",
+    "Path validation, missing-coverage handling, required native coverage for production changes, full-inventory audit gate, workflow behavior and result criteria are unchanged.",
+    "The two added cases assert exact groups and mapping contents for OAuth and native helper paths, plus retained direct-test/document semantics.",
+    "This selector issue is separate from the six CI4 failures: the actual full run did include gateway OAuth, whose stale fixture contract was repaired independently."
+  ],
+  "validation": {
+    "authorTests": {
+      "evidence": {
+        "path": ".work/test-results/run-7vhtPc/vitest.json",
+        "sha256": "2aa6bf77ae3c8ef0ec5883ce55d9cd9b89b956075be63dcc7d866afc6f6961e5"
+      },
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "files": 1
+    },
+    "beforePlan": {
+      "evidence": {
+        "path": ".work/v230-ci4-runtime-fixture-selection-before.json",
+        "sha256": "39388d645a71b748357414c67bdc5429b18391d8b74a6f59433a6adbcc3cf5f2"
+      },
+      "unit": 51,
+      "native": 14,
+      "gatewayOAuthSelected": false
+    },
+    "afterPlan": {
+      "evidence": {
+        "path": ".work/v230-ci4-runtime-fixture-selection-after.json",
+        "sha256": "e2ffec0e6c8ed8192527bc9a200ad399885567b6baace72604e41791e5c9eea6"
+      },
+      "unit": 65,
+      "native": 14,
+      "gatewayOAuthSelected": true
+    },
+    "reviewerTestsRun": 0
+  },
+  "limits": [
+    "Narrow independent review of selector/tooling tests only. The reviewer authored the OAuth fixture repair, which root reviewed independently.",
+    "No source edit, repeated test, network, old archived code, full audit claim, CI trigger or deployment.",
+    "Final round14 inventory and source digest will bind both independently reviewed repairs separately."
+  ]
+}
