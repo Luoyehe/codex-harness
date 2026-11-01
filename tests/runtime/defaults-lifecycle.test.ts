@@ -1,14 +1,43 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
+import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { NativeRpc } from '../../src/runtime/native.js';
 import { DeliveryError, LIMITS, type JsonObject } from '../../src/runtime/types.js';
+import { windowsPowerShellEnv } from '../../src/runtime/windows-job.js';
 
 const services: RuntimeService[] = [];
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
+async function processIdentity(pid: number): Promise<string | null> {
+  if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('Invalid fixture PID');
+  if (process.platform !== 'win32') {
+    try { process.kill(pid, 0); return String(pid); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') return null; throw error; }
+  }
+  // A terminated Windows PID can name a successor by the next probe. Record
+  // creation time while the held child is alive, then compare that identity.
+  // Keep the UTC DateTime ticks (100 ns units) as text, never a rounded JS number.
+  // Only an absent PID is accepted as missing; access/query failures fail closed.
+  const script = `$ErrorActionPreference='Stop'; $PSModuleAutoLoadingPreference='None'
+try { $target=[Diagnostics.Process]::GetProcessById(${pid}) }
+catch [ArgumentException] { [Console]::WriteLine('absent'); exit 0 }
+catch { exit 1 }
+try { [Console]::WriteLine($target.StartTime.ToUniversalTime().Ticks.ToString([Globalization.CultureInfo]::InvariantCulture)) }
+catch { exit 1 }
+finally { $target.Dispose() }`;
+  const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
+  const { stdout } = await promisify(execFile)(path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
+    { env: windowsPowerShellEnv({ SystemRoot: systemRoot }), windowsHide: true, timeout: 10000, maxBuffer: 1024 });
+  const identity = stdout.trim();
+  if (identity === 'absent') return null;
+  if (!/^[1-9]\d+$/.test(identity)) throw new Error('Invalid fixture process creation time');
+  return identity;
+}
 function setup(stage: string, startupDelayMs = 0) {
   const parent = path.resolve('.work/defaults-lifecycle'); mkdirSync(parent, { recursive: true });
   const root = mkdtempSync(path.join(parent, 'run-')); const marker = path.join(root, 'probe.pid');
@@ -44,8 +73,9 @@ test.each([['initialize', 0], ['thread/start', 0], ['thread/start', 1200]] as co
   const pending = service.call('defaults/read', { cwd: root }, { clientId: 'test' }).catch((error: unknown) => error);
   const pid = await heldPid(marker, pending);
   expect(() => process.kill(pid, 0)).not.toThrow();
+  const identity = await processIdentity(pid); expect(identity).not.toBeNull();
   const closing = service.close(); expect(service.close()).toBe(closing); await closing;
-  expect(main.connected).toBe(false); expect(() => process.kill(pid, 0)).toThrow();
+  expect(main.connected).toBe(false); expect(await processIdentity(pid)).not.toBe(identity);
   expect(await pending).toMatchObject({ code: 'runtime_lost', delivery: 'unknown' });
   await expect(service.call('defaults/read', { cwd: root }, { clientId: 'test' })).rejects.toMatchObject({ code: 'runtime_unavailable' });
 });
@@ -98,14 +128,48 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
   const starts = (): { pid: number; params: JsonObject }[] => existsSync(started) ? readFileSync(started, 'utf8').trim().split('\n').map(line => JSON.parse(line)) : [];
   const released: Record<string, JsonObject> = {};
   const release = (index: number, result: JsonObject = {}) => { released[index] = result; writeFileSync(controls, JSON.stringify(released)); };
+  const identities = new Map<number, string>();
+  const stopped = async (entries = starts()) => {
+    for (const [index, previous] of entries.entries()) {
+      const identity = identities.get(index); expect(identity).toBeDefined();
+      expect(await processIdentity(previous.pid)).not.toBe(identity);
+    }
+  };
   const held = async (count = 1) => {
     await vi.waitFor(() => expect(starts()).toHaveLength(count), { timeout: 10000 });
-    // A successor cannot start until its predecessor's real OS process exited.
-    for (const previous of starts().slice(0, -1)) expect(() => process.kill(previous.pid, 0)).toThrow();
+    // A successor cannot start until each captured predecessor identity exited.
+    await stopped(starts().slice(0, -1));
+    const identity = await processIdentity(starts()[count - 1]!.pid); expect(identity).not.toBeNull();
+    identities.set(count - 1, identity!);
   };
-  const read = (options: JsonObject = {}, cwd = root) => service.call('defaults/read', { cwd, options }, { clientId: 'test' });
-  return { root, service, main, starts, release, held, read };
+  const read = (options: JsonObject = {}, cwd = root) => {
+    const pending = service.call('defaults/read', { cwd, options }, { clientId: 'test' });
+    // Keep the original rejecting promise for assertions, but observe it now so
+    // a failed readiness assertion cannot turn afterEach cleanup into a second error.
+    void pending.catch(() => {}); return pending;
+  };
+  return { root, service, main, starts, release, held, stopped, read };
 }
+
+test('the identity guard rejects a live predecessor and cleanup preserves the observed request rejection', async () => {
+  const f = concurrentDefaults(), pending = f.read(); await f.held();
+  const pid = f.starts()[0]!.pid, identity = await processIdentity(pid);
+  expect(identity).not.toBeNull(); expect(await processIdentity(pid)).toBe(identity);
+  if (process.platform === 'win32') expect(BigInt(identity!)).toBeGreaterThan(BigInt(Number.MAX_SAFE_INTEGER));
+  await expect(f.stopped()).rejects.toThrow();
+  await f.service.close(); await f.stopped();
+  // Observe only after the rejection has had a full event-loop turn: read()
+  // must prevent an unhandled error without replacing the original promise.
+  await new Promise<void>(resolve => setImmediate(resolve));
+  await expect(pending).rejects.toMatchObject({ code: 'runtime_lost', delivery: 'unknown' });
+});
+
+test.skipIf(process.platform !== 'win32')('Windows identity lookup distinguishes absent processes from failed queries', async () => {
+  await expect(processIdentity(2147483647)).resolves.toBeNull();
+  // Outside GetProcessById's Int32 range: the real query must fail, not report
+  // an absent process. Access/query exceptions share this fail-closed branch.
+  await expect(processIdentity(2147483648)).rejects.toThrow();
+});
 
 test('concurrent identical defaults share one actual child and its completed cache', async () => {
   const f = concurrentDefaults(), first = f.read(); await f.held();
@@ -119,7 +183,8 @@ test('concurrent identical defaults share one actual child and its completed cac
 test('different cwd and options wait for cleanup and reread changed configuration before choosing a cache key', async () => {
   const f = concurrentDefaults(), other = path.join(f.root, 'other'); mkdirSync(other);
   const first = f.read({ model: 'first' }); await f.held();
-  let settled = false; const second = f.read({ model: 'second' }, other).finally(() => { settled = true; });
+  let settled = false; const second = f.read({ model: 'second' }, other);
+  void second.then(() => { settled = true; }, () => { settled = true; });
   await vi.waitFor(() => expect(f.main.reads).toHaveLength(2)); expect(settled).toBe(false);
   f.main.config = { revision: 'changed-while-waiting' }; f.release(1); await first; await f.held(2);
   expect(f.main.reads.at(-1)).toMatchObject({ cwd: other, config: { revision: 'changed-while-waiting' } });
@@ -166,7 +231,7 @@ test('close rejects shared active reads with their native outcome and never star
   const failed = await results;
   for (const value of failed.slice(0, 2)) expect(value).toMatchObject({ status: 'rejected', reason: { code: 'runtime_lost', delivery: 'unknown' } });
   expect(failed[2]).toMatchObject({ status: 'rejected', reason: { code: 'runtime_unavailable', delivery: 'not_sent' } });
-  expect(f.starts()).toHaveLength(1); expect(() => process.kill(f.starts()[0]!.pid, 0)).toThrow();
+  expect(f.starts()).toHaveLength(1); await f.stopped();
 });
 
 test('defaults request capacity is bounded before config reads and reusable after shared completion', async () => {
