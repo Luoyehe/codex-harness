@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "kind": "additional-user-requested-conversation-independent-review",
+  "reviewerId": "root",
+  "completedAt": "2026-11-01T14:40:30.581Z",
+  "complete": true,
+  "clean": true,
+  "files": [
+    {
+      "path": "src/runtime/thread-conversion.ts",
+      "sha256": "8b7c612aa55bcb1c750f16cbe6bd1b4662c568e577f1b6c231c80d6fce394419"
+    },
+    {
+      "path": "src/runtime/thread-history-compatibility.ts",
+      "sha256": "2d89da3295080c81240e3adaa172ccb1986c82a72c995a075a889670a08a94a5"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2"
+    },
+    {
+      "path": "src/runtime/session-snapshots.ts",
+      "sha256": "0d4ae99c3eacd6849e9a2bbc660d02a497e19c15401e2624ac18105034c8cbe6"
+    },
+    {
+      "path": "src/runtime/live-thread-list.ts",
+      "sha256": "25071a588bc5bacedbc02716554358cc23e5a4e786a16f464092d0ca102e4f05"
+    },
+    {
+      "path": "src/runtime/history.ts",
+      "sha256": "48c57ac313c4b7c5d060c1f76c45f5a5bbac844954a1cc7ed166fe744e419c44"
+    },
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "f8f39a0a8e65fd4cbd580f8ca6428b90ab8b38e23a9b7b6c950abfd5287fb784"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "2dc882d67c4123682a7d0a142a592835362bad9f67b2555d05043d388ff66c63"
+    },
+    {
+      "path": "web/hooks/useResume.ts",
+      "sha256": "4c4ca80762b2688b1002f05bd278636b74eb9c23e1aba3c8abfa8c2d037a62b6"
+    },
+    {
+      "path": "web/hooks/useConversation.ts",
+      "sha256": "925eeeeeaa73243b1bb871895d5f2e8a580015d93bab438ed17388ef7928c550"
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "sha256": "822cddbf440143ef5421f8219ff4bb91e26cd93fb78684b18da9087f8d7cba4c"
+    },
+    {
+      "path": "web/hooks/useSidebarRefresh.ts",
+      "sha256": "7a31400acefb4eebceadd3ead3b4e0e2ba816068524cff81daae80ad6e125b76"
+    },
+    {
+      "path": "web/lib/provider-models.ts",
+      "sha256": "7893aac071b69baedd8ccd9d8e59e78122d23cb081c4888f73975f0addeb82f9"
+    },
+    {
+      "path": "web/components/ThreadConversionDialog.tsx",
+      "sha256": "72bf9f531fe12ac5d729fe977c520f30c8955bb21e35703b490a2d6b2b95d7d7"
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "sha256": "7cabe11c8f1683dec4110807f617911d1a3084c61b886a37cf89098c4e4ee679"
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "ae0ab7fa6cd47f83f501c27edbe2e647bbf8f332f71e67d0d2fb6a660cdb71b9"
+    },
+    {
+      "path": "tests/runtime/thread-list-native.test.ts",
+      "sha256": "34cac1ad066bb398c583048ca8dfbe1f09437be38e951655f26108eb6781bab7"
+    },
+    {
+      "path": "tests/runtime/thread-conversion.test.ts",
+      "sha256": "2a4b61fe1886f18eac9a8153f826b23ed9eb3c78909ea1f5c50dce474a5b405d"
+    },
+    {
+      "path": "tests/deploy/test_thread_history.py",
+      "sha256": "c33b130a5b4fe2792c7897d0dc6a82848fa261020129a2eb0e45d329e1e7e2f4"
+    },
+    {
+      "path": "tests/runtime/defaults-lifecycle.test.ts",
+      "sha256": "a9f0eb03b2c7f181b26a59cb38659e3280c5b7b42a3f53068e9c744e6fd72cf1"
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "a473a5e4e581c1e6ee3ebe1c2bbd79b61bb80227f2ffd96551db2052e338b3f7"
+    }
+  ],
+  "findings": [],
+  "request": "Recheck conversation core before final tests after repeated design changes; verify independent converted copy and unchanged original.",
+  "checks": [
+    "Conversion calls native thread/start, never fork. It supplies no original thread ID, parent or lineage in creation parameters. Helper keeps the new native header and requires a distinct empty independent paginated target.",
+    "Source is opened read-only by copy/repair orchestration. Normal native unsubscribe may flush already pending metadata; after this close the fixed source witness is never rebound and all mutations target only the new thread.",
+    "Copy publication checks different file identity, source and target witnesses and both native writer locks, fsyncs a temporary and atomically replaces target only. Partial results remain unknown and cannot cause automatic replay.",
+    "Historical body event IDs are copied data, not a fork pointer, parent/session tree edge, hardlink or live source-history dependency. Live goal/queue databases, shell ownership and active child-agent state are not copied.",
+    "The actual CLI regression sends separately to both histories, confirms no prompt during conversion, deletes original, restarts runtime and still continues target without the later original-only message.",
+    "New native assertions add parentThreadId/forkedFromId null and separate path/inode/new identity/history_base checks without weakening prior assertions. Session-tree identity is additionally checked by independent retained-fixture evidence.",
+    "Normal send/resume rejects cross-provider changes; current-provider composer filtering is a view of the shared catalog, not a separate stale provider catalog. Unknown/partial aliases do not clear drafts prematurely.",
+    "Thread creation acknowledgements bridge native indexing lag. List requests include all providers. Accepted/unknown receipts plus lifecycle events refresh sidebar while directory ownership suppresses stale project results.",
+    "History traversal and snapshot ownership are keyed to thread, browser connection and runtime generation; switching threads cancels stale reads. Automatic resume is gated by continuation state and pending operations, not a new message.",
+    "Draft handoff preserves unsaved text and attachments and never copies or sends them implicitly. Conversion has two intentional steps, target-only successful handoff and durable operation receipt recovery.",
+    "CI defaults failures are corrected in fixtures only: script file avoids interpreting Codex -c as Node --check, and real provider identity is supplied to the same-provider model-selection test. Exact send settings and shutdown assertions remain."
+  ],
+  "evidence": [
+    {
+      "path": "verification/audit-evidence/v232-converted-copy/audit.json",
+      "sha256": "f6d3dad69b62a29e1b9aa47dbef0ed800d7eb2dfbb1242cf0bc235dbc2f1878a"
+    },
+    {
+      "path": ".work/v232-conversion-independence-retained-fixture.json",
+      "sha256": "a5d8e860e544285206dd8e675e3ea4aa4edaf393a0331b05253ad5caa10e0116"
+    }
+  ],
+  "limits": [
+    "This is an additional source review and evidence review, not a new full-suite pass or a claim of mathematical absence of bugs.",
+    "Source byte immutability proof starts after normal native close/flush; original history/provider/name are not converted.",
+    "Independent conversations still share the selected project filesystem and external services. Conversion is not a worktree/filesystem snapshot or undo of earlier side effects.",
+    "Historical tool/child-agent IDs can remain visible in copied records; no new live agent tree is created from them. The retained fixture has no actual spawned child agent.",
+    "Opaque provider-encrypted compaction, inherited rollout history and unsupported compressed disk formats fail without conversion; supported public compacted replacement history is tested.",
+    "Final source-bound full matrix and deployment remain gated on CI repairs and the complete clean audit."
+  ]
+}

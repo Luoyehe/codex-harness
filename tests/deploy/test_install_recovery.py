@@ -48,6 +48,10 @@ class InstallationRecoveryTests(unittest.TestCase):
         mkdir(self.layout.config)
         mkdir(self.layout.app / "releases")
         mkdir(self.layout.state / "transactions")
+        for release in ("a" * 64, "b" * 64, "c" * 64):
+            package = self.layout.app / "releases" / release / "app/package.json"
+            mkdir(package.parent)
+            write_json(package, {"name": "synthetic-legacy-application"}, mode=0o644)
         write_json(self.layout.config / "instance.json", {"port": 3300, "origin": "http://127.0.0.1:3300"})
         self.marker = self.layout.config / "installation.json"
         self.system = FixtureSystem()
@@ -55,6 +59,9 @@ class InstallationRecoveryTests(unittest.TestCase):
         self.manager.require_service_ownership = lambda **kwargs: None  # This fixture isolates release/installation journals.
         self.manager.refresh_worker_unit = lambda: None
         self.manager.verify_release = lambda release: {"release": release}
+        # Root-only account metadata ownership is covered by root fixtures;
+        # this ordinary-UID fixture uses token-only legacy releases.
+        self.manager.release_accounts = lambda release: False
         self.manager.recover_control = lambda: self.system.events.append("recover-control")
         self.manager.healthy = lambda: self.system.events.append("health")
         # Windows cannot create symlinks without an elevated token. Linux runs

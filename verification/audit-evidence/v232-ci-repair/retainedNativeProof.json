@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "readonly-retained-native-conversion-independence",
+  "complete": true,
+  "observedAt": "2026-11-01T14:36:41.616705+00:00",
+  "fixture": ".work/provider-switch-native/home-PwWNKc",
+  "fixtureAssociation": {
+    "basis": "native test started during this unique home creation; latest retained completed fixture from run-YE0CVb, exact synthetic request/resume settings and deletion structure agree",
+    "testStartTime": 1793542370330,
+    "testEndTime": 1793542376730.1758,
+    "fixtureMtimeMs": 1793542371890.2336,
+    "testStatus": "passed"
+  },
+  "originalThreadId": "01a19774-b773-7c92-b0fd-0cb8fece6221",
+  "originalStillInDatabase": false,
+  "targetHeaders": [
+    {
+      "path": ".work/provider-switch-native/home-PwWNKc/codex/sessions/2026/11/01/rollout-2026-11-01T22-12-52-01a19774-bbf8-7f00-b965-0f4b9a2b547f.jsonl",
+      "rolloutSha256": "73cf515e07c4acb6735843ca00ff2315c7e235d2d9aca1ca5a538bbe92a431f5",
+      "header": {
+        "id": "01a19774-bbf8-7f00-b965-0f4b9a2b547f",
+        "session_id": "01a19774-bbf8-7f00-b965-0f4b9a2b547f",
+        "history_mode": "paginated",
+        "history_base": null,
+        "forked_from_id": null,
+        "parent_thread_id": null,
+        "source": "vscode",
+        "originator": "codex_harness",
+        "model_provider": "provider_a"
+      },
+      "lineageKeysPresent": []
+    },
+    {
+      "path": ".work/provider-switch-native/home-PwWNKc/codex/sessions/2026/11/01/rollout-2026-11-01T22-12-55-01a19774-c91a-7082-9d74-e382fdcb439f.jsonl",
+      "rolloutSha256": "a7620bee924fea69d65129203a6471bd4fcdbe4493098a6f3fda846bef8bdb42",
+      "header": {
+        "id": "01a19774-c91a-7082-9d74-e382fdcb439f",
+        "session_id": "01a19774-c91a-7082-9d74-e382fdcb439f",
+        "history_mode": "paginated",
+        "history_base": null,
+        "forked_from_id": null,
+        "parent_thread_id": null,
+        "source": "vscode",
+        "originator": "codex_harness",
+        "model_provider": "provider_b"
+      },
+      "lineageKeysPresent": []
+    }
+  ],
+  "databaseThreadMetadata": [
+    {
+      "id": "01a19774-bbf8-7f00-b965-0f4b9a2b547f",
+      "source": "vscode",
+      "modelProvider": "provider_b",
+      "archived": 0
+    },
+    {
+      "id": "01a19774-c91a-7082-9d74-e382fdcb439f",
+      "source": "vscode",
+      "modelProvider": "provider_b",
+      "archived": 0
+    }
+  ],
+  "spawnEdgeColumns": [
+    "parent_thread_id",
+    "child_thread_id",
+    "status"
+  ],
+  "spawnEdgeCount": 0,
+  "confirmed": {
+    "eachTargetOwnSessionId": true,
+    "allTargetHeadersLackLineageLinks": true,
+    "sourceDeleted": true,
+    "noSpawnEdgeRows": true
+  },
+  "evidence": [
+    {
+      "path": ".work/test-results/run-YE0CVb/vitest.json",
+      "sha256": "722450ee2bde9da1866a8b88d3e0aa38f5c100ce107236892ab344a9a6afb210"
+    },
+    {
+      "path": "verification/audit-evidence/v232-converted-copy/runtimeAuthor.json",
+      "sha256": "616d16d97e14d9de3e42f49e608bfa92b28236d1e926e75e51d5df71e571a59b"
+    }
+  ],
+  "limits": [
+    "Read-only inspection of the earlier synthetic loopback fixture; no new test, live instance, credentials or model request.",
+    "The fixture has no real spawned child agent; zero edge rows plus source review proves this exercised conversion creates no agent ancestry, not a replay test for every historical tool kind.",
+    "Copied historical messages/tool results may mention old IDs; they are retained data, not evidence of active parent/fork/history-base storage dependence.",
+    "Source writer close may flush normal metadata before the immutable source witness; no claim that pre-click and post-close files have identical bytes."
+  ]
+}

@@ -38,6 +38,8 @@ class CandidateArchiveRootTests(unittest.TestCase):
         release = self.layout.app / "releases/stage"
         release.mkdir(parents=True)
         (release / "application.txt").write_text("verified application")
+        (release / "app").mkdir()
+        write_json(release / "app/package.json", {"name": "synthetic-legacy-application"}, mode=0o644)
         manifest = inspect_tree(release, root_owned=True)
         self.release = digest(manifest)
         release.rename(release.with_name(self.release))

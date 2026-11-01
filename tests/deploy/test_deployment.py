@@ -544,6 +544,9 @@ class TransactionTests(unittest.TestCase):
             write_json(directory / "package.json", {"name": "synthetic-transaction-fixture"})
         self.manager.selected = lambda name="current": self.current
         self.manager.verify_release = lambda release: {"release": release}
+        # These ordinary-UID releases are token-only. Root metadata ownership
+        # and account downgrade checks have real root fixtures of their own.
+        self.manager.release_accounts = lambda release: False
         self.manager.recover_control = lambda: self.system.events.append("recover-control")
         def select(release, name="current"):
             self.system.events.append("select-" + name)

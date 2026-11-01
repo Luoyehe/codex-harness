@@ -43,7 +43,7 @@ describe.skipIf(process.platform !== 'win32')('Windows job ownership', () => {
     const config = command(); const rpc = new NativeRpc({ ...config, home: config.cwd, dev: true }); let pids: number[] = [];
     try {
       await rpc.initialize(); const result = await rpc.call(method, {}) as { rootPid: number; childPid: number; args: string[] }; pids = [result.rootPid, result.childPid];
-      expect(result.args).toEqual(config.args.slice(1));
+      expect(result.args).toEqual([...config.args.slice(1), '-c', 'thread_unload_delay_secs=0']);
       if (method === 'spawn-exit') await expect.poll(() => rpc.connected).toBe(false);
       await rpc.close(); expect(pids.map(alive)).toEqual([false, false]); expect(rpc.budget).toEqual({ pending: 0, retainedBytes: 0 });
     } finally { await rpc.close().catch(() => {}); for (const pid of pids) if (alive(pid)) process.kill(pid); }

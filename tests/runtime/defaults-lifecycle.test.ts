@@ -46,7 +46,14 @@ function setup(stage: string, startupDelayMs = 0) {
     async call() { await this.readGate; return { config: {} }; }, async close() { this.connected = false; },
   });
   const fixture = path.resolve('tests/runtime/native-fixture.mjs');
-  const args = startupDelayMs ? ['--input-type=module', '-e', `await new Promise(resolve => setTimeout(resolve, ${startupDelayMs})); await import(${JSON.stringify(pathToFileURL(fixture).href)});`] : [fixture];
+  let executableFixture = fixture;
+  if (startupDelayMs) {
+    // Native app-server flags follow the executable script. With node -e,
+    // Codex's -c would instead be parsed as Node's incompatible --check flag.
+    executableFixture = path.join(root, 'delayed-fixture.mjs');
+    writeFileSync(executableFixture, `await new Promise(resolve => setTimeout(resolve, ${startupDelayMs})); await import(${JSON.stringify(pathToFileURL(fixture).href)});\n`);
+  }
+  const args = [executableFixture];
   const service = new RuntimeService({ bin: process.execPath, args, home: root, workerHome: root, cwd: root, dev: true,
     env: { ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}), HARNESS_FIXTURE_HOLD: stage, HARNESS_FIXTURE_PID_FILE: marker },
   }, main as unknown as NativeRpc);

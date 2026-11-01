@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "v2.3.2-independent-converted-conversation",
+  "phase": "v2.3.2-ci-repair-final",
   "consecutiveClean": 1,
   "rounds": [
     {
@@ -7786,6 +7786,37 @@
         }
       ],
       "method": "One complete final inventory/impact audit. Every changed file and contract boundary is independently reviewed; unchanged files are bound by exact byte hashes to the earlier complete audit. Remaining generated protocol/reference files inherit verified provenance and unchanged review. This does not claim all unchanged lines were reread. Findings found during implementation are closed before this frozen clean audit."
+    },
+    {
+      "id": "v232-ci-fixtures-and-session-final",
+      "sequence": 80,
+      "digest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-11-01T14:46:11.933Z",
+      "completedAt": "2026-11-01T14:47:04.990Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "root-with-independent-ci-repair-review",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v232-ci-repair/audit.json",
+          "sha256": "69054806ba7701185b76b032a1bef23e8f84738b6f84ff0b5bd7087533a08f97"
+        }
+      ],
+      "method": "Final complete source inventory and impact audit. All 11 changes independently reviewed; all remaining source hashes bound to the prior complete audit. Core conversation, read/resume, lifecycle, conversion, sidebar and provider selection received additional independent review. Runtime/deployment production bytes are unchanged from b1ffa; nine test repairs and two mandatory learning documents changed. Does not claim every unchanged source line was reread."
     }
   ],
   "fullTests": {
@@ -7877,11 +7908,11 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+  "currentAuditSourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
   "currentAuditGate": {
     "status": "passed",
-    "round": "v232-converted-copy-final",
-    "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+    "round": "v232-ci-fixtures-and-session-final",
+    "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
     "sourceFiles": 2004,
     "requiredCleanRounds": 1,
     "userOverride": true
@@ -8577,11 +8608,19 @@
   },
   "v232FullTests": {
     "status": "pending",
-    "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
-    "sourceFiles": 2004
+    "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383",
+    "sourceFiles": 2004,
+    "failedPredecessor": {
+      "path": "verification/audit-evidence/v232-ci-repair/failedCiReview.json",
+      "sha256": "781c9f715ad1d17c77e3f76316d3af5fe709f90a368a81d801c053877c92fa33",
+      "original": {
+        "path": ".work/v232-ci1-monitor-summary.json",
+        "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+      }
+    }
   },
   "v232ReleaseDeployment": {
     "status": "pending",
-    "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e"
+    "sourceDigest": "9d43e4726338ae9d9602074a609628d4717e585b36dbb25020da46ab565e7383"
   }
 }

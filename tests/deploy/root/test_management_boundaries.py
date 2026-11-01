@@ -58,6 +58,10 @@ class ManagementBoundaryTests(unittest.TestCase):
                        "gatewayGid": 101, "codexRelative": "vendor/fixture/codex"}
         write_json(self.layout.config / "instance.json", self.config)
         write_json(self.layout.config / "installation.json", {"format": 1, "phase": "complete", "release": "a" * 64})
+        for release in ("a" * 64, "b" * 64):
+            package = self.layout.app / "releases" / release / "app/package.json"
+            mkdir(package.parent)
+            write_json(package, {"name": "synthetic-legacy-application"}, mode=0o644)
         for name, content in render_units(self.layout, self.config, self.config["codexRelative"]).items():
             atomic_write(self.layout.units / name, content.encode(), 0o644)
         self.sudo = self.layout.root / "etc/sudoers.d/codex-harness-fixture"
