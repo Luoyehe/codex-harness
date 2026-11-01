@@ -50,9 +50,11 @@ test('draft management shows both modes but cannot open a draft under another id
   fireEvent.click(within(root as HTMLElement).getByRole('button', { name: '打开草稿' })); expect(onOpen).toHaveBeenCalledExactlyOnceWith('root:new:p');
 });
 
-async function workspace(thread = '') {
-  sessionStorage.setItem('harness.project', 'p');
+async function workspace(thread = '', initial: { mode?: 'native' | 'root'; rememberProject?: boolean } = {}) {
+  const mode = initial.mode ?? 'native';
+  if (initial.rememberProject !== false) sessionStorage.setItem('harness.project', 'p');
   if (thread) history.replaceState({}, '', `/?thread=${thread}`);
+  if (mode === 'root') { const url = new URL(location.href); url.searchParams.set('executionMode', 'root'); history.replaceState({}, '', url); }
   const sockets: any[] = [], calls: any[] = [];
   vi.stubGlobal('WebSocket', class { onopen = () => {}; onclose = () => {}; onmessage = (_: any) => {}; close() {} constructor() { sockets.push(this); } });
   vi.stubGlobal('fetch', vi.fn(async (url, init) => {
@@ -74,10 +76,23 @@ async function workspace(thread = '') {
   const state = async (mode: 'native' | 'root', epoch: string) => act(async () => {
     sockets[0].onopen(); sockets[0].onmessage({ data: JSON.stringify({ type: 'state', data: { connected: true, runtime: { connected: true, epoch, executionMode: { mode, effectiveUid: mode === 'root' ? 0 : 123 }, activity: { unknown: false, activeThreads: [], pendingStarts: 0, terminals: 0, processes: 0, subscriptions: 0 } } } }) });
   });
-  await state('native', 'native-1');
+  await state(mode, `${mode}-1`);
   const input = () => screen.getByRole('textbox', { name: '给 Codex 的消息' });
   return { calls, state, input, sockets };
 }
+
+test.each([[false, ''], [false, 'saved root input'], [true, 'saved root input']] as const)('an initial ROOT tab automatically selects its project without a stale identity error (remembered project: %s, draft: %s)', async (rememberProject, text) => {
+  writeDraft({ ...emptyDraft('root:new:p'), text });
+  const f = await workspace('', { mode: 'root', rememberProject });
+  await waitFor(() => expect(sessionStorage.getItem('harness.project')).toBe('p'));
+  await waitFor(() => expect(f.input()).toHaveProperty('value', text));
+  await waitFor(() => expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(!text));
+  expect(screen.queryByText('执行身份已变化或尚未确认。请先保留当前草稿并完成身份切换。')).toBeNull();
+  expect(new URL(location.href).searchParams.get('executionMode')).toBe('root');
+  expect(f.calls.some(call => ['thread/resume', 'conversation/start', 'turn/start'].includes(call.method))).toBe(false);
+  expect(readDraft('root:new:p').text).toBe(text);
+  expect(readDraft('new:p').text).toBe('');
+});
 
 test('confirmed mode changes leave the old thread, preserve both drafts, and never resume or send automatically', async () => {
   writeDraft({ ...emptyDraft('old-thread'), text: 'private normal draft', options: { model: 'native-model' } });

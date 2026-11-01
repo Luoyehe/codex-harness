@@ -501,9 +501,9 @@ export function Workspace({
     }
   }, [theme]);
   useEffect(() => {
-    if (!projects.length || threadId) return;
+    if (executionBlocked || !projects.length || threadId) return;
     if (!projects.some((p) => p.id === projectId)) changeContext(projects[0]!.id, threadId, () => {});
-  }, [projectsResource.data, threadId, projectId]);
+  }, [executionBlocked, projectsResource.data, threadId, projectId]);
   useEffect(() => {
     if (projectId && projects.some((p) => p.id === projectId)) {
       try {
@@ -514,11 +514,11 @@ export function Workspace({
     }
   }, [projectId, projectsResource.data]);
   useEffect(() => {
-    if (!threadId || !conversation.thread?.cwd || !projects.length) return;
+    if (executionBlocked || !threadId || !conversation.thread?.cwd || !projects.length) return;
     const matching = projects.find((p) => p.cwd === conversation.thread?.cwd);
     if (matching) changeContext(matching.id, threadId, () => {});
     else setError('此会话的工作目录尚未注册。请先添加对应项目。');
-  }, [conversation.thread?.cwd, projectsResource.data, threadId]);
+  }, [executionBlocked, conversation.thread?.cwd, projectsResource.data, threadId]);
   useEffect(() => {
     const back = () => {
       const url = new URL(location.href), mode = url.searchParams.get('executionMode') === 'root' ? 'root' : 'native';
