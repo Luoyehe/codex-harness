@@ -27,6 +27,45 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+test.each([
+  { scenario: 'pending generation', status: 'in_progress', result: '', expected: '图片正在生成，请等待结果。' },
+  { scenario: 'failed generation', status: 'failed', result: '', expected: '图片生成失败，未返回可预览的图片。' },
+  { scenario: 'file reference only', status: 'completed', fileId: 'file-image', expected: '原生只提供文件 ID，没有可读取的图片内容。' },
+  { scenario: 'missing output', status: 'completed', result: '', expected: '原生没有提供可读取的图片内容。' },
+])('image generation without readable bytes describes $scenario accurately', ({ scenario: _scenario, expected, ...item }) => {
+  const call = vi.fn();
+  render(
+    <MessageMedia
+      api={{ call } as unknown as Api}
+      threadId="one"
+      item={{ type: 'imageGeneration', id: 'generated', failure: null, revisedPrompt: null, ...item }}
+    />,
+  );
+  expect(screen.getByText(expected)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: '预览图片' })).toBeNull();
+  expect(call).not.toHaveBeenCalled();
+});
+test('completed image generation replaces its waiting message and previews inline bytes without reading savedPath', async () => {
+  const call = vi.fn(),
+    api = { call } as unknown as Api,
+    item = { type: 'imageGeneration', id: 'generated', failure: null, revisedPrompt: null },
+    view = render(
+      <MessageMedia api={api} threadId="one" item={{ ...item, status: 'in_progress', result: '' }} />,
+    );
+  expect(screen.getByText('图片正在生成，请等待结果。')).toBeTruthy();
+  view.rerender(
+    <MessageMedia
+      api={api}
+      threadId="one"
+      item={{ ...item, status: 'completed', result: png, savedPath: '/native/generated_images/one/generated.png' }}
+    />,
+  );
+  expect(screen.queryByText('图片正在生成，请等待结果。')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '预览图片' }));
+  expect((await screen.findByRole('img', { name: '生成的图片' })).getAttribute('src')).toBe('blob:fixture');
+  expect(screen.getByRole('link', { name: '下载 生成的图片.png' }).getAttribute('download')).toBe('生成的图片.png');
+  expect(call).not.toHaveBeenCalled();
+});
 test('history attachments are read only on demand and release object URLs on context change', async () => {
   const call = vi.fn().mockResolvedValue({ name: 'one.png', size: atob(png).length, base64: png });
   const api = { call } as unknown as Api,

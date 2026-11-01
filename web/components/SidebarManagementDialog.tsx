@@ -74,8 +74,8 @@ export function SidebarManagementDialog({
               onChange={event => setName(event.target.value)} />
           </label>}
           {intent === 'remove' && <p>只从项目列表中移除，目录、文件和会话历史都会保留。以后可重新添加此目录。</p>}
-          {intent === 'archive' && <p>归档后会话保留在此项目的“归档会话”中，可随时取消归档。</p>}
-          {intent === 'unarchive' && <p>会话将回到此项目的“最近会话”列表。</p>}
+          {intent === 'archive' && <p>归档后会话仍保留，可在“已归档”中查看并取消归档。</p>}
+          {intent === 'unarchive' && <p>会话将回到此项目的会话列表。</p>}
           {deleting && <>
             <p>永久删除此会话的历史记录，无法恢复。工作目录中的文件不会删除，已执行的修改也不会撤销。</p>
             <ReadState loading={state.loading} error={state.error} />

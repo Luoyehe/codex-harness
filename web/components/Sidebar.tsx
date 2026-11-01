@@ -128,18 +128,17 @@ export function Sidebar({
     </div>;
   });
   const list = <div className="project-conversations">
-    <div className="sidebar-section">
-      <span>{query ? '搜索结果' : archived ? '归档会话' : '最近会话'}</span>
+    <div className="sidebar-list-tools">
+      {onThreadOrder && <label className="sidebar-sort"><span className="sr-only">会话排序</span>
+        <select aria-label="会话排序" value={threadOrder}
+          onChange={event => onThreadOrder(event.target.value as 'recency_at' | 'section_position')}>
+          <option value="recency_at">最近活动</option><option value="section_position">按分组排序</option>
+        </select>
+      </label>}
       <button type="button" className="icon-button" aria-label="刷新会话列表" onClick={onRefresh}>
         <Icon name="refresh" size={15} />
       </button>
     </div>
-    {onThreadOrder && <label className="sidebar-sort"><span className="sr-only">会话排序</span>
-      <select aria-label="会话排序" value={threadOrder}
-        onChange={event => onThreadOrder(event.target.value as 'recency_at' | 'section_position')}>
-        <option value="recency_at">最近活动</option><option value="section_position">按分组排序</option>
-      </select>
-    </label>}
     <nav className="thread-list" aria-label={currentProject ? currentProject.name + '的会话' : '未归属项目的会话'}>
       {threadRows(ownedThreads)}
       {(loading || awaitingSnapshot && !error) && <p className="muted small" role="status">正在加载会话…</p>}

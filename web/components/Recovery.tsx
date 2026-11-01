@@ -4,12 +4,15 @@ import type { Api } from '../lib/api';
 import {
   acknowledgeOperation,
   listOperations,
+  listOperationHistory,
+  newestOperationFirst,
   reconcileOperation,
   stopUnknownRecovery,
   operationStorageWarning,
   subscribeOperations,
   initializeOperations,
   type Operation,
+  type OperationHistoryEntry,
 } from '../lib/operations';
 import { message, object } from '../lib/types';
 const operationNames: Record<string, string> = {
@@ -22,18 +25,22 @@ const operationNames: Record<string, string> = {
   'system/restart': '重启服务', 'system/recover': '强制停止并恢复', 'system/execution-mode/write': '切换执行权限',
   'mcp/oauth': 'MCP 浏览器授权',
 };
-export function useOperations() {
+export function useOperations(withHistory = false) {
   const [operations, setOperations] = useState<Operation[]>([]),
+    [history, setHistory] = useState<OperationHistoryEntry[]>([]),
+    [historyWarning, setHistoryWarning] = useState(''),
     [error, setError] = useState(''), [warning, setWarning] = useState('');
   useEffect(() => {
     let revision = 0, disposed = false;
     const read = async () => {
       const current = ++revision;
       try {
-        const records = await listOperations();
+        const records = withHistory ? await listOperationHistory() : { operations: await listOperations(), history: [], historyWarning: '' };
         if (disposed || current !== revision) return;
-        setOperations(records);
+        setOperations(records.operations);
+        setHistory(records.history);
         setError('');
+        setHistoryWarning(records.historyWarning);
         setWarning(operationStorageWarning());
       } catch (e) {
         if (!disposed && current === revision) setError(message(e));
@@ -45,8 +52,8 @@ export function useOperations() {
       disposed = true;
       unsubscribe();
     };
-  }, []);
-  return { operations, error, warning };
+  }, [withHistory]);
+  return { operations, history, historyWarning, error, warning };
 }
 export function Recovery({
   api,
@@ -57,7 +64,7 @@ export function Recovery({
   runtimeReady,
   recoveryEpoch,
   openWorkspace,
-  showCompleted = false,
+  history,
 }: {
   api: Api;
   operations: Operation[];
@@ -67,7 +74,7 @@ export function Recovery({
   runtimeReady: boolean;
   recoveryEpoch: string;
   openWorkspace?: (projectId: string, path?: string) => void;
-  showCompleted?: boolean;
+  history?: OperationHistoryEntry[];
 }) {
   const [error, setError] = useState(''),
     [busy, setBusy] = useState('');
@@ -115,23 +122,26 @@ export function Recovery({
   const pending = operations.filter((o) => ['pending', 'unknown'].includes(o.state));
   // Successful receipts still drive draft cleanup and reconciliation, but do not
   // need the user's attention on every page visit.
-  const attention = showCompleted ? operations : operations.filter((o) => o.state !== 'accepted');
+  const historyView = history !== undefined;
+  const attention: (Operation & { closed?: OperationHistoryEntry['closed'] })[] = historyView
+    ? [...operations, ...history].sort(newestOperationFirst) : operations.filter((o) => o.state !== 'accepted');
   const nearCapacity = operations.length >= 180;
   if (!attention.length && !storeError && !warning && !error && !nearCapacity) return null;
   return (
-    <details className="recovery" open={showCompleted || Boolean(storeError) || pending.length > 0 || nearCapacity}>
+    <details className="recovery" open={historyView || Boolean(storeError) || pending.length > 0 || nearCapacity}>
       <summary>
-        {showCompleted ? `本地操作记录 ${operations.length} 条` : pending.length
+        {historyView ? `本地操作记录 ${attention.length} 条` : pending.length
           ? `${pending.length} 笔操作等待确认`
           : attention.length ? `${attention.length} 笔操作未执行` : nearCapacity ? '本地操作记录接近上限' : '操作记录需要检查'}
       </summary>
       {pending.length > 0 && <p className="muted small">
         查询只读取结果。暂未收到记录不代表原请求不会到达；未知操作不会自动重发。
       </p>}
-      {attention.some(operation => operation.state === 'not_sent') && <p className="muted small">
-        确定未发送的操作没有执行，不属于结果未知，也不会阻塞新的消息。可查看失败原因；确认后点击“已知悉”移除提醒。
+      {attention.some(operation => !operation.closed && operation.state === 'not_sent') && <p className="muted small">
+        确定未发送的操作没有执行，不属于结果未知，也不会阻塞新的消息。
+        {historyView ? '可查看尚未关闭的失败原因；关闭提醒后仍保留历史。' : '可查看失败原因，或关闭提醒。'}
       </p>}
-      {nearCapacity && <p role="status" className="workspace-warning">本地保留 {operations.length}/200 条操作记录。请在设置 → 操作记录中查看尚未处理的结果并清理已完成记录。</p>}
+      {nearCapacity && <p role="status" className="workspace-warning">本地保留 {operations.length}/200 条恢复记录。请在设置 → 操作记录中查询待确认结果，或打开尚未加载的已受理会话；已处理历史会自动限额保存。</p>}
       {(error || storeError) && (
         <p role="alert" className="error">
           {storeError || error}
@@ -147,6 +157,7 @@ export function Recovery({
           const observation = observations[o.id],
             receipt = observation?.epoch === generation ? observation.receipt : undefined;
           const canStop =
+            !o.closed &&
             runtimeReady &&
             observation?.readOnly &&
             receipt?.state === 'unknown' &&
@@ -160,7 +171,7 @@ export function Recovery({
                   <small className="path">{o.resourceId}</small>
                 )}
                 <small>
-                  {o.id.slice(0, 8)} · {new Date(o.createdAt).toLocaleTimeString()} ·{' '}
+                  {o.id.slice(0, 8)} · {historyView ? new Date(o.createdAt).toLocaleString() : new Date(o.createdAt).toLocaleTimeString()} ·{' '}
                   {
                     {
                       pending: '正在确认',
@@ -169,13 +180,16 @@ export function Recovery({
                       not_sent: '确定未发送',
                     }[o.state]
                   }
+                  {o.closed === 'dismissed' && ' · 已关闭提醒'}
+                  {o.closed === 'recovery_stopped' && ' · 已停止本地恢复'}
+                  {o.closed === 'legacy_closed' && ' · 旧版已关闭提醒'}
                 </small>
-                {o.state === 'not_sent' && receipt && <p className="small error" role="status">
+                {!o.closed && o.state === 'not_sent' && receipt && <p className="small error" role="status">
                   {receipt.state === 'not_sent' && typeof object(receipt.error).message === 'string'
                     ? String(object(receipt.error).message).slice(0, 2000)
                     : '暂未取得该操作的失败原因，请核对原操作页面的提示；不会自动重试。'}
                 </p>}
-                {['pending', 'unknown'].includes(o.state) && receipt?.state === 'not_received' && (
+                {!o.closed && ['pending', 'unknown'].includes(o.state) && receipt?.state === 'not_received' && (
                   <div className="stack">
                     <p className="small">
                       服务尚无此记录。可请求永久封住这个操作
@@ -224,7 +238,7 @@ export function Recovery({
                 )}
               </div>
               <div className="inline">
-                {o.state === 'not_sent' && <button className="button small" disabled={Boolean(busy)} onClick={() => void read(o.id)}>
+                {!o.closed && o.state === 'not_sent' && <button className="button small" disabled={Boolean(busy)} onClick={() => void read(o.id)}>
                   {busy === o.id ? '读取原因…' : '查看失败原因'}
                 </button>}
                 {o.projectId && o.method.startsWith('workspace/') && openWorkspace && (
@@ -252,7 +266,7 @@ export function Recovery({
                     打开
                   </button>
                 )}
-                {['pending', 'unknown'].includes(o.state) ? (
+                {!o.closed && ['pending', 'unknown'].includes(o.state) && (
                   <button
                     className="button small"
                     disabled={Boolean(busy)}
@@ -260,7 +274,8 @@ export function Recovery({
                   >
                     {busy === o.id ? '查询中…' : '查询回执'}
                   </button>
-                ) : (
+                )}
+                {!historyView && o.state === 'not_sent' && (
                   <button
                     className="button small"
                     onClick={async () => {
@@ -271,7 +286,7 @@ export function Recovery({
                       }
                     }}
                   >
-                    已知悉
+                    关闭提醒
                   </button>
                 )}
               </div>

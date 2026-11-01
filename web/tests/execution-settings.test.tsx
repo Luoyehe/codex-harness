@@ -46,9 +46,7 @@ function setup(handler: (call: Call) => unknown = () => undefined) {
                 ],
                 nextCursor: null,
               }
-            : call.method === 'modelProvider/capabilities/read'
-              ? { imageGeneration: false, webSearch: true }
-              : {});
+            : {});
       return { ok: true, status: 200, json: async () => ({ ok: true, result }) };
     }),
   );
@@ -92,18 +90,24 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-it('reads scoped profiles and provider capabilities without resume or any mutation', async () => {
+it('reads and refreshes only the current thread snapshot and project permission profiles without resume or mutation', async () => {
   const s = setup();
   render(<ThreadExecutionSettings {...props(s.api, s.events)} />);
   await ready();
-  expect(await screen.findByText(/网页搜索可用；图像生成不可用/)).toBeTruthy();
+  expect(s.calls.map(c => c.method).sort()).toEqual(['permissionProfile/list', 'thread/session']);
+  expect(s.calls.find(c => c.method === 'thread/session')?.params).toEqual({ threadId: 'thread' });
   expect(s.calls.find((c) => c.method === 'permissionProfile/list')?.params).toEqual({
     projectId: 'project',
     limit: 50,
   });
-  expect((screen.getByRole('option', { name: /:forbidden/ }) as HTMLOptionElement).disabled).toBe(
+  expect((await screen.findByRole('option', { name: /:forbidden/ }) as HTMLOptionElement).disabled).toBe(
     true,
   );
+  fireEvent.click(screen.getByRole('button', { name: '重新读取设置' }));
+  await waitFor(() => expect(s.calls.map(c => c.method).sort()).toEqual([
+    'permissionProfile/list', 'permissionProfile/list', 'thread/session', 'thread/session',
+  ]));
+  await ready();
   expect(s.calls.some((c) => c.operationId || c.method === 'thread/resume')).toBe(false);
 });
 it.each([false, true])('uses the current thread provider for identical model IDs and effort choices (turn=%s)', async (turn) => {

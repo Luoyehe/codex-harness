@@ -98,12 +98,6 @@ export function ThreadExecutionSettings({
     `${epoch}:${projectId}:profiles`,
     Boolean(projectId),
   );
-  const capabilities = useResource(epoch, async (signal) => {
-    const value = await api.call('modelProvider/capabilities/read', {}, signal);
-    if (typeof value.imageGeneration !== 'boolean' || typeof value.webSearch !== 'boolean')
-      throw new Error('提供方能力响应无效。');
-    return value as { imageGeneration: boolean; webSearch: boolean };
-  });
   const snapshot = session.data;
   const changed = useCallback(() => {
     refresh();
@@ -122,7 +116,6 @@ export function ThreadExecutionSettings({
             onClick={() => {
               refresh();
               profiles.refresh();
-              capabilities.refresh();
             }}
           >
             重新读取设置
@@ -158,13 +151,6 @@ export function ThreadExecutionSettings({
               {text(object(snapshot.sandbox).type)}
             </dd>
           </dl>
-        )}
-        <ReadState {...capabilities} />
-        {capabilities.data && (
-          <p className="small muted">
-            当前模型提供方报告：网页搜索{capabilities.data.webSearch ? '可用' : '不可用'}；图像生成
-            {capabilities.data.imageGeneration ? '可用' : '不可用'}。这不是特定模型或账户额度保证。
-          </p>
         )}
         <nav className="extension-tabs" aria-label="设置作用范围">
           <button
