@@ -182,7 +182,7 @@ it('refreshes inherited thread settings after an accepted override and hides old
   );
   expect(
     within(screen.getByRole('combobox', { name: '思考强度' })).getByRole('option', {
-      name: /模型默认/,
+      name: /沿用会话强度/,
     }).textContent,
   ).toContain('高');
   expect(

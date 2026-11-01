@@ -205,7 +205,7 @@ export function Messages({
                   else anchors.current.delete(row.key);
                 }}
               >
-                <MessageItem item={row.item} api={api} threadId={threadId} project={project}
+                <MessageItem item={row.item} api={api} threadId={threadId} turnId={row.turnId} project={project}
                   onOpenThread={onOpenThread}
                   reasoningFinished={reasoningFinished.has(row.turnId)} />
               </div>

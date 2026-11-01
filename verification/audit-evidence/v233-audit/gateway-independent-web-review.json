@@ -1,0 +1,458 @@
+{
+  "schema": 1,
+  "reviewer": "/root/v233_full_web",
+  "authorOfReviewedProduction": false,
+  "scope": "gateway/core independent final review",
+  "snapshot": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+  "totalSourceFiles": 2013,
+  "completedAt": "2026-11-01T17:54:37.890Z",
+  "result": "no-new-actionable-findings",
+  "findings": [],
+  "coverage": [
+    {
+      "path": "src/core/automations.ts",
+      "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a",
+      "bytes": 15964,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Definition revisions, schedule persistence, atomic claims, unknown run retention, removal and terminal pruning; traced scheduler consumers.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/budget.ts",
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b",
+      "bytes": 1146,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Count/byte reservation, incremental accounting, overflow and idempotent release.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "2fcaaf590fc693819046c38c8bd0dc5d32cd14e671af5ffbb803e65c98e2df4c",
+      "bytes": 1742,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Request/response/event and durable receipt limits; emergency 8192-byte reserve versus normal 2MiB receipt/64MiB storage.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/errors.ts",
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a",
+      "bytes": 772,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Trusted error projection and unknown delivery preservation; untrusted exception text not leaked.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/execution-mode.ts",
+      "sha256": "3aeb8eb3ea729de0fbffcd74302d1c8b3a35395fae81025ba14bead24ff4ec0b",
+      "bytes": 1754,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Strict mode/authorization/status shapes, epoch/revision and confirmed restoration proof.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/extension-methods.ts",
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a",
+      "bytes": 2413,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Explicit extension read/write/idle method admission; no generic native RPC passthrough.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "f5b984580ea99e98c0fee246d8c74c613c9e95a9747c29abf6e3895e3f90b5de",
+      "bytes": 5274,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Complete method map and mutating classification, generated-media read-only route included.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "4a4e16cd1f872bc1934927e7d1f26b06485db3c8a9b8d66b44b96b8225254845",
+      "bytes": 19532,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Canonical fingerprint/scope replay, persistent generation fencing, reserve/dispatch/settle/reopen recovery, unknown confirmation, emergency identity/count/byte budget, atomic project state.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+      "bytes": 1379,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Public projection hides legacy OAuth secret URLs/error bodies without altering original database evidence.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "sha256": "3409eed74406350c9eca9d47bc59982679d7a40418333d6a042f4dd769d1f80f",
+      "bytes": 8975,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Stable bounded export and exact digest rotation; unknown/live activity prevents rotation; old identities remain fenced and can never be replayed.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/organization-methods.ts",
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4",
+      "bytes": 969,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Organization read/write and registered-project root classification.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/process-methods.ts",
+      "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f",
+      "bytes": 464,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Terminal/command method admission, owner and live write classification.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/realtime-methods.ts",
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41",
+      "bytes": 560,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Explicit live-only audio/text events and persistent lifecycle operations.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/remote-methods.ts",
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43",
+      "bytes": 921,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Environment/pairing method allowlist and lifecycle classification.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/schedule.ts",
+      "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a",
+      "bytes": 4577,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "One-shot, fixed interval, IANA weekly DST gap/fold behavior and bounded next-occurrence search.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "bytes": 3162,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Exact RPC envelope, finite bounded canonical JSON, UUID normalization and UTF-8/Unicode handling.",
+      "skipped": false
+    },
+    {
+      "path": "src/core/worktrees.ts",
+      "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089",
+      "bytes": 5380,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Monotonic witness versions, exact generated directory identities, project registration and origin/removal protection.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/auth-crypto.ts",
+      "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+      "bytes": 4054,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Scrypt bounds/concurrency/stored shape, Unicode password constraints, timing-safe comparison, TOTP and recovery code validation.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/auth.ts",
+      "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3",
+      "bytes": 21527,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Full setup/login/session/CSRF/TOTP/recovery/password/device lifecycle; bootstrap reset and async version race; session and attempt retention.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/automation-scheduler.ts",
+      "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9",
+      "bytes": 10936,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Persistent claim before dispatch, owned event channel lease, receipt/history reconciliation, missed occurrences and single-stop deadline flow.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "fd41d95dbd4ca50ad559785ca6deecb51a39a14603f8cc7c3d65bd586a459154",
+      "bytes": 28234,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Full read/write admission; exact replay before lease admission; authorization at actual boundary; recovery generation fences; project and worktree atomic ledger updates; late positive acknowledgements.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/main.ts",
+      "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd",
+      "bytes": 3119,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Linux process identity, token/bootstrap/ledger construction, restart recovery and bounded shutdown.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7",
+      "bytes": 7988,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Pinned root-owned helper spawn and stdin authorization; bounded ordinary queue and independent urgent slot; occupancy released only on close and truthful timeout delivery.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/organization-receipt.ts",
+      "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d",
+      "bytes": 1608,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Minimal organization recovery identities, no arbitrary native bodies.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/receipt-maintenance.ts",
+      "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6",
+      "bytes": 3294,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Exact live owner/export identity, sequential full export, expiry/digest/version and idle proof before destructive rotation.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "5307b41a7f0e29118607985f7797bcbc075a6a500c41da6fa070a6eec47fa57c",
+      "bytes": 34986,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Every mutation acknowledgement projection, identities/status/limits and secret exclusion; malformed positive response stays unknown.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/recovery-protocol.ts",
+      "sha256": "84995b1c4f70f1179b806248a3d84f5aab3522602fb8ea991f20ad04b8196505",
+      "bytes": 1117,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Legacy authenticated reads remain permitted; writes require current protocol; media read explicitly resolves via feature map.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "99df38e589089119de7bca99747666917e91df9f4e138d5aa44ac75bcf544c27",
+      "bytes": 25297,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Full HTTP/static/WS routing, Host/Origin/session/CSRF, late auth recheck, budget/reply lifecycle, independent emergency path, exact event owner and disconnect cleanup.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "2fea3c97b97d0ebe39328d340658d0b1f88b0986673f08fde6956c0c0f32cb2d",
+      "bytes": 10952,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Channel handshake/lease binding, request before-write guards, replacement channel fencing, bounded responses and partial identity evidence.",
+      "skipped": false
+    },
+    {
+      "path": "src/gateway/workspace-ack.ts",
+      "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+      "bytes": 6230,
+      "inspectionDepth": "complete-semantic",
+      "evidence": "Only exact durable accepted witness may be acknowledged; throttled bounded sweep, 4-way drain and rotation preventing orphan evidence loss.",
+      "skipped": false
+    },
+    {
+      "path": "tests/core/automation-retention.test.ts",
+      "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3",
+      "bytes": 3142,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/core/emergency-ledger.test.ts",
+      "sha256": "77376dab8cfbbd3f1dd718e0d8d20082921b7f4d59e767495c9390f957fe3147",
+      "bytes": 4982,
+      "inspectionDepth": "complete-test-semantic",
+      "evidence": "Read full test setup, actions, assertions and cleanup; new emergency capacity/replay/auth/media route cases traced to implementation.",
+      "skipped": false
+    },
+    {
+      "path": "tests/core/ledger-capacity.test.ts",
+      "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d",
+      "bytes": 17691,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "sha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de",
+      "bytes": 7145,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/core/operation-retention.test.ts",
+      "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9",
+      "bytes": 6572,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/core/schedule.test.ts",
+      "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328",
+      "bytes": 3301,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/auth.test.ts",
+      "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679",
+      "bytes": 17981,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5a09665e020e75721871f02bcb13b61e1368941c65bed163dff826715b0f2faf",
+      "bytes": 11928,
+      "inspectionDepth": "complete-test-semantic",
+      "evidence": "Read full test setup, actions, assertions and cleanup; new emergency capacity/replay/auth/media route cases traced to implementation.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/automation-scheduler.test.ts",
+      "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5",
+      "bytes": 12425,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "eced1b733aeee74d8da88edb9cf1a9e8a1f316040cfd706cc968f3b1c72b0485",
+      "bytes": 41188,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed all test declarations and key assertions; fully reread lines 1-150 and cross-checked remaining contracts with dispatcher. Fixtures outside those spans reviewed structurally, not claimed line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/emergency-http.test.ts",
+      "sha256": "ac412e2ce95204dc7bd7de61c721253bc375fd44c0fe9f6c4fdf742d415bad89",
+      "bytes": 6836,
+      "inspectionDepth": "complete-test-semantic",
+      "evidence": "Read full test setup, actions, assertions and cleanup; new emergency capacity/replay/auth/media route cases traced to implementation.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/emergency-recovery.test.ts",
+      "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b",
+      "bytes": 13660,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/execution-mode.test.ts",
+      "sha256": "d5cbbd567b2b674e3fcb0d6cfc56088c3d7e7d3de073d65d7c08666a291718a7",
+      "bytes": 9502,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877",
+      "bytes": 37398,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091",
+      "bytes": 17400,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492",
+      "bytes": 12933,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/receipt-maintenance.test.ts",
+      "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f",
+      "bytes": 4639,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "f7c0efb445bff39a148f76aaec704ca6531281f533c174af846be81af7e3cf5b",
+      "bytes": 14566,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "aae2a226caf8c41400800622e8a03fbdbc58cdaf97b4ec961f54cacc7853e8d4",
+      "bytes": 14335,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/workspace-ack.test.ts",
+      "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b",
+      "bytes": 7434,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "sha256": "facc579f89fa7178c50b953c42ab76d2ef19b8e8daa7aeebb887d41685c0e1c6",
+      "bytes": 6963,
+      "inspectionDepth": "test-contract-structure",
+      "evidence": "Reviewed imports/setup declarations, every test title and key assertions against the corresponding production implementation; fixture body literals not all line-by-line.",
+      "skipped": false
+    }
+  ],
+  "crossBoundary": [
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "9ea9097fa006631c6e12389aaeaa68a7d949a0c534a2c7293515ab7e20e458b9",
+      "inspectionDepth": "cross-boundary-targeted",
+      "evidence": "Re-read 500-row metadata-only history and transaction closure/active receipt allocation. Browser history eviction does not call server retire/rotate and never re-enqueues archived rows. Active unresolved records and server durable receipt proof remain separate."
+    }
+  ],
+  "checks": [
+    "All 51 partition hashes equal the final manifest.",
+    "Global source inventory matches frozen 2013-file snapshot.",
+    "Reviewed 30 production files completely, 3 full test semantics and 18 remaining test contract structures.",
+    "Emergency HTTP route keeps Host/Origin/session/CSRF/client/protocol checks and separate bounded input/output budgets.",
+    "Emergency ledger extra identity preserves ordinary pending byte commitments and replays the same original result.",
+    "thread/media/read is authenticated read-only and does not load execution or create mutation receipts.",
+    "Local 500 history limit does not weaken server durable receipt rotation/fencing or unknown evidence.",
+    "Final-clean-3 rebind: all 51 reviewed files and browser history boundary remain byte-identical; no previously unseen source is accepted."
+  ],
+  "verification": {
+    "executedTests": [],
+    "reason": "Independent read-only audit; no new finding requiring a new targeted test run. Existing test source inspected; prior execution evidence is not counted as a new run.",
+    "productionOrPaidCalls": false
+  },
+  "limitations": [
+    "This partition review does not itself certify deployment/systemd behavior or real external provider services.",
+    "No claim of line-by-line reading every old test fixture literal; production modules are fully semantic, old test suites are structurally reviewed with assertions.",
+    "Resource limits remain finite; independent emergency admission is not a claim to withstand operating-system or transport exhaustion."
+  ],
+  "skippedFiles": [],
+  "unchangedSourceBinding": {
+    "priorReport": {
+      "path": ".work/v233-final-clean/gateway-independent-web-review.json",
+      "sha256": "dc63f5617020181a499ddd3184fb416d9d2c6b02d94a8c9671f1ed79337e3874"
+    },
+    "originalSnapshot": "b0d8f42a6e817215846c3b1211a6802ddc8e6639daa2fbc40e43faf774278921",
+    "method": "Compared every gateway/core file and the extra browser-operation boundary against prior independent semantic inspection hashes and final-clean-3 manifest. All 51 partition files and the cross-read operations.ts are byte-identical. Per parent instruction unchanged modules were not falsely claimed re-read; original complete review retained."
+  }
+}

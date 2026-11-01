@@ -3,6 +3,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { NativeRpc, type NativeConfig, type NativeOptions } from './native.js';
 import { Attachments, type PreparedAttachments } from './attachments.js';
+import { GeneratedMedia } from './generated-media.js';
+import { readMediaHistory } from './media-history.js';
 import { options, supportedPrompt, validateOfficial, validatePrompt } from './validation.js';
 import { canonical, DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue, type RuntimeEvent } from './types.js';
 import { DiagnosticRedactor } from './redaction.js';
@@ -52,6 +54,7 @@ export class RuntimeService extends EventEmitter {
       this.predictions?.activeThreads().includes(id) || [...this.prompts.values()].some(prompt => prompt.threadId === id),
     id => {
       this.historyStore.invalidate(id);
+      this.generatedMedia?.invalidate(id);
       this.sessions.invalidate(id);
       this.guardian?.invalidate(id);
       this.predictions?.invalidate(id);
@@ -66,6 +69,7 @@ export class RuntimeService extends EventEmitter {
   private restarting = false;
   private closed = false;
   private attachments: Attachments;
+  private generatedMedia: GeneratedMedia;
   private defaultsCache = new Map<string, JsonValue>();
   private defaultsGeneration = 0;
   private defaultsReaders = 0;
@@ -105,14 +109,15 @@ export class RuntimeService extends EventEmitter {
     super();
     this.executionMode = executionMode && Object.freeze({ ...executionMode });
     this.providers = new ManagedProviders(config.providerRegistry);
+    this.generatedMedia = new GeneratedMedia({ native: (method, params) => this.native.call(method, params), revision: id => this.track(id).historyRevision ?? 0, closed: () => this.closed || !this.native.connected });
     this.workspace = new RuntimeWorkspace({
       config, cwd: value => this.cwd(value), admit: () => this.admit(),
       configure: (operation, context) => this.configurationMutation((_write, boundary) => operation(boundary), context),
       pending: change => { this.pendingStarts += change; this.emitState(); },
       uncertain: () => { this.unknown = true; },
     });
-    this.historyStore = new UnifiedHistory({ native: (method, params) => this.native.call(method, params), state: id => this.track(id), observe: (value, revision) => this.observeThread(value, revision), checkTurns: turns => this.checkHistory(turns), closed: () => this.closed }); this.attachments = new Attachments(config.workerHome, config.attachmentGid); this.redactor = new DiagnosticRedactor(config.env);
-    this.workflows = new Workflows({ native: (method, params, options) => this.native.call(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), call: (method, params, context) => this.call(method, params, context), prepare: (ids, threadId) => this.attachments.prepare(ids, threadId), describeInput: (input, threadId) => this.attachments.describeInput(input, threadId), contextInput: (cwd, references, extra, context, threadId) => this.inputContext.prepare(cwd, references, extra, context, threadId), checkHistory: turns => this.checkHistory(turns), cwd: value => this.cwd(value) });
+    this.historyStore = new UnifiedHistory({ native: (method, params) => this.readNative(method, params), state: id => this.track(id), observe: (value, revision) => this.observeThread(value, revision), checkTurns: turns => this.checkHistory(turns), closed: () => this.closed }); this.attachments = new Attachments(config.workerHome, config.attachmentGid); this.redactor = new DiagnosticRedactor(config.env);
+    this.workflows = new Workflows({ native: (method, params, options) => this.readNative(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), call: (method, params, context) => this.call(method, params, context), prepare: (ids, threadId) => this.attachments.prepare(ids, threadId), describeInput: (input, threadId) => this.attachments.describeInput(input, threadId), contextInput: (cwd, references, extra, context, threadId) => this.inputContext.prepare(cwd, references, extra, context, threadId), checkHistory: turns => this.checkHistory(turns), cwd: value => this.cwd(value) });
     this.extensions = new Extensions({ native: (method, params, options) => this.native.call(method, params, options), configure: (operation, context) => this.configurationMutation(operation, context), cwd: value => this.cwd(value), redactor: this.redactor, notify: (method, params) => this.emitEvent('notification', { method, params }),
       resource: async (cwd, action, params) => {
         const root = { path: this.cwd(cwd) }, context = { clientId: 'internal-resource' };
@@ -128,7 +133,7 @@ export class RuntimeService extends EventEmitter {
       requireLoaded: threadId => { this.admit(); if (this.track(threadId).subscribed !== true) throw new DeliveryError('session_not_loaded', 'Explicitly load this thread before using its MCP connections'); },
       emit: (data, channel) => this.emitEvent('mcp', data, channel), changed: () => this.emitState(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.processes = new Processes({ native: (method, params, options) => this.native.call(method, params, options), start: (operation, context) => this.metadataMutation(operation, context), cwd: value => this.cwd(value), available: () => this.admit(), emit: (data, channel) => this.emitEvent('process', data, channel), changed: () => this.emitState(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
-    this.realtime = new Realtime({ native: (method, params, options) => this.native.call(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), available: () => this.admit(), invalidate: threadId => this.invalidateHistory(threadId),
+    this.realtime = new Realtime({ native: (method, params, options) => this.readNative(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), available: () => this.admit(), invalidate: threadId => this.invalidateHistory(threadId),
       requireLoaded: threadId => { this.admit(); if (this.track(threadId).subscribed !== true) throw new DeliveryError('session_not_loaded', 'Explicitly load the thread before starting voice'); },
       emit: (data, channel) => this.emitEvent('realtime', data, channel), changed: () => this.emitState(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     const remoteHost = { native: (method: string, params: JsonValue, options?: NativeOptions) => this.native.call(method, params, options), configure: (operation: (write: (method: string, params: JsonValue, options?: NativeOptions) => Promise<JsonValue>) => Promise<JsonValue>, context: CallContext) => this.configurationMutation(operation, context), redactor: this.redactor };
@@ -262,7 +267,7 @@ export class RuntimeService extends EventEmitter {
       if (terminal) this.emitEvent('terminal', { ...params, terminalId: terminal.terminalId, clientId: terminal.clientId, type: 'output' }, terminal.eventChannelId);
       return;
     }
-    this.emitEvent('notification', { method, params: method === 'error' || method === 'account/login/completed' ? this.redactor.value(params) : params });
+    this.emitEvent('notification', { method, params: method === 'error' || method === 'account/login/completed' ? this.redactor.value(params) : this.generatedMedia.project(params) });
   }
   private async serverRequest(message: JsonObject): Promise<void> {
     const id = message.id; if (typeof id !== 'string' && typeof id !== 'number') throw new Error('Invalid native request id');
@@ -280,6 +285,13 @@ export class RuntimeService extends EventEmitter {
   private publicPrompt(prompt: Prompt): JsonObject { return { promptId: prompt.promptId, epoch: prompt.epoch, method: prompt.method, params: prompt.params, threadId: prompt.threadId, turnId: prompt.turnId }; }
   private closePrompt(prompt: Prompt, reason: string): void { if (!this.prompts.delete(prompt.promptId)) return; this.promptBytes -= prompt.bytes; this.emitEvent('prompt-closed', { promptId: prompt.promptId, reason }); }
   async call(method: string, input: JsonValue, context: CallContext): Promise<JsonValue> {
+    const result = await this.dispatch(method, input, context), params = object(input);
+    return this.generatedMedia.project(result, typeof params.threadId === 'string' ? params.threadId : undefined);
+  }
+  private async readNative(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue> {
+    return readMediaHistory((method, params, options) => this.native.call(method, params, options), this.generatedMedia, method, params, options);
+  }
+  private async dispatch(method: string, input: JsonValue, context: CallContext): Promise<JsonValue> {
     const params = object(input); string(context.clientId, 'clientId', 256); jsonBytes(params);
     if (this.cliTerminals.active && !['terminal/write', 'terminal/resize', 'terminal/close', 'runtime/status', 'thread/read', 'thread/list', 'thread/history', 'prompt/list', 'attachment/read', 'model/list', 'account/read', 'account/rateLimits', 'project/defaults'].includes(method) && featureMethod(method)?.access !== 'read') throw new DeliveryError('native_cli_busy', '请先关闭 Codex CLI 终端；后台会自动刷新后恢复其他操作。');
     if (mcpMethods.has(method)) return this.mcp.call(method, params, context);
@@ -338,6 +350,7 @@ export class RuntimeService extends EventEmitter {
       case 'attachment/upload': return this.attachments.upload(params, context.clientId);
       case 'attachment/read': return this.attachments.read(params);
       case 'attachment/history/read': return this.attachments.readHistory(params);
+      case 'thread/media/read': return this.generatedMedia.read(params);
       case 'attachment/remove': return this.attachments.remove(params);
       case 'terminal/open': return this.openTerminal(params, context);
       case 'terminal/write': case 'terminal/resize': case 'terminal/close': return this.terminalCall(method, params, context);
@@ -535,6 +548,7 @@ export class RuntimeService extends EventEmitter {
     if (!this.historyStore.complete(threadId, context)) throw new DeliveryError('history_incomplete', 'Read the complete thread history on this connection before starting work');
   }
   private invalidateHistory(threadId: string): void {
+    this.generatedMedia.invalidate(threadId);
     const removed = this.historyStore.invalidate(threadId), state = this.track(threadId); state.fresh = false; state.historyRevision = (state.historyRevision ?? 0) + 1;
     if (removed) this.emitEvent('notification', { method: 'thread/history/invalidated', params: { threadId, historyVersion: state.historyRevision } });
   }
@@ -716,8 +730,6 @@ export class RuntimeService extends EventEmitter {
     const threadId = string(params.threadId, 'threadId', 128), sourceProvider = string(params.sourceProvider, 'sourceProvider', 128);
     const targetProvider = string(params.targetProvider, 'targetProvider', 128), model = string(params.model, 'model', 256);
     const selected = this.threadOptions(this.providers.resumeSelection({ modelProvider: targetProvider, model, ...(params.effort !== undefined ? { effort: params.effort } : {}) }), false);
-    // Native TOML config overrides do not accept a null reasoning effort.
-    if (selected.config && object(selected.config).model_reasoning_effort === null) delete object(selected.config).model_reasoning_effort;
     this.admit(threadId); const state = this.track(threadId); state.pending = true; this.emitState();
     try {
       const read = object(await this.native.call('thread/read', { threadId })); validateOfficial('ThreadReadResponse', read);
@@ -915,7 +927,7 @@ export class RuntimeService extends EventEmitter {
   }
   close(): Promise<void> {
     if (this.closePromise) return this.closePromise;
-    this.closed = true; this.historyStore.clear(); this.liveThreads.clear(); clearInterval(this.gcTimer);
+    this.closed = true; this.generatedMedia.clear(); this.historyStore.clear(); this.liveThreads.clear(); clearInterval(this.gcTimer);
     this.mcp.reset();
     this.processes.reset();
     this.realtime.reset();

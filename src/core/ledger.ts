@@ -8,12 +8,14 @@ import { HarnessError } from './errors.js';
 import { digest, identifier, validText } from './validation.js';
 import { Automations } from './automations.js';
 import { Worktrees } from './worktrees.js';
-import { OperationRetention, operationId } from './operation-retention.js';
+import { EMERGENCY_RECOVERY_KEY, OperationRetention, operationId } from './operation-retention.js';
 import { mcpOauthError, mcpOauthReceipt } from './mcp-oauth-receipt.js';
 
 type Row = Record<string, unknown>;
 const workspaceConfirmations = new Set(['workspace/write', 'workspace/mkdir', 'workspace/copy', 'workspace/remove', 'workspace/recovery/restore', 'workspace/recovery/discard', 'workspace/worktree/create', 'workspace/worktree/attach', 'workspace/worktree/archive', 'workspace/worktree/restore', 'workspace/git/commit', 'workspace/git/stage', 'workspace/git/unstage', 'workspace/git/index/recovery/restore', 'workspace/git/index/recovery/discard']);
 const payloadBytes = "length(CAST(coalesce(result,'') AS BLOB)) + length(CAST(coalesce(error,'') AS BLOB))";
+const receiptAllowance = `CASE WHEN method='system/recover' THEN ${LIMITS.recoveryReceiptBytes} ELSE ${LIMITS.receiptBytes} END`;
+const allowance = (method: string) => method === 'system/recover' ? LIMITS.recoveryReceiptBytes : LIMITS.receiptBytes;
 const recoverable = `method LIKE 'system/%' OR method IN (${[...workspaceConfirmations].map(method => `'${method}'`).join(',')})`;
 function receipt(row: Row): Receipt {
   const state = row.state as ReceiptState;
@@ -95,8 +97,8 @@ export class Ledger {
     // stops both services; the next constructor repairs its legacy counters.
     // Every write below maintains bytes, so admission need not reread payloads.
     const row = this.#db.prepare(`SELECT count(*) AS count,coalesce(sum(actual),0) AS bytes,
-      coalesce(sum(CASE WHEN state IN ('pending','dispatching') THEN max(0,${LIMITS.receiptBytes}-actual) ELSE 0 END),0) AS pending,
-      coalesce(sum(CASE WHEN state='unknown' AND (${recoverable}) THEN max(0,${LIMITS.receiptBytes}-actual) ELSE 0 END),0) AS recovery
+      coalesce(sum(CASE WHEN state IN ('pending','dispatching') THEN max(0,(${receiptAllowance})-actual) ELSE 0 END),0) AS pending,
+      coalesce(sum(CASE WHEN state='unknown' AND (${recoverable}) THEN max(0,(${receiptAllowance})-actual) ELSE 0 END),0) AS recovery
       FROM (SELECT state,method,bytes AS actual FROM receipts WHERE id<>?)`).get(excludeId)!;
     return { count: Number(row.count), bytes: Number(row.bytes), pending: Number(row.pending), recovery: Number(row.recovery) };
   }
@@ -115,8 +117,16 @@ export class Ledger {
       const retired = Number(this.#db.prepare('SELECT count(*) AS count FROM retired_operations').get()!.count);
       // An unknown recoverable operation still owns its eventual positive
       // receipt's capacity. Settling a lost acknowledgement must not release it.
-      if (totals.count + retired >= LIMITS.receiptCount || totals.bytes + totals.pending + totals.recovery + LIMITS.receiptBytes > LIMITS.receiptStorageBytes)
-        throw new HarnessError('journal_capacity', '操作日志已达容量上限；请备份并由管理员处理，未执行新操作。');
+      const count = totals.count + retired, promised = totals.bytes + totals.pending + totals.recovery + allowance(method);
+      if (count >= LIMITS.receiptCount || promised > LIMITS.receiptStorageBytes) {
+        // One small emergency receipt remains available after normal capacity
+        // is exhausted. Its identity survives settlement/restart until an
+        // explicit archive rotation; never recycle uncertain or old evidence.
+        if (method !== 'system/recover' || this.getMeta(EMERGENCY_RECOVERY_KEY) !== null ||
+            count >= LIMITS.receiptCount + 1 || promised > LIMITS.receiptStorageBytes + LIMITS.recoveryReceiptBytes)
+          throw new HarnessError('journal_capacity', '操作日志已达容量上限；请备份并由管理员处理，未执行新操作。');
+        this.setMeta(EMERGENCY_RECOVERY_KEY, id);
+      }
       const t = this.now();
       this.#db.prepare(`INSERT INTO receipts(id,method,scope,digest,state,created_at,updated_at) VALUES(?,?,?,?,'pending',?,?)`)
         .run(id, method, scope, fingerprint, t, t);
@@ -134,15 +144,16 @@ export class Ledger {
       let state: ReceiptState = result.ok ? 'accepted' : result.error.delivery === 'not_sent' ? 'not_sent' : 'unknown';
       let value = result.ok ? JSON.stringify(mcpOauthReceipt(String(prior.method), result.value)) : null;
       let error = result.ok ? null : JSON.stringify(mcpOauthError(String(prior.method), result.error));
-      if (value !== null && Buffer.byteLength(value) > LIMITS.receiptBytes) {
+      const receiptLimit = allowance(String(prior.method)), storageLimit = this.storageLimit();
+      if (value !== null && Buffer.byteLength(value) > receiptLimit) {
         state = 'unknown'; value = null;
         error = JSON.stringify({ code: 'result_capacity', message: '操作可能已执行，但结果超过保存上限，请检查历史。', delivery: 'unknown' });
       }
-      if (error !== null && Buffer.byteLength(error) > LIMITS.receiptBytes)
+      if (error !== null && Buffer.byteLength(error) > receiptLimit)
         error = JSON.stringify({ code: 'error_capacity', message: '操作错误详情超过保存上限，请核对操作状态。', delivery: state === 'not_sent' ? 'not_sent' : 'unknown' });
       let bytes = Buffer.byteLength(value ?? '') + Buffer.byteLength(error ?? '');
       const totals = this.capacity(id);
-      if (totals.bytes + totals.pending + bytes > LIMITS.receiptStorageBytes) {
+      if (totals.bytes + totals.pending + bytes > storageLimit) {
         // Only legacy journals can lack an admitted operation's promised room.
         // Do not claim acceptance when its result cannot be retained. Settling
         // inherited pending work may reduce overcommitment, but cannot grow an
@@ -151,7 +162,7 @@ export class Ledger {
         error = JSON.stringify({ code: 'journal_capacity', message: '操作日志没有足够空间保存结果，请核对原操作；不要重复发送。', delivery: state });
         bytes = Buffer.byteLength(error);
       }
-      if (totals.bytes + bytes <= LIMITS.receiptStorageBytes) {
+      if (totals.bytes + bytes <= storageLimit) {
         this.#db.prepare(`UPDATE receipts SET state=?,result=?,error=?,bytes=?,updated_at=? WHERE id=?`)
           .run(state, value, error, bytes, this.now(), id);
       } else {
@@ -184,10 +195,10 @@ export class Ledger {
   /** Only a trusted manager's durable positive receipt may resolve an unknown management operation. */
   confirm(id: string, result: JsonValue): Receipt {
     const value = JSON.stringify(result);
-    if (Buffer.byteLength(value) > LIMITS.receiptBytes) throw new HarnessError('capacity', '管理回执过大。');
     return this.transaction(() => {
       const prior = this.read(id);
       if (!prior) throw new HarnessError('operation_missing', '操作记录不存在。');
+      if (Buffer.byteLength(value) > allowance(prior.method)) throw new HarnessError('capacity', '管理回执过大。');
       if (prior.state !== 'unknown' || !prior.method.startsWith('system/')) return prior;
       this.confirmationCapacity(id, Buffer.byteLength(value));
       this.#db.prepare(`UPDATE receipts SET state='accepted',result=?,error=NULL,bytes=?,updated_at=? WHERE id=?`)
@@ -197,6 +208,7 @@ export class Ledger {
   }
   private confirmationCapacity(id: string, bytes: number): void {
     const totals = this.capacity(id);
+    const storageLimit = this.storageLimit();
     const previous = Number(this.#db.prepare('SELECT bytes FROM receipts WHERE id=?').get(id)!.bytes);
     // Keep actual outstanding dispatch promises, but do not demand that every
     // other legacy unknown's previously unreserved maximum fit before making
@@ -204,9 +216,12 @@ export class Ledger {
     // Already oversized legacy evidence may converge one truthful proof at a
     // time. Only a strict payload reduction can retain an inherited excess;
     // outstanding dispatch promises stay unchanged and no new bytes are added.
-    const reducesLegacyExcess = totals.bytes + previous > LIMITS.receiptStorageBytes && bytes < previous;
-    if (totals.bytes + totals.pending + bytes > LIMITS.receiptStorageBytes && !reducesLegacyExcess)
+    const reducesLegacyExcess = totals.bytes + previous > storageLimit && bytes < previous;
+    if (totals.bytes + totals.pending + bytes > storageLimit && !reducesLegacyExcess)
       throw new HarnessError('journal_capacity', '操作日志没有足够空间保存核对回执，原记录保持未知。', 'unknown');
+  }
+  private storageLimit(): number {
+    return LIMITS.receiptStorageBytes + (this.getMeta(EMERGENCY_RECOVERY_KEY) === null ? 0 : LIMITS.recoveryReceiptBytes);
   }
   private confirmed(): void {
     if (!this.#db.prepare("SELECT 1 FROM receipts WHERE state='unknown' LIMIT 1").get()) this.setMeta('activityUncertain', 'false');

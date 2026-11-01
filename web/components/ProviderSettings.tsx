@@ -252,7 +252,7 @@ function ProviderSettingsForm({
         <fieldset className="provider-fields stack" disabled={action.busy || !visible || !initialized}>
           <h3>模型供应商</h3>
           <p className="muted">
-            可同时启用多个服务，在新旧对话中直接选择模型。保存配置会重启运行时，请先结束正在执行的任务。
+            可同时启用多个服务。新对话可选择任一供应商的模型，已有对话沿用当前供应商；更换供应商请使用会话菜单中的“切换供应商 / 转换会话”。保存配置会重启运行时，请先结束正在执行的任务。
           </p>
           {(connections.length > 0 || effectiveId === 'new') && <>
             <label className="field">显示名称<input value={name} maxLength={64} onChange={event => setName(event.target.value)} placeholder="例如：个人 Coding Plan" /></label>
@@ -468,7 +468,7 @@ function ProviderSettingsForm({
         <div className="inline">
           <button type="button" className="button" disabled={action.disabled || provider.enabled === false || effectiveId === registry?.defaultProviderId}
             onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, defaultProviderId: effectiveId }, '已更新新对话的默认供应商。')) resource.refresh(); }}>设为默认供应商</button>
-          <details><summary>移除供应商</summary><p>历史对话会保留，之后可选择其他已启用供应商的模型继续。</p>
+          <details><summary>移除供应商</summary><p>历史对话会保留，但使用此供应商的对话将无法继续。需要改用其他供应商的对话，请先在会话菜单中创建转换副本；移除后若要继续原对话或再转换，需要恢复原供应商配置。</p>
             <button type="button" className="button danger" disabled={action.disabled || connections.length <= 1}
               onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, removeProviderId: effectiveId }, '已移除供应商。')) { setSelectedId(''); resource.refresh(); } }}>确认移除 {String(provider.name)}</button>
           </details>

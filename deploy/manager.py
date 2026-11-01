@@ -22,6 +22,7 @@ from .transactions import require_recovered
 from .ownership import require_owned
 
 MUTATIONS = ("restart", "recover", "provider/write", "models/refresh", "execution-mode/write")
+MAX_MANAGEMENT_RECEIPTS = 10_000
 
 
 def validate_request(request: dict) -> tuple[str, dict]:
@@ -676,7 +677,12 @@ class Manager:
             if saved["state"] == "completed":
                 return {"ok": True, "result": saved["result"]}
             return {"ok": False, "error": saved.get("error", {"code": "unknown", "message": "Management outcome needs inspection", "delivery": "unknown"})}
-        require(len(list(receipts.glob("*.json"))) < 10000, "Management receipt retention budget reached", "budget")
+        # Ordinary management operations cannot consume the one last recovery
+        # receipt. Preserve every existing outcome, including a failed or
+        # unknown recovery; exhausting this extra slot needs operator upkeep.
+        capacity = MAX_MANAGEMENT_RECEIPTS + (1 if method == "recover" else 0)
+        require(sum(1 for _ in receipts.glob("*.json")) < capacity,
+                "Management receipt retention budget reached; preserve and archive records from the server console", "budget")
         if method in ("restart", "recover", "execution-mode/write"):
             self.require_update_ready(persist=False)
         else:

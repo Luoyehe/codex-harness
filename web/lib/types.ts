@@ -43,6 +43,7 @@ export type Model = {
   model?: string;
   displayName?: string;
   supportedReasoningEfforts?: { reasoningEffort: string; description?: string }[];
+  defaultReasoningEffort?: string;
   inputModalities?: string[];
 };
 export type Options = {

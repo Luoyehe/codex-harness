@@ -280,7 +280,7 @@ export class Api {
     ].includes(method)
       ? 110_000
       : 30_000;
-    const r = await fetch('/api/rpc', {
+    const r = await fetch(method === 'system/recover' ? '/api/recover' : '/api/rpc', {
       method: 'POST',
       credentials: 'same-origin',
       headers: this.headers(),

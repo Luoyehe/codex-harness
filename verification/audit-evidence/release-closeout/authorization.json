@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "kind": "explicit-user-release-closeout",
   "auditRoundsWaived": true,
-  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
-  "sourceFiles": 2004,
-  "baseCommit": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
-  "version": "2.3.2",
-  "approvedAt": "2026-11-01T15:02:21.125Z",
-  "userInstruction": "本轮会话列表、跨供应商历史转换和顶部布局修复发布为补丁版 v2.3.2 并更新 120；用户明确选择 v2.3.2（推荐）。延续完成后部署并保持服务运行的授权。",
-  "auditWaiverInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。本轮按用户明确的一轮净审要求，不要求仓库默认连续三轮。",
+  "sourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+  "sourceFiles": 2013,
+  "baseCommit": "0f51720452443561c3ab8277a27ebef0631b22e8",
+  "version": "2.3.3",
+  "approvedAt": "2026-11-01T17:56:53.465Z",
+  "userInstruction": "进行一轮完整审计，修复发现的问题，无新问题后进行全量测试，发布 v2.3.3 并更新 120 上的部署，保持服务运行。",
+  "auditWaiverInstruction": "用户明确要求本轮一轮完整审计并修复，无新问题后进入全量测试与发布部署；覆盖仓库默认三轮要求。本轮两份有问题的候选不计清洁轮，最终完整分区审阅与交叉复核无未决发现后记录一轮。",
   "repairsReviewed": true,
   "unresolvedBlockers": [],
   "scopes": [
@@ -17,36 +17,16 @@
   "requiredCleanAuditRounds": 1,
   "completedCleanAuditRounds": [
     {
-      "roundId": "v232-composed-fixture-final",
-      "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
-      "completedAt": "2026-11-01T15:02:21.119Z",
-      "files": 2004,
-      "reviewers": [
-        {
-          "id": "root-with-independent-composed-fixture-review",
-          "scopes": [
-            "gateway-core",
-            "runtime-protocol",
-            "web-ux",
-            "deployment-release"
-          ],
-          "evidence": "verification/audit-evidence/v232-fixture-isolation/audit.json",
-          "sha256": "513e86efb6771a082a07533cb7135aea16d7b135b5f3c370cdbf3e1571175f1d"
-        }
-      ]
+      "roundId": "v233-final-clean",
+      "sourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+      "sourceFiles": 2013,
+      "completedAt": "2026-11-01T17:56:53.434Z",
+      "evidence": "verification/audit-evidence/v233-audit/audit.json",
+      "sha256": "7b0862723b2f702a6b847b7ad865dd3ed365342f89449a3c7b89753bad3f1abc"
     }
   ],
-  "evidenceIndex": {
-    "path": "verification/audit-evidence/v232-fixture-isolation/evidence-index.json",
-    "sha256": "3ecbd1b0c5c986c877b05efff42d9b8f12cf21da7d78ab1291102a199f77fd19"
-  },
   "previousAuthorization": {
-    "path": "verification/audit-evidence/v232-fixture-isolation/blocked-authorization.json",
-    "sha256": "df5f5c3a0a26af38923a7516b8415c05024fca5ca8b5988fb080881b27a3d6f3",
-    "original": {
-      "path": "verification/audit-evidence/release-closeout/authorization.json",
-      "sha256": "df5f5c3a0a26af38923a7516b8415c05024fca5ca8b5988fb080881b27a3d6f3"
-    }
-  },
-  "note": "Composed root fixture now restores its real account reader; exact ordinary/root dependency selection prevents omission. CI2 failure and author/reviewer missed dependency retained. Four changes independently reviewed and targeted validated. New-head full CI remains mandatory before deployment."
+    "path": "verification/audit-evidence/v233-audit/previous-authorization.json",
+    "sha256": "274c597e649f14f2f9a65d63bb17e72680af62819815ba4dd7eb014b0fbcb87f"
+  }
 }

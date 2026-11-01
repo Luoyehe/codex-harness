@@ -2,6 +2,20 @@ import { object, type Item } from './types';
 import { workspacePath } from './workspace';
 
 export const MEDIA_BYTES = 4 * 1024 * 1024;
+export const GENERATED_MEDIA_BYTES = 8 * 1024 * 1024;
+export type GeneratedMediaReference = {
+  mediaId: string;
+  mimeType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp';
+  size: number;
+};
+export function generatedMediaReference(value: unknown): GeneratedMediaReference {
+  const row = object(value);
+  if (typeof row.mediaId !== 'string' || !/^[a-f0-9]{64}$/.test(row.mediaId) ||
+    !['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(String(row.mimeType)) ||
+    !Number.isSafeInteger(row.size) || Number(row.size) < 1 || Number(row.size) > GENERATED_MEDIA_BYTES)
+    throw new Error('生成图片的身份、格式或大小无效，无法读取。');
+  return { mediaId: row.mediaId, mimeType: row.mimeType as GeneratedMediaReference['mimeType'], size: Number(row.size) };
+}
 export type MediaSource = {
   kind: 'image' | 'audio' | 'file';
   label: string;
@@ -9,6 +23,7 @@ export type MediaSource = {
   inline?: string;
   url?: string;
   unavailable?: string;
+  generated?: GeneratedMediaReference;
 };
 export function mediaSources(item: Item): MediaSource[] {
   const sources: MediaSource[] = [];
@@ -49,7 +64,15 @@ export function mediaSources(item: Item): MediaSource[] {
     }
   if (item.type === 'imageView' && typeof item.path === 'string')
     sources.push({ kind: 'image', label: '查看的图片', path: item.path });
-  if (item.type === 'imageGeneration')
+  if (item.type === 'imageGeneration' && item.generatedMedia !== undefined) {
+    try {
+      sources.push({ kind: 'image', label: '生成的图片', generated: generatedMediaReference(item.generatedMedia) });
+    } catch {
+      sources.push({ kind: 'image', label: '生成的图片', unavailable: '生成图片的身份、格式或大小无效，请重新读取会话。' });
+    }
+  } else if (item.type === 'imageGeneration' && typeof item.generatedMediaError === 'string')
+    sources.push({ kind: 'image', label: '生成的图片', unavailable: item.generatedMediaError.slice(0, 500) || '生成图片暂时不可读取。' });
+  else if (item.type === 'imageGeneration')
     sources.push({
       kind: 'image',
       label: '生成的图片',
@@ -106,8 +129,7 @@ export function mediaBytes(value: string, allowEmpty = false): Uint8Array {
 }
 export function mediaMime(bytes: Uint8Array, kind: 'image' | 'audio' | 'file'): string {
   if (kind === 'file') return 'application/octet-stream';
-  const text = (start: number, end: number) => String.fromCharCode(...bytes.slice(start, end)),
-    view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const text = (start: number, end: number) => String.fromCharCode(...bytes.slice(start, end));
   if (kind === 'audio') {
     if (text(0, 4) === 'RIFF' && text(8, 12) === 'WAVE') return 'audio/wav';
     if (text(0, 4) === 'OggS') return 'audio/ogg';
@@ -118,6 +140,11 @@ export function mediaMime(bytes: Uint8Array, kind: 'image' | 'audio' | 'file'): 
       return 'audio/webm';
     throw new Error('不支持此音频格式。支持 WAV、MP3、M4A、WebM 和 Ogg。');
   }
+  return mediaImageInfo(bytes).mime;
+}
+export function mediaImageInfo(bytes: Uint8Array): { mime: string; width: number; height: number } {
+  const text = (start: number, end: number) => String.fromCharCode(...bytes.slice(start, end)),
+    view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let width = 0,
     height = 0,
     mime = '';
@@ -180,5 +207,5 @@ export function mediaMime(bytes: Uint8Array, kind: 'image' | 'audio' | 'file'): 
     throw new Error(
       '图片格式或尺寸不适合预览。仅支持有界 PNG、JPEG、GIF、WebP；不渲染 SVG 或 HTML。',
     );
-  return mime;
+  return { mime, width, height };
 }

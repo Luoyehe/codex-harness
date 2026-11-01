@@ -1,0 +1,90 @@
+{
+  "reviewer": "/root/v233_full_runtime",
+  "status": "fixed-and-targeted-verified",
+  "frozenAt": "2026-11-01T17:37:02.671Z",
+  "findings": [
+    "runtime-generated-media",
+    "runtime-null-config",
+    "runtime-model-effort-inheritance"
+  ],
+  "targeted": {
+    "command": "HARNESS_TEST_CODEX_BIN=<pinned-0.164.0> HARNESS_TEST_PYTHON=<bundled-python> node scripts/run-tests.mjs --targeted tests/runtime/generated-media.test.ts tests/runtime/service.test.ts tests/runtime/providers.test.ts tests/runtime/reasoning-summary.test.ts tests/runtime/workflows.test.ts tests/runtime/realtime.test.ts tests/runtime/input-native.test.ts tests/runtime/provider-switch-native.test.ts tests/runtime/workflows-native.test.ts",
+    "result": ".work/test-results/run-CdSGM1/vitest.json",
+    "files": 9,
+    "tests": 160,
+    "passed": 160,
+    "failed": 0,
+    "skipped": 0,
+    "nativeVersion": "0.164.0",
+    "paidCalls": 0,
+    "fullSuite": false
+  },
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+    "exitCode": 0
+  },
+  "boundaries": {
+    "singleImageBytes": 8388608,
+    "rawChunkBytes": 196608,
+    "memoryCacheBytes": 67108864,
+    "memoryCacheEntries": 128,
+    "nativeFrameBytes": 12582912,
+    "sourceHistory": "Never rewritten. Only browser transport projection changes; native item identity and original source bytes stay owned by CLI.",
+    "revalidation": "Every offset=0, cache miss, revision change or hash change uses exact native thread/items/read threadId/turnId/itemId. Invalidation clears history-related entries; close/restart clears entire epoch. Cache miss reconstructs from native source, no path read capability.",
+    "history": "Turns read notLoaded then one item per native frame; timeline one entry per frame. Final native turn/completed contains only final agentMessage or empty items (pinned source confirmed). Over-native-frame individual item remains unsupported.",
+    "export": "Generated images exported as references-only with both content note and warnings; download separately."
+  },
+  "independentReview": ".work/v233-audit-1/media-independent-review.json",
+  "nativeImageFixture": {
+    "status": "not-accepted-as-coverage",
+    "command": "HARNESS_TEST_CODEX_BIN=<pinned-0.164.0> node scripts/run-tests.mjs --targeted tests/runtime/input-native.test.ts",
+    "result": ".work/test-results/run-gBVqJ4/vitest.json",
+    "failedAssertion": "expected undefined to be truthy at former input-native.test.ts:50; mocked image_generation_call absent from indexed ThreadItem list",
+    "retainedFixture": ".work/v233-audit-1/unaccepted-native-image-fixture.txt",
+    "reason": "Current 0.164 extension emits completed ExtensionTurnItem image_gen.generation with attachment-store reference. Mocked legacy response image_generation_call was written to rollout as response_item only, without extension item_completed; therefore did not exercise supported generation path. Removed this invalid fixture and helper/imports. Prior direct rollout edits also did not form native indexed history and are not evidence of product failure or success.",
+    "officialSource": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__tool.rs:120,293-308",
+    "limits": "Pinned CLI actual generation extension end-to-end is not verified. Runtime protocol substitute validates projection, bounded chunking and cache reconstruction; parent verified a real PNG browser decode/download. No commercial inference is claimed."
+  },
+  "files": [
+    {
+      "path": "src/runtime/generated-media.ts",
+      "sha256": "1857db3461fc76c00f749cced8a454fd98c8ceb9f2e31ba6e4af203535da14a3"
+    },
+    {
+      "path": "src/runtime/media-history.ts",
+      "sha256": "ea29ee9225607b6628b9073effe025321e24f14fd841a5de6ffcf10f3f73cfbc"
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "5884b6f3ad1b5400dce3f1d7da4ceedad2274f65749dc420738cad03f965c2dc"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "0e11f738c892fe38f8c85089249c03808ea778b7d928e63080e48ead258ce615"
+    },
+    {
+      "path": "src/runtime/validation.ts",
+      "sha256": "cfdda041f1cab2ef16be5d3ef011dba7105852758abf7b888ddc0b4e36226164"
+    },
+    {
+      "path": "src/runtime/workflows.ts",
+      "sha256": "08cbb1bf9a3cb6f1123da52031dd6a4b7f41f9700ab03081cde7726031d6b807"
+    },
+    {
+      "path": "tests/runtime/generated-media.test.ts",
+      "sha256": "17dd2a1b28e324ba48f412fa7a0c1166133c38796bb5172a3db7bc4c72096f71"
+    },
+    {
+      "path": "tests/runtime/input-native.test.ts",
+      "sha256": "fd10d448c9c039088b967c61b8d52437245433c07a0b62fc9925d09cd7833c78"
+    },
+    {
+      "path": "tests/runtime/providers.test.ts",
+      "sha256": "36eb0548b8251b3ee7c29523c53fd6b09f595cae03e23b7cb267e08a46b35522"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "109611b6156d3ede735a0d88f226b3c0f5e52b08d1d8b74aa9e01ab61cb47c0d"
+    }
+  ]
+}

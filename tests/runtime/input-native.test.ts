@@ -7,6 +7,45 @@ import { loopbackProvider } from './loopback-provider.js';
 import { nativeTestEnvironment } from '../fixtures/native-env.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
+test('native nullable defaults do not become invalid TOML and explicit model-default effort changes the actual outbound request', () => withFixtureCleanup(async defer => {
+  const parent = path.resolve('.work/model-default-native'); mkdirSync(parent, { recursive: true });
+  const workerHome = mkdtempSync(path.join(parent, 'home-')), home = path.join(workerHome, 'codex'), tmp = path.join(workerHome, 'tmp'), project = path.join(workerHome, 'project'); mkdirSync(project);
+  const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: tmp, fixtureApiKey: 'local-fixture' }), provider = await loopbackProvider(); defer(() => provider.close());
+  const catalog = path.join(workerHome, 'catalog-default.json'), models = JSON.parse(readFileSync('tests/runtime/fixture-model-catalog.json', 'utf8'));
+  models.models[0].supported_reasoning_levels = ['low', 'medium', 'high'].map(effort => ({ effort, description: 'Local fixture' }));
+  models.models.push({ ...models.models[0], slug: 'second-fixture', default_reasoning_level: 'medium' });
+  models.models.push({ ...models.models[0], slug: 'fixed-fixture', default_reasoning_level: 'max', supported_reasoning_levels: [] }); writeFileSync(catalog, JSON.stringify(models));
+  writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup=false', 'model="harness-loopback-fixture"', 'model_provider="fixture"', 'approval_policy="never"', 'sandbox_mode="read-only"', `model_catalog_json=${JSON.stringify(catalog)}`, '[model_providers.fixture]', 'name="Fixture"', `base_url=${JSON.stringify(provider.url)}`, 'env_key="HARNESS_PROVIDER_API_KEY"', 'wire_api="responses"', 'requires_openai_auth=false', 'supports_websockets=false', 'request_max_retries=0', 'stream_max_retries=0'].join('\n'));
+  const registry = { defaultProviderId: 'default', nativeCatalogProvider: 'fixture', connections: [{ id: 'default', modelProvider: 'fixture', kind: 'responses', name: 'Fixture', enabled: true, model: 'harness-loopback-fixture', catalogPath: catalog, models: [{ id: 'harness-loopback-fixture', defaultEffort: 'low', efforts: ['low', 'medium', 'high'] }, { id: 'second-fixture', defaultEffort: 'medium', efforts: ['low', 'medium', 'high'] }] }] };
+  const config = { bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome, cwd: project, env, dev: true, providerRegistry: registry }; let runtime = await RuntimeService.create(config); defer(() => runtime.close()); const context = { clientId: 'defaults-native', beforeWrite: () => {} };
+  const plain = object(await runtime.call('thread/start', { cwd: project, options: { effort: null, summary: null } }, context)); expect(plain.reasoningEffort).toBeNull();
+  const created = object(await runtime.call('conversation/start', { cwd: project, text: 'first', options: { effort: 'high', summary: null } }, context)), threadId = object(created.thread).id!;
+  const idle = async (count: number) => { await expect.poll(() => provider.calls(), { timeout: 10000 }).toBe(count); await expect.poll(async () => object(object(await runtime.call('thread/read', { threadId }, context)).thread).status, { timeout: 10000 }).toMatchObject({ type: 'idle' }); let cursor: JsonValue = null; for (;;) { const page = object(await runtime.call('thread/history', { threadId, cursor }, context)); if (page.complete) break; cursor = page.nextCursor!; } };
+  await idle(1); expect(object(object(provider.inputs()[0]).reasoning).effort).toBe('high');
+  await runtime.call('turn/start', { threadId, text: 'model only', options: { model: 'second-fixture' } }, context); await idle(2);
+  expect(object(object(provider.inputs()[1]).reasoning).effort).toBe('high'); // Omission inherits; it does not reset to the newly selected model default.
+  await runtime.call('turn/start', { threadId, text: 'actual model default', options: { model: 'second-fixture', effort: 'medium' } }, context); await idle(3);
+  expect(object(object(provider.inputs()[2]).reasoning).effort).toBe('medium');
+  await runtime.call('turn/start', { threadId, text: 'mode model default', options: { collaborationMode: { mode: 'default', settings: { model: 'harness-loopback-fixture', reasoning_effort: null, developer_instructions: null } } } }, context); await idle(4);
+  expect(object(object(provider.inputs()[3]).reasoning).effort).toBe('low');
+  await runtime.close(); runtime = await RuntimeService.create(config); await runtime.call('thread/history', { threadId }, context);
+  const resumed = object(await runtime.call('thread/resume', { threadId, options: { modelProvider: 'fixture', model: 'harness-loopback-fixture' } }, context)); expect(resumed.reasoningEffort).toBe('low');
+  await runtime.call('thread/history', { threadId }, context); await runtime.call('turn/start', { threadId, text: 'cold model default' }, context); await idle(5);
+  expect(object(object(provider.inputs()[4]).reasoning).effort).toBe('low');
+  // An empty adjustable-effort list does not make the CLI discard explicit or
+  // inherited overrides. Use the known directory default when selecting it.
+  await runtime.call('turn/start', { threadId, text: 'fixed with old high', options: { collaborationMode: { mode: 'default', settings: { model: 'fixed-fixture', reasoning_effort: 'high', developer_instructions: null } } } }, context); await idle(6);
+  await runtime.call('turn/start', { threadId, text: 'fixed native default', options: { collaborationMode: { mode: 'default', settings: { model: 'fixed-fixture', reasoning_effort: null, developer_instructions: null } } } }, context); await idle(7);
+  await runtime.call('turn/start', { threadId, text: 'fixed plan high', options: { collaborationMode: { mode: 'plan', settings: { model: 'fixed-fixture', reasoning_effort: 'high', developer_instructions: null } } } }, context); await idle(8);
+  await runtime.call('turn/start', { threadId, text: 'fixed plan default', options: { collaborationMode: { mode: 'plan', settings: { model: 'fixed-fixture', reasoning_effort: null, developer_instructions: null } } } }, context); await idle(9);
+  await runtime.call('turn/start', { threadId, text: 'old model high', options: { collaborationMode: { mode: 'default', settings: { model: 'harness-loopback-fixture', reasoning_effort: 'high', developer_instructions: null } } } }, context); await idle(10);
+  await runtime.call('turn/start', { threadId, text: 'fixed without mode', options: { model: 'fixed-fixture' } }, context); await idle(11);
+  await runtime.call('turn/start', { threadId, text: 'fixed null effort', options: { model: 'fixed-fixture', effort: null } }, context); await idle(12);
+  await runtime.call('turn/start', { threadId, text: 'fixed known default', options: { model: 'fixed-fixture', effort: 'max' } }, context); await idle(13);
+  expect(provider.inputs().slice(5).map(input => object(object(input).reasoning).effort)).toEqual(['high', 'max', 'high', 'max', 'high', 'high', 'high', 'max']);
+
+}), 30000);
+
 test('official CLI sends discovered skill input, untrusted context and structured output to a local Responses fixture', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/input-native'); mkdirSync(parent, { recursive: true }); const workerHome = mkdtempSync(path.join(parent, 'home-')), home = path.join(workerHome, 'codex'), tmp = path.join(workerHome, 'tmp'), project = path.join(workerHome, 'project'), skillPath = path.join(project, '.agents', 'skills', 'fixture-skill'); for (const folder of [home, tmp, skillPath]) mkdirSync(folder, { recursive: true });
   writeFileSync(path.join(skillPath, 'SKILL.md'), '---\nname: fixture-skill\ndescription: Local input protocol validation fixture.\n---\n\nReturn the supplied structured result. Fixture marker: skill-source-retained.\n');

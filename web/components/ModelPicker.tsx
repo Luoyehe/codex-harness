@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { object, type Model, type Options } from '../lib/types';
-import { providerModels } from '../lib/provider-models';
+import { type Model, type Options } from '../lib/types';
+import { modelDefaultEffort, modelSupportsEffort, providerModels } from '../lib/provider-models';
 
 export const effortName = (value: string) => ({ none: '关闭', minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '极高', max: '最高' }[value] ?? value);
 export const modelSelection = (model: Model): string => model.modelProvider
@@ -28,10 +28,15 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
   const candidates = waitingDefaults ? [] : models.filter(row => (row.model ?? row.id) === id && matchesProvider(row, provider));
   const selected = candidates.length === 1 ? candidates[0] : undefined;
   const efforts = selected?.supportedReasoningEfforts ?? [];
-  const nativeEffort = selected && object(selected).defaultReasoningEffort;
-  const inheritedEffort = (!options.model || options.model === defaults?.model) && (!options.modelProvider || options.modelProvider === inheritedProvider)
-    ? defaults?.reasoningEffort : nativeEffort;
-  const effort = options.effort ?? (typeof inheritedEffort === 'string' ? inheritedEffort : undefined);
+  const nativeEffort = modelDefaultEffort(selected);
+  const fixedEffort = efforts.length === 0 ? nativeEffort : undefined;
+  const sameProvider = !options.modelProvider || options.modelProvider === inheritedProvider ||
+    Boolean(inheritedProvider && selected && matchesProvider(selected, inheritedProvider));
+  // Omitting effort on an existing thread preserves its current native effort, even after changing models.
+  const inheritedEffort = existingThread || sameProvider ? defaults?.reasoningEffort : undefined;
+  const modeUsesDefault = Boolean(options.mode && typeof inheritedEffort !== 'string');
+  const effectiveInheritedEffort = modeUsesDefault ? nativeEffort : inheritedEffort;
+  const effort = options.effort ?? (typeof effectiveInheritedEffort === 'string' ? effectiveInheritedEffort : undefined);
   const title = waitingDefaults ? '读取模型设置…' : selected?.displayName ?? selected?.model ?? selected?.id ?? (existingThread && id ? id : loading ? '读取模型…' : '选择模型');
   const groups = [...new Set(models.map(row => row.modelProvider ?? ''))];
   const selection = options.model && selected ? modelSelection(selected) : options.model ? '__unavailable__' : '';
@@ -53,7 +58,7 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
           const next = models.find(row => modelSelection(row) === event.target.value);
           if (event.target.value && !next) return;
           onOptions({ ...options, model: next ? next.model ?? next.id : undefined,
-            modelProvider: next?.modelProvider, effort: undefined });
+            modelProvider: next?.modelProvider, effort: modelDefaultEffort(next) });
         }}>
           <option value="">{defaultsLoading ? '正在读取默认设置…' : models.length ? existingThread ? '沿用会话模型' : '使用默认模型' : loading ? '正在读取模型…' : '尚无可选模型'}</option>
           {selection === '__unavailable__' && <option value="__unavailable__" disabled>当前模型不在目录：{options.model}</option>}
@@ -63,10 +68,14 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
         </select>
       </label>
       <label className="field">思考强度
-        <select disabled={disabled || loading || waitingDefaults || efforts.length === 0 && !options.effort} value={options.effort ?? ''} onChange={(event) => onOptions({ ...options, effort: event.target.value || undefined })}>
-          <option value="">{waitingDefaults ? '正在读取会话或默认设置…' : efforts.length ? `模型默认${typeof inheritedEffort === 'string' ? `（${effortName(inheritedEffort)}）` : ''}` : options.effort ? '恢复模型默认强度' : selected ? '此模型未提供可调强度' : '请先选择模型'}</option>
-          {options.effort && !efforts.some(row => row.reasoningEffort === options.effort) && <option value={options.effort} disabled>原强度已不可用</option>}
-          {efforts.map(row => <option key={row.reasoningEffort} value={row.reasoningEffort}>{effortName(row.reasoningEffort)}</option>)}
+        <select disabled={disabled || loading || waitingDefaults || efforts.length === 0 && (!options.effort || options.effort === fixedEffort)} value={options.effort ?? ''} onChange={(event) => {
+          if (disabled || loading || waitingDefaults) return;
+          onOptions({ ...options, effort: event.target.value || fixedEffort });
+        }}>
+          <option value="">{waitingDefaults ? '正在读取会话或默认设置…' : efforts.length ? `${modeUsesDefault ? '使用模型默认' : existingThread ? '沿用会话强度' : '沿用默认设置'}${typeof effectiveInheritedEffort === 'string' ? `（${effortName(effectiveInheritedEffort)}）` : ''}` : options.effort ? fixedEffort ? '使用模型固定强度' : '清除本次强度设置' : selected ? '此模型未提供可调强度' : '请先选择模型'}</option>
+          {options.effort && !modelSupportsEffort(selected, options.effort) && <option value={options.effort} disabled>原强度已不可用</option>}
+          {fixedEffort && <option value={fixedEffort}>模型固定强度（{effortName(fixedEffort)}）</option>}
+          {efforts.map(row => <option key={row.reasoningEffort} value={row.reasoningEffort}>{row.reasoningEffort === nativeEffort ? `模型默认（${effortName(row.reasoningEffort)}）` : effortName(row.reasoningEffort)}</option>)}
         </select>
       </label>
       {models.length === 0 && !loading && !waitingDefaults && <p className="small muted">先添加供应商并完成所需登录，再读取模型目录。</p>}

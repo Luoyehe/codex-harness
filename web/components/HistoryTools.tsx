@@ -560,7 +560,7 @@ export function HistoryTools({
           </button>
         </div>
         <p className="small muted">
-          导出由运行时读取完整、已落盘的会话，包含工具与附件信息；未完成或超出上限会明确报错。
+          导出完整、已落盘的会话文字和工具记录，保留附件信息与生成图片的引用；图片请在对话中单独下载。未完成或超出上限会明确报错。
         </p>
         {error && (
           <p role="alert" className="error">
@@ -624,6 +624,8 @@ export function HistoryTools({
               这是定位附近的只读片段，不是完整历史。完整导出仍从运行时单独读取。
             </p>
             <Messages
+              api={api}
+              threadId={threadId}
               turns={windowTurns}
               loading={false}
               complete

@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "scope": "core/gateway",
+  "agent": "v233_full_gateway",
+  "reviewedAt": "2026-11-01T17:01:13.435Z",
+  "baseCommit": "0f51720",
+  "sourceDigest": "5f60ffeaf45277d624e840aba1c88f01d2e12edd5b2834ea365c134f24d14576",
+  "status": "findings",
+  "complete": true,
+  "inventoryFiles": 49,
+  "inspectedFiles": 49,
+  "skippedFiles": [],
+  "instructions": [
+    "AGENTS.md",
+    "scripts/RELEASE-PREFLIGHT.md",
+    "User authorized one clean independent full audit instead of default three."
+  ],
+  "findings": [
+    {
+      "id": "V233-GATEWAY-1",
+      "priority": "P2",
+      "title": "Emergency recovery is starved by the ordinary HTTP request budget",
+      "locations": [
+        "src/gateway/server.ts:188",
+        "src/core/contracts.ts:23",
+        "src/gateway/worker-client.ts:139"
+      ],
+      "trigger": "48 ordinary reads remain awaiting worker confirmation; emergency system/recover uses the same exhausted admission pool before method parsing.",
+      "impact": "Authenticated force recovery returns capacity/not_sent without reaching the manager reserved emergency slot; closing the browser does not free outstanding backend reservations, so the recovery control stays unavailable for up to the 350-second worker deadline.",
+      "evidence": ".work/v233-audit-1/gateway-saturation-result.json",
+      "fix": "Provide bounded separately authenticated emergency admission from HTTP through response/receipt capacity, retaining CSRF, current protocol, explicit confirmation and original receipt identity; verify no other RPC can use it."
+    },
+    {
+      "id": "V233-GATEWAY-2",
+      "priority": "P2",
+      "title": "Valid generated images exceed browser event and cumulative history budgets without a recoverable media reference",
+      "locations": [
+        "src/gateway/server.ts:134",
+        "src/core/contracts.ts:25",
+        "src/runtime/history.ts:56",
+        "web/lib/history.ts:3"
+      ],
+      "trigger": "A completed imageGeneration.result Base64 payload for a roughly 3MiB or larger image, or accumulated inline images in one history.",
+      "impact": "Event causes 1013 disconnect and history cannot hydrate the result; normal reconnect does not recover generated files outside the registered attachment index.",
+      "evidence": "Runtime auditor cross-review of history.ts and attachments.ts, plus prior pinned native app-server inline-image contract. No commercial image inference executed.",
+      "fix": "Externalize generated media to bounded authenticated chunk reads with lightweight stable history references; do not only raise WS limits."
+    }
+  ],
+  "verification": {
+    "fullTestsRun": false,
+    "paidCalls": false,
+    "productionAccess": false,
+    "reproduction": {
+      "path": ".work/v233-audit-1/gateway-saturation-result.json",
+      "sha256": "9e48a5162ae01d9c8683fca4c3666022fe7f987e3b7a4f98e6e709b7f40d747e",
+      "passed": 1,
+      "failed": 0,
+      "purpose": "Positive reproduction of the defect; a pass means the pre-fix defect was observed."
+    }
+  },
+  "untestedIntegrations": [
+    "Real provider inference including image generation",
+    "Root/systemd/deployment manager execution",
+    "Linux process identity boundary",
+    "Browser rendering and real-device mobile behavior"
+  ],
+  "files": [
+    {
+      "path": "src/core/automations.ts",
+      "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a",
+      "bytes": 15964,
+      "currentSha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/budget.ts",
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b",
+      "bytes": 1146,
+      "currentSha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5",
+      "bytes": 1712,
+      "currentSha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/errors.ts",
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a",
+      "bytes": 772,
+      "currentSha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/execution-mode.ts",
+      "sha256": "3aeb8eb3ea729de0fbffcd74302d1c8b3a35395fae81025ba14bead24ff4ec0b",
+      "bytes": 1754,
+      "currentSha256": "3aeb8eb3ea729de0fbffcd74302d1c8b3a35395fae81025ba14bead24ff4ec0b",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/extension-methods.ts",
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a",
+      "bytes": 2413,
+      "currentSha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "7e8374b948410c661de71febb19f20bffae9e87e74e3c1d8dfc68bdf4bf472df",
+      "bytes": 5245,
+      "currentSha256": "7e8374b948410c661de71febb19f20bffae9e87e74e3c1d8dfc68bdf4bf472df",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "f17493bf533254f5b44c6d1501fadb322030df67c139f3c54fed0b95daba774f",
+      "bytes": 18471,
+      "currentSha256": "f17493bf533254f5b44c6d1501fadb322030df67c139f3c54fed0b95daba774f",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+      "bytes": 1379,
+      "currentSha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "sha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b",
+      "bytes": 8822,
+      "currentSha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/organization-methods.ts",
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4",
+      "bytes": 969,
+      "currentSha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/process-methods.ts",
+      "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f",
+      "bytes": 464,
+      "currentSha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/realtime-methods.ts",
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41",
+      "bytes": 560,
+      "currentSha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/remote-methods.ts",
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43",
+      "bytes": 921,
+      "currentSha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/schedule.ts",
+      "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a",
+      "bytes": 4577,
+      "currentSha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "bytes": 3162,
+      "currentSha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/core/worktrees.ts",
+      "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089",
+      "bytes": 5380,
+      "currentSha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/auth-crypto.ts",
+      "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+      "bytes": 4054,
+      "currentSha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/auth.ts",
+      "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3",
+      "bytes": 21527,
+      "currentSha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/automation-scheduler.ts",
+      "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9",
+      "bytes": 10936,
+      "currentSha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "fd41d95dbd4ca50ad559785ca6deecb51a39a14603f8cc7c3d65bd586a459154",
+      "bytes": 28234,
+      "currentSha256": "fd41d95dbd4ca50ad559785ca6deecb51a39a14603f8cc7c3d65bd586a459154",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/main.ts",
+      "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd",
+      "bytes": 3119,
+      "currentSha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7",
+      "bytes": 7988,
+      "currentSha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/organization-receipt.ts",
+      "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d",
+      "bytes": 1608,
+      "currentSha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/receipt-maintenance.ts",
+      "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6",
+      "bytes": 3294,
+      "currentSha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "5307b41a7f0e29118607985f7797bcbc075a6a500c41da6fa070a6eec47fa57c",
+      "bytes": 34986,
+      "currentSha256": "5307b41a7f0e29118607985f7797bcbc075a6a500c41da6fa070a6eec47fa57c",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/recovery-protocol.ts",
+      "sha256": "84995b1c4f70f1179b806248a3d84f5aab3522602fb8ea991f20ad04b8196505",
+      "bytes": 1117,
+      "currentSha256": "84995b1c4f70f1179b806248a3d84f5aab3522602fb8ea991f20ad04b8196505",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360",
+      "bytes": 24279,
+      "currentSha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "2fea3c97b97d0ebe39328d340658d0b1f88b0986673f08fde6956c0c0f32cb2d",
+      "bytes": 10952,
+      "currentSha256": "2fea3c97b97d0ebe39328d340658d0b1f88b0986673f08fde6956c0c0f32cb2d",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "src/gateway/workspace-ack.ts",
+      "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+      "bytes": 6230,
+      "currentSha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read full implementation, traced admission, dispatch, persistence, concurrency, recovery and consumers in this scope."
+    },
+    {
+      "path": "tests/core/automation-retention.test.ts",
+      "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3",
+      "bytes": 3142,
+      "currentSha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/core/ledger-capacity.test.ts",
+      "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d",
+      "bytes": 17691,
+      "currentSha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "sha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de",
+      "bytes": 7145,
+      "currentSha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/core/operation-retention.test.ts",
+      "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9",
+      "bytes": 6572,
+      "currentSha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/core/schedule.test.ts",
+      "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328",
+      "bytes": 3301,
+      "currentSha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/auth.test.ts",
+      "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679",
+      "bytes": 17981,
+      "currentSha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5469b1d08c582d51e29cca45ad5d19e34fe10bf6d4a8fbc93508ed905a8785e4",
+      "bytes": 10644,
+      "currentSha256": "5469b1d08c582d51e29cca45ad5d19e34fe10bf6d4a8fbc93508ed905a8785e4",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/automation-scheduler.test.ts",
+      "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5",
+      "bytes": 12425,
+      "currentSha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "eced1b733aeee74d8da88edb9cf1a9e8a1f316040cfd706cc968f3b1c72b0485",
+      "bytes": 41188,
+      "currentSha256": "eced1b733aeee74d8da88edb9cf1a9e8a1f316040cfd706cc968f3b1c72b0485",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/emergency-recovery.test.ts",
+      "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b",
+      "bytes": 13660,
+      "currentSha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/execution-mode.test.ts",
+      "sha256": "d5cbbd567b2b674e3fcb0d6cfc56088c3d7e7d3de073d65d7c08666a291718a7",
+      "bytes": 9502,
+      "currentSha256": "d5cbbd567b2b674e3fcb0d6cfc56088c3d7e7d3de073d65d7c08666a291718a7",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877",
+      "bytes": 37398,
+      "currentSha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091",
+      "bytes": 17400,
+      "currentSha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492",
+      "bytes": 12933,
+      "currentSha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/receipt-maintenance.test.ts",
+      "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f",
+      "bytes": 4639,
+      "currentSha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "f7c0efb445bff39a148f76aaec704ca6531281f533c174af846be81af7e3cf5b",
+      "bytes": 14566,
+      "currentSha256": "f7c0efb445bff39a148f76aaec704ca6531281f533c174af846be81af7e3cf5b",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "aae2a226caf8c41400800622e8a03fbdbc58cdaf97b4ec961f54cacc7853e8d4",
+      "bytes": 14335,
+      "currentSha256": "aae2a226caf8c41400800622e8a03fbdbc58cdaf97b4ec961f54cacc7853e8d4",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/workspace-ack.test.ts",
+      "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b",
+      "bytes": 7434,
+      "currentSha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "sha256": "facc579f89fa7178c50b953c42ab76d2ef19b8e8daa7aeebb887d41685c0e1c6",
+      "bytes": 6963,
+      "currentSha256": "facc579f89fa7178c50b953c42ab76d2ef19b8e8daa7aeebb887d41685c0e1c6",
+      "inspectionDepth": "complete-semantic-source-read",
+      "coverage": "Read every fixture and assertion, checked contracts against production code; no blanket test run."
+    }
+  ]
+}

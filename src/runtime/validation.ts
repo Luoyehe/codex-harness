@@ -49,8 +49,10 @@ export function options(input: JsonValue | undefined, turn: boolean): JsonObject
     delete result.outputSchema;
     delete result.collaborationMode;
     const config: JsonObject = {};
-    if (result.effort !== undefined) { if (result.effort !== null) validateOfficial('ReasoningEffort', result.effort); config.model_reasoning_effort = result.effort; delete result.effort; }
-    if (result.summary !== undefined) { if (result.summary !== null) validateOfficial('ReasoningSummary', result.summary); config.model_reasoning_summary = result.summary; delete result.summary; }
+    // Optional null means no override in the native settings API. TOML has no
+    // null value: forwarding it as a config override prevents start/resume.
+    if (result.effort !== undefined) { if (result.effort !== null) { validateOfficial('ReasoningEffort', result.effort); config.model_reasoning_effort = result.effort; } delete result.effort; }
+    if (result.summary !== undefined) { if (result.summary !== null) { validateOfficial('ReasoningSummary', result.summary); config.model_reasoning_summary = result.summary; } delete result.summary; }
     if (Object.keys(config).length) result.config = config;
   }
   if (turn && result.sandbox !== undefined) {

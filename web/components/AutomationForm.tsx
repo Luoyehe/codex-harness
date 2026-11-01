@@ -14,7 +14,8 @@ import { executionOptions, type CollaborationModeMask } from '../lib/workflows';
 import { useResource } from '../hooks/useResource';
 import { reconcileOperation } from '../lib/operations';
 import { useOperations } from './Recovery';
-import { modelSelection } from './ModelPicker';
+import { effortName, modelSelection } from './ModelPicker';
+import { modelDefaultEffort, modelSupportsEffort } from '../lib/provider-models';
 import { ModelDirectoryStatus, type ModelPagination } from './ModelDirectoryStatus';
 
 const matchesProvider = (model: Model, provider: unknown) =>
@@ -307,6 +308,7 @@ function AutomationEditor({
   );
   const selectedModel = candidates.length === 1 ? candidates[0] : undefined;
   const efforts = selectedModel?.supportedReasoningEfforts ?? [];
+  const fixedEffort = efforts.length === 0 ? modelDefaultEffort(selectedModel) : undefined;
   const option = (name: keyof Options) =>
     String(draft.overrides[name] ?? nativeOptions[name] ?? '');
   const selection = model
@@ -329,7 +331,7 @@ function AutomationEditor({
           ? modelCatalog?.hasMore || modelCatalog?.error || modelCatalog?.warning
             ? '尚未在已加载目录中找到所选模型，请继续加载或重新读取模型目录；原选择仍已保留。'
             : '所选供应商或模型已不在当前目录，请重新选择；原选择仍已保留。'
-          : option('effort') && !efforts.some(entry => entry.reasoningEffort === option('effort'))
+          : option('effort') && !modelSupportsEffort(selectedModel, option('effort'))
             ? '所选推理强度不适用于当前供应商的模型，请重新选择或恢复默认强度。'
             : '';
   const setOption = (name: keyof Options, value: string) =>
@@ -353,6 +355,7 @@ function AutomationEditor({
             },
             defaults.data,
             modes,
+            models,
           ),
         ).collaborationMode);
         result.collaborationMode = { ...collaboration, settings: {
@@ -659,7 +662,8 @@ function AutomationEditor({
                   const next = models.find(entry => modelSelection(entry) === e.target.value);
                   if (e.target.value && !next) return;
                   update({ overrides: { ...draft.overrides, model: next?.model ?? next?.id ?? '',
-                    modelProvider: next?.modelProvider ?? '', effort: '' } });
+                    modelProvider: next?.modelProvider ?? '',
+                    effort: next?.supportedReasoningEfforts?.length === 0 ? modelDefaultEffort(next) ?? '' : '' } });
                 }}
               >
                 <option value="">执行时使用项目默认值</option>
@@ -685,13 +689,15 @@ function AutomationEditor({
               自动化推理强度
               <select
                 value={option('effort')}
-                onChange={(e) => setOption('effort', e.target.value)}
+                disabled={Boolean(fixedEffort && (!option('effort') || option('effort') === fixedEffort))}
+                onChange={(e) => setOption('effort', e.target.value || fixedEffort || '')}
               >
                 <option value="">执行时使用项目默认值</option>
                 {option('effort') &&
-                  !efforts.some((entry) => entry.reasoningEffort === option('effort')) && (
+                  !modelSupportsEffort(selectedModel, option('effort')) && (
                     <option value={option('effort')} disabled>{option('effort')}（原强度已不可用）</option>
                   )}
+                {fixedEffort && <option value={fixedEffort}>模型固定强度（{effortName(fixedEffort)}）</option>}
                 {efforts.map((entry) => (
                   <option key={entry.reasoningEffort}>{entry.reasoningEffort}</option>
                 ))}

@@ -35,6 +35,10 @@ it('requires explicit confirmation but is available with an unrelated unknown MC
   await screen.findByText(/旧执行阻塞已解除/);
   expect(s.calls).toHaveLength(2);
   expect(s.calls[0]).toMatchObject({ method: 'system/recover', params: { confirmStop: true } });
+  const requests = vi.mocked(fetch).mock.calls;
+  expect(requests[0]?.[0]).toBe('/api/recover');
+  expect(requests[1]?.[0]).toBe('/api/rpc');
+  expect(requests[0]?.[1]).toMatchObject({ method: 'POST', credentials: 'same-origin' });
   expect((await listOperations()).find(row => row.id === old.id)).toBeUndefined();
   expect(screen.queryByRole('button', { name: '确认强制停止并恢复' })).toBeNull();
 });

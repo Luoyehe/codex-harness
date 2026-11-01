@@ -60,7 +60,7 @@ describe('managed provider catalogs and routing', () => {
     expect(managed.sameProvider('openai', 'harness_chatgpt')).toBe(true);
     expect(managed.sameProvider('openai', custom.modelProvider)).toBe(false);
     expect(() => managed.resumeSelection({ modelProvider: 'harness_chatgpt' })).toThrow(/model/);
-    expect(managed.resumeSelection({ modelProvider: 'harness_chatgpt', model: 'gpt-fixture' })).toMatchObject({ effort: null });
+    expect(managed.resumeSelection({ modelProvider: 'harness_chatgpt', model: 'gpt-fixture' })).not.toHaveProperty('effort');
   });
   it('does not silently route an unavailable provider or a disabled historical thread', async () => {
     const managed = new ManagedProviders(registry([chatgpt, { ...custom, enabled: false }]));

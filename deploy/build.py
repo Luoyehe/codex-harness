@@ -60,15 +60,28 @@ def download(url: str, output: Path, expected: str, algorithm: str = "sha256") -
 
 def pack_source(source: Path, output: Path) -> None:
     require(source.is_dir() and not output.exists(), "Invalid source or existing output")
+    source, output = source.resolve(), output.resolve()
+    require(not any(output.is_relative_to(source / root) for root in SOURCE_ROOTS) and
+            output not in {source / name for name in SOURCE_FILES},
+            "Source archive output must be outside the packaged inputs")
+
+    def inputs(path: Path):
+        # Prune before walking. A checkout can contain large build caches,
+        # private homes or unreadable unrelated directories beside its source.
+        if path.name in ("node_modules", "dist", ".git", ".DS_Store", "auth.json") or path.name.startswith(".env"):
+            return
+        require(not path.is_symlink(), "Source archives do not accept symlinks", "unsafe_path")
+        if path.is_dir():
+            for child in sorted(path.iterdir()):
+                yield from inputs(child)
+        elif path.is_file():
+            yield path
+
     with tarfile.open(output, "x:gz") as archive:
-        for path in sorted(source.rglob("*")):
-            rel = path.relative_to(source)
-            if rel.parts[0] not in SOURCE_ROOTS and rel.as_posix() not in SOURCE_FILES:
-                continue
-            if any(part in ("node_modules", "dist", ".git", ".DS_Store", "auth.json") or part.startswith(".env") for part in rel.parts):
-                continue
-            require(not path.is_symlink(), "Source archives do not accept symlinks", "unsafe_path")
-            if path.is_file():
+        for name in sorted(SOURCE_ROOTS | SOURCE_FILES):
+            require(name in SOURCE_ROOTS or not (source / name).is_dir(), "Source configuration must be a file")
+            for path in inputs(source / name):
+                rel = path.relative_to(source)
                 info = archive.gettarinfo(str(path), rel.as_posix())
                 info.uid = info.gid = info.mtime = 0
                 info.uname = info.gname = ""

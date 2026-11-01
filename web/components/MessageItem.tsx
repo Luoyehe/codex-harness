@@ -18,6 +18,7 @@ const itemNames: Record<string, string> = {
   plan: '工作计划',
   contextCompaction: '上下文压缩',
   imageView: '查看图片',
+  imageGeneration: '生成图片',
   collabAgentToolCall: '子智能体协作',
   subAgentActivity: '子智能体动态',
 };
@@ -101,6 +102,7 @@ export const MessageItem = memo(function MessageItem({
   item,
   api,
   threadId,
+  turnId,
   project,
   reasoningFinished = false,
   onOpenThread,
@@ -108,6 +110,7 @@ export const MessageItem = memo(function MessageItem({
   item: Item;
   api?: Api;
   threadId?: string;
+  turnId?: string;
   project?: Project;
   reasoningFinished?: boolean;
   onOpenThread?: (id: string) => void;
@@ -201,7 +204,7 @@ export const MessageItem = memo(function MessageItem({
           )}
         </div>
         <SafeMarkdown text={textContent(item)} />
-        <MessageMedia item={item} api={api} threadId={threadId} project={project} />
+        <MessageMedia item={item} api={api} threadId={threadId} turnId={turnId} project={project} />
       </article>
     );
   const output =
@@ -222,7 +225,7 @@ export const MessageItem = memo(function MessageItem({
         )}
       </summary>
       <div className="tool-body">
-        <MessageMedia item={item} api={api} threadId={threadId} project={project} />
+        <MessageMedia item={item} api={api} threadId={threadId} turnId={turnId} project={project} />
         {item.type === 'fileChange' &&
           array<unknown>(item.changes).map((c, i) => (
             <div key={i}>

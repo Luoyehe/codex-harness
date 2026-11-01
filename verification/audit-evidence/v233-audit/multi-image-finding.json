@@ -1,0 +1,128 @@
+{
+  "snapshot": "b0d8f42a6e817215846c3b1211a6802ddc8e6639daa2fbc40e43faf774278921",
+  "status": "issues-found-fixed-awaiting-new-freeze",
+  "findings": [
+    {
+      "id": "conversion-multi-image-frame",
+      "priority": 2,
+      "location": "src/runtime/thread-conversion.ts:107",
+      "problem": "Final post-copy verification requested a full native turn, collecting multiple individually valid generated images into one 12 MiB native frame. Two 8 MiB raw images exceed that budget and turn the otherwise completed conversion into an unknown result.",
+      "before": ".work/test-results/run-IOzneF/vitest.json",
+      "after": ".work/test-results/run-MW2pxc/vitest.json",
+      "fix": "Read and verify notLoaded turn metadata at this final probe. Preserve all prior source/copy byte witnesses, settings comparisons and independent thread identities. Browser full history uses bounded per-item reads.",
+      "verification": {
+        "files": 5,
+        "passed": 26,
+        "failed": 0,
+        "skipped": 0,
+        "nativeVersion": "0.164.0",
+        "typecheckExit": 0
+      },
+      "modifiedFiles": [
+        {
+          "path": "src/runtime/thread-conversion.ts",
+          "sha256": "57cc3b7953cfc918096d2788e0be787f610b0e84b97c84a9e02c0ed69b242017"
+        },
+        {
+          "path": "tests/runtime/thread-conversion.test.ts",
+          "sha256": "e80853d71f6b622a77b1f9a96d468809eccb945c62459fab549caec7849eab47"
+        }
+      ]
+    }
+  ],
+  "officialGenerationProtocol": {
+    "ref": "rust-v0.164.0",
+    "tree": "6aaac694803004a63c6f393d153c96d22521a6b9",
+    "conclusion": "Actual extension image_gen.generation is mapped to public ThreadItem type imageGeneration. ImageGenerationItem flattens GeneratedImageRef: default local app-server InlineAttachmentStore produces result:base64. The File variant is an alternate attachment-store implementation, not the default local process configured here.",
+    "chain": [
+      "tool emits completed ExtensionTurnItem(ImageGeneration).",
+      "Live ItemCompleted maps through ThreadItem::from; persisted completion replays through same mapping.",
+      "CoreTurnItem::Extension(ImageGeneration) maps to public ThreadItem::ImageGeneration.",
+      "Public enum serializes type:imageGeneration; generated item flattens result/fileId union.",
+      "Local app-server MessageProcessor passes codex_core::passthrough_image_store(), which constructs InlineAttachmentStore."
+    ],
+    "sources": [
+      {
+        "path": ".work/v233-final-clean/official-public-item.rs",
+        "upstreamPath": "codex-rs/app-server-protocol/src/protocol/v2/item.rs",
+        "lines": [
+          235,
+          417,
+          1004,
+          1005
+        ],
+        "blob": "bde4c2aa87c2d71f9dddbd0e36caa0c3ab638b94",
+        "sha256": "7a1bcd40f31a301897c300e9245c7d84447dc07c0e755d0fd095aff394a0264a"
+      },
+      {
+        "path": ".work/v233-final-clean/official-event-mapping.rs",
+        "upstreamPath": "codex-rs/app-server-protocol/src/protocol/event_mapping.rs",
+        "lines": [],
+        "blob": "e0fcfb6759d8b129acbe8ad41d579a476e7cab8a",
+        "sha256": "7d68f6a8c27d4a29a640e1d7b426ca1005d138790e521d0c743c75e5b1873236"
+      },
+      {
+        "path": ".work/v233-final-clean/official-thread-manager.rs",
+        "upstreamPath": "codex-rs/core/src/thread_manager.rs",
+        "lines": [
+          549,
+          551
+        ],
+        "blob": "b2d22649a62334dd5dee40f4c0c9288e94dbcc5c",
+        "sha256": "a54d4e76595401b0b6bf5673f11ef8428807cfcf72a6ed6041c33caeec8717c3"
+      },
+      {
+        "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__message_processor.rs",
+        "upstreamPath": "codex-rs/app-server/src/message_processor.rs",
+        "lines": [
+          344,
+          374
+        ],
+        "blob": "e1e5a7a9482ecc40ec3c0240042fa738f277a8a7",
+        "sha256": "e8e5fcccc04e699c0f9394d4586e25e9560b3f1a4a1ee066692adf93139443c2"
+      },
+      {
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__items__src__image_generation.rs",
+        "upstreamPath": "codex-rs/ext/items/src/image_generation.rs",
+        "lines": [
+          33,
+          42,
+          78
+        ],
+        "blob": "59d4ece0b7fc92e33117bac5709cdf91c0859a1e",
+        "sha256": "58bc3f9b59132595e2fb0043561838c6ad5ef5fcad762b8255b762c66434c1fa"
+      },
+      {
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__tool.rs",
+        "upstreamPath": "codex-rs/ext/image-generation/src/tool.rs",
+        "lines": [
+          120,
+          271,
+          272,
+          293,
+          306
+        ],
+        "blob": "fb154371f777a7d9d2d67c7c721b119c34db2a9d",
+        "sha256": "fd509b6d5cb6d36e54fa05e5b1f5e746a8bd9c49fda9c3addf77dd112bb7f5b2"
+      },
+      {
+        "path": ".work/v232-fork-official-0164/codex-rs__app-server-protocol__src__protocol__thread_history.rs",
+        "upstreamPath": "codex-rs/app-server-protocol/src/protocol/thread_history.rs",
+        "lines": [
+          622,
+          626,
+          648,
+          663,
+          2335,
+          2400
+        ],
+        "blob": "418a9fb1bb5ce98e4373006115dd0e5e25789482",
+        "sha256": "5af15f462c21c41a7e79c27225c997d2ded9cab1f4113917aa0855de41d0c504"
+      }
+    ],
+    "limits": [
+      "Source-level official protocol and startup evidence only, not a live commercial image-generation or extension-backend end-to-end test.",
+      "Unsupported File references are not expanded into arbitrary path/URL reads. Existing UI exposes explicit unavailable state; default local CLI uses Inline."
+    ]
+  }
+}
