@@ -167,7 +167,8 @@ NoNewPrivileges=no
     return result
 
 
-def sudo_rule(layout: Layout, *, workspace: bool = True, legacy_catalog_server: bool = False, config: dict | None = None) -> str:
+def sudo_rule(layout: Layout, *, workspace: bool = True, legacy_catalog_server: bool = False,
+              legacy_thread_history: bool = False, config: dict | None = None) -> str:
     from .execution_identity import managed, state
     target = "root" if config is not None and managed(config) and state(config)["mode"] == "root" else layout.prefix + "-worker"
     identity = f"{layout.control}/native-launch identity, " if config is not None and managed(config) else ""
@@ -179,7 +180,27 @@ def sudo_rule(layout: Layout, *, workspace: bool = True, legacy_catalog_server: 
             f"Defaults:{layout.prefix}-control env_reset,!setenv,!use_pty\n"
             f"{layout.prefix}-control ALL=({target}) NOPASSWD: {identity}{layout.control}/native-launch version, "
             f"{layout.control}/native-launch app-server, {catalog}{layout.control}/native-launch resolve-project" +
-            (f", {layout.control}/native-launch workspace" if workspace else "") + "\n")
+            (f", {layout.control}/native-launch workspace" if workspace else "") +
+            ("" if legacy_thread_history else f", {layout.control}/native-launch thread-history") + "\n")
+
+
+def sudo_variants(layout: Layout, config: dict) -> dict[bytes, tuple[bool, bool, bool]]:
+    """Exact historical grammars, used only for owned upgrade/recovery state."""
+    return {sudo_rule(layout, config=config, workspace=w, legacy_catalog_server=c, legacy_thread_history=h).encode(): (w, c, h)
+            for w in (False, True) for c in (False, True) for h in (False, True)}
+
+
+def migrated_history_sudo(layout: Layout, config: dict, data: bytes) -> bytes:
+    """Upgrade only this fixed verb when recovering an older stopped snapshot."""
+    from .common import read_json, require
+    variants = sudo_variants(layout, config)
+    require(data in variants, "Retained sudo policy is not an exact generated definition", "integrity")
+    path = layout.control / "capabilities.json"
+    capabilities = read_json(path, 4096) if path.exists() else {}
+    if type(capabilities.get("threadHistoryRepair")) is not int or capabilities["threadHistoryRepair"] != 1:
+        return data
+    workspace, catalog, _ = variants[data]
+    return sudo_rule(layout, config=config, workspace=workspace, legacy_catalog_server=catalog).encode()
 
 
 def render_config_check(layout: Layout) -> str:

@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "completedAt": "2026-11-01T12:48:54.337Z",
+  "authorId": "v220-final-deploy",
+  "baseCommit": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
+  "scope": [
+    "src/runtime/service.ts",
+    "src/runtime/live-thread-list.ts",
+    "tests/runtime/service.test.ts",
+    "tests/runtime/live-thread-list.test.ts",
+    "tests/runtime/thread-list-native.test.ts",
+    "scripts/select-tests.mjs"
+  ],
+  "sourceHashes": [
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "2f6ace5e326c8f7916d96b5196fc5af4d8eb40ee2dce45a3a3e857fa0a75b0de"
+    },
+    {
+      "path": "src/runtime/live-thread-list.ts",
+      "sha256": "25071a588bc5bacedbc02716554358cc23e5a4e786a16f464092d0ca102e4f05"
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "b8cec089d16ad48c9dca74edeec3487166ca78c20c27f4cd4c3259a57ed9d49e"
+    },
+    {
+      "path": "tests/runtime/live-thread-list.test.ts",
+      "sha256": "1afea11f23cee2ac6e267c72ae839aea53b9ad87d93fa81ee88d022d002ad402"
+    },
+    {
+      "path": "tests/runtime/thread-list-native.test.ts",
+      "sha256": "34cac1ad066bb398c583048ca8dfbe1f09437be38e951655f26108eb6781bab7"
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "caabfa5f06d0840ea002c32fb766e6578bf64e11972cc336a61643778bc318d4"
+    }
+  ],
+  "diagnosis": [
+    {
+      "id": "thread-list-provider-filter",
+      "confirmed": true,
+      "description": "Native omission of modelProviders filters to the configured default provider. RuntimeService omitted it, hiding persisted threads created with another enabled or subsequently removed provider.",
+      "upstream": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors/thread_processor.rs",
+      "upstreamFunction": "list_threads_common lines 5677-5687",
+      "resolution": "Send fixed modelProviders: [] while retaining cwd/source/archive/search/sort/limit/cursor validation."
+    },
+    {
+      "id": "thread-list-indexing-window",
+      "confirmed": true,
+      "description": "Actual official CLI returned an empty persistent list before first input and immediately after accepted first turns while loopback responses were deliberately held. Completion made the two rows persistent.",
+      "resolution": "Retain only acknowledged, non-ephemeral root-thread summaries in this runtime epoch. Add separate first-page liveData until native persistence is observed; do not replace native data/cursor."
+    }
+  ],
+  "changes": [
+    "All-provider listing includes disabled/removed historical provider identities without changing execution admission.",
+    "2048-entry reservation capacity matches activity scale; accepted unindexed rows are not silently evicted. Each summary has an 8192-byte bound and clipped Unicode preview/name. First-page view is limited to 100 with liveDataTruncated true.",
+    "Lifecycle notifications remove closed/deleted/archived summaries, update status/name/provider, and runtime close clears the cache. Native persisted rows remove their corresponding summary on any page. No loaded-thread scan, resume, input replay or new inference occurs in listing.",
+    "Added selector native prerequisite mapping for the new real-CLI regression."
+  ],
+  "adjacentFlows": {
+    "reviewStartNew": "workflows.newReview routes through host.call(thread/start), hence the same acknowledged-creation cache.",
+    "automation": "automation-scheduler routes through Dispatcher conversation/start then RuntimeService thread/start, hence the same cache.",
+    "fork": "Actual complete-history and empty-history fork replies precede persistent visibility. workflowMutation.newThread now reserves before dispatch and captures only its positive creation response, preserving identity/cwd guards and existing acknowledgement failure classification.",
+    "agents": "Official relation-filter thread/list intentionally has no default provider filter even when omitted. Existing ancestor/cwd/source and response validation remain unchanged.",
+    "search": "Official ThreadSearchParams has no provider filter; existing separate text-search and cwd validation are unchanged. The new liveData bridge is the sidebar list contract, not native full-text indexing."
+  },
+  "priorAuthorDraft": {
+    "path": ".work/v231-thread-list-backend-repair-pre-fork.json",
+    "sha256": "dcb22d3c751796ffa48ac7fd3959ad9922aba4063c6a20b76610a3c9ffb00cd6"
+  },
+  "validation": {
+    "runs": [
+      {
+        "path": ".work/test-results/run-TglOt8/vitest.json",
+        "sha256": "c1bba50b2004e3e658725a19a55510973b7d3532613fd90301ac9ad64af9ca6f",
+        "note": "Before product fix: genuine official CLI reproduces missing non-default-provider conversation.",
+        "total": 1,
+        "passed": 0,
+        "failed": 1,
+        "skipped": 0,
+        "success": false
+      },
+      {
+        "path": ".work/test-results/run-HxpYjZ/vitest.json",
+        "sha256": "d3bf636ad317c77cfeeb8a2fa4663c94eec2d89b80c6f6eda680aa003cd805fa",
+        "note": "Provider fix passed its assertion; new default-created_at pagination assertion exposed independent official CLI timezone cursor behavior. Portable service and selector passed.",
+        "total": 97,
+        "passed": 96,
+        "failed": 1,
+        "skipped": 0,
+        "success": false
+      },
+      {
+        "path": ".work/test-results/run-tb2DLS/vitest.json",
+        "sha256": "053402a3c123552458c7dcad8ac542f2b65af85c7caf6532b218f0d91b23ae83",
+        "note": "Narrow diagnosis preserved matching native/service created_at pagination failure; no workaround applied.",
+        "total": 1,
+        "passed": 0,
+        "failed": 1,
+        "skipped": 0,
+        "success": false
+      },
+      {
+        "path": ".work/test-results/run-931YjL/vitest.json",
+        "sha256": "dec95535ee56bb55b5fbf3cd56f93a96c5323a2379563b9d5100a5668497be55",
+        "note": "Final product bytes: service 77 + live cache 8 + actual official native 1 passed; native pagination uses actual UI recency_at contract.",
+        "total": 86,
+        "passed": 86,
+        "failed": 0,
+        "skipped": 0,
+        "success": true
+      },
+      {
+        "path": ".work/test-results/run-JV5Zed/vitest.json",
+        "sha256": "2345732b80bd625700863430bb80e0f3f5fc5cdd4331f199959de0888e161062",
+        "note": "Final service test increment: 78 passed including rejected-creation reservation release and capacity/pending/epoch integration.",
+        "total": 78,
+        "passed": 78,
+        "failed": 0,
+        "skipped": 0,
+        "success": true
+      },
+      {
+        "path": ".work/test-results/run-HGVeDj/vitest.json",
+        "sha256": "f886aad068dfc981254de060cd5e4b682e1d2e27433641ab7828625c5ec0a316",
+        "note": "Adjacent fork reproduction: complete-history and empty-history forks were missing from native persistence immediately after their positive replies. Earlier assertions passed.",
+        "total": 1,
+        "passed": 0,
+        "failed": 1,
+        "skipped": 0,
+        "success": false
+      },
+      {
+        "path": ".work/test-results/run-PFSBZh/vitest.json",
+        "sha256": "2db23361ba62b186bed51cb008edf2f730fbe0719c30810d594ab91d229c73c6",
+        "note": "Final fork-integrated product: 118 passed (service 78, workflows 39, actual native 1). Both forks now visible through separate liveData with no extra inference.",
+        "total": 118,
+        "passed": 118,
+        "failed": 0,
+        "skipped": 0,
+        "success": true
+      }
+    ],
+    "checks": [
+      {
+        "command": "pinned Node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+        "exitCode": 0,
+        "toolChunk": "e16bfb"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0
+      }
+    ],
+    "nativeVersion": "0.164.0",
+    "nativeBinarySha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+    "observations": [
+      {
+        "path": ".work/thread-list-native/case-3iz2E4/observations.json",
+        "sha256": "f2c3d6759bb58d5d2c3708e8bd44cb22e7dac433ebd958ffb3754dba64f55001"
+      },
+      {
+        "path": ".work/thread-list-native/case-IStVE9/observations.json",
+        "sha256": "b1f2931ebe76a7409915f1ce40ef8c7df526596b14698ceaebe0b3c67c26924c"
+      },
+      {
+        "path": ".work/thread-list-native/case-IStVE9/pagination.json",
+        "sha256": "369449f08489174db0946a6a996bbdb056397f559b28d57d5290f5837d83e174"
+      },
+      {
+        "path": ".work/thread-list-native/case-L85w9t/observations.json",
+        "sha256": "16c5cdda19f77f03f0c685839de6132088fc13ebbe04c35d0bf262d7848f2169"
+      },
+      {
+        "path": ".work/thread-list-native/case-pR4HGq/observations.json",
+        "sha256": "4bff7c49039cd4ad07fc23737069c1e025bf9b564424ec9f9b2e22af3e60d732"
+      },
+      {
+        "path": ".work/thread-list-native/case-pR4HGq/fork-observations.json",
+        "sha256": "6856a0d0de9f4d8ef660155d351283c33c4dc5e9e8ee8977a7371be3109d7b27"
+      },
+      {
+        "path": ".work/thread-list-native/case-RnXRzT/observations.json",
+        "sha256": "87ea41ac6f50e6e3d364693a8526a004e4094334e8266f576a73689aa5b724c4"
+      },
+      {
+        "path": ".work/thread-list-native/case-RnXRzT/fork-observations.json",
+        "sha256": "d198e7be7f71373b81e0097563129c8519b3e79b23fc026b5148985d57c94a97"
+      },
+      {
+        "path": ".work/thread-list-native/case-sF6vA8/observations.json",
+        "sha256": "0089a476a87a3c3e049d42e1387d92118e44df01375e52daf5ec19c9300a99a1"
+      }
+    ],
+    "liveMetadata": {
+      "path": ".work/v231-live-thread-shape.json",
+      "sha256": "ece351458318cbe17f2efdc205d1f510c9acfd470b8f97db758ed2481508da33"
+    }
+  },
+  "evidenceBoundaries": [
+    "Official native fixture uses isolated HOME/CODEX_HOME and two loopback Responses endpoints. All external proxies are blocked; no paid inference, external MCP, real credentials or online writes.",
+    "Actual native test covers accepted creation before input, first-turn pending visibility from a different client, eventual indexed deduplication, persisted all-provider enumeration after process restart and provider removal, project separation, actual UI recency_at pagination, archive visibility and ChildProcess close proof.",
+    "First attempted targeted command lacked explicit HARNESS_TEST_CODEX_BIN and did not execute tests; corrected command explicitly selected the verified official binary."
+  ],
+  "limitations": [
+    "The bridge is in-memory for the current runtime epoch. It survives browser reload, not a native process crash before native persistence. No false durability claim.",
+    "More than 100 matching live summaries are retained but the first-page view warns of truncation. At 2048 unindexed entries plus reservations, new creation is rejected before dispatch until summaries reconcile or close.",
+    "An additional native-only Windows created_at pagination probe returned a timezone-shifted nextCursor (local hour encoded as UTC) and lost the other same-second row. This is upstream behavior outside the actual sidebar recency_at path; original failed evidence and exact responses are retained. The production fix does not claim to repair that upstream sort.",
+    "Only affected tests and server type checking ran; not a full audit, whole test suite, deployment or Linux fixture. UI changes and the other agent provider-switch fixture are not authored by this report."
+  ],
+  "unaddressedProductFindings": []
+}

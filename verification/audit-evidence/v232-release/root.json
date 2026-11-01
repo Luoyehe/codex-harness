@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "v232-root-cross-boundary-review",
+  "sourceDigest": "dabbc561a4f5f05bfbd779847057fd22c8449d95c35aeaacca1d4ed6685bc46d",
+  "sourceFiles": 2004,
+  "reviewer": "/root",
+  "completedAt": "2026-11-01T13:15:36.978Z",
+  "complete": true,
+  "clean": true,
+  "findings": [],
+  "scope": [
+    "cross-provider consent propagation, receipt replay and UI dispatch binding",
+    "independent streaming history helper, native writer-close/lock/CAS/backup boundary",
+    "independent main-list cache and true upstream persistence filtering",
+    "desktop and mobile ROOT topbar and confirmation interaction",
+    "README/current architecture/features/recovery/protocol documentation",
+    "builtin MCP public freshness and managed credential renderer"
+  ],
+  "depth": {
+    "changedIntegration": "current full changed-flow and adjacent lifecycle review",
+    "unchangedSources": "exact hash inheritance from v231 independent partition audits plus current affected-boundary review; not a new line-by-line reading of every unchanged file",
+    "generatedProtocol": "1362 unchanged generated files; provenance and two bundle hashes verified, not manual semantic review of generated output"
+  },
+  "protocol": {
+    "files": 1362,
+    "bundles": [
+      {
+        "path": "protocol/json/codex_app_server_protocol.schemas.json",
+        "sha256": "92fe055424a3709999a05baae615be9e1e1e0b127e033cace6849b2ea785ea07"
+      },
+      {
+        "path": "protocol/json/codex_app_server_protocol.v2.schemas.json",
+        "sha256": "72b1afcdb14b4880cff9faccdfca1f73f7288ff3a0cb80b7a4bd400a5c4e574c"
+      }
+    ]
+  },
+  "builtinMcp": {
+    "path": ".work/builtin-mcp-freshness-999d923f-7a19-4dae-bd17-972d6c05247f.json",
+    "sha256": "dcb5cfa52582c2ec0146d364fdf85ccfc36266b7888e7b0b2ca12274fe6f3f06",
+    "semanticReview": "Four official CN documentation pages and managed provider renderer/stdio were reviewed this round; own enabled provider key passes to all four builtins; user MCP excluded."
+  },
+  "limitations": [
+    "Encrypted supplier compaction, foreign inherited fork and compressed-on-disk history conversion are explicitly unsupported before mutation; ordinary same-provider native resume remains available.",
+    "No live commercial provider or external MCP calls. Real pinned CLI tests use strict loopback Responses fixtures.",
+    "One user-authorized clean audit round, not the repository default three rounds.",
+    "Full CI, publication and deployment have not yet executed."
+  ],
+  "browser": {
+    "metrics": ".work/v232-header-browser-metrics.json",
+    "desktop": "1280x720 single-row ROOT left",
+    "mobile": "320x740 single-row including usage; no horizontal overflow; secondary tools accessible under More",
+    "confirmation": "provider selection opens dialog before adopting selection; cancel preserves original model"
+  },
+  "targeted": {
+    "gateway": "run-Lb7Fhj:54 passed",
+    "finalWeb": "run-Yt31NV:62 passed",
+    "runtimeFinal": "run-w6ktKY:9 passed",
+    "agentList": "41 passed, a disproved suspicion retained as regression",
+    "deployment": "247 passed plus one Windows-only skip in Linux2; Windows complements platform cases; detailed reports retain all failure history"
+  }
+}

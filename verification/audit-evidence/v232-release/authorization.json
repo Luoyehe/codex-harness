@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "dabbc561a4f5f05bfbd779847057fd22c8449d95c35aeaacca1d4ed6685bc46d",
+  "sourceFiles": 2004,
+  "baseCommit": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
+  "version": "2.3.2",
+  "approvedAt": "2026-11-01T13:16:24.285Z",
+  "userInstruction": "本轮会话列表、跨供应商历史转换和顶部布局修复发布为补丁版 v2.3.2 并更新 120；用户明确选择 v2.3.2（推荐）。延续完成后部署并保持服务运行的授权。",
+  "auditWaiverInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。本轮按用户明确的一轮净审要求，不要求仓库默认连续三轮。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v232-final",
+      "sourceDigest": "dabbc561a4f5f05bfbd779847057fd22c8449d95c35aeaacca1d4ed6685bc46d",
+      "files": 2004,
+      "completedAt": "2026-11-01T13:16:24.284Z",
+      "evidence": {
+        "path": "verification/audit-evidence/v232-release/audit.json",
+        "sha256": "7e7e9626f1e79af991d41c6b01f65ab83d39dae2b12bd3b124e129c421ded087"
+      }
+    }
+  ],
+  "evidenceIndex": {
+    "path": "verification/audit-evidence/v232-release/evidence-index.json",
+    "sha256": "42ab26b0768cd0700c9fe2958c304adbd53033b0e97448c4db9f4e4a5c60cc09"
+  },
+  "previousAuthorization": {
+    "path": "verification/audit-evidence/v232-release/previous-authorization.json",
+    "sha256": "ec1157775245257b7a4c0964ac9b6bf5c740592d38476e1a68d3862e11b1f223"
+  },
+  "note": "Full test matrix, publication and production upgrade still pending; this record authorizes starting full verification and does not claim test success."
+}

@@ -40,6 +40,9 @@ import { Predictions, predictionMethods } from './predictions.js';
 import { ThreadActivity, hasTurnActivity, type Activity } from './thread-activity.js';
 import { ManagedProviders, readNativeCatalog, type ProviderSwitchPlan } from './providers.js';
 import { switchThreadProvider } from './thread-provider-switch.js';
+import { awaitThreadClosed, historyCompatibility, type ReasoningCompatibility } from './thread-history-compatibility.js';
+import { requireHistoryConversionConsent } from './history-conversion-consent.js';
+import { LiveThreadList } from './live-thread-list.js';
 
 export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject; executionPolicy?: ExecutionPolicy }
 interface Prompt { promptId: string; epoch: string; method: string; params: JsonObject; threadId: string | null; turnId: string | null; requestId: string | number; bytes: number; answering: boolean }
@@ -97,6 +100,7 @@ export class RuntimeService extends EventEmitter {
   private configurationPending = false;
   private workspace: RuntimeWorkspace;
   private sessions = new SessionSnapshots();
+  private liveThreads = new LiveThreadList();
   private continuationChecks = new Map<string, Promise<void>>();
   private readonly executionMode: Readonly<ExecutionMode> | undefined;
   constructor(readonly config: RuntimeConfig, readonly native: NativeRpc, executionMode?: ExecutionMode) {
@@ -212,6 +216,7 @@ export class RuntimeService extends EventEmitter {
   }
   private notification(message: JsonObject): void {
     const method = string(message.method, 'notification method'); const params = object(message.params ?? {});
+    this.liveThreads.notification(method, params);
     if (typeof params.threadId === 'string' && method.startsWith('thread/realtime/') && !['thread/realtime/outputAudio/delta', 'thread/realtime/sdp'].includes(method)) this.invalidateHistory(params.threadId);
     if (this.extensions.notification(method, params)) return;
     if (this.predictions.notification(method, params)) return;
@@ -245,7 +250,7 @@ export class RuntimeService extends EventEmitter {
       }
       if (method === 'thread/reverted') { delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; this.invalidateHistory(params.threadId); }
       if (method === 'thread/closed' || method === 'thread/deleted') { state.status = 'notLoaded'; state.subscribed = false; state.turnId = null; delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; state.goalActive = false; state.goalRevision = (state.goalRevision ?? 0) + 1; delete state.activeModel; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; state.queued = false; this.invalidateHistory(params.threadId); this.emitState(); }
-      if (method === 'thread/closed' || method === 'thread/deleted' || (method === 'thread/status/changed' && state.status === 'notLoaded')) this.sessions.invalidate(params.threadId);
+      if (method === 'thread/closed' || method === 'thread/deleted' || (method === 'thread/status/changed' && state.status === 'notLoaded')) { this.sessions.invalidate(params.threadId); delete state.reasoningProvider; }
       if (method === 'thread/settings/updated') { state.settingsRevision = (state.settingsRevision ?? 0) + 1; validateOfficial('ThreadSettings', params.threadSettings!); if (state.status !== 'notLoaded') this.sessions.settings(params.threadId, object(params.threadSettings)); }
       if (method === 'model/rerouted') { validateOfficial('ModelReroutedNotification', params); if (state.turnId === params.turnId) { state.activeModel = string(params.toModel, 'rerouted model'); state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; } }
       if (method === 'thread/goal/updated') { validateOfficial('ThreadGoal', params.goal!); state.goalActive = object(params.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; this.emitState(); }
@@ -340,14 +345,14 @@ export class RuntimeService extends EventEmitter {
       case 'conversation/start': return this.startConversation(params, context);
       case 'thread/start': {
         onlyKeys(params, ['projectId', 'cwd', 'options']); const cwd = this.cwd(params.cwd); const selected = this.threadOptions(params.options, false); const nativeParams = { cwd, ...selected, environments: selected.environments ?? [{ environmentId: 'local', cwd }] }; validateOfficial('ThreadStartParams', nativeParams);
-        this.admit(); this.pendingStarts++; this.emitState();
+        this.admit(); const releaseListing = this.liveThreads.reserve(); this.pendingStarts++; this.emitState();
         let accepted = false;
-        try { const result = await this.native.call(method, nativeParams, { beforeWrite: () => { this.admit(); context.beforeWrite?.(); } }); accepted = true; this.observeThread(result); this.sessions.capture(result); const state = this.track(string(object(object(result).thread).id, 'thread id')); state.subscribed = true; if (state.fresh !== false && state.turnId === null && state.status !== 'active') state.fresh = true; return result; }
+        try { const result = await this.native.call(method, nativeParams, { beforeWrite: () => { this.admit(); context.beforeWrite?.(); } }); accepted = true; this.liveThreads.capture(object(object(result).thread), cwd); this.observeThread(result); this.sessions.capture(result); const state = this.track(string(object(object(result).thread).id, 'thread id')); state.subscribed = true; if (typeof object(object(result).thread).modelProvider === 'string') state.reasoningProvider = String(object(object(result).thread).modelProvider); if (state.fresh !== false && state.turnId === null && state.status !== 'active') state.fresh = true; return result; }
         catch (error) { if (accepted) { this.unknown = true; throw new DeliveryError('invalid_native_response', 'Native thread creation returned an invalid result', 'unknown'); } if (error instanceof DeliveryError && error.delivery === 'unknown') this.unknown = true; throw error; }
-        finally { this.pendingStarts--; this.emitState(); }
+        finally { releaseListing(); this.pendingStarts--; this.emitState(); }
       }
       case 'thread/resume': {
-        onlyKeys(params, ['threadId', 'automatic', 'options']);
+        onlyKeys(params, ['threadId', 'automatic', 'options', 'historyConversionConsent']);
         if (params.automatic !== undefined && typeof params.automatic !== 'boolean') throw new DeliveryError('invalid_params', 'Invalid automatic load');
         const selection = params.options === undefined ? undefined : this.threadOptions(this.providers.resumeSelection(params.options), false);
         const threadId = string(params.threadId, 'threadId'); const p: JsonObject = { threadId, excludeTurns: true, ...selection }; validateOfficial('ThreadResumeParams', p);
@@ -386,7 +391,7 @@ export class RuntimeService extends EventEmitter {
             this.environments.assertThread(thread);
             return value;
           } } : {}),
-        }, context, selection); accepted = true; this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
+        }, context, selection, params.historyConversionConsent); accepted = true; this.track(threadId).subscribed = true; this.sessions.capture(result); await this.refreshContinuation(threadId); return result; }
         catch (error) {
           const failure = accepted && (!(error instanceof DeliveryError) || error.delivery === 'not_sent')
             ? new DeliveryError('invalid_native_response', 'Thread loaded, but its settings could not be confirmed; inspect its state before continuing', 'unknown') : error;
@@ -405,10 +410,10 @@ export class RuntimeService extends EventEmitter {
           return result;
         });
       }
-      case 'thread/list': return this.page(method, 'ThreadListParams', params, { sourceKinds: ['cli', 'vscode', 'appServer', 'exec'] }, ['cwd', 'archived', 'cursor', 'limit', 'searchTerm', 'sortKey', 'sortDirection']);
+      case 'thread/list': return this.liveThreads.page(params, object(await this.page(method, 'ThreadListParams', params, { modelProviders: [], sourceKinds: ['cli', 'vscode', 'appServer', 'exec'] }, ['cwd', 'archived', 'cursor', 'limit', 'searchTerm', 'sortKey', 'sortDirection'])));
       case 'thread/history': return this.history(params, context);
       case 'thread/name/set': validateOfficial('ThreadSetNameParams', params); return this.directMutation(method, params, context);
-      case 'thread/archive': case 'thread/unarchive': { onlyKeys(params, ['threadId']); string(params.threadId, 'threadId'); if (method === 'thread/unarchive') this.environments.assertIndependentLoad(); return this.directMutation(method, params, context); }
+      case 'thread/archive': case 'thread/unarchive': { onlyKeys(params, ['threadId']); const threadId = string(params.threadId, 'threadId'); if (method === 'thread/unarchive') this.environments.assertIndependentLoad(); const result = await this.directMutation(method, params, context); if (method === 'thread/archive') this.liveThreads.remove(threadId); return result; }
       case 'thread/compact': return this.newTurn('thread/compact/start', params, context);
       case 'turn/start': return this.newTurn(method, params, context);
       case 'turn/interrupt': {
@@ -505,7 +510,7 @@ export class RuntimeService extends EventEmitter {
     const thread = object(creation.thread); const threadId = string(thread.id, 'created thread id');
     try {
       const result = object(await this.newTurn('turn/start', { threadId, text, ...(params.attachmentIds !== undefined ? { attachmentIds: params.attachmentIds } : {}), ...(params.options !== undefined ? { options: params.options } : {}), ...(params.references !== undefined ? { references: params.references } : {}), ...(params.extraContext !== undefined ? { extraContext: params.extraContext } : {}) }, context));
-      const turn = object(result.turn); return { thread, turn };
+      const turn = object(result.turn); this.liveThreads.preview(threadId, text); return { thread, turn };
     } catch (error) {
       // Creation is a known side effect, but a definitive first-turn rejection is not unknown live work.
       if (!(error instanceof DeliveryError) || error.delivery === 'unknown') this.track(threadId).unknown = true;
@@ -617,13 +622,14 @@ export class RuntimeService extends EventEmitter {
       throw failure;
     } finally { this.configurationPending = false; this.pendingStarts--; this.emitState(); }
   }
-  private async workflowMutation(operation: WorkflowMutation, context: CallContext, resumeSelection?: JsonObject): Promise<JsonValue> {
+  private async workflowMutation(operation: WorkflowMutation, context: CallContext, resumeSelection?: JsonObject, historyConsent?: JsonValue): Promise<JsonValue> {
     const { threadId } = operation; this.admit(); const state = this.track(threadId);
     if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
     if (state.pending) throw new DeliveryError('thread_busy', 'Thread already has a pending mutation');
     if (operation.history) this.admitHistory(threadId, context);
+    const releaseListing = operation.newThread ? this.liveThreads.reserve() : undefined;
     state.pending = true; if (operation.newThread) this.pendingStarts++; this.emitState();
-    let accepted = false; let writeRevision: number | undefined; let restoreSession: (() => void) | undefined; let mediaRevision: number | undefined; const wasFresh = state.fresh;
+    let accepted = false; let checkedReasoningProvider: string | undefined; let writeRevision: number | undefined; let restoreSession: (() => void) | undefined; let mediaRevision: number | undefined; const wasFresh = state.fresh;
     const goalMutation = operation.method === 'thread/goal/set' || operation.method === 'thread/goal/clear';
     let goalRevision: number | undefined; let modelRevision: number | undefined; let modelTurnId: string | null | undefined;
     const guard = (): void => {
@@ -656,6 +662,21 @@ export class RuntimeService extends EventEmitter {
       if (operation.newThread) this.environments.assertIndependentLoad();
       if (operation.directInput || operation.newThread || operation.method === 'thread/resume') this.environments.assertThread(object(object(current).thread));
       await operation.preflight?.(object(object(current).thread)); validateOfficial(operation.schema, operation.params);
+      if (operation.method === 'thread/resume') {
+        const previous = object(object(current).thread), target = operation.params.modelProvider;
+        const providerChanged = !this.providers.sameProvider(previous.modelProvider, target);
+        requireHistoryConversionConsent(historyConsent, threadId, previous.modelProvider, target, providerChanged);
+        // Stored threads can already carry a failed cross-provider turn. Repair
+        // before cold resume even when no new provider selection is requested.
+        const mode = providerChanged ? 'foreign' : this.providers.requiresOpaqueReasoning(target) ? 'plaintext' : undefined;
+        if (mode && object(previous.status).type === 'notLoaded') {
+          const needsRepair = await historyCompatibility(this.config, previous, mode);
+          requireHistoryConversionConsent(historyConsent, threadId, previous.modelProvider, target, needsRepair === true);
+          const repaired = needsRepair && await historyCompatibility(this.config, previous, mode, true, () => { guard(); context.beforeWrite?.(); operation.beforeWrite?.(); });
+          if (needsRepair !== undefined) checkedReasoningProvider = string(target, 'model provider');
+          if (repaired) accepted = true; // A later resume failure cannot erase a completed durable repair.
+        }
+      }
       const input = operation.mediaInput ?? operation.params.input;
       if (mediaModalities(input).length) {
         mediaRevision = state.settingsRevision ?? 0;
@@ -672,6 +693,7 @@ export class RuntimeService extends EventEmitter {
         if (operation.method === 'turn/settings/update') { modelRevision = state.modelRevision ?? 0; modelTurnId = state.turnId; }
       } });
       accepted = true; operation.prepared?.settle(true); validateOfficial(operation.responseSchema, result);
+      if (checkedReasoningProvider !== undefined) state.reasoningProvider = checkedReasoningProvider;
       const value = object(result);
       if (value.goal !== undefined && object(value.goal).threadId !== threadId) throw new Error('Native goal identity mismatch');
       if (goalMutation) {
@@ -681,14 +703,15 @@ export class RuntimeService extends EventEmitter {
         if (goalRevision === (state.goalRevision ?? 0)) { state.goalActive = operation.method !== 'thread/goal/clear' && object(value.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; }
       }
       if (operation.method === 'thread/delete' || operation.method === 'thread/unsubscribe') { this.sessions.invalidate(threadId); state.subscribed = false; }
-      if (['thread/delete', 'thread/unsubscribe', 'thread/revert'].includes(operation.method)) { delete state.lastTerminalTurn; state.turnRevision = (state.turnRevision ?? 0) + 1; }
+      if (operation.method === 'thread/delete') this.liveThreads.remove(threadId);
+      if (['thread/delete', 'thread/unsubscribe', 'thread/revert'].includes(operation.method)) { delete state.lastTerminalTurn; delete state.reasoningProvider; state.turnRevision = (state.turnRevision ?? 0) + 1; }
       if (operation.method === 'turn/settings/update' && value.status === 'applied' && typeof operation.params.model === 'string' && modelRevision === (state.modelRevision ?? 0) && modelTurnId === state.turnId) { state.activeModel = operation.params.model; state.modelRevision = (state.modelRevision ?? 0) + 1; state.settingsRevision = (state.settingsRevision ?? 0) + 1; }
       if (['thread/delete', 'thread/unsubscribe', 'thread/revert', 'thread/settings/update', 'turn/settings/update'].includes(operation.method)) this.guardian.invalidate(threadId);
       if (operation.method === 'turn/steer' && value.turnId !== operation.expectedTurnId) throw new Error('Native steering target mismatch');
       if (operation.method === 'review/start' && value.reviewThreadId !== threadId) throw new Error('Native review target mismatch');
       if (value.queuedSubmission !== undefined) { const queued = object(value.queuedSubmission); if ((operation.method === 'thread/queue/update' && queued.id !== operation.params.queuedSubmissionId) || (operation.method === 'thread/queue/add' && queued.clientUserMessageId !== operation.params.clientUserMessageId)) throw new Error('Native queue identity mismatch'); }
       if (operation.newThread) {
-        const fork = object(value.thread); const forkId = string(fork.id, 'forked thread id'); if (forkId === threadId || fork.cwd !== object(object(current).thread).cwd) throw new Error('Native fork identity or project mismatch'); this.observeThread(result); this.sessions.capture(result); this.track(forkId).fresh = false; this.track(forkId).subscribed = true;
+        const fork = object(value.thread); const forkId = string(fork.id, 'forked thread id'); if (forkId === threadId || fork.cwd !== object(object(current).thread).cwd) throw new Error('Native fork identity or project mismatch'); this.liveThreads.capture(fork, string(fork.cwd, 'forked thread cwd')); this.observeThread(result); this.sessions.capture(result); this.track(forkId).fresh = false; this.track(forkId).subscribed = true;
       } else if (value.thread !== undefined) { if (object(value.thread).id !== threadId) throw new Error('Native mutation returned a different thread'); this.observeThread(result, writeRevision); }
       if (state.revision === writeRevision && operation.workResult === 'turn') { const turn = object(value.turn); if (turn.status === 'inProgress') { state.status = 'active'; state.turnId = string(turn.id, 'turn id'); state.turnRevision = (state.turnRevision ?? 0) + 1; } state.fresh = false; }
       if (state.revision === writeRevision && operation.workResult === 'shell') { state.status = 'active'; state.fresh = false; }
@@ -700,9 +723,9 @@ export class RuntimeService extends EventEmitter {
       try { operation.prepared?.settle(!notSent); } catch { this.emit('diagnostic', 'Workflow attachment reservation could not be released'); }
       if (!notSent) { state.unknown = true; if (operation.newThread) this.unknown = true; }
       if (accepted) throw new DeliveryError('invalid_native_response', 'Native workflow returned an invalid result', 'unknown'); throw error;
-    } finally { if (goalMutation) state.goalPending = false; state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
+    } finally { releaseListing?.(); if (goalMutation) state.goalPending = false; state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
   }
-  private async switchProviderForTurn(plan: ProviderSwitchPlan, thread: JsonObject, context: CallContext): Promise<CallContext> {
+  private async switchProviderForTurn(plan: ProviderSwitchPlan, thread: JsonObject, context: CallContext, mode: ReasoningCompatibility = 'foreign', knownRepair?: boolean): Promise<CallContext> {
     const threadId = string(thread.id, 'threadId'), state = this.track(threadId);
     // A private read owner cannot collide with the browser's simultaneous history
     // refresh after thread/closed. It is discarded as soon as this send settles.
@@ -712,13 +735,26 @@ export class RuntimeService extends EventEmitter {
       if (!state.pending || [...this.prompts.values()].some(prompt => prompt.threadId === threadId))
         throw new DeliveryError('thread_busy', '请先处理此会话的待确认操作，再切换模型。');
     };
+    if (knownRepair === undefined) await historyCompatibility(this.config, thread, mode);
+    let closed: ReturnType<typeof awaitThreadClosed> | undefined;
     try {
       await switchThreadProvider(plan, { ...this.sessions.read(threadId), thread }, {
         call: (method, params, options) => this.native.call(method, params, options), check,
         beforeWrite: phase => { check(); if (phase === 'detach') this.admitHistory(threadId, context); context.beforeWrite?.(); },
         onDetached: () => { state.subscribed = false; this.sessions.invalidate(threadId); this.invalidateHistory(threadId); this.guardian.invalidate(threadId); this.predictions.invalidate(threadId); },
+        history: {
+          beforeDetach: () => { closed = awaitThreadClosed(this.native, threadId); },
+          afterDetach: async () => {
+            await closed!.wait; check();
+            // Unload can flush normal metadata. Obtain the CAS witness now,
+            // rather than rejecting that flush against the earlier inspection.
+            await historyCompatibility(this.config, thread, mode, true, () => { check(); context.beforeWrite?.(); });
+          },
+          cancel: () => closed?.cancel(),
+        },
         afterResume: async result => {
           this.observeThread(result); this.sessions.capture(result); state.subscribed = true;
+          state.reasoningProvider = plan.modelProvider;
           state.settingsRevision = (state.settingsRevision ?? 0) + 1;
           this.environments.assertThread(object(result.thread));
           const deadline = Date.now() + 10000;
@@ -737,7 +773,7 @@ export class RuntimeService extends EventEmitter {
     } catch (error) { this.historyStore.disconnect(historyOwner.clientId, historyOwner.eventChannelId); throw error; }
   }
   private async newTurn(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
-    onlyKeys(params, method === 'turn/start' ? ['threadId', 'text', 'attachmentIds', 'options', 'references', 'extraContext'] : ['threadId']);
+    onlyKeys(params, method === 'turn/start' ? ['threadId', 'text', 'attachmentIds', 'options', 'references', 'extraContext', 'historyConversionConsent'] : ['threadId']);
     const threadId = string(params.threadId, 'threadId'); this.admit(threadId); this.admitHistory(threadId, context); const activity = this.track(threadId); activity.pending = true; this.emitState();
     let accepted = false; let prepared: PreparedAttachments | undefined; const wasFresh = activity.fresh; const initialRevision = activity.revision; let writeRevision: number | undefined; let mediaRevision: number | undefined; let model: JsonValue | undefined;
     let switchedHistory: CallContext | undefined;
@@ -746,6 +782,8 @@ export class RuntimeService extends EventEmitter {
       const revision = activity.revision; const current = await this.native.call('thread/read', { threadId }); if (object(object(current).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); this.observeThread(current, revision);
       if (method !== 'turn/start') this.environments.assertThread(object(object(current).thread));
       const providerPlan = method === 'turn/start' ? this.providers.switchPlan(object(object(current).thread).modelProvider, params.options) : null;
+      if (method === 'turn/start') requireHistoryConversionConsent(params.historyConversionConsent, threadId, object(object(current).thread).modelProvider,
+        providerPlan?.modelProvider ?? object(object(current).thread).modelProvider, providerPlan !== null);
       if (method === 'turn/start') {
         const text = string(params.text ?? '', 'text', 1024 * 1024, true); prepared = this.attachments.prepare(params.attachmentIds, threadId);
         const selected = params.references === undefined && params.extraContext === undefined ? { input: [], additionalContext: {} } : await this.inputContext.prepare(this.cwd(object(object(current).thread).cwd), params.references, params.extraContext, context, threadId);
@@ -768,6 +806,19 @@ export class RuntimeService extends EventEmitter {
         if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation');
         switchedHistory = await this.switchProviderForTurn(providerPlan, object(object(current).thread), context);
         if (mediaRevision !== undefined) mediaRevision = activity.settingsRevision ?? 0;
+      } else if (method === 'turn/start') {
+        const thread = object(object(current).thread), provider = thread.modelProvider;
+        if (activity.reasoningProvider !== provider && this.providers.requiresOpaqueReasoning(provider)) {
+          const needsRepair = await historyCompatibility(this.config, thread, 'plaintext');
+          if (needsRepair) {
+            requireHistoryConversionConsent(params.historyConversionConsent, threadId, provider, provider, true);
+            const snapshot = this.sessions.read(threadId);
+            switchedHistory = await this.switchProviderForTurn({ sourceProvider: string(provider, 'model provider'), modelProvider: string(provider, 'model provider'),
+              model: string(snapshot.model, 'model'), config: { ...this.providers.catalogOverride(provider), model_reasoning_effort: snapshot.reasoningEffort ?? null }, options: {} }, thread, context, 'plaintext', true);
+            if (mediaRevision !== undefined) mediaRevision = activity.settingsRevision ?? 0;
+          }
+          if (needsRepair !== undefined) activity.reasoningProvider = string(provider, 'model provider');
+        }
       }
       const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, switchedHistory ?? context); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
       accepted = true; prepared?.settle(true);
@@ -920,7 +971,7 @@ export class RuntimeService extends EventEmitter {
   }
   close(): Promise<void> {
     if (this.closePromise) return this.closePromise;
-    this.closed = true; this.historyStore.clear(); clearInterval(this.gcTimer);
+    this.closed = true; this.historyStore.clear(); this.liveThreads.clear(); clearInterval(this.gcTimer);
     this.mcp.reset();
     this.processes.reset();
     this.realtime.reset();

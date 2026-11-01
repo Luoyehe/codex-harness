@@ -1,0 +1,663 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-core-gateway-tooling-scope-review",
+  "reviewerId": "v220-final-deploy",
+  "completedAt": "2026-11-01T13:13:53.852Z",
+  "complete": true,
+  "clean": true,
+  "releaseAuthorized": false,
+  "headAtStructureCheck": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
+  "scopeDigest": "ccd8d385ef456ef27df95a22026c290e8d6fd0f9ae0587cc23f738b37398e5b0",
+  "scopes": [
+    "src/core",
+    "src/gateway",
+    "scripts",
+    ".github",
+    "tests/core",
+    "tests/gateway",
+    "tests/tooling"
+  ],
+  "scopeFiles": 82,
+  "productionAndDocumentationFiles": 50,
+  "testFiles": 32,
+  "files": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "caa953de087e91ff28cdef5a810ba4da7e8ca6fb1e5688d2631db8a6ba718799",
+      "bytes": 10309,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": ".github/workflows/compatibility.yml",
+      "sha256": "b78dea2aa061b52fbdaed997b4bb28b45aa8eeedbdfc666ded21fe3209188069",
+      "bytes": 782,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "7387ff5dfaa60e438ef9eb57f3965edd0c96b7e60a03c32813ae5920f8e3cee5",
+      "bytes": 1601,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "fb23c0d7e61ef3a33200c1fabf3457871a3164317c064c4e065f7bb8035c9dc7",
+      "bytes": 5267,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/check-builtin-mcp.mjs",
+      "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "bytes": 9157,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "72ae8b7305ee6153d39b50adcdd241534b4588b5eb7ec448b03a30b7ced5170b",
+      "bytes": 13960,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/compatibility-watch.mjs",
+      "sha256": "a474298e01e90fd87f364327e99f336e77f33d2398faaca9c2744ef98aa3bf6f",
+      "bytes": 2146,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/go-tests.mjs",
+      "sha256": "56a3556da7833399f4979b5011b1f0ee3a81af4ea055aac76481992e8b721a45",
+      "bytes": 13583,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/prepare-ci-go.py",
+      "sha256": "2ec71bcdb84ebe9a912b3ba58cb73b277346febfc69e51c709f899ec5cda8a4f",
+      "bytes": 15982,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/prepare-ci-native.mjs",
+      "sha256": "330ac0475fde81efd586d525127e74b3e2f833980df53e3089ae58fcc323925d",
+      "bytes": 3292,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/python-tests.py",
+      "sha256": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab",
+      "bytes": 4511,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/release-audit.mjs",
+      "sha256": "97b098cdb1b9908fa8a5e3d32f9d034ad76ab3de2c4708304c9a2c4abdd2736b",
+      "bytes": 12356,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/release-authorization.mjs",
+      "sha256": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e",
+      "bytes": 2431,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/release-preflight.mjs",
+      "sha256": "5a8f85ebfd4e47bec037e4b94f47ee57059dd2697ea90728694398183d8721e4",
+      "bytes": 12852,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/reviewed-history.mjs",
+      "sha256": "a7f5201a2ece3bbf15b526f8e6c60cc288e8c7a066fa87af5504979efc31a4e2",
+      "bytes": 5594,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "sha256": "f922d6caeb89fb7631071b4b1f8c5e521c5dd83d8afe0436f111ab264fde2a40",
+      "bytes": 13185,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/select-tests.mjs",
+      "sha256": "caabfa5f06d0840ea002c32fb766e6578bf64e11972cc336a61643778bc318d4",
+      "bytes": 22555,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/snapshot.mjs",
+      "sha256": "5bc7d585e34e4b808a2150cfe7077a138bd5d98f05a0dfb9824de0da3ca3c432",
+      "bytes": 2681,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/test-environment.mjs",
+      "sha256": "156ce382187684f60bf3f08c7f12f1acfe13110ec7b21a230f21a3d09e4cffe4",
+      "bytes": 2703,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "scripts/windows-controller-preflight.mjs",
+      "sha256": "a61d6efee6b3cee501a8671954925ed8d781bfc435852684fbffbbb4c4d55d6d",
+      "bytes": 13256,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/automations.ts",
+      "sha256": "19871d8f3aca453c060e3adbc97be6609170df147c993a3d132ce743b394c73a",
+      "bytes": 15964,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/budget.ts",
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b",
+      "bytes": 1146,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5",
+      "bytes": 1712,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/errors.ts",
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a",
+      "bytes": 772,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/execution-mode.ts",
+      "sha256": "3aeb8eb3ea729de0fbffcd74302d1c8b3a35395fae81025ba14bead24ff4ec0b",
+      "bytes": 1754,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/extension-methods.ts",
+      "sha256": "a11ca1c7ddf930a02ef943777c65c10a3c658e5e405253200e391d8fb356537a",
+      "bytes": 2413,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "fe23d36edf07ae235fad8ca695d0b58f1e3f96dcd3fa203fe05f78432ac638b9",
+      "bytes": 5219,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "f17493bf533254f5b44c6d1501fadb322030df67c139f3c54fed0b95daba774f",
+      "bytes": 18471,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/mcp-oauth-receipt.ts",
+      "sha256": "7d87a521dba2546a55658cd288ecced60dbe98672918132b9ba0b4f8194c74ad",
+      "bytes": 1379,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "sha256": "c0bf1a48bbb99e362582e8eed0757ba69781066404be7401cfb6d1904ab3657b",
+      "bytes": 8822,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/organization-methods.ts",
+      "sha256": "eedbd757d9f9b1bfacc13a94642552d80ee9993e5b496a880e9f2a1b1e702de4",
+      "bytes": 969,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/process-methods.ts",
+      "sha256": "dc45d8a63a1e795dd0ed7d33dca98d49d22631a4367a63b2c4e519e40a829b8f",
+      "bytes": 464,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/realtime-methods.ts",
+      "sha256": "6fdda6076a9be520c03937145fab3d3340570953094829820a9f7ca10a2bba41",
+      "bytes": 560,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/remote-methods.ts",
+      "sha256": "941edba57f09e45150294a5dd0cde2539ebb165db88d014af042057cb7974f43",
+      "bytes": 921,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/schedule.ts",
+      "sha256": "f2f7edc8c3fc560e0bfd3805a55d23303de6d2a4caf9cbd5baad9b180846041a",
+      "bytes": 4577,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "bytes": 3162,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/core/worktrees.ts",
+      "sha256": "185f719767885704ebeb2afbf97021ce53c70fd5ee8a9db7b62ff616ff2a3089",
+      "bytes": 5380,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/auth-crypto.ts",
+      "sha256": "bfd496017009fa0265252544da8f54d968fa0c7ff58b2c9755ad7dc66e8958ea",
+      "bytes": 4054,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/auth.ts",
+      "sha256": "19b274c67ea652a58adb423d8ec5024df6bf6ce482c654fee68c58599d94f2f3",
+      "bytes": 21527,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/automation-scheduler.ts",
+      "sha256": "2321351025eafc42bd766d3ce51d191d992866510030480171fc94f6f62a16f9",
+      "bytes": 10936,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "fd41d95dbd4ca50ad559785ca6deecb51a39a14603f8cc7c3d65bd586a459154",
+      "bytes": 28234,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/main.ts",
+      "sha256": "610d0f0909379db145779fab50b58a546dc51da7b9e8590888b1b169db0a13bd",
+      "bytes": 3119,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7",
+      "bytes": 7988,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/organization-receipt.ts",
+      "sha256": "7fdb14b6438a74fb60bc39eadd4c7a8e2861697b07f9ba0874dec3d6aac7709d",
+      "bytes": 1608,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/receipt-maintenance.ts",
+      "sha256": "9b5be5de044c0e112be261f18179144292137edc69852dfa6a10177b9bc10ee6",
+      "bytes": 3294,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "9d04abb5b764a4cfa334630487974ae45dc718809ffa46117a98fc851599b072",
+      "bytes": 34497,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/recovery-protocol.ts",
+      "sha256": "84995b1c4f70f1179b806248a3d84f5aab3522602fb8ea991f20ad04b8196505",
+      "bytes": 1117,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360",
+      "bytes": 24279,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "0043e54235448c7df6ee4c774ed9969991d24b3ed6d2d934c67347cc22fe2e1d",
+      "bytes": 10617,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "src/gateway/workspace-ack.ts",
+      "sha256": "ff6c3f22ee3e86ffcf501aa06ed12d8ef8ca883b26c0a47193cf9a1753959ade",
+      "bytes": 6230,
+      "executableBits": 0,
+      "reviewDepth": "Complete current production/document/workflow text manually read, callers and boundary semantics reviewed."
+    },
+    {
+      "path": "tests/core/automation-retention.test.ts",
+      "sha256": "f096409a9712af54d963844f038c76821766d9b82d6d3ab7648371781627bea3",
+      "bytes": 3142,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/core/ledger-capacity.test.ts",
+      "sha256": "3a6326806cb623eda7f18be205fd4ec5a767cb69864b9b770a83463825548a2d",
+      "bytes": 17691,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/core/ledger.test.ts",
+      "sha256": "73a34e602265630fa41d689105566e02debd30761608552623fb89e3488229de",
+      "bytes": 7145,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/core/operation-retention.test.ts",
+      "sha256": "7da249698731ef9f624e07c23ef15e3e05a03677a23d74a2d59dd39f6dc0cad9",
+      "bytes": 6572,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/core/schedule.test.ts",
+      "sha256": "1c2adecc5be9546897ccbbd7fb1964aa6516ed10514045f7e9b7db6af84a0328",
+      "bytes": 3301,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/auth.test.ts",
+      "sha256": "50f415019c1f5b4111907a7943ac39ebcfdcb3f65f6260e96464c98ccd9bd679",
+      "bytes": 17981,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory plus targeted authorization/revocation/post-commit/error assertion review."
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5469b1d08c582d51e29cca45ad5d19e34fe10bf6d4a8fbc93508ed905a8785e4",
+      "bytes": 10644,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/automation-scheduler.test.ts",
+      "sha256": "e325e0c6aea76c50c1a19b4fd013eb34f879d991619aadadceaaa0019ac8edc5",
+      "bytes": 12425,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/dispatch.test.ts",
+      "sha256": "910497f430712ec777e85f714ecae6494cdea7a31813455d2b95126556307a5c",
+      "bytes": 39595,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/emergency-recovery.test.ts",
+      "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b",
+      "bytes": 13660,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/gateway/execution-mode.test.ts",
+      "sha256": "d5cbbd567b2b674e3fcb0d6cfc56088c3d7e7d3de073d65d7c08666a291718a7",
+      "bytes": 9502,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877",
+      "bytes": 37398,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory plus targeted authorization/revocation/post-commit/error assertion review."
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091",
+      "bytes": 17400,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/mcp-oauth.test.ts",
+      "sha256": "bbf2a9ae39888cdc5fcd52fa4f586b14ebc8939c48e40da55b566ca29474f492",
+      "bytes": 12933,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/receipt-maintenance.test.ts",
+      "sha256": "5a75f1e60f8f4339dfbbd18b27eeb672be535cf95aecc19d4884f800afab718f",
+      "bytes": 4639,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/gateway/receipt-result.test.ts",
+      "sha256": "9fbe2bbd3107514ae037de2a747db3c2c7e042cff1e307f806b832ed3c571cc5",
+      "bytes": 13909,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "8ad4d476f3a38b1e4bfbacb1e2fc4066a3fcbcabb12d4ad9465212d63c30e851",
+      "bytes": 14029,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/gateway/workspace-ack.test.ts",
+      "sha256": "84028ed2540ef6b16c21f86f03a74166e5fb872f3d679e6617dbb8d12227ff9b",
+      "bytes": 7434,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/gateway/worktrees.test.ts",
+      "sha256": "facc579f89fa7178c50b953c42ab76d2ef19b8e8daa7aeebb887d41685c0e1c6",
+      "bytes": 6963,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/builtin-mcp.test.ts",
+      "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+      "bytes": 6776,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "fb2fcee7a12151ee1d64be00a0bb1ab9749ea7b393096fd8b5575aa72b3fe10e",
+      "bytes": 13548,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/tooling/compatibility-watch.test.ts",
+      "sha256": "61f34fcf87b082e2e8ececc0abd30400d1eac81d2f385b0b7f2769d7d04d9f89",
+      "bytes": 785,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/go-tests.test.ts",
+      "sha256": "112457e214569432f5b2de19a0e79034cb4f88b0701914204fa44c78472881e4",
+      "bytes": 11863,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/prepare-ci-native.test.ts",
+      "sha256": "88e4c28ae9143ca30a48079f93d27dccbe8a82ce2f079ef057a5b6dc87b6d371",
+      "bytes": 4075,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/release-audit.test.ts",
+      "sha256": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4",
+      "bytes": 12373,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/release-preflight.test.ts",
+      "sha256": "9625389c2b122aed1603a8705afe3ee4c9729a72c3b2282eb708f3f40a5aade8",
+      "bytes": 10604,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/reviewed-history.test.ts",
+      "sha256": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5",
+      "bytes": 1942,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/run-tests.test.ts",
+      "sha256": "bed3c9a1c47770120417bc12cfec47ed076ceab89bc310dde20f69075b1f36ad",
+      "bytes": 10921,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/tooling/select-tests.test.ts",
+      "sha256": "828acb976bf5812fc3acc97e94c8a78f5653586cc9c4f791614610afe16ad26c",
+      "bytes": 15440,
+      "executableBits": 0,
+      "reviewDepth": "Current test body/assertions manually reviewed plus complete syntax/import/declaration inventory."
+    },
+    {
+      "path": "tests/tooling/test-environment.test.ts",
+      "sha256": "b4e0884156216c6a5a8442563c860b7d2963242595ba64af80943af07f4de7ea",
+      "bytes": 12881,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/vision-compat.test.ts",
+      "sha256": "24f1d6aa30e947764d0264b67fa30d3c353f5fe5562fa45a048508adbb5f3a99",
+      "bytes": 3123,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    },
+    {
+      "path": "tests/tooling/windows-controller-preflight.test.ts",
+      "sha256": "4b2d4e042a7362e12a76914d0809684247cd0ad79a8036607281e1280f53c41e",
+      "bytes": 2158,
+      "executableBits": 0,
+      "reviewDepth": "Complete syntax/import/declaration inventory and contract-coverage mapping; not a fresh line-by-line reading of every unchanged assertion."
+    }
+  ],
+  "method": [
+    "Read AGENTS.md and restricted all implementation references to this clean-room checkout. No archived/sibling source or old implementation was inspected.",
+    "Read all 17 src/core and 13 src/gateway production files, all 16 scripts code files plus scripts/RELEASE-PREFLIGHT.md, and all three .github workflows. Followed functional callers and recovery boundaries, not only the current diff.",
+    "Freshly enumerated all 82 files using Git tracked plus nonignored untracked paths; hashed raw bytes and executable bits. Pinned Node --check parsed all 76 TS/MJS files without executing them; Python ast.parse parsed both Python scripts. Enumerated literal imports and resolved every relative import against current files. This is not typechecking or a compiler dependency graph.",
+    "All 32 tests received current structure, declarations and coverage mapping. Nine named test files received current body/assertion review, with additional targeted HTTP/authentication assertion reads. Did not claim every unchanged test assertion was freshly read line-by-line.",
+    "Independently traced this change set: bounded history-conversion error metadata, durable not_sent replay and unchanged unknown/no-replay behavior; reviewed all new real WorkerClient/Dispatcher/Ledger consent tests. Reused the already-inspected 54/54 author result without rerunning it.",
+    "Verified newly introduced native thread-list coverage remains in the independent official CLI requirement list; assessed its selector/full-plan implications without executing any test selection or full suite.",
+    "Rehashed every scoped file and the conversion review dependencies before report publication. No source edits, test runs, network requests, production actions or credentials were performed during this review."
+  ],
+  "conclusions": [
+    "Single-administrator setup/login/session/CSRF/owner admission and asynchronous revocation checks remain consistent across HTTP, WebSocket and actual worker/manager write boundaries. Public proof is nonce/origin-bound and does not grant a session.",
+    "Durable receipt identity/digest/scope, response minimization and capacity commitments preserve accepted versus not_sent versus unknown. Existing IDs are read before dispatch; lost or malformed positive results cannot authorize replays. Consent-required details are exact primitive whitelist metadata, not history or credentials.",
+    "Emergency recovery retains its independent bounded manager slot, actual-child-close slot lifetime, generation fences and maintenance owner tokens. It can preempt worker configuration while preserving root configuration and receipt-rotation exclusivity; no generic journal flag deletion or old-input retry was introduced.",
+    "Automation scheduling, unknown-run recovery, workspace witness acknowledgement, worktree registration and receipt export/rotation remain tied to durable positive evidence with bounded resource retention. DST/missed-window behavior and original dispatch identity are explicit.",
+    "CI and release tools require exact source/base/head authorization and retain real per-case, per-platform identities. Skipped cases need complementary passing coverage; failures, absent evidence and Go build/probe gaps cannot become green reconciliation. Pinned dependencies, official CLI preparation and isolated homes remain explicit.",
+    "Source/history scanners retain full-byte scanning and redacted diagnostics with exact historical exceptions; fresh current bytes are not silently exempt. Builtin MCP public freshness checks remain separate from offline tests and require source-bound evidence; this review does not substitute for the parent final freshness invocation."
+  ],
+  "structuralEvidence": {
+    "nodeSyntaxFiles": 76,
+    "pythonAstFiles": [
+      "scripts/prepare-ci-go.py",
+      "scripts/python-tests.py"
+    ],
+    "unresolvedRelativeImports": 0,
+    "syntaxProblems": 0,
+    "changedDuringCheck": []
+  },
+  "evidence": [
+    {
+      "path": ".work/v231-core-gateway-structure.json",
+      "sha256": "b4ab7c8efffeb0d89885f159794c24fa7222ecbbb75265c0e0188b7c66ae08bd",
+      "bytes": 119377
+    },
+    {
+      "path": ".work/v231-history-conversion-gateway-independent-review.json",
+      "sha256": "c1ae614294adecf7ad8632845ff94be88f7f6da3b5575cb1465aa9707e61b96f",
+      "bytes": 4398
+    },
+    {
+      "path": ".work/test-results/run-Lb7Fhj/vitest.json",
+      "sha256": "d986f196db36f2ae4f580c8ceceefed778aaa080bb53882e6af055c6fbfbdf6f",
+      "bytes": 21355
+    },
+    {
+      "path": ".work/history-consent-gateway-tests.log",
+      "sha256": "76e0d1ad8aa805684f640916e367d99e79f14debd14b2266f4640559bf2d8042",
+      "bytes": 15756
+    },
+    {
+      "path": ".work/v231-thread-history-control-independent-review.json",
+      "sha256": "5367f01ea84843d67fa37fb03c42fb11c8d3439c70bf84a5f5efab6f473db9f3",
+      "bytes": 8186
+    }
+  ],
+  "findings": [],
+  "skipped": [],
+  "adjacentFindingBoundary": "A separate reviewer reported missing modelProviders:[] in runtime thread/agents/list. That runtime workflow lies outside this 82-file scope; its author repair and independent closure remain separately owned. This report does not declare all listing/runtime behavior clean.",
+  "limits": [
+    "This is a current exact-scope review, not a newly frozen full-repository audit round, full-suite result, deployment authorization or publication result.",
+    "No new runtime behavior or tests were executed. The cited 54/54 is author execution evidence already available and reviewed, not a fresh reviewer run.",
+    "No current online service, real inference, external MCP, official freshness network request, Linux/systemd or browser acceptance was performed.",
+    "Unchanged test-body review depth is declared per file; syntax/hash inventory is not represented as fresh manual semantic reading of every line.",
+    "The separate deployment control report covers 15 files and relies honestly on final matching author/Linux fixture hashes, including retained skips and first failed fixture evidence. thread_history.py itself is independently reviewed by the parent, not included here."
+  ]
+}

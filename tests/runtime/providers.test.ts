@@ -62,6 +62,8 @@ describe('managed provider catalogs and routing', () => {
   it('requires a concrete target model and treats known aliases as the same provider', () => {
     const managed = new ManagedProviders(registry());
     expect(managed.switchPlan('openai', { modelProvider: 'harness_chatgpt', model: 'gpt-fixture' })).toBeNull();
+    expect(managed.sameProvider('openai', 'harness_chatgpt')).toBe(true);
+    expect(managed.sameProvider('openai', custom.modelProvider)).toBe(false);
     expect(() => managed.switchPlan(custom.modelProvider, { modelProvider: 'harness_chatgpt' })).toThrow(/model/);
     expect(() => new ManagedProviders().switchPlan('legacy', { modelProvider: 'unknown', model: 'x' })).toThrow(/停用/);
     expect(managed.switchPlan(custom.modelProvider, { modelProvider: 'harness_chatgpt', model: 'gpt-fixture' }))

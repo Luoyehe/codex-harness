@@ -268,7 +268,7 @@ def native_main(instance: str) -> None:
     try:
         catalog = len(sys.argv) == 3 and sys.argv[1] == "catalog-server" and re.fullmatch(r"[a-z0-9_-]{1,80}", sys.argv[2])
         credential_helper = len(sys.argv) == 3 and sys.argv[1] in ("bedrock-token", "zai-server") and re.fullmatch(r"default|[a-f0-9]{32}", sys.argv[2])
-        require(catalog or credential_helper or sys.argv[1:] in (["identity"], ["version"], ["app-server"], ["resolve-project"], ["workspace"], ["bedrock-token"]), "Unsupported native launcher invocation")
+        require(catalog or credential_helper or sys.argv[1:] in (["identity"], ["version"], ["app-server"], ["resolve-project"], ["workspace"], ["thread-history"], ["bedrock-token"]), "Unsupported native launcher invocation")
         layout = Layout(instance)
         settings = read_json(layout.config / "native.json")
         mode = settings.get("executionMode", "native")
@@ -319,6 +319,10 @@ def native_main(instance: str) -> None:
             from .workspace import workspace_main
             workspace_main(layout, settings)
             return
+        if sys.argv[1] == "thread-history":
+            from .thread_history import history_main
+            history_main(Path(settings["home"]), settings["uid"])
+            return
         if sys.argv[1] == "resolve-project":
             data = sys.stdin.buffer.read(4097)
             try:
@@ -365,6 +369,7 @@ def native_main(instance: str) -> None:
         if sys.argv[1] == "app-server" or catalog:
             from .auth_storage_policy import require_file_store
             require_file_store(layout, Path(settings["home"]), settings["uid"])
+            arguments += ["-c", "thread_unload_delay_secs=0"]
             arguments += ["-c", 'cli_auth_credentials_store="file"']
         registry_path = env_path.parent / "runtime.json"
         if catalog:

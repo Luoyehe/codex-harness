@@ -536,6 +536,12 @@ class TransactionTests(unittest.TestCase):
         self.manager.require_service_ownership = lambda **kwargs: None  # Separate ownership fixtures exercise real units.
         self.manager.refresh_worker_unit = lambda: None
         self.current = "a" * 64
+        # Application compatibility now also checks the declared fixed helper
+        # contract; this transaction fixture retains legacy, marker-free apps.
+        for release in ("a" * 64, "b" * 64):
+            directory = self.layout.app / "releases" / release / "app"
+            mkdir(directory)
+            write_json(directory / "package.json", {"name": "synthetic-transaction-fixture"})
         self.manager.selected = lambda name="current": self.current
         self.manager.verify_release = lambda release: {"release": release}
         self.manager.recover_control = lambda: self.system.events.append("recover-control")

@@ -49,7 +49,7 @@ export class Dispatcher extends EventEmitter {
   automationHealth(value: JsonObject): void { this.#automationHealth = value; this.emit('event', { type: 'automation', data: { health: value } }); }
   private replay(receipt: Receipt): JsonValue {
     if (receipt.state === 'accepted') return receipt.result ?? null;
-    if (receipt.state === 'not_sent') throw new HarnessError(receipt.error?.code ?? 'not_sent', receipt.error?.message ?? '该操作未发送。');
+    if (receipt.state === 'not_sent') throw new HarnessError(receipt.error?.code ?? 'not_sent', receipt.error?.message ?? '该操作未发送。', 'not_sent', receipt.error?.data);
     throw new HarnessError(receipt.state === 'unknown' ? 'operation_unknown' : 'operation_pending', '该操作结果尚未确认，请查询操作记录，不要重复提交。', 'unknown', receipt.error?.data);
   }
   async call(call: RpcCall, context: CallContext): Promise<JsonValue> {

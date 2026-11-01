@@ -1,0 +1,152 @@
+{
+  "desktop": {
+    "header": [
+      {
+        "bottom": 0,
+        "className": "icon-button mobile-menu",
+        "height": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 47.5,
+        "className": "root-execution-notice",
+        "height": 26,
+        "left": 279,
+        "right": 319.34375,
+        "top": 21.5,
+        "width": 40.34375,
+        "x": 279,
+        "y": 21.5
+      },
+      {
+        "bottom": 42.5,
+        "className": "breadcrumb",
+        "height": 16,
+        "left": 335.34375,
+        "right": 874.296875,
+        "top": 26.5,
+        "width": 538.953125,
+        "x": 335.34375,
+        "y": 26.5
+      },
+      {
+        "bottom": 41.5,
+        "className": "connection connected",
+        "height": 14,
+        "left": 890.296875,
+        "right": 931.296875,
+        "top": 27.5,
+        "width": 41,
+        "x": 890.296875,
+        "y": 27.5
+      },
+      {
+        "bottom": 50.5,
+        "className": "token-usage",
+        "height": 32,
+        "left": 947.296875,
+        "right": 1000,
+        "top": 18.5,
+        "width": 52.703125,
+        "x": 947.296875,
+        "y": 18.5
+      },
+      {
+        "bottom": 51.5,
+        "className": "header-actions",
+        "height": 34,
+        "left": 1016,
+        "right": 1245,
+        "top": 17.5,
+        "width": 229,
+        "x": 1016,
+        "y": 17.5
+      }
+    ],
+    "scrollWidth": 1280,
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  "mobile320": {
+    "header": [
+      {
+        "bottom": 43.5,
+        "className": "icon-button mobile-menu",
+        "height": 30,
+        "left": 13,
+        "right": 43,
+        "top": 13.5,
+        "width": 30,
+        "x": 13,
+        "y": 13.5
+      },
+      {
+        "bottom": 41.5,
+        "className": "root-execution-notice",
+        "height": 26,
+        "left": 52,
+        "right": 92.34375,
+        "top": 15.5,
+        "width": 40.34375,
+        "x": 52,
+        "y": 15.5
+      },
+      {
+        "bottom": 36,
+        "className": "breadcrumb",
+        "height": 15,
+        "left": 101.34375,
+        "right": 133.296875,
+        "top": 21,
+        "width": 31.953125,
+        "x": 101.34375,
+        "y": 21
+      },
+      {
+        "bottom": 30.5,
+        "className": "connection connected",
+        "height": 4,
+        "left": 142.296875,
+        "right": 146.296875,
+        "top": 26.5,
+        "width": 4,
+        "x": 142.296875,
+        "y": 26.5
+      },
+      {
+        "bottom": 44.5,
+        "className": "token-usage",
+        "height": 32,
+        "left": 155.296875,
+        "right": 208,
+        "top": 12.5,
+        "width": 52.703125,
+        "x": 155.296875,
+        "y": 12.5
+      },
+      {
+        "bottom": 43.5,
+        "className": "header-actions",
+        "height": 30,
+        "left": 217,
+        "right": 307,
+        "top": 13.5,
+        "width": 90,
+        "x": 217,
+        "y": 13.5
+      }
+    ],
+    "scrollWidth": 320,
+    "viewport": [
+      320,
+      740
+    ]
+  }
+}

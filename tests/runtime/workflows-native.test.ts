@@ -1,11 +1,13 @@
 import { expect, test } from 'vitest';
 import { createServer, type ServerResponse } from 'node:http';
 import { execFileSync } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
+import { awaitThreadClosed } from '../../src/runtime/thread-history-compatibility.js';
 import { object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { nativeTestEnvironment } from '../fixtures/native-env.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
@@ -88,8 +90,54 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
     await runtime.call('turn/interrupt', { threadId, turnId: activeId }, context); await done(activeId, 'interrupted'); hold = false; for (const item of held) item.end();
     await runtime.call('thread/history', { threadId }, context);
     const review = object(await runtime.call('review/startNew', { cwd: project, target: { type: 'custom', instructions: 'Summarize the controlled fixture.' } }, context)); expect(review.reviewThreadId).toBe(object(review.thread).id); await done(object(review.turn).id!);
+    const forkClosed = awaitThreadClosed(runtime.native, String(forkId));
     expect(await runtime.call('thread/unsubscribe', { threadId: forkId }, context)).toMatchObject({ status: 'unsubscribed' });
+    await forkClosed.wait;
     expect(await runtime.call('thread/session', { threadId: forkId }, context)).toEqual({ requiresResume: true }); await runtime.call('thread/history', { threadId: forkId }, context);
     await runtime.call('thread/delete', { threadId: forkId }, context); await expect(runtime.call('thread/read', { threadId: forkId }, context)).rejects.toMatchObject({ code: 'native_error' });
     expect(errors).toEqual([]); expect(requests).toBeGreaterThanOrEqual(4);
 }), 60000);
+
+test('official CLI agent metadata from non-default providers remains visible within the selected ancestor and project', () => withFixtureCleanup(async defer => {
+  const base = path.resolve('.work/workflows-native'); mkdirSync(base, { recursive: true });
+  const home = mkdtempSync(path.join(base, 'agent-list-')), codex = path.join(home, 'codex'), cwd = path.join(home, 'project'), other = path.join(home, 'other');
+  mkdirSync(cwd); mkdirSync(other);
+  const env = nativeTestEnvironment({ home, codexHome: codex, temporary: path.join(home, 'tmp'), fixtureApiKey: 'local-fixture' });
+  const catalog = path.join(home, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
+  writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "provider_a"',
+    `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', '[model_providers.provider_a]',
+    'name = "No-network metadata fixture"', 'base_url = "http://127.0.0.1:9/v1"', 'wire_api = "responses"', 'requires_openai_auth = false'].join('\n'));
+  const parentId = randomUUID(), first = randomUUID(), second = randomUUID(), unrelated = randomUUID();
+  const directory = path.join(codex, 'sessions', '2026', '01', '01'); mkdirSync(directory, { recursive: true });
+  const seed = (id: string, provider: string, project: string, ancestor?: string) => {
+    const source = ancestor ? { subagent: { thread_spawn: { parent_thread_id: ancestor, depth: 1,
+      agent_path: null, agent_nickname: null, agent_role: null } } } : 'cli';
+    const payload = { id, session_id: parentId, timestamp: '2026-01-01T00:00:00Z', cwd: project,
+      originator: 'offline-metadata-fixture', cli_version: '0.164.0', model_provider: provider,
+      parent_thread_id: ancestor ?? null, source, history_mode: 'legacy', base_instructions: { text: 'Fixture only.' } };
+    writeFileSync(path.join(directory, `rollout-2026-01-01T00-00-00-${id}.jsonl`),
+      JSON.stringify({ timestamp: payload.timestamp, type: 'session_meta', payload }) + '\n' +
+      JSON.stringify({ timestamp: payload.timestamp, type: 'response_item', payload: { type: 'message', role: 'user',
+        content: [{ type: 'input_text', text: 'Offline agent index fixture.' }] } }) + '\n');
+  };
+  seed(parentId, 'provider_b', cwd); seed(first, 'provider_a', cwd, parentId); seed(second, 'provider_b', cwd, parentId);
+  seed(unrelated, 'provider_b', cwd); seed(randomUUID(), 'provider_b', other, parentId);
+  const service = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home: codex, workerHome: home, cwd, env, dev: true });
+  const child = (service.native as unknown as { child: ChildProcess }).child; let closed = false; child.once('close', () => { closed = true; });
+  defer(async () => { await service.close(); expect(closed).toBe(true); expect(child.exitCode !== null || child.signalCode !== null).toBe(true); });
+  const scope = { cwd, ancestorThreadId: parentId, sourceKinds: ['subAgentThreadSpawn'] }, context = { clientId: 'agent-list-fixture' };
+  const ids = (value: JsonValue) => (object(value).data as JsonValue[]).map(row => String(object(row).id)).sort();
+  // The native index is populated asynchronously from the isolated rollout tree.
+  await expect.poll(async () => ids(await service.native.call('thread/list', { ...scope, modelProviders: [] })), { timeout: 10000 }).toEqual([first, second].sort());
+  // Official 0.164.0 list_threads_common explicitly removes its default provider
+  // filter when relation_filter is set. This differs from the project sidebar.
+  const nativeDefault = ids(await service.native.call('thread/list', scope));
+  expect(nativeDefault).toEqual([first, second].sort());
+  const actual = ids(await service.call('thread/agents/list', { threadId: parentId }, context));
+  expect(actual).toEqual([first, second].sort()); expect(actual).not.toContain(unrelated);
+  const page = object(await service.call('thread/agents/list', { threadId: parentId, limit: 1 }, context));
+  expect(page.data).toHaveLength(1); expect(typeof page.nextCursor).toBe('string');
+  const next = await service.call('thread/agents/list', { threadId: parentId, limit: 1, cursor: page.nextCursor! }, context);
+  expect([...ids(page), ...ids(next)].sort()).toEqual(actual);
+  writeFileSync(path.join(home, 'observations.json'), JSON.stringify({ nativeDefault, actual, expected: [first, second].sort(), noModelOrToolCalls: true }, null, 2) + '\n');
+}), 20000);

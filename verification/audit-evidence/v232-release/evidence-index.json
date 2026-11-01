@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "sourceDigest": "dabbc561a4f5f05bfbd779847057fd22c8449d95c35aeaacca1d4ed6685bc46d",
+  "sourceFiles": 2004,
+  "createdAt": "2026-11-01T13:16:24.275Z",
+  "entries": {
+    "manifest": {
+      "path": "verification/audit-evidence/v232-release/manifest.json",
+      "sha256": "5ddd905f51e73066df6f4668590ae9e40bc3ee55d33ef24c2de9f1ff1b0f1db8",
+      "original": ".work/v232-final-source-manifest.json"
+    },
+    "root": {
+      "path": "verification/audit-evidence/v232-release/root.json",
+      "sha256": "cc453924ad561424e19b9bb5b3b1b7c8a8e55a5b53ad387eb0c2c04712f11a80",
+      "original": ".work/v232-root-review.json"
+    },
+    "runtime": {
+      "path": "verification/audit-evidence/v232-release/runtime.json",
+      "sha256": "471b9bd7965d9d64590605e4c7e857119ae837d447ddb3e347ce0d7cafa29b0a",
+      "original": ".work/v232-final-runtime.json"
+    },
+    "web": {
+      "path": "verification/audit-evidence/v232-release/web.json",
+      "sha256": "810806a4cd92820691b525bde1d7d5758c630f9c46e30fe56e768c0ee16a0ab3",
+      "original": ".work/v232-final-web-audit.json"
+    },
+    "core": {
+      "path": "verification/audit-evidence/v232-release/core.json",
+      "sha256": "7ade20f2cfdeeeb47605e8bea6c1550ca65ac64bd8f0d3ce63b5e899a5174e92",
+      "original": ".work/v231-core-gateway-tooling-independent-review.json"
+    },
+    "control": {
+      "path": "verification/audit-evidence/v232-release/control.json",
+      "sha256": "5367f01ea84843d67fa37fb03c42fb11c8d3439c70bf84a5f5efab6f473db9f3",
+      "original": ".work/v231-thread-history-control-independent-review.json"
+    },
+    "gatewayConsent": {
+      "path": "verification/audit-evidence/v232-release/gatewayConsent.json",
+      "sha256": "c1ae614294adecf7ad8632845ff94be88f7f6da3b5575cb1465aa9707e61b96f",
+      "original": ".work/v231-history-conversion-gateway-independent-review.json"
+    },
+    "sidebar": {
+      "path": "verification/audit-evidence/v232-release/sidebar.json",
+      "sha256": "350a83b9624eb255589ce5684e02340f11842497583f2ff91b8eeb881e3cfe5e",
+      "original": ".work/v231-sidebar-web-independent-review-current.json"
+    },
+    "mobile": {
+      "path": "verification/audit-evidence/v232-release/mobile.json",
+      "sha256": "dd5c264dd81d09969beda38049eb0288be1ba33baa63c313b8bdb81fa142aa79",
+      "original": ".work/v231-mobile-header-independent-review.json"
+    },
+    "agentList": {
+      "path": "verification/audit-evidence/v232-release/agentList.json",
+      "sha256": "abd63a2649ffc4419f8724e930c1207601f1c8bf63a7f9c86c9008423928f2d1",
+      "original": ".work/v231-agent-list-native-confirmation.json"
+    },
+    "historyRuntime": {
+      "path": "verification/audit-evidence/v232-release/historyRuntime.json",
+      "sha256": "e48fdb36b6e4cf70fa1c0e1ad4f79eb4c316186ac41b3de8932c4e45a12e1f33",
+      "original": ".work/v231-reasoning-runtime-implementation.json"
+    },
+    "historyHelper": {
+      "path": "verification/audit-evidence/v232-release/historyHelper.json",
+      "sha256": "fb31e07c4046419c21f61c6f9df0fd48ee2e5d903988ac92964fa0538a39211a",
+      "original": ".work/v231-thread-history-implementation.json"
+    },
+    "sidebarBackend": {
+      "path": "verification/audit-evidence/v232-release/sidebarBackend.json",
+      "sha256": "1224faa61bc60880685f56b50e612f04914fc68d1ca7253ab62b6065c4a8d1bb",
+      "original": ".work/v231-thread-list-backend-repair.json"
+    },
+    "conversionUi": {
+      "path": "verification/audit-evidence/v232-release/conversionUi.json",
+      "sha256": "2ed603d2dabba705cb381daceff687d86b66b231fb0e4ad266ba0e20130b762f",
+      "original": ".work/v231-history-conversion-read-boundary-repair.json"
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v232-release/freshness.json",
+      "sha256": "dcb5cfa52582c2ec0146d364fdf85ccfc36266b7888e7b0b2ca12274fe6f3f06",
+      "original": ".work/builtin-mcp-freshness-999d923f-7a19-4dae-bd17-972d6c05247f.json"
+    },
+    "browserMetrics": {
+      "path": "verification/audit-evidence/v232-release/browserMetrics.json",
+      "sha256": "588c807099d4da00b5e450d5344fe9e4d9e10255d5be248c0697740315e1f508",
+      "original": ".work/v232-header-browser-metrics.json"
+    },
+    "scan": {
+      "path": "verification/audit-evidence/v232-release/scan.json",
+      "sha256": "e1cabe6ac39d09e51a139bf6772baece7690cfe4db2e0d985d88c8c4c74a142f",
+      "original": ".work/v232-source-security.json"
+    },
+    "audit": {
+      "path": "verification/audit-evidence/v232-release/audit.json",
+      "sha256": "7e7e9626f1e79af991d41c6b01f65ab83d39dae2b12bd3b124e129c421ded087"
+    }
+  }
+}

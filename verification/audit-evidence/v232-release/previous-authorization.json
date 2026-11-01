@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "baseCommit": "3dda095a40142edb7d6276dde2f66b76fc985225",
+  "version": "2.3.1",
+  "approvedAt": "2026-11-01T11:06:55.510Z",
+  "userInstruction": "发布 v2.3.1 并部署到 120。同时对整个项目检查是否还有像会话内隐藏其它供应商这样的无意义甚至负意义的过度设计，有的话也进行处理。修复后按已授权流程完成审计、全量验证、发布部署并保持服务运行。",
+  "auditWaiverInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布；本轮沿用用户明确的一轮净审要求，不要求默认连续三轮。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v231-round3",
+      "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+      "completedAt": "2026-11-01T11:06:18.562Z",
+      "files": 1991,
+      "reviewers": [
+        {
+          "id": "root-with-independent-runtime-test-review",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v231-ci2/round3-team.json",
+          "sha256": "8fe5c59cbd93132068fac9f14d0b39d64a64be61c3c55b73e575b5fe8235bef3"
+        }
+      ]
+    }
+  ],
+  "previousAuthorization": {
+    "path": "verification/audit-evidence/v231-ci2/ci1-authorization.json",
+    "sha256": "096b1afdc9b87fba0bd0c9f454fae615bcca2c8cb157febed5f3402fbbae0eee",
+    "original": {
+      "path": "verification/audit-evidence/release-closeout/authorization.json",
+      "sha256": "096b1afdc9b87fba0bd0c9f454fae615bcca2c8cb157febed5f3402fbbae0eee"
+    }
+  },
+  "previousLedger": {
+    "path": "verification/audit-evidence/v231/previous-ledger.json",
+    "sha256": "1d4f52359766d46394352ac471a82c2a60d2064d8bf5b4913ed1369e854d53df",
+    "original": {
+      "path": "verification/audits.json",
+      "sha256": "1d4f52359766d46394352ac471a82c2a60d2064d8bf5b4913ed1369e854d53df"
+    }
+  },
+  "evidenceIndex": {
+    "path": "verification/audit-evidence/v231-ci2/evidence-index.json",
+    "sha256": "84db4e912d072cb6c49d68d8f8260b63e74b05c71da69aeaa7a7ae1665c8658f"
+  },
+  "note": "CI1 failed two obsolete UI assertions on both platforms; production behavior was not changed to satisfy them. All88 affected web files/1121 cases passed. Round3 independently reviewed exact test changes and inherited unchanged production semantics. CI2 will be explicitly dispatched against the original release base3dda095 to request the complete256-file inventory; full results/deployment/publication pending.",
+  "ci2Evidence": {
+    "failure": {
+      "path": "verification/audit-evidence/v231-ci2/ci1-failure.json",
+      "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb",
+      "original": {
+        "path": ".work/v231-ci1-failure-summary.json",
+        "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb"
+      }
+    },
+    "snapshot": {
+      "path": "verification/audit-evidence/v231-ci2/round3-snapshot.json",
+      "sha256": "70b4e74100978156df5153e2b6574e1f1776e5bed80edcdaec924347866df1c2",
+      "original": {
+        "path": ".work/v231-round3-snapshot.json",
+        "sha256": "70b4e74100978156df5153e2b6574e1f1776e5bed80edcdaec924347866df1c2"
+      }
+    },
+    "team": {
+      "path": "verification/audit-evidence/v231-ci2/round3-team.json",
+      "sha256": "8fe5c59cbd93132068fac9f14d0b39d64a64be61c3c55b73e575b5fe8235bef3",
+      "original": {
+        "path": ".work/v231-round3-team.json",
+        "sha256": "8fe5c59cbd93132068fac9f14d0b39d64a64be61c3c55b73e575b5fe8235bef3"
+      }
+    },
+    "account": {
+      "path": "verification/audit-evidence/v231-ci2/account-test-author.json",
+      "sha256": "984001a8c8808f341bde94c0d817e67e9249595ee234dfc1aaa6d6550537bf8d",
+      "original": {
+        "path": ".work/v231-ci-device-login-repair.json",
+        "sha256": "984001a8c8808f341bde94c0d817e67e9249595ee234dfc1aaa6d6550537bf8d"
+      }
+    },
+    "models": {
+      "path": "verification/audit-evidence/v231-ci2/models-test-author.json",
+      "sha256": "4db9bacc6b4e4809954ce63d0ac81075542c49615f4fc36d18d6a0b5e917ca70",
+      "original": {
+        "path": ".work/v231-shared-model-directory-repair.json",
+        "sha256": "4db9bacc6b4e4809954ce63d0ac81075542c49615f4fc36d18d6a0b5e917ca70"
+      }
+    },
+    "review": {
+      "path": "verification/audit-evidence/v231-ci2/test-repair-review.json",
+      "sha256": "daa94187f383c9d73044b77c29bef4d9fbd626697233edfbd23335d5a482b6d2",
+      "original": {
+        "path": ".work/v231-ci1-repair-review.json",
+        "sha256": "daa94187f383c9d73044b77c29bef4d9fbd626697233edfbd23335d5a482b6d2"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v231-ci2/builtin-mcp-freshness.json",
+      "sha256": "ef4335eb4a33e5323cab9531ae6d7afea39968254dc06a825ffe0ab1301834f5",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-3922cafb-f9ee-43fa-99a6-ff42ad243d5c.json",
+        "sha256": "ef4335eb4a33e5323cab9531ae6d7afea39968254dc06a825ffe0ab1301834f5"
+      }
+    },
+    "scan": {
+      "path": "verification/audit-evidence/v231-ci2/source-scan.json",
+      "sha256": "0f3e15e45c67a56481e852fcea51404c9ee044f4d2ea15a8a259d9fdb0534edc",
+      "original": {
+        "path": ".work/v231-round3-source-security.json",
+        "sha256": "0f3e15e45c67a56481e852fcea51404c9ee044f4d2ea15a8a259d9fdb0534edc"
+      }
+    },
+    "security": {
+      "path": "verification/audit-evidence/v231-ci2/ci1-codeql.json",
+      "sha256": "0764c89f453316a9673131ab3adaf08d8c30ef503ecf110ebb430545268868b7",
+      "original": {
+        "path": ".work/v231-codeql-final-review.json",
+        "sha256": "0764c89f453316a9673131ab3adaf08d8c30ef503ecf110ebb430545268868b7"
+      }
+    },
+    "targeted": {
+      "path": "verification/audit-evidence/v231-ci2/targeted-web.json",
+      "sha256": "5dd687e22f7e3dba70885249880882a120264ef2678af4ec3309c5f976c73230"
+    }
+  }
+}

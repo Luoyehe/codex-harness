@@ -147,6 +147,8 @@ class ServiceLifecycleTests(unittest.TestCase):
             release = self.layout.app / "releases/stage"
             mkdir(release)
             atomic_write(release / "application.txt", b"verified fixture application", 0o644)
+            mkdir(release / "app")
+            write_json(release / "app/package.json", {"name": "synthetic-legacy-application"}, mode=0o644)
             manifest = inspect_tree(release, root_owned=True)
             identity = digest(manifest)
             release.rename(release.with_name(identity))

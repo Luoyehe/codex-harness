@@ -87,8 +87,9 @@ def validate_journal(manager, journal):
     require(json.loads(old["native"]) == native_settings(manager.layout, before), "Retained native identity changed", "corrupt_state")
     generated = {render_units(manager.layout, before, before["codexRelative"], legacy_runtime_directory=r, legacy_native_home=h)[manager.layout.unit("worker")].encode()
                  for r in (False, True) for h in (False, True)}
-    require(old["worker"] in generated and old["sudo"] in {sudo_rule(manager.layout, config=before, workspace=w, legacy_catalog_server=c).encode()
-            for w in (False, True) for c in (False, True)}, "Retained execution definitions are not generated policies", "corrupt_state")
+    from .units import sudo_variants
+    require(old["worker"] in generated and old["sudo"] in sudo_variants(manager.layout, before),
+            "Retained execution definitions are not generated policies", "corrupt_state")
     require(manager.config in (before, candidate), "Execution transaction no longer binds this instance", "integrity")
     other = candidate if manager.config == before else before
     alternate_unit = render_units(manager.layout, other, other["codexRelative"])[manager.layout.unit("worker")].encode() if other is candidate else old["worker"]
@@ -147,7 +148,11 @@ def recover(manager, journal_path, journal, *, candidate=False):
         apply_candidate(manager, next_config)
     else:
         for name, path in paths(manager.layout).items():
-            atomic_write(path, old[name], journal["before"][name]["mode"])
+            data = old[name]
+            if name == "sudo":
+                from .units import migrated_history_sudo
+                data = migrated_history_sudo(manager.layout, before, data)
+            atomic_write(path, data, journal["before"][name]["mode"])
         fsync_directory(manager.layout.units)
         manager.config = before
         manager.system.reload()

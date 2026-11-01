@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "task": "cross-provider-reasoning-history-runtime",
+  "author": "/root/v230_audit_runtime",
+  "complete": true,
+  "completedAt": "2026-11-01T13:08:24.824735+00:00",
+  "startingHead": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
+  "files": [
+    {
+      "path": "src/runtime/history-conversion-consent.ts",
+      "sha256": "4bd611d98c8de65f2a2c1aff921eebf8c741d679e5c192b1a7a3224bb67c97d3",
+      "bytes": 1254
+    },
+    {
+      "path": "src/runtime/thread-history-compatibility.ts",
+      "sha256": "71b8a5dd8577c6ed3fcda05ed3495a335d31d14ef1e51c4f55e361039464fdbb",
+      "bytes": 5943
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "45c633db0f02bcabba09363661f6c14bca7a601a7e90085e3a451c6eabd0cf16",
+      "bytes": 6792
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "84ece42bf2b94d7eac94e95d5320e19005b45d06f534e5da889fc00f8f745b22",
+      "bytes": 11877
+    },
+    {
+      "path": "src/runtime/thread-activity.ts",
+      "sha256": "f0d49cd5dfee6b1e38c6a4f256f5bd705cf8bf2c2efd6adad7d00511c87f6e78",
+      "bytes": 3769
+    },
+    {
+      "path": "src/runtime/thread-provider-switch.ts",
+      "sha256": "9f1cb9ff7d31d99aeccc0d978ff2d320d04344d69269195e89e0852cfba77934",
+      "bytes": 5521
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "d84e3769d1cd346e3c1ad78f590f600094780ab19db85a828be3a257c79cbc96",
+      "bytes": 98581
+    },
+    {
+      "path": "tests/runtime/thread-history-compatibility.test.ts",
+      "sha256": "e1ac2a0627b80696b950009ad3eb4fedd3963af8872981432713171c6dc66f7e",
+      "bytes": 6393
+    },
+    {
+      "path": "tests/runtime/provider-switch-native.test.ts",
+      "sha256": "e61ef112a582432d4a2c7a639e3ba8c3554eb195d312e9073b96e7261a296c70",
+      "bytes": 22254
+    },
+    {
+      "path": "tests/runtime/provider-switch.test.ts",
+      "sha256": "14ca6c90aa8e65669dd96a1cf016a990d5bcced315c3ce612644b6521ade46d8",
+      "bytes": 8651
+    },
+    {
+      "path": "tests/runtime/providers.test.ts",
+      "sha256": "bf16e23b5f0ae3c817d97f44d87f15cebca3853bf75f7b302a430cff73cdc657",
+      "bytes": 8772
+    },
+    {
+      "path": "tests/runtime/service.test.ts",
+      "sha256": "430caf1255a04be45d0be96bd74f96a2deee88491b4bb1a8977aa0b27a1d75bb",
+      "bytes": 79709
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "sha256": "f9d4c4ca6953c3da48f5b35f631ee769c05586cd763053ac8d85de1ee27b15c8",
+      "bytes": 14510
+    }
+  ],
+  "ownership": "Runtime history compatibility and consent integration only. service.ts/service.test.ts also include another author's live listing work; whole-file hashes bind the shared final bytes, not sole authorship. Deployment helper/control and UI are separately authored and independently reviewed.",
+  "rootCause": "Pinned official CLI 0.164.0 forwards persisted foreign ResponseItem::Reasoning.content into Responses input after a provider switch. A strict loopback B endpoint reproduced array_above_max_length / max 0 before repair. Production readonly shape/error evidence corroborates this, without claiming a captured live request.",
+  "baseline": {
+    "path": ".work/v231-reasoning-baseline.json",
+    "sha256": "7edae69e10fd543f460507fe4650eafb8a99e157929dc5df76eb782543a48a0b",
+    "bytes": 1175
+  },
+  "officialSources": {
+    "path": ".work/v231-reasoning-official-0164/provenance.json",
+    "sha256": "d966b10bee1dcf7ae5a143d2ca0487a0fd3b6ab396ea4f02d06a87d82a9acb66",
+    "bytes": 6933
+  },
+  "implementation": [
+    "Require per-operation source/target consent before cross-provider detach or history writes, including old same-provider conversations that need repair. Alias-equivalent providers do not cause a false cross-provider warning. Not-sent confirmation has four bounded identity fields and does not poison global activity.",
+    "Read-only preflight rejects unsupported foreign inherited/opaque-compaction history before unloading. Wait for the exact official thread/closed event; unsubscribe success alone is insufficient. The fixed native launch argument makes an unsubscribed idle thread unload immediately.",
+    "After true close, always re-inspect using a fresh witness, even if the initial scan was clean: final writer flushes may add records. The native-identity helper holds official coordination/writer locks, uses CAS, saves the exact original gzip backup and atomically publishes a same-byte-length conversion.",
+    "Ordinary dedicated reasoning records become official Other placeholders. Checkpoint replacement_history instead removes only incompatible reasoning plus matching parallel metadata; Other inside checkpoints would be forwarded and is deliberately not used. User/assistant messages, tool calls/results and event_msg public summaries are preserved.",
+    "Preserve original thread ID/settings and rehydrate the private runtime history owner before input. Foreign fork lineage and opaque encrypted compaction are unsupported rather than guessed or deleted. Valid same-provider plain ancestry may be cached after complete bounded prefix checking; compressed/unknown ancestry is allowed through native loading without minting proof.",
+    "Cache compatibility by loaded thread/provider/epoch; invalidate on closed/unsubscribe/delete/revert. Fresh new threads need no historical scan. Warm same-provider regression proves zero helper calls.",
+    "Unknown detach/repair/resume outcomes remain unknown with inputSent:false where established. No automatic retry or new-thread workaround."
+  ],
+  "validation": [
+    {
+      "kind": "affected-runtime-tests",
+      "files": 8,
+      "passed": 188,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-MxfE4H/vitest.json",
+        "sha256": "169d92d62d370ed7b9e25ae5ac8b4e4fac71e01270c1f018f5ffa6fc6316bbfb",
+        "bytes": 70903
+      },
+      "log": {
+        "path": ".work/v231-reasoning-runtime-final-tests.txt",
+        "sha256": "bf52598d2320db0fa223ba1b1cc26af36f24a4075c9052edfa5e1887de71cdcb",
+        "bytes": 52905
+      },
+      "binding": "Before the final unconditional post-close reinspection adjustment; all other runtime changes are covered."
+    },
+    {
+      "kind": "final-post-close-regression",
+      "files": 2,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": ".work/test-results/run-w6ktKY/vitest.json",
+        "sha256": "6cbfea8f5320aad204b0b99a5ddff8880173d46fc645d6d86fcf82ff97d8162a",
+        "bytes": 3920
+      },
+      "log": {
+        "path": ".work/v231-reasoning-post-close-tests.txt",
+        "sha256": "bccb5fa91be23c3794e504f36a9a2aae96e55f0d48f82b0eeceb99d06cf35489",
+        "bytes": 3822
+      },
+      "binding": "Current source. Actual CLI test proves initial inspect=false, closed-event final-flush injection, post-close repair=true, and no injected reasoning in the next request; also all original actual CLI scenarios."
+    },
+    {
+      "kind": "server-types",
+      "exitCode": 0,
+      "log": {
+        "path": ".work/v231-reasoning-runtime-tsc.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    }
+  ],
+  "nativeAssertions": [
+    "official CLI writer lock rejects repair while live",
+    "A to B to A exact same thread ID and settings",
+    "cold provider removal selection",
+    "previous failed same-B conversation requires explicit consent then repairs",
+    "checkpoint metadata alignment",
+    "tool call_id/arguments/output retained",
+    "public reasoning summary remains visible",
+    "foreign fork rejects before write and parent bytes unchanged",
+    "valid same-provider fork and actual zstd compressed cold resume",
+    "warm same-B turn zero compatibility calls",
+    "five loopback Responses requests only, no real inference"
+  ],
+  "historicalFailures": [
+    {
+      "path": ".work/test-results/run-bAeM6O/vitest.json",
+      "meaning": "Expected strict provider baseline failure."
+    },
+    {
+      "path": ".work/v231-reasoning-switch-first-repair.txt",
+      "meaning": "Fixture used an environment variable removed by runner allowlist; corrected to existing HARNESS_TEST_PYTHON."
+    },
+    {
+      "path": ".work/v231-reasoning-switch-second-repair.txt",
+      "meaning": "Helper needed safe Windows extended-drive path normalization."
+    },
+    {
+      "path": ".work/v231-reasoning-switch-diagnostic.txt",
+      "meaning": "No-reasoning B-to-A transition raced newly immediate unload; fixed true-close wait for every provider transition."
+    },
+    {
+      "path": ".work/v231-reasoning-unit-first.txt",
+      "meaning": "Optional consent initially validated omitted provider in minimal legacy fixtures; fixed no-consent/nonrequired early return."
+    },
+    {
+      "path": ".work/v231-reasoning-unload-boundaries.txt",
+      "meaning": "Existing workflow fixture read immediately after unsubscribe; now awaits exact true-close event, preserving production history guards."
+    }
+  ],
+  "limits": [
+    "No full suite, production mutation, personal credentials, real paid model or external MCP.",
+    "This is author evidence, not an independent audit of own runtime changes.",
+    "Helper currently bounds 1 GiB rollout, 32 MiB line, 1 million records, 512 MiB compressed backups; benchmark is separate helper evidence, not a claim of unbounded history.",
+    "Foreign inherited fork materialization and encrypted compaction conversion are intentionally unsupported; same-provider unknown/compressed formats preserve native loading but do not claim compatibility proof.",
+    "Actual remote OpenAI validation was not invoked; strict loopback error reproduction and pinned source establish the serialization defect."
+  ]
+}

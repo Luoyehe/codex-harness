@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "kind": "thread-history-helper-and-control-upgrade-implementation",
+  "status": "implemented-targeted-verified",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "observedAt": "2026-11-01T13:08:24.066826+00:00",
+  "files": [
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "7a4db509e23ee3122e686c47b4afd9058c4eeff5d92e91676f02426816832cbb"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126"
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "499209bc165e4c3c86f673deab150aa5c34fa8470d5f9520c4821e4869890813"
+    },
+    {
+      "path": "deploy/ownership.py",
+      "sha256": "8b552f902c059916f82dee813c599f19c5329206bc2a31843c4fb17115124d25"
+    },
+    {
+      "path": "deploy/execution_identity.py",
+      "sha256": "a35d69d2d99c788ac5f62c455439ae582489555835fa94c2421e996cf81a523a"
+    },
+    {
+      "path": "deploy/execution_mode.py",
+      "sha256": "c2e0b776433428e242e770214329988e05cd7f20f4a968e6a1b62e8f171af482"
+    },
+    {
+      "path": "deploy/config_layer.py",
+      "sha256": "0c97bcebf0a679227b476e415c650f5a7d05972063bc5297672e9376cc550ddf"
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "794c9ad0133a0b16cb960239b30cb41de356b15f8700c2b9f1acd6baff3b4062"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "39a0031821f7705eac6078903698227052884dea47d95cb50d92db30804282b9"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "e79b920601eca8dd08e22f2a3acea0c51ec3310fa377faca9fd493b984cbb8ac"
+    },
+    {
+      "path": "deploy/service_lifecycle.py",
+      "sha256": "a8bbb5730a68946a5f4a6a8f6e426b9ebf6e63e363ca09f8ed489b2c76b47c5a"
+    },
+    {
+      "path": "tests/deploy/test_thread_history.py",
+      "sha256": "c567ff2a437d824d1449ddccc35a2f2b958f1733c4110dfe92012a3a81f7e2ee"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "1e8252d15e475f853975e0a3bd22fc1b4e67c78ff2651df04626cf8cb3317c40"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "ba4156d209a89a1616419b035636b01561991a5249f7ae4d5318c7bd3e238493"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "d4319e957f2bffd295fd45818dd2e165b5bf4c28944a7c5c33148993decdb880"
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "836436c1d62ee8b3de5d2669c3cefb75d4b560d88a5959bc4c3209e4f26ab264"
+    },
+    {
+      "path": "tests/deploy/root/test_service_lifecycle.py",
+      "sha256": "22fd31ed178d371b4d5be5353000ba176f7473186023f28a4fc53221eac7d9f3"
+    }
+  ],
+  "changes": [
+    "Same-identity fixed native helper; request contains no home/UID override. Native app/catalog use explicit unload delay zero. Managed thread-history bypasses provider secrets reads.",
+    "Streaming inspect/repair, official writer coordination lock, expected hash/inode/device/size/mtime CAS, same-line byte offsets, private content-addressed gzip originals, atomic replacement and post-replacement unknown errors.",
+    "Response reasoning becomes official Other; compacted replacement reasoning and matching metadata indices are removed together; every other item and outer line offset retained.",
+    "Foreign inherited or opaque-compaction histories cannot be repaired. Same-provider plain frozen ancestors are read-only bounded shape checks; compressed/compacted/rollback/unknown ancestry is inspectionUnsupported, not a compatibility claim. Compressed main rollouts remain native-loadable; helper cannot repair them.",
+    "Exact fixed sudo command and threadHistoryRepair capability; stop-confirmed control journal preserves old/candidate sudo bytes and identity, with old/candidate recovery. Old execution/config-layer snapshots migrate only the fixed helper verb when selected control supports it. New application marker prevents incompatible control selection/activation. Historical exact grammars remain limited to ownership/recovery checks."
+  ],
+  "limits": {
+    "rolloutBytes": 1073741824,
+    "lineBytes": 33554432,
+    "records": 1000000,
+    "compressedBackupBytes": 536870912,
+    "backupFiles": 4096,
+    "ancestorSegments": 16,
+    "ancestorLookupEntries": 10000,
+    "requestBytes": 8192,
+    "overBudget": "Explicit refusal, no truncation or partial replacement. No automatic backup deletion.",
+    "unsupported": "No second native replay engine or compressed conversion; runtime must preserve ordinary same-provider loading without caching unknown inspection.",
+    "permissions": "No live instance, service, nftables, model inference, external MCP, or credentials were changed/read. Isolated Linux tests create relocated temporary filesystem fixtures and substitute service operations.",
+    "audit": "Author evidence only, not independent approval or a full repository audit."
+  },
+  "validation": {
+    "linux": {
+      "raw": {
+        "path": ".work/v231-thread-history-linux-2.json",
+        "sha256": "abbd38d231b0d69b60e728f3538d3a6703f8fb102146c0aa5f8704919a1ff19a"
+      },
+      "tests": 248,
+      "passed": 247,
+      "failed": 0,
+      "skipped": 1,
+      "exitCode": 3,
+      "skip": "Only Windows extended-drive/device-path case; wrapper.complete=false and exit3 retained. All root modules passed without skips.",
+      "perFile": {
+        "tests/deploy/test_thread_history.py": {
+          "passed": 15,
+          "skipped": 1
+        },
+        "tests/deploy/test_control_update.py": {
+          "passed": 18
+        },
+        "tests/deploy/test_execution_mode.py": {
+          "passed": 16
+        },
+        "tests/deploy/test_deployment.py": {
+          "passed": 61
+        },
+        "tests/deploy/root/test_execution_mode.py": {
+          "passed": 19
+        },
+        "tests/deploy/root/test_control_update.py": {
+          "passed": 66
+        },
+        "tests/deploy/root/test_config_layer.py": {
+          "passed": 30
+        },
+        "tests/deploy/root/test_service_lifecycle.py": {
+          "passed": 22
+        }
+      },
+      "allOwnedFileHashesMatch": true
+    },
+    "windows": {
+      "raw": {
+        "path": ".work/v231-thread-history-targeted-windows-5.log",
+        "sha256": "139f1a2ad997ae91d669b9549cd474f4294b811854931de8be5fcd9881214093"
+      },
+      "tests": 111,
+      "passed": 102,
+      "failed": 0,
+      "skipped": 9,
+      "scope": [
+        "tests/deploy/test_thread_history.py",
+        "tests/deploy/test_control_update.py",
+        "tests/deploy/test_execution_mode.py",
+        "tests/deploy/test_deployment.py"
+      ]
+    },
+    "benchmarks": [
+      {
+        "raw": {
+          "path": ".work/v231-thread-history-benchmark-final-32MiB.json",
+          "sha256": "d6b8e69f36d7bf52547f898404f5f6010ca52c749371cc0b4fe46c97e0174f3d"
+        },
+        "inputBytes": 33554432,
+        "inspect": {
+          "wallSeconds": 0.045999999972991645,
+          "cpuSeconds": 0.0625,
+          "peakRssBytes": 62226432
+        },
+        "repair": {
+          "wallSeconds": 0.28100000001722947,
+          "cpuSeconds": 0.28125,
+          "peakRssBytes": 62722048
+        },
+        "originalBackupExact": true,
+        "nonReasoningBytesPreserved": true,
+        "lineOffsetsAndOrdinalsPreserved": true,
+        "oversizeAdmissionRefusedWithoutTruncate": true,
+        "fixtureDescription": "Synthetic text with seeded repeating 4KiB blocks; one 12MiB line and remaining64KiB lines, every10th small line reasoning. Compression ratio is fixture-specific."
+      },
+      {
+        "raw": {
+          "path": ".work/v231-thread-history-benchmark-final-128MiB.json",
+          "sha256": "45e1e1ae463ad18bbc3b460a7b1fcde03168d608ea06606efcc1727e3267312d"
+        },
+        "inputBytes": 134217728,
+        "inspect": {
+          "wallSeconds": 0.2190000000409782,
+          "cpuSeconds": 0.21875,
+          "peakRssBytes": 62226432
+        },
+        "repair": {
+          "wallSeconds": 1.202999999979511,
+          "cpuSeconds": 1.09375,
+          "peakRssBytes": 63414272
+        },
+        "originalBackupExact": true,
+        "nonReasoningBytesPreserved": true,
+        "lineOffsetsAndOrdinalsPreserved": true,
+        "oversizeAdmissionRefusedWithoutTruncate": true,
+        "fixtureDescription": "Synthetic text with seeded repeating 4KiB blocks; one 12MiB line and remaining64KiB lines, every10th small line reasoning. Compression ratio is fixture-specific."
+      }
+    ],
+    "peerRuntimeNativeEvidence": {
+      "raw": {
+        "path": ".work/test-results/run-MxfE4H/vitest.json",
+        "sha256": "169d92d62d370ed7b9e25ae5ac8b4e4fac71e01270c1f018f5ffa6fc6316bbfb"
+      },
+      "reportedCases": 188,
+      "boundary": "Runtime author ran actual pinned CLI A/B/A, Rust writer lock, checkpoint/paired metadata, valid fork/compressed same-provider loads and warm no-probe. Refer to runtime author final report for exact runtime source binding."
+    },
+    "gitDiffCheck": "Passed for deploy/tests/deploy; pre-existing root-edited RECOVERY.md CRLF warning only."
+  },
+  "preservedFailures": [
+    {
+      "raw": {
+        "path": ".work/v231-thread-history-targeted-windows-4.log",
+        "sha256": "b2b22eeb5d988428a64b23712d7f1f8f0a56c0fa5918e45437c858b5ab033e7b"
+      },
+      "reason": "Three transaction fixture errors: synthetic app/package.json absent after new capability read; fixed test fixture, not weakened production."
+    },
+    {
+      "raw": {
+        "path": ".work/v231-thread-history-linux-1.json",
+        "sha256": "11f93d0b62fbceeefced974296e9010d1dfa7301cbe9247fcf306caa5b18001f"
+      },
+      "reason": "233 passed,14 failed,1 skipped: six isolated package inputs absent; seven old lifecycle fixture packages absent; one new test incorrectly started a new transaction with stale sudo instead of recovering an old journal. All corrected without relaxing checks."
+    },
+    {
+      "raw": {
+        "path": ".work/v231-thread-history-linux-3.json",
+        "sha256": "6827026bfd495ba3ba13bdc9488d5fe4258de0dab6ade007dbaac21e3bc1ae26"
+      },
+      "reason": "85 passed on temporary extra candidate-journal consistency guard. Root declined nonessential hardening; exact guard/test reverted. Final two file bytes re-match linux-2; this run is not final-source evidence."
+    }
+  ],
+  "context": [
+    {
+      "path": "package.json",
+      "sha256": "80af2c6cfdeecad69a3f01688edbb35c63f2bcf687f83bf9accc9a38d277a19e",
+      "ownership": "Root authored codexHarnessThreadHistory:1 and version; package version advanced after isolated pack, owned code byte bindings above remain exact."
+    }
+  ],
+  "remainingFindings": []
+}

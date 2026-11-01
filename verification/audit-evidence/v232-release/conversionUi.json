@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "task": "history-conversion-source-read-boundary-repair",
+  "complete": true,
+  "completedAt": "2026-11-01T13:04:50.000388+00:00",
+  "files": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "9eb0210dd087712ca4410260fb745a14bd94505540fba6d609e45cc65be4d981",
+      "bytes": 88082
+    },
+    {
+      "path": "web/tests/history-conversion-confirmation.test.tsx",
+      "sha256": "0543e9a4a5e006aa48c69fd2316ff406aebb662565da9bcb73697743b6088eeb",
+      "bytes": 19741
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "514edfe74512e058ae476a01f5d2d926ae129c9dc53e49e29bf9311528cd757c",
+      "bytes": 49970
+    }
+  ],
+  "finding": {
+    "source": "Parent independent review",
+    "issue": "Existing thread model selection could be adopted before thread/session or thread/read disclosed the original provider, delaying consent until resume/send."
+  },
+  "resolution": [
+    "setOptions now refuses only changes to model/modelProvider while the existing thread source provider is unknown. It leaves the old selection intact and explains that the read must finish before choosing again. Other draft options remain editable.",
+    "When the provider read finishes, choosing the different provider immediately opens the original confirmation dialog before storing options. No queued automatic candidate-selection intent was added.",
+    "Actual App fixture now includes mandatory native thread.modelProvider and the session provider. Its removed-provider scenario explicitly uses the removed identity, confirms selection, and verifies exact top-level consent while retaining same-thread, no-turn, no-new-conversation and draft assertions."
+  ],
+  "validation": [
+    {
+      "evidence": {
+        "path": ".work/test-results/run-Mzpm6a/vitest.json",
+        "sha256": "e952c4da435b6c044011b2ec687ea09ba01218849d53ac72533cd186a3b64aeb",
+        "bytes": 5826
+      },
+      "passed": 16,
+      "failed": 0,
+      "scope": "Includes real useConversation + Api with deferred thread/read, real ModelPicker, Dialog, draft persistence and operation journal; no mocked read-completion toggle for the new case."
+    },
+    {
+      "evidence": {
+        "path": ".work/test-results/run-Dc3Duh/vitest.json",
+        "sha256": "3637cd793e7ab3e3ed2d1e2dc0a9d2b9aaa1679474509091058d130fd0f8878e",
+        "bytes": 16993
+      },
+      "files": 2,
+      "passed": 49,
+      "failed": 0,
+      "scope": "16 confirmation cases plus 33 actual App lifecycle cases after protocol-shaped fixture correction."
+    },
+    {
+      "kind": "web-types-and-diff",
+      "exitCode": 0,
+      "toolChunk": "c6ece2",
+      "commands": [
+        "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+        "git diff --check"
+      ]
+    }
+  ],
+  "priorAuthorEvidence": {
+    "path": ".work/v231-history-conversion-web-implementation.json",
+    "sha256": "44eb9a9dae3236e4ef13a823709e017cefc11949e9f3f858e54949af16528db4",
+    "bytes": 6462
+  },
+  "limits": [
+    "Only selection boundary and tests were edited in this repair; parent concurrent ROOT/mobile header changes in Workspace were preserved. Current whole-file hashes include that separately authored work.",
+    "No full suite, remote operation, deployment, paid inference or live history conversion."
+  ],
+  "findings": []
+}

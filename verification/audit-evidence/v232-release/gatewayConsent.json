@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-deploy",
+  "task": "history-conversion-gateway-independent-review",
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-11-01T13:00:25.999052+00:00",
+  "files": [
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "0043e54235448c7df6ee4c774ed9969991d24b3ed6d2d934c67347cc22fe2e1d",
+      "bytes": 10617
+    },
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "fd41d95dbd4ca50ad559785ca6deecb51a39a14603f8cc7c3d65bd586a459154",
+      "bytes": 28234
+    },
+    {
+      "path": "tests/gateway/worker-client.test.ts",
+      "sha256": "8ad4d476f3a38b1e4bfbacb1e2fc4066a3fcbcabb12d4ad9465212d63c30e851",
+      "bytes": 14029
+    },
+    {
+      "path": "src/runtime/history-conversion-consent.ts",
+      "sha256": "4bd611d98c8de65f2a2c1aff921eebf8c741d679e5c192b1a7a3224bb67c97d3",
+      "bytes": 1254
+    }
+  ],
+  "method": [
+    "Read the complete WorkerClient transport and current diff; traced actual connection/beforeWrite boundary, response parsing/capacity, error metadata whitelist and unknown classification.",
+    "Read Dispatcher mutation admission/dispatch/settlement/replay and unchanged Ledger reserve/digest/settle/read code, receipt-result and HarnessError projection. Read the new gateway fixture cases plus existing file-backed partial-receipt restart/replay cases.",
+    "Read requireHistoryConversionConsent and its turn/start and cold thread/resume call sites for source/target binding and pre-mutation use. This is a narrow independent gateway-contract review, not an independent audit of my own frontend consent authoring or the separate native helper implementation."
+  ],
+  "conclusions": [
+    "Confirmation metadata is projected only for the exact confirmation-required code with not_sent delivery and conversionRequired true. Four primitive bounded fields survive; unrelated/private history fields are discarded. Unknown conversion errors do not get the confirmation metadata.",
+    "Dispatcher forwards the top-level consent object in params unchanged to the worker. Ledger reserve hashes the complete method/params and binds thread scope, so changing consent while reusing an operation ID is a conflict rather than a new dispatch.",
+    "An existing receipt returns before current worker admission. not_sent replay now preserves both explicit delivery and saved data; pending/unknown replay is still unknown, with no second worker call. New explicit user approval must use a different operation ID.",
+    "Ledger settle persists error.data as bounded JSON atomically; read reconstructs terminal delivery from the durable state. On reopening the journal terminal not_sent is not rewritten into pending, and replay does not call the worker. Capacity failures remain conservative.",
+    "Runtime consent accepts exactly two fields and checks each provider against the actual current transition, including same-provider repair. Stale source/target is not_sent. Omitted consent is accepted only when the runtime determines conversion is not required.",
+    "All added fields are consumed: the frontend uses matching thread/provider metadata to show confirmation; the runtime consumes top-level consent before conversion; saved receipt data supports identical original-ID replay. Consent is not saved as model settings."
+  ],
+  "evidence": [
+    {
+      "path": ".work/test-results/run-Lb7Fhj/vitest.json",
+      "sha256": "d986f196db36f2ae4f580c8ceceefed778aaa080bb53882e6af055c6fbfbdf6f",
+      "bytes": 21355
+    },
+    {
+      "path": ".work/history-consent-gateway-tests.log",
+      "sha256": "76e0d1ad8aa805684f640916e367d99e79f14debd14b2266f4640559bf2d8042",
+      "bytes": 15756
+    }
+  ],
+  "authorValidation": {
+    "tests": 54,
+    "passed": 54,
+    "failed": 0,
+    "scope": "WorkerClient16 + Dispatcher38; author run, independently read JSON; reviewer did not rerun."
+  },
+  "limits": [
+    "No reviewer test execution, remote access, inference or source modifications.",
+    "New conversion-specific tests use an in-memory real SQLite Ledger; persistence/reopen semantics were code-reviewed with existing file-backed generic partial-receipt tests, not claimed as a newly executed conversion restart test.",
+    "This report does not independently certify native conversion/backup filesystem mechanics or all repository functionality."
+  ],
+  "findings": [],
+  "skipped": []
+}
