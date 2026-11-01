@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "sourceFiles": 1991,
+  "baseCommit": "3dda095a40142edb7d6276dde2f66b76fc985225",
+  "version": "2.3.1",
+  "approvedAt": "2026-11-01T10:54:16.581Z",
+  "userInstruction": "发布 v2.3.1 并部署到 120。同时对整个项目检查是否还有像会话内隐藏其它供应商这样的无意义甚至负意义的过度设计，有的话也进行处理。修复后按已授权流程完成审计、全量验证、发布部署并保持服务运行。",
+  "auditWaiverInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布；本轮沿用用户明确的一轮净审要求，不要求默认连续三轮。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v231-round2",
+      "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+      "completedAt": "2026-11-01T10:54:16.568Z",
+      "files": 1991,
+      "reviewers": [
+        {
+          "id": "v231-round2-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v231/round2-team.json",
+          "sha256": "11657dcd3722cc2610d44beb7c06aacc1e6b578ea7c5555bdbbc63250f19ffd8"
+        }
+      ]
+    }
+  ],
+  "previousAuthorization": {
+    "path": "verification/audit-evidence/v231/previous-authorization.json",
+    "sha256": "75f236197bc599cdcc57f382e21522ba175ffeb1016d771b1e37c77c9ee2b92d",
+    "original": {
+      "path": "verification/audit-evidence/release-closeout/authorization.json",
+      "sha256": "75f236197bc599cdcc57f382e21522ba175ffeb1016d771b1e37c77c9ee2b92d"
+    }
+  },
+  "previousLedger": {
+    "path": "verification/audit-evidence/v231/previous-ledger.json",
+    "sha256": "1d4f52359766d46394352ac471a82c2a60d2064d8bf5b4913ed1369e854d53df",
+    "original": {
+      "path": "verification/audits.json",
+      "sha256": "1d4f52359766d46394352ac471a82c2a60d2064d8bf5b4913ed1369e854d53df"
+    }
+  },
+  "evidenceIndex": {
+    "path": "verification/audit-evidence/v231/evidence-index.json",
+    "sha256": "bccaa3fe0ff6d93815286aefe0dba42bb0609d6a88d6a6eaab9b2a071e539d40"
+  },
+  "note": "Round1 was not clean and is retained. Round2 is clean after independently reviewed account recovery. Full CI, deployment and release have not yet passed."
+}

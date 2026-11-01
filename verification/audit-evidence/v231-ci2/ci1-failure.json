@@ -1,0 +1,1185 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-v231-ci1-failure-summary",
+  "complete": true,
+  "result": "failed",
+  "createdAt": "2026-11-01T11:06:08.045Z",
+  "head": "c923ff9aca26ea6e6651e52772816c061664742d",
+  "base": "3dda095a40142edb7d6276dde2f66b76fc985225",
+  "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "sourceFiles": 1991,
+  "authorizationSha256": "096b1afdc9b87fba0bd0c9f454fae615bcca2c8cb157febed5f3402fbbae0eee",
+  "testRun": 41299562756,
+  "securityRun": 41299562784,
+  "fullGatePassed": false,
+  "releaseGatePassed": false,
+  "actualPlan": {
+    "evidence": {
+      "path": ".work/v231-ci-plan-raw.txt",
+      "sha256": "63283442af58354a468c872bb34bce75d2a977928847f3267bbf98e878036982"
+    },
+    "line": 242,
+    "output": {
+      "mode": "authorized-full",
+      "base": "3dda095a40142edb7d6276dde2f66b76fc985225",
+      "head": "c923ff9aca26ea6e6651e52772816c061664742d",
+      "files": 256,
+      "targets": [
+        "linux",
+        "windows",
+        "linux-root"
+      ]
+    }
+  },
+  "platforms": [
+    {
+      "target": "linux",
+      "jobId": 124827646135,
+      "conclusion": "failure",
+      "rawLog": {
+        "path": ".work/v231-ci-linux-raw.txt",
+        "sha256": "07afa2ed445a8257e768a2ff18ff62cebdde9f20afa0594359f77700e20c8b3a"
+      },
+      "rawBytes": 199964,
+      "rawCharacters": 199015,
+      "groups": [
+        {
+          "event": "ci-test-group",
+          "group": "javascript",
+          "state": "completed",
+          "status": "failed",
+          "exitCode": 1,
+          "selectedFiles": 187,
+          "cases": null,
+          "reason": null,
+          "rawLine": 814
+        },
+        {
+          "event": "ci-test-group",
+          "group": "deploy",
+          "state": "completed",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 45,
+          "cases": {
+            "total": 574,
+            "passed": 574,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "reason": null,
+          "rawLine": 1395
+        },
+        {
+          "event": "ci-test-group",
+          "group": "go",
+          "state": "completed",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 1,
+          "cases": {
+            "total": 20,
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "reason": null,
+          "phases": [
+            {
+              "name": "module-verification",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "test-discovery",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "go-test",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "executable-build",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "version-plugin-probe",
+              "status": "passed",
+              "exitCode": 0
+            }
+          ],
+          "rawLine": 1397
+        }
+      ],
+      "testFailures": [
+        {
+          "line": 769,
+          "text": "FAIL  web/tests/device-login.test.tsx > treats revoked handoffs as closed and blocks changes when global admission is disabled"
+        },
+        {
+          "line": 788,
+          "text": "FAIL  web/tests/shared-model-directory.test.tsx > keeps each chat selection while switching projects and invalidates the shared catalog on account and runtime changes"
+        }
+      ],
+      "vitestSummary": [
+        {
+          "line": 802,
+          "text": "Test Files  2 failed | 183 passed | 2 skipped (187)"
+        },
+        {
+          "line": 806,
+          "text": "Tests  2 failed | 2053 passed | 16 skipped (2071)"
+        }
+      ]
+    },
+    {
+      "target": "windows",
+      "jobId": 124827646123,
+      "conclusion": "failure",
+      "rawLog": {
+        "path": ".work/v231-ci-windows-raw.txt",
+        "sha256": "4540782b62f707f635ee3df3b7571bb000251f559ea5d373394e467eb73c968e"
+      },
+      "rawBytes": 229910,
+      "rawCharacters": 228703,
+      "groups": [
+        {
+          "event": "ci-test-group",
+          "group": "javascript",
+          "state": "completed",
+          "status": "failed",
+          "exitCode": 1,
+          "selectedFiles": 187,
+          "cases": null,
+          "reason": null,
+          "rawLine": 992
+        },
+        {
+          "event": "ci-test-group",
+          "group": "deploy",
+          "state": "completed",
+          "status": "skipped",
+          "exitCode": 3,
+          "selectedFiles": 45,
+          "cases": {
+            "total": 574,
+            "passed": 475,
+            "failed": 0,
+            "skipped": 99,
+            "other": 0
+          },
+          "reason": null,
+          "rawLine": 1573
+        },
+        {
+          "event": "ci-test-group",
+          "group": "go",
+          "state": "completed",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 1,
+          "cases": {
+            "total": 20,
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "reason": null,
+          "phases": [
+            {
+              "name": "module-verification",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "test-discovery",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "go-test",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "executable-build",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "version-plugin-probe",
+              "status": "passed",
+              "exitCode": 0
+            }
+          ],
+          "rawLine": 1575
+        }
+      ],
+      "testFailures": [
+        {
+          "line": 947,
+          "text": "FAIL  web/tests/device-login.test.tsx > treats revoked handoffs as closed and blocks changes when global admission is disabled"
+        },
+        {
+          "line": 966,
+          "text": "FAIL  web/tests/shared-model-directory.test.tsx > keeps each chat selection while switching projects and invalidates the shared catalog on account and runtime changes"
+        }
+      ],
+      "vitestSummary": [
+        {
+          "line": 983,
+          "text": "Test Files  2 failed | 185 passed (187)"
+        },
+        {
+          "line": 984,
+          "text": "Tests  2 failed | 2064 passed | 5 skipped (2071)"
+        }
+      ]
+    },
+    {
+      "target": "linux-root",
+      "jobId": 124827646110,
+      "conclusion": "success",
+      "rawLog": {
+        "path": ".work/v231-ci-root-raw.txt",
+        "sha256": "5d1189c45c613c17ab6d89d23d33ac18ac050d1c324436a611a48714bdb0268c"
+      },
+      "rawBytes": 100869,
+      "rawCharacters": 100867,
+      "groups": [
+        {
+          "event": "ci-test-group",
+          "group": "deploy",
+          "state": "completed",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 23,
+          "cases": {
+            "total": 329,
+            "passed": 329,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "reason": null,
+          "rawLine": 644
+        }
+      ],
+      "testFailures": [],
+      "vitestSummary": []
+    }
+  ],
+  "actualCoverage": {
+    "jobId": 124829415228,
+    "conclusion": "failure",
+    "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124829415228",
+    "output": null,
+    "evidence": {
+      "path": ".work/v231-ci-coverage-raw.txt",
+      "sha256": "ae58a2b69e8b83822e2fac93d616c41feb8f3daf7daebe36fc34a260d187de2c"
+    },
+    "diagnosticLines": [
+      {
+        "line": 241,
+        "text": "2026-11-01T11:04:14.7331021Z CI validation refused: Incomplete or failed evidence for linux"
+      }
+    ]
+  },
+  "failedAssertions": [
+    {
+      "file": "web/tests/device-login.test.tsx",
+      "assertion": "expected true to be false",
+      "diagnosis": "Fixture checked login availability when handoff-close text appeared, before the following account read completed. Product in-flight guard remains correct.",
+      "repair": {
+        "path": ".work/v231-ci-device-login-repair.json",
+        "sha256": "984001a8c8808f341bde94c0d817e67e9249595ee234dfc1aaa6d6550537bf8d"
+      }
+    },
+    {
+      "file": "web/tests/shared-model-directory.test.tsx",
+      "assertion": "expected Beta model最高 to contain 读取模型设置",
+      "diagnosis": "Old fixture expected no model capabilities while a complete saved provider/model identity and current catalog already support the selection. Send readiness remains guarded.",
+      "repair": {
+        "path": ".work/v231-shared-model-directory-repair.json",
+        "sha256": "4db9bacc6b4e4809954ce63d0ac81075542c49615f4fc36d18d6a0b5e917ca70"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": 124829415228,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124829415228",
+      "started_at": "2026-11-01T11:04:08Z",
+      "completed_at": "2026-11-01T11:04:17Z"
+    },
+    {
+      "id": 124827646135,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827646135",
+      "started_at": "2026-11-01T10:55:56Z",
+      "completed_at": "2026-11-01T11:00:44Z"
+    },
+    {
+      "id": 124827646123,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827646123",
+      "started_at": "2026-11-01T10:55:56Z",
+      "completed_at": "2026-11-01T11:04:05Z"
+    },
+    {
+      "id": 124827646110,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827646110",
+      "started_at": "2026-11-01T10:55:56Z",
+      "completed_at": "2026-11-01T10:56:43Z"
+    },
+    {
+      "id": 124827506198,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827506198",
+      "started_at": "2026-11-01T10:55:16Z",
+      "completed_at": "2026-11-01T10:55:54Z"
+    },
+    {
+      "id": 124827506187,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562784/job/124827506187",
+      "started_at": "2026-11-01T10:55:17Z",
+      "completed_at": "2026-11-01T10:55:28Z"
+    },
+    {
+      "id": 124827506126,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562784/job/124827506126",
+      "started_at": "2026-11-01T10:55:16Z",
+      "completed_at": "2026-11-01T10:56:46Z"
+    },
+    {
+      "id": 124827505850,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562784/job/124827505850",
+      "started_at": "2026-11-01T10:55:17Z",
+      "completed_at": "2026-11-01T10:57:25Z"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 124827505850,
+      "run_id": 41299562784,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T10:55:17Z",
+      "completed_at": "2026-11-01T10:57:25Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562784/job/124827505850",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124827506126,
+      "run_id": 41299562784,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T10:55:16Z",
+      "completed_at": "2026-11-01T10:56:46Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562784/job/124827506126",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124827506187,
+      "run_id": 41299562784,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T10:55:17Z",
+      "completed_at": "2026-11-01T10:55:28Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562784/job/124827506187",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run npm install --global pnpm@11.22.0 --ignore-scripts --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run pnpm audit --audit-level high --json > dependency-audit.json",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 11,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124827506198,
+      "run_id": 41299562756,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T10:55:16Z",
+      "completed_at": "2026-11-01T10:55:54Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827506198",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Scan source and complete Git objects",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Select reviewed changes or source-bound full closeout",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124827646110,
+      "run_id": 41299562756,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T10:55:56Z",
+      "completed_at": "2026-11-01T10:56:43Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827646110",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Build actual Ledger as the unprivileged runner",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Run root fixtures only on the disposable hosted runner",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124827646123,
+      "run_id": 41299562756,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-11-01T10:55:56Z",
+      "completed_at": "2026-11-01T11:04:05Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827646123",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Prepare pinned Go and authenticated public modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Retain failed Go preparation logs",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 10,
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 11,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 12,
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "number": 13,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 24,
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 25,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 26,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 27,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124827646135,
+      "run_id": 41299562756,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-11-01T10:55:56Z",
+      "completed_at": "2026-11-01T11:00:44Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124827646135",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Prepare pinned Go and authenticated public modules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Retain failed Go preparation logs",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 10,
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 11,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 12,
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "number": 13,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 24,
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 25,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 26,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 27,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 124829415228,
+      "run_id": 41299562756,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-11-01T11:04:08Z",
+      "completed_at": "2026-11-01T11:04:17Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756/job/124829415228",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Require all identities and complement every skipped case",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "number": 6,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 11,
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "id": 41299562784,
+      "name": "Security checks",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T10:55:13Z",
+      "updated_at": "2026-11-01T10:57:25Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562784"
+    },
+    {
+      "id": 41299562756,
+      "name": "Reviewed checks",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T10:55:13Z",
+      "updated_at": "2026-11-01T11:04:18Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41299562756"
+    }
+  ],
+  "security": {
+    "workflow": "completed/success",
+    "review": {
+      "path": ".work/v231-codeql-final-review.json",
+      "sha256": "0764c89f453316a9673131ab3adaf08d8c30ef503ecf110ebb430545268868b7"
+    },
+    "openAlerts": 19,
+    "newAlerts": 0,
+    "note": "Actual alert dispositions separately reviewed; success does not mean zero alerts."
+  },
+  "repairValidation": {
+    "independentReview": {
+      "path": ".work/v231-ci1-repair-review.json",
+      "sha256": "daa94187f383c9d73044b77c29bef4d9fbd626697233edfbd23335d5a482b6d2"
+    },
+    "rootExecutedAffectedWebPartition": {
+      "evidence": {
+        "path": ".work/test-results/run-kAOXLa/vitest.json",
+        "sha256": "564eaf0e7b4aaced61a6de40063277ea2665ab3364a165b4ec42580f5515de84"
+      },
+      "files": 88,
+      "passed": 1121,
+      "failed": 0
+    },
+    "sourceAfterAuthorizedRepairs": {
+      "files": 1991,
+      "digest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6"
+    },
+    "note": "These local test-only repairs and subsequent affected-web run do not change the failed hosted candidate or grant full CI approval."
+  },
+  "evidence": {
+    "monitorStart": {
+      "path": ".work/v231-ci-monitor-start.json",
+      "sha256": "0a4ba675239a9f5ca6388f3cba41aae8f2f77edd397ef00fa05a935331a130e4"
+    },
+    "initialFailure": {
+      "path": ".work/v231-ci-failure-initial.json",
+      "sha256": "5e59a74142c136dca443d4c6594993ab6f32b81e80a0ba89cc042246b8dda7e6"
+    },
+    "observations": [
+      {
+        "path": ".work/v231-ci-observation-20261101T105602780279Z.json",
+        "sha256": "fb04b27f43d61005e966f5a8bb2abfd41e517cebabea215680bfb09ecb789b13"
+      },
+      {
+        "path": ".work/v231-ci-observation-20261101T105722920546Z.json",
+        "sha256": "e74078086d5dff8987cfec0823d66f3d72c7d1b239511520675c47a735a409bb"
+      },
+      {
+        "path": ".work/v231-ci-observation-20261101T105835200916Z.json",
+        "sha256": "a2766f738c8d9b3c5d9d9dc7169678f4038f3b9a2d2772e532051664afbb6af7"
+      },
+      {
+        "path": ".work/v231-ci-observation-20261101T105956284334Z.json",
+        "sha256": "a93390f81128bd530234951560ff28b47836f752aed11ef757154c941271aab1"
+      },
+      {
+        "path": ".work/v231-ci-observation-20261101T110110255745Z.json",
+        "sha256": "a3253ea63310af274cc15a3d014d124f4d66249d8919e9ac200552d7fe6578d7"
+      },
+      {
+        "path": ".work/v231-ci-observation-20261101T110229886422Z.json",
+        "sha256": "f57b0e2bfd4ce2158c76544c2f1a28a07af7f689c6f700a4b73d49dae5f1b922"
+      },
+      {
+        "path": ".work/v231-ci-observation-20261101T110350192318Z.json",
+        "sha256": "9bf8aab9d46506ad2a25046cc0263754b7e5e1f050c60c9e952589a591d42144"
+      },
+      {
+        "path": ".work/v231-ci-observation-20261101T110529875188Z.json",
+        "sha256": "de2d36045b9d64006d53ceee78ce0ed16deb149d54a77fd81dedc3e8b4f21e75"
+      }
+    ],
+    "finalRawResponses": [
+      {
+        "path": ".work/v231-ci-runs-20261101T110529875188Z.json",
+        "sha256": "b3fa5d28e4a67948abc07a831663bcc526e3c38b7c26e524c9bf32ebdbd03846",
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs?head_sha=c923ff9aca26ea6e6651e52772816c061664742d&per_page=100",
+        "httpStatus": 200,
+        "startedAt": "2026-11-01T11:05:29.904219+00:00",
+        "completedAt": "2026-11-01T11:05:31.002127+00:00",
+        "responseHeaders": {
+          "Date": "Sun, 01 Nov 2026 11:05:30 GMT",
+          "ETag": "W/\"3a0c7243837d8f9ea9529a936578d88dcc77a80eb7944c430cabba75b533040b\"",
+          "X-RateLimit-Limit": "60",
+          "X-RateLimit-Remaining": "29",
+          "X-RateLimit-Reset": "1793532174"
+        }
+      },
+      {
+        "path": ".work/v231-ci-checks-20261101T110529875188Z.json",
+        "sha256": "8992c8769addcf3161a51697b1c71a68ff990543cb1d3d579b3ae1efcdea750f",
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness/commits/c923ff9aca26ea6e6651e52772816c061664742d/check-runs?per_page=100",
+        "httpStatus": 200,
+        "startedAt": "2026-11-01T11:05:31.002127+00:00",
+        "completedAt": "2026-11-01T11:05:32.206585+00:00",
+        "responseHeaders": {
+          "Date": "Sun, 01 Nov 2026 11:05:31 GMT",
+          "ETag": "W/\"e2e104e6c5a5d65f7d939d195def24d513032e90d620c14251138f039102a508\"",
+          "X-RateLimit-Limit": "60",
+          "X-RateLimit-Remaining": "28",
+          "X-RateLimit-Reset": "1793532174"
+        }
+      },
+      {
+        "path": ".work/v231-ci-jobs-41299562784-20261101T110529875188Z.json",
+        "sha256": "64aa19e28c00ded97ded6e169f4132d23574f66cd490437ff5d11e2c54b8a9ec",
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41299562784/jobs?per_page=100",
+        "httpStatus": 200,
+        "startedAt": "2026-11-01T11:05:32.206585+00:00",
+        "completedAt": "2026-11-01T11:05:33.719568+00:00",
+        "responseHeaders": {
+          "Date": "Sun, 01 Nov 2026 11:05:33 GMT",
+          "ETag": "W/\"65e4ef3d82cb6464774e5badf8d17aac4c613fa4196d6b6e860f29a3ee333b1f\"",
+          "X-RateLimit-Limit": "60",
+          "X-RateLimit-Remaining": "27",
+          "X-RateLimit-Reset": "1793532174"
+        }
+      },
+      {
+        "path": ".work/v231-ci-jobs-41299562756-20261101T110529875188Z.json",
+        "sha256": "5d98c49372758676b63e60188c33806fa32670887d4d96b4b9d8fdf9f2ba24f0",
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41299562756/jobs?per_page=100",
+        "httpStatus": 200,
+        "startedAt": "2026-11-01T11:05:33.719568+00:00",
+        "completedAt": "2026-11-01T11:05:34.804013+00:00",
+        "responseHeaders": {
+          "Date": "Sun, 01 Nov 2026 11:05:34 GMT",
+          "ETag": "W/\"fb790cf045d906f6f3e5e312b11e4f2cde818f7fce64af5a5507a7c60d537181\"",
+          "X-RateLimit-Limit": "60",
+          "X-RateLimit-Remaining": "26",
+          "X-RateLimit-Reset": "1793532174"
+        }
+      }
+    ]
+  },
+  "method": [
+    "Public API GET only with strict TLS and >=60 seconds between poll batches; original responses/time/hash retained. No rerun/cancel/push.",
+    "Actual complete Linux/Windows/root/plan logs obtained by parent browser, parsed locally. Windows complete text length checked as saved by parent; no 200k-truncated intermediate is used.",
+    "Platform group failures and legitimate skips are preserved; no cross-platform duplicate case totals are represented as unique coverage.",
+    "Source edits after failure were explicitly authorized and limited to the two UI fixtures; source before and after remain distinct."
+  ],
+  "limits": [
+    "CI1 remains failed even though the focused repairs pass locally.",
+    "No full unique-case/gaps success exists for this run.",
+    "No new live account/model/MCP calls or server/deployment mutations."
+  ]
+}

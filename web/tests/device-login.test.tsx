@@ -294,11 +294,15 @@ it('keeps account handoff mounted across settings tabs and ordinary config refre
   expect(s.calls.filter((c) => c.method === 'account/login')).toHaveLength(1);
 });
 it('treats revoked handoffs as closed and blocks changes when global admission is disabled', async () => {
-  const s = setup((c) =>
-    c.method === 'account/login/handoff'
-      ? { fault: { code: 'not_found', message: 'expired', delivery: 'not_sent' } }
-      : undefined,
-  );
+  let reads = 0;
+  let finishRead!: (value: unknown) => void;
+  const s = setup((c) => {
+    if (c.method === 'account/read' && ++reads > 1)
+      return new Promise(resolve => { finishRead = resolve; });
+    if (c.method === 'account/login/handoff')
+      return { fault: { code: 'not_found', message: 'expired', delivery: 'not_sent' } };
+    return undefined;
+  });
   const view = render(<AccountSettings {...props(s)} enabled={false} />);
   fireEvent.click(screen.getByRole('button', { name: '使用 ChatGPT 登录' }));
   expect(s.calls.some((c) => c.method === 'account/login')).toBe(false);
@@ -306,9 +310,17 @@ it('treats revoked handoffs as closed and blocks changes when global admission i
   await start();
   await screen.findByText(/原登录交接已撤销或到期/);
   expect(screen.queryByText('PRIVATE-DEVICE-CODE')).toBeNull();
-  expect(
-    (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
-  ).toBe(false);
+  await screen.findByText('读取账户中…');
+  await waitFor(() => expect(finishRead).toBeTypeOf('function'));
+  const login = screen.getByRole('button', { name: '使用 ChatGPT 登录' });
+  expect(login).toHaveProperty('disabled', true);
+  fireEvent.click(login);
+  expect(s.calls.filter(c => c.method === 'account/login')).toHaveLength(1);
+  await act(async () => finishRead({ account: null }));
+  expect(await enabledButton({ name: '使用 ChatGPT 登录' })).toBe(login);
+  expect(reads).toBe(2);
+  expect(s.calls.filter(c => c.method === 'account/login')).toHaveLength(1);
+  expect(s.calls.filter(c => c.method === 'account/login/handoff')).toHaveLength(1);
 });
 it('does not turn accepted receipt without login identity into a fresh automatic login', async () => {
   const s = setup((c) => (c.method === 'account/login' ? {} : undefined));

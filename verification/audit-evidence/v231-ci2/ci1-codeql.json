@@ -1,0 +1,562 @@
+{
+  "schemaVersion": 1,
+  "kind": "v231-final-codeql-inventory-and-source-review",
+  "reviewerId": "/root/v230_audit_runtime",
+  "complete": true,
+  "codeScanningReviewComplete": true,
+  "completedAt": "2026-11-01T10:59:06.224956+00:00",
+  "head": "c923ff9aca26ea6e6651e52772816c061664742d",
+  "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "sourceFiles": 1991,
+  "securityRun": 41299562784,
+  "securityJobs": [
+    {
+      "id": 124827505850,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-11-01T10:57:25Z"
+    },
+    {
+      "id": 124827506126,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-11-01T10:56:46Z"
+    },
+    {
+      "id": 124827506187,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-11-01T10:55:28Z"
+    }
+  ],
+  "securityWorkflowAtSavedObservation": {
+    "status": "in_progress",
+    "conclusion": null,
+    "note": "Run/check responses were obtained before the later jobs response. The jobs response proves three completed successful security jobs; workflow overall conclusion remains as captured, not invented."
+  },
+  "actualCurrentHeadAlertInventoryObserved": true,
+  "currentHeadAnchor": {
+    "alert": 17,
+    "sourceUrl": "https://github.com/Luoyehe/codex-harness/blob/c923ff9aca26ea6e6651e52772816c061664742d/src/runtime/service.ts#L821-L821",
+    "line": 821,
+    "observedAt": "2026-11-01T10:57:48.712Z"
+  },
+  "openAlerts": 19,
+  "closedAlerts": 2,
+  "closedCountEvidence": "Parent explicitly observed the final list showing 2 Closed. Saved final list JSON enumerates19 open rows only; this reviewer does not claim it independently contains the closed counter or closed-alert details.",
+  "newAlertIds": [],
+  "automaticallyFixedAlertIds": [],
+  "reviewedCurrentAlerts": 16,
+  "uniqueCurrentSourcePaths": 13,
+  "inheritedUnchangedDispositions": 14,
+  "freshChangedDispositions": [
+    5,
+    17
+  ],
+  "legacyInventoryOnlyIds": [
+    2,
+    3,
+    4
+  ],
+  "alerts": [
+    {
+      "id": 21,
+      "source": {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+        "gitHeadBlob": "75ca73c7532e7a8b38e3b5732fc32bef81cc8d07"
+      },
+      "priorSha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+      "unchanged": true,
+      "disposition": "This is a negative assertion over six fixed URLs observed by an injected in-memory reader. startsWith rejects that entire prefix rather than authorizing a destination; the fixture Map also rejects all unexpected sources. Production validateContract requires exact four document URLs before I/O, fixed npm URLs are constructed internally, redirects are rejected and no MCP endpoint is called. No production host validation or SSRF defense relies on this assertion.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete URL substring sanitization\nHigh\nTest\n#21 opened  • Detected by CodeQL in tests/tooling/builtin-mcp.test.ts :24"
+    },
+    {
+      "id": 20,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+        "gitHeadBlob": "83138be3fbe670b4aed508daa06a42266f094780"
+      },
+      "priorSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Bad HTML filtering regexp\nHigh\n#20 opened  • Detected by CodeQL in scripts/check-builtin-mcp.mjs :63"
+    },
+    {
+      "id": 19,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+        "gitHeadBlob": "83138be3fbe670b4aed508daa06a42266f094780"
+      },
+      "priorSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete multi-character sanitization\nHigh\n#19 opened  • Detected by CodeQL in scripts/check-builtin-mcp.mjs :63"
+    },
+    {
+      "id": 18,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+        "gitHeadBlob": "83138be3fbe670b4aed508daa06a42266f094780"
+      },
+      "priorSha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete multi-character sanitization\nHigh\n#18 opened  • Detected by CodeQL in scripts/check-builtin-mcp.mjs :63"
+    },
+    {
+      "id": 17,
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "44b04fcf1e68529e2e634ee007aaabe516c15c114c4d5fb1ee72fa3116faf904",
+        "gitHeadBlob": "b83f4db29fe328b34dd9f376007b410089198b16"
+      },
+      "priorSha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef",
+      "unchanged": false,
+      "disposition": "The former UI location service.ts:723 has moved: current SHA256 sink is line821. It hashes canonical cwd, selected nonsecret model/permission options, current native configuration and generation solely into an in-memory equality key for the defaults cache/in-flight coalescing. It is not a password verifier and is neither persisted nor returned. Cache remains capped16 at855 and cleared on generation invalidation at799. Current new account-read probe selects the enabled ChatGPT provider, uses refreshToken:false, returns the official account response, and closes the probe; it does not read auth.json or output token fields. Current notifications invalidate the account/defaults generation and existing error/login-completion redaction remains. Cross-provider migration does not alter the hash purpose or introduce a diagnostic credential sink.",
+      "depth": "Fresh current hash inputs/uses/cache limits and new account/provider response/notification boundaries read.",
+      "codePoints": [
+        {
+          "path": "src/runtime/service.ts",
+          "line": 821,
+          "purpose": "actual current cache identity hash"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 855,
+          "purpose": "bounded memory-only cache"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 468,
+          "purpose": "ChatGPT account probe response boundary"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 225,
+          "purpose": "account generation invalidation"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 262,
+          "purpose": "existing notification redaction"
+        }
+      ],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#17 opened  • Detected by CodeQL in src/runtime/service.ts :821"
+    },
+    {
+      "id": 11,
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d",
+        "gitHeadBlob": "881dfa1547e45a6c0cf71f83082d454497673c89"
+      },
+      "priorSha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d",
+      "unchanged": true,
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#11 opened  • Detected by CodeQL in src/runtime/workspace-witness.ts :100"
+    },
+    {
+      "id": 10,
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+        "gitHeadBlob": "8f3df5f04a6c1ddd45c700ecc4734d34f4d82f75"
+      },
+      "priorSha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+      "unchanged": true,
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#10 opened  • Detected by CodeQL in src/runtime/input-context.ts :22"
+    },
+    {
+      "id": 9,
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+        "gitHeadBlob": "424bae35c57cae14add63e43ecd7476a84fe4df6"
+      },
+      "priorSha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+      "unchanged": true,
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#9 opened  • Detected by CodeQL in src/runtime/imports.ts :6"
+    },
+    {
+      "id": 8,
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+        "gitHeadBlob": "29570076a730b713f8dd3708acf83b5e6ad18352"
+      },
+      "priorSha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+      "unchanged": true,
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#8 opened  • Detected by CodeQL in src/runtime/attachments.ts :126"
+    },
+    {
+      "id": 7,
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+        "gitHeadBlob": "50bc4a3c0c0a99c1126adcf2083b64a1aad93c7b"
+      },
+      "priorSha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+      "unchanged": true,
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of password hash with insufficient computational effort\nHigh\n#7 opened  • Detected by CodeQL in src/core/validation.ts :40"
+    },
+    {
+      "id": 16,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+        "gitHeadBlob": "e1d8677cfeaa41772aca3feaa5e385eab7caf1f4"
+      },
+      "priorSha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "unchanged": true,
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of insecure SSL/TLS version\nHigh\nTest\n#16 opened  • Detected by CodeQL in tests/deploy/test_https_health.py :240"
+    },
+    {
+      "id": 15,
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a",
+        "gitHeadBlob": "c5f523ab5cbd32792ba14fb8a18583c9e07a9412"
+      },
+      "priorSha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a",
+      "unchanged": true,
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of a broken or weak cryptographic hashing algorithm on sensitive data\nHigh\n#15 opened  • Detected by CodeQL in deploy/install_recovery.py :186"
+    },
+    {
+      "id": 14,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+        "gitHeadBlob": "e1d8677cfeaa41772aca3feaa5e385eab7caf1f4"
+      },
+      "priorSha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+      "unchanged": true,
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Use of insecure SSL/TLS version\nHigh\nTest\n#14 opened  • Detected by CodeQL in tests/deploy/test_https_health.py :170"
+    },
+    {
+      "id": 13,
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+        "gitHeadBlob": "7b43ff3c22720ebefaf586980cfe4056930b825b"
+      },
+      "priorSha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+      "unchanged": true,
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Clear-text storage of sensitive information\nHigh\nTest\n#13 opened  • Detected by CodeQL in tests/deploy/test_dns_tls.py :33"
+    },
+    {
+      "id": 5,
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "78b61c735fd9ffab0ca95216621b456c7bf4bbe4c2f7d29e829b0269d0c8ccde",
+        "gitHeadBlob": "927e4de3f616848f53e5e8ea594cbb00d14783f6"
+      },
+      "priorSha256": "9b30c65bb2e654ff538d5de54e428134927ec22d43325022e9c187aa94f80c06",
+      "unchanged": false,
+      "disposition": "Current native_launcher.py:348 writes the selected managed Bedrock bearer only to the credential-helper stdout protocol, then returns; it is not a new diagnostic log. The complete fixed invocation/UID/GID/root authorization and provider-owned environment chain was reread at lines267-387: controlled native.json, fixed HOME, exact real/effective identity, restricted supplementary groups, root provider-env ownership/mode, enabled helper provider selection and bounded token checks precede output. This sink and its purpose remain unchanged. New file-store enforcement is confined to app-server/catalog-server and appends a fixed file setting after rejecting conflicting stores; its only new surfaced error is the static auth_store_unsupported message. Other launcher failures remain generic. No shared-auth token, file body or user TOML appears in these messages. The separately bound independent shared-auth review supplies author independence for those additions. Previously reviewed pinned official bearer consumer piping/trimming evidence is retained; not freshly fetched or a live descriptor observation.",
+      "depth": "Fresh current source/sink and added credential-policy boundary read, with separately bound independent review for reviewer-authored additions.",
+      "codePoints": [
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 306,
+          "purpose": "trusted actual execution identity"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 332,
+          "purpose": "protected provider environment and enabled helper selection"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 348,
+          "purpose": "intentional helper token protocol sink"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 365,
+          "purpose": "new managed file-store gate"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 379,
+          "purpose": "static or generic diagnostics only"
+        }
+      ],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Clear-text logging of sensitive information\nHigh\n#5 opened  • Detected by CodeQL in deploy/native_launcher.py :348"
+    },
+    {
+      "id": 3,
+      "pathQuery": "/Luoyehe/codex-harness/security/code-scanning?query=is%3Aopen+branch%3Amain+path%3Ascripts%2Fprovider-transaction.test.mjs",
+      "disposition": "Legacy inventory-only alert whose source path is outside the current rewrite tree. No archived repository or prior checkout source was opened; no new semantic dismissal, suppression or current-scan fix claim. Retain the last actual review inventory-only limitation.",
+      "depth": "metadata inventory only",
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Incomplete URL substring sanitization\nHigh\n#3 opened  • Detected by CodeQL in scripts/provider-transaction.tes... :111"
+    },
+    {
+      "id": 2,
+      "pathQuery": "/Luoyehe/codex-harness/security/code-scanning?query=is%3Aopen+branch%3Amain+path%3Aapps%2Fgateway%2Fsrc%2Findex.ts",
+      "disposition": "Legacy inventory-only alert whose source path is outside the current rewrite tree. No archived repository or prior checkout source was opened; no new semantic dismissal, suppression or current-scan fix claim. Retain the last actual review inventory-only limitation.",
+      "depth": "metadata inventory only",
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Missing rate limiting\nHigh\n#2 opened  • Detected by CodeQL in apps/.../src/index.ts :83"
+    },
+    {
+      "id": 6,
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "gitHeadBlob": "64c885e430769521bc304f50a3b7898de7cb41fe"
+      },
+      "priorSha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+      "unchanged": true,
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text.",
+      "depth": "Exact current local SHA256 and HEAD Git blob match; prior actual CI7 semantic disposition inherited at its recorded depth.",
+      "codePoints": [],
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Improper code sanitization\nMedium\nTest\n#6 opened  • Detected by CodeQL in tests/deploy/vision_stdio_probe.mjs :16"
+    },
+    {
+      "id": 4,
+      "pathQuery": "/Luoyehe/codex-harness/security/code-scanning?query=is%3Aopen+branch%3Amain+path%3Aapps%2Fgateway%2Ftest%2Frpc.test.ts",
+      "disposition": "Legacy inventory-only alert whose source path is outside the current rewrite tree. No archived repository or prior checkout source was opened; no new semantic dismissal, suppression or current-scan fix claim. Retain the last actual review inventory-only limitation.",
+      "depth": "metadata inventory only",
+      "inventoryStatus": "observed in final refreshed main inventory after completed CodeQL jobs; alert17 explicitly binds exact candidate source",
+      "finalUiText": "Improper code sanitization\nMedium\nTest\n#4 opened  • Detected by CodeQL in apps/.../test/rpc.test.ts :501"
+    }
+  ],
+  "sourceReview": {
+    "path": ".work/v231-codeql-source-review.json",
+    "sha256": "e7f58d19bef696e0f10dd334de0a5e911a592fc2fc2f68a4e0ee15116d071eec",
+    "kind": "source-bound current16 dispositions and new credential path review"
+  },
+  "newCredentialPathReview": {
+    "files": [
+      {
+        "path": "deploy/shared_auth.py",
+        "sha256": "c3c2d1d4979da54bf3caacf4733330e81d83cb66abfc6dfecd3d3d656afd2c61",
+        "gitHeadBlob": "a120f034717057ce572e44d45bb759e5bc79c528",
+        "depth": "Fresh whole module credential file metadata/move/journal/status source-to-output trace; author self-check, independent approval bound separately."
+      },
+      {
+        "path": "deploy/auth_storage_policy.py",
+        "sha256": "8d5fb24357c604c8672f0a9e3483bcaa83e43964cc6008765bd5089c53f10a30",
+        "gitHeadBlob": "be06d2d303ea27ac84b3f6bae0116033ed95d171",
+        "depth": "Fresh whole module bounded configuration read/error-output trace; author self-check, independent approval bound separately."
+      },
+      {
+        "path": "deploy/execution_mode.py",
+        "sha256": "2c1a58c619a16624f77f86f5c9f088a8013d81373abdabad0a9f7970a09d40c4",
+        "gitHeadBlob": "e1396e82832fc0642d8ce58d87b0135672fde747",
+        "depth": "Fresh stopped-service handoff/recovery callsites and returned summary; rest inherited deployment review."
+      },
+      {
+        "path": "deploy/manager.py",
+        "sha256": "5d9159bf4cdf827dae5301404f103a1f8d666d440d81f322cd820f9c43405006",
+        "gitHeadBlob": "cf5393eed04ec81f64b2549d0de31ebe3038c40b",
+        "depth": "Fresh shared-auth status/verify callsites; rest inherited deployment review."
+      },
+      {
+        "path": "deploy/control_update.py",
+        "sha256": "a7a775f490e696eddc176a7b829e5f76be87e4b61cdd1ed7725f5e8a9678b26f",
+        "gitHeadBlob": "f328e9bb896d289c3412ba86b0b4e4d46e93dba0",
+        "depth": "Current capability-guard callsite review; rest independently reviewed deployment evidence."
+      },
+      {
+        "path": "deploy/common.py",
+        "sha256": "c80442094f724745d70d1358522ea4625ca3d6ecd8f7a29a0ae85c6e3cc9946c",
+        "gitHeadBlob": "bc7cea31aa2881d3187ee849525ed64348b064c8",
+        "depth": "Current atomic_write/write_json sink implementation read to check0600 metadata journal."
+      },
+      {
+        "path": "deploy/provider_registry.py",
+        "sha256": "bd13c48a5271b36cb72f384d4c9dfc5cf83e276c39b7f51a025c49561c8bbe45",
+        "gitHeadBlob": "df62dea8481f143c327162f8e51f261cb0ca14d7",
+        "depth": "Current fixed credential-helper command generation boundary reviewed; rest inherited independent deployment evidence."
+      },
+      {
+        "path": "src/runtime/native.ts",
+        "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+        "gitHeadBlob": "c68804e098b996a775779efd24994587a5412ae9",
+        "depth": "Current stderr discard and owned native stdout protocol boundary checked; remainder prior exact-source runtime audit."
+      },
+      {
+        "path": "protocol/ts/v2/GetAccountResponse.ts",
+        "sha256": "e0d48a4d1993b7637062f347ebc7e943615de9b74c56afb2558ca1b024517cf3",
+        "gitHeadBlob": "1a2d05e30a2f144c1e07f84eac3ce3a51b93cc53",
+        "depth": "Fresh current official public account response schema read."
+      },
+      {
+        "path": "protocol/ts/v2/Account.ts",
+        "sha256": "122259e3439c0c0f63e53a2f2e0028a9e6f153b3bc16c1a705f640b98ff8bf37",
+        "gitHeadBlob": "1f1ad851c757eed0cc494c2a166ab7aa987bf33e",
+        "depth": "Fresh current account union read; no credential-bearing account field."
+      }
+    ],
+    "conclusions": [
+      "shared_auth does not parse/read auth.json credential bodies: it validates stat identity/mode/owner, opens only for identity/fsync/chown, and uses no-replace rename to transfer one active authority. Legacy backup and transfer files stay inside root-private0700 storage with0600 files; metadata journal contains mode/backups/inode/transaction only.",
+      "Normal and recovery execution transactions reach handoff after service stop. Their return value and manager status/verify contain only whitelisted shared/ready/activeMode/archivedLegacyModes/automaticRestore and fixed message summaries, not raw journal or auth contents.",
+      "File-store policy reads bounded TOML only for explicit storage admission, never reads keyring or copies token strings. Unsupported-store output is a fixed static message; other native launcher exceptions are generic. No credential output was introduced into diagnostics/status.",
+      "Credentials necessarily remain in the pinned official file store and intentional helper/environment consumer channels. That documented runtime storage is not represented as encryption at rest; authorized full host Root retains its intentional host access.",
+      "This reviewer authored shared_auth/auth_storage_policy and parts of their integration. Fresh sensitive-flow self-check is not an independent approval; use the separately bound gateway_tooling independent shared-auth and full deployment reports for that requirement."
+    ]
+  },
+  "findings": [],
+  "evidence": [
+    {
+      "path": ".work/v231-codeql-source-review.json",
+      "sha256": "e7f58d19bef696e0f10dd334de0a5e911a592fc2fc2f68a4e0ee15116d071eec",
+      "kind": "source-bound current16 dispositions and new credential path review"
+    },
+    {
+      "path": ".work/v231-codeql-final-ui.json",
+      "sha256": "04a5e1e2e1860b3cd0b8833b9db8709c8d4b30e7803502afbffd0674873b3ab9",
+      "kind": "parent final refreshed19-open-row main alert inventory"
+    },
+    {
+      "path": ".work/v231-codeql-17-ui.json",
+      "sha256": "e1889e5b6dd7a478ba0711cb90cf1ed68ad9f0222869d50babc7b6d4f0f273c5",
+      "kind": "parent actual alert17 current-head source location"
+    },
+    {
+      "path": ".work/v231-ci-observation-20261101T105722920546Z.json",
+      "sha256": "e74078086d5dff8987cfec0823d66f3d72c7d1b239511520675c47a735a409bb",
+      "kind": "read-only API observation; three security jobs completed successfully"
+    },
+    {
+      "path": ".work/v231-ci-runs-20261101T105722920546Z.json",
+      "sha256": "573537dd9e01c8e6c087a16ccefc91edbc7550a15e0f466b597f39b5b3777df0",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs?head_sha=c923ff9aca26ea6e6651e52772816c061664742d&per_page=100",
+      "httpStatus": 200,
+      "startedAt": "2026-11-01T10:57:22.948559+00:00",
+      "completedAt": "2026-11-01T10:57:24.032444+00:00",
+      "responseHeaders": {
+        "Date": "Sun, 01 Nov 2026 10:57:23 GMT",
+        "ETag": "W/\"bea65e0dde65174f727efcd38efcc31a05c54a71f099992b62656251ec5f6e72\"",
+        "X-RateLimit-Limit": "60",
+        "X-RateLimit-Remaining": "53",
+        "X-RateLimit-Reset": "1793532174"
+      },
+      "kind": "raw saved API response; hash verified; no new request"
+    },
+    {
+      "path": ".work/v231-ci-checks-20261101T105722920546Z.json",
+      "sha256": "151fd9e856f8bc156fb00e4da92d52de5bfff37c4825e18ad0fac519baee2017",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/commits/c923ff9aca26ea6e6651e52772816c061664742d/check-runs?per_page=100",
+      "httpStatus": 200,
+      "startedAt": "2026-11-01T10:57:24.032444+00:00",
+      "completedAt": "2026-11-01T10:57:25.339150+00:00",
+      "responseHeaders": {
+        "Date": "Sun, 01 Nov 2026 10:57:24 GMT",
+        "ETag": "W/\"df5b29bf6990fa46b18a0d25a5129872a7b70fa5b4dcf8421f1cefe588bc323f\"",
+        "X-RateLimit-Limit": "60",
+        "X-RateLimit-Remaining": "52",
+        "X-RateLimit-Reset": "1793532174"
+      },
+      "kind": "raw saved API response; hash verified; no new request"
+    },
+    {
+      "path": ".work/v231-ci-jobs-41299562784-20261101T105722920546Z.json",
+      "sha256": "64aa19e28c00ded97ded6e169f4132d23574f66cd490437ff5d11e2c54b8a9ec",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41299562784/jobs?per_page=100",
+      "httpStatus": 200,
+      "startedAt": "2026-11-01T10:57:25.339150+00:00",
+      "completedAt": "2026-11-01T10:57:26.300531+00:00",
+      "responseHeaders": {
+        "Date": "Sun, 01 Nov 2026 10:57:25 GMT",
+        "ETag": "W/\"65e4ef3d82cb6464774e5badf8d17aac4c613fa4196d6b6e860f29a3ee333b1f\"",
+        "X-RateLimit-Limit": "60",
+        "X-RateLimit-Remaining": "51",
+        "X-RateLimit-Reset": "1793532174"
+      },
+      "kind": "raw saved API response; hash verified; no new request"
+    },
+    {
+      "path": ".work/v231-ci-jobs-41299562756-20261101T105722920546Z.json",
+      "sha256": "c17a8eefaadd148db62579ca5caa0fd1bdb4ef26774ea70b750c7685c433c1d3",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41299562756/jobs?per_page=100",
+      "httpStatus": 200,
+      "startedAt": "2026-11-01T10:57:26.300531+00:00",
+      "completedAt": "2026-11-01T10:57:27.529299+00:00",
+      "responseHeaders": {
+        "Date": "Sun, 01 Nov 2026 10:57:26 GMT",
+        "ETag": "W/\"79692460409679a4578df0c911515c1ebbb4324cb5d5ea350d7692d880255413\"",
+        "X-RateLimit-Limit": "60",
+        "X-RateLimit-Remaining": "50",
+        "X-RateLimit-Reset": "1793532174"
+      },
+      "kind": "raw saved API response; hash verified; no new request"
+    }
+  ],
+  "method": [
+    "Validated all saved evidence hashes and raw security-job response head/status against exact current committed source. No new network or browser operation.",
+    "Matched final19 alert IDs to the initial inventory and source review; verified alert17 now links exact c923ff source at current hash sink821. No new ID appeared.",
+    "Rechecked current13 alert-source hashes and additional credential-flow source hashes. Retain14 exact-byte dispositions and the fresh5/17 review; preserve independent-author boundaries and shared-auth independent evidence.",
+    "Retain three legacy rows as inventory only without reading any archived product source. No dismissal or suppression performed."
+  ],
+  "fullTestGate": {
+    "claimedPassed": false,
+    "basis": "This closes CodeQL review only. Saved monitor still has Linux/Windows full tests in progress and fullGatePassed false; later full CI and coverage require their own evidence."
+  },
+  "limits": [
+    "19 alerts remain open and2 closed; no zero-alert claim. Existing current-source findings are reviewed semantic dispositions, not GitHub dismissals.",
+    "Only alert17 detail was freshly anchored to the exact commit in this evidence; remaining alert locations use final list metadata plus saved source dispositions and hash verification.",
+    "All three security jobs succeeded, but the saved run object still reports in_progress; this report does not assert an overall workflow/full test result.",
+    "Shared-auth additions include code authored by this reviewer; independent approval is the separately bound gateway_tooling shared-auth/deployment review, not this author source-flow self-check.",
+    "No tests, live credentials, network/browser/API, source edits, archived source, CI mutation, production operation or deployment."
+  ]
+}

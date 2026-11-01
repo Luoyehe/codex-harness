@@ -7724,6 +7724,37 @@
       ],
       "method": "Complete partition inventory with fresh changed-source and workflow reviews. Unchanged semantic review is explicitly inherited by exact byte identity; no claim of re-reading every unchanged generated line. Round1 WEB001 is preserved as nonclean; Round2 binds its independent repair review.",
       "sequence": 77
+    },
+    {
+      "id": "v231-round3",
+      "sequence": 78,
+      "digest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+      "complete": true,
+      "clean": true,
+      "startedAt": "2026-11-01T11:03:57.250Z",
+      "completedAt": "2026-11-01T11:06:18.562Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "root-with-independent-runtime-test-review",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v231-ci2/round3-team.json",
+          "sha256": "8fe5c59cbd93132068fac9f14d0b39d64a64be61c3c55b73e575b5fe8235bef3"
+        }
+      ],
+      "method": "Complete 1991-file snapshot revalidation after CI1. Exactly two test files changed; every production/runtime/deployment/protocol byte is unchanged from round2. Root and runtime reviewer independently reviewed changed test contracts and their actual component/hook callers; round2 independent full-partition semantic evidence is inherited explicitly for unchanged files. This is not a claim of rereading every unchanged generated line."
     }
   ],
   "fullTests": {
@@ -7815,12 +7846,12 @@
     "codeql": "verification/audit-evidence/v211-release/codeql-review.json",
     "newFullAuditsClaimed": 0
   },
-  "currentAuditSourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+  "currentAuditSourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
   "currentAuditGate": {
     "status": "passed",
-    "round": "v230-round16",
-    "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
-    "sourceFiles": 1984,
+    "round": "v231-round3",
+    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+    "sourceFiles": 1991,
     "requiredCleanRounds": 1,
     "userOverride": true
   },
@@ -8396,5 +8427,41 @@
       "path": "verification/audit-evidence/v230-release/closeout.json",
       "sha256": "7c7d86e08daf21aa17cb379a5c3f6392b339a8a26c6a77fd5b35508ac5eaff5c"
     }
+  },
+  "v231FullTestHistory": [
+    {
+      "attempt": 1,
+      "status": "failed",
+      "head": "c923ff9aca26ea6e6651e52772816c061664742d",
+      "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+      "run": 41299562756,
+      "securityRun": 41299562784,
+      "evidence": {
+        "path": "verification/audit-evidence/v231-ci2/ci1-failure.json",
+        "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb",
+        "original": {
+          "path": ".work/v231-ci1-failure-summary.json",
+          "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb"
+        }
+      }
+    }
+  ],
+  "v231FullTests": {
+    "status": "pending",
+    "attempt": 2,
+    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+    "sourceFiles": 1991,
+    "previousFailure": {
+      "path": "verification/audit-evidence/v231-ci2/ci1-failure.json",
+      "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb",
+      "original": {
+        "path": ".work/v231-ci1-failure-summary.json",
+        "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb"
+      }
+    }
+  },
+  "v231ReleaseDeployment": {
+    "status": "pending",
+    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6"
   }
 }

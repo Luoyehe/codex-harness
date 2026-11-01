@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "files": 88,
+  "passed": 1121,
+  "failed": 0,
+  "skipped": 0,
+  "evidence": {
+    "path": ".work/test-results/run-kAOXLa/vitest.json",
+    "sha256": "564eaf0e7b4aaced61a6de40063277ea2665ab3364a165b4ec42580f5515de84"
+  },
+  "scope": "Complete affected web/tests partition only; no server/runtime/deployment/Go rerun locally.",
+  "command": "node .work/v231-web-targeted.mjs",
+  "startedAt": "2026-11-01T11:03:27.107Z"
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "v231-ci-shared-model-directory-repair",
+  "status": "implemented-awaiting-parent-web-validation",
+  "complete": false,
+  "headAtFailure": "c923ff9aca26ea6e6651e52772816c061664742d",
+  "sourceAtFailure": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "files": [
+    {
+      "path": "web/tests/shared-model-directory.test.tsx",
+      "sha256": "943fed614a7d9a343081b5a2f30cf4968f45b98223d9dcbcb541dd89f7ba675b"
+    }
+  ],
+  "previousSha256": "b4dbb6c2af11eba984e095d4c82a9844229d4d1856b48befbc06e9bd6ec06b26",
+  "actualFailureEvidence": {
+    "path": ".work/v231-ci-linux-raw.txt",
+    "sha256": "07afa2ed445a8257e768a2ff18ff62cebdde9f20afa0594359f77700e20c8b3a"
+  },
+  "diagnosis": "Old integration assertion expected settings-loading despite a complete saved model+provider pair. Current ModelPicker intentionally resolves Beta/max from the current shared directory without waiting for thread/session defaults. Workspace and Composer still block sending until the session is ready.",
+  "reviewedProductionPaths": [
+    "web/components/ModelPicker.tsx",
+    "web/components/Composer.tsx",
+    "web/Workspace.tsx",
+    "web/hooks/usePaged.ts",
+    "web/hooks/useModelDirectory.tsx",
+    "web/lib/workflows.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/drafts.ts"
+  ],
+  "changes": [
+    "Assert complete Beta/shared saved selection and exact max capability while thread/session is held; exclude Alpha/high capability and prove send remains disabled/no mutation.",
+    "Hold model/list after account/updated: old directory capabilities disappear before the response, inputs/send stay blocked, both chat drafts/options remain.",
+    "Complete account refresh with an empty page and prove removed Alpha capability stays unavailable.",
+    "Hold another old-account page, switch ROOT/runtime epoch, load current Beta page, then release the stale fetch despite ignored AbortSignal; stale Alpha response cannot replace the current directory.",
+    "Retain exact directory sharing call counts and no mutation assertion. No sleeps, retries, polling-timeout changes or production rule relaxation."
+  ],
+  "productionModified": false,
+  "testsExecutedByThisAgent": false,
+  "validation": [
+    "git diff --check for the changed test passed.",
+    "Parent explicitly requested one unified affected web test partition run after both repairs; no individual test run was started."
+  ],
+  "limitations": [
+    "New assertions await parent unified run and independent review; this record is not a passing-test claim."
+  ]
+}

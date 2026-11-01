@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "kind": "v231-ci1-two-web-test-fixture-independent-review",
+  "reviewerId": "/root/v230_audit_runtime",
+  "complete": true,
+  "clean": true,
+  "reviewStatus": "static-independent-review-complete-parent-unified-web-validation-pending",
+  "completedAt": "2026-11-01T11:04:18.542575+00:00",
+  "failedHead": "c923ff9aca26ea6e6651e52772816c061664742d",
+  "failedSourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "failedRun": 41299562756,
+  "failedLinuxJob": 124827646135,
+  "files": [
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "sha256": "2585b7ba2ea50e16aebd9fb18c3a63b7eda550cecbddf3a72c14b4fab126b4da",
+      "previousSha256": "1effb7139558dc559e7ef595d35947c619d871eb5271298dca23410ccd489f93",
+      "depth": "fresh complete changed test and controlled fixture lifecycle read"
+    },
+    {
+      "path": "web/tests/shared-model-directory.test.tsx",
+      "sha256": "943fed614a7d9a343081b5a2f30cf4968f45b98223d9dcbcb541dd89f7ba675b",
+      "previousSha256": "b4dbb6c2af11eba984e095d4c82a9844229d4d1856b48befbc06e9bd6ec06b26",
+      "depth": "fresh complete changed test and controlled fixture lifecycle read"
+    }
+  ],
+  "unchangedProduction": [
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "sha256": "8f6977e1fca85ed9b9c62aab2e574ec6006ab169a32091ef71b36887d632dc55",
+      "unchangedFromFailedCandidate": true,
+      "depth": "fresh complete narrow hooks/ModelPicker or relevant account/Workspace/Composer readiness/refresh/source-owner boundaries; no product edits"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882",
+      "unchangedFromFailedCandidate": true,
+      "depth": "fresh complete narrow hooks/ModelPicker or relevant account/Workspace/Composer readiness/refresh/source-owner boundaries; no product edits"
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "sha256": "785871cfca580152385f9f691c76d4831aa503df503bc350cc1b04247c063021",
+      "unchangedFromFailedCandidate": true,
+      "depth": "fresh complete narrow hooks/ModelPicker or relevant account/Workspace/Composer readiness/refresh/source-owner boundaries; no product edits"
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "e520ceb1ccf5e4c69d7f20686fe6830077a93cb48997df127dd2a7fff77d7a75",
+      "unchangedFromFailedCandidate": true,
+      "depth": "fresh complete narrow hooks/ModelPicker or relevant account/Workspace/Composer readiness/refresh/source-owner boundaries; no product edits"
+    },
+    {
+      "path": "web/hooks/useModelDirectory.tsx",
+      "sha256": "6b652174c74d799e356a32295db098e492b190f508b060cc1f91f7b69d98b637",
+      "unchangedFromFailedCandidate": true,
+      "depth": "fresh complete narrow hooks/ModelPicker or relevant account/Workspace/Composer readiness/refresh/source-owner boundaries; no product edits"
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "sha256": "76090982db4a492a856db0416447e628ae3acfbc042c5f25692ddf4ed0398c49",
+      "unchangedFromFailedCandidate": true,
+      "depth": "fresh complete narrow hooks/ModelPicker or relevant account/Workspace/Composer readiness/refresh/source-owner boundaries; no product edits"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "b30f25e9539ba9be0f66e5716d969d3d4a8b61a4eff8eee5cf8c90766669942c",
+      "unchangedFromFailedCandidate": true,
+      "depth": "fresh complete narrow hooks/ModelPicker or relevant account/Workspace/Composer readiness/refresh/source-owner boundaries; no product edits"
+    }
+  ],
+  "currentDelta": {
+    "sourceFileCount": 1991,
+    "changedPaths": [
+      "web/tests/device-login.test.tsx",
+      "web/tests/shared-model-directory.test.tsx"
+    ],
+    "productionChanged": false,
+    "newCandidateDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6"
+  },
+  "findings": [],
+  "checks": [
+    {
+      "case": "revoked device-login handoff",
+      "conclusion": "Valid test-only lifecycle correction. The original handoff-closed status did not imply account refresh completion: finishLogin clears identity, sets status and calls account.refresh; useResource immediately hides the old request result under a new key. New fixture awaits dispatch of its second controlled account/read, asserts loading/disabled and no duplicate login on click, then resolves inside act and awaits enabledButton. Exact reads2/login1/handoff1, global-admission and private-code removal assertions remain. No timeout/sleep/retry or weaker production guard."
+    },
+    {
+      "case": "saved model/provider while session is pending",
+      "conclusion": "Original loading-text assertion conflicts with ModelPicker waitingDefaults at22, which deliberately waits only when the explicit model/provider pair is incomplete. Same-name Alpha/high vs Beta/max fixtures now require exact Beta pair/max, no Alpha effort, and blocked send/no mutation while Beta thread/session is held. This preserves display/selection capability separately from thread readiness; Composer button and imperative send still consult Workspace disabled state."
+    },
+    {
+      "case": "account invalidation and old epoch response",
+      "conclusion": "Controlled catalog captures the page before awaiting, so old and new responses carry distinct data. Account notifications change the resource owner and usePaged synchronously hides prior items; tests assert disabled selectors and no old effort capabilities while held, then empty completion with draft preservation. A separately captured old Alpha response is released only after ROOT epoch loads Beta; stale data cannot replace the current directory even with a fetch fixture ignoring AbortSignal. Final call count4, separate draft values and no mutation remain asserted."
+    },
+    {
+      "case": "evidence and scope",
+      "conclusion": "Compared all1991 current source hashes to failed Round2: exactly the two authorized test files differ. Author account targeted24/24 result hash/counts verified. Shared-model author appropriately claims no run; parent owns one unified Web partition run. Original Linux failure remains failed and is not reclassified by this static review."
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v231-ci-device-login-repair.json",
+      "sha256": "984001a8c8808f341bde94c0d817e67e9249595ee234dfc1aaa6d6550537bf8d",
+      "kind": "account fixture author diagnosis and24-test evidence"
+    },
+    {
+      "path": ".work/v231-shared-model-directory-repair.json",
+      "sha256": "4db9bacc6b4e4809954ce63d0ac81075542c49615f4fc36d18d6a0b5e917ca70",
+      "kind": "shared model fixture author diagnosis; unified validation pending"
+    },
+    {
+      "path": ".work/v231-ci-linux-raw.txt",
+      "sha256": "07afa2ed445a8257e768a2ff18ff62cebdde9f20afa0594359f77700e20c8b3a",
+      "kind": "actual failed Linux run, both original failures retained"
+    },
+    {
+      "path": ".work/test-results/run-drX6Go/vitest.json",
+      "sha256": "4ad835b336e1d37799598bd5e1cbc62e5825cf7173125aa151ddc260cecdcd5a",
+      "kind": "author previously completed affected account/settings tests; not rerun"
+    },
+    {
+      "path": ".work/v231-round2-snapshot.json",
+      "sha256": "4e7e0ebcde4af444642d8543241b68a07dc7b6acc48838e96cc9dd515c21da9d",
+      "kind": "failed-candidate source baseline; current test delta only"
+    },
+    {
+      "path": ".work/v231-round3-snapshot.json",
+      "sha256": "70b4e74100978156df5153e2b6574e1f1776e5bed80edcdaec924347866df1c2",
+      "kind": "final round3 frozen source; exactly two reviewed fixture changes"
+    },
+    {
+      "path": ".work/builtin-mcp-freshness-3922cafb-f9ee-43fa-99a6-ff42ad243d5c.json",
+      "sha256": "ef4335eb4a33e5323cab9531ae6d7afea39968254dc06a825ffe0ab1301834f5",
+      "kind": "parent unique final-source builtin freshness; current/issues[]; no duplicate network"
+    }
+  ],
+  "validation": {
+    "reviewerTestsExecuted": false,
+    "accountAuthorTargeted": {
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "path": ".work/test-results/run-drX6Go/vitest.json",
+      "sha256": "4ad835b336e1d37799598bd5e1cbc62e5825cf7173125aa151ddc260cecdcd5a"
+    },
+    "sharedModelValidation": "pending parent unified Web run",
+    "parentUnifiedWebRun": {
+      "started": true,
+      "reportedSession": 68264,
+      "log": ".work/v231-web-targeted.log",
+      "resultObservedByReviewer": false
+    }
+  },
+  "limits": [
+    "This review binds final round3 source but does not assert the pending unified Web run passed, a whole-repository clean audit or fullCI2 success; parent separately closes full inventory inheritance and validation.",
+    "The controlled account intermediate state is proven by product contract and fixture sequencing; exact hosted scheduler ordering is not reproduced or claimed. Shared-model failure is a stale expectation, not evidence of product capability leakage.",
+    "No production/source edits, tests, network, live login/model/MCP, CI/deployment, commit or gate change by this reviewer. Previous candidate/stage authorization remains obsolete/disabled for the changed test source."
+  ],
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "roundId": "v231-round3"
+}

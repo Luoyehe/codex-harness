@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "createdAt": "2026-11-01T11:02:29.801Z",
+  "kind": "v231-ci-device-login-fixture-repair",
+  "failedHead": "c923ff9aca26ea6e6651e52772816c061664742d",
+  "failedSourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+  "failedRun": 41299562756,
+  "failedJob": 124827646135,
+  "failure": {
+    "file": "web/tests/device-login.test.tsx",
+    "test": "treats revoked handoffs as closed and blocks changes when global admission is disabled",
+    "line": 311,
+    "expected": false,
+    "received": true,
+    "rawEvidence": {
+      "path": ".work/v231-ci-linux-raw.txt",
+      "sha256": "07afa2ed445a8257e768a2ff18ff62cebdde9f20afa0594359f77700e20c8b3a"
+    },
+    "rawLines": [
+      769,
+      782
+    ],
+    "disposition": "Fixture awaited handoff-close text, which is not the completion of the subsequent account read. Product readiness guard is correct and unchanged."
+  },
+  "cause": "not_found handoff invokes finishLogin: clear code/identity, publish the closed status, then account.refresh. useResource invalidates its requestKey and exposes loading until the new read completes. The previous immediate disabled=false assertion could run during that legitimate intermediate state.",
+  "changes": [
+    "Control the second account/read response with a promise owned by this test.",
+    "After the handoff-close status, explicitly wait for the second read to be dispatched and assert that login remains disabled; clicking it cannot create a second login.",
+    "Resolve the account read, then await the existing enabledButton helper and assert exactly two reads, one login and one handoff. Original global-admission and secret-removal assertions remain."
+  ],
+  "productionChanged": false,
+  "files": [
+    {
+      "path": "web/tests/device-login.test.tsx",
+      "sha256": "2585b7ba2ea50e16aebd9fb18c3a63b7eda550cecbddf3a72c14b4fab126b4da",
+      "previousSha256": "1effb7139558dc559e7ef595d35947c619d871eb5271298dca23410ccd489f93"
+    }
+  ],
+  "unchangedProduction": [
+    {
+      "path": "web/components/AccountSettings.tsx",
+      "sha256": "8f6977e1fca85ed9b9c62aab2e574ec6006ab169a32091ef71b36887d632dc55"
+    },
+    {
+      "path": "web/hooks/useResource.ts",
+      "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882"
+    }
+  ],
+  "validation": {
+    "command": "node scripts/run-tests.mjs --targeted web/tests/device-login.test.tsx web/tests/settings-drafts.test.tsx",
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "exitCode": 0,
+    "evidence": {
+      "path": ".work/test-results/run-drX6Go/vitest.json",
+      "sha256": "4ad835b336e1d37799598bd5e1cbc62e5825cf7173125aa151ddc260cecdcd5a"
+    },
+    "checks": [
+      {
+        "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+        "exitCode": 0,
+        "toolChunk": "5bd5ef"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "toolChunk": "f05dab"
+      }
+    ]
+  },
+  "limits": [
+    "No production guard was weakened and no timeout extension, fixed sleep or retry was added.",
+    "The controlled response establishes the legitimate intermediate state deterministically; it does not claim to reproduce the exact full hosted scheduler ordering.",
+    "Local jsdom with real Api/receipt code and controlled HTTP fixture; no live login/logout, server change, full repository test, push or deployment.",
+    "The failed CI remains failed. The separate shared-model-directory failure is handled by the other owner and is not claimed fixed here."
+  ]
+}
