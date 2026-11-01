@@ -1,5 +1,6 @@
 """Service-specific proxy policy tests; nft, network and services are substituted."""
 import copy
+import hashlib
 import json
 import os
 import tempfile
@@ -8,7 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from deploy.common import DeployError, Layout
+from deploy.common import DeployError, Layout, canonical
 from deploy import service_proxy as proxy
 
 
@@ -68,12 +69,44 @@ class ServiceProxyTests(unittest.TestCase):
                          [("127.0.0.1", 18790, "dokodemo-door"), ("::1", 18790, "dokodemo-door"), ("127.0.0.1", 18791, "http")])
         self.assertEqual(value["outbounds"], [{**original, "tag": "proxy"}, {"tag": "direct", "protocol": "freedom", "settings": {}}])
         self.assertNotIn("api", value)
+        self.assertEqual(value["routing"]["domainStrategy"], "AsIs")
+        self.assertTrue(all(row["sniffing"]["routeOnly"] is False for row in value["inbounds"][:2]))
         rules = value["routing"]["rules"]
         self.assertEqual(rules[0]["domain"], ["domain:localhost", "domain:bigmodel.cn"])
         self.assertTrue(all(row["outboundTag"] == "direct" for row in rules))
         self.assertIn({"type": "field", "domain": ["geosite:cn"], "outboundTag": "direct"}, rules)
         self.assertEqual(source["outbounds"][0]["tag"], "untrusted-original")
         self.assertEqual(proxy.outbound({"outbound": original}), {**original, "tag": "proxy"})
+
+    def test_only_exact_current_and_legacy_generated_policies_are_accepted(self):
+        current = proxy.configuration(vless(), 18790)
+        legacy = copy.deepcopy(current)
+        legacy["routing"]["domainStrategy"] = "IPIfNonMatch"
+        for row in legacy["inbounds"][:2]: row["sniffing"]["routeOnly"] = True
+        for document in (current, legacy):
+            data = canonical(document) + b"\n"
+            value = {**selected(), "configuration": hashlib.sha256(data).hexdigest()}
+            with patch.object(proxy, "private_file", return_value=data):
+                proxy.verify_configuration(self.layout, value)
+                with self.assertRaisesRegex(DeployError, "digest"):
+                    proxy.verify_configuration(self.layout, selected())
+        for strategy, flags in (("AsIs", (True, True)), ("IPIfNonMatch", (False, False)),
+                                ("AsIs", (False, True)), ("IPOnDemand", (False, False))):
+            modified = copy.deepcopy(current)
+            modified["routing"]["domainStrategy"] = strategy
+            # Replace the shared sniff object to exercise asymmetric inbounds.
+            for row, flag in zip(modified["inbounds"][:2], flags):
+                row["sniffing"] = {**row["sniffing"], "routeOnly": flag}
+            data = canonical(modified) + b"\n"
+            with self.subTest(strategy=strategy, flags=flags), patch.object(proxy, "private_file", return_value=data), self.assertRaisesRegex(DeployError, "fixed generated policy"):
+                proxy.verify_configuration(self.layout, {**selected(), "configuration": hashlib.sha256(data).hexdigest()})
+        for change in (lambda doc: doc["inbounds"][0].update(listen="0.0.0.0"),
+                       lambda doc: doc["routing"]["rules"].append({"type": "field", "network": "tcp", "outboundTag": "direct"}),
+                       lambda doc: doc["inbounds"][2].update(port=18800)):
+            modified = copy.deepcopy(legacy); change(modified)
+            data = canonical(modified) + b"\n"
+            with patch.object(proxy, "private_file", return_value=data), self.assertRaisesRegex(DeployError, "fixed generated policy"):
+                proxy.verify_configuration(self.layout, {**selected(), "configuration": hashlib.sha256(data).hexdigest()})
 
     def test_import_rejects_ambiguous_or_unrelated_outbound_fields_and_invalid_ports(self):
         for value in (None, {"outbounds": []}, {"outbounds": [vless(), vless()]}, {"outbounds": [vless()] * 17},

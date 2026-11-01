@@ -65,6 +65,9 @@ export class RuntimeService extends EventEmitter {
   private closed = false;
   private attachments: Attachments;
   private defaultsCache = new Map<string, JsonValue>();
+  private defaultsGeneration = 0;
+  private defaultsReaders = 0;
+  private defaultsFlight: { key: string; result: Promise<JsonValue | undefined> } | undefined;
   private defaultsPending = false;
   private defaultsProbe: NativeRpc | undefined;
   private providers: ManagedProviders;
@@ -134,7 +137,7 @@ export class RuntimeService extends EventEmitter {
         // The CLI can edit native configuration and sessions independently. Its
         // confirmed exit requires a fresh epoch, not a permanent unknown state.
         if (this.closed || this.restarting) return;
-        this.restarting = true; this.defaultsCache.clear(); this.sessions.clear(); this.historyStore.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); this.emitState(); this.emit('restart-required');
+        this.restarting = true; this.invalidateDefaults(); this.sessions.clear(); this.historyStore.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); this.emitState(); this.emit('restart-required');
       }, failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: (operation, context) => this.configurationMutation(operation, context, false), available: () => this.admit(undefined, false, true), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.deviceLogin = new DeviceLogin({ native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor });
@@ -219,7 +222,7 @@ export class RuntimeService extends EventEmitter {
     if (this.processes.notification(method, params)) return;
     if (this.realtime.notification(method, params)) return;
     if (method === 'account/updated' || method === 'account/login/completed') {
-      this.defaultsCache.clear(); this.accountReadGeneration++; this.accountProbe = undefined;
+      this.invalidateDefaults(); this.accountReadGeneration++; this.accountProbe = undefined;
     }
     if (typeof params.threadId === 'string') {
       const state = this.track(params.threadId); state.revision++;
@@ -550,7 +553,7 @@ export class RuntimeService extends EventEmitter {
         const value = await this.native.call(method, params, { ...options, beforeWrite: () => { beforeWrite(); options.beforeWrite?.(); } });
         acknowledged = true; return value;
       }, beforeWrite);
-      if (invalidate) { this.defaultsCache.clear(); this.sessions.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); } return result;
+      if (invalidate) { this.invalidateDefaults(); this.sessions.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); } return result;
     } catch (error) {
       // Local postprocessing cannot turn a positive native reply into proof
       // that no configuration operation ran, including in multi-write flows.
@@ -695,21 +698,62 @@ export class RuntimeService extends EventEmitter {
     try { await this.native.respond(prompt.requestId, params.response, () => { if (this.prompts.get(id) !== prompt) throw new DeliveryError('prompt_unavailable', 'Prompt resolved before write'); context.beforeWrite?.(); }); this.closePrompt(prompt, 'answered'); return {}; }
     finally { prompt.answering = false; }
   }
+  private invalidateDefaults(): void { this.defaultsGeneration++; this.defaultsCache.clear(); }
   private async defaults(params: JsonObject): Promise<JsonValue> {
-    if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime is closing');
-    onlyKeys(params, ['cwd', 'options']); const cwd = params.cwd === undefined ? this.config.cwd : this.cwd(params.cwd); const selected = this.threadOptions(params.options, false);
-    if (this.config.launcher) await resolveNativeProject(this.config, cwd);
-    const config = object(await this.native.call('config/read', { cwd, includeLayers: false })); jsonBytes(config.config, 256 * 1024); const key = createHash('sha256').update(canonical({ cwd, selected, config: config.config! })).digest('hex');
-    if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime closed during the defaults read');
-    const cached = this.defaultsCache.get(key); if (cached) return cached;
-    if (this.defaultsPending) throw new DeliveryError('capacity', 'Another effective-defaults probe is running'); this.defaultsPending = true;
+    this.admit(); onlyKeys(params, ['cwd', 'options']);
+    const cwd = params.cwd === undefined ? this.config.cwd : this.cwd(params.cwd);
+    if (this.defaultsReaders >= LIMITS.pending) throw new DeliveryError('capacity', 'Effective-defaults read capacity exhausted');
+    this.defaultsReaders++; const deadline = Date.now() + 30000;
+    const check = (): void => {
+      this.admit();
+      if (Date.now() >= deadline) throw new DeliveryError('timeout', 'Effective-defaults read deadline exceeded');
+    };
+    const wait = <T>(pending: Promise<T>, delivery: 'not_sent' | 'unknown'): Promise<T> => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new DeliveryError('timeout', 'Effective-defaults read deadline exceeded', delivery)), Math.max(0, deadline - Date.now()));
+      pending.then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
+    });
+    try {
+      for (;;) {
+        check(); const generation = this.defaultsGeneration, selected = this.threadOptions(params.options, false);
+        if (this.config.launcher) await wait(resolveNativeProject(this.config, cwd), 'not_sent');
+        check();
+        const config = object(await wait(this.native.call('config/read', { cwd, includeLayers: false }), 'unknown'));
+        jsonBytes(config.config, 256 * 1024); check();
+        if (generation !== this.defaultsGeneration) continue;
+        const key = createHash('sha256').update(canonical({ cwd, selected, config: config.config!, generation })).digest('hex');
+        const cached = this.defaultsCache.get(key); if (cached) return cached;
+        const active = this.defaultsFlight;
+        if (active) {
+          if (active.key === key) {
+            const result = await wait(active.result, 'unknown');
+            if (result !== undefined && generation === this.defaultsGeneration) { check(); return result; }
+          } else {
+            // An unrelated key owns the one process. Its result/error is not
+            // this caller's; after cleanup reread configuration and ownership.
+            try { await wait(active.result, 'not_sent'); } catch { check(); }
+          }
+          continue;
+        }
+        this.defaultsPending = true;
+        const flight = { key, result: this.probeDefaults(cwd, selected, key, generation, deadline) };
+        this.defaultsFlight = flight;
+        flight.result = flight.result.finally(() => { if (this.defaultsFlight === flight) this.defaultsFlight = undefined; });
+        const result = await wait(flight.result, 'unknown');
+        if (result !== undefined && generation === this.defaultsGeneration) { check(); return result; }
+      }
+    } finally { this.defaultsReaders--; }
+  }
+  private async probeDefaults(cwd: string, selected: JsonObject, key: string, generation: number, deadline: number): Promise<JsonValue | undefined> {
     let probe: NativeRpc | undefined;
     try {
-      probe = new NativeRpc({ ...this.config, cwd, isolatedGroup: true }); this.defaultsProbe = probe; probe.on('fatal', () => {});
-      await probe.initialize(); const result = object(await probe.call('thread/start', { cwd, ...selected, ephemeral: true }));
+      const remaining = (): number => { const value = deadline - Date.now(); if (value <= 0) throw new DeliveryError('timeout', 'Effective-defaults probe deadline exceeded', 'unknown'); return value; };
+      const timeout = (): number => Math.max(1, Math.min(this.config.requestTimeoutMs || 30000, remaining()));
+      probe = new NativeRpc({ ...this.config, cwd, isolatedGroup: true, requestTimeoutMs: timeout() }); this.defaultsProbe = probe; probe.on('fatal', () => {});
+      await probe.initialize(); const result = object(await probe.call('thread/start', { cwd, ...selected, ephemeral: true }, { timeoutMs: timeout() }));
       const defaults: JsonObject = {}; for (const name of ['model', 'modelProvider', 'reasoningEffort', 'approvalPolicy', 'sandbox', 'activePermissionProfile', 'cwd']) defaults[name] = result[name] ?? null;
       // Closing the entire dedicated process is the cleanup acknowledgement; unsubscribe is not sufficient.
       await probe.close(); if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime closed during the defaults probe');
+      if (generation !== this.defaultsGeneration) return undefined;
       if (this.defaultsCache.size >= 16) this.defaultsCache.delete(this.defaultsCache.keys().next().value!); this.defaultsCache.set(key, defaults); return defaults;
     } finally {
       try { await probe?.close(); }
