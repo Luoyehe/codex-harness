@@ -90,7 +90,7 @@ def control_material(layout: Layout) -> dict[str, tuple[bytes, int]]:
     result.update(control_launchers(layout))
     from .dns_providers import PROVIDERS
     result["capabilities.json"] = (canonical({"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1, "executionMode": 1, "serviceProxy": 1,
-                                             "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1,
+                                             "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1, "threadHistoryRepair": 1,
                                              "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1",
                                              "dnsProviders": list(PROVIDERS)}) + b"\n", 0o644)
     return result

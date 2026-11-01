@@ -41,7 +41,7 @@ codex.exe app-server generate-ts --experimental --out protocol/ts
 | 目标 | 0.164.0 方法与要点 |
 | --- | --- |
 | 项目 | schema 含 `project/list/read/create/import/update/move/delete`。`project/create` 需要 `name, roots, idempotencyKey`；若应用自管目录项目，线程仍明确传 cwd。不要把项目 id 当作路径。 |
-| 列表 | `thread/list` 分页；明确 `sourceKinds:["cli","vscode","appServer","exec"]`，防止默认过滤掉 app-server 会话；按需要传 cwd / projectId / archived / modelProviders。持续读取 nextCursor。 |
+| 列表 | `thread/list` 分页；明确 `sourceKinds:["cli","vscode","appServer","exec"]`，防止默认过滤掉 app-server 会话。展示全部供应商时须显式传 `modelProviders:[]`，省略会按当前默认供应商过滤。按需传 cwd / projectId / archived，持续读取 nextCursor。 |
 | 新建 | `thread/start` 至少显式传 cwd 和选定 provider/model；sandbox 与 permissions 互斥。响应保存 `thread.id`、`thread.sessionId`、`thread.historyMode`，不要从其中一个推导另一个。 |
 | 查看 | `thread/read {threadId}` 只读元数据、不订阅。 |
 | 恢复 | `thread/resume {threadId,excludeTurns:true}` 加载并订阅，之后才能继续 turn。优先 id，不用 unstable path/history 导入。 |
@@ -51,6 +51,8 @@ codex.exe app-server generate-ts --experimental --out protocol/ts
 | 命名/归档 | `thread/name/set {threadId,name}`；`thread/archive` / `thread/unarchive`。删除接口具有永久性，不能混用归档和删除。 |
 
 本版本 `ThreadListParams` 支持 `projectId/sectionId`，但没有网页部分示例中的 `isPinned`；不要凭网页示例添加该字段。`Thread.turns=[]` 不等于没有历史。新历史以分页为主；完整 `includeTurns` 仅用于兼容。
+
+`thread/unsubscribe` 的成功回包不证明写入器已经关闭。需要修改持久历史时，须先订阅并等待对应 `thread/closed`，再通过上游 `thread-writer-locks` 协调锁排除旧写入器与新写入器。受管 app-server 固定 `thread_unload_delay_secs=0`，普通活动任务仍由上游决定何时允许卸载；网页断开不等于中断模型任务。
 
 ## 输入、流式事件和状态
 

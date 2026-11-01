@@ -1,6 +1,6 @@
 {
   "name": "codex-harness",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,6 +10,7 @@
   "codexVersion": "0.164.0",
   "harnessAuthentication": "account-v1",
   "codexHarnessExecutionMode": 1,
+  "codexHarnessThreadHistory": 1,
   "scripts": {
     "release:preflight": "node scripts/release-preflight.mjs",
     "build:server": "tsc -p tsconfig.server.json",

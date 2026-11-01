@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import os
 from .common import digest, read_json, require
 
 FIELDS = {"executionMode", "rootAllowed", "executionGeneration"}
@@ -42,6 +43,11 @@ def native_settings(layout, config: dict) -> dict:
 
 
 def require_application(layout, release: str | None, config: dict, *, enabling: bool = False) -> None:
+    if release is not None:
+        package = read_json(layout.app / "releases" / release / "app/package.json")
+        if package.get("codexHarnessThreadHistory") is not None:
+            capability = read_json(layout.control / "capabilities.json", 4096)
+            require_history_control(layout, capability, release=release)
     if not enabling and config.get("executionMode", "native") != "root":
         return
     require(release is not None, "Install the application before changing execution permissions", "not_installed")
@@ -54,3 +60,21 @@ def require_control(capabilities: dict, config: dict, *, enabling: bool = False)
     if enabling or managed(config):
         require(capabilities.get("executionMode") == 1,
                 "Update trusted control tools before enabling root; this generation does not support execution identities", "execution_unsupported")
+
+
+def require_history_control(layout, capabilities: dict, *, release: str | None = None) -> None:
+    if release is None:
+        pointer = layout.app / "current"
+        if not pointer.is_symlink():
+            require(not pointer.exists(), "Release pointer is not a symlink", "corrupt_state")
+            return
+        target = os.readlink(pointer)
+        require(re.fullmatch(r"releases/[0-9a-f]{64}", target) is not None, "Invalid release pointer", "corrupt_state")
+        release = target.split("/")[1]
+    package = read_json(layout.app / "releases" / release / "app/package.json")
+    if package.get("codexHarnessThreadHistory") is not None:
+        require(type(package["codexHarnessThreadHistory"]) is int and package["codexHarnessThreadHistory"] == 1,
+                "Unsupported application history helper contract", "history_unsupported")
+        require(type(capabilities.get("threadHistoryRepair")) is int and capabilities["threadHistoryRepair"] == 1,
+                "This application requires history repair support; update control tools first or restore a compatible application before selecting old control tools",
+                "history_unsupported")

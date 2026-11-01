@@ -24,9 +24,21 @@ export function usePaged<T>(
   const running = useRef(false);
   const [snapshotKey, setSnapshotKey] = useState<string>();
   const validate = (value: unknown, current: T[]) => {
-    const result = object(value),
-      data = result.data ?? result.threads ?? result.models ?? result.servers;
-    if (!Array.isArray(data)) throw new Error('目录响应格式无效。');
+    const result = object(value), raw = result.data ?? result.threads ?? result.models ?? result.servers;
+    if (!Array.isArray(raw)) throw new Error('目录响应格式无效。');
+    let data: unknown[] = raw;
+    if (method === 'thread/list' && result.liveData !== undefined) {
+      const live = result.liveData;
+      if (!Array.isArray(live) || live.length > 128 || live.some(row => typeof object(row).id !== 'string') ||
+          JSON.stringify(live).length > 2_000_000)
+        throw new Error('正在运行的会话目录响应无效。');
+      // New native threads may not have reached the persistent index. The
+      // runtime supplies its known creations separately so its cursor is intact.
+      // An indexed copy always wins; never show a duplicate on a later page.
+      const rows = new Map<string, unknown>();
+      for (const row of [...live, ...data]) rows.set(String(object(row).id), row);
+      data = [...rows.values()];
+    }
     const next = result.nextCursor;
     if (
       next !== null &&
@@ -44,7 +56,8 @@ export function usePaged<T>(
       ? result.providerErrors.slice(0, 16).map(value => {
         const failure = object(value);
         return `${String(failure.name ?? '供应商').slice(0, 64)}：${String(failure.message ?? '模型目录读取失败').slice(0, 300)}`;
-      }) : [];
+      }) : method === 'thread/list' && result.liveDataTruncated === true
+        ? ['正在建立索引的会话较多。可在“已加载会话”查看其余会话，或稍后刷新列表。'] : [];
     return { data: data as T[], next: typeof next === 'string' ? next : null, warning: warnings.join('；') };
   };
   useEffect(() => {
@@ -106,7 +119,9 @@ export function usePaged<T>(
         merged.set(method === 'model/list' ? JSON.stringify([row.modelProvider ?? '', identity]) : identity, item);
       }
       setItems([...merged.values()]);
-      setWarning(page.warning);
+      // Later native pages have no live-data snapshot and cannot clear its
+      // first-page truncation notice. A fresh directory read resets it.
+      if (method !== 'thread/list' || object(value).liveDataTruncated !== undefined) setWarning(page.warning);
       setCursor(page.next);
     } catch (e) {
       if (epoch.current === gen) setError(message(e));

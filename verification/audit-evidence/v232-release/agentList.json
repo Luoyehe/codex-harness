@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "task": "agent-list-provider-filter-confirmation",
+  "complete": true,
+  "completedAt": "2026-11-01T13:11:48.496552+00:00",
+  "findingStatus": "disproved; no product defect in relation-filtered native agent listing",
+  "productionChange": false,
+  "files": [
+    {
+      "path": "src/runtime/workflows.ts",
+      "sha256": "40fe15d7d5b2c368110945663c7b58a3c58e7bb463214376cab6c65df6cf13bf",
+      "bytes": 22192
+    },
+    {
+      "path": "tests/runtime/workflows.test.ts",
+      "sha256": "bd44e1cdd5f1f66a83d59a20d249f778892fb7435e57f27b38747aaf1fd2d311",
+      "bytes": 38221
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "sha256": "55930c78e0760dc4d5e1d0e16172791a12e3ed78f324173dababe7feb16046ed",
+      "bytes": 19076
+    }
+  ],
+  "officialEvidence": {
+    "path": ".work/v230-native-resume-semantics-0164/thread_processor.rs",
+    "sha256": "0c806ff3aaf348f7373032171d55ff110dfd30bcbb5cfabded89330b5b4375b6",
+    "bytes": 271312,
+    "gitBlob": "4d104e2d5e3818577d3725c801cc06c5c44d053a",
+    "pathInPinnedTree": "codex-rs/app-server/src/request_processors/thread_processor.rs",
+    "ref": "rust-v0.164.0",
+    "lines": "list_threads_common, 5919-5929",
+    "branch": "None if relation_filter.is_some() => None; only unscoped list omission defaults to configured provider"
+  },
+  "proof": [
+    "Fresh isolated HOME with parent provider B, child A, child B, unrelated same-project thread and foreign-project descendant; only metadata/user fixture records were seeded before native startup.",
+    "Both omitted-provider ancestor list and Harness thread/agents/list return exactly A+B; ancestor, sourceKinds and cwd exclusions remain effective.",
+    "Actual cursor pagination limit=1 returns both children without duplication. No turn/start, model endpoint or tool operation is invoked by the new metadata case.",
+    "The temporary explicit [] production argument and its unit assertion were reverted byte-for-byte; git diff for workflows.ts/workflows.test.ts is empty."
+  ],
+  "validation": {
+    "passed": 41,
+    "failed": 0,
+    "skipped": 0,
+    "files": 2,
+    "evidence": {
+      "path": ".work/test-results/run-2t7uSv/vitest.json",
+      "sha256": "f2a8a7c227e9f9ff475e9b5759513ad4b8b43e97eeb8a1dd2dc278f3a5040e2b",
+      "bytes": 13693
+    },
+    "log": {
+      "path": ".work/v231-agent-provider-list-final-tests.txt",
+      "sha256": "e13e9b3af10126b39ac931ca76bcf7b177c7a78c71e781b72be812f6e22f6059",
+      "bytes": 11242
+    },
+    "typesExitCode": 0,
+    "typesLog": {
+      "path": ".work/v231-agent-provider-list-tsc.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "history": {
+    "evidence": {
+      "path": ".work/test-results/run-NmWaiX/vitest.json",
+      "sha256": "6b0c5b77cefb2f131e37c0deb54c9027a6ad272355c4b832d7b1de9e325e010b",
+      "bytes": 14253
+    },
+    "passed": 40,
+    "failed": 1,
+    "explanation": "Incorrect initial baseline expected only default-provider child. Actual official CLI returned both; corrected expectation based on verified upstream special-case, not weakened product behavior."
+  },
+  "priorRuntimeAuthor": {
+    "path": ".work/v231-reasoning-runtime-implementation.json",
+    "sha256": "e48fdb36b6e4cf70fa1c0e1ad4f79eb4c316186ac41b3de8932c4e45a12e1f33",
+    "bytes": 9752
+  },
+  "binding": "Only workflows-native.test.ts supersedes its prior author-report hash, adding this true native metadata regression; production runtime history code is unchanged.",
+  "limits": [
+    "No full tests, live service changes, inference, personal credentials or external MCP.",
+    "A child with missing provider definition was readable as indexed metadata; this test does not claim model execution on that provider."
+  ]
+}

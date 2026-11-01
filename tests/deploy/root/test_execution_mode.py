@@ -40,7 +40,7 @@ class ExecutionModeRootTests(unittest.TestCase):
         write_json(self.layout.config / "instance.json", self.config)
         write_json(self.layout.config / "native.json", native_settings(self.layout, self.config), mode=0o644)
         atomic_write(self.layout.config / "gateway-token", b"fixture-token-not-personal" * 3, 0o640, 0, 65532)
-        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "sharedChatgptAuth": 1}, mode=0o644)
+        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "sharedChatgptAuth": 1, "threadHistoryRepair": 1}, mode=0o644)
         for name, content in render_units(self.layout, self.config, self.config["codexRelative"]).items():
             atomic_write(self.layout.units / name, content.encode(), 0o644)
         atomic_write(paths(self.layout)["sudo"], sudo_rule(self.layout).encode(), 0o440)
@@ -133,6 +133,26 @@ class ExecutionModeRootTests(unittest.TestCase):
         self.assertEqual(snapshot(self.layout), before);self.assertEqual(self.system.active, {"gateway", "worker"})
         self.manager.require_update_ready(persist=False)
         self.assertEqual(self.manager.verify()["executionMode"]["mode"], "native")
+
+    def test_old_execution_snapshot_recovery_adds_only_fixed_history_helper(self):
+        self.grant()
+        capability_path = self.layout.control / "capabilities.json"
+        capabilities = read_json(capability_path); capabilities.pop("threadHistoryRepair")
+        write_json(capability_path, capabilities, mode=0o644)
+        old = sudo_rule(self.layout, config=self.manager.config, legacy_thread_history=True).encode()
+        atomic_write(paths(self.layout)["sudo"], old, 0o440)
+        pending = []
+        def crash(path, value, **kwargs):
+            write_json(path, value, **kwargs)
+            if path.name == "state.json" and value.get("phase") == "selected":
+                pending.append(path); raise PowerLoss()
+        with patch("deploy.execution_mode.write_json", side_effect=crash), self.assertRaises(PowerLoss):
+            change(self.manager, self.params("root"))
+        capabilities["threadHistoryRepair"] = 1; write_json(capability_path, capabilities, mode=0o644)
+        recover(self.manager, pending[0], read_json(pending[0]))
+        self.assertEqual(paths(self.layout)["sudo"].read_bytes(), sudo_rule(self.layout, config=self.manager.config).encode())
+        self.assertEqual(self.manager.verify()["sudoPolicy"], "current")
+        self.assertEqual(self.manager.config["executionMode"], "native")
 
     def test_first_root_to_native_migration_prefers_current_login_and_retains_other(self):
         from deploy.execution_mode import prepare_home
@@ -283,9 +303,11 @@ class ExecutionModeRootTests(unittest.TestCase):
                 result = subprocess.run([sys.executable, "-B", "-c", code, "app-server"], capture_output=True, timeout=10)
                 self.assertEqual(result.returncode, 0, result.stderr.decode())
                 self.assertEqual(json.loads(result.stdout)[-2:], ["-c", 'cli_auth_credentials_store="file"'])
+                self.assertIn('thread_unload_delay_secs=0', json.loads(result.stdout))
                 catalog = subprocess.run([sys.executable, "-B", "-c", code, "catalog-server", "fixture_catalog"], capture_output=True, timeout=10)
                 self.assertEqual(catalog.returncode, 0, catalog.stderr.decode())
                 self.assertIn('cli_auth_credentials_store="file"', json.loads(catalog.stdout))
+                self.assertIn('thread_unload_delay_secs=0', json.loads(catalog.stdout))
                 self.assertEqual(json.loads(catalog.stdout)[-2:], ["-c", 'model_provider="fixture_catalog"'])
                 user_config = Path(native_settings(self.layout, config)["home"]) / "config.toml"
                 old = user_config.read_bytes()
@@ -298,6 +320,51 @@ class ExecutionModeRootTests(unittest.TestCase):
                     self.assertIn("不会自动读取或迁移 keyring", denied.stderr.decode())
                 self.assertEqual(user_config.read_bytes(), b'cli_auth_credentials_store = "auto"\n')
                 atomic_write(user_config, old, 0o600, uid, uid)
+
+    def test_history_helper_uses_real_fixed_uid_without_provider_secrets_or_other_home_access(self):
+        import gzip
+        from deploy.execution_mode import prepare_home
+        thread_id = "00000000-0000-4000-8000-000000000001"
+        def record(kind, payload):
+            return (json.dumps({"type": kind, "payload": payload}) + "\n").encode()
+        self.grant()
+        prepare_home(self.layout, {**self.manager.config, "executionMode": "root"})
+        for parent in [self.layout.state, self.layout.config, *self.layout.config.parents]:
+            if parent == self.root or self.root in parent.parents: parent.chmod(0o755)
+        for mode in ("native", "root"):
+            with self.subTest(mode=mode):
+                uid = 0 if mode == "root" else 65534
+                config = {**self.manager.config, "executionMode": mode}
+                settings = native_settings(self.layout, config)
+                write_json(self.layout.config / "instance.json", config)
+                write_json(self.layout.config / "native.json", settings, mode=0o644)
+                home = Path(settings["home"])
+                mkdir(home / "sessions", 0o700, uid, uid)
+                path = home / "sessions" / ("rollout-" + thread_id + ".jsonl")
+                original = record("session_meta", {"id": thread_id, "history_mode": "paginated"}) + record("response_item", {
+                    "type": "reasoning", "summary": [], "content": [{"type": "reasoning_text", "text": "synthetic private reasoning"}]})
+                atomic_write(path, original, 0o600, uid, uid)
+                code = "import os,sys;from pathlib import Path;from deploy import native_launcher as n;from deploy.common import Layout;" + \
+                       "n.Layout=lambda _:Layout('fixture',Path(" + repr(str(self.root)) + "));" + \
+                       "read=n.read_json;n.read_json=lambda p,*a:read(p,*a) if p.name!='native-env.json' else (_ for _ in ()).throw(AssertionError('provider secrets opened'));" + \
+                       ("os.setgroups([65534]);os.setgid(65534);os.setuid(65534);" if mode == "native" else "os.setgroups([0]);") + \
+                       "sys.argv=['native-launch','thread-history'];n.native_main('fixture')"
+                def invoke(request):
+                    return subprocess.run([sys.executable, "-B", "-c", code], input=json.dumps(request).encode(), capture_output=True, timeout=10)
+                request = {"action": "inspect", "threadId": thread_id, "path": str(path), "mode": "foreign"}
+                inspected = invoke(request); self.assertEqual(inspected.returncode, 0, inspected.stderr.decode())
+                proof = json.loads(inspected.stdout); self.assertTrue(proof["needsRepair"])
+                repaired = invoke({**request, "action": "repair", "expected": proof["expected"]})
+                self.assertEqual(repaired.returncode, 0, repaired.stderr.decode())
+                self.assertTrue(json.loads(repaired.stdout)["repaired"])
+                backup = next((home / "harness-history-backups").glob("*.jsonl.gz"))
+                self.assertEqual(gzip.decompress(backup.read_bytes()), original)
+                self.assertEqual((backup.stat().st_uid, backup.stat().st_mode & 0o777), (uid, 0o600))
+                self.assertEqual(path.stat().st_uid, uid)
+                self.assertNotIn(b"synthetic private reasoning", inspected.stdout + repaired.stdout)
+                outside = invoke({**request, "path": str(self.root / "outside.jsonl")})
+                self.assertEqual(outside.returncode, 1)
+                self.assertEqual(json.loads(outside.stdout)["error"]["delivery"], "not_sent")
 
     def test_real_uid_native_denied_root_private_project_root_allowed(self):
         self.grant()

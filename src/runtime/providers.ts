@@ -88,6 +88,13 @@ export class ManagedProviders {
     const rows = this.connections.filter(row => row.enabled && (row.kind === 'chatgpt' || row.kind === 'chatgpt-gateway'));
     return rows.some(row => row.modelProvider === this.nativeProvider) ? undefined : rows[0]?.modelProvider;
   }
+  requiresOpaqueReasoning(provider: JsonValue | undefined): boolean {
+    const row = this.connections.find(value => this.matches(value, provider));
+    return row ? row.kind === 'chatgpt' || row.kind === 'chatgpt-gateway' : provider === 'openai';
+  }
+  sameProvider(source: JsonValue | undefined, target: JsonValue | undefined): boolean {
+    return source === target || this.connections.some(row => this.matches(row, source) && this.matches(row, target));
+  }
   assertThread(provider: JsonValue | undefined, options: JsonValue | undefined): void {
     const requested = options === undefined ? undefined : object(options).modelProvider;
     const actual = this.connections.find(row => row.enabled && this.matches(row, provider));

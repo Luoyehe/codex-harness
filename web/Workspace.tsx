@@ -2,7 +2,7 @@ import { uuid } from './lib/ids';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Api, RpcError } from './lib/api';
 import { Events } from './lib/events';
-import { consumeThreadOperations, listOperations, reconcileOperation } from './lib/operations';
+import { acknowledgeOperation, consumeThreadOperations, listOperations, reconcileOperation } from './lib/operations';
 import {
   array,
   message,
@@ -40,6 +40,7 @@ import { usePrompts } from './hooks/usePrompts';
 import { useDraft } from './hooks/useDraft';
 import { useResume } from './hooks/useResume';
 import { useModelCatalogRefresh } from './hooks/useModelCatalogRefresh';
+import { useSidebarRefresh } from './hooks/useSidebarRefresh';
 import { ModelDirectoryContext } from './hooks/useModelDirectory';
 import { Sidebar } from './components/Sidebar';
 import { Recovery, useOperations } from './components/Recovery';
@@ -53,6 +54,7 @@ import { Settings } from './components/Settings';
 import { EmergencyRecovery } from './components/EmergencyRecovery';
 import { RootExecutionNotice } from './components/ExecutionModeSettings';
 import { Dialog } from './components/Dialog';
+import { HistoryConversionDialog } from './components/HistoryConversionDialog';
 import { Icon } from './components/Icon';
 import { UsagePopover } from './components/UsagePopover';
 import { RenameDialog } from './components/RenameDialog';
@@ -110,7 +112,6 @@ export function Workspace({
     draftState = useDraft(contextKey),
     draft = draftState.text,
     options = draftState.options;
-  const setOptions = draftState.setOptions;
   const [threadOrder, setThreadOrder] = useState<'recency_at' | 'section_position'>('recency_at');
   const [archived, setArchived] = useState(false),
     [query, setQuery] = useState(''),
@@ -336,6 +337,9 @@ export function Workspace({
     threadListKey,
     Boolean(projectId && search),
   );
+  const refreshSidebar = useSidebarRefresh(events, resourceEpoch, {
+    projects: projectsResource.refresh, threads: threads.refresh, search: searchThreads.refresh,
+  });
   const selectedArchived =
     archiveSelection?.threadId === threadId && archiveSelection.epoch === resourceEpoch
       ? archiveSelection.archived
@@ -432,6 +436,127 @@ export function Workspace({
         ? op.threadId === threadId || op.resolvedThreadId === threadId
         : op.projectId === projectId && INPUT_METHODS.includes(op.method)),
   );
+  type ConversionConsent = { sourceProvider: string; targetProvider: string };
+  type ConversionPrompt = ConversionConsent & {
+    action: 'select' | 'send' | 'load'; current: () => boolean; finish: (confirmed: boolean) => void;
+    mayContinue: boolean;
+  };
+  const [conversionPrompt, setConversionPrompt] = useState<ConversionPrompt>();
+  const conversionPending = useRef<ConversionPrompt | undefined>(undefined);
+  const conversionConsent = useRef<{ scope: string; consent: ConversionConsent } | undefined>(undefined);
+  const sourceProvider = typeof threadDefaults?.modelProvider === 'string' ? threadDefaults.modelProvider :
+    typeof object(conversation.thread).modelProvider === 'string' ? object(conversation.thread).modelProvider as string : undefined;
+  // Do not bind approval to message text: users normally choose a model before typing.
+  // Actual sends below additionally bind the exact draft revision until dispatch.
+  const { thread: _conversionThread, ...conversionSettings } = threadDefaults ?? {};
+  const conversionScope = JSON.stringify([threadId, draftMode, navigation.current, resourceEpoch,
+    resumedThread, sourceProvider, conversionSettings]);
+  const conversionLive = useRef({ scope: conversionScope, options: JSON.stringify(options), ready: false, running: false });
+  conversionLive.current = { scope: conversionScope, options: JSON.stringify(options), ready:
+    active && !executionBlocked && network.connection === 'connected' && network.runtimeConnected && network.activityReady,
+    running: conversation.active };
+  const finishConversion = (confirmed: boolean) => {
+    const prompt = conversionPending.current;
+    if (!prompt) return;
+    conversionPending.current = undefined;
+    setConversionPrompt(undefined);
+    prompt.finish(confirmed && prompt.current());
+  };
+  useEffect(() => {
+    if (!active) finishConversion(false);
+  }, [active]);
+  useEffect(() => () => {
+    const prompt = conversionPending.current;
+    conversionPending.current = undefined;
+    prompt?.finish(false);
+  }, []);
+  const confirmConversion = (consent: ConversionConsent, action: ConversionPrompt['action'], current: () => boolean, mayContinue = false) => {
+    if (conversionPending.current || !current()) return Promise.resolve(false);
+    return new Promise<boolean>(finish => {
+      const prompt = { ...consent, action, current, finish, mayContinue };
+      conversionPending.current = prompt;
+      setConversionPrompt(prompt);
+    });
+  };
+  const selectedConsent = (target: string | undefined) => {
+    const saved = conversionConsent.current;
+    return saved?.scope === conversionScope && saved.consent.sourceProvider === sourceProvider &&
+      saved.consent.targetProvider === target ? saved.consent : undefined;
+  };
+  const canonicalProvider = (provider: string) => {
+    const matches = new Set(models.items.filter(row => row.modelProvider === provider || row.providerAliases?.includes(provider))
+      .map(row => row.modelProvider).filter((id): id is string => typeof id === 'string'));
+    return matches.size === 1 ? [...matches][0]! : provider;
+  };
+  const sameProvider = (target: string) => sourceProvider !== undefined && canonicalProvider(target) === canonicalProvider(sourceProvider);
+  const setOptions = (next: Options) => {
+    if (conversionPending.current) return;
+    const modelChanged = next.model !== options.model || next.modelProvider !== options.modelProvider;
+    if (threadId && !sourceProvider && modelChanged) {
+      setError('会话原供应商尚未读取，请等会话读取完成后重新选择模型；当前选择未改变。');
+      return;
+    }
+    if (modelChanged) setError(current => current === '会话原供应商尚未读取，请等会话读取完成后重新选择模型；当前选择未改变。' ? '' : current);
+    const target = next.modelProvider ? canonicalProvider(next.modelProvider) : sourceProvider;
+    if (!threadId || !sourceProvider || !target || sameProvider(target)) {
+      conversionConsent.current = undefined;
+      draftState.setOptions(next);
+      return;
+    }
+    if (selectedConsent(target)) { draftState.setOptions(next); return; }
+    const scope = conversionScope, previous = JSON.stringify(options);
+    const current = () => conversionLive.current.ready && conversionLive.current.scope === scope &&
+      conversionLive.current.options === previous;
+    const consent = { sourceProvider, targetProvider: target };
+    void confirmConversion(consent, 'select', current).then(confirmed => {
+      if (!confirmed || !current()) return;
+      conversionConsent.current = { scope, consent };
+      draftState.setOptions(next);
+    });
+  };
+  const conversionMutation = async (method: 'turn/start' | 'thread/resume', params: Record<string, unknown>) => {
+    const scope = conversionScope, requested = object(params.options).modelProvider ?? sourceProvider;
+    // Native warm turns keep the actual identity when the selected catalog row
+    // is merely its documented alias (for example openai -> harness_chatgpt).
+    const target = typeof requested !== 'string' ? requested : method === 'turn/start' && sameProvider(requested)
+      ? sourceProvider : canonicalProvider(requested);
+    const unchangedDraft = draftState.canLeave, selectedOptions = JSON.stringify(options);
+    const current = () => conversionLive.current.ready && conversionLive.current.scope === scope &&
+      conversionLive.current.options === selectedOptions &&
+      (method === 'thread/resume' || !conversionLive.current.running && unchangedDraft());
+    const requireCurrent = () => { if (!current()) throw new Error('会话或草稿已变化，请重新操作。'); };
+    let consent = selectedConsent(typeof target === 'string' ? target : undefined);
+    if (!consent && sourceProvider && typeof target === 'string' && !sameProvider(target)) {
+      consent = { sourceProvider, targetProvider: target };
+      if (!await confirmConversion(consent, method === 'turn/start' ? 'send' : 'load', current, method === 'thread/resume' && params.automatic !== true)) return false;
+      requireCurrent();
+      conversionConsent.current = { scope, consent };
+    }
+    const submit = (approved?: ConversionConsent) => api.beginMutation(method,
+      { ...params, ...(approved ? { historyConversionConsent: approved } : {}) },
+      approved ? requireCurrent : undefined, draftMode).result;
+    try { await submit(consent); return true; }
+    catch (failure) {
+      const data = failure instanceof RpcError ? failure.data : undefined;
+      if (!(failure instanceof RpcError) || failure.delivery !== 'not_sent' ||
+        failure.code !== 'history_conversion_confirmation_required' || data?.conversionRequired !== true ||
+        data.threadId !== params.threadId || typeof data.sourceProvider !== 'string' || !data.sourceProvider ||
+        typeof data.targetProvider !== 'string' || !data.targetProvider ||
+        data.sourceProvider.length > 80 || data.targetProvider.length > 80 ||
+        (sourceProvider !== undefined && data.sourceProvider !== sourceProvider) ||
+        (target !== undefined && data.targetProvider !== target) || consent) throw failure;
+      // This request is proven not sent. Keep the durable server receipt; dismiss
+      // only this local expected rejection, never an unknown or unrelated record.
+      if (failure.operationId) await acknowledgeOperation(failure.operationId);
+      requireCurrent();
+      consent = { sourceProvider: data.sourceProvider, targetProvider: data.targetProvider };
+      if (!await confirmConversion(consent, method === 'turn/start' ? 'send' : 'load', current, method === 'thread/resume' && params.automatic !== true)) return false;
+      requireCurrent();
+      conversionConsent.current = { scope, consent };
+      await submit(consent); // One new, explicitly approved operation; no replay loop.
+      return true;
+    }
+  };
   const directInputAllowed =
     !conversation.thread?.parentThreadId || conversation.thread.canAcceptDirectInput === true;
   const workflowEnabled =
@@ -532,7 +657,7 @@ export function Workspace({
     setError('');
     try {
       await api.mutate(nextArchived ? 'thread/archive' : 'thread/unarchive', { threadId: target });
-      threads.refresh();
+      refreshSidebar();
       if (navigation.current === nav) {
         setArchiveSelection({ threadId: target, archived: nextArchived, epoch: resourceEpoch });
         if (canLeave()) navigate('');
@@ -559,7 +684,7 @@ export function Workspace({
       nav = navigation.current,
       canLeaveAfterAcceptance = draftState.canLeaveAfterAcceptance;
     if (
-      !projectId || executionBlocked ||
+      !projectId || executionBlocked || conversionPending.current ||
       pending ||
       isBusy ||
       draftState.error ||
@@ -603,7 +728,7 @@ export function Workspace({
             id: target, navigation: nav, message: '新会话已创建，后续输入仍保留在这里。',
           });
         }
-        threads.refresh();
+        refreshSidebar();
       } else if (intent === 'queue')
         await submit('thread/queue/add', {
           threadId: target,
@@ -620,7 +745,7 @@ export function Workspace({
           attachmentIds: attachments.map((a) => a.attachmentId),
         });
       else
-        await submit('turn/start', {
+        return await conversionMutation('turn/start', {
           threadId: target,
           text,
           ...context,
@@ -645,7 +770,7 @@ export function Workspace({
   const modalNavigation = navigation.current;
   const loadThread = async (automatic = false) => {
     if (
-      !threadId ||
+      !threadId || conversionPending.current ||
       pending ||
       isBusy ||
       !resume.requiresResume ||
@@ -669,7 +794,7 @@ export function Workspace({
           throw new Error('所选思考强度已不适用于当前模型，请重新选择或恢复模型默认强度。');
         modelOptions = { modelProvider: options.modelProvider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
       }
-      await api.mutate('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) });
+      if (!await conversionMutation('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) })) return;
       if (navigation.current === nav) setResumeRevision((v) => v + 1);
     } catch (e) {
       if (navigation.current === nav) {
@@ -698,7 +823,7 @@ export function Workspace({
     options.modelProvider, options.model, options.effort, models.loading,
     pending, isBusy, conversation.ready, operations.error, network.connection, network.runtimeConnected, network.activityReady]);
   const workflowChanged = () => {
-    threads.refresh();
+    refreshSidebar();
     if (navigation.current === modalNavigation) {
       conversation.refresh();
       setResumeRevision((v) => v + 1);
@@ -708,6 +833,7 @@ export function Workspace({
     if (navigation.current === modalNavigation) openThread(id);
   };
   const workflowHandoff = (id: string) => {
+    refreshSidebar();
     if (navigation.current !== modalNavigation) return;
     if (draftState.canLeave()) openThread(id);
     else setCompletedHandoff({
@@ -769,6 +895,7 @@ export function Workspace({
       query={query}
       loading={(search ? searchThreads.loading : threads.loading) || projectsResource.loading}
       error={(search ? searchThreads.error : threads.error) || projectsResource.error}
+      warning={search ? searchThreads.warning : threads.warning}
       more={search ? searchThreads.hasMore : threads.hasMore}
       onProject={(id) => {
         navigate('', { projectId: id });
@@ -776,7 +903,11 @@ export function Workspace({
       onThread={(id) => void openThread(id)}
       onProjectAction={(target, action) => manageSidebar({ kind: 'project', target: { ...target }, action })}
       onThreadAction={(target, action) => manageSidebar({ kind: 'thread', target: { ...target }, action })}
-      onNew={() => navigate('')}
+      onNew={() => {
+        if (!navigate('')) return;
+        setArchived(false); setQuery(''); setSearch('');
+        refreshSidebar();
+      }}
       onQuery={setQuery}
       onArchived={() => setArchived((v) => !v)}
       onAddProject={() => {
@@ -788,10 +919,7 @@ export function Workspace({
         setModal('settings');
       }}
       onMore={() => void (search ? searchThreads.more() : threads.more())}
-      onRefresh={() => {
-        threads.refresh();
-        searchThreads.refresh();
-      }}
+      onRefresh={() => refreshSidebar(true)}
     />
   );
   const title =
@@ -821,25 +949,23 @@ export function Workspace({
             >
               <Icon name="menu" />
             </button>
+            <RootExecutionNotice identity={runtimeNetwork.executionMode} confirmed={runtimeNetwork.executionModeConfirmed}
+              onSettings={() => setModal('settings-admin')} />
             <div className="breadcrumb">
               <span>{project?.name ?? '工作台'}</span>
               <span className="crumb-divider">/</span>
               <strong>{title}</strong>
             </div>
-            <div className="runtime-status">
-              <div
-                className={`connection ${network.connection}`}
-                title={network.connection === 'connected' ? '实时连接正常' : '正在恢复连接'}
-              >
-                <span />
-                {network.connection === 'connected'
-                  ? '已连接'
-                  : network.connection === 'connecting'
-                    ? '连接中'
-                    : '已离线'}
-              </div>
-              <RootExecutionNotice identity={runtimeNetwork.executionMode} confirmed={runtimeNetwork.executionModeConfirmed}
-                onSettings={() => setModal('settings-admin')} />
+            <div
+              className={`connection ${network.connection}`}
+              title={network.connection === 'connected' ? '实时连接正常' : '正在恢复连接'}
+            >
+              <span />
+              {network.connection === 'connected'
+                ? '已连接'
+                : network.connection === 'connecting'
+                  ? '连接中'
+                  : '已离线'}
             </div>
             {conversation.usage !== undefined && (
               <UsagePopover usage={conversation.usage} />
@@ -866,7 +992,7 @@ export function Workspace({
                 <Icon name="terminal" />
               </button>
               <button
-                className="icon-button"
+                className="icon-button desktop-header-action"
                 aria-label="打开官方云任务界面"
                 disabled={!project}
                 onClick={() => {
@@ -878,7 +1004,7 @@ export function Workspace({
                 <Icon name="cloud" />
               </button>
               <button
-                className={`icon-button ${panel === 'process' ? 'selected' : ''}`}
+                className={`icon-button desktop-header-action ${panel === 'process' ? 'selected' : ''}`}
                 aria-label="打开命令进程"
                 title="直接运行命令与管理进程"
                 onClick={() => {
@@ -890,7 +1016,7 @@ export function Workspace({
               </button>
               {threadId && (
                 <button
-                  className={`icon-button ${panel === 'thread-terminals' ? 'selected' : ''}`}
+                  className={`icon-button desktop-header-action ${panel === 'thread-terminals' ? 'selected' : ''}`}
                   aria-label="打开会话命令与后台终端"
                   onClick={() => {
                     setThreadTerminalsMounted(true);
@@ -900,10 +1026,9 @@ export function Workspace({
                   <Icon name="terminal" />
                 </button>
               )}
-              {threadId && (
                 <details
                   ref={threadMenu}
-                  className="thread-menu"
+                  className={`thread-menu${threadId ? '' : ' workspace-menu'}`}
                   onKeyDown={(event) => {
                     if (event.key === 'Escape') {
                       event.preventDefault();
@@ -912,7 +1037,7 @@ export function Workspace({
                     }
                   }}
                 >
-                  <summary className="icon-button" aria-label="会话操作">
+                  <summary className="icon-button" aria-label={threadId ? '会话操作' : '工作区操作'}>
                     <Icon name="more" />
                   </summary>
                   <div
@@ -924,6 +1049,13 @@ export function Workspace({
                       }
                     }}
                   >
+                    <button className="mobile-header-action" disabled={!project} onClick={() => {
+                      setTerminalProgram('codex-cloud'); setTerminalMounted(true); setPanel('terminal');
+                    }}>官方云任务</button>
+                    <button className="mobile-header-action" onClick={() => {
+                      setProcessMounted(true); setPanel('process');
+                    }}>直接运行命令与管理进程</button>
+                    {threadId && <>
                     <button
                       onClick={() => {
                         setPredictionMounted(true);
@@ -981,9 +1113,9 @@ export function Workspace({
                       busy={archiveBusy}
                       onChange={(value) => void changeArchive(value)}
                     />
+                    </>}
                   </div>
                 </details>
-              )}
             </div>
           </header>
           <div className="status-area">
@@ -1233,7 +1365,7 @@ export function Workspace({
                     network.activityReady
                   }
                   project={project}
-                  onChanged={projectsResource.refresh}
+                  onChanged={() => refreshSidebar(true)}
                 />
               </div>
             )}
@@ -1242,7 +1374,7 @@ export function Workspace({
                 <WorkspacePanel
                   visible={active && panel === 'files'}
                   idle={active && network.configurationReady}
-                  onProjectsChanged={projectsResource.refresh}
+                  onProjectsChanged={() => refreshSidebar(true)}
                   onSelectProject={(id) => {
                     navigate('', { projectId: id });
                   }}
@@ -1514,7 +1646,7 @@ export function Workspace({
                 onChanged={workflowChanged}
                 onDeleted={() => {
                   navigate('');
-                  threads.refresh();
+                  refreshSidebar();
                 }}
                 onOpenThread={(id) => {
                   void openThread(id);
@@ -1530,7 +1662,7 @@ export function Workspace({
                 executionModeConfirmed={runtimeNetwork.executionModeConfirmed}
                 enabled={active && network.connection === 'connected' && network.runtimeConnected && !network.restarting}
                 onClose={() => setModal('')}
-                onAdded={projectsResource.refresh}
+                onAdded={() => refreshSidebar(true)}
                 onOpen={(id) => {
                   if (navigation.current !== modalNavigation) return;
                   if (!draftState.canLeave()) {
@@ -1561,9 +1693,7 @@ export function Workspace({
                 }}
                 onAccepted={() => {
                   const { selection, navigation: started, canLeave } = sidebarManagement;
-                  projectsResource.refresh();
-                  threads.refresh();
-                  searchThreads.refresh();
+                  refreshSidebar(true);
                   setModal(current => current === 'sidebar-management' ? '' : current);
                   if (navigation.current !== started) return;
                   if (selection.kind === 'project') {
@@ -1592,7 +1722,7 @@ export function Workspace({
                 name={title}
                 onClose={() => setModal('')}
                 onSaved={() => {
-                  threads.refresh();
+                  refreshSidebar();
                   conversation.refresh();
                 }}
               />
@@ -1787,6 +1917,12 @@ export function Workspace({
                 <button className="button" onClick={() => { setDraftGuard(false); setDiscardRevision(undefined); }}>返回继续编辑</button>
               </Dialog>
             )}
+            {conversionPrompt && <HistoryConversionDialog
+              source={models.items.find(row => row.modelProvider === conversionPrompt.sourceProvider)?.providerName ?? conversionPrompt.sourceProvider}
+              target={models.items.find(row => row.modelProvider === conversionPrompt.targetProvider)?.providerName ?? conversionPrompt.targetProvider}
+              action={conversionPrompt.action} current={conversionPrompt.current()}
+              mayContinue={conversionPrompt.mayContinue}
+              onCancel={() => finishConversion(false)} onConfirm={() => finishConversion(true)} />}
           </>
         )}
       </div>

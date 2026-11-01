@@ -208,8 +208,8 @@ def verify_retained_definition(manager, journal, role):
     require(saved is not None, "Retained service definition is missing", "corrupt_state")
     data = base64.b64decode(saved["data"], validate=True)
     if role == "sudo":
-        allowed = {sudo_rule(manager.layout, config=manager.config, workspace=workspace, legacy_catalog_server=True).encode()
-                   for workspace in (False, True)}
+        from .units import sudo_variants
+        allowed = set(sudo_variants(manager.layout, manager.config))
     else:
         allowed = {render_units(manager.layout, manager.config, manager.config["codexRelative"],
                                 legacy_runtime_directory=runtime, legacy_native_home=home)[manager.layout.unit("worker")].encode()

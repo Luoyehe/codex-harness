@@ -315,15 +315,10 @@
 .workspace-worktrees .info-card {
   overflow-wrap: anywhere;
 }
-.runtime-status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  flex-shrink: 0;
-}
 .root-execution-notice {
   display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
 }
 .root-execution-notice button {
   padding: 3px 6px;
@@ -335,4 +330,20 @@
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
+}
+.workspace-menu,
+.menu-popover .mobile-header-action {
+  display: none;
+}
+.topbar .menu-popover {
+  max-height: calc(100dvh - 90px);
+  max-width: calc(100vw - 26px);
+  overflow-y: auto;
+}
+@media (max-width: 600px) {
+  .topbar .breadcrumb { overflow: hidden; }
+  .topbar .connection { font-size: 0; gap: 0; flex-shrink: 0; }
+  .topbar .desktop-header-action { display: none; }
+  .topbar .workspace-menu { display: block; }
+  .menu-popover .mobile-header-action { display: block; }
 }

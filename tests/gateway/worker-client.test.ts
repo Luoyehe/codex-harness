@@ -13,6 +13,38 @@ import { Dispatcher } from '../../src/gateway/dispatch.js';
 import type { JsonValue } from '../../src/core/contracts.js';
 afterEach(() => vi.restoreAllMocks());
 
+it.each(['turn/start', 'thread/resume'])('preserves bounded conversion consent details through %s receipts and replay', async method => {
+  const detail = { threadId: 'thread', sourceProvider: 'harness_zhipu', targetProvider: 'openai', conversionRequired: true };
+  const f = await fixture({ ok: false, error: { code: 'history_conversion_confirmation_required', message: 'Confirm conversion',
+    delivery: 'not_sent', data: { ...detail, privateHistory: 'must-not-leak' } } });
+  const ledger = new Ledger(':memory:');
+  try {
+    await f.handshake(f.socket, randomUUID());
+    const dispatcher = new Dispatcher(ledger, f.worker, { call: vi.fn(async () => ({})) });
+    dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+    const call = { method, operationId: randomUUID(), params: { threadId: 'thread' } }, context = { clientId: randomUUID() };
+    await expect(dispatcher.call(call, context)).rejects.toMatchObject({ code: 'history_conversion_confirmation_required', delivery: 'not_sent', data: detail });
+    expect(ledger.read(call.operationId)).toMatchObject({ state: 'not_sent', error: { data: detail } });
+    expect(JSON.stringify(ledger.read(call.operationId))).not.toContain('must-not-leak');
+    await expect(dispatcher.call(call, context)).rejects.toMatchObject({ code: 'history_conversion_confirmation_required', delivery: 'not_sent', data: detail });
+    expect(f.requests).toHaveLength(1);
+  } finally { ledger.close(); await f.close(); }
+});
+it.each([
+  { delivery: 'unknown', fields: {} },
+  { delivery: 'not_sent', fields: { targetProvider: '' } },
+  { delivery: 'not_sent', fields: { conversionRequired: false } },
+  { delivery: 'not_sent', fields: { sourceProvider: 'x'.repeat(257) } },
+])('drops unsafe or uncertain conversion metadata: %j', async ({ delivery, fields }) => {
+  const f = await fixture({ ok: false, error: { code: 'history_conversion_confirmation_required', message: 'Confirm conversion',
+    delivery, data: { threadId: 'thread', sourceProvider: 'a', targetProvider: 'b', conversionRequired: true, ...fields } } });
+  try {
+    await f.handshake(f.socket, randomUUID());
+    const error = await f.worker.call('turn/start', { threadId: 'thread' }, { clientId: randomUUID() }).catch(error => error as HarnessError);
+    expect(error).toMatchObject({ delivery }); expect((error as HarnessError).data).toBeUndefined();
+  } finally { await f.close(); }
+});
+
 async function fixture(response: JsonValue = { ok: true, result: {} }) {
   const requests: { path: string; channel: unknown; body: Record<string, unknown> }[] = [];
   let loseRegistration = false;

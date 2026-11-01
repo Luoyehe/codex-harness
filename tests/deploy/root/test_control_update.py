@@ -1,5 +1,6 @@
 """Control maintenance fault injection; all system/process operations substituted."""
 import hashlib
+import base64
 import os
 import shutil
 import subprocess
@@ -135,7 +136,7 @@ class ControlUpdateTests(unittest.TestCase):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
         write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
                                                       "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1", "serviceProxy": 1,
-                                                      "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1}, mode=0o644)
+                                                      "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1, "threadHistoryRepair": 1}, mode=0o644)
 
     def configure_proxy(self, direct_domains=None, enabled=True):
         document = configuration({"protocol": "vless", "settings": {}}, 18793, direct_domains)
@@ -333,14 +334,14 @@ class ControlUpdateTests(unittest.TestCase):
         atomic_write(path, data, 0o440)
         return path, data
 
-    def test_previous_sudo_is_accepted_without_control_update_or_rollback_rewriting_it(self):
+    def test_previous_sudo_upgrades_only_history_verb_and_rollback_restores_old_grammar(self):
         for workspace in (False, True):
             with self.subTest(workspace=workspace):
                 path, original = self.previous_policy(workspace=workspace)
                 active, enabled = set(self.system.active), dict(self.system.enabled)
                 result = self.updater.update()
                 self.assertEqual(self.current(), b"new manage")
-                self.assertEqual(path.read_bytes(), original)
+                self.assertEqual(path.read_bytes(), sudo_rule(self.layout, workspace=workspace, legacy_catalog_server=True).encode())
                 self.assertEqual(path.stat().st_mode & 0o777, 0o440)
                 self.updater.update(result["transaction"])
                 self.assertEqual(path.read_bytes(), original)
@@ -358,12 +359,57 @@ class ControlUpdateTests(unittest.TestCase):
                 raise PowerLoss()
         with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss):
             self.updater.update()
-        self.assertEqual(path.read_bytes(), original)
+        self.assertIn(b"native-launch thread-history", path.read_bytes())
         self.updater.recover()
         self.assertEqual(path.read_bytes(), original)
         self.assertEqual(self.current(), b"old manage")
         self.assertEqual(self.updater.pending(), [])
         self.assertEqual(self.system.active, {"worker", "caddy"})
+
+    def test_history_app_rejects_old_control_rollback_before_stop(self):
+        policy = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
+        original = sudo_rule(self.layout, legacy_thread_history=True).encode()
+        atomic_write(policy, original, 0o440)
+        result = self.updater.update()
+        self.assertIn(b"native-launch thread-history", policy.read_bytes())
+        journal = read_json(self.updater.records / result["transaction"] / "state.json")
+        self.assertEqual(base64.b64decode(journal["sudoPolicies"]["old"]), original)
+        self.add_application(accounts=False, history=True)
+        events, current = list(self.system.events), self.current()
+        with self.assertRaises(DeployError) as error: self.updater.update(result["transaction"])
+        self.assertEqual(error.exception.code, "history_unsupported")
+        self.assertEqual(self.system.events, events); self.assertEqual(self.current(), current)
+        self.assertFalse(self.updater.pending())
+
+    def test_history_app_old_recovery_is_pre_stop_rejected_and_candidate_restores_policy(self):
+        self.add_application(accounts=False, history=True)
+        policy = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
+        atomic_write(policy, sudo_rule(self.layout, legacy_thread_history=True).encode(), 0o440)
+        save = self.updater.save
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "old_moved": raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss): self.updater.update()
+        events = list(self.system.events)
+        with self.assertRaises(DeployError) as error: self.updater.recover(target="old")
+        self.assertEqual(error.exception.code, "history_unsupported")
+        self.assertEqual(self.system.events, events)
+        self.assertEqual(self.updater.recover(target="candidate")["target"], "candidate")
+        self.assertEqual(policy.read_bytes(), sudo_rule(self.layout).encode())
+        self.assertFalse(self.updater.pending())
+
+    def test_control_recovery_rejects_sudo_command_injection_before_stop(self):
+        save = self.updater.save
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "installed": raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss): self.updater.update()
+        path, journal = self.updater.pending()[0]
+        journal["sudoPolicies"]["candidate"] = base64.b64encode(b"root ALL=(ALL) NOPASSWD: ALL\n").decode()
+        write_json(path / "state.json", journal)
+        events = list(self.system.events)
+        with self.assertRaises(DeployError): self.updater.recover(target="candidate")
+        self.assertEqual(self.system.events, events)
 
     def test_changed_sudo_commands_fail_before_control_preparation(self):
         path, original = self.previous_policy()
@@ -747,12 +793,14 @@ class ControlUpdateTests(unittest.TestCase):
         self.assertEqual(self.system.active, {"worker", "caddy"})
         self.assertEqual(self.updater.pending(), [])
 
-    def add_application(self, *, accounts=True):
+    def add_application(self, *, accounts=True, history=False):
         staging = self.layout.app / "releases/staged-fixture"
         mkdir(staging / "app")
         package = {"name": "opaque-current-source-fixture"}
         if accounts:
             package["harnessAuthentication"] = "account-v1"
+        if history:
+            package["codexHarnessThreadHistory"] = 1
         write_json(staging / "app/package.json", package, mode=0o644)
         manifest = inspect_tree(staging, root_owned=True)
         identity = digest(manifest)

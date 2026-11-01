@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-deploy",
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-11-01T13:04:50.001888+00:00",
+  "files": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "9eb0210dd087712ca4410260fb745a14bd94505540fba6d609e45cc65be4d981",
+      "bytes": 88082
+    },
+    {
+      "path": "web/styles-workspace.css",
+      "sha256": "d042265ab8c584580115b5f2ba233aa95cce53f5d81b6389f6855e4749b75939",
+      "bytes": 6544
+    }
+  ],
+  "scope": "Independent read-only review of parent-authored compact/mobile topbar delta only; excludes reviewer-authored ROOT badge move and conversion consent logic.",
+  "method": [
+    "Read current header JSX and CSS diff, existing threadMenu focus/outside-click behavior and setPanel mount/activation callbacks.",
+    "Verified <=600px hides only duplicated desktop cloud/process actions and reveals the corresponding mobile menu actions. Existing-thread and new-workspace menus retain correct thread-only item guards.",
+    "Checked cloud action preserves project guard, process action mounts and selects the same panel, and menu activation/Escape use existing focus and close handlers.",
+    "Verified viewport max-height/width and scroll rule apply to the shared topbar popover, old runtime-status wrapper styling is removed, and connection text remains in accessible DOM when visually collapsed."
+  ],
+  "evidenceBoundary": "Parent reports actual browser 320px-with-usage no-overflow and reachable process entry; reviewer did not repeat browser actions or independently view those screenshots. This is a source/caller review, not a claimed reviewer visual pass.",
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "Not a full-web audit. No additional tests or visual/network actions performed for this narrow review."
+  ]
+}

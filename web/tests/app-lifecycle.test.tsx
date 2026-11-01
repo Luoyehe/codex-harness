@@ -151,7 +151,7 @@ async function fixture(
       if (overridden instanceof RpcError) return { ok: true, status: 200,
         json: async () => ({ ok: false, error: { code: overridden.code, message: overridden.message, delivery: overridden.delivery } }) };
       if (overridden !== undefined) return ok(overridden);
-      const thread = { id: 't', name: 'Current thread', cwd: '/p', status: { type: 'idle' } };
+      const thread = { id: 't', name: 'Current thread', cwd: '/p', modelProvider: 'harness_fixture', status: { type: 'idle' } };
       switch (request.method) {
         case 'project/list':
           return ok({ data: [{ id: 'p', name: 'Project', path: '/p' }] });
@@ -186,7 +186,7 @@ async function fixture(
         case 'thread/session':
           return ok(
             loaded
-              ? { requiresResume: false, thread, model: 'fixture-model' }
+              ? { requiresResume: false, thread, model: 'fixture-model', modelProvider: 'harness_fixture' }
               : { requiresResume: true, requiresContinuationConfirmation: !safeAutoLoad },
           );
         case 'thread/resume':
@@ -429,16 +429,22 @@ it('offers explicit continuation when queued work appears after the automatic-lo
 it('loads the same stored conversation with an explicitly chosen model after its former provider was removed', async () => {
   writeDraft({ ...emptyDraft('t'), text: 'keep the existing chat draft' });
   const f = await fixture(false, true, undefined, true, call => call.method === 'thread/resume' && !call.params.options
-    ? new RpcError('原供应商已停用，请选择可用模型。', 'provider_disabled', 'not_sent') : undefined, true);
+    ? new RpcError('原供应商已停用，请选择可用模型。', 'provider_disabled', 'not_sent') : call.method === 'thread/read'
+      ? { thread: { id: 't', name: 'Current thread', cwd: '/p', modelProvider: 'removed-provider', status: { type: 'notLoaded' } } }
+      : undefined, true);
   await screen.findByText('原供应商已停用，请选择可用模型。');
   const picker = screen.getByLabelText('选择模型与思考强度');
   fireEvent.click(picker);
   const models = await screen.findByRole('combobox', { name: '模型' });
   await waitFor(() => expect(models.matches(':disabled')).toBe(false));
   fireEvent.change(models, { target: { value: JSON.stringify(['harness_fixture', 'fixture-model']) } });
+  await screen.findByRole('dialog', { name: '确认供应商历史转换' });
+  expect(f.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: '确认选择' }));
   await waitFor(() => expect(f.calls.filter(call => call.method === 'thread/resume')).toHaveLength(2));
   expect(f.calls.filter(call => call.method === 'thread/resume')[1]?.params).toEqual({ threadId: 't', automatic: true,
-    options: { modelProvider: 'harness_fixture', model: 'fixture-model' } });
+    options: { modelProvider: 'harness_fixture', model: 'fixture-model' },
+    historyConversionConsent: { sourceProvider: 'removed-provider', targetProvider: 'harness_fixture' } });
   await enabledButton({ name: '发送消息' });
   expect(f.count('turn/start')).toBe(0);
   expect(f.count('conversation/start')).toBe(0);
@@ -794,6 +800,58 @@ it('keeps a selected conversation archive action independent of the sidebar filt
   fireEvent.click(screen.getByRole('button', { name: '归档会话' }));
   await waitFor(() => expect(f.count('thread/archive')).toBe(1));
   expect(f.count('thread/unarchive')).toBe(0);
+});
+it('updates the sidebar when a newly created thread becomes indexed and is later renamed or deleted elsewhere', async () => {
+  let rows: { id: string; name: string; cwd: string }[] = [];
+  const f = await fixture(false, false, undefined, true, call =>
+    call.method === 'thread/list' ? { data: [...rows], nextCursor: null } : undefined);
+  const list = () => within(screen.getByRole('navigation', { name: 'Project的会话' }));
+  expect(list().queryByRole('button', { name: 'New indexed thread' })).toBeNull();
+  const notify = async (method: string) => act(async () => f.sockets.at(-1)!.onmessage({ data: JSON.stringify({
+    type: 'notification', data: { method, params: { threadId: 'elsewhere', turn: { id: 'turn', status: 'completed', items: [] } } },
+  }) }));
+  // The initial thread event may precede native index persistence. Turn completion
+  // must invalidate the empty snapshot, without a manual refresh or navigation.
+  await notify('thread/started');
+  await waitFor(() => expect(f.count('thread/list')).toBeGreaterThan(1));
+  rows = [{ id: 'elsewhere', name: 'New indexed thread', cwd: '/p' }];
+  await notify('turn/completed');
+  await waitFor(() => expect(list().getByRole('button', { name: 'New indexed thread' })).toBeTruthy());
+  rows = [{ ...rows[0]!, name: 'Renamed elsewhere' }];
+  await notify('thread/name/updated');
+  await waitFor(() => expect(list().getByRole('button', { name: 'Renamed elsewhere' })).toBeTruthy());
+  rows = []; await notify('thread/deleted');
+  await waitFor(() => expect(list().queryByRole('button', { name: 'Renamed elsewhere' })).toBeNull());
+  expect(f.count('turn/start')).toBe(0);
+});
+it('leaves archived and search filters when creating a new conversation so the new row stays discoverable', async () => {
+  let created = false;
+  const newThread = { id: 'new-visible', name: 'Created conversation', cwd: '/p', status: { type: 'idle' } };
+  const f = await fixture(false, false, undefined, true, call => {
+    if (call.method === 'thread/search') return { data: [], nextCursor: null };
+    if (call.method === 'thread/list') return { data: [], liveData: !call.params.archived && created ? [newThread] : [], nextCursor: null };
+    if (call.method === 'conversation/start') { created = true; return { thread: newThread }; }
+    if (call.method === 'defaults/read') return { model: 'fixture-model', modelProvider: 'harness_fixture' };
+    if (call.params.threadId === newThread.id && call.method === 'thread/read') return { thread: newThread };
+    return undefined;
+  });
+  fireEvent.click(screen.getByRole('button', { name: '已归档' }));
+  fireEvent.click(screen.getByRole('button', { name: '搜索会话' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '搜索会话' }), { target: { value: 'unrelated old query' } });
+  await waitFor(() => expect(f.count('thread/search')).toBeGreaterThan(0));
+  fireEvent.click(screen.getByRole('button', { name: '新会话' }));
+  await waitFor(() => expect(f.calls.filter(call => call.method === 'thread/list').at(-1)?.params.archived).toBe(false));
+  expect(screen.getByRole('textbox', { name: '搜索会话' })).toHaveProperty('value', '');
+  fireEvent.change(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { target: { value: 'Create a visible conversation' } });
+  const send = screen.getByRole('button', { name: '发送消息' });
+  await waitFor(() => expect(send.matches(':disabled')).toBe(false)); fireEvent.click(send);
+  await waitFor(() => expect(within(screen.getByRole('navigation', { name: 'Project的会话' }))
+    .getByRole('button', { name: 'Created conversation' })).toBeTruthy());
+  expect(f.count('conversation/start')).toBe(1);
+  fireEvent.click(screen.getByRole('button', { name: '新会话' }));
+  await waitFor(() => expect(new URL(location.href).searchParams.get('thread')).toBeNull());
+  await waitFor(() => expect(within(screen.getByRole('navigation', { name: 'Project的会话' }))
+    .getByRole('button', { name: 'Created conversation' })).toBeTruthy());
 });
 it('uses explicit intent for an unknown deep link and invalidates selection proof after a reconnect', async () => {
   const f = await fixture(true);

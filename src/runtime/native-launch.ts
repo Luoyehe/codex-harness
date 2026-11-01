@@ -15,12 +15,12 @@ export function validateLauncher(launcher: NativeLauncher): void {
     if (entry === path.dirname(entry)) break;
   }
 }
-export function nativeCommand(config: LaunchConfig, mode: 'app-server' | 'version' | 'identity' | 'resolve-project' | 'workspace'): { bin: string; args: string[]; env: NodeJS.ProcessEnv; cwd: string } {
+export function nativeCommand(config: LaunchConfig, mode: 'app-server' | 'version' | 'identity' | 'resolve-project' | 'workspace' | 'thread-history'): { bin: string; args: string[]; env: NodeJS.ProcessEnv; cwd: string } {
   if (config.catalogProvider !== undefined && !/^[a-z0-9_-]{1,80}$/.test(config.catalogProvider)) throw new Error('Invalid catalog provider');
   // The supervisor may lack access to the selected project. Only the native identity resolves/enters it.
   if (config.launcher) return { bin: '/usr/bin/sudo', args: ['-n', '-u', config.launcher.user, '--', config.launcher.path, ...(mode === 'app-server' && config.catalogProvider ? ['catalog-server', config.catalogProvider] : [mode])], env: { PATH: '/usr/bin:/bin', LANG: 'C.UTF-8' }, cwd: '/' };
-  if (mode === 'identity' || mode === 'resolve-project' || mode === 'workspace') throw new Error('Native identity and workspace checks require an identity launcher');
-  const args = mode === 'version' ? ['--version'] : [...(config.args ?? ['app-server', '--listen', 'stdio://']), ...(config.catalogProvider ? ['-c', 'model_provider=' + JSON.stringify(config.catalogProvider)] : [])];
+  if (mode === 'identity' || mode === 'resolve-project' || mode === 'workspace' || mode === 'thread-history') throw new Error('Native identity and workspace checks require an identity launcher');
+  const args = mode === 'version' ? ['--version'] : [...(config.args ?? ['app-server', '--listen', 'stdio://']), '-c', 'thread_unload_delay_secs=0', ...(config.catalogProvider ? ['-c', 'model_provider=' + JSON.stringify(config.catalogProvider)] : [])];
   return { bin: config.bin, args, env: config.env, cwd: config.cwd };
 }
 export async function runNativeHelper(config: LaunchConfig, mode: 'version' | 'identity' | 'resolve-project', input?: JsonObject, mutating = false): Promise<string> {

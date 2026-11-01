@@ -229,7 +229,11 @@ def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidat
             if old[name] is None:
                 path.unlink(missing_ok=True)
             else:
-                atomic_write(path, old[name], journal["before"][name]["mode"])
+                data = old[name]
+                if name == "sudo":
+                    from .units import migrated_history_sudo
+                    data = migrated_history_sudo(manager.layout, old_config, data)
+                atomic_write(path, data, journal["before"][name]["mode"])
         fsync_directory(manager.layout.units)
         manager.config = old_config
         manager.system.reload()

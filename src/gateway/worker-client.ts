@@ -122,8 +122,12 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
               object(response.error); const error = response.error;
               if (typeof error.code !== 'string' || typeof error.message !== 'string') throw new Error('Invalid error');
               const detail = error.data && typeof error.data === 'object' && !Array.isArray(error.data) ? error.data : null;
-              const data = (detail?.phase === 'first_turn' || detail?.phase === 'review') && typeof detail.threadId === 'string' && detail.threadId.length > 0 && detail.threadId.length <= 256 && typeof detail.causeCode === 'string' && detail.causeCode.length > 0 && detail.causeCode.length <= 128
-                ? { phase: detail.phase, threadId: detail.threadId, causeCode: detail.causeCode } : undefined;
+              const identity = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_.:-]{1,256}$/.test(value);
+              const data = error.code === 'history_conversion_confirmation_required' && error.delivery === 'not_sent' &&
+                detail?.conversionRequired === true && identity(detail.threadId) && identity(detail.sourceProvider) && identity(detail.targetProvider)
+                ? { threadId: detail.threadId, sourceProvider: detail.sourceProvider, targetProvider: detail.targetProvider, conversionRequired: true }
+                : (detail?.phase === 'first_turn' || detail?.phase === 'review') && typeof detail.threadId === 'string' && detail.threadId.length > 0 && detail.threadId.length <= 256 && typeof detail.causeCode === 'string' && detail.causeCode.length > 0 && detail.causeCode.length <= 128
+                  ? { phase: detail.phase, threadId: detail.threadId, causeCode: detail.causeCode } : undefined;
               finish(new HarnessError(error.code.slice(0, 128), error.message.slice(0, 4096), error.delivery === 'not_sent' ? 'not_sent' : 'unknown', data));
             }
           } catch (error) { finish(error instanceof HarnessError && error.delivery === 'unknown' ? error : new HarnessError('worker_protocol', '后台返回不符合协议，结果需要核对。', wrote ? 'unknown' : 'not_sent')); }

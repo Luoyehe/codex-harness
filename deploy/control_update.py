@@ -23,12 +23,13 @@ from .system import System, run
 from .transactions import require_recovered
 from .ownership import require_owned
 from .service_proxy import PROXY_ROLES, active as service_active, roles as service_roles, selection as proxy_selection
-from .units import sudo_rule
+from .units import sudo_rule, sudo_variants
 
 ROLES = ("worker", "gateway", "authelia", "caddy")
 TERMINAL = ("committed", "recovered")
 ID = re.compile(r"[0-9a-f]{32}\Z")
 LAUNCHERS = ("manage", "native-launch")
+SUDO_IDENTITY_FIELDS = ("executionMode", "rootAllowed", "executionGeneration", "workerUid", "workerGid")
 # A delayed systemd/sudo invocation must not import Python while directories
 # change. This durable gate also covers old helpers without condition properties.
 BLOCKER = b"#!/bin/sh\n# Trusted control maintenance is pending.\nexit 75\n"
@@ -326,6 +327,30 @@ class ControlUpdater:
             (self.barriers / role).unlink(missing_ok=True)
         fsync_directory(self.barriers)
 
+    def sudo_policies(self, capabilities: dict) -> dict:
+        path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
+        old = path.read_bytes()
+        variants = sudo_variants(self.layout, self.config)
+        require(old in variants, "Fixed sudo policy is not a recognized owned definition", "integrity")
+        workspace, catalog, _ = variants[old]
+        candidate = sudo_rule(self.layout, config=self.config, workspace=workspace,
+                              legacy_catalog_server=catalog,
+                              legacy_thread_history=not (type(capabilities.get("threadHistoryRepair")) is int and
+                                                         capabilities["threadHistoryRepair"] == 1)).encode()
+        return {"old": base64.b64encode(old).decode(), "candidate": base64.b64encode(candidate).decode()}
+
+    def sudo_identity(self) -> dict:
+        return {key: self.config[key] for key in SUDO_IDENTITY_FIELDS if key in self.config}
+
+    def restore_sudo(self, state: dict, kind: str) -> None:
+        # Journals created before this migration never changed sudo policy.
+        if "sudoPolicies" not in state: return
+        values = {key: base64.b64decode(value, validate=True) for key, value in state["sudoPolicies"].items()}
+        path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
+        require(path.read_bytes() in values.values(), "Control transaction sudo policy changed", "integrity")
+        atomic_write(path, values[kind], 0o440)
+        run(["/usr/sbin/visudo", "-cf", str(path)])
+
     def validate_state(self, state: dict) -> None:
         require(state.get("format") == 1 and state.get("kind") == "control" and state.get("instance") == self.layout.instance and
                 isinstance(state.get("old"), dict) and isinstance(state.get("candidate"), dict) and
@@ -344,9 +369,23 @@ class ControlUpdater:
                 data = base64.b64decode(value, validate=True)
                 require(hashlib.sha256(data).hexdigest() == state[kind][name]["sha256"],
                         "Control launcher record differs from manifest", "corrupt_state")
+        if "sudoPolicies" in state:
+            policies = state["sudoPolicies"]
+            require(isinstance(policies, dict) and set(policies) == {"old", "candidate"} and
+                    all(isinstance(value, str) and len(value) <= 24000 for value in policies.values()),
+                    "Invalid retained control sudo policies", "corrupt_state")
+            identity = state.get("sudoIdentity")
+            require(isinstance(identity, dict) and set(identity) <= set(SUDO_IDENTITY_FIELDS),
+                    "Invalid retained sudo identity", "corrupt_state")
+            variants = sudo_variants(self.layout, identity)
+            decoded = [base64.b64decode(policies[kind], validate=True) for kind in ("old", "candidate")]
+            require(all(value in variants for value in decoded) and variants[decoded[0]][:2] == variants[decoded[1]][:2],
+                    "Control sudo migration changed another permission", "corrupt_state")
 
     def recover_transaction(self, path: Path, state: dict) -> dict:
         self.validate_state(state)
+        require("sudoPolicies" not in state or state["sudoIdentity"] == self.sudo_identity(),
+                "Execution identity changed during control maintenance", "recovery_required")
         require(set(state["services"]) == set(service_roles(self.config, ROLES)),
                 "Service roles changed during control maintenance", "recovery_required")
         require_owned(self.layout, self.config)
@@ -369,11 +408,12 @@ class ControlUpdater:
             self.require_account_guard(capabilities)
             self.require_dns_guard(capabilities)
         except DeployError as error:
-            if error.code not in ("authentication_downgrade", "dns_downgrade", "execution_unsupported", "proxy_unsupported", "shared_auth_unsupported"):
+            if error.code not in ("authentication_downgrade", "dns_downgrade", "execution_unsupported", "proxy_unsupported", "shared_auth_unsupported", "history_unsupported"):
                 raise
             feature = {"authentication_downgrade": "account guard", "dns_downgrade": "selected DNS challenge support",
                        "execution_unsupported": "root execution support", "proxy_unsupported": "service proxy support",
-                       "shared_auth_unsupported": "shared ChatGPT authentication support"}[error.code]
+                       "shared_auth_unsupported": "shared ChatGPT authentication support",
+                       "history_unsupported": "history repair support required by the selected application"}[error.code]
             raise DeployError(error.code,
                               "Previous control tools lack " + feature + "; recovery has not changed services or selected code. "
                               "Correct any runtime prerequisite, then run control-recover --target candidate to validate and resume the original candidate.") from error
@@ -393,6 +433,7 @@ class ControlUpdater:
             state["old"] = self.verify_generation(self.layout.control, state["old"], blocked=True, legacy_cache=True)
             self.restore_launchers(self.layout.control, state, "old")
         durable_tree(self.layout.control)
+        self.restore_sudo(state, "old")
         self.save(path, state, "restoring_old_services")
         try:
             self.restore_services(state)
@@ -406,6 +447,8 @@ class ControlUpdater:
     def recover_candidate(self, path: Path, state: dict) -> dict:
         """Resume only the sealed candidate already named by one pending journal."""
         self.validate_state(state)
+        require("sudoPolicies" not in state or state["sudoIdentity"] == self.sudo_identity(),
+                "Execution identity changed during control maintenance", "recovery_required")
         require(set(state["services"]) == set(service_roles(self.config, ROLES)),
                 "Service roles changed during control maintenance", "recovery_required")
         require_owned(self.layout, self.config)
@@ -447,6 +490,7 @@ class ControlUpdater:
             self.restore_launchers(old, state, "old")
             self.restore_launchers(self.layout.control, state, "candidate")
             durable_tree(self.layout.control)
+            self.restore_sudo(state, "candidate")
             self.save(path, state, "installed")
             self.restore_services(state)
         except Exception:
@@ -504,6 +548,8 @@ class ControlUpdater:
         require(isinstance(capabilities, dict), "Invalid retained control capabilities", "integrity")
         from .execution_identity import require_control
         require_control(capabilities, self.config)
+        from .execution_identity import require_history_control
+        require_history_control(self.layout, capabilities)
         from .shared_auth import require_control as require_shared_auth_control
         require_shared_auth_control(self.layout, capabilities)
         selected_proxy = proxy_selection(self.config)
@@ -615,12 +661,15 @@ class ControlUpdater:
         self.preserve_edge(candidate, path, old_manifest)
         candidate_manifest = tree_manifest(candidate)
         capability_file = candidate / "capabilities.json"
-        self.require_dns_guard(read_json(capability_file, 4096) if capability_file.exists() else {})
+        capabilities = read_json(capability_file, 4096) if capability_file.exists() else {}
+        self.require_dns_guard(capabilities)
         # Only trusted Python is imported. -B avoids changing the sealed manifest.
         run(["/usr/bin/python3", "-I", "-B", "-c", "import sys; sys.path.insert(0, " + repr(str(candidate)) +
              "); import deploy.cli; import deploy.native_launcher"], timeout=30)
         state = {"format": 1, "kind": "control", "instance": self.layout.instance, "old": old_manifest,
                  "candidate": candidate_manifest, "services": services, "rollbackOf": rollback,
+                 "sudoPolicies": self.sudo_policies(capabilities),
+                 "sudoIdentity": self.sudo_identity(),
                  "launchers": {"old": self.launcher_record(self.layout.control), "candidate": self.launcher_record(candidate)}}
         # A predictable collision must not create a pending transaction that
         # would block the otherwise healthy gateway's fixed management launcher.
@@ -638,6 +687,7 @@ class ControlUpdater:
             self.restore_launchers(path / "old", state, "old")
             self.save(path, state, "old_moved")
             self.rename(candidate, self.layout.control)
+            self.restore_sudo(state, "candidate")
             self.save(path, state, "installed")
             self.restore_services(state)
         except Exception as exc:

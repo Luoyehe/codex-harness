@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { RuntimeService, type RuntimeConfig } from '../../src/runtime/service.js';
+import { LiveThreadList } from '../../src/runtime/live-thread-list.js';
 import type { NativeRpc, NativeOptions } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { validateOfficial, validatePrompt } from '../../src/runtime/validation.js';
@@ -47,6 +48,39 @@ function setup(providerRegistry?: RuntimeConfig['providerRegistry']): { service:
 }
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 const context = { clientId: 'client-a' };
+test('project lists include every recorded provider while preserving native page filters and boundaries', async () => {
+  const { service, native, cwd } = setup(), original = native.call.bind(native);
+  const page = { data: [{ id: 'retired-provider-thread', modelProvider: 'provider-removed', cwd }], nextCursor: 'next', backwardsCursor: null };
+  native.call = async (method, params, options) => { const value = await original(method, params, options); return method === 'thread/list' ? page : value; };
+  const params = { cwd, archived: true, cursor: 'previous', limit: 7, searchTerm: 'retained title', sortKey: 'updated_at', sortDirection: 'asc' };
+  expect(await service.call('thread/list', params, context)).toEqual(page);
+  expect(native.calls.at(-1)).toEqual({ method: 'thread/list', params: { ...params, modelProviders: [], sourceKinds: ['cli', 'vscode', 'appServer', 'exec'] } });
+  const before = native.calls.length;
+  await expect(service.call('thread/list', { cwd, modelProviders: ['provider-selected'] }, context)).rejects.toMatchObject({ delivery: 'not_sent' });
+  await expect(service.call('thread/list', { cwd, limit: 101 }, context)).rejects.toMatchObject({ delivery: 'not_sent' });
+  expect(native.calls).toHaveLength(before);
+});
+test('unindexed listing reservations release on rejected creation and capacity does not strand pending activity', async () => {
+  const { service, native, cwd } = setup(), original = native.call.bind(native), cache = new LiveThreadList(1);
+  (service as unknown as { liveThreads: LiveThreadList }).liveThreads = cache;
+  let reject = true;
+  native.call = async (method, params, options) => {
+    if (method === 'thread/start' && reject) throw new DeliveryError('fixture_rejection', 'Not dispatched');
+    const value = await original(method, params, options);
+    return method === 'thread/list' ? { data: [], nextCursor: null } : value;
+  };
+  await expect(service.call('thread/start', { cwd }, context)).rejects.toMatchObject({ code: 'fixture_rejection', delivery: 'not_sent' });
+  reject = false; await service.call('thread/start', { cwd }, context);
+  const before = native.calls.length;
+  await expect(service.call('thread/start', { cwd }, context)).rejects.toMatchObject({ code: 'thread_list_capacity', delivery: 'not_sent' });
+  expect(native.calls).toHaveLength(before); expect(object(service.status()).activity).toMatchObject({ pendingStarts: 0, unknown: false });
+  native.emit('notification', { method: 'turn/started', params: { threadId: 'created-thread', turn: { id: 'live', status: 'inProgress' } } });
+  expect(await service.call('thread/list', { cwd }, { clientId: 'reloaded' })).toMatchObject({ liveData: [{ id: 'created-thread', status: { type: 'active' } }] });
+  native.emit('notification', { method: 'thread/deleted', params: { threadId: 'created-thread' } });
+  expect(await service.call('thread/list', { cwd }, context)).toMatchObject({ liveData: [] });
+  await service.call('thread/start', { cwd }, context); await service.close();
+  expect(cache.page({ cwd }, { data: [], nextCursor: null })).toMatchObject({ liveData: [] });
+});
 describe('history reconciles exact live turns without trusting mixed lifecycle snapshots', () => {
   const row = (id: string, status: string): JsonValue => ({ id, status, items: [], itemsView: 'full' });
   const page = (...data: JsonValue[]): JsonValue => ({ data, nextCursor: null, backwardsCursor: null });
@@ -300,7 +334,13 @@ describe('RuntimeService admission and recovery', () => {
   test.each([false, true])('loads a cold thread through an enabled target when its old provider is unavailable (removed=%s)', async removed => {
     const { service, native, cwd } = await unavailableProvider(removed);
     await expect(service.call('thread/resume', { threadId: 'stored', automatic: true }, context)).rejects.toMatchObject({ code: 'provider_unavailable', delivery: 'not_sent' });
-    const result = await service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' } }, context);
+    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' } }, context))
+      .rejects.toMatchObject({ code: 'history_conversion_confirmation_required', delivery: 'not_sent', data: { threadId: 'stored', sourceProvider: 'fixture', targetProvider: 'second', conversionRequired: true } });
+    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'stale', targetProvider: 'second' } }, context))
+      .rejects.toMatchObject({ code: 'history_conversion_consent_stale', delivery: 'not_sent' });
+    expect(native.calls.some(call => call.method === 'thread/resume')).toBe(false);
+    expect(object(object(service.status()).activity).unknown).toBe(false);
+    const result = await service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context);
     expect(result).toMatchObject({ modelProvider: 'second', model: 'other', cwd, approvalPolicy: 'never', sandbox: { type: 'dangerFullAccess' } });
     expect(native.calls.find(call => call.method === 'thread/resume')?.params).toEqual({ threadId: 'stored', excludeTurns: true, modelProvider: 'second', model: 'other', config: { model_reasoning_effort: null } });
     expect(await service.call('thread/session', { threadId: 'stored' }, context)).toMatchObject({ requiresResume: false, modelProvider: 'second' });
@@ -318,7 +358,7 @@ describe('RuntimeService admission and recovery', () => {
     const options = { modelProvider: 'second', model: 'other' };
     await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options }, context)).rejects.toMatchObject({ code: 'continuation_confirmation_required', delivery: 'not_sent' });
     expect(native.calls.some(call => call.method === 'thread/resume')).toBe(false);
-    await expect(service.call('thread/resume', { threadId: 'stored', options }, context)).resolves.toMatchObject({ modelProvider: 'second' });
+    await expect(service.call('thread/resume', { threadId: 'stored', options, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context)).resolves.toMatchObject({ modelProvider: 'second' });
     expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
   });
 
@@ -329,7 +369,7 @@ describe('RuntimeService admission and recovery', () => {
       const result = await original(method, params, options);
       return active && method === 'thread/read' ? { thread: { ...response.thread, status: { type: 'active', activeFlags: [] } } } : result;
     };
-    const params = { threadId: 'stored', automatic: true, options: { modelProvider: 'second' } };
+    const params = { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } };
     await expect(service.call('thread/resume', params, context)).rejects.toMatchObject({ code: 'thread_busy', delivery: 'not_sent' });
     active = false;
     native.beforeNativeWrite = method => { if (method === 'thread/resume') native.emit('notification', { method: 'thread/goal/updated', params: { threadId: 'stored', goal: { threadId: 'stored', objective: 'saved work', status: 'active', tokenBudget: null, tokensUsed: 0, timeUsedSeconds: 0, createdAt: 1, updatedAt: 1 } } }); };
@@ -340,7 +380,7 @@ describe('RuntimeService admission and recovery', () => {
   test('cold selected-provider mismatch after acknowledgement is unknown and never sends input', async () => {
     const { service, native, response } = await unavailableProvider(true), original = native.call.bind(native);
     native.call = async (method, params, options) => { const result = await original(method, params, options); return method === 'thread/resume' ? response : result; };
-    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' } }, context)).rejects.toMatchObject({ delivery: 'unknown' });
+    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context)).rejects.toMatchObject({ delivery: 'unknown' });
     expect(object(object(service.status()).activity).unknown).toBe(true);
     expect(native.calls.some(call => call.method === 'turn/start')).toBe(false);
   });
@@ -355,7 +395,7 @@ describe('RuntimeService admission and recovery', () => {
       }
       return result;
     };
-    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' } }, context)).rejects.toMatchObject({ delivery: 'unknown' });
+    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context)).rejects.toMatchObject({ delivery: 'unknown' });
     expect(object(object(service.status()).activity).unknown).toBe(true);
   });
 
@@ -404,7 +444,7 @@ describe('RuntimeService admission and recovery', () => {
     await service.call('thread/resume', { threadId: 'stored' }, context);
     const before = native.calls.length;
     if (rejectTurn) native.beforeNativeWrite = method => { if (method === 'turn/start') throw new DeliveryError('owner_changed', 'Owner changed'); };
-    const sending = service.call('turn/start', { threadId: 'stored', text: 'switch then send', options: { modelProvider: 'second', model: 'other' } }, context);
+    const sending = service.call('turn/start', { threadId: 'stored', text: 'switch then send', options: { modelProvider: 'second', model: 'other' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context);
     if (rejectTurn) await expect(sending).rejects.toMatchObject({ code: 'provider_changed_input_not_sent', delivery: 'unknown', data: { inputSent: false, providerSwitched: true } });
     else await expect(sending).resolves.toMatchObject({ turn: { id: 'turn-1' } });
     const calls = native.calls.slice(before), methods = calls.map(call => call.method);

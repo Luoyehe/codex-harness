@@ -11,6 +11,7 @@ export interface ProviderSwitchHost {
   onDetached(): void;
   /** Capture settings and rehydrate the invalidated history proof before allowing a turn. */
   afterResume(result: JsonObject): Promise<void>;
+  history?: { beforeDetach(): void; afterDetach(): Promise<void>; cancel(): void };
 }
 
 const preserved = ['cwd', 'runtimeWorkspaceRoots', 'approvalPolicy', 'approvalsReviewer', 'sandbox', 'activePermissionProfile', 'disabledPluginIds'] as const;
@@ -50,12 +51,13 @@ export async function switchThreadProvider(plan: ProviderSwitchPlan, snapshot: J
   };
   try {
     await idle();
+    host.history?.beforeDetach();
     const detached = await call('thread/unsubscribe', { threadId }, 'detach'); validateOfficial('ThreadUnsubscribeResponse', detached);
     host.onDetached();
-    // Unsubscribe does not prove unloading. In 0.164, resume with changed
-    // provider overrides shuts down an idle unsubscribed cache entry before
-    // rebuilding it. A remaining subscriber keeps the old provider; verify
-    // the response instead of ever submitting a turn to that old provider.
+    await host.history?.afterDetach();
+    // The host waits for thread/closed before touching persisted context. Its
+    // native-identity helper also takes the official cross-process writer lock.
+    // Resume must still confirm the same identity, provider and permissions.
     const result = object(await call('thread/resume', resume, 'resume')); validateOfficial('ThreadResumeResponse', result);
     const next = object(result.thread);
     if (next.id !== threadId || result.modelProvider !== plan.modelProvider || next.modelProvider !== plan.modelProvider || result.model !== plan.model)
@@ -70,5 +72,5 @@ export async function switchThreadProvider(plan: ProviderSwitchPlan, snapshot: J
     if (dispatched) throw new DeliveryError(error instanceof DeliveryError ? error.code : 'provider_switch_unconfirmed',
       '会话模型切换已开始，但未能完整确认；本次消息尚未发送，请核对会话和原操作状态后继续。', 'unknown', { inputSent: false });
     throw error;
-  }
+  } finally { host.history?.cancel(); }
 }

@@ -180,10 +180,10 @@ it.each(['HTTP', 'receipt first'] as const)('retains newer memory-only input and
     await reconcileOperation(send.request.operationId, { state: 'accepted', threadId: 'created' });
   });
   await send.accept();
+  await waitFor(() => expect(controls.refresh).toHaveBeenCalled());
   expect(screen.getByTestId('thread').textContent).toBe('');
   expect(screen.getByRole('textbox')).toHaveProperty('value', 'unsent B');
   expect(screen.getByRole('alert').textContent).toBe(warning);
-  expect(controls.refresh).toHaveBeenCalled();
   expect(screen.getByText(/新会话已创建/)).toBeTruthy();
 });
 

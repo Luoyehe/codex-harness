@@ -72,3 +72,20 @@ test('all reads and writes share a total deadline', async () => {
   await expect(switchThreadProvider(plan, session(), host)).rejects.toMatchObject({ code: 'provider_switch_timeout', delivery: 'not_sent' });
   expect(host.beforeWrite).not.toHaveBeenCalled();
 });
+
+test('history repair waits for real unload and completes before the same thread resumes', async () => {
+  const { host } = setup(); let release!: () => void;
+  host.history = { beforeDetach: vi.fn(), afterDetach: vi.fn(() => new Promise<void>(resolve => { release = resolve; })), cancel: vi.fn() };
+  const pending = switchThreadProvider(plan, session(), host);
+  await vi.waitFor(() => expect(host.history!.afterDetach).toHaveBeenCalledOnce());
+  expect(vi.mocked(host.call).mock.calls.some(row => row[0] === 'thread/resume')).toBe(false);
+  release(); await pending;
+  expect(host.history.beforeDetach).toHaveBeenCalledOnce(); expect(host.history.cancel).toHaveBeenCalledOnce();
+});
+
+test('uncertain compatibility publication never resumes or sends input', async () => {
+  const { host } = setup(); host.history = { beforeDetach: vi.fn(), afterDetach: vi.fn(async () => { throw new DeliveryError('thread_history_unknown', 'publication uncertain', 'unknown'); }), cancel: vi.fn() };
+  await expect(switchThreadProvider(plan, session(), host)).rejects.toMatchObject({ code: 'thread_history_unknown', delivery: 'unknown', data: { inputSent: false } });
+  expect(vi.mocked(host.call).mock.calls.some(row => ['thread/resume', 'turn/start'].includes(row[0]))).toBe(false);
+  expect(host.history.cancel).toHaveBeenCalledOnce();
+});

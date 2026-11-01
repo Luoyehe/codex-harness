@@ -79,8 +79,8 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
                 regular(item, {allowed_dropins[item.name]})
     sudo = layout.root / "etc/sudoers.d" / ("codex-harness-" + layout.instance)
     if present(sudo):
-        policies = {sudo_rule(layout, config=config, workspace=workspace, legacy_catalog_server=legacy).encode()
-                    for workspace in (False, True) for legacy in (False, True)}
+        from .units import sudo_variants
+        policies = set(sudo_variants(layout, config))
         if prior_sudo is not None:
             policies.add(prior_sudo)
         regular(sudo, policies)

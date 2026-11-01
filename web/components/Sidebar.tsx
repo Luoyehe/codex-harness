@@ -60,7 +60,7 @@ function RowActions({ label, open, setOpen, actions }: {
 
 export function Sidebar({
   projects, projectId, threads, threadsProjectId, snippets, threadId, archived, query,
-  loading, error, more, onProject, onThread, onNew, onQuery, onArchived, onAddProject,
+  loading, error, warning, more, onProject, onThread, onNew, onQuery, onArchived, onAddProject,
   onSettings, onMore, onRefresh, onOrganize, onAutomations, onLoaded,
   threadOrder = 'recency_at', onThreadOrder, onProjectAction, onThreadAction,
 }: {
@@ -81,6 +81,7 @@ export function Sidebar({
   query: string;
   loading: boolean;
   error: string;
+  warning?: string;
   more: boolean;
   snippets?: Record<string, string>;
   onProject: (id: string) => void;
@@ -143,6 +144,7 @@ export function Sidebar({
       {threadRows(ownedThreads)}
       {(loading || awaitingSnapshot && !error) && <p className="muted small" role="status">正在加载会话…</p>}
       {error && <p className="error small" role="alert">{error}</p>}
+      {warning && <p className="muted small" role="status">{warning}</p>}
       {!loading && !awaitingSnapshot && !ownedThreads.length && currentProject && <p className="muted small sidebar-empty">
         {query ? more ? '本页没有此项目的匹配项，请继续加载。' : '没有找到匹配会话' : '暂无会话'}
       </p>}

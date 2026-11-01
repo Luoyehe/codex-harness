@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-deploy",
+  "complete": true,
+  "clean": true,
+  "completedAt": "2026-11-01T13:01:05.022141+00:00",
+  "scope": "Current sidebar/list-refresh increment independent review; excludes reviewer-authored backend cache and consent changes",
+  "files": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "b4b0b2dbd8c1bdf182f96f95ea71525976aa44d681b9758dc7e327f74e66ba1a",
+      "unchangedFromPriorReview": false
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "7b63bc2d246695982692cc4662c382e343f9bc9b60f4e07bf312ea987b0b1924",
+      "unchangedFromPriorReview": true
+    },
+    {
+      "path": "web/hooks/usePaged.ts",
+      "sha256": "822cddbf440143ef5421f8219ff4bb91e26cd93fb78684b18da9087f8d7cba4c",
+      "unchangedFromPriorReview": true
+    },
+    {
+      "path": "web/hooks/useSidebarRefresh.ts",
+      "sha256": "f7dbe6529a161c7dbc32474b8c89bd8c63389ff54dd9c4d1754406e9d5f804c1",
+      "unchangedFromPriorReview": true
+    },
+    {
+      "path": "web/tests/app-lifecycle.test.tsx",
+      "sha256": "9b1010da5857e3768c9df5c17f4c2d94fb6adb1d8a95cd2fe56a548df5e0aadc",
+      "unchangedFromPriorReview": true
+    },
+    {
+      "path": "web/tests/workspace-handoff.test.tsx",
+      "sha256": "f8c04f1f55f70256f31ddcf98d80929925540541babdf8d1401b3e249266654c",
+      "unchangedFromPriorReview": true
+    },
+    {
+      "path": "web/tests/paged-threads.test.tsx",
+      "sha256": "c36bd4caba53d9af8f9551646d970498dc8641f0448fcebfd4a4e99c43b79562",
+      "unchangedFromPriorReview": true
+    },
+    {
+      "path": "web/tests/sidebar-refresh.test.tsx",
+      "sha256": "d3004ed7f34e8067ab0c766437f40310d81c80c7729c819b52b527147ba71e65",
+      "unchangedFromPriorReview": true
+    }
+  ],
+  "priorReview": {
+    "path": ".work/v231-sidebar-web-independent-review.json",
+    "sha256": "d68efb340505bcc0cee206d48d34441168a8437ddc606ce2f8d38939fdfdfadd"
+  },
+  "method": [
+    "Recomputed all eight file hashes against the actual prior independent review. Seven files are byte-identical; their prior complete semantic/diff/test evidence is explicitly inherited, not relabeled as new tests.",
+    "Freshly reread full useSidebarRefresh/usePaged modules, the Sidebar warning delta, current Workspace list ownership/refresh/create/handoff/navigation/desktop-mobile callers and the new hook/paging tests. No new actionable finding.",
+    "Workspace differs because this reviewer subsequently authored the separate conversion-consent feature and moved the ROOT badge at the parent request. Those changes are expressly excluded from independent approval here and require parent review; current hash is inventory binding only for those sections. Sidebar callbacks remain as independently reviewed."
+  ],
+  "checks": [
+    "Receipt/event refresh remains read-only and coalesced; not_sent confirmation receipts do not refresh sidebar while accepted turn/resume/native thread lifecycle retain their ordinary semantics.",
+    "Known live summaries cannot replace or consume the native cursor; persisted duplicate rows replace live values. Native-only later pages retain truncation warning.",
+    "Project/execution-mode owner mismatch rejects late pages and queued stale refreshes; same shared Sidebar logic serves desktop/mobile.",
+    "Navigation refuses unsaved draft loss before clearing search/archive. New thread acceptance and delayed indexing refresh both ordinary/search lists without replaying input."
+  ],
+  "findings": [],
+  "skipped": [],
+  "limits": [
+    "No tests rerun and no browser/live service actions for this carry-forward review. Actual parent UI test evidence remains in the original independent report.",
+    "Runtime live-thread-list.ts/service listing cache is reviewer-authored work and is not independently signed by this report.",
+    "Not a full repository audit or release gate."
+  ]
+}
