@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync } from 'node:fs';
@@ -46,7 +46,7 @@ const services: RuntimeService[] = [];
 function setup(providerRegistry?: RuntimeConfig['providerRegistry']): { service: RuntimeService; native: FakeNative; events: RuntimeEvent[]; cwd: string } {
   const cwd = mkdtempSync(path.join(roots, 'service-')); const native = new FakeNative(); const config: RuntimeConfig = { bin: process.execPath, home: cwd, workerHome: cwd, cwd, env: {}, ...(providerRegistry ? { providerRegistry } : {}) }; const service = new RuntimeService(config, native as unknown as NativeRpc); services.push(service); const events: RuntimeEvent[] = []; service.on('event', event => events.push(event)); return { service, native, events, cwd };
 }
-afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
+afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); vi.restoreAllMocks(); });
 const context = { clientId: 'client-a' };
 test('project lists include every recorded provider while preserving native page filters and boundaries', async () => {
   const { service, native, cwd } = setup(), original = native.call.bind(native);
@@ -315,9 +315,9 @@ describe('RuntimeService admission and recovery', () => {
     expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
   });
 
-  async function unavailableProvider(removed: boolean) {
+  async function unavailableProvider(removed: boolean, enabled = false) {
     const target = { id: 'default', modelProvider: 'second', name: 'Second', kind: 'responses', enabled: true, model: 'other', models: [{ id: 'other' }] };
-    const old = { id: 'a'.repeat(32), modelProvider: 'fixture', name: 'Old', kind: 'responses', enabled: false, model: 'fixture', models: [{ id: 'fixture' }] };
+    const old = { id: 'a'.repeat(32), modelProvider: 'fixture', name: 'Old', kind: 'responses', enabled, model: 'fixture', models: [{ id: 'fixture' }] };
     const fixture = await resumable(0, { defaultProviderId: 'default', nativeCatalogProvider: 'second', connections: removed ? [target] : [target, old] });
     const { native, response } = fixture, original = native.call.bind(native);
     let provider = 'fixture';
@@ -331,72 +331,12 @@ describe('RuntimeService admission and recovery', () => {
     return fixture;
   }
 
-  test.each([false, true])('loads a cold thread through an enabled target when its old provider is unavailable (removed=%s)', async removed => {
-    const { service, native, cwd } = await unavailableProvider(removed);
+  test.each([false, true])('ordinary resume cannot change a stored provider even when the old provider is unavailable (removed=%s)', async removed => {
+    const { service, native } = await unavailableProvider(removed);
     await expect(service.call('thread/resume', { threadId: 'stored', automatic: true }, context)).rejects.toMatchObject({ code: 'provider_unavailable', delivery: 'not_sent' });
-    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' } }, context))
-      .rejects.toMatchObject({ code: 'history_conversion_confirmation_required', delivery: 'not_sent', data: { threadId: 'stored', sourceProvider: 'fixture', targetProvider: 'second', conversionRequired: true } });
-    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'stale', targetProvider: 'second' } }, context))
-      .rejects.toMatchObject({ code: 'history_conversion_consent_stale', delivery: 'not_sent' });
-    expect(native.calls.some(call => call.method === 'thread/resume')).toBe(false);
+    await expect(service.call('thread/resume', { threadId: 'stored', options: { modelProvider: 'second' } }, context)).rejects.toMatchObject({ code: 'provider_conversion_required', delivery: 'not_sent' });
+    expect(native.calls.some(call => ['thread/resume', 'turn/start', 'thread/start'].includes(call.method))).toBe(false);
     expect(object(object(service.status()).activity).unknown).toBe(false);
-    const result = await service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context);
-    expect(result).toMatchObject({ modelProvider: 'second', model: 'other', cwd, approvalPolicy: 'never', sandbox: { type: 'dangerFullAccess' } });
-    expect(native.calls.find(call => call.method === 'thread/resume')?.params).toEqual({ threadId: 'stored', excludeTurns: true, modelProvider: 'second', model: 'other', config: { model_reasoning_effort: null } });
-    expect(await service.call('thread/session', { threadId: 'stored' }, context)).toMatchObject({ requiresResume: false, modelProvider: 'second' });
-    expect(native.calls.some(call => call.method === 'turn/start')).toBe(false);
-  });
-
-  test.each(['goal', 'queue'])('a selected cold provider does not automatically continue %s but accepts explicit continuation', async kind => {
-    const { service, native } = await unavailableProvider(true), original = native.call.bind(native);
-    native.call = async (method, params, options) => {
-      const result = await original(method, params, options);
-      if (kind === 'goal' && method === 'thread/goal/get') return { goal: { threadId: 'stored', objective: 'saved work', status: 'active', tokenBudget: null, tokensUsed: 0, timeUsedSeconds: 0, createdAt: 1, updatedAt: 1 } };
-      if (kind === 'queue' && method === 'thread/queue/list') return { data: [{ id: 'queued', input: [], clientUserMessageId: 'client' }], nextCursor: null };
-      return result;
-    };
-    const options = { modelProvider: 'second', model: 'other' };
-    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options }, context)).rejects.toMatchObject({ code: 'continuation_confirmation_required', delivery: 'not_sent' });
-    expect(native.calls.some(call => call.method === 'thread/resume')).toBe(false);
-    await expect(service.call('thread/resume', { threadId: 'stored', options, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context)).resolves.toMatchObject({ modelProvider: 'second' });
-    expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
-  });
-
-  test('cold provider loading rejects active work and a changed continuation at the final native boundary', async () => {
-    const { service, native, response } = await unavailableProvider(true), original = native.call.bind(native);
-    let active = true;
-    native.call = async (method, params, options) => {
-      const result = await original(method, params, options);
-      return active && method === 'thread/read' ? { thread: { ...response.thread, status: { type: 'active', activeFlags: [] } } } : result;
-    };
-    const params = { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } };
-    await expect(service.call('thread/resume', params, context)).rejects.toMatchObject({ code: 'thread_busy', delivery: 'not_sent' });
-    active = false;
-    native.beforeNativeWrite = method => { if (method === 'thread/resume') native.emit('notification', { method: 'thread/goal/updated', params: { threadId: 'stored', goal: { threadId: 'stored', objective: 'saved work', status: 'active', tokenBudget: null, tokensUsed: 0, timeUsedSeconds: 0, createdAt: 1, updatedAt: 1 } } }); };
-    await expect(service.call('thread/resume', params, context)).rejects.toMatchObject({ code: 'continuation_changed', delivery: 'not_sent' });
-    expect(native.calls.some(call => call.method === 'thread/resume')).toBe(false);
-  });
-
-  test('cold selected-provider mismatch after acknowledgement is unknown and never sends input', async () => {
-    const { service, native, response } = await unavailableProvider(true), original = native.call.bind(native);
-    native.call = async (method, params, options) => { const result = await original(method, params, options); return method === 'thread/resume' ? response : result; };
-    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context)).rejects.toMatchObject({ delivery: 'unknown' });
-    expect(object(object(service.status()).activity).unknown).toBe(true);
-    expect(native.calls.some(call => call.method === 'turn/start')).toBe(false);
-  });
-
-  test.each(['foreign-environment', 'wrong-local-root'])('cold selected-provider loading rejects %s in the resumed executor', async kind => {
-    const { service, native, cwd } = await unavailableProvider(true), original = native.call.bind(native);
-    native.call = async (method, params, options) => {
-      const result = await original(method, params, options);
-      if (method === 'thread/resume') {
-        const value = object(result), thread = object(value.thread);
-        return { ...value, thread: { ...thread, environments: [{ environmentId: kind === 'foreign-environment' ? 'unregistered' : 'local', cwd, runtimeWorkspaceRoots: [path.dirname(cwd)] }] } };
-      }
-      return result;
-    };
-    await expect(service.call('thread/resume', { threadId: 'stored', automatic: true, options: { modelProvider: 'second' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context)).rejects.toMatchObject({ delivery: 'unknown' });
-    expect(object(object(service.status()).activity).unknown).toBe(true);
   });
 
   test('checks continuation again before automatic loading and rejects a final native-write race', async () => {
@@ -419,40 +359,17 @@ describe('RuntimeService admission and recovery', () => {
     expect(object(object(service.status()).activity).unknown).toBe(false);
   });
 
-  test.each([false, true])('sends through the selected provider only after reload and history verification, final write rejection=%s', async rejectTurn => {
+  test('sending through a different provider is rejected before detach, conversion, or user input', async () => {
     const registry = { defaultProviderId: 'default', nativeCatalogProvider: 'fixture', connections: [
       { id: 'default', modelProvider: 'fixture', enabled: true, name: 'First', kind: 'responses', models: [{ id: 'fixture' }] },
       { id: 'a'.repeat(32), modelProvider: 'second', enabled: true, name: 'Second', kind: 'responses', models: [{ id: 'other' }] },
     ] };
-    const { service, native, response } = await resumable(0, registry), original = native.call.bind(native);
-    let provider = 'fixture';
-    native.call = async (method, params, options) => {
-      const result = await original(method, params, options);
-      const model = provider === 'fixture' ? 'fixture' : 'other';
-      if (method === 'thread/read') return { thread: { ...response.thread, modelProvider: provider, model } };
-      if (method === 'thread/unsubscribe') {
-        native.emit('notification', { method: 'thread/closed', params: { threadId: 'stored' } });
-        return { status: 'unsubscribed' };
-      }
-      if (method === 'thread/resume') {
-        provider = String(object(params).modelProvider ?? provider);
-        const nextModel = provider === 'fixture' ? 'fixture' : 'other';
-        return { ...response, modelProvider: provider, model: nextModel, thread: { ...response.thread, modelProvider: provider, model: nextModel } };
-      }
-      return result;
-    };
+    const { service, native } = await resumable(0, registry);
     await service.call('thread/resume', { threadId: 'stored' }, context);
     const before = native.calls.length;
-    if (rejectTurn) native.beforeNativeWrite = method => { if (method === 'turn/start') throw new DeliveryError('owner_changed', 'Owner changed'); };
-    const sending = service.call('turn/start', { threadId: 'stored', text: 'switch then send', options: { modelProvider: 'second', model: 'other' }, historyConversionConsent: { sourceProvider: 'fixture', targetProvider: 'second' } }, context);
-    if (rejectTurn) await expect(sending).rejects.toMatchObject({ code: 'provider_changed_input_not_sent', delivery: 'unknown', data: { inputSent: false, providerSwitched: true } });
-    else await expect(sending).resolves.toMatchObject({ turn: { id: 'turn-1' } });
-    const calls = native.calls.slice(before), methods = calls.map(call => call.method);
-    expect(provider).toBe('second');
-    expect(methods.indexOf('thread/unsubscribe')).toBeLessThan(methods.indexOf('thread/resume'));
-    expect(methods.indexOf('thread/turns/list')).toBeGreaterThan(methods.indexOf('thread/resume'));
-    expect(calls.filter(call => call.method === 'turn/start')).toHaveLength(rejectTurn ? 0 : 1);
-    if (!rejectTurn) expect(calls.find(call => call.method === 'turn/start')?.params).toMatchObject({ threadId: 'stored', model: 'other' });
+    await expect(service.call('turn/start', { threadId: 'stored', text: 'not sent', options: { modelProvider: 'second', model: 'other' } }, context)).rejects.toMatchObject({ code: 'provider_conversion_required', delivery: 'not_sent' });
+    expect(native.calls.slice(before).every(call => call.method === 'thread/read')).toBe(true);
+    expect(object(object(service.status()).activity).unknown).toBe(false);
   });
 
   test('resume rejection before native write stays not_sent without poisoning the session', async () => {

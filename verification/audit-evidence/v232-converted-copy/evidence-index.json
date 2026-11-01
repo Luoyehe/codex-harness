@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-01T14:21:20.508Z",
+  "sourceDigest": "d45841fb75da1c87ec681c82c5b03b61927fb09e67437326cd2de8aaef17ed1e",
+  "sourceFiles": 2004,
+  "entries": {
+    "manifest": {
+      "path": "verification/audit-evidence/v232-converted-copy/manifest.json",
+      "sha256": "e6e91df4aec055d1f99500c6a41b35380a596064cc3b9d45a2c7e74199082881",
+      "original": {
+        "path": ".work/v232-converted-copy-snapshot.json",
+        "sha256": "e6e91df4aec055d1f99500c6a41b35380a596064cc3b9d45a2c7e74199082881"
+      }
+    },
+    "runtime": {
+      "path": "verification/audit-evidence/v232-converted-copy/runtime.json",
+      "sha256": "eb1bbb5695081c9216f93a0973ac73eb28b39ec47b4ec95b8c07c60d7609c7f5",
+      "original": {
+        "path": ".work/v232-converted-copy-runtime-audit.json",
+        "sha256": "eb1bbb5695081c9216f93a0973ac73eb28b39ec47b4ec95b8c07c60d7609c7f5"
+      }
+    },
+    "tooling": {
+      "path": "verification/audit-evidence/v232-converted-copy/tooling.json",
+      "sha256": "d098a9a5a9bd58b435d3797a2a2316a04028cdf352877947efd0dde36a75538f",
+      "original": {
+        "path": ".work/v232-converted-copy-deploy-core-review.json",
+        "sha256": "d098a9a5a9bd58b435d3797a2a2316a04028cdf352877947efd0dde36a75538f"
+      }
+    },
+    "web": {
+      "path": "verification/audit-evidence/v232-converted-copy/web.json",
+      "sha256": "988d014cf5fe0a4fd15f424fba67fbe8fae40f83d678b0fbdae2b7b6febb7373",
+      "original": {
+        "path": ".work/v232-copy-web-docs-review.json",
+        "sha256": "988d014cf5fe0a4fd15f424fba67fbe8fae40f83d678b0fbdae2b7b6febb7373"
+      }
+    },
+    "helperReview": {
+      "path": "verification/audit-evidence/v232-converted-copy/helperReview.json",
+      "sha256": "a64e6d0d906190b0732d13f684784f719b3c266aa81a0452325b0a56719a9d7a",
+      "original": {
+        "path": ".work/v232-copy-control-review.json",
+        "sha256": "a64e6d0d906190b0732d13f684784f719b3c266aa81a0452325b0a56719a9d7a"
+      }
+    },
+    "gatewayReview": {
+      "path": "verification/audit-evidence/v232-converted-copy/gatewayReview.json",
+      "sha256": "aefeb7607bfc7677bbe409d1f0233cde10e32aaca9f08176673e75e4da51511e",
+      "original": {
+        "path": ".work/v232-conversion-gateway-api-review.json",
+        "sha256": "aefeb7607bfc7677bbe409d1f0233cde10e32aaca9f08176673e75e4da51511e"
+      }
+    },
+    "runtimeAuthor": {
+      "path": "verification/audit-evidence/v232-converted-copy/runtimeAuthor.json",
+      "sha256": "616d16d97e14d9de3e42f49e608bfa92b28236d1e926e75e51d5df71e571a59b",
+      "original": {
+        "path": ".work/v232-thread-conversion-implementation.json",
+        "sha256": "616d16d97e14d9de3e42f49e608bfa92b28236d1e926e75e51d5df71e571a59b"
+      }
+    },
+    "webAuthor": {
+      "path": "verification/audit-evidence/v232-converted-copy/webAuthor.json",
+      "sha256": "5afd88378728ff67ed270fea2966cad69152f697411ed58a91105f683ee37438",
+      "original": {
+        "path": ".work/v232-new-thread-conversion-ui.json",
+        "sha256": "5afd88378728ff67ed270fea2966cad69152f697411ed58a91105f683ee37438"
+      }
+    },
+    "helperAuthor": {
+      "path": "verification/audit-evidence/v232-converted-copy/helperAuthor.json",
+      "sha256": "3c605522b0237dbdcfbbdbe9b3ece6c6b2febd55c92c669359aa5df2f0f7af04",
+      "original": {
+        "path": ".work/v232-conversion-copy-helper.json",
+        "sha256": "3c605522b0237dbdcfbbdbe9b3ece6c6b2febd55c92c669359aa5df2f0f7af04"
+      }
+    },
+    "capabilityAuthor": {
+      "path": "verification/audit-evidence/v232-converted-copy/capabilityAuthor.json",
+      "sha256": "b5192d9f76e3d1c498dbe0d8c97c7c91eb06482b21c821a44524d12e8b1eb261",
+      "original": {
+        "path": ".work/v232-history-capability2-implementation.json",
+        "sha256": "b5192d9f76e3d1c498dbe0d8c97c7c91eb06482b21c821a44524d12e8b1eb261"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v232-converted-copy/freshness.json",
+      "sha256": "1e256f4a4a5abcac835d4b59ce42358c51c48dd001c59de3b500cc701cd29cf1",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-6954484b-f57b-481c-9fcd-8e1ec1b2cce2.json",
+        "sha256": "1e256f4a4a5abcac835d4b59ce42358c51c48dd001c59de3b500cc701cd29cf1"
+      }
+    },
+    "mcp": {
+      "path": "verification/audit-evidence/v232-converted-copy/mcp.json",
+      "sha256": "cefae25d19b177a72aa857cbf7c4722e63881e283535be487f5d5a273fb52791",
+      "original": {
+        "path": ".work/v232-copy-mcp-semantic-review.json",
+        "sha256": "cefae25d19b177a72aa857cbf7c4722e63881e283535be487f5d5a273fb52791"
+      }
+    },
+    "scan": {
+      "path": "verification/audit-evidence/v232-converted-copy/scan.json",
+      "sha256": "bef42ab379d9b7025937dcd83bd0d2a4fa70fbb046fac6538c902caef89075cb",
+      "original": {
+        "path": ".work/v232-copy-source-security.json",
+        "sha256": "bef42ab379d9b7025937dcd83bd0d2a4fa70fbb046fac6538c902caef89075cb"
+      }
+    },
+    "previous-authorization": {
+      "path": "verification/audit-evidence/v232-converted-copy/previous-authorization.json",
+      "sha256": "db5f91f5d5f2361752ac0c72653ed91df6cb76db5acbc2ee4d89e997e80ccb2a",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "db5f91f5d5f2361752ac0c72653ed91df6cb76db5acbc2ee4d89e997e80ccb2a"
+      }
+    }
+  },
+  "canonicalization": "Published evidence uses LF; original local hashes retained. Historical and failed evidence is not overwritten."
+}

@@ -36,6 +36,7 @@ export function Composer({
   contextKey,
   moreModels,
   modelsLoading,
+  directoryComplete,
   modelsRefreshDisabled,
   onMoreModels,
   onRefreshModels,
@@ -43,6 +44,7 @@ export function Composer({
   onAttachmentsChange,
   onAttachmentRemoved,
   existingThread = false,
+  threadProvider,
   modes = [],
   modesLoading = false,
   canSteer = false,
@@ -86,6 +88,7 @@ export function Composer({
   contextKey: string;
   moreModels?: boolean;
   modelsLoading?: boolean;
+  directoryComplete?: boolean;
   modelsRefreshDisabled?: boolean;
   onMoreModels?: () => void;
   onRefreshModels?: () => void;
@@ -93,6 +96,7 @@ export function Composer({
   onAttachmentsChange?: (attachments: Attachment[]) => void;
   onAttachmentRemoved?: (attachmentId: string) => void;
   existingThread?: boolean;
+  threadProvider?: string;
   modes?: CollaborationModeMask[];
   modesLoading?: boolean;
   canSteer?: boolean;
@@ -307,7 +311,7 @@ export function Composer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="输入消息，或添加文件…"
-          rows={3}
+          rows={2}
           onCompositionStart={() => {
             composition.current = true;
           }}
@@ -329,24 +333,7 @@ export function Composer({
           }}
         />
         <div className="composer-toolbar">
-          <div className="composer-tools">
-          <input
-            ref={fileInput}
-            className="sr-only"
-            tabIndex={-1}
-            type="file"
-            multiple
-            aria-label="选择附件"
-            onChange={(e) => void upload(e.target.files)}
-          />
-          <button
-            className="icon-button"
-            aria-label="添加附件"
-            disabled={uploading > 0 || busy}
-            onClick={() => fileInput.current?.click()}
-          >
-            <Icon name="attach" />
-          </button>
+          <div className="composer-selection">
           <label className="mode-select">
             <span className="sr-only">协作模式</span>
             <select
@@ -376,11 +363,30 @@ export function Composer({
                 ))}
             </select>
           </label>
-          <ModelPicker key={`model:${contextKey}`} models={models} options={options} onOptions={onOptions}
+          <ModelPicker key={`model:${contextKey}`} models={models} options={options} onOptions={onOptions} threadProvider={threadProvider} directoryComplete={directoryComplete}
             defaults={defaultsLoading ? undefined : defaults} defaultsLoading={defaultsLoading} existingThread={existingThread}
             loading={modelsLoading} disabled={selectedIntent !== 'send' || busy}
             refreshDisabled={modelsRefreshDisabled}
             onRefresh={onRefreshModels} more={moreModels} onMore={onMoreModels} onProviders={onProviders} />
+          </div>
+          <div className="composer-tools">
+          <input
+            ref={fileInput}
+            className="sr-only"
+            tabIndex={-1}
+            type="file"
+            multiple
+            aria-label="选择附件"
+            onChange={(e) => void upload(e.target.files)}
+          />
+          <button
+            className="icon-button"
+            aria-label="添加附件"
+            disabled={uploading > 0 || busy}
+            onClick={() => fileInput.current?.click()}
+          >
+            <Icon name="attach" />
+          </button>
           <button
             className="button subtle small options-trigger"
             aria-expanded={expanded}

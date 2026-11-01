@@ -106,14 +106,13 @@ it('keeps each chat selection while switching projects and invalidates the share
   fireEvent.click(screen.getByRole('button', { name: 'Project Beta' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Chat Beta' }));
   await waitFor(() => expect(finishBeta).toBeTypeOf('function'));
-  // The saved model/provider pair already identifies Beta in the current
-  // directory. Reading session defaults must not replace that explicit choice.
-  expect(picker().textContent).toContain('Beta model');
+  // Saved options are not proof of the current native provider. Retain them
+  // while waiting, but do not expose another provider before session readback.
+  expect(picker().textContent).toContain('读取模型设置…');
   fireEvent.click(picker());
-  expect(screen.getByRole('combobox', { name: '模型' })).toHaveProperty('value', JSON.stringify(['beta', 'shared']));
-  expect(screen.getByRole('combobox', { name: '思考强度' })).toHaveProperty('value', 'max');
-  expect(screen.getByRole('combobox', { name: '思考强度' }).matches(':disabled')).toBe(false);
-  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
+  expect(screen.getByRole('combobox', { name: '模型' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('combobox', { name: '思考强度' }).matches(':disabled')).toBe(true);
+  expect(readDraft('tb')).toMatchObject({ options: { modelProvider: 'beta', effort: 'max' } });
   expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(true);
   fireEvent.keyDown(input(), { key: 'Enter' });
   expect(calls.some(call => call.operationId)).toBe(false);

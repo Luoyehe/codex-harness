@@ -328,6 +328,7 @@ class ControlUpdater:
         fsync_directory(self.barriers)
 
     def sudo_policies(self, capabilities: dict) -> dict:
+        from .execution_identity import supports_history_control
         path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
         old = path.read_bytes()
         variants = sudo_variants(self.layout, self.config)
@@ -335,8 +336,7 @@ class ControlUpdater:
         workspace, catalog, _ = variants[old]
         candidate = sudo_rule(self.layout, config=self.config, workspace=workspace,
                               legacy_catalog_server=catalog,
-                              legacy_thread_history=not (type(capabilities.get("threadHistoryRepair")) is int and
-                                                         capabilities["threadHistoryRepair"] == 1)).encode()
+                              legacy_thread_history=not supports_history_control(capabilities)).encode()
         return {"old": base64.b64encode(old).decode(), "candidate": base64.b64encode(candidate).decode()}
 
     def sudo_identity(self) -> dict:

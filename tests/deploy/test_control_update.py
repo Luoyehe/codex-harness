@@ -40,28 +40,52 @@ class SudoCompatibilityTests(unittest.TestCase):
         from deploy.units import sudo_rule, migrated_history_sudo
         with tempfile.TemporaryDirectory() as folder:
             layout = Layout("fixture", Path(folder)); layout.control.mkdir(parents=True)
-            write_json(layout.control / "capabilities.json", {"threadHistoryRepair": 1})
-            for workspace in (False, True):
-                for catalog in (False, True):
-                    old = sudo_rule(layout, workspace=workspace, legacy_catalog_server=catalog, legacy_thread_history=True).encode()
-                    new = migrated_history_sudo(layout, {}, old)
-                    self.assertEqual(new, old[:-1] + (", " + str(layout.control) + "/native-launch thread-history\n").encode())
-                    self.assertNotIn(b"thread-history *", new)
-                    with self.assertRaises(DeployError): migrated_history_sudo(layout, {}, old + b"ALL")
+            for version in (1, 2):
+                write_json(layout.control / "capabilities.json", {"threadHistoryRepair": version})
+                for workspace in (False, True):
+                    for catalog in (False, True):
+                        old = sudo_rule(layout, workspace=workspace, legacy_catalog_server=catalog, legacy_thread_history=True).encode()
+                        new = migrated_history_sudo(layout, {}, old)
+                        self.assertEqual(new, old[:-1] + (", " + str(layout.control) + "/native-launch thread-history\n").encode())
+                        self.assertNotIn(b"thread-history *", new)
+                        with self.assertRaises(DeployError): migrated_history_sudo(layout, {}, old + b"ALL")
 
     def test_selected_application_requires_history_capability_before_control_selection(self):
         from deploy.execution_identity import require_history_control
         with tempfile.TemporaryDirectory() as folder:
             layout = Layout("fixture", Path(folder)); release = "a" * 64
             target = layout.app / "releases" / release / "app"; target.mkdir(parents=True)
-            write_json(target / "package.json", {"codexHarnessThreadHistory": 1})
-            for value in (None, True, 0, "1", 2):
-                with self.subTest(value=value), self.assertRaises(DeployError) as error:
-                    require_history_control(layout, {"threadHistoryRepair": value}, release=release)
+            for version in (1, 2):
+                write_json(target / "package.json", {"codexHarnessThreadHistory": version})
+                for value in (None, True, False, 0, "1", "2", 3, 1, 2):
+                    with self.subTest(application=version, control=value):
+                        if type(value) is int and value in (1, 2) and value >= version:
+                            require_history_control(layout, {"threadHistoryRepair": value}, release=release)
+                        else:
+                            with self.assertRaises(DeployError) as error:
+                                require_history_control(layout, {"threadHistoryRepair": value}, release=release)
+                            self.assertEqual(error.exception.code, "history_unsupported")
+            for invalid in (True, False, 0, "2", 3):
+                write_json(target / "package.json", {"codexHarnessThreadHistory": invalid})
+                with self.subTest(application=invalid), self.assertRaises(DeployError) as error:
+                    require_history_control(layout, {"threadHistoryRepair": 2}, release=release)
                 self.assertEqual(error.exception.code, "history_unsupported")
-            require_history_control(layout, {"threadHistoryRepair": 1}, release=release)
             write_json(target / "package.json", {})
             require_history_control(layout, {}, release=release)
+
+    def test_native_application_admission_requires_copy_capability_before_activation(self):
+        from deploy.execution_identity import require_application
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder)); release = "a" * 64
+            target = layout.app / "releases" / release / "app"; target.mkdir(parents=True)
+            layout.control.mkdir(parents=True)
+            write_json(target / "package.json", {"codexHarnessThreadHistory": 2})
+            write_json(layout.control / "capabilities.json", {"threadHistoryRepair": 1})
+            with self.assertRaises(DeployError) as error:
+                require_application(layout, release, {"executionMode": "native"})
+            self.assertEqual(error.exception.code, "history_unsupported")
+            write_json(layout.control / "capabilities.json", {"threadHistoryRepair": 2})
+            require_application(layout, release, {"executionMode": "native"})
 
     def test_only_exact_previous_or_current_policies_are_recognized(self):
         from deploy.ownership import require_owned
@@ -232,7 +256,7 @@ class ControlBoundaryTests(unittest.TestCase):
             self.assertEqual(read_json(destination / "capabilities.json")["dnsProviders"], list(PROVIDERS))
             self.assertEqual(read_json(destination / "capabilities.json")["serviceProxyDirectDomains"], 1)
             self.assertEqual(read_json(destination / "capabilities.json")["sharedChatgptAuth"], 1)
-            self.assertEqual(read_json(destination / "capabilities.json")["threadHistoryRepair"], 1)
+            self.assertEqual(read_json(destination / "capabilities.json")["threadHistoryRepair"], 2)
             from deploy.dns_caddy_build import source_material
             for name, data in source_material().items():
                 self.assertEqual((destination / "deploy/caddy_dns_source" / name).read_bytes(), data)

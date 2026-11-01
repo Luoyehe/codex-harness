@@ -1,8 +1,9 @@
+import { providerModels, providerRelation } from './lib/provider-models';
 import { uuid } from './lib/ids';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Api, RpcError } from './lib/api';
 import { Events } from './lib/events';
-import { acknowledgeOperation, consumeThreadOperations, listOperations, reconcileOperation } from './lib/operations';
+import { consumeThreadOperations, listOperations, reconcileOperation } from './lib/operations';
 import {
   array,
   message,
@@ -54,7 +55,7 @@ import { Settings } from './components/Settings';
 import { EmergencyRecovery } from './components/EmergencyRecovery';
 import { RootExecutionNotice } from './components/ExecutionModeSettings';
 import { Dialog } from './components/Dialog';
-import { HistoryConversionDialog } from './components/HistoryConversionDialog';
+import { ThreadConversionDialog } from './components/ThreadConversionDialog';
 import { Icon } from './components/Icon';
 import { UsagePopover } from './components/UsagePopover';
 import { RenameDialog } from './components/RenameDialog';
@@ -406,7 +407,7 @@ export function Workspace({
     .filter(
       (op) =>
         op.state === 'accepted' &&
-        [...INPUT_METHODS, 'thread/resume', 'thread/settings/update', 'thread/fork', 'review/startNew'].includes(op.method) &&
+        [...INPUT_METHODS, 'thread/resume', 'thread/settings/update', 'thread/fork', 'review/startNew', 'thread/convert'].includes(op.method) &&
         (op.resolvedThreadId || op.threadId) === threadId,
     )
     .map((op) => op.id)
@@ -436,127 +437,32 @@ export function Workspace({
         ? op.threadId === threadId || op.resolvedThreadId === threadId
         : op.projectId === projectId && INPUT_METHODS.includes(op.method)),
   );
-  type ConversionConsent = { sourceProvider: string; targetProvider: string };
-  type ConversionPrompt = ConversionConsent & {
-    action: 'select' | 'send' | 'load'; current: () => boolean; finish: (confirmed: boolean) => void;
-    mayContinue: boolean;
-  };
-  const [conversionPrompt, setConversionPrompt] = useState<ConversionPrompt>();
-  const conversionPending = useRef<ConversionPrompt | undefined>(undefined);
-  const conversionConsent = useRef<{ scope: string; consent: ConversionConsent } | undefined>(undefined);
   const sourceProvider = typeof threadDefaults?.modelProvider === 'string' ? threadDefaults.modelProvider :
     typeof object(conversation.thread).modelProvider === 'string' ? object(conversation.thread).modelProvider as string : undefined;
-  // Do not bind approval to message text: users normally choose a model before typing.
-  // Actual sends below additionally bind the exact draft revision until dispatch.
-  const { thread: _conversionThread, ...conversionSettings } = threadDefaults ?? {};
-  const conversionScope = JSON.stringify([threadId, draftMode, navigation.current, resourceEpoch,
-    resumedThread, sourceProvider, conversionSettings]);
-  const conversionLive = useRef({ scope: conversionScope, options: JSON.stringify(options), ready: false, running: false });
-  conversionLive.current = { scope: conversionScope, options: JSON.stringify(options), ready:
-    active && !executionBlocked && network.connection === 'connected' && network.runtimeConnected && network.activityReady,
-    running: conversation.active };
-  const finishConversion = (confirmed: boolean) => {
-    const prompt = conversionPending.current;
-    if (!prompt) return;
-    conversionPending.current = undefined;
-    setConversionPrompt(undefined);
-    prompt.finish(confirmed && prompt.current());
-  };
-  useEffect(() => {
-    if (!active) finishConversion(false);
-  }, [active]);
-  useEffect(() => () => {
-    const prompt = conversionPending.current;
-    conversionPending.current = undefined;
-    prompt?.finish(false);
-  }, []);
-  const confirmConversion = (consent: ConversionConsent, action: ConversionPrompt['action'], current: () => boolean, mayContinue = false) => {
-    if (conversionPending.current || !current()) return Promise.resolve(false);
-    return new Promise<boolean>(finish => {
-      const prompt = { ...consent, action, current, finish, mayContinue };
-      conversionPending.current = prompt;
-      setConversionPrompt(prompt);
-    });
-  };
-  const selectedConsent = (target: string | undefined) => {
-    const saved = conversionConsent.current;
-    return saved?.scope === conversionScope && saved.consent.sourceProvider === sourceProvider &&
-      saved.consent.targetProvider === target ? saved.consent : undefined;
-  };
-  const canonicalProvider = (provider: string) => {
-    const matches = new Set(models.items.filter(row => row.modelProvider === provider || row.providerAliases?.includes(provider))
-      .map(row => row.modelProvider).filter((id): id is string => typeof id === 'string'));
-    return matches.size === 1 ? [...matches][0]! : provider;
-  };
-  const sameProvider = (target: string) => sourceProvider !== undefined && canonicalProvider(target) === canonicalProvider(sourceProvider);
+  const directoryComplete = !models.hasMore && !models.loading && !models.error && !models.warning;
+  const sameProvider = (target: string) => sourceProvider !== undefined &&
+    providerRelation(models.items, sourceProvider, target, directoryComplete) === 'same';
+  // The shared catalog remains complete. Only the current conversation's controls are scoped.
+  const composerModels = !threadId ? models.items : sourceProvider
+    ? providerModels(models.items, sourceProvider, directoryComplete) : [];
   const setOptions = (next: Options) => {
-    if (conversionPending.current) return;
     const modelChanged = next.model !== options.model || next.modelProvider !== options.modelProvider;
-    if (threadId && !sourceProvider && modelChanged) {
-      setError('会话原供应商尚未读取，请等会话读取完成后重新选择模型；当前选择未改变。');
+    if (threadId && modelChanged && (!sourceProvider || next.modelProvider && !sameProvider(next.modelProvider))) {
+      setError(sourceProvider ? '如需使用其他供应商，请从会话操作中选择“切换供应商 / 转换会话”。' :
+        '会话供应商尚未读取，请等待会话读取完成后再选择模型。');
       return;
     }
-    if (modelChanged) setError(current => current === '会话原供应商尚未读取，请等会话读取完成后重新选择模型；当前选择未改变。' ? '' : current);
-    const target = next.modelProvider ? canonicalProvider(next.modelProvider) : sourceProvider;
-    if (!threadId || !sourceProvider || !target || sameProvider(target)) {
-      conversionConsent.current = undefined;
-      draftState.setOptions(next);
-      return;
-    }
-    if (selectedConsent(target)) { draftState.setOptions(next); return; }
-    const scope = conversionScope, previous = JSON.stringify(options);
-    const current = () => conversionLive.current.ready && conversionLive.current.scope === scope &&
-      conversionLive.current.options === previous;
-    const consent = { sourceProvider, targetProvider: target };
-    void confirmConversion(consent, 'select', current).then(confirmed => {
-      if (!confirmed || !current()) return;
-      conversionConsent.current = { scope, consent };
-      draftState.setOptions(next);
-    });
+    draftState.setOptions(next);
   };
-  const conversionMutation = async (method: 'turn/start' | 'thread/resume', params: Record<string, unknown>) => {
-    const scope = conversionScope, requested = object(params.options).modelProvider ?? sourceProvider;
-    // Native warm turns keep the actual identity when the selected catalog row
-    // is merely its documented alias (for example openai -> harness_chatgpt).
-    const target = typeof requested !== 'string' ? requested : method === 'turn/start' && sameProvider(requested)
-      ? sourceProvider : canonicalProvider(requested);
-    const unchangedDraft = draftState.canLeave, selectedOptions = JSON.stringify(options);
-    const current = () => conversionLive.current.ready && conversionLive.current.scope === scope &&
-      conversionLive.current.options === selectedOptions &&
-      (method === 'thread/resume' || !conversionLive.current.running && unchangedDraft());
-    const requireCurrent = () => { if (!current()) throw new Error('会话或草稿已变化，请重新操作。'); };
-    let consent = selectedConsent(typeof target === 'string' ? target : undefined);
-    if (!consent && sourceProvider && typeof target === 'string' && !sameProvider(target)) {
-      consent = { sourceProvider, targetProvider: target };
-      if (!await confirmConversion(consent, method === 'turn/start' ? 'send' : 'load', current, method === 'thread/resume' && params.automatic !== true)) return false;
-      requireCurrent();
-      conversionConsent.current = { scope, consent };
-    }
-    const submit = (approved?: ConversionConsent) => api.beginMutation(method,
-      { ...params, ...(approved ? { historyConversionConsent: approved } : {}) },
-      approved ? requireCurrent : undefined, draftMode).result;
-    try { await submit(consent); return true; }
-    catch (failure) {
-      const data = failure instanceof RpcError ? failure.data : undefined;
-      if (!(failure instanceof RpcError) || failure.delivery !== 'not_sent' ||
-        failure.code !== 'history_conversion_confirmation_required' || data?.conversionRequired !== true ||
-        data.threadId !== params.threadId || typeof data.sourceProvider !== 'string' || !data.sourceProvider ||
-        typeof data.targetProvider !== 'string' || !data.targetProvider ||
-        data.sourceProvider.length > 80 || data.targetProvider.length > 80 ||
-        (sourceProvider !== undefined && data.sourceProvider !== sourceProvider) ||
-        (target !== undefined && data.targetProvider !== target) || consent) throw failure;
-      // This request is proven not sent. Keep the durable server receipt; dismiss
-      // only this local expected rejection, never an unknown or unrelated record.
-      if (failure.operationId) await acknowledgeOperation(failure.operationId);
-      requireCurrent();
-      consent = { sourceProvider: data.sourceProvider, targetProvider: data.targetProvider };
-      if (!await confirmConversion(consent, method === 'turn/start' ? 'send' : 'load', current, method === 'thread/resume' && params.automatic !== true)) return false;
-      requireCurrent();
-      conversionConsent.current = { scope, consent };
-      await submit(consent); // One new, explicitly approved operation; no replay loop.
-      return true;
-    }
-  };
+  const draftProviderRelation = threadId && options.modelProvider
+    ? sourceProvider ? providerRelation(models.items, sourceProvider, options.modelProvider, directoryComplete) : 'unknown' : 'same';
+  const foreignDraftModel = draftProviderRelation !== 'same';
+  useEffect(() => {
+    if (draftProviderRelation !== 'different') return;
+    const { model: _model, modelProvider: _provider, effort: _effort, ...retained } = options;
+    draftState.setOptions(retained);
+    setError('已移除草稿中其他供应商的模型和强度选择，正文、附件及其他设置均保留。切换供应商请使用会话操作中的转换入口。');
+  }, [threadId, sourceProvider, options.modelProvider, draftProviderRelation]);
   const directInputAllowed =
     !conversation.thread?.parentThreadId || conversation.thread.canAcceptDirectInput === true;
   const workflowEnabled =
@@ -684,7 +590,7 @@ export function Workspace({
       nav = navigation.current,
       canLeaveAfterAcceptance = draftState.canLeaveAfterAcceptance;
     if (
-      !projectId || executionBlocked || conversionPending.current ||
+      !projectId || executionBlocked || foreignDraftModel ||
       pending ||
       isBusy ||
       draftState.error ||
@@ -745,7 +651,7 @@ export function Workspace({
           attachmentIds: attachments.map((a) => a.attachmentId),
         });
       else
-        return await conversionMutation('turn/start', {
+        await submit('turn/start', {
           threadId: target,
           text,
           ...context,
@@ -770,7 +676,7 @@ export function Workspace({
   const modalNavigation = navigation.current;
   const loadThread = async (automatic = false) => {
     if (
-      !threadId || conversionPending.current ||
+      !threadId || foreignDraftModel ||
       pending ||
       isBusy ||
       !resume.requiresResume ||
@@ -794,7 +700,7 @@ export function Workspace({
           throw new Error('所选思考强度已不适用于当前模型，请重新选择或恢复模型默认强度。');
         modelOptions = { modelProvider: options.modelProvider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
       }
-      if (!await conversionMutation('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) })) return;
+      await api.mutate('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) }, draftMode);
       if (navigation.current === nav) setResumeRevision((v) => v + 1);
     } catch (e) {
       if (navigation.current === nav) {
@@ -814,14 +720,14 @@ export function Workspace({
   useEffect(() => {
     const attempt = JSON.stringify([threadId, resourceEpoch, resumeRevision, options.modelProvider, options.model, options.effort]);
     if (!active || !threadId || selectedArchived === true || !resume.requiresResume || resume.requiresContinuationConfirmation ||
-      autoLoadAttempt.current === attempt || pending || isBusy || !conversation.ready || operations.error ||
+      autoLoadAttempt.current === attempt || foreignDraftModel || pending || isBusy || !conversation.ready || operations.error ||
       Boolean(options.model && options.modelProvider && models.loading) ||
       network.connection !== 'connected' || !network.runtimeConnected || !network.activityReady) return;
     autoLoadAttempt.current = attempt;
     void loadThread(true);
   }, [threadId, resourceEpoch, resumeRevision, active, selectedArchived, resume.requiresResume, resume.requiresContinuationConfirmation,
     options.modelProvider, options.model, options.effort, models.loading,
-    pending, isBusy, conversation.ready, operations.error, network.connection, network.runtimeConnected, network.activityReady]);
+    foreignDraftModel, pending, isBusy, conversation.ready, operations.error, network.connection, network.runtimeConnected, network.activityReady]);
   const workflowChanged = () => {
     refreshSidebar();
     if (navigation.current === modalNavigation) {
@@ -1085,6 +991,7 @@ export function Workspace({
                     <button onClick={() => setModal('execution')}>会话与当前回合设置</button>
                     <button onClick={() => setModal('tasks')}>任务队列、目标与 Agents</button>
                     <button onClick={() => setModal('history')}>搜索与完整导出</button>
+                    <button onClick={() => setModal('convert-thread')}>切换供应商 / 转换会话</button>
                     <button
                       disabled={!workflowEnabled || conversation.active}
                       onClick={() => {
@@ -1529,14 +1436,15 @@ export function Workspace({
                 network.connection !== 'connected' ||
                 !network.runtimeConnected ||
                 !network.activityReady ||
-                pending ||
+                pending || foreignDraftModel ||
                 Boolean(operations.error) ||
                 Boolean(draftState.error) ||
                 (Boolean(threadId) && (!conversation.ready || resumedThread !== threadId))
               }
               options={options}
               onOptions={setOptions}
-              models={models.items}
+              models={composerModels}
+              directoryComplete={directoryComplete}
               moreModels={models.hasMore}
               modelsLoading={models.loading || modelCatalog.refreshing}
               modelsRefreshDisabled={!active || !network.configurationReady}
@@ -1549,8 +1457,10 @@ export function Workspace({
               defaults={composerDefaults}
               defaultsLoading={composerDefaultsLoading}
               existingThread={Boolean(threadId)}
+              threadProvider={sourceProvider}
               notice={
                 modelCatalog.error || draftState.error ||
+                (draftProviderRelation === 'unknown' ? '正在核对草稿模型的供应商归属，请完成模型目录读取后再发送。' : '') ||
                 (!directInputAllowed
                   ? '此子 Agent 尚未明确允许直接输入，可以查看结果。'
                   : !project
@@ -1809,7 +1719,7 @@ export function Workspace({
                 epoch={resourceEpoch}
                 enabled={workflowEnabled && !conversation.realtimeActive}
                 activeTurnId={conversation.activeTurn?.id}
-                models={models.items}
+                models={composerModels}
                 moreModels={models.hasMore}
                 modelsLoading={models.loading}
                 onMoreModels={() => void models.more()}
@@ -1845,6 +1755,24 @@ export function Workspace({
                 }}
               />
             )}{' '}
+            {modal === 'convert-thread' && threadId && (
+              <ThreadConversionDialog
+                key={JSON.stringify([threadId, resourceEpoch, draftMode, sourceProvider])}
+                api={api} threadId={threadId} sourceProvider={sourceProvider ?? ''} epoch={resourceEpoch}
+                models={models.items} loading={models.loading || modelCatalog.refreshing}
+                more={models.hasMore} onMore={() => void models.more()}
+                enabled={active && !executionBlocked && network.activityReady && network.connection === 'connected' &&
+                  network.runtimeConnected && resumedThread === threadId && !pending && !isBusy &&
+                  !conversation.active && !conversation.realtimeActive}
+                onBusy={(working) => setBusy(current => {
+                  const next = new Set(current);
+                  if (working) next.add(contextKey); else next.delete(contextKey);
+                  return next;
+                })}
+                onCreated={(id) => { workflowHandoff(id); setModal(''); }}
+                onClose={() => setModal('')}
+              />
+            )}
             {modal === 'review' && project && (
               <ReviewDialog
                 key={threadId + resourceEpoch}
@@ -1917,12 +1845,7 @@ export function Workspace({
                 <button className="button" onClick={() => { setDraftGuard(false); setDiscardRevision(undefined); }}>返回继续编辑</button>
               </Dialog>
             )}
-            {conversionPrompt && <HistoryConversionDialog
-              source={models.items.find(row => row.modelProvider === conversionPrompt.sourceProvider)?.providerName ?? conversionPrompt.sourceProvider}
-              target={models.items.find(row => row.modelProvider === conversionPrompt.targetProvider)?.providerName ?? conversionPrompt.targetProvider}
-              action={conversionPrompt.action} current={conversionPrompt.current()}
-              mayContinue={conversionPrompt.mayContinue}
-              onCancel={() => finishConversion(false)} onConfirm={() => finishConversion(true)} />}
+
           </>
         )}
       </div>

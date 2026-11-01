@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   acknowledgeOperation,
   createOperation,
@@ -17,6 +17,45 @@ beforeEach(() => {
   sessionStorage.clear();
   vi.unstubAllGlobals();
 });
+afterEach(() => vi.restoreAllMocks());
+it('waits for explicit conversion without changing normal deadlines or repeating unknown work', async () => {
+  const timeout = vi.spyOn(AbortSignal, 'timeout');
+  const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, result: {} })));
+  vi.stubGlobal('fetch', request);
+  const api = new Api(), params = { threadId: 'a', sourceProvider: 'provider-a', targetProvider: 'provider-b', model: 'target-model', confirm: true };
+  await api.call('thread/convert', params);
+  expect(timeout).toHaveBeenLastCalledWith(360_000);
+  for (const method of ['turn/start', 'thread/resume', 'thread/read']) {
+    request.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: {} })));
+    await api.call(method, { threadId: 'a' });
+    expect(timeout).toHaveBeenLastCalledWith(30_000);
+  }
+  request.mockRejectedValueOnce(new DOMException('Timed out', 'TimeoutError'));
+  const before = request.mock.calls.length;
+  await expect(api.mutate('thread/convert', params)).rejects.toMatchObject({ delivery: 'unknown', code: 'transport_error' });
+  expect(timeout).toHaveBeenLastCalledWith(360_000);
+  expect(request.mock.calls).toHaveLength(before + 1);
+  const rows = await listOperations();
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ method: 'thread/convert', threadId: 'a', state: 'unknown' });
+  await expect(api.mutate('thread/convert', params)).rejects.toMatchObject({ delivery: 'not_sent', code: 'recovery_storage_unavailable' });
+  expect(request.mock.calls).toHaveLength(before + 1);
+});
+it('retains the accepted converted destination until that conversation consumes it', async () => {
+  const { consumeThreadOperations } = await import('../lib/operations');
+  const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, result: { thread: { id: 'converted' }, sourceThreadId: 'source' } })));
+  vi.stubGlobal('fetch', request);
+  const api = new Api();
+  await api.mutate('thread/convert', { threadId: 'source', sourceProvider: 'a', targetProvider: 'b', model: 'model', confirm: true });
+  const [record] = await listOperations();
+  expect(record).toMatchObject({ state: 'accepted', threadId: 'source', resolvedThreadId: 'converted' });
+  expect(record.consumed).not.toBe(true);
+  await consumeThreadOperations('source', [record.id]);
+  expect((await listOperations())[0].consumed).not.toBe(true);
+  await consumeThreadOperations('converted', [record.id]);
+  expect((await listOperations())[0].consumed).toBe(true);
+});
+
 describe('independent operation recovery', () => {
   it('keeps two independent intents and treats missing receipts as uncertainty', async () => {
     const a = (await createOperation('turn/start', { threadId: 'a' })),

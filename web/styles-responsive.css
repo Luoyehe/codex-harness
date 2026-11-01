@@ -194,9 +194,6 @@
     font-size: 9px;
     margin-top: 8px;
   }
-  .model-select select {
-    max-width: 150px;
-  }
   .conversation-scroll {
     padding: 18px 19px 0;
   }
@@ -353,10 +350,6 @@
   .composer textarea {
     min-height: 58px;
     max-height: 160px;
-  }
-  .model-select select {
-    font-size: 9px;
-    max-width: 120px;
   }
   .options-trigger {
     font-size: 9px !important;

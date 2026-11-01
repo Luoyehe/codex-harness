@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "kind": "new-thread-conversion-helper-implementation",
+  "status": "ready-for-independent-review",
+  "createdAt": "2026-11-01T14:01:06.161969+00:00",
+  "files": [
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "f8f39a0a8e65fd4cbd580f8ca6428b90ab8b38e23a9b7b6c950abfd5287fb784"
+    },
+    {
+      "path": "tests/deploy/test_thread_history.py",
+      "sha256": "c33b130a5b4fe2792c7897d0dc6a82848fa261020129a2eb0e45d329e1e7e2f4"
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "fde60691469375c0c4e053bc4d730623b79f79cffd425ef269b0b4a88c94535e"
+    }
+  ],
+  "change": "Explicitly supersedes the original-thread repair plus recovery-copy design. The source stays intact; clone an official empty target, then only repair the target. Runtime owns the final target-provider load, settings restoration and operation acknowledgement.",
+  "interface": {
+    "copy-inspect": "{expected,sourceMetadata}; metadata contains original baseInstructions/dynamicTools/selectedCapabilityRoots and last same-thread summary/serviceTier. No plannedRepairSha256 or speculative original repair.",
+    "recovery-copy": "{copied:true,sourcePreserved:true,expected:unchangedSourceWitness,target:{threadId,expected:newTargetWitness}}. No source gzip backup or source backup capacity consumption.",
+    "repair": "Existing exact-witness, official-writer-lock, private target gzip backup, atomic replacement and unknown-after-publication semantics remain unchanged. Runtime must direct it only to the newly created target."
+  },
+  "preservedChecks": [
+    "Fixed native identity and HOME; regular owned no-symlink/no-hardlink entries; distinct source/target IDs and files.",
+    "Independent plain paginated source and single-header ordinal-zero native target only.",
+    "Current provider/cwd metadata corroboration with header fallback, base instruction text and dynamic/capability metadata consistency.",
+    "Both source and target native writer locks under shared coordination.",
+    "Source and target SHA/stat witnesses before work and before final target publication.",
+    "Native target header and every source nonheader byte preserved at copy. Source witness remains exactly unchanged.",
+    "Nonempty target/replayed old request rejected; failures after publication remain unknown and preserve named partial target."
+  ],
+  "removed": [
+    "Unused planned repair hash calculation for the discarded original-thread recovery store.",
+    "Redundant source raw gzip backup in copy action. The original remains the user-visible original thread."
+  ],
+  "validation": {
+    "windows": {
+      "cases": 29,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 1,
+      "reason": "Symlink privilege unavailable on Windows"
+    },
+    "linux": {
+      "modules": [
+        "tests/deploy/test_thread_history.py",
+        "tests/deploy/root/test_execution_mode.py"
+      ],
+      "cases": 48,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 1,
+      "reason": "Windows-only path normalization",
+      "runnerExit": 3,
+      "runnerComplete": false,
+      "realUids": [
+        0,
+        65534
+      ],
+      "rootCase": "Both real fixed-UID launchers copy to a distinct target, reject cross-home/replay, then repair only target; source bytes/witness remain unchanged and gzip belongs to target ID."
+    },
+    "realCli": {
+      "version": "0.164.0",
+      "result": ".work/v232-conversion-copy-probes/run-SXGlkH/result.json",
+      "passed": true,
+      "requests": 2,
+      "loopbackOnly": true,
+      "sourceCreatedByActualTurn": true,
+      "sourceBytesAndProviderUnchangedAfterClosed": true,
+      "newTargetRepairedAndResumedWithProviderB": true,
+      "userAndPublicSummaryVisibleAfterRestart": true,
+      "toolPairPreserved": true,
+      "foreignReasoningNotForwardedToB": true,
+      "syntheticCompactedCheckpointIncluded": true,
+      "cleanup": true
+    },
+    "benchmark": ".work/v232-conversion-copy-benchmark.json"
+  },
+  "evidence": [
+    {
+      "path": ".work/v232-conversion-copy-python-1.log",
+      "sha256": "96331e9416c26243cdf7081cd811c2cb8e1793db12b460ba869c6a0337947254"
+    },
+    {
+      "path": ".work/v232-conversion-copy-linux-1.json",
+      "sha256": "4d0ac39b6f03a3cd323341cc36667a2bda9ae84fd6510420eb16fc3e66d0260c"
+    },
+    {
+      "path": ".work/v232-conversion-copy-linux-1.py",
+      "sha256": "eb1d84a7355bcf5aaf96d24d07277442c4640504d380168e5f8ee8397f4c84f7"
+    },
+    {
+      "path": ".work/v232-conversion-copy-probe.mjs",
+      "sha256": "fa97da93633a5bc0d6e280267a7ac182f6cc53bdb1ee275025a554ac3a8457da"
+    },
+    {
+      "path": ".work/v232-conversion-copy-probes/run-SXGlkH/result.json",
+      "sha256": "bac30a4ba55944a17b22d709a56afcca2bb39899c82a3b7666c2e76d4842abb8"
+    },
+    {
+      "path": ".work/v232-conversion-copy-benchmark.py",
+      "sha256": "92845d9ae492c0efe3572711b2435cdc60c3b6300e2db4bc5373c89a4e3179a5"
+    },
+    {
+      "path": ".work/v232-conversion-copy-benchmark.json",
+      "sha256": "d7192cc3b7c0553bf5d7aab906f61c95390a9ba49113b619c5bd2eb6fd8a4add"
+    }
+  ],
+  "priorEvidencePreserved": [
+    {
+      "path": ".work/v232-recovery-copy-helper-final.json",
+      "sha256": "0b822ed7a5bc53dff130559c877e86894ccf4f5e842921a8cf7e6b22307db70f"
+    },
+    {
+      "path": ".work/v232-recovery-copy-service-tier.json",
+      "sha256": "ee11932c59fadce72692a7d73fc775378a55352b11fe6dee8473f6786582591a"
+    }
+  ],
+  "limits": [
+    "Not an independent review of this reviewer-authored Python helper; parent reviews it separately.",
+    "Real CLI probe validates helper and history/projection behavior, not final RuntimeService permission/effort/collaboration/summary/tier restoration; runtime author owns that end-to-end test.",
+    "Source unchanged means byte/stat witness after native writer close. Native final writer flush happens before that witness is captured.",
+    "Legacy/inherited/compressed inputs remain explicitly unsupported for this copy path, not silently reconstructed.",
+    "Benchmark is synthetic repetitive data, excludes native projection/UI and worst-case incompressible backup. At 128MiB observed inspect0.217s/copy0.659s/target repair1.012s, cumulative process peak58.1MB.",
+    "No full suite, online deployment, live instance writes, paid inference or external MCP calls."
+  ]
+}

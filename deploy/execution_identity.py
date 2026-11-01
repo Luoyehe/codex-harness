@@ -62,6 +62,13 @@ def require_control(capabilities: dict, config: dict, *, enabling: bool = False)
                 "Update trusted control tools before enabling root; this generation does not support execution identities", "execution_unsupported")
 
 
+def supports_history_control(capabilities: dict, version: int = 1) -> bool:
+    # Version 2 retains inspection/repair and adds independently verified recovery
+    # copies. Unknown future versions are not an implicit compatibility promise.
+    actual = capabilities.get("threadHistoryRepair")
+    return type(actual) is int and actual in (1, 2) and actual >= version
+
+
 def require_history_control(layout, capabilities: dict, *, release: str | None = None) -> None:
     if release is None:
         pointer = layout.app / "current"
@@ -73,8 +80,9 @@ def require_history_control(layout, capabilities: dict, *, release: str | None =
         release = target.split("/")[1]
     package = read_json(layout.app / "releases" / release / "app/package.json")
     if package.get("codexHarnessThreadHistory") is not None:
-        require(type(package["codexHarnessThreadHistory"]) is int and package["codexHarnessThreadHistory"] == 1,
+        version = package["codexHarnessThreadHistory"]
+        require(type(version) is int and version in (1, 2),
                 "Unsupported application history helper contract", "history_unsupported")
-        require(type(capabilities.get("threadHistoryRepair")) is int and capabilities["threadHistoryRepair"] == 1,
-                "This application requires history repair support; update control tools first or restore a compatible application before selecting old control tools",
+        require(supports_history_control(capabilities, version),
+                "This application requires compatible history repair and recovery-copy support; update control tools first or restore a compatible application before selecting old control tools",
                 "history_unsupported")

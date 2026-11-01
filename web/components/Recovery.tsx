@@ -16,6 +16,7 @@ const operationNames: Record<string, string> = {
   'project/add': '添加已有项目', 'project/create': '新建项目', 'project/rename': '重命名项目', 'project/remove': '移除项目',
   'conversation/start': '开始新会话', 'turn/start': '发送消息', 'turn/steer': '追加指令', 'turn/interrupt': '停止任务',
   'thread/resume': '加载会话', 'thread/name/set': '重命名会话', 'thread/archive': '归档会话',
+  'thread/convert': '转换会话',
   'thread/unarchive': '取消会话归档', 'thread/delete': '删除会话', 'terminal/open': '打开终端',
   'system/provider/write': '保存模型供应商', 'system/models/refresh': '刷新模型目录',
   'system/restart': '重启服务', 'system/recover': '强制停止并恢复', 'system/execution-mode/write': '切换执行权限',

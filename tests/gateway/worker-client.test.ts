@@ -13,35 +13,39 @@ import { Dispatcher } from '../../src/gateway/dispatch.js';
 import type { JsonValue } from '../../src/core/contracts.js';
 afterEach(() => vi.restoreAllMocks());
 
-it.each(['turn/start', 'thread/resume'])('preserves bounded conversion consent details through %s receipts and replay', async method => {
-  const detail = { threadId: 'thread', sourceProvider: 'harness_zhipu', targetProvider: 'openai', conversionRequired: true };
-  const f = await fixture({ ok: false, error: { code: 'history_conversion_confirmation_required', message: 'Confirm conversion',
-    delivery: 'not_sent', data: { ...detail, privateHistory: 'must-not-leak' } } });
-  const ledger = new Ledger(':memory:');
+it.each(['not_sent', 'unknown'])('preserves partial conversion identity and %s delivery through durable replay', async delivery => {
+  const detail = { phase: 'conversion', threadId: 'converted', sourceThreadId: 'source', inputSent: false };
+  const f = await fixture({ ok: false, error: { code: 'history_conversion_failed', message: 'Inspect converted conversation.', delivery,
+    data: { ...detail, name: 'private title', path: '/private', secret: 'private token' } } });
+  const directory = mkdtempSync(path.resolve('.work/worker-conversion-')), file = path.join(directory, 'journal.sqlite');
+  let ledger = new Ledger(file);
   try {
     await f.handshake(f.socket, randomUUID());
-    const dispatcher = new Dispatcher(ledger, f.worker, { call: vi.fn(async () => ({})) });
+    let dispatcher = new Dispatcher(ledger, f.worker, { call: vi.fn(async () => ({})) });
     dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
-    const call = { method, operationId: randomUUID(), params: { threadId: 'thread' } }, context = { clientId: randomUUID() };
-    await expect(dispatcher.call(call, context)).rejects.toMatchObject({ code: 'history_conversion_confirmation_required', delivery: 'not_sent', data: detail });
-    expect(ledger.read(call.operationId)).toMatchObject({ state: 'not_sent', error: { data: detail } });
-    expect(JSON.stringify(ledger.read(call.operationId))).not.toContain('must-not-leak');
-    await expect(dispatcher.call(call, context)).rejects.toMatchObject({ code: 'history_conversion_confirmation_required', delivery: 'not_sent', data: detail });
+    const call = { method: 'thread/convert', operationId: randomUUID(), params: { threadId: 'source' } }, context = { clientId: randomUUID() };
+    await expect(dispatcher.call(call, context)).rejects.toMatchObject({ delivery, data: detail });
+    expect(ledger.read(call.operationId)).toMatchObject({ state: delivery, error: { data: detail } });
+    expect(JSON.stringify(ledger.read(call.operationId))).not.toContain('private');
+    ledger.close(); ledger = new Ledger(file);
+    dispatcher = new Dispatcher(ledger, f.worker, { call: vi.fn(async () => ({})) });
+    await expect(dispatcher.call(call, context)).rejects.toMatchObject({ delivery, data: detail });
     expect(f.requests).toHaveLength(1);
-  } finally { ledger.close(); await f.close(); }
+  } finally { ledger.close(); await f.close(); rmSync(directory, { recursive: true, force: true }); }
 });
 it.each([
-  { delivery: 'unknown', fields: {} },
-  { delivery: 'not_sent', fields: { targetProvider: '' } },
-  { delivery: 'not_sent', fields: { conversionRequired: false } },
-  { delivery: 'not_sent', fields: { sourceProvider: 'x'.repeat(257) } },
-])('drops unsafe or uncertain conversion metadata: %j', async ({ delivery, fields }) => {
-  const f = await fixture({ ok: false, error: { code: 'history_conversion_confirmation_required', message: 'Confirm conversion',
-    delivery, data: { threadId: 'thread', sourceProvider: 'a', targetProvider: 'b', conversionRequired: true, ...fields } } });
+  { method: 'thread/read', source: 'source', threadId: 'converted', inputSent: false },
+  { method: 'thread/convert', source: 'other', threadId: 'converted', inputSent: false },
+  { method: 'thread/convert', source: 'source', threadId: 'converted', inputSent: true },
+  { method: 'thread/convert', source: 'source', threadId: 'source', inputSent: false },
+  { method: 'thread/convert', source: 'source', threadId: 'x'.repeat(257), inputSent: false },
+])('drops unrelated or malformed conversion identities: %j', async ({ method, source, threadId, inputSent }) => {
+  const f = await fixture({ ok: false, error: { code: 'failure', message: 'Failure', delivery: 'unknown',
+    data: { phase: 'conversion', inputSent, threadId, sourceThreadId: source } } });
   try {
     await f.handshake(f.socket, randomUUID());
-    const error = await f.worker.call('turn/start', { threadId: 'thread' }, { clientId: randomUUID() }).catch(error => error as HarnessError);
-    expect(error).toMatchObject({ delivery }); expect((error as HarnessError).data).toBeUndefined();
+    const failure = await f.worker.call(method, { threadId: 'source' }, { clientId: randomUUID() }).catch(error => error as HarnessError);
+    expect((failure as HarnessError).data).toBeUndefined();
   } finally { await f.close(); }
 });
 

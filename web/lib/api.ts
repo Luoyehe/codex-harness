@@ -268,7 +268,9 @@ export class Api {
   ): Promise<T> {
     const csrf = this.csrf,
       generation = this.sessionGeneration;
-    const timeout = [
+    // Copying and verifying long history can take time. Wait for the gateway's
+    // 350s receipt deadline; a lost result must never trigger another conversion.
+    const timeout = method === 'thread/convert' ? 360_000 : [
       'import/apply',
       'workspace/worktree/create',
       'workspace/worktree/attach',
@@ -459,7 +461,7 @@ export class Api {
       const thread = object(object(result).thread);
       try {
         await updateOperation(id, 'accepted', typeof thread.id === 'string' ? thread.id : undefined);
-        if (![...INPUT_METHODS, 'thread/fork', 'review/startNew', 'system/recover'].includes(method))
+        if (![...INPUT_METHODS, 'thread/fork', 'thread/convert', 'review/startNew', 'system/recover'].includes(method))
           await acknowledgeOperation(id);
       } catch (error) {
         // HTTP acceptance is a fact even if local proof/cleanup failed. The durable identity remains queryable.

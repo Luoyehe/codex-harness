@@ -29,8 +29,8 @@ describe('managed provider catalogs and routing', () => {
     await expect(managed.list({ modelProvider: 'openai' }, native)).resolves.toMatchObject({ data: [] });
     expect(native.mock.calls.map(row => row[0])).toEqual(['account/read']);
     expect(() => managed.assertThread('openai', { modelProvider: 'harness_chatgpt' })).not.toThrow();
-    expect(managed.switchPlan('openai', { modelProvider: custom.modelProvider })?.modelProvider).toBe(custom.modelProvider);
-    expect(() => managed.assertThread('openai', { modelProvider: custom.modelProvider })).toThrow(/尚未切换完成/);
+    expect(managed.sameProvider('openai', custom.modelProvider)).toBe(false);
+    expect(() => managed.assertThread('openai', { modelProvider: custom.modelProvider })).toThrow(/切换供应商菜单/);
   });
   it('returns provider-scoped capabilities even when model IDs are equal', async () => {
     const native = vi.fn(async (method: string) => method === 'account/read' ? { account: { type: 'chatgpt' } } :
@@ -41,33 +41,26 @@ describe('managed provider catalogs and routing', () => {
       { modelProvider: custom.modelProvider, supportedReasoningEfforts: [{ reasoningEffort: 'low' }, { reasoningEffort: 'max' }] },
     ]);
   });
-  it('prepares a provider reload with its isolated catalog while keeping native turn params provider-free', () => {
+  it('selects a provider and isolated catalog while keeping native turn params provider-free', () => {
     const managed = new ManagedProviders(registry());
     expect(managed.selection({ modelProvider: custom.modelProvider }, false)).toEqual({ modelProvider: custom.modelProvider, model: 'same-model', effort: 'max' });
     expect(managed.selection({ modelProvider: custom.modelProvider, model: 'same-model', effort: 'max' }, true)).toEqual({ model: 'same-model', effort: 'max' });
     expect(managed.catalogOverride(custom.modelProvider)).toEqual({ model_catalog_json: custom.catalogPath });
-    expect(managed.switchPlan('harness_chatgpt', { modelProvider: custom.modelProvider })).toMatchObject({
-      sourceProvider: 'harness_chatgpt', modelProvider: custom.modelProvider, model: 'same-model',
-      config: { model_catalog_json: custom.catalogPath, model_reasoning_effort: 'max' },
-    });
-    expect(() => managed.assertThread('harness_chatgpt', { modelProvider: custom.modelProvider })).toThrow(/尚未切换完成/);
+    expect(managed.displayName(custom.modelProvider)).toBe('Personal');
+    expect(() => managed.assertThread('harness_chatgpt', { modelProvider: custom.modelProvider })).toThrow(/切换供应商菜单/);
   });
-  it('lets a disabled old provider migrate to an enabled target, but never targets a disabled provider', () => {
+  it('requires restoring a disabled source and never targets a disabled provider', () => {
     const managed = new ManagedProviders(registry([chatgpt, { ...custom, enabled: false }]));
-    expect(managed.switchPlan(custom.modelProvider, { modelProvider: 'harness_chatgpt', model: 'gpt-fixture', effort: null }))
-      .toMatchObject({ modelProvider: 'harness_chatgpt', model: 'gpt-fixture', config: { model_reasoning_effort: null }, options: { effort: null } });
-    expect(() => managed.switchPlan('harness_chatgpt', { modelProvider: custom.modelProvider, model: 'same-model' })).toThrow(/停用/);
-    expect(() => managed.switchPlan(custom.modelProvider, {})).toThrow(/停用/);
+    expect(() => managed.assertThread(custom.modelProvider, {})).toThrow(/恢复原供应商配置/);
+    expect(() => managed.resumeSelection({ modelProvider: custom.modelProvider, model: 'same-model' })).toThrow(/停用/);
   });
   it('requires a concrete target model and treats known aliases as the same provider', () => {
     const managed = new ManagedProviders(registry());
-    expect(managed.switchPlan('openai', { modelProvider: 'harness_chatgpt', model: 'gpt-fixture' })).toBeNull();
+    expect(() => managed.assertThread('openai', { modelProvider: 'harness_chatgpt', model: 'gpt-fixture' })).not.toThrow();
     expect(managed.sameProvider('openai', 'harness_chatgpt')).toBe(true);
     expect(managed.sameProvider('openai', custom.modelProvider)).toBe(false);
-    expect(() => managed.switchPlan(custom.modelProvider, { modelProvider: 'harness_chatgpt' })).toThrow(/model/);
-    expect(() => new ManagedProviders().switchPlan('legacy', { modelProvider: 'unknown', model: 'x' })).toThrow(/停用/);
-    expect(managed.switchPlan(custom.modelProvider, { modelProvider: 'harness_chatgpt', model: 'gpt-fixture' }))
-      .toMatchObject({ options: { effort: null }, config: { model_reasoning_effort: null } });
+    expect(() => managed.resumeSelection({ modelProvider: 'harness_chatgpt' })).toThrow(/model/);
+    expect(managed.resumeSelection({ modelProvider: 'harness_chatgpt', model: 'gpt-fixture' })).toMatchObject({ effort: null });
   });
   it('does not silently route an unavailable provider or a disabled historical thread', async () => {
     const managed = new ManagedProviders(registry([chatgpt, { ...custom, enabled: false }]));

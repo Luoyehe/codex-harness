@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-conversion-copy-control-review",
+  "reviewer": "root",
+  "completedAt": "2026-11-01T14:00:13.364Z",
+  "files": [
+    {
+      "path": "deploy/thread_history.py",
+      "sha256": "f8f39a0a8e65fd4cbd580f8ca6428b90ab8b38e23a9b7b6c950abfd5287fb784"
+    },
+    {
+      "path": "deploy/execution_identity.py",
+      "sha256": "9e928abd9463180f907278e8fca364b93507e22349392ce022073a77e7c5d01f"
+    },
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "6b2645c2222c0d3afec17f095f1606a1392f9725d4c5a5e637d77b9182a033a1"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "dab9f0a649e1970b372c6b2a2371dfaff97048ec52b79b7c07d43e41997ce55b"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "14559992cf6b31bf057aba2847eca46dbf611e2a92a1f56f288208786d2cadde"
+    },
+    {
+      "path": "deploy/units.py",
+      "sha256": "b0aa6c53c1bc551078d4ec00eb8fe52599cae2f5df18c083ff929d9993bb29a8"
+    },
+    {
+      "path": "package.json",
+      "sha256": "a87422cbbfd0e5b3382fe436c53d1fc75d99d6936444e1afe2a3ee7e3970cae6"
+    },
+    {
+      "path": "tests/deploy/test_thread_history.py",
+      "sha256": "c33b130a5b4fe2792c7897d0dc6a82848fa261020129a2eb0e45d329e1e7e2f4"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "3d5ba260b1db68be82505309df962b87c384c1ecf3ca7d9ab3791c81af68d7f3"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "9915c5c42ab6790e86305d8c45820235738ef97b296dbf9e70f1ac8b41333ec7"
+    },
+    {
+      "path": "tests/deploy/root/test_execution_mode.py",
+      "sha256": "fde60691469375c0c4e053bc4d730623b79f79cffd425ef269b0b4a88c94535e"
+    }
+  ],
+  "findings": [],
+  "method": "Read current complete copy scanner/publication and transform paths, unchanged lock/path/file-witness boundaries, control-version callers and changed regressions. Compare source and target roles against latest immutable-original requirement. This is the independent source review; author-targeted results are bound separately at final freeze.",
+  "checks": [
+    "Copy source is read-only. The target must be a distinct native-created independent paginated empty session in the active HOME, correct UID and exact original provider/cwd; matching instructions/dynamic tools/capabilities are required.",
+    "The official global coordination lock covers source and target writer checks, streaming, all witness checks and target replacement. A live writer is rejected. Both source and target identities/content are rechecked before publication.",
+    "Target header is preserved byte-for-byte; all source nonheader lines are copied exactly. Canonical increasing ordinals and unique initial identity are mandatory. Published-target retries fail because target is no longer empty; post-publication exceptions remain unknown.",
+    "Removed plannedRepairSha256 and source-gzip work had no remaining purpose when source is no longer converted. Target repair still uses private bounded raw backup before replacement. No backup retention was silently weakened for actual repair.",
+    "Repair keeps line boundaries and removes matching compacted-history metadata along with reasoning; it preserves nonreasoning records. Foreign encrypted compaction/inherited history remains explicitly unsupported.",
+    "Capabilities are explicit known integers: app2 requires control2, app1 supports1/2, boolean/string/future unknown values are rejected. Update, rollback, recovery and sudo policy migration use the same validator and fixed launcher verb.",
+    "Copy metadata limits bind actual UTF-8 bytes; bounded per-line processing avoids loading entire long history in memory. Service tier follows latest source thread-settings record including null and does not retain an earlier tier accidentally."
+  ],
+  "limitations": [
+    "No main-instance mutation or personal credential read.",
+    "Runtime orchestration and browser behavior require their own independent review and targeted evidence.",
+    "No claim that whole repository or full test matrix has passed."
+  ]
+}

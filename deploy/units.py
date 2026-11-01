@@ -193,11 +193,12 @@ def sudo_variants(layout: Layout, config: dict) -> dict[bytes, tuple[bool, bool,
 def migrated_history_sudo(layout: Layout, config: dict, data: bytes) -> bytes:
     """Upgrade only this fixed verb when recovering an older stopped snapshot."""
     from .common import read_json, require
+    from .execution_identity import supports_history_control
     variants = sudo_variants(layout, config)
     require(data in variants, "Retained sudo policy is not an exact generated definition", "integrity")
     path = layout.control / "capabilities.json"
     capabilities = read_json(path, 4096) if path.exists() else {}
-    if type(capabilities.get("threadHistoryRepair")) is not int or capabilities["threadHistoryRepair"] != 1:
+    if not supports_history_control(capabilities):
         return data
     workspace, catalog, _ = variants[data]
     return sudo_rule(layout, config=config, workspace=workspace, legacy_catalog_server=catalog).encode()

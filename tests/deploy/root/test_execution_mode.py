@@ -40,7 +40,7 @@ class ExecutionModeRootTests(unittest.TestCase):
         write_json(self.layout.config / "instance.json", self.config)
         write_json(self.layout.config / "native.json", native_settings(self.layout, self.config), mode=0o644)
         atomic_write(self.layout.config / "gateway-token", b"fixture-token-not-personal" * 3, 0o640, 0, 65532)
-        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "sharedChatgptAuth": 1, "threadHistoryRepair": 1}, mode=0o644)
+        write_json(self.layout.control / "capabilities.json", {"executionMode": 1, "providerConfigLayer": "system-v1", "sharedChatgptAuth": 1, "threadHistoryRepair": 2}, mode=0o644)
         for name, content in render_units(self.layout, self.config, self.config["codexRelative"]).items():
             atomic_write(self.layout.units / name, content.encode(), 0o644)
         atomic_write(paths(self.layout)["sudo"], sudo_rule(self.layout).encode(), 0o440)
@@ -148,7 +148,7 @@ class ExecutionModeRootTests(unittest.TestCase):
                 pending.append(path); raise PowerLoss()
         with patch("deploy.execution_mode.write_json", side_effect=crash), self.assertRaises(PowerLoss):
             change(self.manager, self.params("root"))
-        capabilities["threadHistoryRepair"] = 1; write_json(capability_path, capabilities, mode=0o644)
+        capabilities["threadHistoryRepair"] = 2; write_json(capability_path, capabilities, mode=0o644)
         recover(self.manager, pending[0], read_json(pending[0]))
         self.assertEqual(paths(self.layout)["sudo"].read_bytes(), sudo_rule(self.layout, config=self.manager.config).encode())
         self.assertEqual(self.manager.verify()["sudoPolicy"], "current")
@@ -325,8 +325,8 @@ class ExecutionModeRootTests(unittest.TestCase):
         import gzip
         from deploy.execution_mode import prepare_home
         thread_id = "00000000-0000-4000-8000-000000000001"
-        def record(kind, payload):
-            return (json.dumps({"type": kind, "payload": payload}) + "\n").encode()
+        def record(kind, payload, ordinal=0):
+            return (json.dumps({"ordinal": ordinal, "type": kind, "payload": payload}) + "\n").encode()
         self.grant()
         prepare_home(self.layout, {**self.manager.config, "executionMode": "root"})
         for parent in [self.layout.state, self.layout.config, *self.layout.config.parents]:
@@ -341,8 +341,10 @@ class ExecutionModeRootTests(unittest.TestCase):
                 home = Path(settings["home"])
                 mkdir(home / "sessions", 0o700, uid, uid)
                 path = home / "sessions" / ("rollout-" + thread_id + ".jsonl")
-                original = record("session_meta", {"id": thread_id, "history_mode": "paginated"}) + record("response_item", {
-                    "type": "reasoning", "summary": [], "content": [{"type": "reasoning_text", "text": "synthetic private reasoning"}]})
+                source_settings = {"cwd": str(home), "model_provider": "fixture", "history_mode": "paginated",
+                                   "base_instructions": {"text": "synthetic base instructions"}}
+                original = record("session_meta", {**source_settings, "id": thread_id}) + record("response_item", {
+                    "type": "reasoning", "summary": [], "content": [{"type": "reasoning_text", "text": "synthetic private reasoning"}]}, 1)
                 atomic_write(path, original, 0o600, uid, uid)
                 code = "import os,sys;from pathlib import Path;from deploy import native_launcher as n;from deploy.common import Layout;" + \
                        "n.Layout=lambda _:Layout('fixture',Path(" + repr(str(self.root)) + "));" + \
@@ -354,13 +356,43 @@ class ExecutionModeRootTests(unittest.TestCase):
                 request = {"action": "inspect", "threadId": thread_id, "path": str(path), "mode": "foreign"}
                 inspected = invoke(request); self.assertEqual(inspected.returncode, 0, inspected.stderr.decode())
                 proof = json.loads(inspected.stdout); self.assertTrue(proof["needsRepair"])
-                repaired = invoke({**request, "action": "repair", "expected": proof["expected"]})
+                metadata = invoke({**request, "action": "copy-inspect"})
+                self.assertEqual(metadata.returncode, 0, metadata.stderr.decode())
+                self.assertEqual(json.loads(metadata.stdout)["sourceMetadata"]["baseInstructions"], "synthetic base instructions")
+                target_id = "00000000-0000-4000-8000-000000000002"
+                target = home / "sessions" / ("rollout-" + target_id + ".jsonl")
+                target_raw = record("session_meta", {**source_settings, "id": target_id})
+                atomic_write(target, target_raw, 0o600, uid, uid)
+                target_proof = invoke({**request, "threadId": target_id, "path": str(target), "action": "copy-inspect"})
+                self.assertEqual(target_proof.returncode, 0, target_proof.stderr.decode())
+                copy_request = {**request, "action": "recovery-copy", "expected": proof["expected"],
+                    "cwd": str(home), "sourceProvider": "fixture",
+                    "target": {"threadId": target_id, "path": str(target), "expected": json.loads(target_proof.stdout)["expected"]}}
+                copied = invoke(copy_request); self.assertEqual(copied.returncode, 0, copied.stderr.decode())
+                self.assertTrue(json.loads(copied.stdout)["copied"])
+                self.assertTrue(json.loads(copied.stdout)["sourcePreserved"])
+                self.assertEqual(json.loads(copied.stdout)["expected"], proof["expected"])
+                self.assertEqual(path.read_bytes(), original)
+                self.assertEqual(target.read_bytes(), target_raw + original.split(b"\n", 1)[1])
+                self.assertEqual((target.stat().st_uid, target.stat().st_mode & 0o777), (uid, 0o600))
+                retry = invoke(copy_request); self.assertEqual(retry.returncode, 1)
+                self.assertEqual(json.loads(retry.stdout)["error"]["delivery"], "not_sent")
+                other_home = Path(native_settings(self.layout, {**config, "executionMode": "native" if mode == "root" else "root"})["home"])
+                denied = invoke({**copy_request, "target": {**copy_request["target"], "path": str(other_home / "sessions" / target.name)}})
+                self.assertEqual(denied.returncode, 1)
+                self.assertEqual(json.loads(denied.stdout)["error"]["delivery"], "not_sent")
+                target_before = target.read_bytes()
+                repaired = invoke({**request, "threadId": target_id, "path": str(target), "action": "repair",
+                                   "expected": json.loads(copied.stdout)["target"]["expected"]})
                 self.assertEqual(repaired.returncode, 0, repaired.stderr.decode())
                 self.assertTrue(json.loads(repaired.stdout)["repaired"])
                 backup = next((home / "harness-history-backups").glob("*.jsonl.gz"))
-                self.assertEqual(gzip.decompress(backup.read_bytes()), original)
+                self.assertTrue(backup.name.startswith(target_id + "-"))
+                self.assertEqual(gzip.decompress(backup.read_bytes()), target_before)
                 self.assertEqual((backup.stat().st_uid, backup.stat().st_mode & 0o777), (uid, 0o600))
-                self.assertEqual(path.stat().st_uid, uid)
+                self.assertEqual(target.stat().st_uid, uid)
+                self.assertEqual(path.read_bytes(), original)
+                self.assertEqual(json.loads(invoke(request).stdout)["expected"], proof["expected"])
                 self.assertNotIn(b"synthetic private reasoning", inspected.stdout + repaired.stdout)
                 outside = invoke({**request, "path": str(self.root / "outside.jsonl")})
                 self.assertEqual(outside.returncode, 1)
